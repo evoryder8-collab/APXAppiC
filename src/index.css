@@ -1,0 +1,198 @@
+@import "tailwindcss";
+@import "@fontsource-variable/space-grotesk";
+@import "@fontsource-variable/jetbrains-mono";
+
+@theme {
+  --font-display: "Space Grotesk Variable", "Space Grotesk", system-ui, sans-serif;
+  --font-mono: "JetBrains Mono Variable", "JetBrains Mono", ui-monospace, "SF Mono", monospace;
+
+  --color-canvas: #f7f8fb;
+  --color-ink: #1a1a22;
+  --color-ink-soft: #55555f;
+  --color-ink-faint: #74747f;
+
+  /* Accents, deepened one notch for vibrancy that still reads on white */
+  --color-amber: #d97706;
+  --color-amber-bright: #f59e0b;
+  --color-amber-soft: #fbbf24;
+  --color-teal: #0d9488;
+  --color-teal-bright: #14b8a6;
+  --color-teal-soft: #2dd4bf;
+  --color-violet: #7c3aed;
+  --color-violet-bright: #8b5cf6;
+  --color-violet-soft: #a78bfa;
+  --color-emerald: #059669;
+  --color-emerald-bright: #10b981;
+  --color-emerald-soft: #34d399;
+  --color-ice: #38bdf8;
+  --color-ice-soft: #bae6fd;
+  --color-crimson: #dc2626;
+}
+
+html {
+  scroll-behavior: smooth;
+}
+
+body {
+  background: var(--color-canvas);
+  color: var(--color-ink);
+  font-family: var(--font-display);
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  min-height: 100dvh;
+  overflow-x: hidden;
+}
+
+/* ---------------------------------------------------------------- */
+/* Frosted glass on light. Translucent white over the color blobs,  */
+/* 1px inner top-edge white highlight, soft colored shadow below.   */
+/* ---------------------------------------------------------------- */
+.glass {
+  position: relative;
+  background: linear-gradient(
+    150deg,
+    rgba(255, 255, 255, 0.74) 0%,
+    rgba(255, 255, 255, 0.56) 100%
+  );
+  -webkit-backdrop-filter: blur(24px) saturate(180%);
+  backdrop-filter: blur(24px) saturate(180%);
+  border: 1px solid rgba(26, 26, 34, 0.08);
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 20px 44px -18px var(--glow-strong, rgba(26, 26, 34, 0.16));
+}
+
+/* Breathing glow: saturated colored halo pulsing slowly. */
+@keyframes breathe {
+  0%,
+  100% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 18px 40px -14px var(--glow-strong, rgba(26, 26, 34, 0.2)),
+      0 0 32px -4px var(--glow-soft, rgba(26, 26, 34, 0.1));
+  }
+  50% {
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.95),
+      0 26px 58px -14px var(--glow-strong, rgba(26, 26, 34, 0.28)),
+      0 0 60px 0 var(--glow-strong, rgba(26, 26, 34, 0.18));
+  }
+}
+
+.breathe {
+  animation: breathe 3.6s ease-in-out infinite;
+}
+
+/* ---------------------------------------------------------------- */
+/* Ambient blobs: large blurred radial gradients drifting slowly    */
+/* behind everything so the white canvas always feels alive.        */
+/* ---------------------------------------------------------------- */
+.blob {
+  position: absolute;
+  border-radius: 9999px;
+  pointer-events: none;
+  filter: blur(90px);
+  will-change: transform;
+}
+
+@keyframes drift-1 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  33% {
+    transform: translate3d(8vw, -6vh, 0) scale(1.14);
+  }
+  66% {
+    transform: translate3d(-6vw, 5vh, 0) scale(0.94);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes drift-2 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  40% {
+    transform: translate3d(-9vw, 7vh, 0) scale(1.1);
+  }
+  70% {
+    transform: translate3d(5vw, -5vh, 0) scale(0.96);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+@keyframes drift-3 {
+  0% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+  30% {
+    transform: translate3d(6vw, 8vh, 0) scale(1.08);
+  }
+  65% {
+    transform: translate3d(-8vw, -4vh, 0) scale(1.16);
+  }
+  100% {
+    transform: translate3d(0, 0, 0) scale(1);
+  }
+}
+
+/* Fine grain so the soft gradients never band. */
+.grain {
+  position: fixed;
+  inset: 0;
+  z-index: 50;
+  pointer-events: none;
+  opacity: 0.035;
+  background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='160' height='160'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='0.9' numOctaves='2' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='160' height='160' filter='url(%23n)'/%3E%3C/svg%3E");
+}
+
+/* Light-glass shimmering skeleton. */
+@keyframes shimmer {
+  from {
+    background-position: 200% 0;
+  }
+  to {
+    background-position: -200% 0;
+  }
+}
+
+.skeleton {
+  background-image: linear-gradient(
+    100deg,
+    rgba(255, 255, 255, 0) 40%,
+    rgba(255, 255, 255, 0.85) 50%,
+    rgba(255, 255, 255, 0) 60%
+  );
+  background-size: 200% 100%;
+  background-repeat: no-repeat;
+  animation: shimmer 2.4s linear infinite;
+}
+
+/* Sync-status dot pulse ring. */
+@keyframes ping-soft {
+  0% {
+    transform: scale(1);
+    opacity: 0.6;
+  }
+  100% {
+    transform: scale(2.6);
+    opacity: 0;
+  }
+}
+
+.ping-soft {
+  animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  .breathe,
+  .blob,
+  .skeleton,
+  .ping-soft {
+    animation: none !important;
+  }
+}
