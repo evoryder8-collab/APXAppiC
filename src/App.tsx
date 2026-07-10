@@ -1,12 +1,19 @@
-import type { ReactNode } from 'react'
-import { HashRouter, Route, Routes, useLocation } from 'react-router-dom'
+import { useEffect, type ReactNode } from 'react'
+import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AmbientBackground } from './components/AmbientBackground'
 import { TopBar } from './components/TopBar'
 import { Portal } from './pages/Portal'
-import { SectionPlaceholder } from './pages/SectionPlaceholder'
+import { Nutrition } from './pages/Nutrition'
+import { WorkoutSection } from './pages/WorkoutSection'
+import { AvatarPage } from './pages/AvatarPage'
+import { Settings } from './pages/Settings'
+import { Player } from './pages/Player'
+import { Login } from './pages/Login'
+import { AppStoreProvider, useStore } from './store/AppStore'
+import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
-import { AvatarIcon, BoltIcon, LeafIcon, SlidersIcon, TransitionIcon } from './components/Icons'
+import { startReminderLoop } from './lib/notify'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -29,39 +36,13 @@ function AnimatedRoutes() {
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route
-          path="/"
-          element={
-            <Page>
-              <Portal />
-            </Page>
-          }
-        />
-        <Route
-          path="/nutrition"
-          element={
-            <Page>
-              <SectionPlaceholder
-                accent={ACCENTS.amber}
-                title="Nutrition"
-                phase="ARRIVES IN PHASE 3"
-                description="Targets, meal reminders, your supplement timeline and the fast evening log. All of it lands here."
-                icon={<LeafIcon className="h-7 w-7" />}
-              />
-            </Page>
-          }
-        />
+        <Route path="/" element={<Page><Portal /></Page>} />
+        <Route path="/nutrition" element={<Page><Nutrition /></Page>} />
         <Route
           path="/transition"
           element={
             <Page>
-              <SectionPlaceholder
-                accent={ACCENTS.teal}
-                title="Transition Phase"
-                phase="ARRIVES IN PHASE 4"
-                description="Your current home program. Calendar, guided player, streaks and smart progression are on the way."
-                icon={<TransitionIcon className="h-7 w-7" />}
-              />
+              <WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" />
             </Page>
           }
         />
@@ -69,55 +50,69 @@ function AnimatedRoutes() {
           path="/main-phase"
           element={
             <Page>
-              <SectionPlaceholder
-                accent={ACCENTS.violet}
-                title="Main Phase"
-                phase="ARRIVES IN PHASE 4"
-                description="Elite V6, full and Lite variants. It waits here until the transition is done."
-                icon={<BoltIcon className="h-7 w-7" />}
-              />
+              <WorkoutSection slug="main" accent={ACCENTS.violet} title="Main Phase" />
             </Page>
           }
         />
-        <Route
-          path="/avatar"
-          element={
-            <Page>
-              <SectionPlaceholder
-                accent={ACCENTS.emerald}
-                title="Avatar"
-                phase="ARRIVES IN PHASE 7"
-                description="Six stat bars, the radar chart, your level and the recommendation engine. The game lives here."
-                icon={<AvatarIcon className="h-7 w-7" />}
-              />
-            </Page>
-          }
-        />
-        <Route
-          path="/settings"
-          element={
-            <Page>
-              <SectionPlaceholder
-                accent={ACCENTS.violet}
-                title="Settings"
-                phase="ARRIVES IN PHASE 3"
-                description="Profile, body stats, targets and notification preferences arrive together with the Nutrition build."
-                icon={<SlidersIcon className="h-7 w-7" />}
-              />
-            </Page>
-          }
-        />
+        <Route path="/avatar" element={<Page><AvatarPage /></Page>} />
+        <Route path="/settings" element={<Page><Settings /></Page>} />
+        <Route path="/player/:slug/:date" element={<Page><Player /></Page>} />
+        <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
   )
 }
 
-export default function App() {
+/* Meal + supplement reminders run whenever the app is open and signed in */
+function Reminders() {
+  const { data } = useStore()
+  useEffect(() => {
+    return startReminderLoop(() => ({
+      meals: data.meals,
+      supplements: data.supplements,
+      trainingTime: data.profile?.training_time ?? '19:00',
+      enabled: data.settings?.notifications_on ?? false,
+    }))
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [data.meals, data.supplements, data.profile?.training_time, data.settings?.notifications_on])
+  return null
+}
+
+function Shell() {
+  const { ready, authed, toasts } = useStore()
+
+  if (!ready) {
+    return (
+      <div className="flex min-h-dvh items-center justify-center">
+        <div className="glass skeleton h-24 w-64 rounded-3xl" aria-label="Loading APEX" />
+      </div>
+    )
+  }
+  if (!authed) {
+    return (
+      <>
+        <Login />
+        <Toasts items={toasts} />
+      </>
+    )
+  }
   return (
-    <HashRouter>
-      <AmbientBackground />
+    <>
       <TopBar />
       <AnimatedRoutes />
-    </HashRouter>
+      <Reminders />
+      <Toasts items={toasts} />
+    </>
+  )
+}
+
+export default function App() {
+  return (
+    <AppStoreProvider>
+      <HashRouter>
+        <AmbientBackground />
+        <Shell />
+      </HashRouter>
+    </AppStoreProvider>
   )
 }
