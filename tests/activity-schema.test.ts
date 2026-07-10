@@ -6,6 +6,10 @@ const migration = await readFile(
   new URL('../supabase/migrations/003_daily_activity_estimator.sql', import.meta.url),
   'utf8',
 )
+const seedRepairMigration = await readFile(
+  new URL('../supabase/migrations/004_seed_repair_version.sql', import.meta.url),
+  'utf8',
+)
 
 test('activity migration is additive, idempotent, and backfills Quick Mode', () => {
   assert.match(migration, /create table if not exists activity_types/i)
@@ -28,4 +32,10 @@ test('calibration and daily snapshot fields are per-user table additions', () =>
   assert.match(migration, /daily_logs add column if not exists estimated_tdee/i)
   assert.match(migration, /daily_logs add column if not exists computed_pal/i)
   assert.match(migration, /daily_logs add column if not exists weight_kg/i)
+})
+
+test('seed repair marker is additive and defaults existing profiles to pending', () => {
+  assert.match(seedRepairMigration, /profile add column if not exists seed_version/i)
+  assert.match(seedRepairMigration, /not null default 0/i)
+  assert.doesNotMatch(seedRepairMigration, /drop table|truncate table|delete from/i)
 })

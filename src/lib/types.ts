@@ -35,6 +35,7 @@ export interface Profile {
   training_time: string // 'HH:mm', default anchor for training-relative supplements
   baseline_date: string // ISO date the RPG engine starts from
   profile_note: string
+  seed_version: number
   calibration_k: number
   calibration_history: CalibrationHistoryEntry[]
   updated_at: string

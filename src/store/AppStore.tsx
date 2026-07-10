@@ -40,6 +40,7 @@ import {
   normalizeActivityType,
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
+import { repairSeedDefinitions, type SeedDefinitionTable } from '../lib/seedRepair'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -97,6 +98,7 @@ function normalizeAppData(value: AppData): AppData {
     ? {
         ...value.profile,
         calibration_k: Number(value.profile.calibration_k ?? 1),
+        seed_version: Number(value.profile.seed_version ?? 0),
         calibration_history: Array.isArray(value.profile.calibration_history)
           ? value.profile.calibration_history
           : [],
@@ -314,6 +316,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             target_fat_g: cachedProfile.target_fat_g ?? null,
             target_carbs_g: cachedProfile.target_carbs_g ?? null,
             profile_note: cachedProfile.profile_note ?? '',
+            seed_version: Number(cachedProfile.seed_version ?? 0),
             calibration_k: Number(cachedProfile.calibration_k ?? 1),
             calibration_history: Array.isArray(cachedProfile.calibration_history)
               ? cachedProfile.calibration_history
@@ -383,32 +386,25 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       })
       next.daily_logs = next.daily_logs.map(normalizeDailyLog)
 
-      /* First sign-in: seed everything */
-      if (!next.profile || next.programs.length === 0) {
-        const seeded = buildSeedData(session.user.id, accountPersona)
-        const merged: AppData = {
-          ...next,
-          profile: next.profile ?? seeded.profile,
-          settings: next.settings ?? seeded.settings,
-          meals: next.meals.length ? next.meals : seeded.meals,
-          supplements: next.supplements.length ? next.supplements : seeded.supplements,
-          programs: next.programs.length ? next.programs : seeded.programs,
-          program_days: next.program_days.length ? next.program_days : seeded.program_days,
-          exercises: next.exercises.length ? next.exercises : seeded.exercises,
+      const seeded = buildSeedData(session.user.id, accountPersona)
+      const repair = repairSeedDefinitions(next, seeded)
+      persist(normalizeAppData(repair.data))
+
+      if (repair.needsRepair) {
+        /* Definition rows go first and the profile version marker goes last.
+           A second device can therefore resume an interrupted repair safely. */
+        if (repair.settingsChanged && repair.data.settings) {
+          enqueue({ table: 'settings', type: 'upsert', payload: repair.data.settings })
         }
-        persist(normalizeAppData(merged))
-        /* Push seeds through the queue so they land server-side too */
-        if (!next.profile && merged.profile) enqueue({ table: 'profile', type: 'upsert', payload: merged.profile })
-        if (!next.settings && merged.settings) enqueue({ table: 'settings', type: 'upsert', payload: merged.settings })
-        if (!next.meals.length) merged.meals.forEach((r) => enqueue({ table: 'meals', type: 'upsert', payload: r }))
-        if (!next.supplements.length) merged.supplements.forEach((r) => enqueue({ table: 'supplements', type: 'upsert', payload: r }))
-        if (!next.programs.length) {
-          merged.programs.forEach((r) => enqueue({ table: 'programs', type: 'upsert', payload: r }))
-          merged.program_days.forEach((r) => enqueue({ table: 'program_days', type: 'upsert', payload: r }))
-          merged.exercises.forEach((r) => enqueue({ table: 'exercises', type: 'upsert', payload: r }))
+        const seedTables: SeedDefinitionTable[] = ['meals', 'supplements', 'programs', 'program_days', 'exercises']
+        for (const table of seedTables) {
+          if (repair.missing[table].length > 0) {
+            enqueue({ table, type: 'upsert', payload: repair.missing[table] })
+          }
         }
-      } else {
-        persist(normalizeAppData(next))
+        if (repair.profileChanged && repair.data.profile) {
+          enqueue({ table: 'profile', type: 'upsert', payload: repair.data.profile })
+        }
       }
     } catch {
       toast('Could not reach Supabase, running from local cache')
