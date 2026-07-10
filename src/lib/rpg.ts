@@ -605,3 +605,137 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
   }
   return advices.sort((a, b) => b.severity - a.severity).slice(0, 3)
 }
+
+/* ---------------- Written whole-body assessment ---------------- */
+
+export interface BodyAssessment {
+  title: string
+  summary: string
+  confidence: 'Building signal' | 'Moderate signal' | 'Strong signal'
+  strengths: string[]
+  priorities: string[]
+}
+
+type AssessmentStat = 'health' | 'joint' | 'flexibility' | 'endurance' | 'strength'
+
+const ASSESSMENT_LABELS: Record<AssessmentStat, string> = {
+  health: 'Health',
+  joint: 'Joint health',
+  flexibility: 'Flexibility',
+  endurance: 'Endurance',
+  strength: 'Strength',
+}
+
+const LOW_STAT_ACTION: Record<AssessmentStat, string> = {
+  health: 'Make hydration, protein and a complete evening log the daily floor; those are the fastest controllable inputs to your Health score.',
+  joint: 'Keep the next deload and mobility block intact, and avoid load jumps that require Guardian overrides.',
+  flexibility: 'Add two short mobility exposures this week, especially after long editing or desk sessions.',
+  endurance: 'Restore one focused cardio session this week and arrive hydrated; endurance is the quickest quality to detrain.',
+  strength: 'Protect the next two strength sessions and progress only when the logged reps and RIR support it.',
+}
+
+export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAssessment | null {
+  const profile = data.profile
+  const now = snapshots[snapshots.length - 1]
+  if (!profile || !now) return null
+
+  const before = snapshots[Math.max(0, snapshots.length - 15)] ?? now
+  const overallDelta = now.overall - before.overall
+  const stats = (Object.keys(ASSESSMENT_LABELS) as AssessmentStat[])
+    .map((key) => ({ key, label: ASSESSMENT_LABELS[key], value: now[key] }))
+    .sort((a, b) => b.value - a.value)
+  const strongest = stats[0]
+  const weakest = stats[stats.length - 1]
+  const spread = strongest.value - weakest.value
+
+  const recentStart = addDaysIso(now.date, -13)
+  const recentLogs = data.daily_logs.filter((log) => log.date >= recentStart && log.date <= now.date)
+  const recentSessions = data.workout_sessions.filter(
+    (session) => session.completed && session.date >= recentStart && session.date <= now.date,
+  )
+  const evidenceDays = new Set<string>()
+  for (const log of recentLogs) evidenceDays.add(log.date)
+  for (const session of recentSessions) evidenceDays.add(session.date)
+  for (const metric of data.health_metrics) {
+    if (metric.date >= recentStart && metric.date <= now.date) evidenceDays.add(metric.date)
+  }
+  for (const activity of data.imported_activities) {
+    if (activity.date >= recentStart && activity.date <= now.date) evidenceDays.add(activity.date)
+  }
+  const confidence: BodyAssessment['confidence'] =
+    evidenceDays.size >= 10 ? 'Strong signal' : evidenceDays.size >= 5 ? 'Moderate signal' : 'Building signal'
+
+  const trendSentence =
+    overallDelta > 0.4
+      ? `Your Overall score has risen ${overallDelta.toFixed(1)} points over the comparison window, so the current direction is productive.`
+      : overallDelta < -0.4
+        ? `Your Overall score has fallen ${Math.abs(overallDelta).toFixed(1)} points over the comparison window, which points to an underfed training or recovery input.`
+        : 'Your Overall score is broadly stable, so the next improvement will come from consistently feeding the weakest quality.'
+  const balanceSentence =
+    spread <= 8
+      ? 'The profile is relatively balanced, with no single quality dramatically behind the rest.'
+      : `${weakest.label} is the clearest limiter at ${weakest.value.toFixed(0)}, while ${strongest.label} currently leads at ${strongest.value.toFixed(0)}.`
+
+  const title =
+    now.overall >= 75
+      ? 'Strong foundation — refine the weak link'
+      : now.overall >= 60
+        ? 'Solid base with a clear next unlock'
+        : now.overall >= 45
+          ? 'Rebuilding phase — consistency will compound quickly'
+          : 'Foundation phase — make the basics repeatable'
+
+  const strengths: string[] = [
+    `${strongest.label} is your strongest current signal at ${strongest.value.toFixed(0)}.`,
+  ]
+  if (overallDelta > 0.4) strengths.push(`Momentum is positive: Overall +${overallDelta.toFixed(1)}.`)
+  if (recentSessions.length > 0) {
+    strengths.push(`${recentSessions.length} planned session${recentSessions.length === 1 ? '' : 's'} completed in the last 14 days.`)
+  }
+
+  const targets = computeTargets(profile)
+  const loggedProteinDays = recentLogs.filter((log) => log.protein_g != null)
+  const proteinHitRate = loggedProteinDays.length === 0
+    ? null
+    : loggedProteinDays.filter((log) => (log.protein_g ?? 0) >= targets.protein_g * 0.95).length / loggedProteinDays.length
+  const hydratedDays = recentLogs.filter((log) => log.water_l > 0)
+  const hydrationHitRate = hydratedDays.length === 0
+    ? null
+    : hydratedDays.filter((log) => log.water_l >= targets.water_l * 0.9).length / hydratedDays.length
+  if (proteinHitRate != null && proteinHitRate >= 0.7) strengths.push(`Protein was on target on ${Math.round(proteinHitRate * 100)}% of logged days.`)
+  if (hydrationHitRate != null && hydrationHitRate >= 0.7) strengths.push(`Hydration was on target on ${Math.round(hydrationHitRate * 100)}% of logged days.`)
+  if (strengths.length < 2) {
+    const runnerUp = stats[1]
+    strengths.push(`${runnerUp.label} is the next strongest quality at ${runnerUp.value.toFixed(0)}, giving you a useful base to build from.`)
+  }
+  if (strengths.length < 3) {
+    strengths.push(
+      now.strength_upper > now.strength_lower + CONVERGENCE_GAP
+        ? `Upper-body strength has retained a solid base at ${now.strength_upper.toFixed(0)} while the lower body catches up.`
+        : 'Upper- and lower-body strength are close enough to progress as one balanced system.',
+    )
+  }
+
+  const priorities: string[] = [LOW_STAT_ACTION[weakest.key]]
+  if (now.strength_lower < now.strength_upper - CONVERGENCE_GAP) {
+    priorities.push(`Close the upper/lower strength gap (${now.strength_upper.toFixed(0)} vs ${now.strength_lower.toFixed(0)}) by protecting both weekly leg sessions.`)
+  }
+  if (recentLogs.length < 5) {
+    priorities.push('Log at least five of the next seven days; more intake and hydration evidence will make this assessment materially sharper.')
+  } else if (hydrationHitRate != null && hydrationHitRate < 0.6) {
+    priorities.push(`Hydration reached target on only ${Math.round(hydrationHitRate * 100)}% of logged days. Build a repeatable 2.5–3 L rhythm.`)
+  } else if (proteinHitRate != null && proteinHitRate < 0.6) {
+    priorities.push(`Protein reached target on only ${Math.round(proteinHitRate * 100)}% of logged days. Distribute it across the target-aligned meals.`)
+  }
+  if (priorities.length < 2) {
+    priorities.push('Keep strength, cardio and mobility exposures present every week so one stat does not improve at the expense of another.')
+  }
+
+  return {
+    title,
+    summary: `${balanceSentence} ${trendSentence}`,
+    confidence,
+    strengths: strengths.slice(0, 3),
+    priorities: priorities.slice(0, 3),
+  }
+}

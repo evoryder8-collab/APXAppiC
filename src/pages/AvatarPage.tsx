@@ -9,7 +9,7 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import { AccentChip, EASE, GlassCard, GradientButton, SectionHeader } from '../components/ui'
-import { BASELINE, overallOf, whatYourBodyNeeds } from '../lib/rpg'
+import { assessBodyState, BASELINE, overallOf, whatYourBodyNeeds } from '../lib/rpg'
 import type { SynergyEvent, SynergyKind } from '../lib/rpg'
 import type { RpgSnapshot } from '../lib/types'
 import { format as fmtDate } from 'date-fns'
@@ -43,6 +43,7 @@ export function AvatarPage() {
   const now = snapshots[snapshots.length - 1] ?? null
   const before = snapshots[Math.max(0, snapshots.length - 15)] ?? now
   const advice = useMemo(() => whatYourBodyNeeds(data, snapshots), [data, snapshots])
+  const assessment = useMemo(() => assessBodyState(data, snapshots), [data, snapshots])
 
   if (!now) return null
 
@@ -245,6 +246,43 @@ export function AvatarPage() {
               )
             })}
           </div>
+
+          {assessment && (
+            <motion.div
+              initial={{ opacity: 0, y: 8 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.15, duration: 0.45, ease: EASE }}
+              className="mt-6 border-t border-ink/8 pt-5"
+            >
+              <div className="flex flex-wrap items-start justify-between gap-2">
+                <div>
+                  <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-faint uppercase">APEX assessment</p>
+                  <h3 className="mt-1 font-display text-base font-bold text-ink">{assessment.title}</h3>
+                </div>
+                <AccentChip accent={emerald}>{assessment.confidence.toUpperCase()}</AccentChip>
+              </div>
+              <p className="mt-2 text-[13.5px] leading-relaxed font-medium text-ink-soft">
+                {assessment.summary}
+              </p>
+              <div className="mt-4 grid gap-3 sm:grid-cols-2">
+                <div className="rounded-2xl p-3.5" style={{ background: 'rgba(16,185,129,0.07)' }}>
+                  <p className="text-[11px] font-bold tracking-wide text-emerald uppercase">What is working</p>
+                  <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed font-medium text-ink-soft">
+                    {assessment.strengths.map((item) => <li key={item}>✓ {item}</li>)}
+                  </ul>
+                </div>
+                <div className="rounded-2xl p-3.5" style={{ background: 'rgba(245,158,11,0.08)' }}>
+                  <p className="text-[11px] font-bold tracking-wide text-amber uppercase">Highest-return improvements</p>
+                  <ol className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed font-medium text-ink-soft">
+                    {assessment.priorities.map((item, index) => <li key={item}>{index + 1}. {item}</li>)}
+                  </ol>
+                </div>
+              </div>
+              <p className="mt-3 text-[10.5px] leading-relaxed font-medium text-ink-faint">
+                Performance guidance generated from your APEX logs and trends; it is not a medical diagnosis.
+              </p>
+            </motion.div>
+          )}
         </GlassCard>
 
         {/* Baseline reasoning */}

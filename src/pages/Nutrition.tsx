@@ -1,6 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { format, subDays } from 'date-fns'
+import { format, getISODay, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import {
@@ -12,11 +12,12 @@ import {
   Stepper,
   Toggle,
 } from '../components/ui'
-import { computeTargets, ACTIVITY_MULTIPLIERS, GOALS } from '../lib/nutrition'
+import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS } from '../lib/nutrition'
 import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
+import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
 
 const amber = ACCENTS.amber
 
@@ -41,12 +42,14 @@ export function Nutrition() {
   const profile = data.profile
   const targets = useMemo(() => (profile ? computeTargets(profile) : null), [profile])
   const [showBmrInfo, setShowBmrInfo] = useState(false)
+  const [selectedLogDate, setSelectedLogDate] = useState(today)
+  const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
 
-  const todayLog: DailyLog =
-    data.daily_logs.find((d) => d.date === today) ?? {
-      id: dailyLogId(today),
+  const selectedLog: DailyLog =
+    data.daily_logs.find((d) => d.date === selectedLogDate) ?? {
+      id: dailyLogId(selectedLogDate),
       user_id: profile?.user_id ?? '',
-      date: today,
+      date: selectedLogDate,
       kcal: null,
       protein_g: null,
       fat_g: null,
@@ -55,12 +58,13 @@ export function Nutrition() {
     }
 
   const patchLog = (patch: Partial<DailyLog>): void => {
-    upsert('daily_logs', { ...todayLog, ...patch })
+    upsert('daily_logs', { ...selectedLog, ...patch })
   }
 
-  /* Sparkline data: last 7 days including today */
+  /* Sparkline data: the 7-day window ending at the selected history date. */
   const week = useMemo(() => {
-    const days = [...Array(7)].map((_, i) => format(subDays(new Date(), 6 - i), 'yyyy-MM-dd'))
+    const end = new Date(selectedLogDate + 'T12:00:00')
+    const days = [...Array(7)].map((_, i) => format(subDays(end, 6 - i), 'yyyy-MM-dd'))
     const byDate = new Map(data.daily_logs.map((d) => [d.date, d]))
     return {
       kcal: days.map((d) => byDate.get(d)?.kcal ?? null),
@@ -69,7 +73,12 @@ export function Nutrition() {
       carbs: days.map((d) => byDate.get(d)?.carbs_g ?? null),
       water: days.map((d) => byDate.get(d)?.water_l ?? null),
     }
-  }, [data.daily_logs])
+  }, [data.daily_logs, selectedLogDate])
+
+  const mealPlan = useMemo(
+    () => (targets ? buildTargetMealPlan(data.meals, targets) : []),
+    [data.meals, targets],
+  )
 
   /* Meal check-offs for today */
   const mealDone = (mealId: string): boolean =>
@@ -133,6 +142,25 @@ export function Nutrition() {
   if (!profile || !targets) return null
 
   const num = 'font-mono font-bold text-ink'
+  const selectedDateObject = new Date(selectedLogDate + 'T12:00:00')
+  const selectedMealIds = new Set(
+    data.meal_logs.filter((log) => log.date === selectedLogDate).map((log) => log.meal_id),
+  )
+  const selectedSupplementIds = new Set(
+    data.supplement_logs
+      .filter((log) => log.date === selectedLogDate)
+      .map((log) => log.supplement_id),
+  )
+  const plannedTrainingOnSelectedDate = data.program_days.some(
+    (day) => day.weekday === getISODay(selectedDateObject),
+  )
+  const expectedSupplements = [...data.supplements]
+    .filter((supplement) => !supplement.training_days_only || plannedTrainingOnSelectedDate)
+    .sort((a, b) => a.sort_order - b.sort_order)
+  const missingSupplements = expectedSupplements.filter(
+    (supplement) => !selectedSupplementIds.has(supplement.id),
+  )
+  const selectedIsPast = selectedLogDate < today
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -253,9 +281,19 @@ export function Nutrition() {
 
         {/* -------- Meal timeline -------- */}
         <div>
-          <h2 className="mb-3 font-display text-lg font-bold text-ink">Meal timeline</h2>
+          <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
+            <div>
+              <h2 className="font-display text-lg font-bold text-ink">Meal timeline</h2>
+              <p className="mt-0.5 text-xs font-medium text-ink-soft">
+                Portions recalculate with your activity and goal selection.
+              </p>
+            </div>
+            <AccentChip accent={amber}>
+              {ACTIVITY_MULTIPLIERS[profile.activity_level].label.toUpperCase()} · {targets.kcal} KCAL
+            </AccentChip>
+          </div>
           <div className="space-y-3">
-            {[...data.meals]
+            {[...mealPlan]
               .sort((a, b) => a.time.localeCompare(b.time))
               .map((meal, i) => {
                 const done = mealDone(meal.id)
@@ -308,7 +346,7 @@ export function Nutrition() {
                             className="mt-2 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
                             style={{ background: amber.wash, color: amber.deep }}
                           >
-                            Minimum effective: 1 fist carbs + 1 palm protein + 1 scoop isolate
+                            Target-aligned portion · change activity above to recalculate
                           </div>
                         </div>
                       </div>
@@ -392,12 +430,31 @@ export function Nutrition() {
 
         {/* -------- Evening daily log -------- */}
         <GlassCard accent={amber} className="p-5 sm:p-6">
-          <div className="flex items-center justify-between">
-            <h2 className="font-display text-lg font-bold text-ink">Daily log</h2>
-            <span className="font-mono text-xs font-bold text-ink-faint">{today}</span>
+          <div className="flex flex-wrap items-center justify-between gap-2">
+            <div>
+              <h2 className="font-display text-lg font-bold text-ink">Daily log</h2>
+              <span className="font-mono text-xs font-bold text-ink-faint">
+                {format(selectedDateObject, 'EEEE, d MMMM yyyy')}
+              </span>
+            </div>
+            {selectedLogDate !== today && (
+              <button
+                type="button"
+                onClick={() => {
+                  setSelectedLogDate(today)
+                  setLogMonth(startOfMonth(new Date()))
+                }}
+                className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
+                style={{ background: amber.gradient }}
+              >
+                Back to today
+              </button>
+            )}
           </div>
           <p className="mt-1 text-[13px] font-medium text-ink-soft">
-            Twenty seconds before bed. This feeds the Health stat.
+            {selectedLogDate === today
+              ? 'Twenty seconds before bed. This feeds the Health stat.'
+              : 'Review or correct this past day. Changes sync to the same daily record.'}
           </p>
           <div className="mt-4 space-y-4">
             {(
@@ -415,7 +472,7 @@ export function Nutrition() {
                 </div>
                 <Stepper
                   accent={amber}
-                  value={(todayLog[row.key] as number | null) ?? 0}
+                  value={(selectedLog[row.key] as number | null) ?? 0}
                   step={row.step}
                   unit={row.unit}
                   onChange={(v) => patchLog({ [row.key]: v })}
@@ -429,7 +486,7 @@ export function Nutrition() {
               </div>
               <Stepper
                 accent={amber}
-                value={todayLog.water_l}
+                value={selectedLog.water_l}
                 step={0.25}
                 unit="L"
                 onChange={(v) => patchLog({ water_l: v })}
@@ -438,6 +495,94 @@ export function Nutrition() {
           </div>
           <div className="mt-4 border-t border-ink/8 pt-3 text-xs font-medium text-ink-soft">
             Water is shared with the workout calendars. Log it wherever you are.
+          </div>
+
+          <NutritionLogCalendar
+            month={logMonth}
+            selectedDate={selectedLogDate}
+            today={today}
+            data={data}
+            accent={amber}
+            onMonthChange={setLogMonth}
+            onSelectDate={setSelectedLogDate}
+          />
+
+          <div className="mt-4 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.48)' }}>
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <h3 className="font-display text-sm font-bold text-ink">
+                {selectedLogDate === today ? "Today's record" : format(selectedDateObject, 'd MMMM')} at a glance
+              </h3>
+              <span className="font-mono text-[11px] font-bold text-ink-faint">
+                {selectedMealIds.size}/{data.meals.length} meals · {selectedSupplementIds.size}/{expectedSupplements.length} supplements
+              </span>
+            </div>
+
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
+              {(
+                [
+                  ['Calories', selectedLog.kcal, 'kcal'],
+                  ['Protein', selectedLog.protein_g, 'g'],
+                  ['Fat', selectedLog.fat_g, 'g'],
+                  ['Carbs', selectedLog.carbs_g, 'g'],
+                  ['Water', selectedLog.water_l || null, 'L'],
+                ] as const
+              ).map(([label, value, unit]) => (
+                <div key={label} className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.62)' }}>
+                  <p className="text-[10px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>
+                  <p className="font-mono text-sm font-bold text-ink">{value == null ? '—' : `${value}${unit}`}</p>
+                </div>
+              ))}
+            </div>
+
+            <div className="mt-4">
+              <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Meals</p>
+              <div className="mt-2 space-y-1.5">
+                {[...data.meals]
+                  .sort((a, b) => a.time.localeCompare(b.time))
+                  .map((meal) => {
+                    const done = selectedMealIds.has(meal.id)
+                    return (
+                      <div key={meal.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: done ? 'rgba(16,185,129,0.09)' : selectedIsPast ? 'rgba(220,38,38,0.06)' : 'rgba(26,26,34,0.035)' }}>
+                        <p className="min-w-0 truncate text-xs font-semibold text-ink">
+                          <span className="mr-2 font-mono text-ink-faint">{meal.time}</span>{meal.name}
+                        </p>
+                        <span className={`shrink-0 text-[11px] font-bold ${done ? 'text-emerald' : selectedIsPast ? 'text-crimson' : 'text-ink-faint'}`}>
+                          {done ? 'Eaten ✓' : selectedIsPast ? 'Missed / not logged' : 'Not checked'}
+                        </span>
+                      </div>
+                    )
+                  })}
+              </div>
+            </div>
+
+            <div className="mt-4">
+              <div className="flex items-center justify-between gap-2">
+                <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Supplements</p>
+                {missingSupplements.length === 0 && (
+                  <span className="text-[11px] font-bold text-emerald">All scheduled items logged ✓</span>
+                )}
+              </div>
+              {missingSupplements.length > 0 && (
+                <>
+                  <p className={`mt-1 text-[11px] font-semibold ${selectedIsPast ? 'text-crimson' : 'text-ink-faint'}`}>
+                    {selectedIsPast ? 'Missed or not logged:' : 'Still unchecked:'}
+                  </p>
+                  <div className="mt-2 flex flex-wrap gap-1.5">
+                    {missingSupplements.map((supplement) => (
+                      <span key={supplement.id} className="rounded-full px-2.5 py-1 text-[10px] font-semibold text-ink-soft" style={{ background: selectedIsPast ? 'rgba(220,38,38,0.07)' : amber.wash }}>
+                        {supplement.name}{supplement.dose ? ` · ${supplement.dose}` : ''}
+                      </span>
+                    ))}
+                  </div>
+                </>
+              )}
+            </div>
+
+            {selectedIsPast && (
+              <p className="mt-4 text-[10.5px] leading-relaxed font-medium text-ink-faint">
+                “Missed / not logged” means no completion was recorded for that item; the app does not assume whether it was intentionally skipped.
+              </p>
+            )}
           </div>
         </GlassCard>
 
