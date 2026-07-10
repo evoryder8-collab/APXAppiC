@@ -11,6 +11,7 @@ import { Settings } from './pages/Settings'
 import { Player } from './pages/Player'
 import { Login } from './pages/Login'
 import { PersonaIntro } from './components/PersonaIntro'
+import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { AppStoreProvider, useStore } from './store/AppStore'
 import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
@@ -34,7 +35,7 @@ function Page({ children }: { children: ReactNode }) {
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.26, ease: EASE }}
-      className="min-h-dvh px-4 pt-24 pb-[max(3rem,env(safe-area-inset-bottom))] sm:px-6 sm:pt-28"
+      className="min-h-dvh px-4 pt-24 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-28"
     >
       {children}
     </motion.main>
@@ -89,11 +90,23 @@ function Reminders() {
 }
 
 function Shell() {
-  const { ready, authed, toasts } = useStore()
+  const { ready, authed, signOut, toasts } = useStore()
   const [selectedPersona, setSelectedPersonaState] = useState<PersonaSlug | null>(() =>
     hasEntryGrant() ? getSelectedPersona() : null,
   )
   const [entryGranted, setEntryGranted] = useState(hasEntryGrant)
+  const [switchingPersona, setSwitchingPersona] = useState(false)
+
+  const returnToPersonaIntro = async (): Promise<void> => {
+    if (switchingPersona) return
+    setSwitchingPersona(true)
+    clearSelectedPersona()
+    clearEntryGrant()
+    window.location.hash = '#/'
+    setSelectedPersonaState(null)
+    setEntryGranted(false)
+    await signOut()
+  }
 
   if (!ready) {
     return (
@@ -141,6 +154,11 @@ function Shell() {
     <>
       <TopBar />
       <AnimatedRoutes />
+      <ProfileSwitcher
+        activePersona={selectedPersona}
+        busy={switchingPersona}
+        onSwitch={() => void returnToPersonaIntro()}
+      />
       <Reminders />
       <Toasts items={toasts} />
     </>
