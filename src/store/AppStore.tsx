@@ -419,6 +419,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     if (session) void fetchAll()
   }, [session, fetchAll])
 
+  /* A profile switch can interrupt an in-flight write after Supabase has
+     received it but before the local queue is acknowledged. Resume every
+     scoped queue as soon as that account is active again, even if the user
+     has not made another edit yet. */
+  useEffect(() => {
+    if (session && online && queueLen > 0) void flush()
+  }, [session, online, queueLen, flush])
+
   /* ---------- activity automation shared by every route ---------- */
   useEffect(() => {
     const profile = data.profile
