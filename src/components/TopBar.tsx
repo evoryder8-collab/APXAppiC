@@ -9,8 +9,9 @@ const DOT_COLORS = {
 } as const
 
 export function TopBar() {
-  const { syncStatus } = useStore()
+  const { syncStatus, data } = useStore()
   const dot = DOT_COLORS[syncStatus]
+  const firstName = data.profile?.display_name?.split(' ')[0]
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="glass mx-auto flex h-13 max-w-3xl items-center justify-between rounded-full px-4">
@@ -22,6 +23,11 @@ export function TopBar() {
         </Link>
 
         <div className="flex items-center gap-4">
+          {firstName && (
+            <span className="hidden max-w-28 truncate rounded-full bg-white/55 px-2.5 py-1 font-mono text-[9px] font-semibold tracking-[0.12em] text-ink-soft uppercase min-[390px]:block">
+              {firstName}
+            </span>
+          )}
           <div
             className="relative flex h-2.5 w-2.5 items-center justify-center"
             role="status"

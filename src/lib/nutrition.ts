@@ -52,10 +52,10 @@ export interface TargetMeal extends Meal {
 export function computeTargets(p: Profile): Targets {
   const katch = bmrKatch(p)
   const tdee = Math.round(katch * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
-  const kcal = tdee + GOALS[p.goal].kcalDelta
-  const protein = Math.round(2.2 * p.weight_kg)
-  const fat = Math.round(0.9 * p.weight_kg)
-  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
+  const kcal = p.target_kcal ?? tdee + GOALS[p.goal].kcalDelta
+  const protein = p.target_protein_g ?? Math.round(2.2 * p.weight_kg)
+  const fat = p.target_fat_g ?? Math.round(0.9 * p.weight_kg)
+  const carbs = p.target_carbs_g ?? Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
   return {
     bmrMifflin: bmrMifflin(p),
     bmrKatch: katch,
@@ -72,8 +72,6 @@ export function computeTargets(p: Profile): Targets {
    while the rendered portions and meal-level macro budget follow the live
    target. Keeping this derived avoids rewriting the user's Supabase meal rows
    every time an activity button is pressed. */
-const REFERENCE_MEAL_KCAL = 2670
-
 function stepped(base: number, scale: number, step: number, minimum = step): number {
   return Math.max(minimum, Math.round((base * scale) / step) * step)
 }
@@ -107,7 +105,7 @@ function scaleQuantities(text: string, scale: number): string {
 
 function portionedFoods(meal: Meal, scale: number): string {
   const key = meal.name.trim().toLowerCase()
-  if (key === 'breakfast') {
+  if (key === 'breakfast' && /nut mix/i.test(meal.foods)) {
     return `${Math.max(2, Math.round(4 * scale))} eggs + ${stepped(35, scale, 5, 15)} g nut mix. Zero-starch, protein-first morning.`
   }
   if (key === 'oat jar') {
@@ -139,7 +137,8 @@ function portionedFoods(meal: Meal, scale: number): string {
    the top even after rounding. */
 export function buildTargetMealPlan(meals: Meal[], targets: Targets): TargetMeal[] {
   if (meals.length === 0) return []
-  const scale = Math.min(1.35, Math.max(0.5, targets.kcal / REFERENCE_MEAL_KCAL))
+  const referenceKcal = meals.reduce((sum, meal) => sum + meal.kcal, 0) || targets.kcal
+  const scale = Math.min(1.35, Math.max(0.5, targets.kcal / referenceKcal))
   const kcal = allocate(targets.kcal, meals.map((meal) => meal.kcal))
   const protein = allocate(targets.protein_g, meals.map((meal) => meal.protein_g))
   const fat = allocate(targets.fat_g, meals.map((meal) => meal.fat_g))

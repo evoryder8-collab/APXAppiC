@@ -196,8 +196,11 @@ export function planForDate(
   }
   if (lite) badges.push('Lite day: every set 0-1 RIR')
 
-  let warmup = 'Band Pull-Aparts 3x20 (mid-back activation)'
-  if (programDay.warmup_note) warmup += `. ${programDay.warmup_note}`
+  const constantineProtocol = (data.profile?.persona ?? 'constantine') === 'constantine'
+  let warmup = constantineProtocol
+    ? 'Band Pull-Aparts 3x20 (mid-back activation)'
+    : (programDay.warmup_note || 'Five minutes of pain-free joint preparation')
+  if (constantineProtocol && programDay.warmup_note) warmup += `. ${programDay.warmup_note}`
 
   const ctx = eventContextFor(date, data.events)
   let taperFactor = 1

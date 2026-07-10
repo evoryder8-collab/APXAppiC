@@ -17,12 +17,19 @@ import {
 } from 'react'
 import type { Session } from '@supabase/supabase-js'
 import { isLocalMode, supabase } from '../lib/supabase'
-import { loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
+import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
 import type { AppData, RpgSnapshot, Settings } from '../lib/types'
 import { EMPTY_DATA } from '../lib/types'
 import { buildSeedData } from '../data/seed'
 import { computeEngine, type SynergyEvent } from '../lib/rpg'
 import { todayIso } from '../lib/plan'
+import { rpgSnapshotId } from '../lib/ids'
+import {
+  getSelectedPersona,
+  personaBySlug,
+  personaFromUserMetadata,
+  setSelectedPersona,
+} from '../lib/persona'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -37,6 +44,7 @@ export type ListTable =
   | 'workout_logs'
   | 'daily_logs'
   | 'events'
+  | 'rpg_snapshots'
   | 'deload_marks'
   | 'health_metrics'
   | 'imported_activities'
@@ -72,10 +80,15 @@ function isSchemaCacheError(error: { code?: string; message: string }): boolean 
 }
 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
-  const [data, setData] = useState<AppData>(() => loadCache() ?? EMPTY_DATA)
+  const scopeRef = useRef(isLocalMode ? LOCAL_USER : 'pending')
+  const [data, setData] = useState<AppData>(() =>
+    isLocalMode ? (loadCache(LOCAL_USER) ?? EMPTY_DATA) : EMPTY_DATA,
+  )
   const [ready, setReady] = useState(isLocalMode)
   const [session, setSession] = useState<Session | null>(null)
-  const [queueLen, setQueueLen] = useState(() => loadQueue().length)
+  const [queueLen, setQueueLen] = useState(() =>
+    isLocalMode ? loadQueue(LOCAL_USER).length : 0,
+  )
   const [online, setOnline] = useState(navigator.onLine)
   const [toasts, setToasts] = useState<Array<{ id: number; message: string; kind: 'error' | 'ok' }>>([])
   const dataRef = useRef(data)
@@ -93,16 +106,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     /* update the ref synchronously so several writes in one tick compose */
     dataRef.current = next
     setData(next)
-    saveCache(next)
+    saveCache(next, scopeRef.current)
   }, [])
 
   /* ---------- queue flush ---------- */
   const flush = useCallback(async () => {
     if (!supabase || flushing.current || !navigator.onLine) return
     flushing.current = true
+    const scope = scopeRef.current
     try {
-      let queue = loadQueue()
+      let queue = loadQueue(scope)
       while (queue.length > 0) {
+        if (scopeRef.current !== scope) break
         const op = queue[0]
         const { error } = op.type === 'upsert'
           ? await supabase.from(op.table).upsert(op.payload)
@@ -110,6 +125,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
               .from(op.table)
               .delete()
               .eq('id', (op.payload as Record<string, unknown>).id as string)
+        if (scopeRef.current !== scope) break
         if (error) {
           /* A PostgREST schema refresh can lag just after a migration. Keep the
              write queued instead of dropping user data as a validation error. */
@@ -122,17 +138,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           }
           /* RLS/validation errors would loop forever: drop op and surface it */
           if (error.code && error.code !== 'PGRST301' && !error.message.includes('fetch')) {
-            queue = queue.slice(1)
-            saveQueue(queue)
+            /* Re-read before removing: more writes may have joined the queue
+               while this network request was in flight. */
+            queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
+            saveQueue(queue, scope)
             toast(`Sync error on ${op.table}: ${error.message}`)
             continue
           }
           break // network-ish: retry later
         }
-        queue = queue.slice(1)
-        saveQueue(queue)
+        queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
+        saveQueue(queue, scope)
       }
-      setQueueLen(queue.length)
+      if (scopeRef.current === scope) setQueueLen(loadQueue(scope).length)
     } finally {
       flushing.current = false
     }
@@ -141,14 +159,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const enqueue = useCallback(
     (op: { table: string; type: 'upsert' | 'delete'; payload: object }) => {
       if (!supabase) return
-      const queue = loadQueue()
+      const queue = loadQueue(scopeRef.current)
       queue.push({
         ...op,
         payload: op.payload as Record<string, unknown>,
         id: crypto.randomUUID(),
         ts: Date.now(),
       } satisfies SyncOp)
-      saveQueue(queue)
+      saveQueue(queue, scopeRef.current)
       setQueueLen(queue.length)
       void flush()
     },
@@ -221,23 +239,76 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   )
 
   /* ---------- auth + initial fetch ---------- */
+  const adoptSession = useCallback((nextSession: Session | null) => {
+    if (nextSession) {
+      const scope = nextSession.user.id
+      let cached = loadCache(scope)
+      let queue = loadQueue(scope)
+      /* One-time migration from the original single-account cache. Only the
+         legacy Constantine account may inherit it; friend accounts always
+         start with isolated storage. */
+      if (!cached && personaFromUserMetadata(nextSession.user.user_metadata) === 'constantine') {
+        const legacyCache = loadCache('local')
+        const legacyQueue = loadQueue('local')
+        if (legacyCache) {
+          cached = legacyCache
+          saveCache(legacyCache, scope)
+        }
+        if (legacyQueue.length > 0) {
+          queue = legacyQueue
+          saveQueue(legacyQueue, scope)
+        }
+        if (legacyCache || legacyQueue.length > 0) clearAllLocal('local')
+      }
+      if (cached?.profile) {
+        const cachedProfile = cached.profile
+        cached = {
+          ...cached,
+          profile: {
+            ...cachedProfile,
+            persona: cachedProfile.persona ?? 'constantine',
+            display_name: cachedProfile.display_name ?? 'Constantine',
+            target_kcal: cachedProfile.target_kcal ?? null,
+            target_protein_g: cachedProfile.target_protein_g ?? null,
+            target_fat_g: cachedProfile.target_fat_g ?? null,
+            target_carbs_g: cachedProfile.target_carbs_g ?? null,
+            profile_note: cachedProfile.profile_note ?? '',
+          },
+        }
+      }
+      scopeRef.current = scope
+      dataRef.current = cached ?? EMPTY_DATA
+      setData(cached ?? EMPTY_DATA)
+      setQueueLen(queue.length)
+    } else {
+      scopeRef.current = 'pending'
+      dataRef.current = EMPTY_DATA
+      setData(EMPTY_DATA)
+      setQueueLen(0)
+    }
+    setSession(nextSession)
+    setReady(true)
+  }, [])
+
   useEffect(() => {
     if (!supabase) {
       /* Local mode: seed on first ever run */
-      if (!dataRef.current.profile) persist(buildSeedData(LOCAL_USER))
+      if (!dataRef.current.profile) {
+        persist(buildSeedData(LOCAL_USER, getSelectedPersona() ?? 'constantine'))
+      }
       return
     }
     void supabase.auth.getSession().then(({ data: { session: s } }) => {
-      setSession(s)
-      setReady(true)
+      adoptSession(s)
     })
-    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => setSession(s))
+    const { data: sub } = supabase.auth.onAuthStateChange((_evt, s) => adoptSession(s))
     return () => sub.subscription.unsubscribe()
-  }, [persist])
+  }, [adoptSession, persist])
 
   const fetchAll = useCallback(async () => {
     const sb = supabase
     if (!sb || !session) return
+    const accountPersona = personaFromUserMetadata(session.user.user_metadata)
     const tables: ListTable[] = [
       'meals', 'meal_logs', 'supplements', 'supplement_logs', 'programs', 'program_days',
       'exercises', 'workout_sessions', 'workout_logs', 'daily_logs', 'events', 'deload_marks',
@@ -249,6 +320,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         sb.from('settings').select('*').maybeSingle(),
         ...tables.map((t) => sb.from(t).select('*')),
       ])
+      if (scopeRef.current !== session.user.id) return
       const [profileRes, settingsRes, ...listRes] = results
       const next: AppData = {
         ...EMPTY_DATA,
@@ -262,7 +334,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
       /* First sign-in: seed everything */
       if (!next.profile || next.programs.length === 0) {
-        const seeded = buildSeedData(session.user.id)
+        const seeded = buildSeedData(session.user.id, accountPersona)
         const merged: AppData = {
           ...next,
           profile: next.profile ?? seeded.profile,
@@ -301,8 +373,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const sb = supabase
     if (!sb || !session) return
     const channel = sb
-      .channel('apex-sync')
+      .channel(`apex-sync-${session.user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
+        if (scopeRef.current !== session.user.id) return
         const table = payload.table as ListTable | 'profile' | 'settings'
         const cur = dataRef.current
         if (table === 'profile') {
@@ -328,7 +401,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const persistSilent = (next: AppData): void => {
       dataRef.current = next
       setData(next)
-      saveCache(next)
+      saveCache(next, scopeRef.current)
     }
     return () => {
       void sb.removeChannel(channel)
@@ -372,26 +445,38 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       /* Persist only the newest snapshot remotely; history replays deterministically.
          Deterministic id per date makes the upsert idempotent. */
       if (supabase && session) {
-        const dateDigits = latest.date.replaceAll('-', '').padStart(12, '0')
         enqueue({
-          table: 'rpg_snapshots' as ListTable,
+          table: 'rpg_snapshots',
           type: 'upsert',
-          payload: { ...latest, id: `22222222-0000-4000-8000-${dateDigits}` },
+          payload: { ...latest, id: rpgSnapshotId(latest.date, session.user.id) },
         })
       }
     }
   }, [snapshots, persist, enqueue, session])
 
   const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
-    if (!supabase) return 'Local mode, no sign-in needed'
-    const { error } = await supabase.auth.signInWithPassword({ email, password })
-    return error ? error.message : null
-  }, [])
+    const selectedPersona = getSelectedPersona() ?? 'constantine'
+    if (!supabase) {
+      scopeRef.current = LOCAL_USER
+      persist(buildSeedData(LOCAL_USER, selectedPersona))
+      return null
+    }
+    const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
+    if (error) return error.message
+
+    const accountPersona = personaFromUserMetadata(authData.user?.user_metadata)
+    if (selectedPersona !== accountPersona) {
+      await supabase.auth.signOut()
+      return `Those credentials belong to ${personaBySlug(accountPersona).name}. Choose that profile to continue.`
+    }
+    setSelectedPersona(accountPersona)
+    return null
+  }, [persist])
 
   const signOut = useCallback(async () => {
     if (supabase) await supabase.auth.signOut()
-    setSession(null)
-  }, [])
+    adoptSession(null)
+  }, [adoptSession])
 
   const syncStatus: SyncStatus = isLocalMode ? 'local' : queueLen > 0 || !online ? 'queued' : 'synced'
 

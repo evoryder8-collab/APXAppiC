@@ -15,6 +15,8 @@ import type {
   Settings,
   Supplement,
 } from '../lib/types'
+import type { PersonaSlug } from '../lib/persona'
+import { buildFriendSeedData } from './personaSeeds'
 
 const P = '11111111-0000-4000-8000-' // program/day/exercise id prefix
 let seq = 0
@@ -31,6 +33,8 @@ export function seedProfile(userId: string): Profile {
   return {
     id: P + 'aaaaaaaaaaaa',
     user_id: userId,
+    persona: 'constantine',
+    display_name: 'Constantine',
     sex: 'male',
     weight_kg: 70,
     body_fat_pct: 23,
@@ -38,8 +42,13 @@ export function seedProfile(userId: string): Profile {
     birthdate: '1992-07-25',
     activity_level: 'moderate',
     goal: 'recomp',
+    target_kcal: null,
+    target_protein_g: null,
+    target_fat_g: null,
+    target_carbs_g: null,
     training_time: '19:00',
     baseline_date: today(),
+    profile_note: 'Personal recomposition system with balanced strength, mobility and endurance development.',
     updated_at: new Date().toISOString(),
   }
 }
@@ -514,7 +523,8 @@ export function seedPrograms(userId: string): {
   return { programs, program_days, exercises }
 }
 
-export function buildSeedData(userId: string): AppData {
+export function buildSeedData(userId: string, persona: PersonaSlug = 'constantine'): AppData {
+  if (persona === 'june' || persona === 'matthew') return buildFriendSeedData(userId, persona)
   const { programs, program_days, exercises } = seedPrograms(userId)
   return {
     profile: seedProfile(userId),

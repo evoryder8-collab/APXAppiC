@@ -41,13 +41,14 @@ export function Nutrition() {
   const today = todayIso()
   const profile = data.profile
   const targets = useMemo(() => (profile ? computeTargets(profile) : null), [profile])
+  const hasProtocolTargets = profile?.target_kcal != null
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState(today)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
 
   const selectedLog: DailyLog =
     data.daily_logs.find((d) => d.date === selectedLogDate) ?? {
-      id: dailyLogId(selectedLogDate),
+      id: dailyLogId(selectedLogDate, profile?.user_id ?? 'local'),
       user_id: profile?.user_id ?? '',
       date: selectedLogDate,
       kcal: null,
@@ -186,7 +187,9 @@ export function Nutrition() {
         <GlassCard accent={amber} className="p-5 sm:p-6">
           <div className="flex items-start justify-between">
             <h2 className="font-display text-lg font-bold text-ink">Daily targets</h2>
-            <AccentChip accent={amber}>{GOALS[profile.goal].label.toUpperCase()}</AccentChip>
+            <AccentChip accent={amber}>
+              {hasProtocolTargets ? 'PERSONAL PROTOCOL' : GOALS[profile.goal].label.toUpperCase()}
+            </AccentChip>
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
@@ -237,46 +240,56 @@ export function Nutrition() {
               className="mt-2 rounded-xl px-3 py-2 text-[13px] leading-relaxed font-medium text-ink-soft"
               style={{ background: amber.wash }}
             >
-              Katch-McArdle computes from lean body mass instead of total weight, so when body fat
-              is measured it stops fat mass from inflating the estimate. With 23% body fat on
-              record, APEX builds your calorie target on it.
+              Katch-McArdle computes from lean body mass instead of total weight, so measured fat
+              mass does not inflate the estimate. Your current {profile.body_fat_pct}% body-fat
+              entry produces the reference TDEE above. {hasProtocolTargets
+                ? 'Your displayed calories and macros are fixed by your personal protocol, so the formula remains a useful comparison rather than the active prescription.'
+                : 'APEX uses that estimate with your selected activity and goal to build the live target.'}
             </motion.p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {Object.entries(ACTIVITY_MULTIPLIERS).map(([key, v]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setProfile({ activity_level: key as ActivityLevel })}
-                className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
-                style={
-                  profile.activity_level === key
-                    ? { background: amber.gradient, color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                }
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
-          <div className="mt-2 flex flex-wrap gap-2">
-            {Object.entries(GOALS).map(([key, v]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setProfile({ goal: key as Goal })}
-                className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
-                style={
-                  profile.goal === key
-                    ? { background: amber.gradient, color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                }
-              >
-                {v.label}
-              </button>
-            ))}
-          </div>
+          {hasProtocolTargets ? (
+            <div className="mt-4 rounded-2xl px-4 py-3 text-[13px] leading-relaxed font-medium text-ink-soft" style={{ background: amber.wash }}>
+              This target is deliberately locked to {profile.display_name}'s personal nutrition protocol. Meal portions below reconcile to the exact daily calorie and macro allocation.
+            </div>
+          ) : (
+            <>
+              <div className="mt-4 flex flex-wrap gap-2">
+                {Object.entries(ACTIVITY_MULTIPLIERS).map(([key, v]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setProfile({ activity_level: key as ActivityLevel })}
+                    className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
+                    style={
+                      profile.activity_level === key
+                        ? { background: amber.gradient, color: '#fff' }
+                        : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
+                    }
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+              <div className="mt-2 flex flex-wrap gap-2">
+                {Object.entries(GOALS).map(([key, v]) => (
+                  <button
+                    key={key}
+                    type="button"
+                    onClick={() => setProfile({ goal: key as Goal })}
+                    className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
+                    style={
+                      profile.goal === key
+                        ? { background: amber.gradient, color: '#fff' }
+                        : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
+                    }
+                  >
+                    {v.label}
+                  </button>
+                ))}
+              </div>
+            </>
+          )}
         </GlassCard>
 
         {/* -------- Meal timeline -------- */}
@@ -285,11 +298,13 @@ export function Nutrition() {
             <div>
               <h2 className="font-display text-lg font-bold text-ink">Meal timeline</h2>
               <p className="mt-0.5 text-xs font-medium text-ink-soft">
-                Portions recalculate with your activity and goal selection.
+                {hasProtocolTargets
+                  ? 'Personal portions reconcile to the exact protocol target.'
+                  : 'Portions recalculate with your activity and goal selection.'}
               </p>
             </div>
             <AccentChip accent={amber}>
-              {ACTIVITY_MULTIPLIERS[profile.activity_level].label.toUpperCase()} · {targets.kcal} KCAL
+              {hasProtocolTargets ? 'PERSONAL PROTOCOL' : ACTIVITY_MULTIPLIERS[profile.activity_level].label.toUpperCase()} · {targets.kcal} KCAL
             </AccentChip>
           </div>
           <div className="space-y-3">
@@ -346,7 +361,9 @@ export function Nutrition() {
                             className="mt-2 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
                             style={{ background: amber.wash, color: amber.deep }}
                           >
-                            Target-aligned portion · change activity above to recalculate
+                            {hasProtocolTargets
+                              ? 'Protocol-aligned portion · exact daily allocation'
+                              : 'Target-aligned portion · change activity above to recalculate'}
                           </div>
                         </div>
                       </div>

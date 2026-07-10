@@ -1,13 +1,38 @@
-/* Deterministic per-date ids so cross-device upserts merge instead of duplicating. */
+/* Deterministic, user-scoped UUIDs. The database primary key is global, so a
+   date alone is not enough once several private accounts share the project. */
 
-function dateDigits(date: string): string {
-  return date.replaceAll('-', '').padStart(12, '0')
+function hash32(value: string, seed: number): number {
+  let hash = seed >>> 0
+  for (let index = 0; index < value.length; index += 1) {
+    hash ^= value.charCodeAt(index)
+    hash = Math.imul(hash, 16777619)
+  }
+  hash ^= hash >>> 16
+  hash = Math.imul(hash, 0x7feb352d)
+  hash ^= hash >>> 15
+  return hash >>> 0
 }
 
-export function dailyLogId(date: string): string {
-  return `33333333-0000-4000-8000-${dateDigits(date)}`
+function scopedUuid(namespace: string, date: string, userId: string): string {
+  const input = `${namespace}:${userId}:${date}`
+  const raw = [
+    hash32(input, 0x811c9dc5),
+    hash32(input, 0x9e3779b9),
+    hash32(input, 0x85ebca6b),
+    hash32(input, 0xc2b2ae35),
+  ].map((part) => part.toString(16).padStart(8, '0')).join('')
+  const variant = ((parseInt(raw[16], 16) & 0x3) | 0x8).toString(16)
+  return `${raw.slice(0, 8)}-${raw.slice(8, 12)}-4${raw.slice(13, 16)}-${variant}${raw.slice(17, 20)}-${raw.slice(20, 32)}`
 }
 
-export function healthMetricId(date: string): string {
-  return `44444444-0000-4000-8000-${dateDigits(date)}`
+export function dailyLogId(date: string, userId: string): string {
+  return scopedUuid('daily-log', date, userId)
+}
+
+export function healthMetricId(date: string, userId: string): string {
+  return scopedUuid('health-metric', date, userId)
+}
+
+export function rpgSnapshotId(date: string, userId: string): string {
+  return scopedUuid('rpg-snapshot', date, userId)
 }

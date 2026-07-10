@@ -16,7 +16,7 @@
  * show its reasoning in plain language.
  */
 import { differenceInCalendarDays } from 'date-fns'
-import type { AppData, DayType, RpgSnapshot } from './types'
+import type { AppData, DayType, Profile, RpgSnapshot } from './types'
 import { computeTargets } from './nutrition'
 
 export interface StatBlock {
@@ -35,6 +35,30 @@ export const BASELINE: StatBlock = {
   endurance: 45,
   strength_upper: 60, // childhood upper-only training kept the top half ahead
   strength_lower: 42, // legs neglected during growth years, still catching up
+}
+
+const JUNE_BASELINE: StatBlock = {
+  health: 68,
+  joint: 58,
+  flexibility: 65,
+  endurance: 70,
+  strength_upper: 70,
+  strength_lower: 78,
+}
+
+const MATTHEW_BASELINE: StatBlock = {
+  health: 72,
+  joint: 65,
+  flexibility: 60,
+  endurance: 82,
+  strength_upper: 72,
+  strength_lower: 68,
+}
+
+export function baselineForProfile(profile: Profile | null): StatBlock {
+  if (profile?.persona === 'june') return { ...JUNE_BASELINE }
+  if (profile?.persona === 'matthew') return { ...MATTHEW_BASELINE }
+  return { ...BASELINE }
 }
 
 const FLOORS: StatBlock = {
@@ -231,7 +255,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
 
   const snapshots: RpgSnapshot[] = []
   const synergies: SynergyEvent[] = []
-  let s: StatBlock = { ...BASELINE }
+  let s: StatBlock = baselineForProfile(profile)
   let lastLegsOffset = -99 // day index of the last completed leg session
 
   /* --- pre-baseline Apple Health history informs the starting point. The 6b
@@ -462,6 +486,7 @@ export interface StatAdvice {
 export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): StatAdvice[] {
   if (snapshots.length === 0) return []
   const now = snapshots[snapshots.length - 1]
+  const persona = data.profile?.persona ?? 'constantine'
   const twoWeeksAgo = snapshots[Math.max(0, snapshots.length - 15)]
 
   const dayTypeById = new Map(data.program_days.map((d) => [d.id, d.day_type]))
@@ -530,7 +555,11 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
             ? 'No cardio logged yet'
             : `No cardio in ${endStarve} days`,
       detail: 'Aerobic adaptations fade fastest, on a half-life of roughly 12 days without a stimulus.',
-      prescription: 'One FocusT25 session restores the trend. Saturday is the slot.',
+      prescription: persona === 'matthew'
+        ? 'Use Tuesday’s controlled SkiErg intervals or Saturday’s team challenge to restore the trend.'
+        : persona === 'june'
+          ? 'Use a brisk recovery walk or a short, tolerable conditioning block without stealing from glute recovery.'
+          : 'One FocusT25 session restores the trend. Saturday is the slot.',
       dayType: 't25',
       severity: Math.abs(Math.min(endTrend, 0)) + starveScore(endStarve) / 6,
     })
@@ -547,7 +576,9 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
           : flexStarve == null
             ? 'No mobility work logged yet'
             : `${flexStarve} days since mobility work`,
-      detail: 'Tissue adapts to frequency. Missing Mobility Thursdays shows up within a week.',
+      detail: persona === 'june'
+        ? 'Tissue adapts to frequency, and massage work adds repeated loading that makes Thursday’s corrective reset valuable.'
+        : 'Tissue adapts to frequency. Missing the weekly mobility reset shows up within a week.',
       prescription: 'Two 10-minute sessions this week restore the trend.',
       dayType: 'mobility',
       severity: Math.abs(Math.min(flexTrend, 0)) + starveScore(flexStarve) / 5,
@@ -558,8 +589,10 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
       stat: 'Strength, lower',
       statKey: 'strength_lower',
       headline: `Strength-Lower is your lagging stat (${now.strength_lower.toFixed(0)} vs ${now.strength_upper.toFixed(0)} upper)`,
-      detail: 'Leg XP is boosted 1.25x until the sub-bars converge. A skipped day should never be a leg day.',
-      prescription: 'Protect Monday and Friday. They close the childhood gap.',
+      detail: 'Leg XP is boosted 1.25x until the sub-bars converge. Keep lower-body work present without forcing fatigue.',
+      prescription: persona === 'matthew'
+        ? 'Protect Monday’s weighted squats and Friday’s split squats while keeping every rep clean.'
+        : 'Protect Monday and Friday so the lower body can close the gap.',
       dayType: 'legs_a',
       severity: (now.strength_upper - now.strength_lower) / 4 + (starving(daysSince(lastFed.lower), 5) ? 2 : 0),
     })
@@ -629,7 +662,7 @@ const ASSESSMENT_LABELS: Record<AssessmentStat, string> = {
 const LOW_STAT_ACTION: Record<AssessmentStat, string> = {
   health: 'Make hydration, protein and a complete evening log the daily floor; those are the fastest controllable inputs to your Health score.',
   joint: 'Keep the next deload and mobility block intact, and avoid load jumps that require Guardian overrides.',
-  flexibility: 'Add two short mobility exposures this week, especially after long editing or desk sessions.',
+  flexibility: 'Add two short mobility exposures this week, especially after long work blocks or repetitive positions.',
   endurance: 'Restore one focused cardio session this week and arrive hydrated; endurance is the quickest quality to detrain.',
   strength: 'Protect the next two strength sessions and progress only when the logged reps and RIR support it.',
 }
@@ -718,7 +751,7 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
 
   const priorities: string[] = [LOW_STAT_ACTION[weakest.key]]
   if (now.strength_lower < now.strength_upper - CONVERGENCE_GAP) {
-    priorities.push(`Close the upper/lower strength gap (${now.strength_upper.toFixed(0)} vs ${now.strength_lower.toFixed(0)}) by protecting both weekly leg sessions.`)
+    priorities.push(`Close the upper/lower strength gap (${now.strength_upper.toFixed(0)} vs ${now.strength_lower.toFixed(0)}) by protecting both weekly lower-body exposures.`)
   }
   if (recentLogs.length < 5) {
     priorities.push('Log at least five of the next seven days; more intake and hydration evidence will make this assessment materially sharper.')

@@ -9,10 +9,11 @@ import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import { AccentChip, EASE, GlassCard, GradientButton, SectionHeader } from '../components/ui'
-import { assessBodyState, BASELINE, overallOf, whatYourBodyNeeds } from '../lib/rpg'
+import { assessBodyState, baselineForProfile, overallOf, whatYourBodyNeeds } from '../lib/rpg'
 import type { SynergyEvent, SynergyKind } from '../lib/rpg'
-import type { RpgSnapshot } from '../lib/types'
+import type { Profile, RpgSnapshot } from '../lib/types'
 import { format as fmtDate } from 'date-fns'
+import { ageFrom } from '../lib/nutrition'
 
 const emerald = ACCENTS.emerald
 
@@ -33,6 +34,38 @@ const STATS: StatDef[] = [
   { key: 'strength', label: 'Strength', color: '#dc2626', colorSoft: '#fb923c', glow: 'rgba(220,38,38,0.4)' },
 ]
 
+function baselineNotes(profile: Profile) {
+  const baseline = baselineForProfile(profile)
+  if (profile.persona === 'june') {
+    return [
+      { label: `Strength-Upper ${baseline.strength_upper}`, text: 'manual therapy, visible muscularity and calisthenics work support a strong upper-body starting point.' },
+      { label: `Strength-Lower ${baseline.strength_lower}`, text: 'a lifetime of field work, strong legs and direct glute training make lower-body strength the leading quality.' },
+      { label: `Endurance ${baseline.endurance}`, text: 'high occupational work capacity and an active lifestyle create an above-average base.' },
+      { label: `Flexibility ${baseline.flexibility}`, text: 'movement skill is solid, while short corrective exposures protect range under repetitive massage work.' },
+      { label: `Joint Health ${baseline.joint}`, text: 'the score respects both her durability and the recovery cost of repeated hand, shoulder and chest-wall loading.' },
+      { label: `Health ${baseline.health}`, text: 'lean athletic function starts high, with energy availability, cycle changes and recovery treated as watchpoints.' },
+    ]
+  }
+  if (profile.persona === 'matthew') {
+    return [
+      { label: `Strength-Upper ${baseline.strength_upper}`, text: 'pull-ups, push-ups, muscle-ups and hammer work support a strong calisthenics base.' },
+      { label: `Strength-Lower ${baseline.strength_lower}`, text: 'marathon history and weighted squats provide a capable base with room for progressive strength work.' },
+      { label: `Endurance ${baseline.endurance}`, text: 'the barefoot marathon history and regular SkiErg work make aerobic capacity the standout starting quality.' },
+      { label: `Flexibility ${baseline.flexibility}`, text: 'a functional base is assumed, while daily mobility protects quality as training volume accumulates.' },
+      { label: `Joint Health ${baseline.joint}`, text: 'experience is balanced against age-aware tendon and recovery management; crisp submaximal reps are rewarded.' },
+      { label: `Health ${baseline.health}`, text: 'high activity and recovery-tool access create a strong base, while body-fat reduction depends on repeatable nutrition and sleep.' },
+    ]
+  }
+  return [
+    { label: `Strength-Upper ${baseline.strength_upper}`, text: 'childhood upper-body training keeps the top half moderately ahead.' },
+    { label: `Strength-Lower ${baseline.strength_lower}`, text: 'legs started behind and receive extra XP until upper and lower strength converge.' },
+    { label: `Endurance ${baseline.endurance}`, text: 'the starting point is modest and layoff-adjusted because aerobic adaptations fade quickly.' },
+    { label: `Flexibility ${baseline.flexibility}`, text: 'the base prices in long desk and editing hours.' },
+    { label: `Joint Health ${baseline.joint}`, text: 'deloads, honest tempo and sensible load jumps are the main levers.' },
+    { label: `Health ${baseline.health}`, text: 'the starting score reflects current logging and recovery habits.' },
+  ]
+}
+
 export function AvatarPage() {
   const { data, snapshots, synergies } = useStore()
   const navigate = useNavigate()
@@ -47,6 +80,9 @@ export function AvatarPage() {
 
   if (!now) return null
 
+  const profile = data.profile
+  const baseline = baselineForProfile(profile)
+  const notes = profile ? baselineNotes(profile) : []
   const level = Math.floor(now.overall)
   const levelFrac = now.overall - level
 
@@ -303,37 +339,18 @@ export function AvatarPage() {
               className="mt-3 space-y-2.5 text-[13.5px] leading-relaxed font-medium text-ink-soft"
             >
               <li>
-                Calibrated for a 34-year-old at 70 kg, 23% body fat, 178 cm, trained but returning
-                from a 3-month layoff.
+                {profile
+                  ? `Calibrated for ${profile.display_name}: age ${ageFrom(profile.birthdate)}, ${profile.weight_kg} kg, ${profile.body_fat_pct}% body fat and ${profile.height_cm} cm. ${profile.profile_note}`
+                  : 'Calibrated from the current body profile and available performance history.'}
               </li>
-              <li>
-                <strong className="text-ink">Strength-Upper {BASELINE.strength_upper}:</strong> childhood
-                bodybuilding (ages ~11-13) was upper-body only, so the top half starts moderately high.
-              </li>
-              <li>
-                <strong className="text-ink">Strength-Lower {BASELINE.strength_lower}:</strong> legs were
-                neglected during growth years and remain undersized relative to the upper body. Leg-day
-                XP is permanently weighted 1.25x until the sub-bars converge.
-              </li>
-              <li>
-                <strong className="text-ink">Endurance {BASELINE.endurance}:</strong> modest and
-                layoff-adjusted. Aerobic adaptations fade fastest.
-              </li>
-              <li>
-                <strong className="text-ink">Flexibility {BASELINE.flexibility}:</strong> low-moderate,
-                priced in from desk and editing hours.
-              </li>
-              <li>
-                <strong className="text-ink">Joint Health {BASELINE.joint}:</strong> moderate. Deloads,
-                tapers and honest tempo keep it climbing.
-              </li>
-              <li>
-                <strong className="text-ink">Health {BASELINE.health}:</strong> seeded from current
-                logging habits.
-              </li>
+              {notes.map((note) => (
+                <li key={note.label}>
+                  <strong className="text-ink">{note.label}:</strong> {note.text}
+                </li>
+              ))}
               <li>
                 Overall computes from the weights (Strength 25%, Endurance 20%, Joint 20%, Health 20%,
-                Flexibility 15%), starting at {overallOf(BASELINE).toFixed(1)}.
+                Flexibility 15%), starting at {overallOf(baseline).toFixed(1)}.
               </li>
             </motion.ul>
           )}

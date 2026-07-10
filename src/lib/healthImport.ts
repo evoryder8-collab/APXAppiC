@@ -237,7 +237,7 @@ export function buildImportRows(
     const next: DailyLog = existing
       ? { ...existing }
       : {
-          id: dailyLogId(date),
+          id: dailyLogId(date, userId),
           user_id: userId,
           date,
           kcal: null,
@@ -272,7 +272,7 @@ export function buildImportRows(
   for (const date of metricDates) {
     const prev = existingMetrics.get(date)
     const row: HealthMetric = {
-      id: healthMetricId(date),
+      id: prev?.id ?? healthMetricId(date, userId),
       user_id: userId,
       date,
       weight_kg: parsed.weight.get(date) ?? prev?.weight_kg ?? null,

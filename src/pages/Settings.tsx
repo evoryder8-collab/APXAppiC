@@ -3,9 +3,10 @@ import { AccentChip, GlassCard, GradientButton, SectionHeader, Stepper, Toggle }
 import { ACCENTS } from '../lib/theme'
 import { useStore } from '../store/AppStore'
 import { isLocalMode } from '../lib/supabase'
-import { ageFrom } from '../lib/nutrition'
+import { ageFrom, computeTargets } from '../lib/nutrition'
 import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
+import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -20,6 +21,14 @@ export function Settings() {
   const { data, setProfile, setSettings, signOut, toast, bulkUpsert } = useStore()
   const fileRef = useRef<HTMLInputElement>(null)
   const [importState, setImportState] = useState<ImportState>({ phase: 'idle' })
+
+  const switchPerson = async (): Promise<void> => {
+    clearEntryGrant()
+    clearSelectedPersona()
+    await signOut()
+    window.location.hash = '#/'
+    window.location.reload()
+  }
 
   const runImport = async (file: File): Promise<void> => {
     try {
@@ -49,6 +58,7 @@ export function Settings() {
   const settings = data.settings
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
   if (!profile || !settings) return null
+  const targets = computeTargets(profile)
 
   const row = 'flex items-center justify-between gap-3 py-3'
   const label = 'text-sm font-bold text-ink'
@@ -59,6 +69,32 @@ export function Settings() {
       <SectionHeader accent={violet} title="Settings" subtitle="Profile, targets and preferences" />
 
       <div className="space-y-5">
+        <GlassCard accent={violet} breathe className="p-5">
+          <div className="flex flex-wrap items-start justify-between gap-3">
+            <div>
+              <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-faint uppercase">Active identity</p>
+              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">{profile.display_name}</h2>
+            </div>
+            <AccentChip accent={violet}>{profile.persona.toUpperCase()}</AccentChip>
+          </div>
+          <p className="mt-3 text-[13px] leading-relaxed font-medium text-ink-soft">{profile.profile_note}</p>
+          {profile.target_kcal != null && (
+            <div className="mt-4 grid grid-cols-4 gap-2 rounded-2xl bg-white/45 p-3 text-center">
+              {[
+                ['KCAL', targets.kcal],
+                ['PROTEIN', `${targets.protein_g}g`],
+                ['FAT', `${targets.fat_g}g`],
+                ['CARBS', `${targets.carbs_g}g`],
+              ].map(([labelText, value]) => (
+                <div key={labelText}>
+                  <p className="font-mono text-[8px] font-bold tracking-wide text-ink-faint">{labelText}</p>
+                  <p className="mt-1 font-mono text-sm font-bold text-ink">{value}</p>
+                </div>
+              ))}
+            </div>
+          )}
+        </GlassCard>
+
         <GlassCard accent={violet} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Body profile</h2>
           <p className={sub}>
@@ -146,7 +182,7 @@ export function Settings() {
           </div>
         </GlassCard>
 
-        <GlassCard accent={emerald} className="p-5">
+        {profile.persona === 'constantine' && <GlassCard accent={emerald} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Main Phase add-on protocols</h2>
           <p className={sub}>Off by default. They appear inside Main Phase sessions when on.</p>
           <div className="mt-2 divide-y divide-ink/8">
@@ -172,7 +208,7 @@ export function Settings() {
               <Toggle accent={emerald} on={settings.addons.endurance3} onChange={(v) => setSettings({ addons: { ...settings.addons, endurance3: v } })} />
             </div>
           </div>
-        </GlassCard>
+        </GlassCard>}
 
         <GlassCard accent={amber} className="p-5">
           <div className="flex items-center justify-between gap-3">
@@ -243,13 +279,17 @@ export function Settings() {
               Running in local mode: everything lives in this browser. Add the two Supabase env
               vars and redeploy to sync across devices (see README).
             </p>
-          ) : (
-            <div className="mt-3">
+          ) : null}
+          <div className="mt-3 flex flex-wrap gap-2">
+            <GradientButton accent={violet} onClick={() => void switchPerson()}>
+              Switch person
+            </GradientButton>
+            {!isLocalMode && (
               <GradientButton accent={violet} onClick={() => void signOut()}>
                 Sign out
               </GradientButton>
-            </div>
-          )}
+            )}
+          </div>
         </GlassCard>
       </div>
     </div>

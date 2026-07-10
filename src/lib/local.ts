@@ -2,8 +2,14 @@
 import type { AppData } from './types'
 import { EMPTY_DATA } from './types'
 
-const CACHE_KEY = 'apex.cache.v1'
-const QUEUE_KEY = 'apex.queue.v1'
+const LEGACY_CACHE_KEY = 'apex.cache.v1'
+const LEGACY_QUEUE_KEY = 'apex.queue.v1'
+const CACHE_KEY = 'apex.cache.v2'
+const QUEUE_KEY = 'apex.queue.v2'
+
+function scopedKey(base: string, scope: string): string {
+  return `${base}.${scope}`
+}
 
 export interface SyncOp {
   id: string
@@ -14,9 +20,10 @@ export interface SyncOp {
   ts: number
 }
 
-export function loadCache(): AppData | null {
+export function loadCache(scope = 'local'): AppData | null {
   try {
-    const raw = localStorage.getItem(CACHE_KEY)
+    const raw = localStorage.getItem(scopedKey(CACHE_KEY, scope)) ??
+      (scope === 'local' ? localStorage.getItem(LEGACY_CACHE_KEY) : null)
     if (!raw) return null
     return { ...EMPTY_DATA, ...(JSON.parse(raw) as Partial<AppData>) }
   } catch {
@@ -24,27 +31,33 @@ export function loadCache(): AppData | null {
   }
 }
 
-export function saveCache(data: AppData): void {
+export function saveCache(data: AppData, scope = 'local'): void {
   try {
-    localStorage.setItem(CACHE_KEY, JSON.stringify(data))
+    localStorage.setItem(scopedKey(CACHE_KEY, scope), JSON.stringify(data))
   } catch {
     /* quota exceeded: drop oldest logs rather than crash */
   }
 }
 
-export function loadQueue(): SyncOp[] {
+export function loadQueue(scope = 'local'): SyncOp[] {
   try {
-    return JSON.parse(localStorage.getItem(QUEUE_KEY) ?? '[]') as SyncOp[]
+    const raw = localStorage.getItem(scopedKey(QUEUE_KEY, scope)) ??
+      (scope === 'local' ? localStorage.getItem(LEGACY_QUEUE_KEY) : null)
+    return JSON.parse(raw ?? '[]') as SyncOp[]
   } catch {
     return []
   }
 }
 
-export function saveQueue(queue: SyncOp[]): void {
-  localStorage.setItem(QUEUE_KEY, JSON.stringify(queue))
+export function saveQueue(queue: SyncOp[], scope = 'local'): void {
+  localStorage.setItem(scopedKey(QUEUE_KEY, scope), JSON.stringify(queue))
 }
 
-export function clearAllLocal(): void {
-  localStorage.removeItem(CACHE_KEY)
-  localStorage.removeItem(QUEUE_KEY)
+export function clearAllLocal(scope = 'local'): void {
+  localStorage.removeItem(scopedKey(CACHE_KEY, scope))
+  localStorage.removeItem(scopedKey(QUEUE_KEY, scope))
+  if (scope === 'local') {
+    localStorage.removeItem(LEGACY_CACHE_KEY)
+    localStorage.removeItem(LEGACY_QUEUE_KEY)
+  }
 }

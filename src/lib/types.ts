@@ -1,11 +1,15 @@
 /* Domain model. Every row carries user_id so RLS policies scope to auth.uid(). */
 
+import type { PersonaSlug } from './persona'
+
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very' | 'extra'
 export type Goal = 'recomp' | 'maintain' | 'bulk'
 
 export interface Profile {
   id: string
   user_id: string
+  persona: PersonaSlug
+  display_name: string
   sex: 'male' | 'female'
   weight_kg: number
   body_fat_pct: number
@@ -13,8 +17,14 @@ export interface Profile {
   birthdate: string // ISO date
   activity_level: ActivityLevel
   goal: Goal
+  /* Optional protocol targets override formula-derived calories and macros. */
+  target_kcal: number | null
+  target_protein_g: number | null
+  target_fat_g: number | null
+  target_carbs_g: number | null
   training_time: string // 'HH:mm', default anchor for training-relative supplements
   baseline_date: string // ISO date the RPG engine starts from
+  profile_note: string
   updated_at: string
 }
 

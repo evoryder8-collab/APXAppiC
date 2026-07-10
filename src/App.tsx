@@ -1,4 +1,4 @@
-import { useEffect, type ReactNode } from 'react'
+import { useEffect, useState, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AmbientBackground } from './components/AmbientBackground'
@@ -10,10 +10,20 @@ import { AvatarPage } from './pages/AvatarPage'
 import { Settings } from './pages/Settings'
 import { Player } from './pages/Player'
 import { Login } from './pages/Login'
+import { PersonaIntro } from './components/PersonaIntro'
 import { AppStoreProvider, useStore } from './store/AppStore'
 import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
+import {
+  clearEntryGrant,
+  clearSelectedPersona,
+  getSelectedPersona,
+  grantEntry,
+  hasEntryGrant,
+  setSelectedPersona,
+  type PersonaSlug,
+} from './lib/persona'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -80,6 +90,10 @@ function Reminders() {
 
 function Shell() {
   const { ready, authed, toasts } = useStore()
+  const [selectedPersona, setSelectedPersonaState] = useState<PersonaSlug | null>(() =>
+    hasEntryGrant() ? getSelectedPersona() : null,
+  )
+  const [entryGranted, setEntryGranted] = useState(hasEntryGrant)
 
   if (!ready) {
     return (
@@ -88,10 +102,37 @@ function Shell() {
       </div>
     )
   }
-  if (!authed) {
+  if (!selectedPersona) {
     return (
       <>
-        <Login />
+        <PersonaIntro
+          onSelect={(persona) => {
+            setSelectedPersona(persona)
+            setSelectedPersonaState(persona)
+            clearEntryGrant()
+            setEntryGranted(false)
+          }}
+        />
+        <Toasts items={toasts} />
+      </>
+    )
+  }
+  if (!entryGranted || !authed) {
+    return (
+      <>
+        <Login
+          persona={selectedPersona}
+          onBack={() => {
+            clearSelectedPersona()
+            clearEntryGrant()
+            setSelectedPersonaState(null)
+            setEntryGranted(false)
+          }}
+          onSuccess={() => {
+            grantEntry()
+            setEntryGranted(true)
+          }}
+        />
         <Toasts items={toasts} />
       </>
     )

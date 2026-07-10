@@ -35,6 +35,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showExport, setShowExport] = useState(false)
 
   const today = todayIso()
+  const program = data.programs.find((candidate) => candidate.slug === slug)
   const streak = useMemo(() => currentStreak(data, today), [data, today])
   const todayPlan = useMemo(() => planForDate(data, slug, today, false), [data, slug, today])
 
@@ -82,8 +83,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
     <div className="mx-auto w-full max-w-3xl">
       <SectionHeader
         accent={accent}
-        title={title}
-        subtitle={slug === 'transition' ? 'Current program, home only' : 'Elite V6, full version'}
+        title={program?.name ?? title}
+        subtitle={program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')}
         right={
           <div className="flex items-center gap-2">
             <AccentChip accent={accent} solid className="!text-[12px]">
@@ -169,8 +170,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </div>
           {data.events.length === 0 ? (
             <p className="mt-2 text-sm font-medium text-ink-soft">
-              Championships and travel go here. The 5 days before ramp amber to crimson and the
-              taper engine handles your back.
+              Important events and travel go here. The five days before an event ramp amber to
+              crimson so APEX can protect your taper and recovery.
             </p>
           ) : (
             <div className="mt-3 space-y-2">

@@ -51,7 +51,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
   const water = dayLog?.water_l ?? 0
   const setWater = (v: number): void => {
     upsert('daily_logs', {
-      id: dayLog?.id ?? dailyLogId(dateIso),
+      id: dayLog?.id ?? dailyLogId(dateIso, data.profile?.user_id ?? 'local'),
       user_id: data.profile?.user_id ?? '',
       date: dateIso,
       kcal: dayLog?.kcal ?? null,

@@ -3,19 +3,27 @@ import { format } from 'date-fns'
 import { PortalCard } from '../components/PortalCard'
 import { ACCENTS } from '../lib/theme'
 import { AvatarIcon, BoltIcon, LeafIcon, TransitionIcon } from '../components/Icons'
+import { useStore } from '../store/AppStore'
+import { personaBySlug } from '../lib/persona'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
-function greeting(now: Date): string {
+function greeting(now: Date, name: string): string {
   const h = now.getHours()
-  if (h < 5) return 'Up late, Constantin.'
-  if (h < 12) return 'Good morning, Constantin.'
-  if (h < 18) return 'Good afternoon, Constantin.'
-  return 'Good evening, Constantin.'
+  if (h < 5) return `Up late, ${name}.`
+  if (h < 12) return `Good morning, ${name}.`
+  if (h < 18) return `Good afternoon, ${name}.`
+  return `Good evening, ${name}.`
 }
 
 export function Portal() {
+  const { data } = useStore()
   const now = new Date()
+  const profile = data.profile
+  const persona = personaBySlug(profile?.persona ?? 'constantine')
+  const firstName = profile?.display_name?.split(' ')[0] || persona.firstName
+  const transition = data.programs.find((program) => program.slug === 'transition')
+  const main = data.programs.find((program) => program.slug === 'main')
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col sm:min-h-[calc(100dvh-13rem)] sm:justify-center">
@@ -29,8 +37,9 @@ export function Portal() {
           {format(now, 'EEEE, d MMMM yyyy')}
         </p>
         <h1 className="mt-2 font-display text-[32px] leading-tight font-bold tracking-tight text-ink sm:text-4xl">
-          {greeting(now)}
+          {greeting(now, firstName)}
         </h1>
+        <p className="mt-2 text-sm font-medium text-ink-soft">{persona.signature}</p>
       </motion.header>
 
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
@@ -45,16 +54,16 @@ export function Portal() {
         <PortalCard
           to="/transition"
           accent={ACCENTS.teal}
-          title="TRANSITION PHASE"
-          subtitle="Current program, home training"
+          title={(transition?.name ?? 'Transition phase').toUpperCase()}
+          subtitle={profile?.persona === 'june' ? 'Busy-day glute growth fallback' : profile?.persona === 'matthew' ? 'Fast, repeatable morning training' : 'Current program, home training'}
           icon={<TransitionIcon className="h-7 w-7" />}
           index={1}
         />
         <PortalCard
           to="/main-phase"
           accent={ACCENTS.violet}
-          title="MAIN PHASE"
-          subtitle="Elite V6, ready when you are"
+          title={(main?.name ?? 'Main phase').toUpperCase()}
+          subtitle={profile?.persona === 'june' ? 'Full glute-focused home programme' : profile?.persona === 'matthew' ? 'Lean power, abs and conditioning' : 'Elite V6, ready when you are'}
           icon={<BoltIcon className="h-7 w-7" />}
           index={2}
         />
