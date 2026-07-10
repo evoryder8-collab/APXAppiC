@@ -63,6 +63,14 @@ const Ctx = createContext<StoreValue | null>(null)
 
 const LOCAL_USER = '00000000-0000-4000-8000-000000000001'
 
+function isSchemaCacheError(error: { code?: string; message: string }): boolean {
+  return (
+    error.code === 'PGRST205' ||
+    error.message.includes('schema cache') ||
+    error.message.includes('Could not find the table')
+  )
+}
+
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const [data, setData] = useState<AppData>(() => loadCache() ?? EMPTY_DATA)
   const [ready, setReady] = useState(isLocalMode)
@@ -73,6 +81,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const dataRef = useRef(data)
   dataRef.current = data
   const flushing = useRef(false)
+  const lastSchemaToastAt = useRef(0)
 
   const toast = useCallback((message: string, kind: 'error' | 'ok' = 'error') => {
     const id = Date.now() + Math.random()
@@ -102,6 +111,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
               .delete()
               .eq('id', (op.payload as Record<string, unknown>).id as string)
         if (error) {
+          /* A PostgREST schema refresh can lag just after a migration. Keep the
+             write queued instead of dropping user data as a validation error. */
+          if (isSchemaCacheError(error)) {
+            if (Date.now() - lastSchemaToastAt.current > 15_000) {
+              lastSchemaToastAt.current = Date.now()
+              toast('Sync is reconnecting. Your changes are queued safely.')
+            }
+            break
+          }
           /* RLS/validation errors would loop forever: drop op and surface it */
           if (error.code && error.code !== 'PGRST301' && !error.message.includes('fetch')) {
             queue = queue.slice(1)
