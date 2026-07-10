@@ -21,7 +21,7 @@ import { loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/
 import type { AppData, RpgSnapshot, Settings } from '../lib/types'
 import { EMPTY_DATA } from '../lib/types'
 import { buildSeedData } from '../data/seed'
-import { computeSnapshots } from '../lib/rpg'
+import { computeEngine, type SynergyEvent } from '../lib/rpg'
 import { todayIso } from '../lib/plan'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
@@ -38,6 +38,8 @@ export type ListTable =
   | 'daily_logs'
   | 'events'
   | 'deload_marks'
+  | 'health_metrics'
+  | 'imported_activities'
 
 interface StoreValue {
   data: AppData
@@ -45,9 +47,11 @@ interface StoreValue {
   authed: boolean
   syncStatus: SyncStatus
   snapshots: RpgSnapshot[]
+  synergies: SynergyEvent[]
   signIn: (email: string, password: string) => Promise<string | null>
   signOut: () => Promise<void>
   upsert: <T extends { id: string }>(table: ListTable, row: T) => void
+  bulkUpsert: <T extends { id: string }>(table: ListTable, rows: T[]) => void
   remove: (table: ListTable, id: string) => void
   setProfile: (patch: Partial<AppData['profile']> & object) => void
   setSettings: (patch: Partial<Settings>) => void
@@ -93,7 +97,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const op = queue[0]
         const { error } = op.type === 'upsert'
           ? await supabase.from(op.table).upsert(op.payload)
-          : await supabase.from(op.table).delete().eq('id', op.payload.id as string)
+          : await supabase
+              .from(op.table)
+              .delete()
+              .eq('id', (op.payload as Record<string, unknown>).id as string)
         if (error) {
           /* RLS/validation errors would loop forever: drop op and surface it */
           if (error.code && error.code !== 'PGRST301' && !error.message.includes('fetch')) {
@@ -139,6 +146,26 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const nextList = i >= 0 ? list.map((r) => (r.id === row.id ? row : r)) : [...list, row]
       persist({ ...cur, [table]: nextList })
       enqueue({ table, type: 'upsert', payload: row as unknown as Record<string, unknown> })
+    },
+    [persist, enqueue],
+  )
+
+  /* bulk merge for imports: one state update, chunked sync ops */
+  const bulkUpsert = useCallback(
+    <T extends { id: string }>(table: ListTable, rows: T[]) => {
+      if (rows.length === 0) return
+      const cur = dataRef.current
+      const list = cur[table] as unknown as T[]
+      const map = new Map(list.map((r) => [r.id, r]))
+      for (const row of rows) map.set(row.id, row)
+      persist({ ...cur, [table]: [...map.values()] })
+      for (let i = 0; i < rows.length; i += 400) {
+        enqueue({
+          table,
+          type: 'upsert',
+          payload: rows.slice(i, i + 400) as unknown as Array<Record<string, unknown>>,
+        })
+      }
     },
     [persist, enqueue],
   )
@@ -196,6 +223,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const tables: ListTable[] = [
       'meals', 'meal_logs', 'supplements', 'supplement_logs', 'programs', 'program_days',
       'exercises', 'workout_sessions', 'workout_logs', 'daily_logs', 'events', 'deload_marks',
+      'health_metrics', 'imported_activities',
     ]
     try {
       const results = await Promise.all([
@@ -309,12 +337,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [flush])
 
-  /* ---------- RPG snapshots: recompute on load + when history changes ---------- */
-  const snapshots = useMemo(
-    () => computeSnapshots(data, todayIso()),
+  /* ---------- RPG engine: recompute on load + when history changes ---------- */
+  const engine = useMemo(
+    () => computeEngine(data, todayIso()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.program_days, data.exercises],
+    [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.program_days, data.exercises, data.health_metrics, data.imported_activities],
   )
+  const snapshots = engine.snapshots
   useEffect(() => {
     if (snapshots.length === 0) return
     const cur = dataRef.current
@@ -354,9 +383,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     authed: isLocalMode || !!session,
     syncStatus,
     snapshots,
+    synergies: engine.synergies,
     signIn,
     signOut,
     upsert,
+    bulkUpsert,
     remove,
     setProfile,
     setSettings,

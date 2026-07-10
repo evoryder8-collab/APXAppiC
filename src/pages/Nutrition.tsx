@@ -14,14 +14,11 @@ import {
 } from '../components/ui'
 import { computeTargets, ACTIVITY_MULTIPLIERS, GOALS } from '../lib/nutrition'
 import { todayIso } from '../lib/plan'
+import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 
 const amber = ACCENTS.amber
-
-export function dailyLogId(date: string): string {
-  return `33333333-0000-4000-8000-${date.replaceAll('-', '').padStart(12, '0')}`
-}
 
 function minutesOf(hm: string): number {
   const [h, m] = hm.split(':').map(Number)

@@ -532,6 +532,8 @@ export function buildSeedData(userId: string): AppData {
     events: [],
     rpg_snapshots: [],
     deload_marks: [],
+    health_metrics: [],
+    imported_activities: [],
   }
 }
 

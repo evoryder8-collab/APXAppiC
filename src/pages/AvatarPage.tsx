@@ -10,7 +10,9 @@ import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import { AccentChip, EASE, GlassCard, GradientButton, SectionHeader } from '../components/ui'
 import { BASELINE, overallOf, whatYourBodyNeeds } from '../lib/rpg'
+import type { SynergyEvent, SynergyKind } from '../lib/rpg'
 import type { RpgSnapshot } from '../lib/types'
+import { format as fmtDate } from 'date-fns'
 
 const emerald = ACCENTS.emerald
 
@@ -32,7 +34,7 @@ const STATS: StatDef[] = [
 ]
 
 export function AvatarPage() {
-  const { data, snapshots } = useStore()
+  const { data, snapshots, synergies } = useStore()
   const navigate = useNavigate()
   const [showBaseline, setShowBaseline] = useState(false)
   const [range, setRange] = useState<30 | 90>(30)
@@ -95,10 +97,13 @@ export function AvatarPage() {
             </p>
           </GlassCard>
 
-          <GlassCard accent={emerald} className="p-4">
+          <GlassCard accent={emerald} className="p-1.5">
             <Radar snapshot={now} />
           </GlassCard>
         </div>
+
+        {/* The engine: how nutrition, training and recovery talk */}
+        <EngineCard synergies={synergies} />
 
         {/* What your body needs */}
         {advice.length > 0 && (
@@ -300,20 +305,72 @@ export function AvatarPage() {
   )
 }
 
-/* ---------------- hexagonal radar ---------------- */
+/* ---------------- the engine: explainable synergy feed ---------------- */
+
+const SYNERGY_DOT: Record<SynergyKind, string> = {
+  protein_strength: 'linear-gradient(135deg, #f59e0b, #fb7185)',
+  deficit_strength: 'linear-gradient(135deg, #dc2626, #f59e0b)',
+  hydration_endurance: 'linear-gradient(135deg, #38bdf8, #a78bfa)',
+  mobility_after_legs: 'linear-gradient(135deg, #0ea5e9, #34d399)',
+  vo2_anchor: 'linear-gradient(135deg, #7c3aed, #22d3ee)',
+  import_feed: 'conic-gradient(from 0deg, #f59e0b, #8b5cf6, #10b981, #f59e0b)',
+  deload_honored: 'linear-gradient(135deg, #0ea5e9, #7dd3fc)',
+}
+
+function EngineCard({ synergies }: { synergies: SynergyEvent[] }) {
+  const recent = [...synergies].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8)
+  return (
+    <GlassCard accent={emerald} className="p-5">
+      <div className="flex items-center justify-between">
+        <h2 className="font-display text-lg font-bold text-ink">The engine</h2>
+        <AccentChip accent={emerald}>NUTRITION × TRAINING × RECOVERY</AccentChip>
+      </div>
+      {recent.length === 0 ? (
+        <p className="mt-2 text-[13.5px] leading-relaxed font-medium text-ink-soft">
+          Everything here talks to everything else. Protein at target amplifies strength days by
+          15%. Hydration fuels cardio XP. Mobility within 48 hours of a leg day pays a joint
+          bonus. A measured VO2max from your watch anchors Endurance to reality, and imported
+          Apple Health workouts feed the stats at reduced credit. When a rule fires, it shows up
+          here with its receipt.
+        </p>
+      ) : (
+        <div className="mt-3 space-y-2">
+          {recent.map((e, i) => (
+            <motion.div
+              key={`${e.date}-${e.kind}-${i}`}
+              initial={{ opacity: 0, x: -8 }}
+              animate={{ opacity: 1, x: 0 }}
+              transition={{ delay: i * 0.05, duration: 0.35, ease: EASE }}
+              className="flex items-center gap-2.5 rounded-2xl px-3 py-2"
+              style={{ background: 'rgba(255,255,255,0.5)' }}
+            >
+              <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: SYNERGY_DOT[e.kind] }} />
+              <p className="min-w-0 flex-1 text-[12.5px] leading-snug font-semibold text-ink">{e.label}</p>
+              <span className="shrink-0 font-mono text-[10px] font-bold text-ink-faint">
+                {fmtDate(new Date(e.date + 'T12:00:00'), 'd MMM')}
+              </span>
+            </motion.div>
+          ))}
+        </div>
+      )}
+    </GlassCard>
+  )
+}
+
+/* ---------------- hexagonal radar, jewel-box treatment ---------------- */
 
 function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
   const axes = [
-    { label: 'Health', value: snapshot.health },
-    { label: 'Joint', value: snapshot.joint },
-    { label: 'Flex', value: snapshot.flexibility },
-    { label: 'Endur', value: snapshot.endurance },
-    { label: 'Str ↑', value: snapshot.strength_upper },
-    { label: 'Str ↓', value: snapshot.strength_lower },
+    { label: 'HEALTH', value: snapshot.health },
+    { label: 'JOINT', value: snapshot.joint },
+    { label: 'FLEX', value: snapshot.flexibility },
+    { label: 'ENDUR', value: snapshot.endurance },
+    { label: 'STR ↑', value: snapshot.strength_upper },
+    { label: 'STR ↓', value: snapshot.strength_lower },
   ]
-  const cx = 110
-  const cy = 100
-  const R = 72
+  const cx = 130
+  const cy = 118
+  const R = 76
 
   const point = (i: number, v: number): [number, number] => {
     const angle = (Math.PI / 3) * i - Math.PI / 2
@@ -324,54 +381,117 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
     vals.map((v, i) => `${i === 0 ? 'M' : 'L'}${point(i, v)[0].toFixed(1)},${point(i, v)[1].toFixed(1)}`).join(' ') + ' Z'
 
   const d = pathFor(axes.map((a) => a.value))
+  const grid = 'rgba(126, 232, 255, 0.13)'
 
   return (
-    <svg viewBox="0 0 220 200" className="w-full" role="img" aria-label="Stat radar">
-      <defs>
-        <linearGradient id="radar-fill" x1="0" y1="0" x2="1" y2="1">
-          <stop offset="0" stopColor="#34d399" stopOpacity="0.55" />
-          <stop offset="1" stopColor="#059669" stopOpacity="0.25" />
-        </linearGradient>
-      </defs>
-      {[0.33, 0.66, 1].map((f) => (
-        <path
-          key={f}
-          d={pathFor(axes.map(() => f * 100))}
+    <div
+      className="relative overflow-hidden rounded-[20px]"
+      style={{
+        background: 'radial-gradient(130% 130% at 50% 18%, #232a54 0%, #12163a 48%, #05060f 100%)',
+        boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.22), inset 0 0 55px rgba(3,4,12,0.7)',
+      }}
+    >
+      <svg viewBox="0 0 260 236" className="w-full" role="img" aria-label="Stat radar">
+        <defs>
+          <linearGradient id="radar-stroke" x1="0" y1="0" x2="1" y2="1">
+            <stop offset="0" stopColor="#34d399" />
+            <stop offset="1" stopColor="#22d3ee" />
+          </linearGradient>
+          <radialGradient id="radar-fill" cx="0.5" cy="0.45" r="0.65">
+            <stop offset="0" stopColor="#34d399" stopOpacity="0.42" />
+            <stop offset="1" stopColor="#22d3ee" stopOpacity="0.08" />
+          </radialGradient>
+          <radialGradient id="radar-halo" cx="0.5" cy="0.5" r="0.5">
+            <stop offset="0" stopColor="#22d3ee" stopOpacity="0.16" />
+            <stop offset="1" stopColor="#22d3ee" stopOpacity="0" />
+          </radialGradient>
+          <filter id="radar-glow" x="-40%" y="-40%" width="180%" height="180%">
+            <feGaussianBlur stdDeviation="4.5" />
+          </filter>
+        </defs>
+
+        {/* ambient halo behind the figure */}
+        <circle cx={cx} cy={cy} r={R + 26} fill="url(#radar-halo)" />
+
+        {/* grid rings + axes */}
+        {[0.25, 0.5, 0.75, 1].map((f) => (
+          <path key={f} d={pathFor(axes.map(() => f * 100))} fill="none" stroke={grid} strokeWidth={f === 1 ? 1.2 : 0.8} />
+        ))}
+        {axes.map((_, i) => {
+          const [x, y] = point(i, 100)
+          return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke={grid} strokeWidth="0.8" />
+        })}
+
+        {/* glow underlay, then the crisp figure */}
+        <motion.path
+          d={d}
+          animate={{ d }}
+          transition={{ duration: 0.8, ease: EASE }}
           fill="none"
-          stroke="rgba(26,26,34,0.1)"
-          strokeWidth="1"
+          stroke="url(#radar-stroke)"
+          strokeWidth="5"
+          strokeLinejoin="round"
+          opacity="0.75"
+          filter="url(#radar-glow)"
         />
-      ))}
-      {axes.map((_, i) => {
-        const [x, y] = point(i, 100)
-        return <line key={i} x1={cx} y1={cy} x2={x} y2={y} stroke="rgba(26,26,34,0.08)" strokeWidth="1" />
-      })}
-      <motion.path
-        d={d}
-        animate={{ d }}
-        transition={{ duration: 0.8, ease: EASE }}
-        fill="url(#radar-fill)"
-        stroke="#059669"
-        strokeWidth="2"
-        strokeLinejoin="round"
-        style={{ filter: 'drop-shadow(0 4px 10px rgba(16,185,129,0.35))' }}
-      />
-      {axes.map((a, i) => {
-        const [x, y] = point(i, 121)
-        return (
-          <text
-            key={a.label}
-            x={x}
-            y={y}
-            textAnchor="middle"
-            dominantBaseline="middle"
-            className="fill-ink-soft font-mono text-[9.5px] font-bold"
-          >
-            {a.label}
-          </text>
-        )
-      })}
-    </svg>
+        <motion.path
+          d={d}
+          animate={{ d }}
+          transition={{ duration: 0.8, ease: EASE }}
+          fill="url(#radar-fill)"
+          stroke="url(#radar-stroke)"
+          strokeWidth="2.2"
+          strokeLinejoin="round"
+        />
+
+        {/* vertex dots + values */}
+        {axes.map((a, i) => {
+          const [x, y] = point(i, a.value)
+          const [lx, ly] = point(i, Math.min(a.value + 16, 112))
+          return (
+            <g key={a.label}>
+              <circle cx={x} cy={y} r={5} fill="#22d3ee" opacity="0.35" filter="url(#radar-glow)" />
+              <circle cx={x} cy={y} r={2.6} fill="#d9fbff" />
+              <text
+                x={lx}
+                y={ly}
+                textAnchor="middle"
+                dominantBaseline="middle"
+                fontSize="9.5"
+                fontWeight="700"
+                fill="#8df0ff"
+                className="font-mono"
+              >
+                {a.value.toFixed(0)}
+              </text>
+            </g>
+          )
+        })}
+
+        {/* axis labels */}
+        {axes.map((a, i) => {
+          const [x, y] = point(i, 132)
+          return (
+            <text
+              key={a.label}
+              x={x}
+              y={y}
+              textAnchor="middle"
+              dominantBaseline="middle"
+              fontSize="9.5"
+              fontWeight="700"
+              letterSpacing="1.5"
+              fill="rgba(214, 226, 245, 0.72)"
+              className="font-mono"
+            >
+              {a.label}
+            </text>
+          )
+        })}
+      </svg>
+      {/* inner vignette, mirrors the hologram stage */}
+      <div className="pointer-events-none absolute inset-0 rounded-[20px]" style={{ boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }} aria-hidden />
+    </div>
   )
 }
 

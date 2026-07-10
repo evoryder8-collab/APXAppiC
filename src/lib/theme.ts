@@ -1,6 +1,6 @@
 import type { CSSProperties } from 'react'
 
-export type AccentKey = 'amber' | 'teal' | 'violet' | 'emerald'
+export type AccentKey = 'amber' | 'teal' | 'violet' | 'emerald' | 'ice'
 
 export interface Accent {
   key: AccentKey
@@ -59,6 +59,16 @@ export const ACCENTS: Record<AccentKey, Accent> = {
     glowStrong: 'rgba(16, 185, 129, 0.5)',
     gradient: 'linear-gradient(135deg, #059669 0%, #34d399 100%)',
     wash: 'rgba(16, 185, 129, 0.07)',
+  },
+  ice: {
+    key: 'ice',
+    deep: '#0369a1',
+    bright: '#38bdf8',
+    soft: '#7dd3fc',
+    glowSoft: 'rgba(56, 189, 248, 0.26)',
+    glowStrong: 'rgba(56, 189, 248, 0.5)',
+    gradient: 'linear-gradient(135deg, #0ea5e9 0%, #7dd3fc 100%)',
+    wash: 'rgba(56, 189, 248, 0.07)',
   },
 }
 

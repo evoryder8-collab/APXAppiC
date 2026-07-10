@@ -60,6 +60,15 @@ export function SlidersIcon({ className, strokeWidth = 1.9 }: IconProps) {
   )
 }
 
+export function DropletIcon({ className, strokeWidth = 1.9 }: IconProps) {
+  return (
+    <svg {...base(className)} strokeWidth={strokeWidth}>
+      <path d="M12 3.2c3.2 3.9 6 7.2 6 10.4a6 6 0 1 1-12 0c0-3.2 2.8-6.5 6-10.4Z" />
+      <path d="M9.5 14.5a2.6 2.6 0 0 0 2 2.4" opacity={0.6} />
+    </svg>
+  )
+}
+
 export function ChevronRightIcon({ className, strokeWidth = 2 }: IconProps) {
   return (
     <svg {...base(className)} strokeWidth={strokeWidth}>

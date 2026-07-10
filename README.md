@@ -30,10 +30,11 @@ writes in localStorage while offline (amber dot), flushing when connectivity ret
    every table with Row Level Security scoped to your user (the anon key is safe in the bundle).
 3. Authentication → Users → Add user: your email + password (disable public signups if you like,
    the app never signs anyone up).
-4. Project Settings → API: copy the URL and anon key into:
+4. Project Settings → API: copy the URL and the publishable (or legacy anon) key into:
    - `.env.local` (copy `.env.example`) for local dev, and
    - GitHub repo → Settings → Secrets and variables → Actions → new secrets
      `VITE_SUPABASE_URL` and `VITE_SUPABASE_ANON_KEY` for deploys.
+   For this repo both are already configured.
 5. Push to `main` (or re-run the deploy workflow). Sign in once; the app seeds all data
    automatically. No seed SQL to paste.
 

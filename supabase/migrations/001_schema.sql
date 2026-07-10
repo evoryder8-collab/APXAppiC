@@ -189,6 +189,27 @@ create table if not exists deload_marks (
   unique (user_id, date)
 );
 
+-- Apple Health imports: daily body metrics and mapped workouts.
+create table if not exists health_metrics (
+  id uuid primary key,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date date not null,
+  weight_kg numeric,
+  vo2max numeric,
+  resting_hr numeric,
+  unique (user_id, date)
+);
+
+create table if not exists imported_activities (
+  id uuid primary key,
+  user_id uuid not null default auth.uid() references auth.users (id) on delete cascade,
+  date date not null,
+  kind text not null,
+  activity text not null default '',
+  duration_min integer not null default 0,
+  source text not null default 'Apple Health'
+);
+
 -- Row Level Security: each row belongs to its creator, full stop.
 do $$
 declare t text;
@@ -196,7 +217,8 @@ begin
   foreach t in array array[
     'profile','settings','meals','meal_logs','supplements','supplement_logs',
     'programs','program_days','exercises','workout_sessions','workout_logs',
-    'daily_logs','events','rpg_snapshots','deload_marks'
+    'daily_logs','events','rpg_snapshots','deload_marks','health_metrics',
+    'imported_activities'
   ] loop
     execute format('alter table %I enable row level security', t);
     execute format('drop policy if exists "owner_all" on %I', t);
@@ -204,6 +226,24 @@ begin
       'create policy "owner_all" on %I for all to authenticated using (user_id = auth.uid()) with check (user_id = auth.uid())',
       t
     );
+  end loop;
+end $$;
+
+-- Realtime: stream changes so phone and desktop stay in live sync.
+do $$
+declare t text;
+begin
+  foreach t in array array[
+    'profile','settings','meals','meal_logs','supplements','supplement_logs',
+    'programs','program_days','exercises','workout_sessions','workout_logs',
+    'daily_logs','events','rpg_snapshots','deload_marks','health_metrics',
+    'imported_activities'
+  ] loop
+    begin
+      execute format('alter publication supabase_realtime add table %I', t);
+    exception
+      when duplicate_object then null;
+    end;
   end loop;
 end $$;
 

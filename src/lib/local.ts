@@ -9,7 +9,8 @@ export interface SyncOp {
   id: string
   table: string
   type: 'upsert' | 'delete'
-  payload: Record<string, unknown>
+  /* single row, or a batch of rows for bulk imports */
+  payload: Record<string, unknown> | Array<Record<string, unknown>>
   ts: number
 }
 

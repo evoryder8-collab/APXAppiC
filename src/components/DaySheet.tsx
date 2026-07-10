@@ -9,7 +9,8 @@ import { planForDate, todayIso } from '../lib/plan'
 import { recommendLoad } from '../lib/progression'
 import { useStore } from '../store/AppStore'
 import { AccentChip, GradientButton, Sheet, Stepper } from './ui'
-import { dailyLogId } from '../pages/Nutrition'
+import { DropletIcon } from './Icons'
+import { dailyLogId } from '../lib/ids'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((m) => ({ default: m.HologramStage })),
@@ -229,8 +230,13 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
       {/* Water + deload + start */}
       <div className="mt-4 flex flex-wrap items-center justify-between gap-3 border-t border-ink/8 pt-4">
         <div>
-          <p className="text-xs font-bold text-ink-soft">Water</p>
-          <Stepper accent={ACCENTS.amber} value={water} step={0.25} unit="L" onChange={setWater} />
+          <p className="flex items-center gap-1 text-xs font-bold" style={{ color: ACCENTS.ice.deep }}>
+            <DropletIcon className="h-3.5 w-3.5" />
+            Water · one record with Nutrition
+          </p>
+          <div className="mt-1">
+            <Stepper accent={ACCENTS.ice} value={water} step={0.25} unit="L" onChange={setWater} />
+          </div>
         </div>
         <button
           type="button"

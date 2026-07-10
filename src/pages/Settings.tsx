@@ -1,16 +1,50 @@
-import { useState } from 'react'
-import { GlassCard, GradientButton, SectionHeader, Stepper, Toggle } from '../components/ui'
+import { useRef, useState } from 'react'
+import { AccentChip, GlassCard, GradientButton, SectionHeader, Stepper, Toggle } from '../components/ui'
 import { ACCENTS } from '../lib/theme'
 import { useStore } from '../store/AppStore'
 import { isLocalMode } from '../lib/supabase'
 import { ageFrom } from '../lib/nutrition'
 import { ensurePermission } from '../lib/notify'
+import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
+const amber = ACCENTS.amber
+
+type ImportState =
+  | { phase: 'idle' }
+  | { phase: 'parsing'; progress: number }
+  | { phase: 'done'; result: ImportResult }
 
 export function Settings() {
-  const { data, setProfile, setSettings, signOut, toast } = useStore()
+  const { data, setProfile, setSettings, signOut, toast, bulkUpsert } = useStore()
+  const fileRef = useRef<HTMLInputElement>(null)
+  const [importState, setImportState] = useState<ImportState>({ phase: 'idle' })
+
+  const runImport = async (file: File): Promise<void> => {
+    try {
+      setImportState({ phase: 'parsing', progress: 0 })
+      const parsed = await parseHealthFile(file, (p) =>
+        setImportState({ phase: 'parsing', progress: p }),
+      )
+      const { dailyLogs, metrics, activities, result } = buildImportRows(data, parsed)
+      bulkUpsert('daily_logs', dailyLogs)
+      bulkUpsert('health_metrics', metrics)
+      bulkUpsert('imported_activities', activities)
+      if (
+        result.latestWeight != null &&
+        data.profile &&
+        Math.abs(result.latestWeight - data.profile.weight_kg) > 0.2
+      ) {
+        setProfile({ weight_kg: Math.round(result.latestWeight * 10) / 10 })
+      }
+      setImportState({ phase: 'done', result })
+      toast('Apple Health data imported', 'ok')
+    } catch {
+      setImportState({ phase: 'idle' })
+      toast('Could not read that file. Export from the Health app and pick export.xml')
+    }
+  }
   const profile = data.profile
   const settings = data.settings
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
@@ -138,6 +172,68 @@ export function Settings() {
               <Toggle accent={emerald} on={settings.addons.endurance3} onChange={(v) => setSettings({ addons: { ...settings.addons, endurance3: v } })} />
             </div>
           </div>
+        </GlassCard>
+
+        <GlassCard accent={amber} className="p-5">
+          <div className="flex items-center justify-between gap-3">
+            <div>
+              <h2 className="font-display text-lg font-bold text-ink">Apple Health import</h2>
+              <p className={sub}>
+                Nutrition, water, weight, VO2max, resting heart rate and workouts feed the engine.
+              </p>
+            </div>
+            {importState.phase !== 'parsing' && (
+              <GradientButton accent={amber} onClick={() => fileRef.current?.click()} className="shrink-0">
+                Import
+              </GradientButton>
+            )}
+          </div>
+          <input
+            ref={fileRef}
+            type="file"
+            accept=".xml,text/xml"
+            className="hidden"
+            onChange={(e) => {
+              const f = e.target.files?.[0]
+              if (f) void runImport(f)
+              e.target.value = ''
+            }}
+          />
+
+          {importState.phase === 'parsing' && (
+            <div className="mt-4">
+              <div className="h-2.5 overflow-hidden rounded-full bg-ink/8">
+                <div
+                  className="h-full rounded-full transition-[width] duration-200"
+                  style={{ width: `${importState.progress * 100}%`, background: amber.gradient }}
+                />
+              </div>
+              <p className="mt-2 font-mono text-xs font-semibold text-ink-soft">
+                Streaming your export, {(importState.progress * 100).toFixed(0)}%. Big files are fine.
+              </p>
+            </div>
+          )}
+
+          {importState.phase === 'done' && (
+            <div className="mt-4 flex flex-wrap gap-1.5">
+              <AccentChip accent={amber}>{importState.result.dailyLogsTouched} NUTRITION/WATER DAYS</AccentChip>
+              <AccentChip accent={amber}>{importState.result.workoutsAdded} WORKOUTS</AccentChip>
+              <AccentChip accent={amber}>{importState.result.metricsTouched} BODY METRIC DAYS</AccentChip>
+              {importState.result.latestWeight != null && (
+                <AccentChip accent={amber}>LATEST WEIGHT {importState.result.latestWeight.toFixed(1)} KG</AccentChip>
+              )}
+              {importState.result.latestVo2max != null && (
+                <AccentChip accent={amber}>VO2MAX {importState.result.latestVo2max.toFixed(1)}</AccentChip>
+              )}
+            </div>
+          )}
+
+          <p className="mt-3 text-xs leading-relaxed font-medium text-ink-faint">
+            Days without the watch or phone never count against you: imports only add signal,
+            they never create decay. Anything you logged manually in APEX always wins over
+            imported values. Export from iPhone: Health app, profile picture, Export All Health
+            Data, then pick the export.xml inside the zip. Re-importing later is safe.
+          </p>
         </GlassCard>
 
         <GlassCard accent={violet} className="p-5">

@@ -1,9 +1,19 @@
 /*
- * RPG stat engine. Deterministic daily recompute from the baseline date to
- * today: running it twice always yields the same snapshots (idempotent), and
- * missed days are caught up automatically because the whole history replays.
- * Decay mirrors detraining physiology: aerobic fitness fades in weeks,
- * flexibility follows frequency, strength persists longest.
+ * RPG stat engine + the interconnection brain. Deterministic daily replay
+ * from the baseline date to today: running it twice always yields the same
+ * snapshots (idempotent), and missed days catch up automatically.
+ *
+ * The brain: nutrition, training types and recovery talk to each other.
+ *  - Protein at target on a strength day amplifies strength XP (+15%),
+ *    a deep calorie deficit dampens it (-15%).
+ *  - Hydration at target on a T25 day amplifies endurance XP (+10%).
+ *  - Mobility within 48 h of a leg day pays a joint-health synergy bonus.
+ *  - Apple Health imports feed stats at reduced credit (unverified plan),
+ *    and a measured VO2max anchors the Endurance stat to reality.
+ *  - Days without data never punish. Absence is only absence of gain;
+ *    decay is the same physiology it always was.
+ * Every rule that fires is logged as a SynergyEvent so the Avatar page can
+ * show its reasoning in plain language.
  */
 import { differenceInCalendarDays } from 'date-fns'
 import type { AppData, DayType, RpgSnapshot } from './types'
@@ -52,6 +62,27 @@ const WEIGHTS = { strength: 0.25, endurance: 0.2, flexibility: 0.15, joint: 0.2,
 export const LEG_XP_BOOST = 1.25 // permanent until the sub-bars converge
 const AGE_DRAG_PER_DAY = 0.45 / 365 // standing still slowly costs you
 const CONVERGENCE_GAP = 3
+const IMPORT_CREDIT = 0.6 // imported workouts: real signal, unverified plan
+
+export type SynergyKind =
+  | 'protein_strength'
+  | 'deficit_strength'
+  | 'hydration_endurance'
+  | 'mobility_after_legs'
+  | 'vo2_anchor'
+  | 'import_feed'
+  | 'deload_honored'
+
+export interface SynergyEvent {
+  date: string
+  kind: SynergyKind
+  label: string
+}
+
+export interface EngineResult {
+  snapshots: RpgSnapshot[]
+  synergies: SynergyEvent[]
+}
 
 export function overallOf(s: StatBlock): number {
   const strength = (s.strength_upper + s.strength_lower) / 2
@@ -77,6 +108,11 @@ function headroom(stat: number): number {
   return Math.max(0.1, 1 - stat / 110)
 }
 
+/* Map a measured VO2max (mL/kg/min) onto the 0-100 game scale */
+export function vo2ToStat(vo2: number): number {
+  return Math.min(95, Math.max(20, vo2 * 1.35))
+}
+
 interface DayActivity {
   types: Array<{ type: DayType; quality: number; deload: boolean; recovery: boolean }>
   overrides: number
@@ -85,6 +121,10 @@ interface DayActivity {
   waterL: number | null
   kcal: number | null
   protein: number | null
+  importStrengthMin: number
+  importEnduranceMin: number
+  importMobilityMin: number
+  vo2: number | null
   streak: number
 }
 
@@ -92,15 +132,15 @@ const UPPER_TYPES: DayType[] = ['push', 'pull', 'upper']
 const LOWER_TYPES: DayType[] = ['legs_a', 'legs_b']
 const FLEX_TYPES: DayType[] = ['mobility', 'fix']
 
-export function computeSnapshots(data: AppData, throughDate: string): RpgSnapshot[] {
+export function computeEngine(data: AppData, throughDate: string): EngineResult {
   const profile = data.profile
-  if (!profile) return []
+  if (!profile) return { snapshots: [], synergies: [] }
   const start = profile.baseline_date
   const total = differenceInCalendarDays(
     new Date(throughDate + 'T12:00:00'),
     new Date(start + 'T12:00:00'),
   )
-  if (total < 0) return []
+  if (total < 0) return { snapshots: [], synergies: [] }
 
   const dayTypeById = new Map(data.program_days.map((d) => [d.id, d.day_type]))
   const targets = computeTargets(profile)
@@ -110,7 +150,12 @@ export function computeSnapshots(data: AppData, throughDate: string): RpgSnapsho
   const getDay = (date: string): DayActivity => {
     let a = activity.get(date)
     if (!a) {
-      a = { types: [], overrides: 0, overloadUpper: 0, overloadLower: 0, waterL: null, kcal: null, protein: null, streak: 0 }
+      a = {
+        types: [], overrides: 0, overloadUpper: 0, overloadLower: 0,
+        waterL: null, kcal: null, protein: null,
+        importStrengthMin: 0, importEnduranceMin: 0, importMobilityMin: 0,
+        vo2: null, streak: 0,
+      }
       activity.set(date, a)
     }
     return a
@@ -164,8 +209,17 @@ export function computeSnapshots(data: AppData, throughDate: string): RpgSnapsho
     a.kcal = d.kcal
     a.protein = d.protein_g
   }
+  for (const imp of data.imported_activities) {
+    const a = getDay(imp.date)
+    if (imp.kind === 'strength') a.importStrengthMin += imp.duration_min
+    else if (imp.kind === 'endurance') a.importEnduranceMin += imp.duration_min
+    else a.importMobilityMin += imp.duration_min
+  }
+  for (const m of data.health_metrics) {
+    if (m.vo2max != null) getDay(m.date).vo2 = m.vo2max
+  }
 
-  /* Streak per date (consecutive completed days up to and including date) */
+  /* Streak per date (consecutive days with a completed APEX session) */
   let streak = 0
   for (let i = 0; i <= total; i++) {
     const date = addDaysIso(start, i)
@@ -176,30 +230,83 @@ export function computeSnapshots(data: AppData, throughDate: string): RpgSnapsho
   }
 
   const snapshots: RpgSnapshot[] = []
+  const synergies: SynergyEvent[] = []
   let s: StatBlock = { ...BASELINE }
+  let lastLegsOffset = -99 // day index of the last completed leg session
+
+  /* --- pre-baseline Apple Health history informs the starting point. The 6b
+     calibration stays the anchor; measured reality corrects it, and history
+     from before the app never decays anything. --- */
+  const preVo2 = data.health_metrics
+    .filter((m) => m.vo2max != null && m.date < start)
+    .sort((a, b) => a.date.localeCompare(b.date))
+    .pop()
+  if (preVo2?.vo2max != null) {
+    const anchor = vo2ToStat(preVo2.vo2max)
+    s.endurance += (anchor - s.endurance) * 0.5
+    synergies.push({
+      date: start,
+      kind: 'vo2_anchor',
+      label: `Baseline calibrated: VO2max ${preVo2.vo2max.toFixed(1)} from your watch pulled Endurance toward ${anchor.toFixed(0)}`,
+    })
+  }
+  const preWindowStart = addDaysIso(start, -60)
+  const preCounts = { strength: 0, endurance: 0, mobility: 0 }
+  for (const imp of data.imported_activities) {
+    if (imp.date >= preWindowStart && imp.date < start) preCounts[imp.kind] += 1
+  }
+  if (preCounts.strength + preCounts.endurance + preCounts.mobility > 0) {
+    s.strength_upper += Math.min(6, preCounts.strength * 0.5)
+    s.endurance += Math.min(6, preCounts.endurance * 0.5)
+    s.flexibility += Math.min(6, preCounts.mobility * 0.5)
+    synergies.push({
+      date: start,
+      kind: 'import_feed',
+      label: `Baseline credit: ${preCounts.strength + preCounts.endurance + preCounts.mobility} Apple Health workouts in the 60 days before APEX`,
+    })
+  }
+  s = {
+    health: clamp(s.health), joint: clamp(s.joint), flexibility: clamp(s.flexibility),
+    endurance: clamp(s.endurance), strength_upper: clamp(s.strength_upper), strength_lower: clamp(s.strength_lower),
+  }
 
   for (let i = 0; i <= total; i++) {
     const date = addDaysIso(start, i)
     const a = activity.get(date)
     const streakMult = 1 + Math.min(a?.streak ?? 0, 30) * 0.005
 
-    if (i > 0) {
-      /* Age drag on the physical stats, every single day */
-      s.endurance -= AGE_DRAG_PER_DAY
-      s.flexibility -= AGE_DRAG_PER_DAY
-      s.strength_upper -= AGE_DRAG_PER_DAY
-      s.strength_lower -= AGE_DRAG_PER_DAY
+    {
+      if (i > 0) {
+        /* Age drag on the physical stats, every single day */
+        s.endurance -= AGE_DRAG_PER_DAY
+        s.flexibility -= AGE_DRAG_PER_DAY
+        s.strength_upper -= AGE_DRAG_PER_DAY
+        s.strength_lower -= AGE_DRAG_PER_DAY
+      }
 
       const fed = {
-        endurance: false,
-        flexibility: false,
-        upper: false,
-        lower: false,
-        joint: false,
-        health: false,
+        endurance: false, flexibility: false, upper: false, lower: false,
+        joint: false, health: false,
       }
 
       if (a) {
+        /* --- the brain: nutrition context for this training day --- */
+        const proteinHit = a.protein != null && a.protein >= targets.protein_g * 0.95
+        const deepDeficit = a.kcal != null && a.kcal < targets.kcal * 0.85
+        const hydrated = a.waterL != null && a.waterL >= 2.5
+        const hasStrengthSession = a.types.some(
+          (t) => !t.recovery && (UPPER_TYPES.includes(t.type) || LOWER_TYPES.includes(t.type)),
+        )
+        let strengthMult = 1
+        if (hasStrengthSession && proteinHit) {
+          strengthMult *= 1.15
+          synergies.push({ date, kind: 'protein_strength', label: 'Protein target hit on a strength day. Strength XP +15%' })
+        }
+        if (hasStrengthSession && deepDeficit) {
+          strengthMult *= 0.85
+          synergies.push({ date, kind: 'deficit_strength', label: 'Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy' })
+        }
+
         for (const t of a.types) {
           const q = Math.max(0, Math.min(1, t.quality)) * streakMult
           if (t.recovery) {
@@ -210,37 +317,68 @@ export function computeSnapshots(data: AppData, throughDate: string): RpgSnapsho
           if (t.deload) {
             s.joint += 2.5 * q * headroom(s.joint)
             fed.joint = true
+            synergies.push({ date, kind: 'deload_honored', label: 'Deload honored. Joint Health banked the recovery' })
           }
           if (t.type === 't25') {
-            s.endurance += 3.2 * q * headroom(s.endurance)
+            let m = 1
+            if (hydrated) {
+              m = 1.1
+              synergies.push({ date, kind: 'hydration_endurance', label: 'Hydration at target fueled the T25 engine. Endurance XP +10%' })
+            }
+            s.endurance += 3.2 * m * q * headroom(s.endurance)
             fed.endurance = true
           } else if (FLEX_TYPES.includes(t.type)) {
+            let jm = 1
+            if (i - lastLegsOffset <= 2) {
+              jm = 1.25
+              synergies.push({ date, kind: 'mobility_after_legs', label: 'Mobility within 48 h of a leg day. Joint synergy bonus +25%' })
+            }
             s.flexibility += 2.8 * q * headroom(s.flexibility)
-            s.joint += 1.4 * q * headroom(s.joint)
+            s.joint += 1.4 * jm * q * headroom(s.joint)
             fed.flexibility = true
             fed.joint = true
           } else if (LOWER_TYPES.includes(t.type)) {
             const boost = s.strength_lower < s.strength_upper - CONVERGENCE_GAP ? LEG_XP_BOOST : 1
-            s.strength_lower += 2.6 * boost * q * headroom(s.strength_lower)
+            s.strength_lower += 2.6 * boost * strengthMult * q * headroom(s.strength_lower)
             fed.lower = true
+            lastLegsOffset = i
           } else if (UPPER_TYPES.includes(t.type)) {
-            s.strength_upper += 2.0 * q * headroom(s.strength_upper)
+            s.strength_upper += 2.0 * strengthMult * q * headroom(s.strength_upper)
             fed.upper = true
           }
         }
+
+        /* --- Apple Health imports feed stats at reduced credit --- */
+        if (a.importEnduranceMin >= 8 && !fed.endurance) {
+          const scale = Math.min(1.3, a.importEnduranceMin / 30)
+          s.endurance += 3.2 * IMPORT_CREDIT * scale * headroom(s.endurance)
+          fed.endurance = true
+          synergies.push({ date, kind: 'import_feed', label: `Apple Watch cardio (${a.importEnduranceMin} min) fed Endurance` })
+        }
+        if (a.importStrengthMin >= 8 && !fed.upper) {
+          const scale = Math.min(1.3, a.importStrengthMin / 35)
+          s.strength_upper += 2.0 * IMPORT_CREDIT * scale * headroom(s.strength_upper)
+          fed.upper = true
+          synergies.push({ date, kind: 'import_feed', label: `Apple Watch strength work (${a.importStrengthMin} min) fed Strength` })
+        }
+        if (a.importMobilityMin >= 8 && !fed.flexibility) {
+          s.flexibility += 2.8 * IMPORT_CREDIT * headroom(s.flexibility)
+          fed.flexibility = true
+          synergies.push({ date, kind: 'import_feed', label: `Imported mobility session (${a.importMobilityMin} min) fed Flexibility` })
+        }
+
         s.strength_upper += a.overloadUpper * 0.7 * headroom(s.strength_upper)
         s.strength_lower += a.overloadLower * 0.7 * LEG_XP_BOOST * headroom(s.strength_lower)
         s.joint -= Math.min(a.overrides, 2) * 1.5
 
-        /* Health feeds on behavior: hydration and hitting the calorie/protein window */
+        /* Health feeds on behavior: hydration and the calorie/protein window */
         let healthFed = false
-        if (a.waterL != null && a.waterL >= 2.5) {
+        if (hydrated) {
           s.health += 1.2 * streakMult * headroom(s.health)
           healthFed = true
         }
         if (
-          a.kcal != null &&
-          a.protein != null &&
+          a.kcal != null && a.protein != null &&
           Math.abs(a.kcal - targets.kcal) <= targets.kcal * 0.1 &&
           a.protein >= targets.protein_g * 0.95
         ) {
@@ -248,14 +386,24 @@ export function computeSnapshots(data: AppData, throughDate: string): RpgSnapsho
           healthFed = true
         }
         fed.health = healthFed
+
+        /* --- measured VO2max anchors Endurance to reality --- */
+        if (a.vo2 != null) {
+          const anchor = vo2ToStat(a.vo2)
+          s.endurance += (anchor - s.endurance) * 0.5
+          fed.endurance = true
+          synergies.push({ date, kind: 'vo2_anchor', label: `VO2max measured at ${a.vo2.toFixed(1)}. Endurance anchored toward ${anchor.toFixed(0)}` })
+        }
       }
 
-      if (!fed.endurance) s.endurance = decay(s.endurance, FLOORS.endurance, HALF_LIFE.endurance)
-      if (!fed.flexibility) s.flexibility = decay(s.flexibility, FLOORS.flexibility, HALF_LIFE.flexibility)
-      if (!fed.upper) s.strength_upper = decay(s.strength_upper, FLOORS.strength_upper, HALF_LIFE.strength_upper)
-      if (!fed.lower) s.strength_lower = decay(s.strength_lower, FLOORS.strength_lower, HALF_LIFE.strength_lower)
-      if (!fed.joint) s.joint = decay(s.joint, FLOORS.joint, HALF_LIFE.joint)
-      if (!fed.health) s.health = decay(s.health, FLOORS.health, HALF_LIFE.health)
+      if (i > 0) {
+        if (!fed.endurance) s.endurance = decay(s.endurance, FLOORS.endurance, HALF_LIFE.endurance)
+        if (!fed.flexibility) s.flexibility = decay(s.flexibility, FLOORS.flexibility, HALF_LIFE.flexibility)
+        if (!fed.upper) s.strength_upper = decay(s.strength_upper, FLOORS.strength_upper, HALF_LIFE.strength_upper)
+        if (!fed.lower) s.strength_lower = decay(s.strength_lower, FLOORS.strength_lower, HALF_LIFE.strength_lower)
+        if (!fed.joint) s.joint = decay(s.joint, FLOORS.joint, HALF_LIFE.joint)
+        if (!fed.health) s.health = decay(s.health, FLOORS.health, HALF_LIFE.health)
+      }
 
       s = {
         health: clamp(s.health),
@@ -281,7 +429,12 @@ export function computeSnapshots(data: AppData, throughDate: string): RpgSnapsho
       strength_lower: round1(s.strength_lower),
     })
   }
-  return snapshots
+  return { snapshots, synergies }
+}
+
+/* Back-compat wrapper */
+export function computeSnapshots(data: AppData, throughDate: string): RpgSnapshot[] {
+  return computeEngine(data, throughDate).snapshots
 }
 
 function round1(v: number): number {
@@ -298,7 +451,7 @@ function addDaysIso(startIso: string, days: number): string {
 
 export interface StatAdvice {
   stat: string
-  statKey: 'endurance' | 'flexibility' | 'strength_lower' | 'strength_upper' | 'joint' | 'health'
+  statKey: 'endurance' | 'flexibility' | 'strength_lower' | 'strength_upper' | 'joint' | 'health' | 'recovery'
   headline: string
   detail: string
   prescription: string
@@ -325,6 +478,12 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
       : null
     if (key && (!lastFed[key] || s.date > (lastFed[key] as string))) lastFed[key] = s.date
   }
+  /* imported activities also count as feeding for advice purposes */
+  for (const imp of data.imported_activities) {
+    const key = imp.kind === 'strength' ? 'upper' : imp.kind === 'endurance' ? 'endurance' : 'flexibility'
+    if (!lastFed[key] || imp.date > (lastFed[key] as string)) lastFed[key] = imp.date
+  }
+
   const today = snapshots[snapshots.length - 1].date
   const daysSince = (d: string | null): number | null =>
     d == null ? null : differenceInCalendarDays(new Date(today + 'T12:00:00'), new Date(d + 'T12:00:00'))
@@ -333,6 +492,30 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
 
   const advices: StatAdvice[] = []
   const trend = (a: number, b: number): number => a - b
+
+  /* Recovery flag from resting heart rate (Apple Health) */
+  const rhr = data.health_metrics
+    .filter((m) => m.resting_hr != null)
+    .sort((a, b) => a.date.localeCompare(b.date))
+  if (rhr.length >= 10) {
+    const recent = rhr.slice(-7)
+    const base = rhr.slice(-37, -7)
+    if (recent.length >= 3 && base.length >= 10) {
+      const avg = (arr: typeof rhr): number => arr.reduce((s2, m) => s2 + (m.resting_hr ?? 0), 0) / arr.length
+      const delta = avg(recent) - avg(base)
+      if (delta >= 4) {
+        advices.push({
+          stat: 'Recovery',
+          statKey: 'recovery',
+          headline: `Resting heart rate up ${delta.toFixed(0)} bpm this week`,
+          detail: 'An elevated resting pulse against your own baseline usually means accumulated fatigue, poor sleep or illness brewing.',
+          prescription: 'Favor mobility and sleep for 2-3 days. Keep loads honest, skip PR attempts.',
+          dayType: 'mobility',
+          severity: delta,
+        })
+      }
+    }
+  }
 
   const endTrend = trend(now.endurance, twoWeeksAgo.endurance)
   const endStarve = daysSince(lastFed.endurance)
@@ -344,8 +527,8 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
         endTrend < -1
           ? `Endurance down ${Math.abs(endTrend).toFixed(1)} points in 2 weeks`
           : endStarve == null
-            ? 'No T25 logged yet'
-            : `No T25 in ${endStarve} days`,
+            ? 'No cardio logged yet'
+            : `No cardio in ${endStarve} days`,
       detail: 'Aerobic adaptations fade fastest, on a half-life of roughly 12 days without a stimulus.',
       prescription: 'One FocusT25 session restores the trend. Saturday is the slot.',
       dayType: 't25',

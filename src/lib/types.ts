@@ -194,6 +194,29 @@ export interface DeloadMark {
   date: string
 }
 
+/* Daily body metrics imported from Apple Health. Absence of a day never
+   penalizes anything; these are positive signals only. */
+export interface HealthMetric {
+  id: string
+  user_id: string
+  date: string
+  weight_kg: number | null
+  vo2max: number | null
+  resting_hr: number | null
+}
+
+export type ImportedActivityKind = 'strength' | 'endurance' | 'mobility'
+
+export interface ImportedActivity {
+  id: string
+  user_id: string
+  date: string
+  kind: ImportedActivityKind
+  activity: string // original HK activity name
+  duration_min: number
+  source: string
+}
+
 export interface Settings {
   user_id: string
   voice_on: boolean
@@ -219,6 +242,8 @@ export interface AppData {
   events: CalendarEvent[]
   rpg_snapshots: RpgSnapshot[]
   deload_marks: DeloadMark[]
+  health_metrics: HealthMetric[]
+  imported_activities: ImportedActivity[]
 }
 
 export const EMPTY_DATA: AppData = {
@@ -237,6 +262,8 @@ export const EMPTY_DATA: AppData = {
   events: [],
   rpg_snapshots: [],
   deload_marks: [],
+  health_metrics: [],
+  imported_activities: [],
 }
 
 export type TableName = keyof Omit<AppData, 'profile' | 'settings'> | 'profile' | 'settings'
