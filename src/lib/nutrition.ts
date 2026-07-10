@@ -26,10 +26,10 @@ export const ACTIVITY_MULTIPLIERS: Record<ActivityLevel, { label: string; factor
   extra: { label: 'Extra active', factor: 1.9 },
 }
 
-export const GOALS: Record<Goal, { label: string; kcalDelta: number }> = {
-  recomp: { label: 'Lean recomp', kcalDelta: -300 },
-  maintain: { label: 'Maintain', kcalDelta: 0 },
-  bulk: { label: 'Lean bulk', kcalDelta: 200 },
+export const GOALS: Record<Goal, { label: string; factor: number }> = {
+  recomp: { label: 'Lean recomp', factor: 0.89 },
+  maintain: { label: 'Maintain', factor: 1 },
+  bulk: { label: 'Lean bulk', factor: 1.07 },
 }
 
 export interface Targets {
@@ -46,18 +46,23 @@ export interface Targets {
 export interface TargetMeal extends Meal {
   /* True when the displayed foods were rebuilt from the active calorie target. */
   portioned: boolean
+  portionNote: string
 }
 
 /* TDEE builds on Katch-McArdle since body fat is known. Protein 2.2 g/kg. */
 export function computeTargets(p: Profile): Targets {
   const katch = bmrKatch(p)
-  const tdee = Math.round(katch * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
-  const kcal = p.target_kcal ?? tdee + GOALS[p.goal].kcalDelta
-  const protein = p.target_protein_g ?? Math.round(2.2 * p.weight_kg)
-  const fat = p.target_fat_g ?? Math.round(0.9 * p.weight_kg)
-  const carbs = p.target_carbs_g ?? Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
+  const mifflin = bmrMifflin(p)
+  const hasBodyFat = Number.isFinite(p.body_fat_pct) && p.body_fat_pct > 0 && p.body_fat_pct < 75
+  const activeBmr = hasBodyFat ? katch : mifflin
+  const tdee = Math.round(activeBmr * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
+  const formulaTarget = Math.max(activeBmr * 1.05, tdee * GOALS[p.goal].factor)
+  const kcal = Math.round(formulaTarget)
+  const protein = Math.round(2.2 * p.weight_kg)
+  const fat = Math.round(0.7 * p.weight_kg)
+  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
   return {
-    bmrMifflin: bmrMifflin(p),
+    bmrMifflin: mifflin,
     bmrKatch: katch,
     tdee,
     kcal,
@@ -103,42 +108,67 @@ function scaleQuantities(text: string, scale: number): string {
   })
 }
 
-function portionedFoods(meal: Meal, scale: number): string {
+interface PortionScales {
+  energy: number
+  protein: number
+  fat: number
+  carbs: number
+}
+
+function portionedFoods(meal: Meal, scales: PortionScales): string {
   const key = meal.name.trim().toLowerCase()
   if (key === 'breakfast' && /nut mix/i.test(meal.foods)) {
-    return `${Math.max(2, Math.round(4 * scale))} eggs + ${stepped(35, scale, 5, 15)} g nut mix. Zero-starch, protein-first morning.`
+    return `${Math.max(2, Math.round(4 * scales.protein))} eggs + ${stepped(35, scales.fat, 5, 15)} g nut mix. Zero-starch, protein-first morning.`
   }
   if (key === 'oat jar') {
     return [
-      `${stepped(80, scale, 5, 35)} g oats`,
-      `${stepped(200, scale, 25, 100)} ml milk`,
-      `${stepped(100, scale, 10, 50)} g berries`,
-      `${stepped(100, scale, 10, 50)} g banana`,
-      `${stepped(75, scale, 10, 40)} g kiwi`,
-      `${stepped(200, scale, 25, 100)} g magerquark or chicken hearts`,
-      `${stepped(15, scale, 5, 5)} g seed mix`,
-      `${stepped(5, scale, 5, 5)} g EVOO`,
+      `${stepped(80, scales.carbs, 5, 35)} g oats`,
+      `${stepped(200, scales.carbs, 25, 100)} ml milk`,
+      `${stepped(100, scales.carbs, 10, 50)} g berries`,
+      `${stepped(100, scales.carbs, 10, 50)} g banana`,
+      `${stepped(75, scales.carbs, 10, 40)} g kiwi`,
+      `${stepped(200, scales.protein, 25, 100)} g magerquark or chicken hearts`,
+      `${stepped(15, scales.fat, 5, 5)} g seed mix`,
+      `${stepped(5, scales.fat, 5, 5)} g EVOO`,
     ].join(' + ')
   }
   if (key === 'bulgur snack') {
-    return `${stepped(70, scale, 5, 35)} g dry bulgur + ${stepped(200, scale, 25, 100)} g cottage cheese + ${stepped(200, scale, 25, 100)} g vegetables. Full days only.`
+    return `${stepped(70, scales.carbs, 5, 35)} g dry bulgur + ${stepped(200, scales.protein, 25, 100)} g cottage cheese + ${stepped(200, scales.carbs, 25, 100)} g vegetables. Full days only.`
   }
   if (key === 'dinner') {
-    return `${stepped(300, scale, 25, 150)} g sweet potato + ${stepped(200, scale, 25, 100)} g pollock or chicken + ${stepped(100, scale, 10, 40)} g avocado + ${stepped(200, scale, 25, 100)} g vegetables.`
+    return `${stepped(300, scales.carbs, 25, 150)} g sweet potato + ${stepped(200, scales.protein, 25, 100)} g pollock or chicken + ${stepped(100, scales.fat, 10, 40)} g avocado + ${stepped(200, scales.carbs, 25, 100)} g vegetables.`
   }
   if (key === 'casein shake') {
-    return `Casein isolate ${stepped(45, scale, 5, 25)} g in water.`
+    return `Casein isolate ${stepped(45, scales.protein, 5, 25)} g in water.`
   }
-  return scaleQuantities(meal.foods, scale)
+  return scaleQuantities(meal.foods, scales.energy)
+}
+
+function portionNote(meal: Meal, scales: PortionScales, dayLabel: string): string {
+  const key = meal.name.trim().toLowerCase()
+  if (key === 'oat jar') return `${dayLabel} day: oats ${stepped(80, scales.carbs, 5, 35)} g instead of 80 g.`
+  if (key === 'bulgur snack') return `${dayLabel} day: dry bulgur ${stepped(70, scales.carbs, 5, 35)} g instead of 70 g.`
+  if (key === 'dinner') return `${dayLabel} day: sweet potato ${stepped(300, scales.carbs, 25, 150)} g instead of 300 g.`
+  if (key === 'breakfast' && /nut mix/i.test(meal.foods)) return `${dayLabel} day: protein stays pinned; nut mix adjusts to ${stepped(35, scales.fat, 5, 15)} g.`
+  if (key === 'casein shake') return `${dayLabel} day: casein remains protein-led at ${stepped(45, scales.protein, 5, 25)} g.`
+  return `${dayLabel} day: carbohydrate portions move first; protein moves last.`
 }
 
 /* Builds a complete target-aligned timeline. Integer allocation uses largest
    remainders, so every meal card adds back up to the exact targets shown at
    the top even after rounding. */
-export function buildTargetMealPlan(meals: Meal[], targets: Targets): TargetMeal[] {
+export function buildTargetMealPlan(meals: Meal[], targets: Targets, dayLabel = 'Adaptive'): TargetMeal[] {
   if (meals.length === 0) return []
   const referenceKcal = meals.reduce((sum, meal) => sum + meal.kcal, 0) || targets.kcal
-  const scale = Math.min(1.35, Math.max(0.5, targets.kcal / referenceKcal))
+  const referenceProtein = meals.reduce((sum, meal) => sum + meal.protein_g, 0) || targets.protein_g
+  const referenceFat = meals.reduce((sum, meal) => sum + meal.fat_g, 0) || targets.fat_g
+  const referenceCarbs = meals.reduce((sum, meal) => sum + meal.carbs_g, 0) || targets.carbs_g
+  const scales: PortionScales = {
+    energy: Math.min(1.35, Math.max(0.5, targets.kcal / referenceKcal)),
+    protein: Math.min(1.25, Math.max(0.65, targets.protein_g / referenceProtein)),
+    fat: Math.min(1.4, Math.max(0.45, targets.fat_g / referenceFat)),
+    carbs: Math.min(1.6, Math.max(0.4, targets.carbs_g / referenceCarbs)),
+  }
   const kcal = allocate(targets.kcal, meals.map((meal) => meal.kcal))
   const protein = allocate(targets.protein_g, meals.map((meal) => meal.protein_g))
   const fat = allocate(targets.fat_g, meals.map((meal) => meal.fat_g))
@@ -146,11 +176,12 @@ export function buildTargetMealPlan(meals: Meal[], targets: Targets): TargetMeal
 
   return meals.map((meal, index) => ({
     ...meal,
-    foods: portionedFoods(meal, scale),
+    foods: portionedFoods(meal, scales),
     kcal: kcal[index],
     protein_g: protein[index],
     fat_g: fat[index],
     carbs_g: carbs[index],
     portioned: true,
+    portionNote: portionNote(meal, scales, dayLabel),
   }))
 }

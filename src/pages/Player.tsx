@@ -15,6 +15,8 @@ import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progre
 import { speak, stopSpeech, tick } from '../lib/audio'
 import { currentStreak } from '../lib/streak'
 import { AccentChip, GradientButton, GhostButton, Sheet, EASE } from '../components/ui'
+import { activityCatalogMap, activityLogFromBlock, emptyActivityBlock } from '../lib/activity'
+import { activityLogId } from '../lib/ids'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -266,6 +268,30 @@ export function Player() {
         })
       }
     })
+
+    const dayType = plan.programDay.day_type
+    const activityTypeId = dayType === 't25'
+      ? 'focus-hiit'
+      : dayType === 'mobility' || dayType === 'fix'
+        ? 'mobility'
+        : 'apex-strength'
+    const activityCatalog = activityCatalogMap(data.activity_types)
+    const activityType = activityCatalog.get(activityTypeId)
+    if (activityType && data.profile) {
+      const activityBlock = {
+        ...emptyActivityBlock(
+          activityType,
+          activityLogId(date, data.profile.user_id, `workout:${sessionId}`),
+        ),
+        durationMin: plan.programDay.est_minutes,
+        source: 'workout_module' as const,
+        reconciled: true,
+      }
+      upsert(
+        'activity_logs',
+        activityLogFromBlock(activityBlock, data.profile, date, activityCatalog),
+      )
+    }
     localStorage.removeItem(PERSIST_KEY)
 
     const t = plan.programDay.day_type

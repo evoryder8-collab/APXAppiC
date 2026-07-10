@@ -18,18 +18,28 @@ import {
 import type { Session } from '@supabase/supabase-js'
 import { isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
-import type { AppData, RpgSnapshot, Settings } from '../lib/types'
+import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
 import { EMPTY_DATA } from '../lib/types'
 import { buildSeedData } from '../data/seed'
 import { computeEngine, type SynergyEvent } from '../lib/rpg'
-import { todayIso } from '../lib/plan'
-import { rpgSnapshotId } from '../lib/ids'
+import { eventContextFor, todayIso } from '../lib/plan'
+import { activityLogId, dailyLogId, rpgSnapshotId } from '../lib/ids'
 import {
   getSelectedPersona,
   personaBySlug,
   personaFromUserMetadata,
   setSelectedPersona,
 } from '../lib/persona'
+import {
+  ACTIVITY_CATALOG,
+  activityCatalogMap,
+  activityLogFromBlock,
+  blockFromActivityLog,
+  championshipPrefill,
+  estimateActivityDay,
+  normalizeActivityType,
+} from '../lib/activity'
+import { computeTargets } from '../lib/nutrition'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -42,6 +52,7 @@ export type ListTable =
   | 'exercises'
   | 'workout_sessions'
   | 'workout_logs'
+  | 'activity_logs'
   | 'daily_logs'
   | 'events'
   | 'rpg_snapshots'
@@ -71,6 +82,36 @@ const Ctx = createContext<StoreValue | null>(null)
 
 const LOCAL_USER = '00000000-0000-4000-8000-000000000001'
 
+function normalizeDailyLog(log: DailyLog): DailyLog {
+  return {
+    ...log,
+    estimated_tdee: log.estimated_tdee ?? null,
+    computed_pal: log.computed_pal ?? null,
+    activity_mode: log.activity_mode ?? 'quick',
+    weight_kg: log.weight_kg ?? null,
+  }
+}
+
+function normalizeAppData(value: AppData): AppData {
+  const profile = value.profile
+    ? {
+        ...value.profile,
+        calibration_k: Number(value.profile.calibration_k ?? 1),
+        calibration_history: Array.isArray(value.profile.calibration_history)
+          ? value.profile.calibration_history
+          : [],
+      }
+    : null
+  return {
+    ...EMPTY_DATA,
+    ...value,
+    profile,
+    activity_types: value.activity_types?.length ? value.activity_types : ACTIVITY_CATALOG,
+    activity_logs: value.activity_logs ?? [],
+    daily_logs: (value.daily_logs ?? []).map(normalizeDailyLog),
+  }
+}
+
 function isSchemaCacheError(error: { code?: string; message: string }): boolean {
   return (
     error.code === 'PGRST205' ||
@@ -82,7 +123,7 @@ function isSchemaCacheError(error: { code?: string; message: string }): boolean 
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const scopeRef = useRef(isLocalMode ? LOCAL_USER : 'pending')
   const [data, setData] = useState<AppData>(() =>
-    isLocalMode ? (loadCache(LOCAL_USER) ?? EMPTY_DATA) : EMPTY_DATA,
+    isLocalMode ? normalizeAppData(loadCache(LOCAL_USER) ?? EMPTY_DATA) : EMPTY_DATA,
   )
   const [ready, setReady] = useState(isLocalMode)
   const [session, setSession] = useState<Session | null>(null)
@@ -273,9 +314,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             target_fat_g: cachedProfile.target_fat_g ?? null,
             target_carbs_g: cachedProfile.target_carbs_g ?? null,
             profile_note: cachedProfile.profile_note ?? '',
+            calibration_k: Number(cachedProfile.calibration_k ?? 1),
+            calibration_history: Array.isArray(cachedProfile.calibration_history)
+              ? cachedProfile.calibration_history
+              : [],
           },
         }
       }
+      if (cached) cached = normalizeAppData(cached)
       scopeRef.current = scope
       dataRef.current = cached ?? EMPTY_DATA
       setData(cached ?? EMPTY_DATA)
@@ -311,26 +357,31 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const accountPersona = personaFromUserMetadata(session.user.user_metadata)
     const tables: ListTable[] = [
       'meals', 'meal_logs', 'supplements', 'supplement_logs', 'programs', 'program_days',
-      'exercises', 'workout_sessions', 'workout_logs', 'daily_logs', 'events', 'deload_marks',
+      'exercises', 'workout_sessions', 'workout_logs', 'activity_logs', 'daily_logs', 'events', 'deload_marks',
       'health_metrics', 'imported_activities',
     ]
     try {
       const results = await Promise.all([
         sb.from('profile').select('*').maybeSingle(),
         sb.from('settings').select('*').maybeSingle(),
+        sb.from('activity_types').select('*'),
         ...tables.map((t) => sb.from(t).select('*')),
       ])
       if (scopeRef.current !== session.user.id) return
-      const [profileRes, settingsRes, ...listRes] = results
+      const [profileRes, settingsRes, catalogRes, ...listRes] = results
       const next: AppData = {
         ...EMPTY_DATA,
         profile: (profileRes.data as AppData['profile']) ?? null,
         settings: (settingsRes.data as Settings | null) ?? null,
+        activity_types: catalogRes.data?.length
+          ? catalogRes.data.map((row) => normalizeActivityType(row as Parameters<typeof normalizeActivityType>[0]))
+          : ACTIVITY_CATALOG,
         rpg_snapshots: dataRef.current.rpg_snapshots,
       }
       tables.forEach((t, i) => {
         ;(next as unknown as Record<string, unknown>)[t] = listRes[i].data ?? []
       })
+      next.daily_logs = next.daily_logs.map(normalizeDailyLog)
 
       /* First sign-in: seed everything */
       if (!next.profile || next.programs.length === 0) {
@@ -345,7 +396,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           program_days: next.program_days.length ? next.program_days : seeded.program_days,
           exercises: next.exercises.length ? next.exercises : seeded.exercises,
         }
-        persist(merged)
+        persist(normalizeAppData(merged))
         /* Push seeds through the queue so they land server-side too */
         if (!next.profile && merged.profile) enqueue({ table: 'profile', type: 'upsert', payload: merged.profile })
         if (!next.settings && merged.settings) enqueue({ table: 'settings', type: 'upsert', payload: merged.settings })
@@ -357,7 +408,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           merged.exercises.forEach((r) => enqueue({ table: 'exercises', type: 'upsert', payload: r }))
         }
       } else {
-        persist(next)
+        persist(normalizeAppData(next))
       }
     } catch {
       toast('Could not reach Supabase, running from local cache')
@@ -367,6 +418,59 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     if (session) void fetchAll()
   }, [session, fetchAll])
+
+  /* ---------- activity automation shared by every route ---------- */
+  useEffect(() => {
+    const profile = data.profile
+    if (!profile) return
+    const date = todayIso()
+    const context = eventContextFor(date, data.events)
+    if (!context?.isDuring || context.event.type !== 'filming_championship') return
+    const catalog = activityCatalogMap(data.activity_types)
+    let index = 0
+    const blocks = championshipPrefill(() =>
+      activityLogId(date, profile.user_id, `event:${context.event.id}:${index++}`),
+    )
+    for (const block of blocks) {
+      if (!data.activity_logs.some((log) => log.id === block.id)) {
+        upsert('activity_logs', activityLogFromBlock(block, profile, date, catalog))
+      }
+    }
+  }, [data.activity_logs, data.activity_types, data.events, data.profile, upsert])
+
+  useEffect(() => {
+    const profile = data.profile
+    if (!profile) return
+    const date = todayIso()
+    const catalog = activityCatalogMap(data.activity_types)
+    const activityLogs = data.activity_logs.filter((log) => log.date === date)
+    const blocks = activityLogs.map((log) => blockFromActivityLog(log, catalog))
+    const estimate = estimateActivityDay(profile, blocks, catalog)
+    const quickTargets = computeTargets(profile)
+    const mode = blocks.length > 0 ? 'precise' : 'quick'
+    const estimatedTdee = mode === 'precise' ? estimate.tdee : quickTargets.tdee
+    const computedPal = Math.round((estimatedTdee / estimate.bmr) * 100) / 100
+    const existing = data.daily_logs.find((log) => log.date === date)
+    if (
+      existing?.activity_mode === mode &&
+      existing.estimated_tdee === estimatedTdee &&
+      Number(existing.computed_pal ?? 0) === computedPal
+    ) return
+    upsert('daily_logs', {
+      id: existing?.id ?? dailyLogId(date, profile.user_id),
+      user_id: profile.user_id,
+      date,
+      kcal: existing?.kcal ?? null,
+      protein_g: existing?.protein_g ?? null,
+      fat_g: existing?.fat_g ?? null,
+      carbs_g: existing?.carbs_g ?? null,
+      water_l: existing?.water_l ?? 0,
+      estimated_tdee: estimatedTdee,
+      computed_pal: computedPal,
+      activity_mode: mode,
+      weight_kg: existing?.weight_kg ?? null,
+    })
+  }, [data.activity_logs, data.activity_types, data.daily_logs, data.profile, upsert])
 
   /* ---------- realtime merge from other devices ---------- */
   useEffect(() => {

@@ -11,6 +11,7 @@ import type {
   Supplement,
 } from '../lib/types'
 import type { PersonaSlug } from '../lib/persona'
+import { ACTIVITY_CATALOG } from '../lib/activity'
 
 type FriendPersona = Exclude<PersonaSlug, 'constantine'>
 
@@ -292,6 +293,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
       activity_level: 'extra', goal: 'bulk', target_kcal: 2500, target_protein_g: 110,
       target_fat_g: 130, target_carbs_g: 220, training_time: '19:00', baseline_date: today(),
       profile_note: 'Petite, highly muscular massage therapist. Body-fat percentage is a working estimate; protect energy availability and occupational recovery.',
+      calibration_k: 1, calibration_history: [],
       updated_at: new Date().toISOString(),
     }
   }
@@ -301,6 +303,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
     activity_level: 'very', goal: 'recomp', target_kcal: 2350, target_protein_g: 155,
     target_fat_g: 80, target_carbs_g: 253, training_time: '07:30', baseline_date: today(),
     profile_note: 'Experienced endurance and calisthenics athlete. Height and birthdate are working estimates; adjust them in Settings when confirmed.',
+    calibration_k: 1, calibration_history: [],
     updated_at: new Date().toISOString(),
   }
 }
@@ -422,7 +425,8 @@ export function buildFriendSeedData(userId: string, persona: FriendPersona): App
   return {
     profile: profileFor(userId, persona), settings: settingsFor(userId), meals: mealsFor(userId, persona),
     meal_logs: [], supplements: supplementsFor(userId, persona), supplement_logs: [],
-    ...programme, workout_sessions: [], workout_logs: [], daily_logs: [], events: [],
+    ...programme, workout_sessions: [], workout_logs: [], activity_types: ACTIVITY_CATALOG,
+    activity_logs: [], daily_logs: [], events: [],
     rpg_snapshots: [], deload_marks: [], health_metrics: [], imported_activities: [],
   }
 }

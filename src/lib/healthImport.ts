@@ -245,6 +245,10 @@ export function buildImportRows(
           fat_g: null,
           carbs_g: null,
           water_l: 0,
+          estimated_tdee: null,
+          computed_pal: null,
+          activity_mode: 'quick',
+          weight_kg: null,
         }
     let changed = false
     /* manual entries always win: only fill fields that are still empty */

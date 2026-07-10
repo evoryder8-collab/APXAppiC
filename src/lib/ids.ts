@@ -36,3 +36,7 @@ export function healthMetricId(date: string, userId: string): string {
 export function rpgSnapshotId(date: string, userId: string): string {
   return scopedUuid('rpg-snapshot', date, userId)
 }
+
+export function activityLogId(date: string, userId: string, sourceKey: string): string {
+  return scopedUuid(`activity-log:${sourceKey}`, date, userId)
+}

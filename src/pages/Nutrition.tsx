@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
-import { format, getISODay, startOfMonth, subDays } from 'date-fns'
+import { differenceInCalendarDays, format, getISODay, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import {
@@ -18,6 +18,19 @@ import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
+import { TodaysActivities } from '../components/TodaysActivities'
+import {
+  activityCatalogMap,
+  activityLogFromBlock,
+  blockFromActivityLog,
+  blockSummary,
+  calibrateActivityK,
+  estimateActivityDay,
+  netKcalForBlock,
+  PAL_LABELS,
+  type ActivityBlock,
+  type ActivityPreset,
+} from '../lib/activity'
 
 const amber = ACCENTS.amber
 
@@ -31,6 +44,23 @@ function hmOf(minutes: number): string {
   return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
 }
 
+function emptyDailyLog(date: string, userId: string): DailyLog {
+  return {
+    id: dailyLogId(date, userId),
+    user_id: userId,
+    date,
+    kcal: null,
+    protein_g: null,
+    fat_g: null,
+    carbs_g: null,
+    water_l: 0,
+    estimated_tdee: null,
+    computed_pal: null,
+    activity_mode: 'quick',
+    weight_kg: null,
+  }
+}
+
 export function resolveSupplementTime(s: Supplement, trainingTime: string): number {
   if (s.timing === 'clock' && s.clock_time) return minutesOf(s.clock_time)
   return minutesOf(trainingTime) + (s.offset_min ?? 0)
@@ -40,23 +70,40 @@ export function Nutrition() {
   const { data, upsert, remove, setProfile, setSettings, toast } = useStore()
   const today = todayIso()
   const profile = data.profile
-  const targets = useMemo(() => (profile ? computeTargets(profile) : null), [profile])
-  const hasProtocolTargets = profile?.target_kcal != null
+  const catalog = useMemo(() => activityCatalogMap(data.activity_types), [data.activity_types])
+  const todayActivityLogs = useMemo(
+    () => data.activity_logs.filter((log) => log.date === today),
+    [data.activity_logs, today],
+  )
+  const activityBlocks = useMemo(
+    () => todayActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
+    [catalog, todayActivityLogs],
+  )
+  const quickTargets = useMemo(() => (profile ? computeTargets(profile) : null), [profile])
+  const activityEstimate = useMemo(
+    () => (profile ? estimateActivityDay(profile, activityBlocks, catalog) : null),
+    [profile, activityBlocks, catalog],
+  )
+  const preciseMode = activityBlocks.length > 0
+  const targets = useMemo(() => {
+    if (!quickTargets || !activityEstimate || !preciseMode) return quickTargets
+    return {
+      ...quickTargets,
+      tdee: activityEstimate.tdee,
+      kcal: activityEstimate.targetKcal,
+      protein_g: activityEstimate.proteinG,
+      fat_g: activityEstimate.fatG,
+      carbs_g: activityEstimate.carbsG,
+    }
+  }, [activityEstimate, preciseMode, quickTargets])
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState(today)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
 
-  const selectedLog: DailyLog =
-    data.daily_logs.find((d) => d.date === selectedLogDate) ?? {
-      id: dailyLogId(selectedLogDate, profile?.user_id ?? 'local'),
-      user_id: profile?.user_id ?? '',
-      date: selectedLogDate,
-      kcal: null,
-      protein_g: null,
-      fat_g: null,
-      carbs_g: null,
-      water_l: 0,
-    }
+  const selectedLog: DailyLog = {
+    ...emptyDailyLog(selectedLogDate, profile?.user_id ?? 'local'),
+    ...data.daily_logs.find((d) => d.date === selectedLogDate),
+  }
 
   const patchLog = (patch: Partial<DailyLog>): void => {
     upsert('daily_logs', { ...selectedLog, ...patch })
@@ -76,10 +123,105 @@ export function Nutrition() {
     }
   }, [data.daily_logs, selectedLogDate])
 
+  const activeDayLabel = preciseMode && activityEstimate
+    ? PAL_LABELS[activityEstimate.level]
+    : profile ? ACTIVITY_MULTIPLIERS[profile.activity_level].label : 'Adaptive'
   const mealPlan = useMemo(
-    () => (targets ? buildTargetMealPlan(data.meals, targets) : []),
-    [data.meals, targets],
+    () => (targets ? buildTargetMealPlan(data.meals, targets, activeDayLabel) : []),
+    [activeDayLabel, data.meals, targets],
   )
+
+  const yesterday = useMemo(
+    () => format(subDays(new Date(`${today}T12:00:00`), 1), 'yyyy-MM-dd'),
+    [today],
+  )
+  const yesterdayBlocks = useMemo(
+    () => data.activity_logs
+      .filter((log) => log.date === yesterday)
+      .map((log) => blockFromActivityLog(log, catalog)),
+    [catalog, data.activity_logs, yesterday],
+  )
+  const frequentPresets = useMemo<ActivityPreset[]>(() => {
+    const grouped = new Map<string, { block: ActivityBlock; count: number; latest: string }>()
+    for (const log of data.activity_logs) {
+      if (log.date >= today || log.source !== 'manual') continue
+      const block = blockFromActivityLog(log, catalog)
+      const signature = [
+        block.typeId,
+        block.quantity,
+        block.durationMin ?? '',
+        block.distanceKm ?? '',
+        block.steps ?? '',
+        block.watchKcal ?? '',
+      ].join(':')
+      const existing = grouped.get(signature)
+      grouped.set(signature, {
+        block,
+        count: (existing?.count ?? 0) + 1,
+        latest: existing?.latest && existing.latest > log.date ? existing.latest : log.date,
+      })
+    }
+    return [...grouped.values()]
+      .sort((a, b) => b.count - a.count || b.latest.localeCompare(a.latest))
+      .slice(0, 4)
+      .map(({ block }) => {
+        const type = catalog.get(block.typeId)
+        return {
+          label: `${blockSummary(block, catalog)} ${type?.shortName ?? 'activity'}`,
+          typeId: block.typeId,
+          patch: {
+            quantity: block.quantity,
+            durationMin: block.durationMin,
+            distanceKm: block.distanceKm,
+            steps: block.steps,
+            watchKcal: block.watchKcal,
+          },
+        }
+      })
+  }, [catalog, data.activity_logs, today])
+
+  const calibration = useMemo(
+    () => profile
+      ? calibrateActivityK(
+          data.daily_logs.map((log) => ({
+            date: log.date,
+            intakeKcal: log.kcal,
+            morningWeightKg: log.weight_kg,
+            predictedTdee: log.estimated_tdee,
+          })),
+          profile.calibration_k,
+        )
+      : null,
+    [data.daily_logs, profile],
+  )
+
+  useEffect(() => {
+    if (!profile || !calibration?.eligible || calibration.observedTdee == null || calibration.predictedTdee == null) return
+    if (Math.abs(calibration.nextK - profile.calibration_k) < 0.0005) return
+    const last = profile.calibration_history.at(-1)
+    if (last) {
+      const elapsed = differenceInCalendarDays(
+        new Date(`${today}T12:00:00`),
+        new Date(last.applied_at),
+      )
+      if (elapsed < 7) return
+    }
+    setProfile({
+      calibration_k: calibration.nextK,
+      calibration_history: [
+        ...profile.calibration_history,
+        {
+          applied_at: new Date().toISOString(),
+          previous_k: calibration.previousK,
+          next_k: calibration.nextK,
+          observed_tdee: calibration.observedTdee,
+          predicted_tdee: calibration.predictedTdee,
+          sample_days: 14,
+        },
+      ].slice(-52),
+    })
+    toast('Activity engine calibrated from your last two weeks', 'ok')
+  }, [calibration, profile, setProfile, toast, today])
 
   /* Meal check-offs for today */
   const mealDone = (mealId: string): boolean =>
@@ -140,7 +282,40 @@ export function Nutrition() {
     }
   }
 
-  if (!profile || !targets) return null
+  if (!profile || !targets || !quickTargets || !activityEstimate) return null
+
+  const persistActivityBlocks = (nextBlocks: ActivityBlock[]): void => {
+    const nextIds = new Set(nextBlocks.map((block) => block.id))
+    for (const existing of todayActivityLogs) {
+      if (!nextIds.has(existing.id)) remove('activity_logs', existing.id)
+    }
+    for (const block of nextBlocks) {
+      const existing = todayActivityLogs.find((log) => log.id === block.id)
+      upsert('activity_logs', activityLogFromBlock(block, profile, today, catalog, existing))
+    }
+
+    const nextEstimate = estimateActivityDay(profile, nextBlocks, catalog)
+    const mode = nextBlocks.length > 0 ? 'precise' : 'quick'
+    const estimatedTdee = mode === 'precise' ? nextEstimate.tdee : quickTargets.tdee
+    const existingDay = data.daily_logs.find((log) => log.date === today)
+    upsert('daily_logs', {
+      ...emptyDailyLog(today, profile.user_id),
+      ...existingDay,
+      activity_mode: mode,
+      estimated_tdee: estimatedTdee,
+      computed_pal: Math.round((estimatedTdee / nextEstimate.bmr) * 100) / 100,
+    })
+  }
+
+  const allActivityFinal = activityBlocks.length > 0 && activityBlocks.every((block) => block.reconciled)
+  const reconcileActivities = (): void => {
+    persistActivityBlocks(activityBlocks.map((block) => ({ ...block, reconciled: true })))
+    toast('Today’s activity plan is reconciled', 'ok')
+  }
+
+  const adjustActivities = (): void => {
+    document.getElementById('today-activities')?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+  }
 
   const num = 'font-mono font-bold text-ink'
   const selectedDateObject = new Date(selectedLogDate + 'T12:00:00')
@@ -152,6 +327,9 @@ export function Nutrition() {
       .filter((log) => log.date === selectedLogDate)
       .map((log) => log.supplement_id),
   )
+  const selectedActivityBlocks = data.activity_logs
+    .filter((log) => log.date === selectedLogDate)
+    .map((log) => blockFromActivityLog(log, catalog))
   const plannedTrainingOnSelectedDate = data.program_days.some(
     (day) => day.weekday === getISODay(selectedDateObject),
   )
@@ -183,12 +361,24 @@ export function Nutrition() {
       />
 
       <div className="space-y-5">
+        <TodaysActivities
+          profile={profile}
+          activityTypes={data.activity_types}
+          blocks={activityBlocks}
+          estimate={activityEstimate}
+          quickTdee={quickTargets.tdee}
+          quickLevel={profile.activity_level}
+          frequentPresets={frequentPresets}
+          yesterdayBlocks={yesterdayBlocks}
+          onChange={persistActivityBlocks}
+        />
+
         {/* -------- Targets -------- */}
         <GlassCard accent={amber} className="p-5 sm:p-6">
           <div className="flex items-start justify-between">
             <h2 className="font-display text-lg font-bold text-ink">Daily targets</h2>
             <AccentChip accent={amber}>
-              {hasProtocolTargets ? 'PERSONAL PROTOCOL' : GOALS[profile.goal].label.toUpperCase()}
+              {preciseMode ? `PRECISE · ${GOALS[profile.goal].label.toUpperCase()}` : GOALS[profile.goal].label.toUpperCase()}
             </AccentChip>
           </div>
 
@@ -242,54 +432,50 @@ export function Nutrition() {
             >
               Katch-McArdle computes from lean body mass instead of total weight, so measured fat
               mass does not inflate the estimate. Your current {profile.body_fat_pct}% body-fat
-              entry produces the reference TDEE above. {hasProtocolTargets
-                ? 'Your displayed calories and macros are fixed by your personal protocol, so the formula remains a useful comparison rather than the active prescription.'
-                : 'APEX uses that estimate with your selected activity and goal to build the live target.'}
+              entry produces the reference TDEE above. APEX uses that estimate with your selected activity and goal to build the live target.
             </motion.p>
           )}
 
-          {hasProtocolTargets ? (
-            <div className="mt-4 rounded-2xl px-4 py-3 text-[13px] leading-relaxed font-medium text-ink-soft" style={{ background: amber.wash }}>
-              This target is deliberately locked to {profile.display_name}'s personal nutrition protocol. Meal portions below reconcile to the exact daily calorie and macro allocation.
-            </div>
-          ) : (
-            <>
-              <div className="mt-4 flex flex-wrap gap-2">
-                {Object.entries(ACTIVITY_MULTIPLIERS).map(([key, v]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setProfile({ activity_level: key as ActivityLevel })}
-                    className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
-                    style={
-                      profile.activity_level === key
-                        ? { background: amber.gradient, color: '#fff' }
-                        : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                    }
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-              <div className="mt-2 flex flex-wrap gap-2">
-                {Object.entries(GOALS).map(([key, v]) => (
-                  <button
-                    key={key}
-                    type="button"
-                    onClick={() => setProfile({ goal: key as Goal })}
-                    className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
-                    style={
-                      profile.goal === key
-                        ? { background: amber.gradient, color: '#fff' }
-                        : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                    }
-                  >
-                    {v.label}
-                  </button>
-                ))}
-              </div>
-            </>
+          <div className="mt-4 flex flex-wrap gap-2">
+            {Object.entries(ACTIVITY_MULTIPLIERS).map(([key, v]) => (
+              <button
+                key={key}
+                type="button"
+                disabled={preciseMode}
+                onClick={() => setProfile({ activity_level: key as ActivityLevel })}
+                className="rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:grayscale disabled:opacity-35"
+                style={
+                  profile.activity_level === key
+                    ? { background: amber.gradient, color: '#fff' }
+                    : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
+                }
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
+          {preciseMode && (
+            <p className="mt-2 text-[11px] font-semibold text-ink-faint">
+              Computed from your day. Clear every activity block to return to Quick Mode.
+            </p>
           )}
+          <div className="mt-2 flex flex-wrap gap-2">
+            {Object.entries(GOALS).map(([key, v]) => (
+              <button
+                key={key}
+                type="button"
+                onClick={() => setProfile({ goal: key as Goal })}
+                className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
+                style={
+                  profile.goal === key
+                    ? { background: amber.gradient, color: '#fff' }
+                    : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
+                }
+              >
+                {v.label}
+              </button>
+            ))}
+          </div>
         </GlassCard>
 
         {/* -------- Meal timeline -------- */}
@@ -298,13 +484,11 @@ export function Nutrition() {
             <div>
               <h2 className="font-display text-lg font-bold text-ink">Meal timeline</h2>
               <p className="mt-0.5 text-xs font-medium text-ink-soft">
-                {hasProtocolTargets
-                  ? 'Personal portions reconcile to the exact protocol target.'
-                  : 'Portions recalculate with your activity and goal selection.'}
+                Portions recalculate with your activity and goal selection.
               </p>
             </div>
             <AccentChip accent={amber}>
-              {hasProtocolTargets ? 'PERSONAL PROTOCOL' : ACTIVITY_MULTIPLIERS[profile.activity_level].label.toUpperCase()} · {targets.kcal} KCAL
+              {preciseMode ? PAL_LABELS[activityEstimate.level].toUpperCase() : ACTIVITY_MULTIPLIERS[profile.activity_level].label.toUpperCase()} · {targets.kcal} KCAL
             </AccentChip>
           </div>
           <div className="space-y-3">
@@ -361,8 +545,8 @@ export function Nutrition() {
                             className="mt-2 inline-block rounded-full px-2.5 py-1 text-[11px] font-semibold"
                             style={{ background: amber.wash, color: amber.deep }}
                           >
-                            {hasProtocolTargets
-                              ? 'Protocol-aligned portion · exact daily allocation'
+                            {preciseMode
+                              ? meal.portionNote
                               : 'Target-aligned portion · change activity above to recalculate'}
                           </div>
                         </div>
@@ -473,6 +657,30 @@ export function Nutrition() {
               ? 'Twenty seconds before bed. This feeds the Health stat.'
               : 'Review or correct this past day. Changes sync to the same daily record.'}
           </p>
+          {selectedLogDate === today && preciseMode && (
+            <div className="mt-4 rounded-2xl border border-amber-500/15 p-4" style={{ background: amber.wash }}>
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-display text-sm font-bold text-ink">Did the day go as planned?</p>
+                  <p className="mt-0.5 text-[10px] font-medium text-ink-soft">
+                    {activityEstimate.tdee.toLocaleString()} kcal TDEE · PAL {activityEstimate.pal.toFixed(2)} · {PAL_LABELS[activityEstimate.level]}
+                  </p>
+                </div>
+                {allActivityFinal ? (
+                  <span className="rounded-full bg-emerald/10 px-3 py-1.5 text-[10px] font-bold text-emerald">Reconciled ✓</span>
+                ) : (
+                  <div className="flex gap-2">
+                    <button type="button" onClick={adjustActivities} className="rounded-xl bg-white/65 px-3 py-2 text-[10px] font-bold text-ink-soft shadow-sm">
+                      Adjust blocks
+                    </button>
+                    <button type="button" onClick={reconcileActivities} className="rounded-xl px-3 py-2 text-[10px] font-bold text-white shadow-sm" style={{ background: amber.gradient }}>
+                      Yes, finalize
+                    </button>
+                  </div>
+                )}
+              </div>
+            </div>
+          )}
           <div className="mt-4 space-y-4">
             {(
               [
@@ -509,6 +717,27 @@ export function Nutrition() {
                 onChange={(v) => patchLog({ water_l: v })}
               />
             </div>
+            <label className="flex items-center justify-between gap-3">
+              <span>
+                <span className="block text-sm font-bold text-ink">Morning weight</span>
+                <span className="block text-[10px] font-medium text-ink-faint">Optional · feeds the 7-day calibration EMA</span>
+              </span>
+              <span className="glass flex items-center rounded-xl px-3 py-2">
+                <input
+                  type="number"
+                  inputMode="decimal"
+                  min="25"
+                  max="300"
+                  step="0.1"
+                  value={selectedLog.weight_kg ?? ''}
+                  placeholder={String(profile.weight_kg)}
+                  onChange={(event) => patchLog({ weight_kg: event.target.value === '' ? null : Number(event.target.value) })}
+                  className="w-16 bg-transparent text-right font-mono text-base font-bold text-ink outline-none"
+                  aria-label="Morning weight in kilograms"
+                />
+                <span className="ml-1 text-xs font-semibold text-ink-soft">kg</span>
+              </span>
+            </label>
           </div>
           <div className="mt-4 border-t border-ink/8 pt-3 text-xs font-medium text-ink-soft">
             Water is shared with the workout calendars. Log it wherever you are.
@@ -546,10 +775,40 @@ export function Nutrition() {
               ).map(([label, value, unit]) => (
                 <div key={label} className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.62)' }}>
                   <p className="text-[10px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>
-                  <p className="font-mono text-sm font-bold text-ink">{value == null ? '—' : `${value}${unit}`}</p>
+                  <p className="font-mono text-sm font-bold text-ink">{value == null ? 'Not logged' : `${value}${unit}`}</p>
                 </div>
               ))}
             </div>
+
+            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+              {[
+                ['Activity mode', selectedLog.activity_mode === 'precise' ? 'Precise' : 'Quick'],
+                ['Estimated TDEE', selectedLog.estimated_tdee == null ? 'Not logged' : `${selectedLog.estimated_tdee} kcal`],
+                ['PAL', selectedLog.computed_pal == null ? 'Not logged' : Number(selectedLog.computed_pal).toFixed(2)],
+                ['Morning weight', selectedLog.weight_kg == null ? 'Not logged' : `${selectedLog.weight_kg} kg`],
+              ].map(([label, value]) => (
+                <div key={label} className="rounded-xl px-2.5 py-2" style={{ background: amber.wash }}>
+                  <p className="text-[9px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>
+                  <p className="mt-0.5 font-mono text-xs font-bold text-ink">{value}</p>
+                </div>
+              ))}
+            </div>
+
+            {selectedActivityBlocks.length > 0 && (
+              <div className="mt-4">
+                <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Activities</p>
+                <div className="mt-2 flex flex-wrap gap-1.5">
+                  {selectedActivityBlocks.map((block) => {
+                    const type = catalog.get(block.typeId)
+                    return (
+                      <span key={block.id} className="rounded-full px-2.5 py-1 text-[10px] font-semibold text-ink-soft" style={{ background: amber.wash }}>
+                        {type?.shortName ?? 'Activity'} · {blockSummary(block, catalog)} · {Math.round(netKcalForBlock(block, profile.weight_kg, catalog))} kcal
+                      </span>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
 
             <div className="mt-4">
               <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Meals</p>

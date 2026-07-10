@@ -1,9 +1,19 @@
 /* Domain model. Every row carries user_id so RLS policies scope to auth.uid(). */
 
 import type { PersonaSlug } from './persona'
+import type { ActivityType } from './activity'
 
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very' | 'extra'
 export type Goal = 'recomp' | 'maintain' | 'bulk'
+
+export interface CalibrationHistoryEntry {
+  applied_at: string
+  previous_k: number
+  next_k: number
+  observed_tdee: number
+  predicted_tdee: number
+  sample_days: number
+}
 
 export interface Profile {
   id: string
@@ -17,7 +27,7 @@ export interface Profile {
   birthdate: string // ISO date
   activity_level: ActivityLevel
   goal: Goal
-  /* Optional protocol targets override formula-derived calories and macros. */
+  /* Legacy protocol references retained for existing profile compatibility. */
   target_kcal: number | null
   target_protein_g: number | null
   target_fat_g: number | null
@@ -25,6 +35,8 @@ export interface Profile {
   training_time: string // 'HH:mm', default anchor for training-relative supplements
   baseline_date: string // ISO date the RPG engine starts from
   profile_note: string
+  calibration_k: number
+  calibration_history: CalibrationHistoryEntry[]
   updated_at: string
 }
 
@@ -170,6 +182,26 @@ export interface DailyLog {
   fat_g: number | null
   carbs_g: number | null
   water_l: number
+  estimated_tdee: number | null
+  computed_pal: number | null
+  activity_mode: 'quick' | 'precise'
+  weight_kg: number | null
+}
+
+export interface ActivityLog {
+  id: string
+  user_id: string
+  date: string
+  type_id: string
+  quantity: number
+  duration_min: number | null
+  distance_km: number | null
+  watch_kcal: number | null
+  computed_kcal: number
+  source: 'manual' | 'workout_module' | 'event_prefill'
+  reconciled: boolean
+  created_at: string
+  updated_at: string
 }
 
 export type EventType = 'filming_championship' | 'travel' | 'other'
@@ -248,6 +280,8 @@ export interface AppData {
   exercises: Exercise[]
   workout_sessions: WorkoutSession[]
   workout_logs: WorkoutLog[]
+  activity_types: ActivityType[]
+  activity_logs: ActivityLog[]
   daily_logs: DailyLog[]
   events: CalendarEvent[]
   rpg_snapshots: RpgSnapshot[]
@@ -268,6 +302,8 @@ export const EMPTY_DATA: AppData = {
   exercises: [],
   workout_sessions: [],
   workout_logs: [],
+  activity_types: [],
+  activity_logs: [],
   daily_logs: [],
   events: [],
   rpg_snapshots: [],

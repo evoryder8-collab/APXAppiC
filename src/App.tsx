@@ -100,12 +100,18 @@ function Shell() {
   const returnToPersonaIntro = async (): Promise<void> => {
     if (switchingPersona) return
     setSwitchingPersona(true)
+    // Move the UI back to the selector before the auth request begins. This
+    // keeps the persistent switcher responsive even when sign-out is slow.
+    setSelectedPersonaState(null)
+    setEntryGranted(false)
     clearSelectedPersona()
     clearEntryGrant()
     window.location.hash = '#/'
-    setSelectedPersonaState(null)
-    setEntryGranted(false)
-    await signOut()
+    try {
+      await signOut()
+    } finally {
+      setSwitchingPersona(false)
+    }
   }
 
   if (!ready) {

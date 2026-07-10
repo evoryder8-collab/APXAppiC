@@ -59,6 +59,10 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
       fat_g: dayLog?.fat_g ?? null,
       carbs_g: dayLog?.carbs_g ?? null,
       water_l: v,
+      estimated_tdee: dayLog?.estimated_tdee ?? null,
+      computed_pal: dayLog?.computed_pal ?? null,
+      activity_mode: dayLog?.activity_mode ?? 'quick',
+      weight_kg: dayLog?.weight_kg ?? null,
     })
   }
 
