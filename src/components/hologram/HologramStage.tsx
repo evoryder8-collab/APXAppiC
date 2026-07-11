@@ -5,8 +5,8 @@
  * intentional dark element in the app, so the additive glow reads on the
  * light theme.
  */
-import { useMemo, useRef } from 'react'
-import { Canvas, useFrame } from '@react-three/fiber'
+import { useEffect, useMemo, useRef } from 'react'
+import { Canvas, useFrame, useThree } from '@react-three/fiber'
 import { Bloom, EffectComposer } from '@react-three/postprocessing'
 import * as THREE from 'three'
 import type { Accent } from '../../lib/theme'
@@ -365,6 +365,19 @@ function Body({ dayType }: { dayType: DayType | null }) {
 
 /* ---------------- stage ---------------- */
 
+function MobileFrameLoop() {
+  const invalidate = useThree((state) => state.invalidate)
+  useEffect(() => {
+    /* The anatomy jewel box does not need a 60 fps render loop on a phone.
+       Demand rendering at 30 fps halves its sustained GPU work. */
+    const id = window.setInterval(() => {
+      if (!document.hidden) invalidate()
+    }, 1000 / 30)
+    return () => window.clearInterval(id)
+  }, [invalidate])
+  return null
+}
+
 export function HologramStage({
   dayType,
   accent,
@@ -374,6 +387,7 @@ export function HologramStage({
   accent: Accent
   height?: number
 }) {
+  const mobileGpu = window.matchMedia('(hover: none) and (pointer: coarse)').matches
   return (
     <div
       className="glass rounded-3xl p-1.5"
@@ -389,15 +403,19 @@ export function HologramStage({
         }}
       >
         <Canvas
-          dpr={[1, 1.75]}
+          dpr={mobileGpu ? 1 : [1, 1.75]}
+          frameloop={mobileGpu ? 'demand' : 'always'}
           camera={{ position: [0, 0.12, 2.55], fov: 34 }}
-          gl={{ antialias: true, alpha: true }}
+          gl={{ antialias: !mobileGpu, alpha: true, powerPreference: mobileGpu ? 'low-power' : 'high-performance' }}
           style={{ position: 'absolute', inset: 0 }}
         >
+          {mobileGpu && <MobileFrameLoop />}
           <Body dayType={dayType} />
-          <EffectComposer>
-            <Bloom intensity={1.15} luminanceThreshold={0.18} luminanceSmoothing={0.25} mipmapBlur />
-          </EffectComposer>
+          {!mobileGpu && (
+            <EffectComposer>
+              <Bloom intensity={1.15} luminanceThreshold={0.18} luminanceSmoothing={0.25} mipmapBlur />
+            </EffectComposer>
+          )}
         </Canvas>
         {/* faint inner vignette on top of the canvas */}
         <div

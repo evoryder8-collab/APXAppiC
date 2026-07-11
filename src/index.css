@@ -54,8 +54,8 @@ body {
     rgba(255, 255, 255, 0.74) 0%,
     rgba(255, 255, 255, 0.56) 100%
   );
-  -webkit-backdrop-filter: blur(24px) saturate(180%);
-  backdrop-filter: blur(24px) saturate(180%);
+  -webkit-backdrop-filter: blur(18px) saturate(155%);
+  backdrop-filter: blur(18px) saturate(155%);
   border: 1px solid rgba(26, 26, 34, 0.08);
   box-shadow:
     inset 0 1px 0 rgba(255, 255, 255, 0.95),
@@ -80,7 +80,10 @@ body {
 }
 
 .breathe {
-  animation: breathe 3.6s ease-in-out infinite;
+  box-shadow:
+    inset 0 1px 0 rgba(255, 255, 255, 0.95),
+    0 20px 44px -14px var(--glow-strong, rgba(26, 26, 34, 0.22)),
+    0 0 30px -8px var(--glow-soft, rgba(26, 26, 34, 0.12));
 }
 
 /* ---------------------------------------------------------------- */
@@ -91,8 +94,20 @@ body {
   position: absolute;
   border-radius: 9999px;
   pointer-events: none;
-  filter: blur(90px);
+  filter: blur(72px);
   will-change: transform;
+}
+
+/* Long timelines can contain dozens of glass surfaces. Let the browser skip
+   layout and paint work for cards that are far outside the viewport. */
+.defer-paint {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 10rem;
+}
+
+.defer-paint-tall {
+  content-visibility: auto;
+  contain-intrinsic-size: auto 58rem;
 }
 
 @keyframes drift-1 {
@@ -282,6 +297,73 @@ body {
   28% { opacity: .68; }
   70% { opacity: .26; }
   85%, 100% { transform: translateY(32dvh); opacity: 0; }
+}
+
+/* Only pointer-precise devices keep the decorative shadow pulse. Animating a
+   large box-shadow repaints every frame on iOS, while the static mobile glow
+   keeps the same visual hierarchy with no continuous work. */
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .breathe {
+    animation: breathe 3.6s ease-in-out infinite;
+  }
+}
+
+/* iOS performance mode. Safari pays heavily for many nested backdrop filters
+   over moving, blurred layers. More opaque glass preserves the design while
+   removing those permanent compositing and repaint costs on touch screens. */
+@media (max-width: 767px), (hover: none) and (pointer: coarse) {
+  html {
+    scroll-behavior: auto;
+  }
+
+  .glass {
+    background: linear-gradient(
+      150deg,
+      rgba(255, 255, 255, 0.9) 0%,
+      rgba(255, 255, 255, 0.8) 100%
+    );
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.96),
+      0 14px 30px -20px var(--glow-strong, rgba(26, 26, 34, 0.2));
+  }
+
+  /* Tailwind backdrop utilities are also used by calendar cells and sheets.
+     Forty-two filtered calendar tiles are especially costly during scroll. */
+  .backdrop-blur-sm,
+  .backdrop-blur-md,
+  .backdrop-blur-lg,
+  .backdrop-blur-xl,
+  .backdrop-blur-2xl {
+    -webkit-backdrop-filter: none !important;
+    backdrop-filter: none !important;
+  }
+
+  .blob {
+    filter: none;
+    animation: none !important;
+    will-change: auto;
+    opacity: 0.72;
+  }
+
+  .blob:nth-child(n + 4),
+  .grain {
+    display: none;
+  }
+
+  .breathe {
+    animation: none !important;
+    box-shadow:
+      inset 0 1px 0 rgba(255, 255, 255, 0.96),
+      0 16px 32px -18px var(--glow-strong, rgba(26, 26, 34, 0.24));
+  }
+
+  .ping-soft {
+    animation: none !important;
+    opacity: 0.28;
+    transform: scale(1.7);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {

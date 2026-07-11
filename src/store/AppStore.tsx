@@ -20,7 +20,6 @@ import { isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
 import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
 import { EMPTY_DATA } from '../lib/types'
-import { buildSeedData } from '../data/seed'
 import { computeEngine, type SynergyEvent } from '../lib/rpg'
 import { eventContextFor, todayIso } from '../lib/plan'
 import { activityLogId, dailyLogId, rpgSnapshotId } from '../lib/ids'
@@ -40,7 +39,11 @@ import {
   normalizeActivityType,
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
-import { repairSeedDefinitions, type SeedDefinitionTable } from '../lib/seedRepair'
+import {
+  CURRENT_SEED_VERSION,
+  repairSeedDefinitions,
+  type SeedDefinitionTable,
+} from '../lib/seedRepair'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -122,6 +125,22 @@ function isSchemaCacheError(error: { code?: string; message: string }): boolean 
   )
 }
 
+function recordsEqual(a: object, b: object): boolean {
+  const left = a as Record<string, unknown>
+  const right = b as Record<string, unknown>
+  const keys = Object.keys(left)
+  if (keys.length !== Object.keys(right).length) return false
+  return keys.every((key) => {
+    const l = left[key]
+    const r = right[key]
+    if (l === r) return true
+    if (l && r && typeof l === 'object' && typeof r === 'object') {
+      return JSON.stringify(l) === JSON.stringify(r)
+    }
+    return false
+  })
+}
+
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const scopeRef = useRef(isLocalMode ? LOCAL_USER : 'pending')
   const [data, setData] = useState<AppData>(() =>
@@ -138,6 +157,27 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   dataRef.current = data
   const flushing = useRef(false)
   const lastSchemaToastAt = useRef(0)
+  const pendingCache = useRef<{ data: AppData; scope: string } | null>(null)
+  const cacheSaveTimer = useRef<number | null>(null)
+
+  const flushPendingCache = useCallback(() => {
+    if (cacheSaveTimer.current !== null) {
+      window.clearTimeout(cacheSaveTimer.current)
+      cacheSaveTimer.current = null
+    }
+    const pending = pendingCache.current
+    pendingCache.current = null
+    if (pending) saveCache(pending.data, pending.scope)
+  }, [])
+
+  const scheduleCacheSave = useCallback((next: AppData) => {
+    pendingCache.current = { data: next, scope: scopeRef.current }
+    if (cacheSaveTimer.current !== null) return
+    /* JSON serialisation and localStorage are synchronous. Coalesce rapid
+       steppers/check-offs so a tap never serialises the complete app dataset
+       several times in the same interaction. */
+    cacheSaveTimer.current = window.setTimeout(flushPendingCache, 180)
+  }, [flushPendingCache])
 
   const toast = useCallback((message: string, kind: 'error' | 'ok' = 'error') => {
     const id = Date.now() + Math.random()
@@ -149,8 +189,22 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     /* update the ref synchronously so several writes in one tick compose */
     dataRef.current = next
     setData(next)
-    saveCache(next, scopeRef.current)
-  }, [])
+    scheduleCacheSave(next)
+  }, [scheduleCacheSave])
+
+  useEffect(() => {
+    const flushOnPageHide = (): void => flushPendingCache()
+    const flushWhenHidden = (): void => {
+      if (document.visibilityState === 'hidden') flushPendingCache()
+    }
+    window.addEventListener('pagehide', flushOnPageHide)
+    document.addEventListener('visibilitychange', flushWhenHidden)
+    return () => {
+      window.removeEventListener('pagehide', flushOnPageHide)
+      document.removeEventListener('visibilitychange', flushWhenHidden)
+      flushPendingCache()
+    }
+  }, [flushPendingCache])
 
   /* ---------- queue flush ---------- */
   const flush = useCallback(async () => {
@@ -203,12 +257,39 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     (op: { table: string; type: 'upsert' | 'delete'; payload: object }) => {
       if (!supabase) return
       const queue = loadQueue(scopeRef.current)
-      queue.push({
-        ...op,
-        payload: op.payload as Record<string, unknown>,
-        id: crypto.randomUUID(),
-        ts: Date.now(),
-      } satisfies SyncOp)
+      const payload = op.payload as Record<string, unknown> | Array<Record<string, unknown>>
+      const row = Array.isArray(payload) ? null : payload
+      const rowKey = typeof row?.id === 'string'
+        ? `id:${row.id}`
+        : typeof row?.user_id === 'string'
+          ? `user:${row.user_id}`
+          : null
+      /* A held stepper can produce many writes for one row. Keep only the
+         latest queued version, while never replacing queue[0] if it may
+         already be in flight. */
+      const replaceFrom = flushing.current ? 1 : 0
+      const replaceIndex = op.type === 'upsert' && rowKey
+        ? queue.findIndex((queued, index) => {
+            if (index < replaceFrom || queued.table !== op.table || queued.type !== 'upsert') return false
+            if (Array.isArray(queued.payload)) return false
+            const queuedKey = typeof queued.payload.id === 'string'
+              ? `id:${queued.payload.id}`
+              : typeof queued.payload.user_id === 'string'
+                ? `user:${queued.payload.user_id}`
+                : null
+            return queuedKey === rowKey
+          })
+        : -1
+      if (replaceIndex >= 0) {
+        queue[replaceIndex] = { ...queue[replaceIndex], payload, ts: Date.now() }
+      } else {
+        queue.push({
+          ...op,
+          payload,
+          id: crypto.randomUUID(),
+          ts: Date.now(),
+        } satisfies SyncOp)
+      }
       saveQueue(queue, scopeRef.current)
       setQueueLen(queue.length)
       void flush()
@@ -283,6 +364,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   /* ---------- auth + initial fetch ---------- */
   const adoptSession = useCallback((nextSession: Session | null) => {
+    /* Finish the previous account's cache write before changing the scope. */
+    flushPendingCache()
     if (nextSession) {
       const scope = nextSession.user.id
       let cached = loadCache(scope)
@@ -337,13 +420,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
     setSession(nextSession)
     setReady(true)
-  }, [])
+  }, [flushPendingCache])
 
   useEffect(() => {
     if (!supabase) {
       /* Local mode: seed on first ever run */
       if (!dataRef.current.profile) {
-        persist(buildSeedData(LOCAL_USER, getSelectedPersona() ?? 'constantine'))
+        const persona = getSelectedPersona() ?? 'constantine'
+        void import('../data/seed').then(({ buildSeedData }) => {
+          if (!dataRef.current.profile) persist(buildSeedData(LOCAL_USER, persona))
+        })
       }
       return
     }
@@ -386,25 +472,32 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       })
       next.daily_logs = next.daily_logs.map(normalizeDailyLog)
 
-      const seeded = buildSeedData(session.user.id, accountPersona)
-      const repair = repairSeedDefinitions(next, seeded)
-      persist(normalizeAppData(repair.data))
+      const needsSeedRepair = !next.profile || Number(next.profile.seed_version ?? 0) < CURRENT_SEED_VERSION
+      if (needsSeedRepair) {
+        const { buildSeedData } = await import('../data/seed')
+        if (scopeRef.current !== session.user.id) return
+        const seeded = buildSeedData(session.user.id, accountPersona)
+        const repair = repairSeedDefinitions(next, seeded)
+        persist(normalizeAppData(repair.data))
 
-      if (repair.needsRepair) {
-        /* Definition rows go first and the profile version marker goes last.
-           A second device can therefore resume an interrupted repair safely. */
-        if (repair.settingsChanged && repair.data.settings) {
-          enqueue({ table: 'settings', type: 'upsert', payload: repair.data.settings })
-        }
-        const seedTables: SeedDefinitionTable[] = ['meals', 'supplements', 'programs', 'program_days', 'exercises']
-        for (const table of seedTables) {
-          if (repair.missing[table].length > 0) {
-            enqueue({ table, type: 'upsert', payload: repair.missing[table] })
+        if (repair.needsRepair) {
+          /* Definition rows go first and the profile version marker goes last.
+             A second device can therefore resume an interrupted repair safely. */
+          if (repair.settingsChanged && repair.data.settings) {
+            enqueue({ table: 'settings', type: 'upsert', payload: repair.data.settings })
+          }
+          const seedTables: SeedDefinitionTable[] = ['meals', 'supplements', 'programs', 'program_days', 'exercises']
+          for (const table of seedTables) {
+            if (repair.missing[table].length > 0) {
+              enqueue({ table, type: 'upsert', payload: repair.missing[table] })
+            }
+          }
+          if (repair.profileChanged && repair.data.profile) {
+            enqueue({ table: 'profile', type: 'upsert', payload: repair.data.profile })
           }
         }
-        if (repair.profileChanged && repair.data.profile) {
-          enqueue({ table: 'profile', type: 'upsert', payload: repair.data.profile })
-        }
+      } else {
+        persist(normalizeAppData(next))
       }
     } catch {
       toast('Could not reach Supabase, running from local cache')
@@ -487,11 +580,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const table = payload.table as ListTable | 'profile' | 'settings'
         const cur = dataRef.current
         if (table === 'profile') {
-          if (payload.new) persistSilent({ ...cur, profile: payload.new as AppData['profile'] })
+          if (payload.new) {
+            const profile = payload.new as NonNullable<AppData['profile']>
+            if (cur.profile && recordsEqual(cur.profile, profile)) return
+            persistSilent({ ...cur, profile })
+          }
           return
         }
         if (table === 'settings') {
-          if (payload.new) persistSilent({ ...cur, settings: payload.new as Settings })
+          if (payload.new) {
+            const settings = payload.new as Settings
+            if (cur.settings && recordsEqual(cur.settings, settings)) return
+            persistSilent({ ...cur, settings })
+          }
           return
         }
         const list = cur[table] as Array<{ id: string }>
@@ -501,6 +602,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         } else {
           const row = payload.new as { id: string }
           const i = list.findIndex((r) => r.id === row.id)
+          if (i >= 0 && recordsEqual(list[i], row)) return
           const nextList = i >= 0 ? list.map((r) => (r.id === row.id ? row : r)) : [...list, row]
           persistSilent({ ...cur, [table]: nextList })
         }
@@ -509,12 +611,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const persistSilent = (next: AppData): void => {
       dataRef.current = next
       setData(next)
-      saveCache(next, scopeRef.current)
+      scheduleCacheSave(next)
     }
     return () => {
       void sb.removeChannel(channel)
     }
-  }, [session])
+  }, [session, scheduleCacheSave])
 
   /* ---------- connectivity ---------- */
   useEffect(() => {
@@ -566,6 +668,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const selectedPersona = getSelectedPersona() ?? 'constantine'
     if (!supabase) {
       scopeRef.current = LOCAL_USER
+      const { buildSeedData } = await import('../data/seed')
       persist(buildSeedData(LOCAL_USER, selectedPersona))
       return null
     }
@@ -588,7 +691,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const syncStatus: SyncStatus = isLocalMode ? 'local' : queueLen > 0 || !online ? 'queued' : 'synced'
 
-  const value: StoreValue = {
+  const value = useMemo<StoreValue>(() => ({
     data,
     ready,
     authed: isLocalMode || !!session,
@@ -604,7 +707,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setSettings,
     toast,
     toasts,
-  }
+  }), [
+    bulkUpsert,
+    data,
+    engine.synergies,
+    ready,
+    remove,
+    session,
+    setProfile,
+    setSettings,
+    signIn,
+    signOut,
+    snapshots,
+    syncStatus,
+    toast,
+    toasts,
+    upsert,
+  ])
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }
 

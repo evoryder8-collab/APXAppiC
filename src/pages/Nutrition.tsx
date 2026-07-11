@@ -5,7 +5,6 @@ import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import {
   AccentChip,
-  EASE,
   GlassCard,
   SectionHeader,
   Sparkline,
@@ -223,9 +222,19 @@ export function Nutrition() {
     toast('Activity engine calibrated from your last two weeks', 'ok')
   }, [calibration, profile, setProfile, toast, today])
 
+  /* Index today's check-offs once. A toggle updates the Set on the next data
+     render without rescanning the full history for every visible pill. */
+  const todayMealIds = useMemo(
+    () => new Set(data.meal_logs.filter((log) => log.date === today).map((log) => log.meal_id)),
+    [data.meal_logs, today],
+  )
+  const todaySupplementIds = useMemo(
+    () => new Set(data.supplement_logs.filter((log) => log.date === today).map((log) => log.supplement_id)),
+    [data.supplement_logs, today],
+  )
+
   /* Meal check-offs for today */
-  const mealDone = (mealId: string): boolean =>
-    data.meal_logs.some((l) => l.date === today && l.meal_id === mealId)
+  const mealDone = (mealId: string): boolean => todayMealIds.has(mealId)
   const toggleMeal = (mealId: string): void => {
     const existing = data.meal_logs.find((l) => l.date === today && l.meal_id === mealId)
     if (existing) remove('meal_logs', existing.id)
@@ -257,8 +266,7 @@ export function Nutrition() {
       .sort((a, b) => a.time - b.time)
   }, [data.supplements, trainingTime, isTrainingDay])
 
-  const supDone = (id: string): boolean =>
-    data.supplement_logs.some((l) => l.date === today && l.supplement_id === id)
+  const supDone = (id: string): boolean => todaySupplementIds.has(id)
   const toggleSup = (id: string): void => {
     const existing = data.supplement_logs.find((l) => l.date === today && l.supplement_id === id)
     if (existing) remove('supplement_logs', existing.id)
@@ -494,21 +502,16 @@ export function Nutrition() {
           <div className="space-y-3">
             {[...mealPlan]
               .sort((a, b) => a.time.localeCompare(b.time))
-              .map((meal, i) => {
+              .map((meal) => {
                 const done = mealDone(meal.id)
                 const t = minutesOf(meal.time)
                 const isNext = !done && t >= nowMin - 45 && t <= nowMin + 120
                 return (
-                  <motion.div
-                    key={meal.id}
-                    initial={{ opacity: 0, y: 14 }}
-                    animate={{ opacity: 1, y: 0 }}
-                    transition={{ delay: i * 0.05, duration: 0.4, ease: EASE }}
-                  >
+                  <div key={meal.id}>
                     <GlassCard
                       accent={amber}
                       breathe={isNext}
-                      className={`p-4 transition-opacity ${done ? 'opacity-60' : ''}`}
+                      className={`defer-paint p-4 transition-opacity ${done ? 'opacity-60' : ''}`}
                     >
                       <div className="flex items-start gap-3">
                         <button
@@ -552,7 +555,7 @@ export function Nutrition() {
                         </div>
                       </div>
                     </GlassCard>
-                  </motion.div>
+                  </div>
                 )
               })}
           </div>
@@ -588,7 +591,7 @@ export function Nutrition() {
                     style={{ background: allDone ? amber.gradient : 'rgba(26,26,34,0.15)' }}
                     aria-hidden
                   />
-                  <GlassCard accent={amber} breathe={active} className="p-4">
+                  <GlassCard accent={amber} breathe={active} className="defer-paint p-4">
                     <div className="flex items-center justify-between">
                       <p className="font-display text-sm font-bold text-ink">{group.label}</p>
                       <span className="font-mono text-xs font-bold" style={{ color: amber.deep }}>
@@ -630,7 +633,7 @@ export function Nutrition() {
         </div>
 
         {/* -------- Evening daily log -------- */}
-        <GlassCard accent={amber} className="p-5 sm:p-6">
+        <GlassCard accent={amber} className="defer-paint-tall p-5 sm:p-6">
           <div className="flex flex-wrap items-center justify-between gap-2">
             <div>
               <h2 className="font-display text-lg font-bold text-ink">Daily log</h2>

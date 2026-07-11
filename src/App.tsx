@@ -1,16 +1,8 @@
-import { useEffect, useState, type ReactNode } from 'react'
+import { lazy, Suspense, useEffect, useState, type ReactNode } from 'react'
 import { HashRouter, Navigate, Route, Routes, useLocation } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { AmbientBackground } from './components/AmbientBackground'
 import { TopBar } from './components/TopBar'
-import { Portal } from './pages/Portal'
-import { Nutrition } from './pages/Nutrition'
-import { WorkoutSection } from './pages/WorkoutSection'
-import { AvatarPage } from './pages/AvatarPage'
-import { Settings } from './pages/Settings'
-import { Player } from './pages/Player'
-import { Login } from './pages/Login'
-import { PersonaIntro } from './components/PersonaIntro'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { AppStoreProvider, useStore } from './store/AppStore'
 import { Toasts } from './components/ui'
@@ -27,6 +19,26 @@ import {
 } from './lib/persona'
 
 const EASE = [0.22, 1, 0.36, 1] as const
+
+/* Keep the 3D identity gate and each feature page out of the initial bundle.
+   Returning users now reach the portal without downloading the hologram
+   renderer, and opening one feature does not parse every other feature. */
+const Portal = lazy(() => import('./pages/Portal').then((module) => ({ default: module.Portal })))
+const Nutrition = lazy(() => import('./pages/Nutrition').then((module) => ({ default: module.Nutrition })))
+const WorkoutSection = lazy(() => import('./pages/WorkoutSection').then((module) => ({ default: module.WorkoutSection })))
+const AvatarPage = lazy(() => import('./pages/AvatarPage').then((module) => ({ default: module.AvatarPage })))
+const Settings = lazy(() => import('./pages/Settings').then((module) => ({ default: module.Settings })))
+const Player = lazy(() => import('./pages/Player').then((module) => ({ default: module.Player })))
+const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })))
+const PersonaIntro = lazy(() => import('./components/PersonaIntro').then((module) => ({ default: module.PersonaIntro })))
+
+function LoadingSurface({ page = false }: { page?: boolean }) {
+  return (
+    <div className={`flex items-center justify-center px-6 ${page ? 'min-h-[55dvh] pt-24' : 'min-h-dvh'}`}>
+      <div className="h-20 w-56 animate-pulse rounded-3xl border border-white/80 bg-white/75 shadow-lg" aria-label="Loading APEX" />
+    </div>
+  )
+}
 
 function Page({ children }: { children: ReactNode }) {
   return (
@@ -124,14 +136,16 @@ function Shell() {
   if (!selectedPersona) {
     return (
       <>
-        <PersonaIntro
-          onSelect={(persona) => {
-            setSelectedPersona(persona)
-            setSelectedPersonaState(persona)
-            clearEntryGrant()
-            setEntryGranted(false)
-          }}
-        />
+        <Suspense fallback={<LoadingSurface />}>
+          <PersonaIntro
+            onSelect={(persona) => {
+              setSelectedPersona(persona)
+              setSelectedPersonaState(persona)
+              clearEntryGrant()
+              setEntryGranted(false)
+            }}
+          />
+        </Suspense>
         <Toasts items={toasts} />
       </>
     )
@@ -139,19 +153,21 @@ function Shell() {
   if (!entryGranted || !authed) {
     return (
       <>
-        <Login
-          persona={selectedPersona}
-          onBack={() => {
-            clearSelectedPersona()
-            clearEntryGrant()
-            setSelectedPersonaState(null)
-            setEntryGranted(false)
-          }}
-          onSuccess={() => {
-            grantEntry()
-            setEntryGranted(true)
-          }}
-        />
+        <Suspense fallback={<LoadingSurface />}>
+          <Login
+            persona={selectedPersona}
+            onBack={() => {
+              clearSelectedPersona()
+              clearEntryGrant()
+              setSelectedPersonaState(null)
+              setEntryGranted(false)
+            }}
+            onSuccess={() => {
+              grantEntry()
+              setEntryGranted(true)
+            }}
+          />
+        </Suspense>
         <Toasts items={toasts} />
       </>
     )
@@ -159,7 +175,9 @@ function Shell() {
   return (
     <>
       <TopBar />
-      <AnimatedRoutes />
+      <Suspense fallback={<LoadingSurface page />}>
+        <AnimatedRoutes />
+      </Suspense>
       <ProfileSwitcher
         activePersona={selectedPersona}
         busy={switchingPersona}
