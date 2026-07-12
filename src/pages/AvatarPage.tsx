@@ -103,6 +103,18 @@ export function AvatarPage() {
       <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
 
       <div className="space-y-5">
+        <button type="button" onClick={() => navigate('/progress')} className="w-full text-left">
+          <GlassCard accent={ACCENTS.violet} className="p-4 sm:p-5">
+            <div className="flex items-center justify-between gap-4">
+              <div className="flex items-center gap-3">
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-2xl text-white" style={{ background: ACCENTS.violet.gradient }}>◫</div>
+                <div><p className="font-display text-base font-bold text-ink">Visual Progress</p><p className="mt-0.5 text-xs font-medium text-ink-soft">Private guided photos and honest side-by-side comparison</p></div>
+              </div>
+              <span className="text-2xl text-ink">›</span>
+            </div>
+          </GlassCard>
+        </button>
+
         {/* Level HUD + radar */}
         <div className="grid gap-4 sm:grid-cols-2">
           <GlassCard accent={emerald} breathe className="flex flex-col items-center justify-center p-6">

@@ -1,0 +1,62 @@
+import type { FoodRecord } from '../lib/food'
+
+const created = '2026-07-12T00:00:00.000Z'
+
+function food(
+  id: string,
+  name: string,
+  de: string,
+  fr: string,
+  it: string,
+  kcal: number,
+  protein: number,
+  carbs: number,
+  fat: number,
+  preparation: FoodRecord['preparation_state'] = 'as_sold',
+): FoodRecord {
+  return {
+    id,
+    owner_user_id: null,
+    name,
+    names_i18n: { en: name, de, fr, it },
+    brand: null,
+    barcode: null,
+    source: 'apex_cache',
+    provider_product_id: `apex-common:${id}`,
+    external_image_url: null,
+    package_quantity: null,
+    nutrition_basis: 'per_100g',
+    preparation_state: preparation,
+    kcal_100: kcal,
+    protein_100: protein,
+    carbs_100: carbs,
+    fat_100: fat,
+    fibre_100: null,
+    sugar_100: null,
+    saturated_fat_100: null,
+    salt_100: null,
+    serving_amount: null,
+    serving_unit: null,
+    serving_grams_or_ml: null,
+    piece_grams_or_ml: null,
+    provider_updated_at: null,
+    confidence: 'complete',
+    created_at: created,
+    updated_at: created,
+  }
+}
+
+export const COMMON_FOODS: FoodRecord[] = [
+  food('10000000-0000-4000-8000-000000000001', 'Rolled oats', 'Haferflocken', "Flocons d’avoine", "Fiocchi d’avena", 372, 13.5, 58.7, 7),
+  food('10000000-0000-4000-8000-000000000002', 'White rice, dry', 'Weisser Reis, trocken', 'Riz blanc, sec', 'Riso bianco, secco', 360, 7, 79, 0.7, 'dry'),
+  food('10000000-0000-4000-8000-000000000003', 'White rice, cooked', 'Weisser Reis, gekocht', 'Riz blanc, cuit', 'Riso bianco, cotto', 130, 2.7, 28, 0.3, 'cooked'),
+  food('10000000-0000-4000-8000-000000000004', 'Bulgur, dry', 'Bulgur, trocken', 'Boulgour, sec', 'Bulgur, secco', 342, 12.3, 63.4, 1.3, 'dry'),
+  food('10000000-0000-4000-8000-000000000005', 'Bulgur, cooked', 'Bulgur, gekocht', 'Boulgour, cuit', 'Bulgur, cotto', 83, 3.1, 18.6, 0.2, 'cooked'),
+  food('10000000-0000-4000-8000-000000000006', 'Greek yoghurt, plain', 'Griechischer Joghurt, nature', 'Yaourt grec, nature', 'Yogurt greco, naturale', 97, 9, 3.9, 5),
+  { ...food('10000000-0000-4000-8000-000000000007', 'Whole egg', 'Vollei', 'Œuf entier', 'Uovo intero', 143, 12.6, 0.7, 9.5), piece_grams_or_ml: 58 },
+  food('10000000-0000-4000-8000-000000000008', 'Chicken breast, cooked', 'Pouletbrust, gegart', 'Blanc de poulet, cuit', 'Petto di pollo, cotto', 165, 31, 0, 3.6, 'cooked'),
+  food('10000000-0000-4000-8000-000000000009', 'Sweet potato, cooked', 'Süsskartoffel, gegart', 'Patate douce, cuite', 'Patata dolce, cotta', 90, 2, 20.7, 0.2, 'cooked'),
+  food('10000000-0000-4000-8000-000000000010', 'Broccoli, cooked', 'Brokkoli, gegart', 'Brocoli, cuit', 'Broccoli, cotti', 35, 2.4, 7.2, 0.4, 'cooked'),
+  food('10000000-0000-4000-8000-000000000011', 'Cottage cheese', 'Hüttenkäse', 'Cottage cheese', 'Fiocchi di latte', 98, 11.1, 3.4, 4.3),
+  food('10000000-0000-4000-8000-000000000012', 'Walnuts', 'Walnüsse', 'Noix', 'Noci', 654, 15.2, 13.7, 65.2),
+]
