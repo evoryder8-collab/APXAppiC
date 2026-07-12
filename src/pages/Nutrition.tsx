@@ -1,5 +1,6 @@
 import { useEffect, useMemo, useState } from 'react'
 import { motion } from 'framer-motion'
+import { Link } from 'react-router-dom'
 import { differenceInCalendarDays, format, getISODay, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
@@ -11,7 +12,7 @@ import {
   Stepper,
   Toggle,
 } from '../components/ui'
-import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS } from '../lib/nutrition'
+import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS, type TargetMeal } from '../lib/nutrition'
 import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
@@ -30,6 +31,10 @@ import {
   type ActivityBlock,
   type ActivityPreset,
 } from '../lib/activity'
+import { ActualFoodTracker } from '../components/food/ActualFoodTracker'
+import { MealComposer } from '../components/food/MealComposer'
+import { useFoodStore } from '../store/FoodStore'
+import { aggregateLoggedMeals, type ComposerFoodItem, type MealSlot } from '../lib/food'
 
 const amber = ACCENTS.amber
 
@@ -67,6 +72,7 @@ export function resolveSupplementTime(s: Supplement, trainingTime: string): numb
 
 export function Nutrition() {
   const { data, upsert, remove, setProfile, setSettings, toast } = useStore()
+  const foodStore = useFoodStore()
   const today = todayIso()
   const profile = data.profile
   const catalog = useMemo(() => activityCatalogMap(data.activity_types), [data.activity_types])
@@ -98,6 +104,11 @@ export function Nutrition() {
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState(today)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
+  const [plannedComposer, setPlannedComposer] = useState<{
+    meal: TargetMeal
+    slot: MealSlot
+    items: ComposerFoodItem[]
+  } | null>(null)
 
   const selectedLog: DailyLog = {
     ...emptyDailyLog(selectedLogDate, profile?.user_id ?? 'local'),
@@ -129,6 +140,51 @@ export function Nutrition() {
     () => (targets ? buildTargetMealPlan(data.meals, targets, activeDayLabel) : []),
     [activeDayLabel, data.meals, targets],
   )
+
+  const mealSlotFor = (meal: TargetMeal): MealSlot => {
+    const hour = Number(meal.time.slice(0, 2))
+    if (meal.name.toLowerCase().includes('snack') || meal.name.toLowerCase().includes('shake')) return 'snack'
+    if (hour < 11) return 'breakfast'
+    if (hour < 16) return 'lunch'
+    return 'dinner'
+  }
+
+  const plannedFoodItem = async (meal: TargetMeal): Promise<ComposerFoodItem> => {
+    const providerId = `apex-plan:${meal.id}:${meal.kcal}:${meal.protein_g}:${meal.carbs_g}:${meal.fat_g}`
+    let food = foodStore.foods.find((value) => value.owner_user_id === profile?.user_id && value.provider_product_id === providerId)
+    if (!food) {
+      food = await foodStore.savePrivateFood({
+        name: `${meal.name} · planned prescription`, names_i18n: { en: `${meal.name} · planned prescription` },
+        brand: 'APEX plan', barcode: null, provider_product_id: providerId, external_image_url: null,
+        package_quantity: '1 planned meal', nutrition_basis: 'per_100g', preparation_state: 'prepared',
+        kcal_100: meal.kcal, protein_100: meal.protein_g, carbs_100: meal.carbs_g, fat_100: meal.fat_g,
+        fibre_100: null, sugar_100: null, saturated_fat_100: null, salt_100: null,
+        serving_amount: 1, serving_unit: 'serving', serving_grams_or_ml: 100, piece_grams_or_ml: null,
+        provider_updated_at: null, confidence: 'user_entered',
+      })
+    }
+    return {
+      id: crypto.randomUUID(), food, quantity: 1, unit: 'serving', sort_order: 0,
+      optional: false, locked: true, adjustable: false, minimum_amount: 1, maximum_amount: 1,
+      step_amount: 1, adjustment_role: 'none',
+    }
+  }
+
+  const logAsPlanned = async (meal: TargetMeal): Promise<void> => {
+    const existing = foodStore.meals.find((value) => value.local_date === today && value.source_planned_meal_id === meal.id)
+    if (existing) return
+    const item = await plannedFoodItem(meal)
+    await foodStore.logMeal({
+      slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
+      loggedAs: 'planned', idempotencyKey: `planned:${profile?.user_id}:${today}:${meal.id}`,
+    })
+    toast(`${meal.name} logged as planned`, 'ok')
+  }
+
+  const editAndLog = async (meal: TargetMeal): Promise<void> => {
+    const item = await plannedFoodItem(meal)
+    setPlannedComposer({ meal, slot: mealSlotFor(meal), items: [item] })
+  }
 
   const yesterday = useMemo(
     () => format(subDays(new Date(`${today}T12:00:00`), 1), 'yyyy-MM-dd'),
@@ -368,6 +424,10 @@ export function Nutrition() {
         }
       />
 
+      <div className="mb-4 flex justify-end">
+        <Link to="/progress" className="glass rounded-full px-3 py-2 text-[11px] font-bold text-violet-700">◫ Private visual progress</Link>
+      </div>
+
       <div className="space-y-5">
         <TodaysActivities
           profile={profile}
@@ -486,6 +546,12 @@ export function Nutrition() {
           </div>
         </GlassCard>
 
+        <ActualFoodTracker
+          target={{ kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g }}
+          activityLabel={activeDayLabel}
+          trainingToday={isTrainingDay}
+        />
+
         {/* -------- Meal timeline -------- */}
         <div>
           <div className="mb-3 flex flex-wrap items-end justify-between gap-2">
@@ -504,10 +570,13 @@ export function Nutrition() {
               .sort((a, b) => a.time.localeCompare(b.time))
               .map((meal) => {
                 const done = mealDone(meal.id)
+                const actualMeal = foodStore.meals.find(
+                  (value) => value.local_date === today && value.source_planned_meal_id === meal.id,
+                )
                 const t = minutesOf(meal.time)
                 const isNext = !done && t >= nowMin - 45 && t <= nowMin + 120
                 return (
-                  <div key={meal.id}>
+                  <div key={meal.id} data-planned-meal={meal.name}>
                     <GlassCard
                       accent={amber}
                       breathe={isNext}
@@ -551,6 +620,23 @@ export function Nutrition() {
                             {preciseMode
                               ? meal.portionNote
                               : 'Target-aligned portion · change activity above to recalculate'}
+                          </div>
+                          <div className="mt-3 flex flex-wrap items-center gap-2 border-t border-ink/8 pt-3">
+                            {actualMeal ? (
+                              <>
+                                <AccentChip accent={amber}>{actualMeal.logged_as === 'planned' ? 'LOGGED AS PLANNED' : 'LOGGED WITH CHANGES'}</AccentChip>
+                                <button type="button" onClick={() => void foodStore.deleteMeal(actualMeal.id)} className="text-[10px] font-bold text-ink-faint">Undo actual log</button>
+                              </>
+                            ) : (
+                              <>
+                                <button type="button" onClick={() => void logAsPlanned(meal)} className="rounded-xl px-3 py-2 text-[11px] font-bold text-white" style={{ background: amber.gradient }}>
+                                  Log as planned
+                                </button>
+                                <button type="button" onClick={() => void editAndLog(meal)} className="rounded-xl bg-white/75 px-3 py-2 text-[11px] font-bold text-ink shadow-sm">
+                                  Edit and log
+                                </button>
+                              </>
+                            )}
                           </div>
                         </div>
                       </div>
@@ -684,6 +770,11 @@ export function Nutrition() {
               </div>
             </div>
           )}
+          {selectedLog.nutrition_source === 'structured' && (
+            <p className="mt-4 rounded-xl bg-amber-500/8 px-3 py-2 text-[11px] font-semibold text-amber-800">
+              Calories and macros are calculated from your actual food entries. Delete or replace a logged meal above to change them. Water and weight stay editable here.
+            </p>
+          )}
           <div className="mt-4 space-y-4">
             {(
               [
@@ -698,13 +789,19 @@ export function Nutrition() {
                   <p className="text-sm font-bold text-ink">{row.label}</p>
                   <Sparkline values={row.values} accent={amber} width={72} height={22} />
                 </div>
-                <Stepper
-                  accent={amber}
-                  value={(selectedLog[row.key] as number | null) ?? 0}
-                  step={row.step}
-                  unit={row.unit}
-                  onChange={(v) => patchLog({ [row.key]: v })}
-                />
+                {selectedLog.nutrition_source === 'structured' ? (
+                  <div className="min-w-[9.5rem] rounded-2xl bg-white/70 px-4 py-3 text-center font-mono text-xl font-bold text-ink">
+                    {(selectedLog[row.key] as number | null) ?? 0}<span className="ml-1 text-xs text-ink-soft">{row.unit}</span>
+                  </div>
+                ) : (
+                  <Stepper
+                    accent={amber}
+                    value={(selectedLog[row.key] as number | null) ?? 0}
+                    step={row.step}
+                    unit={row.unit}
+                    onChange={(v) => patchLog({ [row.key]: v, [`manual_${row.key}`]: v, nutrition_source: 'manual' })}
+                  />
+                )}
               </div>
             ))}
             <div className="flex items-center justify-between gap-3">
@@ -883,6 +980,22 @@ export function Nutrition() {
           </GlassCard>
         )}
       </div>
+
+      {plannedComposer && (
+        <MealComposer
+          slot={plannedComposer.slot}
+          title={plannedComposer.meal.name}
+          initialItems={plannedComposer.items}
+          plannedMealId={plannedComposer.meal.id}
+          adaptiveContext={{
+            target: { kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g },
+            consumed: aggregateLoggedMeals(foodStore.mealsForDate(today)),
+            activityLabel: activeDayLabel,
+            trainingToday: isTrainingDay,
+          }}
+          onClose={() => setPlannedComposer(null)}
+        />
+      )}
     </div>
   )
 }

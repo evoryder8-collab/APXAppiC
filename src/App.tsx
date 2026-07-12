@@ -5,6 +5,8 @@ import { AmbientBackground } from './components/AmbientBackground'
 import { TopBar } from './components/TopBar'
 import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { AppStoreProvider, useStore } from './store/AppStore'
+import { FoodStoreProvider } from './store/FoodStore'
+import { ProgressPhotoStoreProvider } from './store/ProgressPhotoStore'
 import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
@@ -30,6 +32,7 @@ const AvatarPage = lazy(() => import('./pages/AvatarPage').then((module) => ({ d
 const Settings = lazy(() => import('./pages/Settings').then((module) => ({ default: module.Settings })))
 const Player = lazy(() => import('./pages/Player').then((module) => ({ default: module.Player })))
 const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })))
+const VisualProgress = lazy(() => import('./pages/VisualProgress').then((module) => ({ default: module.VisualProgress })))
 const PersonaIntro = lazy(() => import('./components/PersonaIntro').then((module) => ({ default: module.PersonaIntro })))
 
 function LoadingSurface({ page = false }: { page?: boolean }) {
@@ -78,6 +81,7 @@ function AnimatedRoutes() {
           }
         />
         <Route path="/avatar" element={<Page><AvatarPage /></Page>} />
+        <Route path="/progress" element={<Page><VisualProgress /></Page>} />
         <Route path="/settings" element={<Page><Settings /></Page>} />
         <Route path="/player/:slug/:date" element={<Page><Player /></Page>} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -192,10 +196,14 @@ function Shell() {
 export default function App() {
   return (
     <AppStoreProvider>
-      <HashRouter>
-        <AmbientBackground />
-        <Shell />
-      </HashRouter>
+      <FoodStoreProvider>
+        <ProgressPhotoStoreProvider>
+          <HashRouter>
+            <AmbientBackground />
+            <Shell />
+          </HashRouter>
+        </ProgressPhotoStoreProvider>
+      </FoodStoreProvider>
     </AppStoreProvider>
   )
 }
