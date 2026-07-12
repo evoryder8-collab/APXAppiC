@@ -14,6 +14,7 @@ import type { SynergyEvent, SynergyKind } from '../lib/rpg'
 import type { Profile, RpgSnapshot } from '../lib/types'
 import { format as fmtDate } from 'date-fns'
 import { ageFrom } from '../lib/nutrition'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 const emerald = ACCENTS.emerald
 
@@ -68,6 +69,8 @@ function baselineNotes(profile: Profile) {
 
 export function AvatarPage() {
   const { data, snapshots, synergies } = useStore()
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
   const [showBaseline, setShowBaseline] = useState(false)
   const [range, setRange] = useState<30 | 90>(30)
@@ -169,10 +172,10 @@ export function AvatarPage() {
                   <GlassCard accent={emerald} className="p-4">
                     <div className="flex items-start justify-between gap-3">
                       <div className="min-w-0">
-                        <AccentChip accent={emerald}>{a.stat.toUpperCase()}</AccentChip>
-                        <p className="mt-2 text-[15px] leading-snug font-bold text-ink">{a.headline}</p>
+                        <AccentChip accent={emerald}>{t(a.stat).toUpperCase()}</AccentChip>
+                        <p className="mt-2 text-[15px] leading-snug font-bold text-ink">{t(a.headline)}</p>
                         <p className="mt-1 text-[13px] leading-relaxed font-medium text-ink-soft">
-                          {a.detail} {a.prescription}
+                          {t(a.detail)} {t(a.prescription)}
                         </p>
                       </div>
                       {a.dayType && (
@@ -230,7 +233,7 @@ export function AvatarPage() {
                     aria-expanded={isOpen}
                   >
                     <div className="flex items-baseline justify-between">
-                      <p className="text-sm font-bold text-ink">{s.label}</p>
+                      <p className="text-sm font-bold text-ink">{t(s.label)}</p>
                       <p className="font-mono text-lg font-bold" style={{ color: s.color }}>
                         {value.toFixed(0)}
                         <span className={`ml-1.5 text-[11px] ${delta >= 0 ? 'text-emerald' : 'text-crimson'}`}>
@@ -305,24 +308,24 @@ export function AvatarPage() {
               <div className="flex flex-wrap items-start justify-between gap-2">
                 <div>
                   <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-faint uppercase">APEX assessment</p>
-                  <h3 className="mt-1 font-display text-base font-bold text-ink">{assessment.title}</h3>
+                  <h3 className="mt-1 font-display text-base font-bold text-ink">{t(assessment.title)}</h3>
                 </div>
-                <AccentChip accent={emerald}>{assessment.confidence.toUpperCase()}</AccentChip>
+                <AccentChip accent={emerald}>{t(assessment.confidence).toUpperCase()}</AccentChip>
               </div>
               <p className="mt-2 text-[13.5px] leading-relaxed font-medium text-ink-soft">
-                {assessment.summary}
+                {t(assessment.summary)}
               </p>
               <div className="mt-4 grid gap-3 sm:grid-cols-2">
                 <div className="rounded-2xl p-3.5" style={{ background: 'rgba(16,185,129,0.07)' }}>
                   <p className="text-[11px] font-bold tracking-wide text-emerald uppercase">What is working</p>
                   <ul className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed font-medium text-ink-soft">
-                    {assessment.strengths.map((item) => <li key={item}>✓ {item}</li>)}
+                    {assessment.strengths.map((item) => <li key={item}>✓ {t(item)}</li>)}
                   </ul>
                 </div>
                 <div className="rounded-2xl p-3.5" style={{ background: 'rgba(245,158,11,0.08)' }}>
                   <p className="text-[11px] font-bold tracking-wide text-amber uppercase">Highest-return improvements</p>
                   <ol className="mt-2 space-y-1.5 text-[12.5px] leading-relaxed font-medium text-ink-soft">
-                    {assessment.priorities.map((item, index) => <li key={item}>{index + 1}. {item}</li>)}
+                    {assessment.priorities.map((item, index) => <li key={item}>{index + 1}. {t(item)}</li>)}
                   </ol>
                 </div>
               </div>
@@ -352,17 +355,16 @@ export function AvatarPage() {
             >
               <li>
                 {profile
-                  ? `Calibrated for ${profile.display_name}: age ${ageFrom(profile.birthdate)}, ${profile.weight_kg} kg, ${profile.body_fat_pct}% body fat and ${profile.height_cm} cm. ${profile.profile_note}`
+                  ? t(`Calibrated for ${profile.display_name}: age ${ageFrom(profile.birthdate)}, ${profile.weight_kg} kg, ${profile.body_fat_pct}% body fat and ${profile.height_cm} cm. ${profile.profile_note}`)
                   : 'Calibrated from the current body profile and available performance history.'}
               </li>
               {notes.map((note) => (
                 <li key={note.label}>
-                  <strong className="text-ink">{note.label}:</strong> {note.text}
+                  <strong className="text-ink">{t(note.label)}:</strong> {t(note.text)}
                 </li>
               ))}
               <li>
-                Overall computes from the weights (Strength 25%, Endurance 20%, Joint 20%, Health 20%,
-                Flexibility 15%), starting at {overallOf(baseline).toFixed(1)}.
+                {t(`Overall computes from the weights (Strength 25%, Endurance 20%, Joint 20%, Health 20%, Flexibility 15%), starting at ${overallOf(baseline).toFixed(1)}.`)}
               </li>
             </motion.ul>
           )}
@@ -385,6 +387,8 @@ const SYNERGY_DOT: Record<SynergyKind, string> = {
 }
 
 function EngineCard({ synergies }: { synergies: SynergyEvent[] }) {
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const recent = [...synergies].sort((a, b) => b.date.localeCompare(a.date)).slice(0, 8)
   return (
     <GlassCard accent={emerald} className="p-5">
@@ -412,7 +416,7 @@ function EngineCard({ synergies }: { synergies: SynergyEvent[] }) {
               style={{ background: 'rgba(255,255,255,0.5)' }}
             >
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: SYNERGY_DOT[e.kind] }} />
-              <p className="min-w-0 flex-1 text-[12.5px] leading-snug font-semibold text-ink">{e.label}</p>
+              <p className="min-w-0 flex-1 text-[12.5px] leading-snug font-semibold text-ink">{t(e.label)}</p>
               <span className="shrink-0 font-mono text-[10px] font-bold text-ink-faint">
                 {fmtDate(new Date(e.date + 'T12:00:00'), 'd MMM')}
               </span>
@@ -427,6 +431,8 @@ function EngineCard({ synergies }: { synergies: SynergyEvent[] }) {
 /* ---------------- hexagonal radar, jewel-box treatment ---------------- */
 
 function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const axes = [
     { label: 'HEALTH', value: snapshot.health },
     { label: 'JOINT', value: snapshot.joint },
@@ -551,7 +557,7 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
               fill="rgba(214, 226, 245, 0.72)"
               className="font-mono"
             >
-              {a.label}
+                  {t(a.label)}
             </text>
           )
         })}
