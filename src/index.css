@@ -1,4 +1,6 @@
-@import "tailwindcss";
+/* This repository is a linked worktree. Constrain Tailwind discovery to src
+   so production builds never crawl the parent media workspace. */
+@import "tailwindcss" source("./");
 @import "@fontsource-variable/space-grotesk";
 @import "@fontsource-variable/jetbrains-mono";
 

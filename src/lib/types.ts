@@ -187,6 +187,11 @@ export interface DailyLog {
   computed_pal: number | null
   activity_mode: 'quick' | 'precise'
   weight_kg: number | null
+  nutrition_source?: 'manual' | 'structured'
+  manual_kcal?: number | null
+  manual_protein_g?: number | null
+  manual_fat_g?: number | null
+  manual_carbs_g?: number | null
 }
 
 export interface ActivityLog {

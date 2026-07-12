@@ -93,6 +93,11 @@ function normalizeDailyLog(log: DailyLog): DailyLog {
     computed_pal: log.computed_pal ?? null,
     activity_mode: log.activity_mode ?? 'quick',
     weight_kg: log.weight_kg ?? null,
+    nutrition_source: log.nutrition_source ?? 'manual',
+    manual_kcal: log.manual_kcal ?? null,
+    manual_protein_g: log.manual_protein_g ?? null,
+    manual_fat_g: log.manual_fat_g ?? null,
+    manual_carbs_g: log.manual_carbs_g ?? null,
   }
 }
 
