@@ -22,6 +22,11 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'What your body needs',
     'Include stats',
     'No APEX stats for this date',
+    'Interface mode',
+    'Today’s checklist',
+    'APEX Body Index',
+    'Upper Body Strength',
+    'Lower Body Strength',
     'You’re about to log out. Are you sure?',
     'Language',
   ]

@@ -1,6 +1,7 @@
-import { Link } from 'react-router-dom'
+import { Link, useNavigate } from 'react-router-dom'
 import { ApexMark, SlidersIcon } from './Icons'
 import { useStore } from '../store/AppStore'
+import { settingsForUiMode, uiModeFromSettings, type UiMode } from '../lib/simpleMode'
 
 const DOT_COLORS = {
   synced: { color: '#10b981', label: 'Synced' },
@@ -9,9 +10,15 @@ const DOT_COLORS = {
 } as const
 
 export function TopBar() {
-  const { syncStatus, data } = useStore()
+  const { syncStatus, data, setSettings } = useStore()
+  const navigate = useNavigate()
   const dot = DOT_COLORS[syncStatus]
-  const firstName = data.profile?.display_name?.split(' ')[0]
+  const uiMode = uiModeFromSettings(data.settings)
+  const setUiMode = (mode: UiMode): void => {
+    if (!data.settings || mode === uiMode) return
+    setSettings(settingsForUiMode(data.settings, mode))
+    navigate('/')
+  }
   return (
     <header className="fixed inset-x-0 top-0 z-40 px-4 pt-[max(0.75rem,env(safe-area-inset-top))]">
       <div className="glass mx-auto flex h-13 max-w-3xl items-center justify-between rounded-full px-4">
@@ -22,12 +29,20 @@ export function TopBar() {
           </span>
         </Link>
 
-        <div className="flex items-center gap-4">
-          {firstName && (
-            <span className="hidden max-w-28 truncate rounded-full bg-white/55 px-2.5 py-1 font-mono text-[9px] font-semibold tracking-[0.12em] text-ink-soft uppercase min-[390px]:block">
-              {firstName}
-            </span>
-          )}
+        <div className="flex items-center gap-2.5 sm:gap-4">
+          <div className="flex rounded-full border border-white/70 bg-white/55 p-0.5 shadow-inner" aria-label="Interface mode">
+            {(['simple', 'advanced'] as const).map((mode) => (
+              <button
+                key={mode}
+                type="button"
+                onClick={() => setUiMode(mode)}
+                aria-pressed={uiMode === mode}
+                className={`rounded-full px-2.5 py-1 font-mono text-[8px] font-bold tracking-[0.08em] uppercase transition-all sm:px-3 ${uiMode === mode ? 'bg-ink text-white shadow-sm' : 'text-ink-faint'}`}
+              >
+                {mode}
+              </button>
+            ))}
+          </div>
           <div
             className="relative flex h-2.5 w-2.5 items-center justify-center"
             role="status"

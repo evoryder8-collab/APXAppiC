@@ -136,6 +136,24 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   }
   const late = value.match(/^Up late, (.+)\.$/)
   if (late) return language === 'ro' ? `E târziu, ${late[1]}.` : `ยังไม่นอนอีกเหรอ ${late[1]}`
+  const todayName = value.match(/^Today, (.+)\.$/)
+  if (todayName) return language === 'ro' ? `Astăzi, ${todayName[1]}.` : `วันนี้ ${todayName[1]}`
+  const essentials = value.match(/^(\d+) of (\d+) essentials complete$/)
+  if (essentials) return language === 'ro' ? `${essentials[1]} din ${essentials[2]} lucruri esențiale completate` : `เสร็จแล้ว ${essentials[1]} จาก ${essentials[2]} รายการสำคัญ`
+  const itemCount = value.match(/^(\d+) (items|supplements)$/)
+  if (itemCount) return language === 'ro'
+    ? `${itemCount[1]} ${itemCount[2] === 'items' ? 'elemente' : 'suplimente'}`
+    : `${itemCount[1]} ${itemCount[2] === 'items' ? 'รายการ' : 'อาหารเสริม'}`
+  const bodyMomentum = value.match(/^([+-]?[\d.]+) over 14 days · tap for the full story$/)
+  if (bodyMomentum) return language === 'ro'
+    ? `${bodyMomentum[1]} în 14 zile · atinge pentru toate detaliile`
+    : `${bodyMomentum[1]} ใน 14 วัน · แตะเพื่อดูรายละเอียดทั้งหมด`
+  const strongestSignal = value.match(/^Your strongest signal is (.+) at ([\d.]+)\.$/)
+  if (strongestSignal) return language === 'ro'
+    ? `Cea mai bună calitate este ${translateInterfaceText(strongestSignal[1], language)}, la ${strongestSignal[2]}.`
+    : `จุดแข็งที่สุดคือ ${translateInterfaceText(strongestSignal[1], language)} ที่ ${strongestSignal[2]}`
+  const waterProgress = value.match(/^([\d.]+) of ([\d.]+) L$/)
+  if (waterProgress) return language === 'ro' ? `${waterProgress[1]} din ${waterProgress[2]} L` : `${waterProgress[1]} จาก ${waterProgress[2]} ลิตร`
 
   const remaining = value.match(/^(\d[\d,.]*) kcal remain today\. Protein remaining: (\d[\d,.]*) g\.$/)
   if (remaining) return language === 'ro'

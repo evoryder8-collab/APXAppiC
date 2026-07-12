@@ -87,8 +87,22 @@ export function AvatarPage() {
   const profile = data.profile
   const baseline = baselineForProfile(profile)
   const notes = profile ? baselineNotes(profile) : []
-  const level = Math.floor(now.overall)
-  const levelFrac = now.overall - level
+  const score = Math.floor(now.overall)
+  const overallDelta = now.overall - before.overall
+  const personalBest = Math.max(...snapshots.map((snapshot) => snapshot.overall))
+  const nextMilestone = Math.min(100, Math.max(5, (Math.floor(now.overall / 5) + 1) * 5))
+  const milestoneStart = Math.max(0, nextMilestone - 5)
+  const milestoneProgress = nextMilestone === 100 && now.overall >= 100
+    ? 100
+    : Math.max(0, Math.min(100, ((now.overall - milestoneStart) / Math.max(1, nextMilestone - milestoneStart)) * 100))
+  const strongestStat = STATS.slice(1).reduce((best, stat) => now[stat.key] > now[best.key] ? stat : best)
+  const identityTitle = now.overall >= 80
+    ? 'Elite foundation'
+    : now.overall >= 65
+      ? 'Power becoming visible'
+      : now.overall >= 50
+        ? 'Momentum is taking shape'
+        : 'Foundation under construction'
 
   /* the stat moving the most over 14 days breathes */
   const trending = STATS.slice(1).reduce(
@@ -119,36 +133,22 @@ export function AvatarPage() {
           </GlassCard>
         </button>
 
-        {/* Level HUD + radar */}
+        {/* Performance identity + radar */}
         <div className="grid gap-4 sm:grid-cols-2">
-          <GlassCard accent={emerald} breathe className="flex flex-col items-center justify-center p-6">
-            <p className="font-mono text-[11px] font-bold tracking-[0.3em] text-ink-faint uppercase">Level</p>
-            <div className="relative my-2">
-              <p
-                className="font-mono text-7xl font-bold"
-                style={{
-                  background: 'linear-gradient(135deg, #059669, #34d399)',
-                  WebkitBackgroundClip: 'text',
-                  WebkitTextFillColor: 'transparent',
-                  filter: 'drop-shadow(0 4px 14px rgba(16,185,129,0.35))',
-                }}
-              >
-                {level}
-              </p>
+          <div className="relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-[#07130f] p-5 text-white shadow-[0_26px_70px_-32px_rgba(16,185,129,0.8)]">
+            <div className="pointer-events-none absolute -top-20 -right-16 h-48 w-48 rounded-full bg-emerald-400/25 blur-3xl" />
+            <div className="pointer-events-none absolute -bottom-24 -left-16 h-48 w-48 rounded-full bg-cyan-400/15 blur-3xl" />
+            <div className="relative">
+              <div className="flex items-center justify-between gap-2"><p className="font-mono text-[9px] font-bold tracking-[0.22em] text-emerald-200/70 uppercase">APEX Body Index</p><span className="rounded-full border border-emerald-300/20 bg-emerald-300/10 px-2 py-1 font-mono text-[7px] font-bold tracking-widest text-emerald-100 uppercase">Live profile</span></div>
+              <div className="mt-3 flex items-end gap-3"><p className="font-mono text-7xl leading-none font-bold tracking-[-0.08em] text-white" style={{ textShadow: '0 0 28px rgba(52,211,153,0.42)' }}>{score}</p><div className="pb-1"><p className="font-display text-base font-bold text-emerald-100">{t(identityTitle)}</p><p className="mt-0.5 text-[10px] font-medium text-white/55">{t(`Your strongest signal is ${strongestStat.label} at ${now[strongestStat.key].toFixed(0)}.`)}</p></div></div>
+              <div className="mt-5"><div className="flex items-center justify-between font-mono text-[8px] font-bold tracking-wide text-white/45 uppercase"><span>{t('Progress to next unlock')}</span><span className="text-emerald-200">{nextMilestone}</span></div><div className="mt-1.5 h-1.5 overflow-hidden rounded-full bg-white/10"><motion.div initial={{ width: 0 }} animate={{ width: `${milestoneProgress}%` }} transition={{ duration: 1, ease: EASE }} className="h-full rounded-full bg-gradient-to-r from-emerald-400 to-cyan-300 shadow-[0_0_12px_rgba(52,211,153,0.7)]" /></div></div>
+              <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/8 pt-3">
+                <IdentityMetric label="14-day change" value={`${overallDelta >= 0 ? '+' : ''}${overallDelta.toFixed(1)}`} positive={overallDelta >= 0} />
+                <IdentityMetric label="Personal best" value={personalBest.toFixed(0)} positive={now.overall >= personalBest} />
+                <IdentityMetric label="Next unlock" value={String(nextMilestone)} positive />
+              </div>
             </div>
-            <div className="h-2 w-40 overflow-hidden rounded-full bg-ink/8">
-              <motion.div
-                className="h-full rounded-full"
-                style={{ background: emerald.gradient }}
-                initial={{ width: 0 }}
-                animate={{ width: `${levelFrac * 100}%` }}
-                transition={{ duration: 1, ease: EASE }}
-              />
-            </div>
-            <p className="mt-2 font-mono text-[11px] font-semibold text-ink-soft">
-              {(levelFrac * 100).toFixed(0)}% to level {level + 1}
-            </p>
-          </GlassCard>
+          </div>
 
           <GlassCard accent={emerald} className="p-1.5">
             <Radar snapshot={now} />
@@ -261,8 +261,8 @@ export function AvatarPage() {
                     <div className="mt-2 grid grid-cols-2 gap-3 pl-3">
                       {(
                         [
-                          ['Upper', now.strength_upper],
-                          ['Lower', now.strength_lower],
+                          ['Upper Body Strength', now.strength_upper],
+                          ['Lower Body Strength', now.strength_lower],
                         ] as const
                       ).map(([label, v]) => (
                         <div key={label}>
@@ -375,6 +375,15 @@ export function AvatarPage() {
   )
 }
 
+function IdentityMetric({ label, value, positive }: { label: string; value: string; positive: boolean }) {
+  return (
+    <div className="min-w-0">
+      <p className="truncate font-mono text-[7px] font-bold tracking-[0.1em] text-white/38 uppercase">{label}</p>
+      <p className={`mt-1 font-mono text-sm font-bold ${positive ? 'text-emerald-200' : 'text-amber-200'}`}>{value}</p>
+    </div>
+  )
+}
+
 /* ---------------- the engine: explainable synergy feed ---------------- */
 
 const SYNERGY_DOT: Record<SynergyKind, string> = {
@@ -435,12 +444,12 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const axes = [
-    { label: 'HEALTH', value: snapshot.health },
-    { label: 'JOINT', value: snapshot.joint },
-    { label: 'FLEX', value: snapshot.flexibility },
-    { label: 'ENDUR', value: snapshot.endurance },
-    { label: 'STR ↑', value: snapshot.strength_upper },
-    { label: 'STR ↓', value: snapshot.strength_lower },
+    { label: 'HEALTH', lines: ['HEALTH'], value: snapshot.health },
+    { label: 'JOINT', lines: ['JOINT'], value: snapshot.joint },
+    { label: 'FLEX', lines: ['FLEX'], value: snapshot.flexibility },
+    { label: 'ENDUR', lines: ['ENDUR'], value: snapshot.endurance },
+    { label: 'UPPER BODY STRENGTH', lines: ['UPPER BODY', 'STRENGTH'], value: snapshot.strength_upper },
+    { label: 'LOWER BODY STRENGTH', lines: ['LOWER BODY', 'STRENGTH'], value: snapshot.strength_lower },
   ]
   const cx = 130
   const cy = 118
@@ -545,20 +554,23 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
         {/* axis labels */}
         {axes.map((a, i) => {
           const [x, y] = point(i, 132)
+          const anchor = x < 55 ? 'start' : x > 205 ? 'end' : 'middle'
           return (
             <text
               key={a.label}
               x={x}
               y={y}
-              textAnchor="middle"
+              textAnchor={anchor}
               dominantBaseline="middle"
-              fontSize="9.5"
+              fontSize={a.lines.length > 1 ? '7.2' : '9.5'}
               fontWeight="700"
-              letterSpacing="1.5"
+              letterSpacing={a.lines.length > 1 ? '0.7' : '1.5'}
               fill="rgba(214, 226, 245, 0.72)"
               className="font-mono"
             >
-                  {t(a.label)}
+              {a.lines.map((line, lineIndex) => (
+                <tspan key={line} x={x} dy={lineIndex === 0 ? (a.lines.length > 1 ? '-0.45em' : '0') : '1.15em'}>{t(line)}</tspan>
+              ))}
             </text>
           )
         })}

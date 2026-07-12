@@ -11,6 +11,7 @@ import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
 import { LanguageProvider } from './lib/i18n'
+import { uiModeFromSettings } from './lib/simpleMode'
 import {
   clearEntryGrant,
   clearSelectedPersona,
@@ -27,6 +28,7 @@ const EASE = [0.22, 1, 0.36, 1] as const
    Returning users now reach the portal without downloading the hologram
    renderer, and opening one feature does not parse every other feature. */
 const Portal = lazy(() => import('./pages/Portal').then((module) => ({ default: module.Portal })))
+const SimpleHome = lazy(() => import('./pages/SimpleHome').then((module) => ({ default: module.SimpleHome })))
 const Nutrition = lazy(() => import('./pages/Nutrition').then((module) => ({ default: module.Nutrition })))
 const WorkoutSection = lazy(() => import('./pages/WorkoutSection').then((module) => ({ default: module.WorkoutSection })))
 const AvatarPage = lazy(() => import('./pages/AvatarPage').then((module) => ({ default: module.AvatarPage })))
@@ -60,10 +62,12 @@ function Page({ children }: { children: ReactNode }) {
 
 function AnimatedRoutes() {
   const location = useLocation()
+  const { data } = useStore()
+  const simple = uiModeFromSettings(data.settings) === 'simple'
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Page><Portal /></Page>} />
+        <Route path="/" element={<Page>{simple ? <SimpleHome /> : <Portal />}</Page>} />
         <Route path="/nutrition" element={<Page><Nutrition /></Page>} />
         <Route
           path="/transition"

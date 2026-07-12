@@ -271,7 +271,12 @@ export interface Settings {
   ticks_on: boolean
   notifications_on: boolean
   guardian_factor: number // spike threshold vs typical increment, default 1.5
-  addons: { endurance1: boolean; endurance2: boolean; endurance3: boolean }
+  addons: {
+    endurance1: boolean
+    endurance2: boolean
+    endurance3: boolean
+    uiMode?: 'simple' | 'advanced'
+  }
 }
 
 export interface AppData {
