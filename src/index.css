@@ -229,6 +229,21 @@ body {
   animation: ping-soft 2.4s cubic-bezier(0, 0, 0.2, 1) infinite;
 }
 
+.portal-portrait-gleam {
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.78), transparent);
+  filter: blur(1px);
+  opacity: 0;
+  animation: portal-portrait-gleam 4.8s cubic-bezier(0.22, 1, 0.36, 1) infinite;
+  will-change: transform, opacity;
+}
+
+@keyframes portal-portrait-gleam {
+  0%, 58% { transform: translate3d(-130%, 0, 0) rotate(18deg); opacity: 0; }
+  64% { opacity: 0.82; }
+  78% { transform: translate3d(430%, 0, 0) rotate(18deg); opacity: 0; }
+  100% { transform: translate3d(430%, 0, 0) rotate(18deg); opacity: 0; }
+}
+
 /* Cinematic identity gate. Kept CSS-native so it remains fluid on mobile. */
 .apex-intro {
   isolation: isolate;
@@ -522,7 +537,8 @@ body {
   .ping-soft,
   .intro-grid,
   .intro-scan,
-  .intro-language-prompt > span {
+  .intro-language-prompt > span,
+  .portal-portrait-gleam {
     animation: none !important;
   }
 }

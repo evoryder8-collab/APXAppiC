@@ -103,7 +103,7 @@ export function AvatarPage() {
       <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
 
       <div className="space-y-5">
-        <button type="button" onClick={() => navigate('/progress')} className="w-full text-left">
+        <button type="button" onClick={() => navigate('/progress', { state: { from: '/avatar' } })} className="w-full text-left">
           <GlassCard accent={ACCENTS.violet} className="p-4 sm:p-5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">

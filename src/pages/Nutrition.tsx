@@ -410,6 +410,7 @@ export function Nutrition() {
       <SectionHeader
         accent={amber}
         title="Nutrition"
+        eyebrow={format(new Date(`${today}T12:00:00`), 'EEEE, d MMMM yyyy')}
         subtitle="Targets, meals, stack and the evening log"
         right={
           !data.settings?.notifications_on ? (
@@ -425,7 +426,7 @@ export function Nutrition() {
       />
 
       <div className="mb-4 flex justify-end">
-        <Link to="/progress" className="glass rounded-full px-3 py-2 text-[11px] font-bold text-violet-700">◫ Private visual progress</Link>
+        <Link to="/progress" state={{ from: '/nutrition' }} className="glass rounded-full px-3 py-2 text-[11px] font-bold text-violet-700">◫ Private visual progress</Link>
       </div>
 
       <div className="space-y-5">

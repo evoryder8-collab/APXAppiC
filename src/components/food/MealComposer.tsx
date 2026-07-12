@@ -16,6 +16,7 @@ import {
 } from '../../lib/food'
 import { useFoodStore } from '../../store/FoodStore'
 import { AccentChip, GlassCard, GradientButton } from '../ui'
+import { BarcodeIcon } from '../Icons'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -250,7 +251,16 @@ export function MealComposer({
                 placeholder="Search foods, aliases or brands"
                 className="min-w-0 flex-1 rounded-2xl bg-white/70 px-4 py-3 text-sm font-semibold text-ink outline-none"
               />
-              <button type="button" onClick={() => setScanner(true)} className="rounded-2xl px-4 text-xl" style={{ background: amber.gradient }} aria-label="Scan barcode">▣</button>
+              <button
+                type="button"
+                onClick={() => setScanner(true)}
+                className="flex h-[3.25rem] w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-2xl text-white shadow-lg transition active:scale-95"
+                style={{ background: amber.gradient, boxShadow: `0 10px 24px -10px ${amber.glowStrong}` }}
+                aria-label="Scan a food barcode"
+              >
+                <BarcodeIcon className="h-[18px] w-8" />
+                <span className="mt-1 font-mono text-[7px] font-bold tracking-[0.16em] uppercase">Scan</span>
+              </button>
             </div>
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
               {store.preferences.filter((value) => value.favourite).slice(0, 6).map((preference) => {

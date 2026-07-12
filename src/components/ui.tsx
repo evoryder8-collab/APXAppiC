@@ -57,14 +57,18 @@ export function SectionHeader({
   accent,
   title,
   subtitle,
+  eyebrow,
   right,
   backTo,
+  backLabel,
 }: {
   accent: Accent
   title: string
   subtitle?: string
+  eyebrow?: ReactNode
   right?: ReactNode
   backTo?: string
+  backLabel?: string
 }) {
   return (
     <motion.div
@@ -73,9 +77,14 @@ export function SectionHeader({
       transition={{ duration: 0.45, ease: EASE }}
       className="mb-5"
     >
-      <BackLink to={backTo ?? '/'} />
+      <BackLink to={backTo ?? '/'} label={backLabel ?? 'Portal'} />
       <div className="mt-2 flex items-end justify-between gap-3">
         <div>
+          {eyebrow && (
+            <p className="mb-1.5 font-mono text-[10px] font-bold tracking-[0.17em] text-ink-faint uppercase">
+              {eyebrow}
+            </p>
+          )}
           <h1 className="font-display text-[26px] leading-tight font-bold tracking-tight text-ink sm:text-3xl">
             {title}
           </h1>
@@ -228,12 +237,12 @@ export function Toggle({
       aria-label={label}
     >
       <span
-        className="relative h-7 w-12 rounded-full transition-colors duration-300"
+        className="relative inline-flex h-7 w-12 shrink-0 items-center overflow-hidden rounded-full p-0.5 transition-colors duration-300"
         style={{ background: on ? accent.gradient : 'rgba(26,26,34,0.12)' }}
       >
         <span
-          className="absolute top-0.5 h-6 w-6 rounded-full bg-white shadow-md transition-transform duration-300"
-          style={{ transform: on ? 'translateX(22px)' : 'translateX(2px)' }}
+          className="block h-6 w-6 shrink-0 rounded-full bg-white shadow-md transition-transform duration-300"
+          style={{ transform: on ? 'translate3d(20px,0,0)' : 'translate3d(0,0,0)' }}
         />
       </span>
     </button>

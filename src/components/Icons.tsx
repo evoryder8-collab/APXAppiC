@@ -49,6 +49,15 @@ export function AvatarIcon({ className, strokeWidth = 1.9 }: IconProps) {
   )
 }
 
+export function BarcodeIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 32 20" fill="none" className={className} aria-hidden>
+      <path d="M2 2v16M5 2v16M8 2v16M12 2v16M14.5 2v16M19 2v16M22 2v16M24.5 2v16M29 2v16" stroke="currentColor" strokeWidth="1.8" />
+      <path d="M1 1h4M1 1v4M31 1h-4M31 1v4M1 19h4M1 19v-4M31 19h-4M31 19v-4" stroke="currentColor" strokeWidth="1.25" strokeLinecap="round" />
+    </svg>
+  )
+}
+
 export function SlidersIcon({ className, strokeWidth = 1.9 }: IconProps) {
   return (
     <svg {...base(className)} strokeWidth={strokeWidth}>

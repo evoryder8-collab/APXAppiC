@@ -1,5 +1,6 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
+import { useLocation } from 'react-router-dom'
 import { ACCENTS } from '../lib/theme'
 import { comparisonAspectRatio, daysBetweenPhotos, preferSamePose, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
 import { parseDecimalInput } from '../lib/food'
@@ -21,6 +22,8 @@ function PhotoImage({ photo, thumbnail = false, className = '' }: { photo: Progr
 export function VisualProgress() {
   const { data } = useStore()
   const store = useProgressPhotoStore()
+  const location = useLocation()
+  const backTo = (location.state as { from?: string } | null)?.from === '/nutrition' ? '/nutrition' : '/avatar'
   const [guide, setGuide] = useState(false)
   const [camera, setCamera] = useState(false)
   const [pose, setPose] = useState<ProgressPose>('front')
@@ -61,7 +64,7 @@ export function VisualProgress() {
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      <SectionHeader accent={violet} title="Visual Progress" subtitle="A private, consistent record of physical change" backTo="/avatar" right={<AccentChip accent={violet}>{store.syncing ? 'SYNCING' : store.photos.some((photo) => photo.sync_status === 'failed') ? 'RETRY PENDING' : store.photos.some((photo) => photo.sync_status === 'queued') ? 'QUEUED OFFLINE' : 'PRIVATE'}</AccentChip>} />
+      <SectionHeader accent={violet} title="Visual Progress" subtitle="A private, consistent record of physical change" backTo={backTo} backLabel={backTo === '/nutrition' ? 'Nutrition' : 'Avatar'} right={<AccentChip accent={violet}>{store.syncing ? 'SYNCING' : store.photos.some((photo) => photo.sync_status === 'failed') ? 'RETRY PENDING' : store.photos.some((photo) => photo.sync_status === 'queued') ? 'QUEUED OFFLINE' : 'PRIVATE'}</AccentChip>} />
 
       <div className="space-y-5">
         <GlassCard accent={violet} className="overflow-hidden p-5 sm:p-7">

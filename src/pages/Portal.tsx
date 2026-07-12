@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { PortalCard } from '../components/PortalCard'
 import { ACCENTS } from '../lib/theme'
-import { AvatarIcon, BoltIcon, LeafIcon, TransitionIcon } from '../components/Icons'
+import { BoltIcon, LeafIcon, TransitionIcon } from '../components/Icons'
 import { useStore } from '../store/AppStore'
 import { personaBySlug } from '../lib/persona'
 
@@ -70,9 +70,10 @@ export function Portal() {
         <PortalCard
           to="/avatar"
           accent={ACCENTS.emerald}
-          title="AVATAR"
+          title={profile?.display_name || persona.name}
           subtitle="Stats, level and what your body needs"
-          icon={<AvatarIcon className="h-7 w-7" />}
+          portrait={persona.portrait}
+          portraitAlt={`${profile?.display_name || persona.name} portrait`}
           index={3}
         />
       </div>

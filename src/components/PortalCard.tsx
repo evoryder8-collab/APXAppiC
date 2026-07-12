@@ -10,13 +10,15 @@ interface PortalCardProps {
   accent: Accent
   title: string
   subtitle: string
-  icon: ReactNode
+  icon?: ReactNode
+  portrait?: string
+  portraitAlt?: string
   index: number
 }
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
-export function PortalCard({ to, accent, title, subtitle, icon, index }: PortalCardProps) {
+export function PortalCard({ to, accent, title, subtitle, icon, portrait, portraitAlt = '', index }: PortalCardProps) {
   const navigate = useNavigate()
 
   return (
@@ -47,13 +49,24 @@ export function PortalCard({ to, accent, title, subtitle, icon, index }: PortalC
 
       <div className="relative flex items-center gap-4 sm:gap-5">
         <div
-          className="flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white transition-transform duration-300 group-hover:scale-105 sm:h-16 sm:w-16"
+          className={`relative flex h-14 w-14 shrink-0 items-center justify-center rounded-2xl text-white transition-transform duration-300 group-hover:scale-105 sm:h-16 sm:w-16 ${portrait ? 'overflow-hidden' : ''}`}
           style={{
             background: accent.gradient,
             boxShadow: `0 10px 24px -8px ${accent.glowStrong}, inset 0 1px 0 rgba(255,255,255,0.35)`,
           }}
         >
-          {icon}
+          {portrait ? (
+            <>
+              <img
+                src={portrait}
+                alt={portraitAlt}
+                className="absolute inset-0 h-full w-full object-contain"
+                style={{ transform: 'scale(1.7) translateY(7%)' }}
+              />
+              <span className="portal-portrait-gleam absolute inset-y-[-30%] left-[-45%] w-[34%] rotate-[18deg]" aria-hidden />
+              <span className="pointer-events-none absolute inset-0 rounded-2xl ring-1 ring-inset ring-white/35" aria-hidden />
+            </>
+          ) : icon}
         </div>
 
         <div className="min-w-0 flex-1">
