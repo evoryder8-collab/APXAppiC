@@ -1,3 +1,5 @@
+import type { RpgSnapshot } from './types'
+
 export type ProgressPose = 'front' | 'side' | 'back'
 export type PhotoSyncStatus = 'local' | 'queued' | 'syncing' | 'synced' | 'failed'
 
@@ -78,6 +80,17 @@ export function preferSamePose(reference: ProgressPhoto, photos: ProgressPhoto[]
     const poseDifference = Number(b.pose === reference.pose) - Number(a.pose === reference.pose)
     return poseDifference || b.local_date.localeCompare(a.local_date)
   })
+}
+
+/* A comparison must never borrow a future score for an older photo. Use the
+   latest known daily snapshot at or before capture, or report no history. */
+export function snapshotForProgressDate(date: string, snapshots: RpgSnapshot[]): RpgSnapshot | null {
+  let match: RpgSnapshot | null = null
+  for (const snapshot of snapshots) {
+    if (snapshot.date > date) continue
+    if (!match || snapshot.date > match.date) match = snapshot
+  }
+  return match
 }
 
 function safePathPart(value: string): string {

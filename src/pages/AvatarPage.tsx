@@ -15,6 +15,7 @@ import type { Profile, RpgSnapshot } from '../lib/types'
 import { format as fmtDate } from 'date-fns'
 import { ageFrom } from '../lib/nutrition'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { CameraIcon } from '../components/Icons'
 
 const emerald = ACCENTS.emerald
 
@@ -110,7 +111,7 @@ export function AvatarPage() {
           <GlassCard accent={ACCENTS.violet} className="p-4 sm:p-5">
             <div className="flex items-center justify-between gap-4">
               <div className="flex items-center gap-3">
-                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-2xl text-white" style={{ background: ACCENTS.violet.gradient }}>◫</div>
+                <div className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.violet.gradient }}><CameraIcon className="h-6 w-6" /></div>
                 <div><p className="font-display text-base font-bold text-ink">Visual Progress</p><p className="mt-0.5 text-xs font-medium text-ink-soft">Private guided photos and honest side-by-side comparison</p></div>
               </div>
               <span className="text-2xl text-ink">›</span>

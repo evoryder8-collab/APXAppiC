@@ -20,6 +20,8 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Visual Progress',
     'Settings',
     'What your body needs',
+    'Include stats',
+    'No APEX stats for this date',
     'You’re about to log out. Are you sure?',
     'Language',
   ]

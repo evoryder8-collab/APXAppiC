@@ -2,11 +2,13 @@ import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { format } from 'date-fns'
 import { useLocation } from 'react-router-dom'
 import { ACCENTS } from '../lib/theme'
-import { comparisonAspectRatio, daysBetweenPhotos, preferSamePose, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
+import { comparisonAspectRatio, daysBetweenPhotos, preferSamePose, snapshotForProgressDate, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
 import { parseDecimalInput } from '../lib/food'
 import { useProgressPhotoStore } from '../store/ProgressPhotoStore'
 import { useStore } from '../store/AppStore'
 import { AccentChip, GlassCard, GradientButton, SectionHeader } from '../components/ui'
+import { CameraIcon } from '../components/Icons'
+import type { RpgSnapshot } from '../lib/types'
 
 const ProgressCamera = lazy(() => import('../components/progress/ProgressCamera').then((module) => ({ default: module.ProgressCamera })))
 const violet = ACCENTS.violet
@@ -19,8 +21,54 @@ function PhotoImage({ photo, thumbnail = false, className = '' }: { photo: Progr
   return <img src={url} alt={`${photo.pose} progress from ${photo.local_date}`} className={className} style={{ objectPosition: `${photo.crop_x * 100}% ${photo.crop_y * 100}%`, transform: `scale(${photo.crop_scale})` }} />
 }
 
+const COMPARISON_STATS: Array<{
+  key: keyof Pick<RpgSnapshot, 'overall' | 'health' | 'joint' | 'flexibility' | 'endurance' | 'strength'>
+  label: string
+  color: string
+}> = [
+  { key: 'overall', label: 'Overall', color: '#34d399' },
+  { key: 'health', label: 'Health', color: '#fbbf24' },
+  { key: 'joint', label: 'Joint Health', color: '#38bdf8' },
+  { key: 'flexibility', label: 'Flexibility', color: '#2dd4bf' },
+  { key: 'endurance', label: 'Endurance', color: '#a78bfa' },
+  { key: 'strength', label: 'Strength', color: '#fb923c' },
+]
+
+function PhotoStatsCard({ snapshot, period }: { snapshot: RpgSnapshot | null; period: 'Before' | 'After' }) {
+  return (
+    <div className="min-w-0 rounded-xl border border-white/15 bg-[#080a12]/60 p-1.5 text-white shadow-lg backdrop-blur-md sm:p-2">
+      <div className="mb-1 flex items-center justify-between gap-1">
+        <span className="font-mono text-[7px] font-bold tracking-[0.13em] text-white/80 uppercase sm:text-[8px]">{period} · APEX</span>
+        {snapshot && <span className="font-mono text-[7px] font-semibold text-white/55 sm:text-[8px]">{snapshot.date}</span>}
+      </div>
+      {snapshot ? (
+        <div className="space-y-1">
+          {COMPARISON_STATS.map((stat) => {
+            const value = snapshot[stat.key]
+            return (
+              <div key={stat.key} className="grid grid-cols-[minmax(0,1fr)_1.35rem] items-center gap-1">
+                <div className="min-w-0">
+                  <div className="mb-0.5 flex items-center justify-between gap-1">
+                    <span className="truncate text-[7px] leading-none font-semibold text-white/80 sm:text-[8px]">{stat.label}</span>
+                  </div>
+                  <div className="h-1 overflow-hidden rounded-full bg-white/15">
+                    <div className="h-full rounded-full" style={{ width: `${Math.max(0, Math.min(100, value))}%`, background: stat.color, boxShadow: `0 0 5px ${stat.color}` }} />
+                  </div>
+                </div>
+                <span className="text-right font-mono text-[8px] font-bold text-white sm:text-[9px]">{value.toFixed(0)}</span>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <p className="py-1 text-[8px] leading-tight font-medium text-white/60">No APEX stats for this date</p>
+      )}
+    </div>
+  )
+}
+
 export function VisualProgress() {
-  const { data } = useStore()
+  const { data, snapshots } = useStore()
   const store = useProgressPhotoStore()
   const location = useLocation()
   const backTo = (location.state as { from?: string } | null)?.from === '/nutrition' ? '/nutrition' : '/avatar'
@@ -34,12 +82,15 @@ export function VisualProgress() {
   const [rightId, setRightId] = useState<string | null>(null)
   const [slider, setSlider] = useState(50)
   const [compareMode, setCompareMode] = useState<'split' | 'slider'>('slider')
+  const [includeStats, setIncludeStats] = useState(true)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
 
   const reference = useMemo(() => store.photos.find((photo) => photo.pose === pose) ?? store.photos[0] ?? null, [pose, store.photos])
   const left = store.photos.find((photo) => photo.id === leftId) ?? store.photos.at(-1) ?? null
   const right = store.photos.find((photo) => photo.id === rightId) ?? store.photos[0] ?? null
   const referenceUrl = reference ? store.fullUrls[reference.id] ?? store.thumbnailUrls[reference.id] : null
+  const leftSnapshot = left ? snapshotForProgressDate(left.local_date, snapshots) : null
+  const rightSnapshot = right ? snapshotForProgressDate(right.local_date, snapshots) : null
   useEffect(() => { if (reference && !referenceUrl) void store.ensurePhotoUrl(reference) }, [reference, referenceUrl, store])
 
   useEffect(() => {
@@ -81,7 +132,7 @@ export function VisualProgress() {
 
         {store.photos.length === 0 ? (
           <GlassCard className="p-8 text-center">
-            <div className="mx-auto grid h-20 w-20 place-items-center rounded-[2rem] bg-violet-500/10 text-4xl">◫</div>
+            <div className="mx-auto grid h-20 w-20 place-items-center rounded-[2rem] bg-violet-500/10 text-violet-600"><CameraIcon className="h-9 w-9" /></div>
             <h2 className="mt-4 font-display text-lg font-bold text-ink">Your private timeline starts here</h2>
             <p className="mx-auto mt-2 max-w-md text-sm font-medium text-ink-soft">Take front, side and back photos under similar lighting. Every two to four weeks is enough to reveal trends without encouraging daily body checking.</p>
           </GlassCard>
@@ -91,7 +142,22 @@ export function VisualProgress() {
               <GlassCard accent={violet} className="p-4 sm:p-5">
                 <div className="flex flex-wrap items-center justify-between gap-3">
                   <div><h2 className="font-display text-lg font-bold text-ink">Compare</h2><p className="text-xs font-medium text-ink-soft">{daysBetweenPhotos(left, right)} days · {workoutCount} completed workouts between</p></div>
-                  <div className="flex rounded-full bg-white/70 p-1">{(['slider', 'split'] as const).map((mode) => <button key={mode} type="button" onClick={() => setCompareMode(mode)} className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${compareMode === mode ? 'bg-violet-500 text-white' : 'text-ink-soft'}`}>{mode}</button>)}</div>
+                  <div className="flex flex-wrap items-center justify-end gap-2">
+                    <button
+                      type="button"
+                      role="switch"
+                      aria-checked={includeStats}
+                      aria-label="Include stats in comparison"
+                      onClick={() => setIncludeStats((current) => !current)}
+                      className="flex items-center gap-2 rounded-full border border-violet-500/15 bg-white/70 px-2.5 py-1.5 text-[10px] font-bold text-ink-soft shadow-sm"
+                    >
+                      <span>Include stats</span>
+                      <span className={`relative h-5 w-9 shrink-0 rounded-full transition-colors ${includeStats ? 'bg-violet-500' : 'bg-ink/15'}`} aria-hidden>
+                        <span className={`absolute top-0.5 left-0.5 h-4 w-4 rounded-full bg-white shadow-sm transition-transform ${includeStats ? 'translate-x-4' : 'translate-x-0'}`} />
+                      </span>
+                    </button>
+                    <div className="flex rounded-full bg-white/70 p-1">{(['slider', 'split'] as const).map((mode) => <button key={mode} type="button" onClick={() => setCompareMode(mode)} className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${compareMode === mode ? 'bg-violet-500 text-white' : 'text-ink-soft'}`}>{mode}</button>)}</div>
+                  </div>
                 </div>
                 {left.pose !== right.pose && <p className="mt-3 rounded-xl bg-amber-500/10 px-3 py-2 text-xs font-semibold text-amber-800">These photos use different poses. Matching poses gives a fairer comparison.</p>}
                 <div className="mt-4 grid grid-cols-2 gap-2">
@@ -108,6 +174,12 @@ export function VisualProgress() {
                       <div className="pointer-events-none absolute inset-y-0 w-0.5 bg-white" style={{ left: `${slider}%`, boxShadow: '0 0 12px rgba(0,0,0,0.55)' }} />
                       <input aria-label="Comparison slider" type="range" min="0" max="100" value={slider} onChange={(event) => setSlider(Number(event.target.value))} className="absolute inset-x-4 bottom-4 z-10" />
                     </>
+                  )}
+                  {includeStats && (
+                    <div className={`pointer-events-none absolute inset-x-2 z-20 grid grid-cols-2 gap-2 ${compareMode === 'slider' ? 'bottom-10' : 'bottom-2'}`}>
+                      <PhotoStatsCard snapshot={leftSnapshot} period="Before" />
+                      <PhotoStatsCard snapshot={rightSnapshot} period="After" />
+                    </div>
                   )}
                   <span className="absolute top-3 left-3 rounded-full bg-black/45 px-2 py-1 font-mono text-[9px] font-bold text-white backdrop-blur">{left.local_date}</span><span className="absolute top-3 right-3 rounded-full bg-black/45 px-2 py-1 font-mono text-[9px] font-bold text-white backdrop-blur">{right.local_date}</span>
                 </div>

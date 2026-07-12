@@ -8,8 +8,10 @@ import {
   normalizeCrop,
   preferSamePose,
   progressStoragePaths,
+  snapshotForProgressDate,
   type ProgressPhoto,
 } from '../src/lib/progressPhoto.ts'
+import type { RpgSnapshot } from '../src/lib/types.ts'
 
 function photo(id: string, date: string, pose: ProgressPhoto['pose'], ratio = 2 / 3): ProgressPhoto {
   return {
@@ -40,6 +42,18 @@ test('comparison helpers prefer same poses and report elapsed days', () => {
   assert.equal(daysBetweenPhotos(before, after), 28)
   assert.equal(comparisonAspectRatio(before, after), 0.66)
   assert.equal(preferSamePose(before, [side, after])[0].id, 'b')
+})
+
+test('photo stat overlays use the latest snapshot on or before capture and never borrow from the future', () => {
+  const snapshot = (date: string, overall: number): RpgSnapshot => ({
+    id: `snap-${date}`, user_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', date,
+    overall, health: 60, joint: 55, flexibility: 50, endurance: 52,
+    strength: 58, strength_upper: 60, strength_lower: 56,
+  })
+  const history = [snapshot('2026-06-01', 50), snapshot('2026-06-14', 55), snapshot('2026-06-30', 62)]
+  assert.equal(snapshotForProgressDate('2026-06-14', history)?.overall, 55)
+  assert.equal(snapshotForProgressDate('2026-06-20', history)?.overall, 55)
+  assert.equal(snapshotForProgressDate('2026-05-20', history), null)
 })
 
 test('offline photo upload queue de-duplicates retries', () => {

@@ -58,6 +58,14 @@ export function BarcodeIcon({ className }: IconProps) {
   )
 }
 
+export function CameraIcon({ className }: IconProps) {
+  return (
+    <svg viewBox="0 0 24 24" fill="currentColor" className={className} aria-hidden>
+      <path d="M8.35 4.5a1.7 1.7 0 0 1 1.52-.94h4.26a1.7 1.7 0 0 1 1.52.94l.77 1.54h2.33A2.75 2.75 0 0 1 21.5 8.8v8.45A2.75 2.75 0 0 1 18.75 20H5.25a2.75 2.75 0 0 1-2.75-2.75V8.8a2.75 2.75 0 0 1 2.75-2.75h2.33l.77-1.54ZM12 17.35a4.35 4.35 0 1 0 0-8.7 4.35 4.35 0 0 0 0 8.7Zm0-1.9a2.45 2.45 0 1 1 0-4.9 2.45 2.45 0 0 1 0 4.9Zm6.05-5.8a1.05 1.05 0 1 0 0-2.1 1.05 1.05 0 0 0 0 2.1Z" />
+    </svg>
+  )
+}
+
 export function SlidersIcon({ className, strokeWidth = 1.9 }: IconProps) {
   return (
     <svg {...base(className)} strokeWidth={strokeWidth}>
