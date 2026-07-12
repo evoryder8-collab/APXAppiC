@@ -1,0 +1,50 @@
+import assert from 'node:assert/strict'
+import test from 'node:test'
+import {
+  comparisonAspectRatio,
+  daysBetweenPhotos,
+  fitWithin,
+  mergePhotoUploadsIdempotently,
+  normalizeCrop,
+  preferSamePose,
+  progressStoragePaths,
+  type ProgressPhoto,
+} from '../src/lib/progressPhoto.ts'
+
+function photo(id: string, date: string, pose: ProgressPhoto['pose'], ratio = 2 / 3): ProgressPhoto {
+  return {
+    id, user_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', local_date: date,
+    captured_at: `${date}T08:00:00Z`, pose, storage_path: `x/${id}.webp`, thumbnail_path: `x/${id}-t.webp`,
+    width: 1000, height: 1500, aspect_ratio: ratio, crop_x: 0.5, crop_y: 0.5, crop_scale: 1,
+    reference_photo_id: null, weight_kg: null, note: '', client_idempotency_key: id,
+    created_at: `${date}T08:00:00Z`, updated_at: `${date}T08:00:00Z`, sync_status: 'synced',
+  }
+}
+
+test('image helpers resize without upscaling and clamp comparison crop', () => {
+  assert.deepEqual(fitWithin(4000, 3000, 1600, 2400), { width: 1600, height: 1200, scale: 0.4 })
+  assert.deepEqual(fitWithin(800, 600, 1600, 2400), { width: 800, height: 600, scale: 1 })
+  assert.deepEqual(normalizeCrop(-2, 4, 9), { x: 0, y: 1, scale: 3 })
+})
+
+test('private storage paths are deterministic and reject unsafe owner segments', () => {
+  const paths = progressStoragePaths('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb')
+  assert.equal(paths.full.split('/')[0], 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  assert.throws(() => progressStoragePaths('../other-user', 'safe'))
+})
+
+test('comparison helpers prefer same poses and report elapsed days', () => {
+  const before = photo('a', '2026-06-01', 'front', 0.67)
+  const after = photo('b', '2026-06-29', 'front', 0.66)
+  const side = photo('c', '2026-07-01', 'side')
+  assert.equal(daysBetweenPhotos(before, after), 28)
+  assert.equal(comparisonAspectRatio(before, after), 0.66)
+  assert.equal(preferSamePose(before, [side, after])[0].id, 'b')
+})
+
+test('offline photo upload queue de-duplicates retries', () => {
+  const first = { entity_id: 'photo-1', operation: 'upload_photo', attempt: 0 }
+  const retry = { entity_id: 'photo-1', operation: 'upload_photo', attempt: 1 }
+  const merged = mergePhotoUploadsIdempotently([first], retry)
+  assert.deepEqual(merged, [retry])
+})
