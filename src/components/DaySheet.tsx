@@ -130,7 +130,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
               <div className="glass skeleton h-56 w-full rounded-3xl" aria-label="Loading body" />
             }
           >
-            <HologramStage dayType={plan.programDay.day_type} accent={accent} height={230} />
+            <HologramStage dayType={plan.programDay.day_type} accent={accent} height={260} exerciseNames={plan.exercises.map((exercise) => exercise.name)} />
           </Suspense>
         </div>
       )}

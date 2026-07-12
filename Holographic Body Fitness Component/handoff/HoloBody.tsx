@@ -9,10 +9,10 @@
  */
 import * as React from 'react';
 import * as THREE from 'three';
-import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls';
-import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer';
-import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass';
-import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass';
+import { OrbitControls } from 'three/examples/jsm/controls/OrbitControls.js';
+import { EffectComposer } from 'three/examples/jsm/postprocessing/EffectComposer.js';
+import { RenderPass } from 'three/examples/jsm/postprocessing/RenderPass.js';
+import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPass.js';
 
 export const MUSCLE_GROUPS = [
   'chest', 'frontDelts', 'sideDelts', 'rearDelts', 'biceps', 'triceps', 'forearms',
@@ -130,6 +130,8 @@ interface PartOpts {
 }
 
 function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
+  const constrainedGpu = window.matchMedia('(hover: none) and (pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4;
+  const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const hiColor = opts.highlightTone === 'copper'
     ? new THREE.Color(1.0, 0.52, 0.28)
     : new THREE.Color(1.0, 0.66, 0.18);
@@ -140,8 +142,8 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 30);
   camera.position.set(0.6, 1.15, 3.5);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: 'high-performance' });
-  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, 2));
+  const renderer = new THREE.WebGLRenderer({ antialias: !constrainedGpu, powerPreference: constrainedGpu ? 'low-power' : 'high-performance' });
+  renderer.setPixelRatio(constrainedGpu ? 1 : Math.min(window.devicePixelRatio || 1, 1.75));
   container.appendChild(renderer.domElement);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;cursor:grab';
 
@@ -302,7 +304,7 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
   controls.minPolarAngle = 0.85;
   controls.maxPolarAngle = 1.62;
   controls.rotateSpeed = 0.75;
-  const AUTO_SPEED = 60 / opts.rotationSeconds; // OrbitControls: 2.0 => 30 s/rev
+  const AUTO_SPEED = reducedMotion ? 0 : 60 / opts.rotationSeconds; // OrbitControls: 2.0 => 30 s/rev
   let interacting = false;
   let lastEnd = performance.now() - 4000;
   let autoSpeed = AUTO_SPEED;
@@ -311,8 +313,9 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
 
   /* ------- bloom (graceful degrade) ------- */
   let composer: EffectComposer | null = null;
-  let bloomOn = true;
+  let bloomOn = !constrainedGpu && !reducedMotion;
   function buildComposer(w: number, h: number) {
+    composer?.dispose();
     composer = new EffectComposer(renderer);
     composer.addPass(new RenderPass(scene, camera));
     composer.addPass(new UnrealBloomPass(new THREE.Vector2(w, h), 0.5, 0.45, 0.28));
@@ -336,8 +339,9 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
   setHighlights(opts.highlightedMuscles);
 
   /* ------- loop ------- */
-  const clock = new THREE.Clock();
   let disposed = false;
+  let animationFrame = 0;
+  let lastFrame = 0;
   let frames = 0;
   let fpsAccum = 0;
   let degraded = false;
@@ -363,18 +367,21 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
     k.dim += Math.max(-rate, Math.min(rate, k.dimTgt - k.dim));
   }
 
-  function animate() {
+  const targetFrameMs = 1000 / (reducedMotion ? 12 : constrainedGpu ? 30 : 60);
+  function animate(frameTime: number) {
     if (disposed) return;
-    requestAnimationFrame(animate);
-    const dt = Math.min(0.05, clock.getDelta());
-    const t = clock.elapsedTime;
+    animationFrame = requestAnimationFrame(animate);
+    if (document.hidden || (lastFrame && frameTime - lastFrame < targetFrameMs)) return;
+    const dt = Math.min(0.05, lastFrame ? (frameTime - lastFrame) / 1000 : targetFrameMs / 1000);
+    lastFrame = frameTime;
+    const t = reducedMotion ? 0 : frameTime / 1000;
 
     // perf watchdog: after ~2 s, drop bloom if slow
     if (bloomOn && !degraded) {
       fpsAccum += dt;
       frames++;
       if (frames === 120) {
-        if (frames / fpsAccum < 44) { bloomOn = false; composer = null; }
+        if (frames / fpsAccum < 44) { bloomOn = false; composer?.dispose(); composer = null; }
         degraded = true;
       }
     }
@@ -414,18 +421,20 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
 
     if (bloomOn && composer) composer.render(); else renderer.render(scene, camera);
   }
-  animate();
+  animationFrame = requestAnimationFrame(animate);
 
   return {
     setHighlights,
     dispose() {
       disposed = true;
+      cancelAnimationFrame(animationFrame);
       ro.disconnect();
       controls.dispose();
       scene.traverse((o) => { if ((o as THREE.Mesh).geometry) (o as THREE.Mesh).geometry.dispose(); });
       allMats.forEach((m) => m.dispose());
       discMat.dispose();
       coneMat.dispose();
+      composer?.dispose();
       renderer.dispose();
       renderer.domElement.remove();
     },
@@ -444,17 +453,22 @@ export function HoloBody({
   const hostRef = React.useRef<HTMLDivElement>(null);
   const apiRef = React.useRef<HoloApi | null>(null);
   const musclesRef = React.useRef(highlightedMuscles);
+  const [failed, setFailed] = React.useState(false);
   musclesRef.current = highlightedMuscles;
 
   React.useEffect(() => {
     if (!hostRef.current) return;
-    const api = createHolo(hostRef.current, {
-      rotationSeconds,
-      highlightTone,
-      highlightedMuscles: musclesRef.current,
-    });
-    apiRef.current = api;
-    return () => { api.dispose(); apiRef.current = null; };
+    try {
+      const api = createHolo(hostRef.current, {
+        rotationSeconds,
+        highlightTone,
+        highlightedMuscles: musclesRef.current,
+      });
+      apiRef.current = api;
+      return () => { api.dispose(); apiRef.current = null; };
+    } catch {
+      setFailed(true);
+    }
   }, [rotationSeconds, highlightTone]);
 
   React.useEffect(() => {
@@ -466,6 +480,8 @@ export function HoloBody({
       ref={hostRef}
       className={className}
       style={{ position: 'absolute', inset: 0, background: '#060b16', ...style }}
-    />
+    >
+      {failed && <div style={{ position: 'absolute', inset: 0, display: 'grid', placeItems: 'center', color: '#6f8da6', fontSize: 12 }}>Hologram unavailable</div>}
+    </div>
   );
 }

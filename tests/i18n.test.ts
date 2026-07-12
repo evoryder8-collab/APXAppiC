@@ -27,6 +27,8 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'APEX Body Index',
     'Upper Body Strength',
     'Lower Body Strength',
+    'Muscle target map',
+    'Holographic body',
     'You’re about to log out. Are you sure?',
     'Language',
   ]
