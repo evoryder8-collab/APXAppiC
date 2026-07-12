@@ -1,19 +1,161 @@
-import { useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ApexMark } from './Icons'
 import { EASE } from './ui'
 import { PERSONAS, type PersonaSlug } from '../lib/persona'
+import {
+  getIntroLanguage,
+  INTRO_COPY,
+  LANGUAGE_OPTIONS,
+  LANGUAGE_PROMPTS,
+  setIntroLanguage,
+  type IntroLanguage,
+  type SelectableIntroLanguage,
+} from '../lib/introLanguage'
 
 function circularOffset(index: number, active: number): -1 | 0 | 1 {
   const raw = (index - active + PERSONAS.length) % PERSONAS.length
   return raw === 0 ? 0 : raw === 1 ? 1 : -1
 }
 
+function IntroLanguageMenu({
+  language,
+  onChange,
+}: {
+  language: IntroLanguage
+  onChange: (language: SelectableIntroLanguage) => void
+}) {
+  const [promptIndex, setPromptIndex] = useState(0)
+  const [open, setOpen] = useState(false)
+  const rootRef = useRef<HTMLDivElement>(null)
+  const selected = LANGUAGE_OPTIONS.find((option) => option.value === language)
+
+  useEffect(() => {
+    const timer = window.setInterval(() => {
+      setPromptIndex((current) => (current + 1) % LANGUAGE_PROMPTS.length)
+    }, 1800)
+    return () => window.clearInterval(timer)
+  }, [])
+
+  useEffect(() => {
+    if (!open) return
+    const close = (event: PointerEvent): void => {
+      if (!rootRef.current?.contains(event.target as Node)) setOpen(false)
+    }
+    window.addEventListener('pointerdown', close)
+    return () => window.removeEventListener('pointerdown', close)
+  }, [open])
+
+  return (
+    <div className="intro-language-row" ref={rootRef}>
+      <div className="intro-language-prompt" aria-hidden="true">
+        <AnimatePresence mode="wait" initial={false}>
+          <motion.span
+            key={LANGUAGE_PROMPTS[promptIndex]}
+            initial={{ opacity: 0, y: 5 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -5 }}
+            transition={{ duration: 0.28, ease: EASE }}
+          >
+            {LANGUAGE_PROMPTS[promptIndex]}
+          </motion.span>
+        </AnimatePresence>
+      </div>
+      <span className="sr-only">Choose your language. Alege limba. เลือกภาษาของคุณ</span>
+
+      <div className="relative">
+        <button
+          type="button"
+          className="intro-language-trigger"
+          aria-haspopup="listbox"
+          aria-expanded={open}
+          aria-label="Choose Thai or Romanian"
+          onClick={() => setOpen((current) => !current)}
+        >
+          <span className="intro-language-globe" aria-hidden>
+            {selected?.glyph ?? '◌'}
+          </span>
+          <span className="min-w-0">
+            <span className="block text-[9px] leading-none font-bold tracking-[0.18em] text-white/38 uppercase">
+              {selected?.short ?? 'TH / RO'}
+            </span>
+            <span className="mt-1 block truncate text-[11px] leading-none font-semibold text-white/88">
+              {selected?.nativeName ?? 'Language'}
+            </span>
+          </span>
+          <motion.svg
+            animate={{ rotate: open ? 180 : 0 }}
+            transition={{ duration: 0.22 }}
+            viewBox="0 0 20 20"
+            fill="none"
+            className="ml-1 h-3.5 w-3.5 shrink-0 text-white/42"
+            aria-hidden
+          >
+            <path d="m5 7.5 5 5 5-5" stroke="currentColor" strokeWidth="1.7" strokeLinecap="round" strokeLinejoin="round" />
+          </motion.svg>
+        </button>
+
+        <AnimatePresence>
+          {open && (
+            <motion.div
+              initial={{ opacity: 0, y: -7, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -5, scale: 0.98 }}
+              transition={{ duration: 0.2, ease: EASE }}
+              className="intro-language-menu"
+              role="listbox"
+              aria-label="Languages"
+            >
+              <p className="px-3 pt-2.5 pb-1.5 font-mono text-[7px] font-bold tracking-[0.24em] text-white/30 uppercase">
+                Interface language
+              </p>
+              {LANGUAGE_OPTIONS.map((option) => {
+                const active = option.value === language
+                return (
+                  <button
+                    type="button"
+                    key={option.value}
+                    role="option"
+                    aria-selected={active}
+                    className="intro-language-option"
+                    onClick={() => {
+                      onChange(option.value)
+                      setOpen(false)
+                    }}
+                  >
+                    <span className={`intro-language-glyph ${option.value}`} aria-hidden>{option.glyph}</span>
+                    <span className="min-w-0 flex-1 text-left">
+                      <span className="block text-xs font-semibold text-white/90">{option.nativeName}</span>
+                      <span className="mt-0.5 block text-[9px] text-white/34">{option.englishName}</span>
+                    </span>
+                    <span className={`intro-language-check ${active ? 'active' : ''}`} aria-hidden>{active ? '✓' : ''}</span>
+                  </button>
+                )
+              })}
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
+    </div>
+  )
+}
+
 export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) => void }) {
   /* Matthew starts centre, with June left and Constantine right. */
   const [active, setActive] = useState(1)
   const [confirming, setConfirming] = useState(false)
+  const [language, setLanguage] = useState<IntroLanguage>(getIntroLanguage)
   const selected = PERSONAS[active]
+  const copy = INTRO_COPY[language]
+
+  useEffect(() => {
+    document.documentElement.lang = language
+  }, [language])
+
+  const chooseLanguage = (nextLanguage: SelectableIntroLanguage): void => {
+    setIntroLanguage(nextLanguage)
+    setLanguage(nextLanguage)
+  }
 
   const constellation = useMemo(
     () => PERSONAS.map((persona, index) => ({ persona, index, offset: circularOffset(index, active) })),
@@ -44,7 +186,7 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
           <div>
             <p className="text-[13px] font-bold tracking-[0.3em]">APEX</p>
             <p className="mt-0.5 text-[8px] font-semibold tracking-[0.23em] text-white/38 uppercase">
-              Private performance network
+              {copy.network}
             </p>
           </div>
         </div>
@@ -53,11 +195,19 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
             <span className="absolute inset-0 animate-ping rounded-full bg-emerald-300 opacity-50" />
             <span className="relative h-2 w-2 rounded-full bg-emerald-300" />
           </span>
-          SECURE
+          {copy.secure}
         </div>
       </motion.header>
 
-      <main className="relative z-10 flex min-h-dvh flex-col items-center overflow-hidden pt-[5.7rem] pb-[max(1.1rem,env(safe-area-inset-bottom))]">
+      <main className="relative z-10 flex min-h-dvh flex-col items-center overflow-hidden pt-[5.35rem] pb-[max(1.1rem,env(safe-area-inset-bottom))]">
+        <motion.div
+          initial={{ opacity: 0, y: -7 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.6, delay: 0.26, ease: EASE }}
+          className="z-50 mb-3 px-4"
+        >
+          <IntroLanguageMenu language={language} onChange={chooseLanguage} />
+        </motion.div>
         <motion.div
           initial={{ opacity: 0, y: 14 }}
           animate={{ opacity: 1, y: 0 }}
@@ -65,15 +215,15 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
           className="z-20 px-5 text-center"
         >
           <p className="font-mono text-[9px] font-semibold tracking-[0.36em] text-white/42 uppercase">
-            Identity protocol
+            {copy.protocol}
           </p>
           <h1 className="mt-2 text-[clamp(1.65rem,7vw,3.3rem)] leading-none font-semibold tracking-[-0.055em]">
-            Choose your system
+            {copy.chooseSystem}
           </h1>
         </motion.div>
 
         <motion.section
-          className="relative mt-2 h-[min(58dvh,610px)] w-full max-w-5xl touch-pan-y select-none"
+          className="relative mt-1 h-[min(52dvh,570px)] min-h-[390px] w-full max-w-5xl touch-pan-y select-none"
           style={{ perspective: 1100, transformStyle: 'preserve-3d' }}
           drag="x"
           dragConstraints={{ left: 0, right: 0 }}
@@ -82,7 +232,7 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
             if (Math.abs(info.offset.x) < 44 && Math.abs(info.velocity.x) < 350) return
             rotate(info.offset.x < 0 ? 1 : -1)
           }}
-          aria-label="Swipe left or right to choose a person"
+          aria-label={copy.selectorLabel}
         >
           <div className="intro-orbit absolute top-[48%] left-1/2 h-[44%] w-[72%] -translate-x-1/2 -translate-y-1/2 rounded-[50%] border border-white/8" aria-hidden />
           <div
@@ -128,7 +278,7 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                 className="absolute inset-y-0 left-1/2 w-[68vw] max-w-[430px] -translate-x-1/2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/70"
                 style={{ transformStyle: 'preserve-3d', zIndex: isActive ? 20 : 10, pointerEvents: isActive ? 'auto' : 'none' }}
                 tabIndex={isActive ? 0 : -1}
-                aria-label={isActive ? `Continue as ${persona.name}` : `${persona.name} preview`}
+                aria-label={isActive ? copy.continueAs(persona.name) : copy.preview(persona.name)}
                 aria-pressed={isActive}
               >
                 <span
@@ -179,7 +329,7 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                 type="button"
                 onClick={() => { setConfirming(false); setActive(sideIndex) }}
                 className={`absolute inset-y-[8%] z-30 w-[36%] ${side < 0 ? 'left-0' : 'right-0'}`}
-                aria-label={`Bring ${sidePersona.name} forward`}
+                aria-label={copy.bringForward(sidePersona.name)}
               />
             )
           })}
@@ -192,10 +342,10 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
           className="z-30 mt-auto flex w-full max-w-md flex-col items-center px-6"
         >
           <div className="flex items-center gap-4">
-            <button type="button" onClick={() => rotate(-1)} aria-label="Previous person" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/55 backdrop-blur-lg transition hover:bg-white/10 hover:text-white active:scale-95">
+            <button type="button" onClick={() => rotate(-1)} aria-label={copy.previous} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/55 backdrop-blur-lg transition hover:bg-white/10 hover:text-white active:scale-95">
               <span aria-hidden>←</span>
             </button>
-            <div className="flex gap-2" role="tablist" aria-label="People">
+            <div className="flex gap-2" role="tablist" aria-label={copy.people}>
               {PERSONAS.map((persona, index) => (
                 <button
                   key={persona.slug}
@@ -209,12 +359,12 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                 />
               ))}
             </div>
-            <button type="button" onClick={() => rotate(1)} aria-label="Next person" className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/55 backdrop-blur-lg transition hover:bg-white/10 hover:text-white active:scale-95">
+            <button type="button" onClick={() => rotate(1)} aria-label={copy.next} className="flex h-10 w-10 items-center justify-center rounded-full border border-white/10 bg-white/5 text-white/55 backdrop-blur-lg transition hover:bg-white/10 hover:text-white active:scale-95">
               <span aria-hidden>→</span>
             </button>
           </div>
           <p className="mt-2 font-mono text-[8px] tracking-[0.24em] text-white/30 uppercase">
-            Swipe to orbit · tap centre to enter
+            {copy.swipeHint}
           </p>
         </motion.div>
       </main>
@@ -246,15 +396,15 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                 </div>
                 <div>
                   <p className="font-mono text-[9px] font-bold tracking-[0.22em] uppercase" style={{ color: selected.colorSoft }}>
-                    Identity selected
+                    {copy.identitySelected}
                   </p>
                   <h2 id="identity-confirm-title" className="mt-1 text-2xl font-semibold tracking-tight">
-                    Enter as {selected.firstName}?
+                    {copy.enterAs(selected.firstName)}
                   </h2>
                 </div>
               </div>
               <p className="mt-5 text-sm leading-relaxed text-white/58">
-                {selected.mission}. Your private data and progress remain isolated from every other profile.
+                {selected.mission}. {copy.privacy}
               </p>
               <button
                 type="button"
@@ -262,10 +412,10 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                 className="mt-6 flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-sm font-bold text-[#06080b] transition active:scale-[0.98]"
                 style={{ background: selected.gradient, boxShadow: `0 15px 40px -14px ${selected.halo}` }}
               >
-                Confirm identity
+                {copy.confirm}
               </button>
               <button type="button" onClick={() => setConfirming(false)} className="mt-2 w-full py-2 text-xs font-semibold text-white/42 transition hover:text-white/70">
-                Keep exploring
+                {copy.explore}
               </button>
             </motion.div>
           </motion.div>

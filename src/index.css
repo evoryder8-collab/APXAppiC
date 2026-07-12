@@ -258,6 +258,141 @@ body {
   pointer-events: none;
 }
 
+.intro-language-row {
+  position: relative;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.65rem;
+}
+
+.intro-language-prompt {
+  display: grid;
+  min-width: clamp(8.9rem, 38vw, 11.5rem);
+  height: 1rem;
+  place-items: center end;
+  overflow: hidden;
+  font-size: 0.65rem;
+  font-weight: 600;
+  letter-spacing: 0.035em;
+  color: rgba(255, 255, 255, 0.48);
+  white-space: nowrap;
+}
+
+.intro-language-prompt > span {
+  grid-area: 1 / 1;
+}
+
+.intro-language-trigger {
+  display: flex;
+  min-width: 7.7rem;
+  min-height: 2.9rem;
+  align-items: center;
+  gap: 0.6rem;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 1rem;
+  padding: 0.45rem 0.65rem 0.45rem 0.5rem;
+  background: linear-gradient(145deg, rgba(255, 255, 255, 0.1), rgba(255, 255, 255, 0.035));
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.09), 0 12px 35px rgba(0, 0, 0, 0.24);
+  text-align: left;
+  transition: border-color 180ms ease, background-color 180ms ease, transform 180ms ease;
+}
+
+.intro-language-trigger:hover,
+.intro-language-trigger:focus-visible {
+  border-color: rgba(255, 255, 255, 0.25);
+  background-color: rgba(255, 255, 255, 0.06);
+  outline: none;
+}
+
+.intro-language-trigger:active {
+  transform: scale(0.98);
+}
+
+.intro-language-globe {
+  display: grid;
+  width: 2rem;
+  height: 2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.12);
+  border-radius: 0.7rem;
+  background: radial-gradient(circle at 30% 20%, rgba(255, 255, 255, 0.28), rgba(139, 92, 246, 0.22) 44%, rgba(34, 211, 238, 0.12));
+  color: rgba(255, 255, 255, 0.88);
+  font-family: 'JetBrains Mono Variable', monospace;
+  font-size: 0.8rem;
+  font-weight: 700;
+  box-shadow: 0 0 18px rgba(139, 92, 246, 0.16);
+}
+
+.intro-language-menu {
+  position: absolute;
+  top: calc(100% + 0.55rem);
+  right: 0;
+  z-index: 80;
+  width: 13.5rem;
+  overflow: hidden;
+  border: 1px solid rgba(255, 255, 255, 0.13);
+  border-radius: 1.15rem;
+  padding: 0.2rem;
+  background: rgba(10, 13, 20, 0.97);
+  box-shadow: inset 0 1px 0 rgba(255, 255, 255, 0.08), 0 24px 55px rgba(0, 0, 0, 0.48);
+}
+
+.intro-language-option {
+  display: flex;
+  width: 100%;
+  min-height: 3.25rem;
+  align-items: center;
+  gap: 0.7rem;
+  border-radius: 0.9rem;
+  padding: 0.45rem 0.55rem;
+  transition: background-color 160ms ease;
+}
+
+.intro-language-option:hover,
+.intro-language-option:focus-visible {
+  background: rgba(255, 255, 255, 0.07);
+  outline: none;
+}
+
+.intro-language-glyph {
+  display: grid;
+  width: 2.1rem;
+  height: 2.1rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border-radius: 0.75rem;
+  background: linear-gradient(145deg, rgba(34, 211, 238, 0.34), rgba(14, 116, 144, 0.18));
+  color: #cffafe;
+  font-size: 0.8rem;
+  font-weight: 800;
+}
+
+.intro-language-glyph.ro {
+  background: linear-gradient(145deg, rgba(250, 204, 21, 0.36), rgba(37, 99, 235, 0.25) 55%, rgba(239, 68, 68, 0.2));
+  color: #fef9c3;
+}
+
+.intro-language-check {
+  display: grid;
+  width: 1.2rem;
+  height: 1.2rem;
+  flex: 0 0 auto;
+  place-items: center;
+  border: 1px solid rgba(255, 255, 255, 0.1);
+  border-radius: 999px;
+  color: #08100b;
+  font-size: 0.65rem;
+  font-weight: 900;
+}
+
+.intro-language-check.active {
+  border-color: rgba(190, 242, 100, 0.65);
+  background: #bef264;
+  box-shadow: 0 0 14px rgba(190, 242, 100, 0.24);
+}
+
 .intro-orbit {
   transform: translate(-50%, -50%) rotateX(68deg);
   box-shadow: 0 0 55px rgba(255,255,255,.035), inset 0 0 35px rgba(255,255,255,.025);
@@ -366,6 +501,18 @@ body {
     opacity: 0.28;
     transform: scale(1.7);
   }
+
+  .intro-language-trigger,
+  .intro-language-menu {
+    -webkit-backdrop-filter: none;
+    backdrop-filter: none;
+  }
+}
+
+@media (max-height: 760px) {
+  .intro-language-row {
+    transform: scale(0.9);
+  }
 }
 
 @media (prefers-reduced-motion: reduce) {
@@ -374,7 +521,8 @@ body {
   .skeleton,
   .ping-soft,
   .intro-grid,
-  .intro-scan {
+  .intro-scan,
+  .intro-language-prompt > span {
     animation: none !important;
   }
 }

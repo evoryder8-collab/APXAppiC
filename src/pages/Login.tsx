@@ -3,6 +3,7 @@ import { motion } from 'framer-motion'
 import { ApexMark } from '../components/Icons'
 import { EASE } from '../components/ui'
 import { personaBySlug, type PersonaSlug } from '../lib/persona'
+import { getIntroLanguage, LOGIN_COPY } from '../lib/introLanguage'
 import { useStore } from '../store/AppStore'
 
 export function Login({
@@ -16,6 +17,7 @@ export function Login({
 }) {
   const { signIn } = useStore()
   const persona = personaBySlug(personaSlug)
+  const copy = LOGIN_COPY[getIntroLanguage()]
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -57,7 +59,7 @@ export function Login({
           </span>
           <p className="text-[13px] font-bold tracking-[0.3em]">APEX</p>
         </div>
-        <p className="font-mono text-[8px] tracking-[0.2em] text-white/34 uppercase">Encrypted session</p>
+        <p className="font-mono text-[8px] tracking-[0.2em] text-white/34 uppercase">{copy.encrypted}</p>
       </motion.header>
 
       <div className="relative z-10 flex min-h-dvh items-center justify-center overflow-y-auto px-5 pt-24 pb-[max(1.5rem,env(safe-area-inset-bottom))]">
@@ -78,14 +80,14 @@ export function Login({
                 <p className="font-mono text-[8px] font-bold tracking-[0.24em] uppercase" style={{ color: persona.colorSoft }}>
                   {persona.title}
                 </p>
-                <h1 className="mt-1 truncate text-2xl font-semibold tracking-[-0.04em]">Welcome, {persona.firstName}</h1>
-                <p className="mt-1 text-xs text-white/42">Authenticate your private system</p>
+                <h1 className="mt-1 truncate text-2xl font-semibold tracking-[-0.04em]">{copy.welcome(persona.firstName)}</h1>
+                <p className="mt-1 text-xs text-white/42">{copy.authenticate}</p>
               </div>
             </div>
 
             <form onSubmit={(event) => void submit(event)} className="mt-7 space-y-3.5">
               <label className="block">
-                <span className="mb-2 block font-mono text-[8px] font-semibold tracking-[0.2em] text-white/38 uppercase">Email address</span>
+                <span className="mb-2 block font-mono text-[8px] font-semibold tracking-[0.2em] text-white/38 uppercase">{copy.email}</span>
                 <input
                   className={input}
                   type="email"
@@ -100,13 +102,13 @@ export function Login({
                 />
               </label>
               <label className="block">
-                <span className="mb-2 block font-mono text-[8px] font-semibold tracking-[0.2em] text-white/38 uppercase">Password</span>
+                <span className="mb-2 block font-mono text-[8px] font-semibold tracking-[0.2em] text-white/38 uppercase">{copy.password}</span>
                 <span className="relative block">
                   <input
                     className={`${input} pr-16`}
                     type={showPassword ? 'text' : 'password'}
                     autoComplete="current-password"
-                    placeholder="Enter your password"
+                    placeholder={copy.passwordPlaceholder}
                     value={password}
                     onChange={(event) => setPassword(event.target.value)}
                     required
@@ -115,9 +117,9 @@ export function Login({
                     type="button"
                     onClick={() => setShowPassword((current) => !current)}
                     className="absolute inset-y-0 right-0 px-4 text-[10px] font-bold text-white/40 transition hover:text-white/75"
-                    aria-label={showPassword ? 'Hide password' : 'Show password'}
+                    aria-label={showPassword ? copy.hide : copy.show}
                   >
-                    {showPassword ? 'HIDE' : 'SHOW'}
+                    {showPassword ? copy.hide.toUpperCase() : copy.show.toUpperCase()}
                   </button>
                 </span>
               </label>
@@ -135,22 +137,22 @@ export function Login({
                 className="mt-1 flex w-full items-center justify-center rounded-2xl px-5 py-3.5 text-sm font-bold text-[#06080b] disabled:opacity-55"
                 style={{ background: persona.gradient, boxShadow: `0 15px 42px -15px ${persona.halo}` }}
               >
-                {busy ? 'Verifying identity…' : `Unlock ${persona.firstName}'s APEX`}
+                {busy ? copy.verifying : copy.unlock(persona.firstName)}
               </motion.button>
             </form>
 
             <div className="mt-5 flex items-center justify-between border-t border-white/8 pt-4">
               <button type="button" onClick={onBack} className="text-xs font-semibold text-white/40 transition hover:text-white/75">
-                ← Choose another person
+                {copy.back}
               </button>
               <span className="flex items-center gap-1.5 font-mono text-[8px] tracking-[0.16em] text-emerald-200/55 uppercase">
-                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> Private
+                <span className="h-1.5 w-1.5 rounded-full bg-emerald-300" /> {copy.private}
               </span>
             </div>
           </div>
 
           <p className="mx-auto mt-4 max-w-xs text-center text-[10px] leading-relaxed text-white/25">
-            Credentials are sent directly to the authentication service and are never stored in this app.
+            {copy.credentials}
           </p>
         </motion.div>
       </div>
