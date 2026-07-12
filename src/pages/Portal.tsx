@@ -5,6 +5,7 @@ import { ACCENTS } from '../lib/theme'
 import { BoltIcon, LeafIcon, TransitionIcon } from '../components/Icons'
 import { useStore } from '../store/AppStore'
 import { personaBySlug } from '../lib/persona'
+import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -77,6 +78,7 @@ export function Portal() {
           index={3}
         />
       </div>
+      <PortalLanguageMenu />
     </div>
   )
 }

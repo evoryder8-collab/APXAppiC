@@ -1,7 +1,8 @@
 export type IntroLanguage = 'en' | 'th' | 'ro'
-export type SelectableIntroLanguage = Exclude<IntroLanguage, 'en'>
+export type SelectableIntroLanguage = IntroLanguage
 
 const LANGUAGE_KEY = 'apex.intro-language.v1'
+export const LANGUAGE_CHANGE_EVENT = 'apex-language-change'
 
 export const LANGUAGE_PROMPTS = [
   'Choose your language',
@@ -16,12 +17,13 @@ export const LANGUAGE_OPTIONS: Array<{
   englishName: string
   glyph: string
 }> = [
+  { value: 'en', short: 'EN', nativeName: 'English', englishName: 'English', glyph: 'A' },
   { value: 'th', short: 'TH', nativeName: 'ไทย', englishName: 'Thai', glyph: 'ก' },
   { value: 'ro', short: 'RO', nativeName: 'Română', englishName: 'Romanian', glyph: 'R' },
 ]
 
 export function isSelectableIntroLanguage(value: unknown): value is SelectableIntroLanguage {
-  return value === 'th' || value === 'ro'
+  return value === 'en' || value === 'th' || value === 'ro'
 }
 
 export function getIntroLanguage(): IntroLanguage {
@@ -48,6 +50,12 @@ export function setIntroLanguage(language: SelectableIntroLanguage): void {
     localStorage.setItem(LANGUAGE_KEY, language)
   } catch {
     /* The current session still updates even when persistence is unavailable. */
+  }
+  try {
+    document.documentElement.lang = language
+    window.dispatchEvent(new CustomEvent(LANGUAGE_CHANGE_EVENT, { detail: language }))
+  } catch {
+    /* document and window are unavailable during non-browser tests. */
   }
 }
 

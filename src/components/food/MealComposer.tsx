@@ -17,6 +17,7 @@ import {
 import { useFoodStore } from '../../store/FoodStore'
 import { AccentChip, GlassCard, GradientButton } from '../ui'
 import { BarcodeIcon } from '../Icons'
+import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -59,8 +60,10 @@ export function MealComposer({
   onLogged,
 }: MealComposerProps) {
   const store = useFoodStore()
+  const { language } = useLanguage()
+  const slotLabel = translateInterfaceText(`${slot[0].toUpperCase()}${slot.slice(1)}`, language)
   const [items, setItems] = useState<ComposerFoodItem[]>(initialItems)
-  const [name, setName] = useState(title ?? `${slot[0].toUpperCase()}${slot.slice(1)}`)
+  const [name, setName] = useState(title ?? slotLabel)
   const [query, setQuery] = useState('')
   const [remoteResults, setRemoteResults] = useState<FoodRecord[]>([])
   const [searching, setSearching] = useState(false)
@@ -224,7 +227,7 @@ export function MealComposer({
       <div className="mx-auto min-h-dvh w-full max-w-3xl px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <div className="sticky top-0 z-20 -mx-2 flex items-center justify-between rounded-2xl bg-canvas/85 px-2 py-2 backdrop-blur-xl">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-ink-faint uppercase">Actual intake · {slot}</p>
+            <p className="font-mono text-[10px] tracking-[0.18em] text-ink-faint uppercase">{translateInterfaceText('Actual intake', language)} · {slotLabel}</p>
             <h2 className="font-display text-xl font-bold text-ink">Build this meal</h2>
           </div>
           <button type="button" onClick={onClose} className="glass rounded-full px-4 py-2 text-sm font-bold text-ink">Close</button>

@@ -6,6 +6,7 @@ import { todayIso } from '../../lib/plan'
 import { useFoodStore } from '../../store/FoodStore'
 import { AccentChip, GlassCard } from '../ui'
 import { MealComposer } from './MealComposer'
+import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 
 const amber = ACCENTS.amber
 const slots: MealSlot[] = ['breakfast', 'lunch', 'dinner', 'snack']
@@ -20,6 +21,7 @@ export function ActualFoodTracker({
   trainingToday: boolean
 }) {
   const store = useFoodStore()
+  const { language } = useLanguage()
   const today = todayIso()
   const [composer, setComposer] = useState<MealSlot | null>(null)
   const [confirmDelete, setConfirmDelete] = useState<string | null>(null)
@@ -65,7 +67,9 @@ export function ActualFoodTracker({
 
         <div className="mt-4 flex gap-2 overflow-x-auto pb-1">
           {slots.map((slot) => (
-            <button key={slot} type="button" onClick={() => setComposer(slot)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink shadow-sm">+ {slot[0].toUpperCase()}{slot.slice(1)}</button>
+            <button key={slot} type="button" onClick={() => setComposer(slot)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink shadow-sm">
+              + {translateInterfaceText(`${slot[0].toUpperCase()}${slot.slice(1)}`, language)}
+            </button>
           ))}
         </div>
 

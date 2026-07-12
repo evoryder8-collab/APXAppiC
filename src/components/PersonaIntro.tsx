@@ -67,9 +67,10 @@ function IntroLanguageMenu({
         <button
           type="button"
           className="intro-language-trigger"
+          data-no-translate
           aria-haspopup="listbox"
           aria-expanded={open}
-          aria-label="Choose Thai or Romanian"
+          aria-label="Choose English, Thai or Romanian"
           onClick={() => setOpen((current) => !current)}
         >
           <span className="intro-language-globe" aria-hidden>
@@ -115,6 +116,7 @@ function IntroLanguageMenu({
                   <button
                     type="button"
                     key={option.value}
+                    data-no-translate
                     role="option"
                     aria-selected={active}
                     className="intro-language-option"

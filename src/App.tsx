@@ -10,6 +10,7 @@ import { ProgressPhotoStoreProvider } from './store/ProgressPhotoStore'
 import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
+import { LanguageProvider } from './lib/i18n'
 import {
   clearEntryGrant,
   clearSelectedPersona,
@@ -195,15 +196,17 @@ function Shell() {
 
 export default function App() {
   return (
-    <AppStoreProvider>
-      <FoodStoreProvider>
-        <ProgressPhotoStoreProvider>
-          <HashRouter>
-            <AmbientBackground />
-            <Shell />
-          </HashRouter>
-        </ProgressPhotoStoreProvider>
-      </FoodStoreProvider>
-    </AppStoreProvider>
+    <LanguageProvider>
+      <AppStoreProvider>
+        <FoodStoreProvider>
+          <ProgressPhotoStoreProvider>
+            <HashRouter>
+              <AmbientBackground />
+              <Shell />
+            </HashRouter>
+          </ProgressPhotoStoreProvider>
+        </FoodStoreProvider>
+      </AppStoreProvider>
+    </LanguageProvider>
   )
 }
