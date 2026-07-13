@@ -5,6 +5,8 @@ type Translation = Record<Exclude<IntroLanguage, 'en'>, string>
 const rows: Array<[string, string, string]> = [
   // Global navigation, actions and states
   ['Portal', 'Portal', 'หน้าหลัก'],
+  ['APEX ORBIT', 'APEX ORBIT', 'APEX ORBIT'],
+  ['Run intelligence and marathon conditioning', 'Inteligență pentru alergare și pregătire de maraton', 'ระบบวิเคราะห์การวิ่งและเตรียมมาราธอน'],
   ['Back', 'Înapoi', 'กลับ'],
   ['Back to today', 'Înapoi la azi', 'กลับไปวันนี้'],
   ['Back to calendar', 'Înapoi la calendar', 'กลับไปปฏิทิน'],

@@ -2,7 +2,7 @@ import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { PortalCard } from '../components/PortalCard'
 import { ACCENTS } from '../lib/theme'
-import { BoltIcon, LeafIcon, TransitionIcon } from '../components/Icons'
+import { BoltIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { useStore } from '../store/AppStore'
 import { personaBySlug } from '../lib/persona'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
@@ -69,14 +69,24 @@ export function Portal() {
           index={2}
         />
         <PortalCard
-          to="/avatar"
-          accent={ACCENTS.emerald}
-          title={profile?.display_name || persona.name}
-          subtitle="Stats, level and what your body needs"
-          portrait={persona.portrait}
-          portraitAlt={`${profile?.display_name || persona.name} portrait`}
+          to="/orbit"
+          accent={ACCENTS.ice}
+          title="APEX ORBIT"
+          subtitle="Run intelligence and marathon conditioning"
+          icon={<OrbitIcon className="h-8 w-8" />}
           index={3}
         />
+        <div className="sm:col-span-2">
+          <PortalCard
+            to="/avatar"
+            accent={ACCENTS.emerald}
+            title={profile?.display_name || persona.name}
+            subtitle="Stats, level and what your body needs"
+            portrait={persona.portrait}
+            portraitAlt={`${profile?.display_name || persona.name} portrait`}
+            index={4}
+          />
+        </div>
       </div>
       <PortalLanguageMenu />
     </div>

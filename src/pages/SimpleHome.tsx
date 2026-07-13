@@ -12,10 +12,12 @@ import { dailyLogId } from '../lib/ids'
 import type { DailyLog, Supplement } from '../lib/types'
 import type { ComposerFoodItem, MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
-import { AvatarIcon, DropletIcon, LeafIcon, TransitionIcon } from '../components/Icons'
+import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
 import { selectNextSimpleAction, simpleCompletion } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { useOrbitStore } from '../orbit/store/OrbitStore'
+import { missionLabel } from '../orbit/domain/analysis'
 
 const emerald = ACCENTS.emerald
 
@@ -45,6 +47,7 @@ function mealSlotFor(meal: TargetMeal): MealSlot {
 export function SimpleHome() {
   const { data, snapshots, upsert, remove, toast } = useStore()
   const foodStore = useFoodStore()
+  const orbit = useOrbitStore()
   const navigate = useNavigate()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
@@ -209,6 +212,7 @@ export function SimpleHome() {
   const previous = snapshots[Math.max(0, snapshots.length - 15)] ?? current
   const momentum = current && previous ? current.overall - previous.overall : 0
   const firstName = profile?.display_name.split(' ')[0] ?? 'You'
+  const orbitSession = orbit.state.sessions.find((session) => session.date === today && session.status === 'planned')
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -257,6 +261,12 @@ export function SimpleHome() {
             <div className="flex items-center justify-between gap-3"><div><p className="font-display text-base font-bold text-ink">{plan.programDay?.name}</p><p className="text-[11px] font-medium text-ink-soft">Start directly. Skip calendar and setup.</p></div><div className="flex gap-2"><button type="button" onClick={() => navigate(`/player/transition/${today}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">Quick</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/transition/${today}`)}>Start</GradientButton></div></div>
           </GlassCard>
         )}
+
+        <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
+          <GlassCard accent={ACCENTS.ice} className="p-4">
+            <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.ice.gradient }}><OrbitIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">APEX Orbit</p><p className="truncate text-[11px] font-medium text-ink-soft">{orbit.state.active_run ? t('Continue interrupted run') : orbitSession ? `${orbitSession.adapted.duration_min} min · ${t(missionLabel(orbitSession.adapted.mission))}` : t('Your next run, already reasoned through')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{t('RUN')}</span></div>
+          </GlassCard>
+        </Link>
 
         <Link to="/avatar" className="block">
           <GlassCard accent={emerald} className="p-4">

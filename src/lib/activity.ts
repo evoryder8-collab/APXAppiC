@@ -1,7 +1,7 @@
 import type { ActivityLevel, ActivityLog, Goal, Profile } from './types'
 
 export type ActivityInputStyle = 'count' | 'duration' | 'distance' | 'steps' | 'watch_kcal'
-export type ActivitySource = 'manual' | 'workout_module' | 'event_prefill'
+export type ActivitySource = 'manual' | 'workout_module' | 'event_prefill' | 'orbit'
 export type ActivityCategory = 'therapy' | 'camera' | 'work' | 'life' | 'training' | 'device'
 
 export interface ActivityType {

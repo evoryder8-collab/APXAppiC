@@ -1,7 +1,7 @@
 # APEX
 
 Private multi-user performance system for Constantine, June, and Matthew. Nutrition, two training programs with a guided
-workout player, a procedural holographic 3D body, an intelligent event taper, and an RPG stat
+workout player, APEX Orbit run intelligence, a procedural holographic 3D body, an intelligent event taper, and an RPG stat
 engine with science-based decay. Bright light-mode glassmorphism, authenticated profiles, static SPA.
 
 Live: https://evoryder8-collab.github.io/APXAppiC/
@@ -53,8 +53,13 @@ Pages (source: GitHub Actions, already enabled). Vite `base` is set to `/APXAppi
 
 ## What's inside
 
-- **Portal**: four breathing glass buttons. Nutrition (amber), Transition Phase (teal),
-  Main Phase (violet), Avatar (emerald). Sync dot + settings in the top bar.
+- **Portal**: five breathing glass portals. Nutrition (amber), Transition Phase (teal),
+  Main Phase (violet), APEX Orbit (ice), and the personal Avatar (emerald). Sync dot + settings in the top bar.
+- **APEX Orbit**: one-decision run intelligence; mission-aware route generation and GPX; interruption-safe live recording;
+  GPS filtering, splits and private debriefs; Route DNA, personal segments, shoes and privacy-trimmed celestial posters;
+  plus a readiness-gated, strength-aware, calendar-aware adaptive Marathon Campaign. Orbit records one authoritative
+  running activity so Nutrition and Avatar never double count the same effort. Architecture, evidence, privacy,
+  provider deployment and real-device QA live in `docs/orbit/`.
 - **Nutrition**: BMR via Mifflin-St Jeor and Katch-McArdle, TDEE, goal calories and macro
   targets (protein 2.2 g/kg); meal timeline with minimum-effective-meal fallbacks; the exact
   supplement stack as a checkable timeline where training-relative windows (T-60/T-45/T-15/post)
@@ -110,9 +115,10 @@ Run the migration once against the existing project. It is idempotent and additi
 npx supabase link --project-ref rrzcrcjsbkmidlafrhfv
 npx supabase db push
 npx supabase functions deploy food-lookup --project-ref rrzcrcjsbkmidlafrhfv
+npx supabase functions deploy orbit-geo --project-ref rrzcrcjsbkmidlafrhfv
 ```
 
-The Edge Function uses the standard `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and `SUPABASE_SERVICE_ROLE_KEY` function secrets supplied by Supabase. The service key never enters the web bundle. Open Food Facts is the only external provider and requires no paid API key.
+The Edge Functions use the standard `SUPABASE_URL`, `SUPABASE_ANON_KEY`, and, where required by the food lookup flow, `SUPABASE_SERVICE_ROLE_KEY` secrets supplied by Supabase. The service key never enters the web bundle. Food lookup uses Open Food Facts. Orbit's authenticated geographic gateway uses OpenStreetMap/Nominatim and BRouter. None of these providers requires a paid API key.
 
 After migration, verify in the Supabase dashboard that:
 

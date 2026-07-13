@@ -204,7 +204,7 @@ export interface ActivityLog {
   distance_km: number | null
   watch_kcal: number | null
   computed_kcal: number
-  source: 'manual' | 'workout_module' | 'event_prefill'
+  source: 'manual' | 'workout_module' | 'event_prefill' | 'orbit'
   reconciled: boolean
   created_at: string
   updated_at: string
