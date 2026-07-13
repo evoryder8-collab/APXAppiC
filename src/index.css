@@ -526,18 +526,119 @@ body {
   box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 0 24px rgba(56,189,248,.22);
 }
 
-.orbit-map .leaflet-control-attribution {
-  border-radius: .55rem 0 0 0;
-  background: rgba(5, 11, 22, .72);
-  color: rgba(226, 232, 240, .72);
-  font-size: 8px;
+.orbit-map {
+  isolation: isolate;
+  box-shadow:
+    inset 0 1px 0 rgba(255,255,255,.1),
+    0 26px 70px -34px rgba(37,99,235,.72);
 }
 
-.orbit-map .leaflet-control-attribution a { color: #7dd3fc; }
-.orbit-map .leaflet-control-zoom a {
-  border-color: rgba(255,255,255,.16);
-  background: rgba(5, 11, 22, .84);
+.orbit-map .leaflet-container {
+  background: #050b16;
+  font-family: inherit;
+}
+
+.orbit-map .leaflet-control-attribution {
+  right: auto;
+  bottom: 0;
+  left: 0;
+  border-radius: 0 .6rem 0 0;
+  background: rgba(3, 7, 18, .72);
+  color: rgba(203, 213, 225, .62);
+  font-size: 7px;
+  line-height: 1.2;
+}
+
+.orbit-map .leaflet-control-attribution a { color: rgba(125,211,252,.78); }
+
+.orbit-map-tiles-night,
+.orbit-map-tiles-satellite {
+  filter: saturate(.84) contrast(1.08) brightness(.88);
+}
+
+.orbit-map-tiles-light {
+  filter: saturate(.78) contrast(1.03);
+}
+
+.orbit-map-vignette {
+  background:
+    linear-gradient(180deg, rgba(2,6,23,.2), transparent 22%, transparent 66%, rgba(2,6,23,.32)),
+    radial-gradient(circle at 50% 44%, transparent 52%, rgba(2,6,23,.24) 100%);
+  box-shadow: inset 0 0 0 1px rgba(255,255,255,.08);
+}
+
+.orbit-map-control {
+  display: grid;
+  width: 2.75rem;
+  height: 2.75rem;
+  place-items: center;
+  border: 1px solid rgba(255,255,255,.12);
+  border-radius: 999px;
+  background: rgba(5,11,22,.88);
   color: #e0f2fe;
+  box-shadow: 0 9px 24px rgba(2,6,23,.34), inset 0 1px 0 rgba(255,255,255,.08);
+  -webkit-tap-highlight-color: transparent;
+}
+
+.orbit-map-control:active { transform: scale(.94); }
+.orbit-map-control-active {
+  border-color: rgba(103,232,249,.4);
+  color: #67e8f9;
+  box-shadow: 0 0 22px rgba(34,211,238,.2), inset 0 1px 0 rgba(255,255,255,.1);
+}
+
+.orbit-map-pin-shell {
+  border: 0 !important;
+  background: transparent !important;
+}
+
+.orbit-map-pin {
+  display: grid;
+  width: 30px;
+  height: 30px;
+  place-items: center;
+  border: 3px solid #fff;
+  border-radius: 999px;
+  color: #020617;
+  font-family: ui-monospace, SFMono-Regular, Menlo, Monaco, Consolas, monospace;
+  font-size: 9px;
+  font-weight: 900;
+  box-shadow: 0 5px 16px rgba(2,6,23,.5);
+}
+
+.orbit-map-pin-start { background: #34d399; }
+.orbit-map-pin-finish { background: #fbbf24; }
+
+.orbit-history-halo,
+.orbit-planned-halo,
+.orbit-progress-halo {
+  filter: blur(2.4px);
+}
+
+.orbit-history-line {
+  filter: drop-shadow(0 0 3px rgba(99,102,241,.7));
+}
+
+.orbit-planned-line {
+  filter: drop-shadow(0 0 5px rgba(56,189,248,.85));
+}
+
+.orbit-progress-line {
+  filter: drop-shadow(0 0 6px rgba(251,191,36,.88));
+}
+
+.orbit-location-pulse {
+  transform-box: fill-box;
+  transform-origin: center;
+}
+
+@media (prefers-reduced-motion: no-preference) {
+  .orbit-location-pulse { animation: orbit-location-pulse 2.4s ease-out infinite; }
+}
+
+@keyframes orbit-location-pulse {
+  0% { transform: scale(.72); opacity: .72; }
+  75%, 100% { transform: scale(1.55); opacity: 0; }
 }
 
 @media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
