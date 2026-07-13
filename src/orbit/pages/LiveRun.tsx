@@ -249,23 +249,25 @@ export function LiveRun() {
     return (
       <OrbitFrame title="Live run" subtitle="One purpose, one clear action." backTo="/orbit">
         <div className="space-y-4">
-          <div className="relative overflow-hidden rounded-[32px] border border-sky-100/20 bg-[#050b16] p-7 text-center text-white shadow-2xl sm:p-10">
-            <div className="orbit-stars absolute inset-0 opacity-70" aria-hidden />
+          <div className="relative overflow-hidden rounded-[32px] border border-sky-100/20 bg-[#050b16] p-3 text-center text-white shadow-[0_30px_84px_-34px_rgba(37,99,235,.8)] sm:p-4">
             <div className="relative">
-              <OrbitPill tone="amber">{t(missionLabel(mission)).toUpperCase()}</OrbitPill>
-              <p className="mt-5 font-display text-3xl font-bold">{route?.name ?? t('Free run')}</p>
-              {targetMinutes != null && <p className="mt-2 font-mono text-xs font-bold tracking-wide text-sky-200">{t('TARGET')} · {targetMinutes} {t('MINUTES')}{requested.minimumMinutes ? ` · ${t('MINIMUM-EFFECTIVE VERSION')}` : ''}</p>}
-              <p className="mx-auto mt-2 max-w-md text-sm leading-relaxed text-slate-300">{t('GPS permission is requested only when you start. The active run is kept in private offline storage so an interrupted screen can recover it.')}</p>
-              {availableShoes.length > 0 && <label className="mx-auto mt-5 block max-w-xs text-left text-[10px] font-bold tracking-widest text-slate-400">{t('RUNNING SHOES')}
-                <select value={selectedShoeId} onChange={(event) => setSelectedShoeId(event.target.value)} className="mt-1.5 min-h-12 w-full rounded-2xl border border-white/15 bg-slate-900 px-3 text-sm font-bold text-white">
+              <Suspense fallback={<div className="h-[48dvh] min-h-[380px] animate-pulse rounded-[28px] bg-slate-900" />}><OrbitMap planned={route?.points ?? []} history={orbit.state.routes.filter((item) => item.id !== route?.id).map((item) => item.points)} className="h-[48dvh] min-h-[380px] max-h-[600px]" /></Suspense>
+              <div className="pointer-events-none absolute right-3 bottom-3 left-3 z-[490] rounded-[24px] border border-white/12 bg-[#050b16]/94 p-4 text-left shadow-xl">
+                <div className="flex items-start justify-between gap-3"><div><OrbitPill tone="amber">{t(missionLabel(mission)).toUpperCase()}</OrbitPill><p className="mt-2 font-display text-xl font-bold">{route?.name ?? t('Free run')}</p></div>{targetMinutes != null && <div className="text-right"><p className="font-mono text-xl font-bold text-sky-100">{targetMinutes}</p><p className="text-[8px] font-bold tracking-widest text-slate-500">{t('MIN')}</p></div>}</div>
+              </div>
+            </div>
+            <div className="relative px-2 pt-4 pb-2 sm:px-3">
+              <p className="mx-auto max-w-md text-xs leading-relaxed text-slate-400">{t('GPS permission is requested only when you start. The active run is kept in private offline storage so an interrupted screen can recover it.')}</p>
+              {availableShoes.length > 0 && <label className="mx-auto mt-4 block max-w-sm text-left text-[9px] font-bold tracking-widest text-slate-500">{t('RUNNING SHOES')}
+                <select value={selectedShoeId} onChange={(event) => setSelectedShoeId(event.target.value)} className="mt-1.5 min-h-12 w-full rounded-2xl border border-white/12 bg-slate-900 px-3 text-sm font-bold text-white">
                   <option value="">{t('No shoes assigned')}</option>
                   {availableShoes.map((shoe) => <option key={shoe.id} value={shoe.id}>{shoe.brand} {shoe.name}</option>)}
                 </select>
               </label>}
-              {countdown == null ? <GradientButton accent={ACCENTS.ice} onClick={startAfterCountdown} className="mt-7 min-h-16 min-w-52 text-lg" breathe>{t('START RUN')}</GradientButton> : <div className="mt-7 font-mono text-7xl font-bold text-sky-200" aria-live="assertive">{countdown}</div>}
+              {countdown == null ? <GradientButton accent={ACCENTS.ice} onClick={startAfterCountdown} className="mt-5 min-h-16 w-full text-lg" breathe>{t('START RUN')}</GradientButton> : <div className="mt-5 font-mono text-7xl font-bold text-sky-200" aria-live="assertive">{countdown}</div>}
             </div>
           </div>
-          <GlassCard className="p-4"><p className="text-sm font-bold text-ink">{t('Foreground recording')}</p><p className="mt-1 text-xs leading-relaxed text-ink-soft">{t('The web prototype cannot guarantee GPS while the phone is locked. Keep APEX visible during the run.')}</p></GlassCard>
+          <details className="glass rounded-[24px] border border-white/80 p-4"><summary className="cursor-pointer text-sm font-bold text-ink">{t('Recording note')}</summary><p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('The web prototype cannot guarantee GPS while the phone is locked. Keep APEX visible during the run.')}</p></details>
         </div>
       </OrbitFrame>
     )
@@ -274,25 +276,29 @@ export function LiveRun() {
   return (
     <OrbitFrame title="Live run" subtitle={missionLabel(active.mission)} backTo="/orbit" action={<OrbitPill tone={active.paused ? 'amber' : 'emerald'}>{t(active.paused ? 'PAUSED' : watching ? 'RECORDING' : 'GPS WAIT')}</OrbitPill>}>
       <div className="space-y-4">
-        <div className="overflow-hidden rounded-[30px] bg-[#050b16] p-4 text-white shadow-2xl sm:p-5">
-          <Suspense fallback={<div className="h-72 animate-pulse rounded-[22px] bg-slate-900" />}><OrbitMap planned={plannedPoints} completed={active.samples} current={current} className="h-[42dvh] min-h-72 max-h-[520px]" /></Suspense>
+        <div className="overflow-hidden rounded-[32px] bg-[#050b16] p-3 text-white shadow-[0_30px_84px_-34px_rgba(37,99,235,.8)] sm:p-4">
+          <div className="relative">
+            <Suspense fallback={<div className="h-[55dvh] min-h-[430px] animate-pulse rounded-[28px] bg-slate-900" />}><OrbitMap planned={plannedPoints} completed={active.samples} current={current} history={orbit.state.routes.filter((item) => item.id !== route?.id).map((item) => item.points)} followCurrent className="h-[55dvh] min-h-[430px] max-h-[680px]" /></Suspense>
+            <div className="pointer-events-none absolute right-3 bottom-3 left-3 z-[490] rounded-[24px] border border-white/12 bg-[#050b16]/94 p-4 shadow-[0_18px_40px_rgba(2,6,23,.48)]">
+              <div className="grid grid-cols-3 gap-2 text-center">
+                <div><p className="font-mono text-xl font-bold text-white">{formatDuration(elapsed)}</p><p className="mt-1 text-[9px] font-bold tracking-wide text-slate-500">{t('TIME')}</p></div>
+                <div><p className="font-mono text-xl font-bold text-white">{formatPace(metrics.avg_pace_sec_km)}</p><p className="mt-1 text-[9px] font-bold tracking-wide text-slate-500">{t('AVG PACE')}</p></div>
+                <div><p className="font-mono text-xl font-bold text-white">{formatDistance(metrics.distance_m)}</p><p className="mt-1 text-[9px] font-bold tracking-wide text-slate-500">{t('DISTANCE')}</p></div>
+              </div>
+              <div className="mt-3 flex items-center justify-between border-t border-white/8 pt-3 text-[9px] font-bold text-slate-400"><span>{t('CURRENT PACE')} · {formatPace(pace)}</span><span>{t('SPLIT')} · {metrics.splits.at(-1) ? `${metrics.splits.at(-1)!.index} / ${formatPace(metrics.splits.at(-1)!.pace_sec_km)}` : t('WAITING')}</span></div>
+            </div>
+          </div>
           {deviation != null && deviation > 100 && <div className="mt-3 rounded-2xl border border-amber-300/30 bg-amber-300/10 px-4 py-3 text-sm font-bold text-amber-100">{t('OFF ROUTE')} · {Math.round(deviation)} {t('M')} · {t('Return to route')}</div>}
           {navigationCue && <div className="mt-3 flex items-center justify-between rounded-2xl border border-sky-200/15 bg-sky-300/8 px-4 py-3"><p className="text-sm font-bold text-sky-100">{t(navigationCue.instruction)}</p><span className="font-mono text-xs text-sky-300">{formatDistance(navigationCue.remaining_m)}</span></div>}
-          <div className="mt-4 grid grid-cols-2 gap-3 sm:grid-cols-4">
-            <div><p className="text-[10px] font-bold text-slate-500">{t('Distance')}</p><p className="mt-1 font-mono text-2xl font-bold">{formatDistance(metrics.distance_m)}</p></div>
-            <div><p className="text-[10px] font-bold text-slate-500">{t('Elapsed')}</p><p className="mt-1 font-mono text-2xl font-bold">{formatDuration(elapsed)}</p></div>
-            <div><p className="text-[10px] font-bold text-slate-500">{t('Current pace')}</p><p className="mt-1 font-mono text-2xl font-bold">{formatPace(pace)}</p></div>
-            <div><p className="text-[10px] font-bold text-slate-500">{t('Average pace')}</p><p className="mt-1 font-mono text-2xl font-bold">{formatPace(metrics.avg_pace_sec_km)}</p></div>
-          </div>
-          <div className="mt-3 flex flex-wrap gap-2 text-[10px] font-bold text-slate-400"><span className="rounded-full bg-white/5 px-3 py-1.5">{t('CURRENT SPLIT')} {metrics.splits.at(-1) ? `${metrics.splits.at(-1)!.index} · ${formatPace(metrics.splits.at(-1)!.pace_sec_km)}` : t('WAITING')}</span><span className="rounded-full bg-white/5 px-3 py-1.5">{t('TARGET')} · {t(['recovery', 'easy', 'aerobic_base', 'run_walk'].includes(active.mission) ? 'CONVERSATIONAL EFFORT' : 'MISSION-CONTROLLED EFFORT')}</span>{targetMinutes != null && <span className="rounded-full bg-white/5 px-3 py-1.5">{t('PLANNED')} · {targetMinutes} {t('MIN')}</span>}</div>
+          <div className="mt-3 flex flex-wrap gap-2 text-[9px] font-bold text-slate-400"><span className="rounded-full bg-white/5 px-3 py-1.5">{t('TARGET')} · {t(['recovery', 'easy', 'aerobic_base', 'run_walk'].includes(active.mission) ? 'CONVERSATIONAL EFFORT' : 'MISSION-CONTROLLED EFFORT')}</span>{targetMinutes != null && <span className="rounded-full bg-white/5 px-3 py-1.5">{t('PLANNED')} · {targetMinutes} {t('MIN')}</span>}</div>
         </div>
 
         {(gpsMessage || guidance) && <GlassCard accent={gpsMessage ? ACCENTS.amber : ACCENTS.ice} className="p-4"><p className="text-[10px] font-bold tracking-widest text-ink-faint uppercase">{t('ORBIT COACH')}</p><p className="mt-1 text-sm font-semibold leading-relaxed text-ink">{t(gpsMessage || guidance)}</p></GlassCard>}
 
         <div className="grid grid-cols-3 gap-2">
-          <GradientButton accent={active.paused ? ACCENTS.emerald : ACCENTS.amber} onClick={pauseOrResume} className="min-h-16">{active.paused ? t('Resume') : t('Pause')}</GradientButton>
           <GhostButton onClick={addLap} className="min-h-16">{t('Add lap')}</GhostButton>
-          <GradientButton accent={ACCENTS.ice} onClick={() => void finish()} className="min-h-16">{t('Finish')}</GradientButton>
+          <GradientButton accent={active.paused ? ACCENTS.emerald : ACCENTS.amber} onClick={pauseOrResume} className="min-h-[4.5rem] text-base">{active.paused ? t('Resume') : t('Pause')}</GradientButton>
+          <GhostButton onClick={() => void finish()} className="min-h-16 border-sky-200/70 text-sky-800">{t('Finish')}</GhostButton>
         </div>
         <div className="grid grid-cols-2 gap-2"><GhostButton onClick={() => { if (window.confirm(t('Finish at the current distance? Orbit will analyse the useful work completed.'))) void finish() }}>{t('Shorten run')}</GhostButton><GhostButton onClick={() => { const points = [...active.samples].reverse(); if (points.length < 2) return setGpsMessage('A return path becomes available after enough movement is recorded.'); setReturnPath(points); setGpsMessage('Return-to-start guidance now follows your recorded path in reverse.') }}>{t('Return to start')}</GhostButton></div>
         <div className="flex justify-center"><button type="button" onClick={() => void cancel()} className="min-h-11 px-4 text-xs font-bold text-red-700">{t('Cancel run')}</button></div>
