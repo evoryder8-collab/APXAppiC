@@ -1,6 +1,7 @@
 import { useMemo, useState } from 'react'
 import { addMonths, format, subDays } from 'date-fns'
 import { motion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import type { Accent } from '../lib/theme'
 import { ACCENTS } from '../lib/theme'
 import type { EventType, ProgramSlug } from '../lib/types'
@@ -20,6 +21,9 @@ import {
 import { Calendar } from '../components/Calendar'
 import { DaySheet } from '../components/DaySheet'
 import { ChevronLeftIcon, ChevronRightIcon } from '../components/Icons'
+import { useOrbitStore } from '../orbit/store/OrbitStore'
+import { missionLabel } from '../orbit/domain/analysis'
+import { useOrbitText } from '../orbit/ui/i18n'
 
 const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
   { value: 'filming_championship', label: 'Filming Championship' },
@@ -29,6 +33,9 @@ const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
 
 export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; accent: Accent; title: string }) {
   const { data, upsert, remove, toast } = useStore()
+  const orbit = useOrbitStore()
+  const navigate = useNavigate()
+  const t = useOrbitText()
   const [month, setMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [showEventForm, setShowEventForm] = useState(false)
@@ -38,6 +45,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const program = data.programs.find((candidate) => candidate.slug === slug)
   const streak = useMemo(() => currentStreak(data, today), [data, today])
   const todayPlan = useMemo(() => planForDate(data, slug, today, false), [data, slug, today])
+  const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
 
   /* Deload marking via long-press */
   const toggleDeload = (dateIso: string): void => {
@@ -154,12 +162,14 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             data={data}
             slug={slug}
             accent={accent}
+            orbitSessions={visibleOrbitSessions}
             onSelectDay={setSelectedDay}
             onLongPressDay={toggleDeload}
           />
           <p className="mt-3 text-center text-[11px] font-medium text-ink-faint">
             Tap a day to plan it. Hold to mark deload.
           </p>
+          {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('APEX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
         </GlassCard>
 
         {/* Events */}

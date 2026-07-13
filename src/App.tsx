@@ -7,6 +7,7 @@ import { ProfileSwitcher } from './components/ProfileSwitcher'
 import { AppStoreProvider, useStore } from './store/AppStore'
 import { FoodStoreProvider } from './store/FoodStore'
 import { ProgressPhotoStoreProvider } from './store/ProgressPhotoStore'
+import { OrbitStoreProvider } from './orbit/store/OrbitStore'
 import { Toasts } from './components/ui'
 import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
@@ -37,6 +38,14 @@ const Player = lazy(() => import('./pages/Player').then((module) => ({ default: 
 const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })))
 const VisualProgress = lazy(() => import('./pages/VisualProgress').then((module) => ({ default: module.VisualProgress })))
 const PersonaIntro = lazy(() => import('./components/PersonaIntro').then((module) => ({ default: module.PersonaIntro })))
+const OrbitHome = lazy(() => import('./orbit/pages/OrbitHome').then((module) => ({ default: module.OrbitHome })))
+const RoutePlanner = lazy(() => import('./orbit/pages/RoutePlanner').then((module) => ({ default: module.RoutePlanner })))
+const LiveRun = lazy(() => import('./orbit/pages/LiveRun').then((module) => ({ default: module.LiveRun })))
+const RunDebrief = lazy(() => import('./orbit/pages/RunDebrief').then((module) => ({ default: module.RunDebrief })))
+const OrbitLibrary = lazy(() => import('./orbit/pages/OrbitLibrary').then((module) => ({ default: module.OrbitLibrary })))
+const MarathonInductionPage = lazy(() => import('./orbit/pages/MarathonInduction').then((module) => ({ default: module.MarathonInductionPage })))
+const MarathonCampaignPage = lazy(() => import('./orbit/pages/MarathonCampaign').then((module) => ({ default: module.MarathonCampaignPage })))
+const OrbitScience = lazy(() => import('./orbit/pages/OrbitScience').then((module) => ({ default: module.OrbitScience })))
 
 function LoadingSurface({ page = false }: { page?: boolean }) {
   return (
@@ -87,6 +96,14 @@ function AnimatedRoutes() {
         />
         <Route path="/avatar" element={<Page><AvatarPage /></Page>} />
         <Route path="/progress" element={<Page><VisualProgress /></Page>} />
+        <Route path="/orbit" element={<Page><OrbitHome /></Page>} />
+        <Route path="/orbit/plan" element={<Page><RoutePlanner /></Page>} />
+        <Route path="/orbit/run" element={<Page><LiveRun /></Page>} />
+        <Route path="/orbit/debrief/:runId" element={<Page><RunDebrief /></Page>} />
+        <Route path="/orbit/library" element={<Page><OrbitLibrary /></Page>} />
+        <Route path="/orbit/induction" element={<Page><MarathonInductionPage /></Page>} />
+        <Route path="/orbit/campaign" element={<Page><MarathonCampaignPage /></Page>} />
+        <Route path="/orbit/science" element={<Page><OrbitScience /></Page>} />
         <Route path="/settings" element={<Page><Settings /></Page>} />
         <Route path="/player/:slug/:date" element={<Page><Player /></Page>} />
         <Route path="*" element={<Navigate to="/" replace />} />
@@ -204,10 +221,12 @@ export default function App() {
       <AppStoreProvider>
         <FoodStoreProvider>
           <ProgressPhotoStoreProvider>
-            <HashRouter>
-              <AmbientBackground />
-              <Shell />
-            </HashRouter>
+            <OrbitStoreProvider>
+              <HashRouter>
+                <AmbientBackground />
+                <Shell />
+              </HashRouter>
+            </OrbitStoreProvider>
           </ProgressPhotoStoreProvider>
         </FoodStoreProvider>
       </AppStoreProvider>

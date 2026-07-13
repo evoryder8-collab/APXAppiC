@@ -40,6 +40,17 @@ export function BoltIcon({ className, strokeWidth = 1.9 }: IconProps) {
   )
 }
 
+export function OrbitIcon({ className, strokeWidth = 1.7 }: IconProps) {
+  return (
+    <svg {...base(className)} strokeWidth={strokeWidth}>
+      <circle cx="12" cy="12" r="3.1" />
+      <ellipse cx="12" cy="12" rx="9" ry="4.4" transform="rotate(-22 12 12)" />
+      <path d="M4.8 6.7c1.7-3.2 4.1-4.8 7.2-4.8 4.7 0 8.4 4.1 8.4 9.2 0 4.4-2.8 8.1-6.7 8.9" opacity={0.55} />
+      <circle cx="19.2" cy="7.6" r="1" fill="currentColor" stroke="none" />
+    </svg>
+  )
+}
+
 export function AvatarIcon({ className, strokeWidth = 1.9 }: IconProps) {
   return (
     <svg {...base(className)} strokeWidth={strokeWidth}>

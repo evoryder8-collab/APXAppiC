@@ -20,7 +20,13 @@ const activityMap = Object.fromEntries(
   ACTIVITY_TRANSLATIONS.map(([english, romanian, thai]) => [english, { ro: romanian, th: thai }]),
 )
 
-const exactTranslations = { ...UI_TRANSLATIONS, ...activityMap }
+const exactTranslations: Record<string, { ro: string; th: string }> = { ...UI_TRANSLATIONS, ...activityMap }
+const foldedTranslations = new Map(Object.entries(exactTranslations).map(([key, value]) => [key.toLocaleLowerCase('en'), value]))
+
+export function registerInterfaceTranslations(values: Record<string, { ro: string; th: string }>): void {
+  Object.assign(exactTranslations, values)
+  for (const [key, value] of Object.entries(values)) foldedTranslations.set(key.toLocaleLowerCase('en'), value)
+}
 
 const segments: Array<[string, string, string]> = [
   ['% to level', '% până la nivelul', '% ถึงระดับ'],
@@ -123,6 +129,118 @@ function translateDates(value: string, language: Exclude<IntroLanguage, 'en'>): 
 function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>): string | null {
   const assessmentSummary = translateAvatarAssessmentSummary(value, language)
   if (assessmentSummary) return assessmentSummary
+
+  const durationMission = value.match(/^(\d+) (minutes|min) · (.+)$/)
+  if (durationMission) {
+    const durationUnit = language === 'ro' ? 'min' : 'นาที'
+    return `${durationMission[1]} ${durationUnit} · ${translateInterfaceText(durationMission[3], language)}`
+  }
+  const daysRemaining = value.match(/^(\d+) days remaining$/)
+  if (daysRemaining) return language === 'ro' ? `${daysRemaining[1]} zile rămase` : `เหลือ ${daysRemaining[1]} วัน`
+  const namedDaysRemaining = value.match(/^(.+) · (\d+) days remaining$/)
+  if (namedDaysRemaining) return language === 'ro' ? `${namedDaysRemaining[1]} · ${namedDaysRemaining[2]} zile rămase` : `${namedDaysRemaining[1]} · เหลือ ${namedDaysRemaining[2]} วัน`
+  const questionProgress = value.match(/^QUESTION (\d+) OF (\d+)$/)
+  if (questionProgress) return language === 'ro' ? `ÎNTREBAREA ${questionProgress[1]} DIN ${questionProgress[2]}` : `คำถาม ${questionProgress[1]} จาก ${questionProgress[2]}`
+  const knownProfile = value.match(/^APEX already knows: (age unavailable|age \d+) · (weight unavailable|[\d.]+ kg) · (\d+) strength days in the Main Phase\.$/)
+  if (knownProfile) {
+    const age = knownProfile[1] === 'age unavailable'
+      ? (language === 'ro' ? 'vârstă indisponibilă' : 'ไม่พบข้อมูลอายุ')
+      : (language === 'ro' ? `vârsta ${knownProfile[1].slice(4)}` : `อายุ ${knownProfile[1].slice(4)} ปี`)
+    const weight = knownProfile[2] === 'weight unavailable'
+      ? (language === 'ro' ? 'greutate indisponibilă' : 'ไม่พบข้อมูลน้ำหนัก')
+      : (language === 'ro' ? knownProfile[2] : knownProfile[2].replace(' kg', ' กก.'))
+    return language === 'ro'
+      ? `APEX știe deja: ${age} · ${weight} · ${knownProfile[3]} zile de antrenament de forță în Faza principală.`
+      : `APEX รู้แล้ว: ${age} · ${weight} · ฝึกแรง ${knownProfile[3]} วันในโปรแกรมหลัก`
+  }
+  const shortVersion = value.match(/^Short on time\? (\d+) min$/)
+  if (shortVersion) return language === 'ro' ? `Ai puțin timp? Fă versiunea de ${shortVersion[1]} min` : `เวลาน้อยใช่ไหม? ทำเวอร์ชัน ${shortVersion[1]} นาที`
+  const closeRace = value.match(/^There are (\d+) days until the race, which is shorter than Orbit’s 12-week marathon-specific block\. Choose a later event or change the objective rather than compressing the progression\.$/)
+  if (closeRace) return language === 'ro'
+    ? `Mai sunt ${closeRace[1]} zile până la cursă, mai puțin decât blocul Orbit de 12 săptămâni specific maratonului. Alege un eveniment ulterior sau schimbă obiectivul în loc să comprimi progresia.`
+    : `เหลือ ${closeRace[1]} วันก่อนแข่ง ซึ่งสั้นกว่าช่วงฝึกเฉพาะมาราธอน 12 สัปดาห์ของ Orbit ควรเลือกรายการที่ช้ากว่านี้หรือเปลี่ยนเป้าหมาย แทนการเร่งแผน`
+  const foundationGate = value.match(/^Foundation to First Marathon was selected because the recent base is below the marathon-specific gate: (\d+) run days per week, approximately (\d+) km per week and a longest recent run near (\d+) km\.$/)
+  if (foundationGate) return language === 'ro'
+    ? `A fost selectată Fundația spre primul maraton deoarece baza recentă este sub pragul specific maratonului: ${foundationGate[1]} zile de alergare pe săptămână, aproximativ ${foundationGate[2]} km pe săptămână și o alergare recentă maximă de circa ${foundationGate[3]} km.`
+    : `เลือกแผนพื้นฐานสู่มาราธอนแรก เพราะพื้นฐานช่วงหลังยังต่ำกว่าเกณฑ์ฝึกเฉพาะมาราธอน: วิ่ง ${foundationGate[1]} วันต่อสัปดาห์ ประมาณ ${foundationGate[2]} กม. ต่อสัปดาห์ และวิ่งยาวล่าสุดราว ${foundationGate[3]} กม.`
+  const foundationTimeline = value.match(/^The race is (\d+) days away, but a credible Foundation plus marathon-specific journey needs approximately (\d+) days\. A later race is recommended\.$/)
+  if (foundationTimeline) return language === 'ro'
+    ? `Cursa este peste ${foundationTimeline[1]} zile, dar o Fundație realistă urmată de pregătirea specifică necesită aproximativ ${foundationTimeline[2]} zile. Este recomandată o cursă ulterioară.`
+    : `การแข่งขันเหลือ ${foundationTimeline[1]} วัน แต่เส้นทางพื้นฐานรวมช่วงฝึกเฉพาะมาราธอนที่สมเหตุผลต้องใช้ประมาณ ${foundationTimeline[2]} วัน จึงแนะนำให้เลือกรายการที่ช้ากว่านี้`
+  const sessionMinutes = value.match(/^(\d+) minutes at (controlled marathon effort inside the session|comfortably hard, controlled effort)\.$/)
+  if (sessionMinutes) {
+    if (language === 'ro') return sessionMinutes[2].startsWith('controlled marathon')
+      ? `${sessionMinutes[1]} minute la efort de maraton controlat în cadrul sesiunii.`
+      : `${sessionMinutes[1]} minute la un efort susținut, dar confortabil și controlat.`
+    return sessionMinutes[2].startsWith('controlled marathon')
+      ? `${sessionMinutes[1]} นาทีที่ระดับแรงมาราธอนแบบควบคุมภายในเซสชัน`
+      : `${sessionMinutes[1]} นาทีที่ระดับหนักพอสบายแบบควบคุม`
+  }
+  const thresholdBlocks = value.match(/^3 controlled blocks of (\d+) minutes with easy recovery\.$/)
+  if (thresholdBlocks) return language === 'ro' ? `3 blocuri controlate a câte ${thresholdBlocks[1]} minute, cu recuperare ușoară.` : `3 ช่วงแบบควบคุม ช่วงละ ${thresholdBlocks[1]} นาที พร้อมพักเบา`
+  const campaignWhy = value.match(/^(.+) phase · (.+) campaign · placed to preserve recovery around demanding work\.$/)
+  if (campaignWhy) {
+    const phase = translateInterfaceText(campaignWhy[1].replace(/\b\w/g, (letter) => letter.toUpperCase()), language)
+    const familyKey: Record<string, string> = {
+      'foundation first': 'Foundation to First Marathon',
+      'first finish': 'First Marathon: Finish Strong',
+      'first performance': 'First Marathon: Performance',
+      'personal best': 'Marathon Personal Best',
+      hybrid: 'Hybrid Athlete Marathon',
+    }
+    const family = translateInterfaceText(familyKey[campaignWhy[2]] ?? campaignWhy[2], language)
+    if (language === 'ro') return `Faza ${phase} · campania ${family} · poziționată pentru a proteja recuperarea în jurul efortului solicitant.`
+    return `ช่วง${phase} · แผน ${family} · จัดไว้เพื่อรักษาการฟื้นตัวรอบงานหนัก`
+  }
+  const completedCampaign = value.match(/^(\d+) campaign sessions are recorded as completed\.$/)
+  if (completedCampaign) return language === 'ro' ? `${completedCampaign[1]} sesiuni din campanie sunt înregistrate ca finalizate.` : `บันทึกการฝึกตามแผนที่เสร็จแล้ว ${completedCampaign[1]} ครั้ง`
+  const recentLongRuns = value.match(/^(\d+) recent long runs are available for comparison\.$/)
+  if (recentLongRuns) return language === 'ro' ? `${recentLongRuns[1]} alergări lungi recente sunt disponibile pentru comparație.` : `มีวิ่งยาวล่าสุด ${recentLongRuns[1]} ครั้งสำหรับเปรียบเทียบ`
+  const controlledRuns = value.match(/^(\d+) recent runs were completed at controlled perceived effort\.$/)
+  if (controlledRuns) return language === 'ro' ? `${controlledRuns[1]} alergări recente au fost încheiate la un efort perceput controlat.` : `วิ่งล่าสุด ${controlledRuns[1]} ครั้งเสร็จที่ระดับความเหนื่อยแบบควบคุม`
+  const fuelingNotes = value.match(/^(\d+) long-run notes mention fueling practice\.$/)
+  if (fuelingNotes) return language === 'ro' ? `${fuelingNotes[1]} notițe de la alergări lungi menționează exersarea alimentării.` : `บันทึกวิ่งยาว ${fuelingNotes[1]} รายการกล่าวถึงการซ้อมเติมพลัง`
+  const offRoute = value.match(/^You are (\d+) m from the planned route\. Slow down and use the map to return\.$/)
+  if (offRoute) return language === 'ro'
+    ? `Ești la ${offRoute[1]} m de traseul planificat. Încetinește și folosește harta pentru a reveni.`
+    : `คุณอยู่ห่างจากเส้นทางตามแผน ${offRoute[1]} ม. ชะลอลงและใช้แผนที่เพื่อนำกลับ`
+  const navigation = value.match(/^Continue (left|right|straight) on the planned route\.$/)
+  if (navigation) {
+    const direction = language === 'ro'
+      ? ({ left: 'la stânga', right: 'la dreapta', straight: 'drept înainte' } as const)[navigation[1] as 'left' | 'right' | 'straight']
+      : ({ left: 'ไปทางซ้าย', right: 'ไปทางขวา', straight: 'ตรงไป' } as const)[navigation[1] as 'left' | 'right' | 'straight']
+    return language === 'ro' ? `Continuă ${direction} pe traseul planificat.` : `${direction}ตามเส้นทางที่วางไว้`
+  }
+  const spokenSplit = value.match(/^Kilometre (\d+)\.(?: (.+)\.)?$/)
+  if (spokenSplit) return language === 'ro'
+    ? `Kilometrul ${spokenSplit[1]}.${spokenSplit[2] ? ` ${spokenSplit[2]}.` : ''}`
+    : `กิโลเมตรที่ ${spokenSplit[1]}${spokenSplit[2] ? ` ${spokenSplit[2]}` : ''}`
+  const aerobicDecoupling = value.match(/^Aerobic decoupling was approximately ([\d.]+)%\.$/)
+  if (aerobicDecoupling) return language === 'ro' ? `Decuplarea aerobă a fost de aproximativ ${aerobicDecoupling[1]}%.` : `การแยกตัวแอโรบิกอยู่ที่ประมาณ ${aerobicDecoupling[1]}%`
+  const rejectedGps = value.match(/^(\d+) impossible or low-quality samples rejected\.$/)
+  if (rejectedGps) return language === 'ro' ? `${rejectedGps[1]} mostre imposibile sau de calitate slabă au fost respinse.` : `ตัดตัวอย่างที่เป็นไปไม่ได้หรือคุณภาพต่ำ ${rejectedGps[1]} จุด`
+  const optionalCarbs = value.match(/^Optional (\d+) g carbohydrate adjustment around the run\. Review the exact change before applying it\.$/)
+  if (optionalCarbs) return language === 'ro'
+    ? `Ajustare opțională de ${optionalCarbs[1]} g carbohidrați în jurul alergării. Verifică schimbarea exactă înainte de aplicare.`
+    : `ปรับคาร์โบไฮเดรตเพิ่มเติม ${optionalCarbs[1]} กรัมรอบการวิ่ง กรุณาตรวจการเปลี่ยนแปลงที่แน่นอนก่อนใช้`
+  const longRunFuel = value.match(/^Long-run rehearsal: (\d+) g carbohydrate across familiar pre-run, during-run and recovery foods, plus (\d+) g recovery protein\. Nothing changes until you apply it\.$/)
+  if (longRunFuel) return language === 'ro'
+    ? `Repetiție pentru alergarea lungă: ${longRunFuel[1]} g carbohidrați din alimente familiare înainte, în timpul și după alergare, plus ${longRunFuel[2]} g proteine pentru recuperare. Nimic nu se schimbă până nu aplici.`
+    : `ซ้อมเติมพลังวิ่งยาว: คาร์โบไฮเดรต ${longRunFuel[1]} กรัมจากอาหารที่คุ้นเคยก่อน ระหว่าง และหลังวิ่ง พร้อมโปรตีนฟื้นตัว ${longRunFuel[2]} กรัม จะไม่มีอะไรเปลี่ยนจนกว่าคุณจะกดใช้`
+  const nextLower = value.match(/^The run carried high recovery cost and the next lower-body session is (\d{4}-\d{2}-\d{2})\. Orbit proposes protecting that session rather than silently moving it\.$/)
+  if (nextLower) return language === 'ro'
+    ? `Alergarea a avut un cost mare de recuperare, iar următoarea sesiune pentru partea inferioară este pe ${nextLower[1]}. Orbit propune să o protejeze, nu să o mute pe ascuns.`
+    : `การวิ่งมีภาระฟื้นตัวสูง และการฝึกช่วงล่างครั้งถัดไปคือ ${nextLower[1]} Orbit เสนอให้ปกป้องเซสชันนั้นแทนการย้ายอย่างเงียบ ๆ`
+  const avatarMinutes = value.match(/^Orbit contributes (\d+) recorded endurance minutes\. The existing Avatar engine receives one authoritative endurance record, not raw GPS points\.$/)
+  if (avatarMinutes) return language === 'ro'
+    ? `Orbit contribuie cu ${avatarMinutes[1]} minute de anduranță înregistrate. Motorul Avatar primește o singură înregistrare autoritară de anduranță, nu puncte GPS brute.`
+    : `Orbit เพิ่มข้อมูลความทนทานที่บันทึกไว้ ${avatarMinutes[1]} นาที ระบบ Avatar จะรับข้อมูลความทนทานที่เชื่อถือได้เพียงรายการเดียว ไม่ใช่จุด GPS ดิบ`
+  const kcalLogged = value.match(/^(\d[\d,.]*) kcal logged so far$/)
+  if (kcalLogged) return language === 'ro' ? `${kcalLogged[1]} kcal înregistrate până acum` : `บันทึกแล้ว ${kcalLogged[1]} แคลอรี`
+  const pointsCount = value.match(/^(\d+) points$/)
+  if (pointsCount) return language === 'ro' ? `${pointsCount[1]} puncte` : `${pointsCount[1]} จุด`
+  const completionsCount = value.match(/^(\d+) completions$/)
+  if (completionsCount) return language === 'ro' ? `${completionsCount[1]} finalizări` : `ทำครบ ${completionsCount[1]} ครั้ง`
 
   const nameGreeting = value.match(/^Good (morning|afternoon|evening), (.+)\.$/)
   if (nameGreeting) {
@@ -273,7 +391,7 @@ export function translateInterfaceText(value: string, language: IntroLanguage): 
   const leading = value.match(/^\s*/)?.[0] ?? ''
   const trailing = value.match(/\s*$/)?.[0] ?? ''
   const core = value.trim()
-  const exact = exactTranslations[core]?.[language]
+  const exact = (exactTranslations[core] ?? foldedTranslations.get(core.toLocaleLowerCase('en')))?.[language]
   if (exact) return `${leading}${exact}${trailing}`
   const dynamic = translateDynamic(core, language)
   if (dynamic) return `${leading}${dynamic}${trailing}`

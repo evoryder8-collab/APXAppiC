@@ -16,12 +16,15 @@ import {
 import type { Accent } from '../lib/theme'
 import type { AppData, DayType, ProgramSlug } from '../lib/types'
 import { approachRamp, eventContextFor } from '../lib/plan'
+import type { CampaignSession } from '../orbit/domain/types'
+import { useOrbitText } from '../orbit/ui/i18n'
 
 interface CalendarProps {
   month: Date
   data: AppData
   slug: ProgramSlug
   accent: Accent
+  orbitSessions?: CampaignSession[]
   onSelectDay: (dateIso: string) => void
   onLongPressDay: (dateIso: string) => void
 }
@@ -45,7 +48,8 @@ function hexToRgba(hex: string, alpha: number): string {
   return `rgba(${(n >> 16) & 255}, ${(n >> 8) & 255}, ${n & 255}, ${alpha})`
 }
 
-export function Calendar({ month, data, slug, accent, onSelectDay, onLongPressDay }: CalendarProps) {
+export function Calendar({ month, data, slug, accent, orbitSessions = [], onSelectDay, onLongPressDay }: CalendarProps) {
+  const t = useOrbitText()
   const program = data.programs.find((p) => p.slug === slug)
 
   const cells = useMemo(() => {
@@ -141,6 +145,7 @@ export function Calendar({ month, data, slug, accent, onSelectDay, onLongPressDa
           const today = isToday(d)
           const planType = typeByWeekday.get(getISODay(d)) ?? null
           const meta = planType ? DAY_TYPE_META[planType] : null
+          const orbitSession = orbitSessions.find((session) => session.date === dateIso)
 
           /* precedence: completed > event day > deload > approach ramp > planned wash */
           let style: React.CSSProperties = {
@@ -242,6 +247,12 @@ export function Calendar({ month, data, slug, accent, onSelectDay, onLongPressDa
                   {meta.code}
                 </span>
               )}
+              {inMonth && orbitSession && !meta && (
+                <span className="absolute inset-x-0 bottom-1 text-center font-mono text-[8.5px] leading-none font-bold tracking-widest" style={{ color: orbitSession.status === 'completed' ? '#047857' : '#0369a1' }}>OR</span>
+              )}
+              {inMonth && orbitSession && meta && (
+                <span className={`absolute right-1.5 bottom-1 h-1.5 w-1.5 rounded-full ${orbitSession.status === 'completed' ? 'bg-emerald-500' : 'bg-sky-500'}`} title={`Orbit · ${t(orbitSession.adapted.title)} · ${t(orbitSession.status)}`} />
+              )}
               {inMonth && importedDates.has(dateIso) && !completed && (
                 <span
                   className="absolute bottom-1 left-1.5 h-1.5 w-1.5 rounded-full"
@@ -276,6 +287,7 @@ export function Calendar({ month, data, slug, accent, onSelectDay, onLongPressDa
           <span className="h-2.5 w-2.5 rounded-full bg-sky-400" />
           Water 2.5L+
         </span>
+        {orbitSessions.length > 0 && <span className="flex items-center gap-1 font-mono text-[10px] font-bold text-ink-soft"><span className="grid h-2.5 w-2.5 place-items-center rounded-full bg-sky-700 text-[6px] text-white">O</span>{t('Orbit run')}</span>}
       </div>
     </div>
   )

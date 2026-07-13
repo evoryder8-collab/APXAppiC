@@ -9,6 +9,8 @@ import { useStore } from '../store/AppStore'
 import { AccentChip, GlassCard, GradientButton, SectionHeader } from '../components/ui'
 import { CameraIcon } from '../components/Icons'
 import type { RpgSnapshot } from '../lib/types'
+import { useOrbitStore } from '../orbit/store/OrbitStore'
+import { useOrbitText } from '../orbit/ui/i18n'
 
 const ProgressCamera = lazy(() => import('../components/progress/ProgressCamera').then((module) => ({ default: module.ProgressCamera })))
 const violet = ACCENTS.violet
@@ -70,6 +72,8 @@ function PhotoStatsCard({ snapshot, period }: { snapshot: RpgSnapshot | null; pe
 export function VisualProgress() {
   const { data, snapshots } = useStore()
   const store = useProgressPhotoStore()
+  const orbit = useOrbitStore()
+  const t = useOrbitText()
   const location = useLocation()
   const backTo = (location.state as { from?: string } | null)?.from === '/nutrition' ? '/nutrition' : '/avatar'
   const [guide, setGuide] = useState(false)
@@ -104,6 +108,19 @@ export function VisualProgress() {
     const to = left.local_date > right.local_date ? left.local_date : right.local_date
     return data.workout_sessions.filter((session) => session.completed && session.date >= from && session.date <= to).length
   }, [data.workout_sessions, left, right])
+  const orbitMilestones = useMemo(() => {
+    const campaign = [...orbit.state.campaigns].sort((a, b) => b.created_at.localeCompare(a.created_at))[0]
+    if (!campaign) return []
+    const sessions = orbit.state.sessions.filter((session) => session.campaign_id === campaign.id)
+    const peak = sessions.find((session) => session.phase === 'peak')
+    const recovery = sessions.find((session) => session.phase === 'post_marathon')
+    return [
+      { label: 'Campaign induction', date: campaign.started_at.slice(0, 10) },
+      ...(peak ? [{ label: 'Peak week', date: peak.date }] : []),
+      { label: 'Marathon', date: campaign.race_date },
+      ...(recovery ? [{ label: 'Post-marathon recovery', date: recovery.date }] : []),
+    ]
+  }, [orbit.state.campaigns, orbit.state.sessions])
 
   const begin = () => setGuide(true)
   const openCamera = () => { setGuide(false); setCamera(true) }
@@ -129,6 +146,8 @@ export function VisualProgress() {
             <GradientButton accent={violet} breathe onClick={begin} className="sm:min-w-44">Take progress photo</GradientButton>
           </div>
         </GlassCard>
+
+        {orbitMilestones.length > 0 && <GlassCard accent={ACCENTS.ice} className="p-4"><p className="font-display text-sm font-bold text-ink">{t('Optional Orbit comparison milestones')}</p><p className="mt-1 text-[11px] leading-relaxed text-ink-soft">{t('These private dates can anchor progress photos. APEX never requires a photo.')}</p><div className="mt-3 flex gap-2 overflow-x-auto pb-1">{orbitMilestones.map((milestone) => <button key={`${milestone.label}:${milestone.date}`} type="button" onClick={() => { setNote(`${t('Orbit milestone')}: ${t(milestone.label)}`); if (milestone.date <= new Date().toISOString().slice(0, 10)) setGuide(true) }} className="shrink-0 rounded-2xl border border-sky-100 bg-white/65 px-3 py-2 text-left"><span className="block text-[10px] font-bold text-sky-800">{t(milestone.label)}</span><span className="font-mono text-[9px] text-ink-faint">{milestone.date}</span></button>)}</div></GlassCard>}
 
         {store.photos.length === 0 ? (
           <GlassCard className="p-8 text-center">

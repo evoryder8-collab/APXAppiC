@@ -500,6 +500,57 @@ body {
   85%, 100% { transform: translateY(32dvh); opacity: 0; }
 }
 
+/* APEX Orbit uses a procedural star field instead of image assets. The three
+   fixed radial layers are cheap to composite and remain sharp at every DPR. */
+.orbit-stars {
+  background-image:
+    radial-gradient(circle at 12% 24%, rgba(255,255,255,.85) 0 1px, transparent 1.4px),
+    radial-gradient(circle at 68% 14%, rgba(125,211,252,.72) 0 1px, transparent 1.5px),
+    radial-gradient(circle at 84% 72%, rgba(196,181,253,.62) 0 1px, transparent 1.5px);
+  background-size: 71px 79px, 113px 127px, 157px 139px;
+  background-position: 0 0, 19px 27px, 47px 9px;
+}
+
+.orbit-header::after {
+  content: '';
+  position: absolute;
+  inset: auto -12% -82% 28%;
+  height: 10rem;
+  border: 1px solid rgba(125, 211, 252, .12);
+  border-radius: 50%;
+  transform: rotate(-8deg);
+  pointer-events: none;
+}
+
+.orbit-core {
+  box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 0 24px rgba(56,189,248,.22);
+}
+
+.orbit-map .leaflet-control-attribution {
+  border-radius: .55rem 0 0 0;
+  background: rgba(5, 11, 22, .72);
+  color: rgba(226, 232, 240, .72);
+  font-size: 8px;
+}
+
+.orbit-map .leaflet-control-attribution a { color: #7dd3fc; }
+.orbit-map .leaflet-control-zoom a {
+  border-color: rgba(255,255,255,.16);
+  background: rgba(5, 11, 22, .84);
+  color: #e0f2fe;
+}
+
+@media (min-width: 768px) and (hover: hover) and (pointer: fine) and (prefers-reduced-motion: no-preference) {
+  .orbit-core { animation: orbit-core-pulse 4.8s ease-in-out infinite; }
+  .orbit-phase-star { transition: transform .25s ease, box-shadow .25s ease; }
+  .orbit-phase-star:hover { transform: scale(1.08); }
+}
+
+@keyframes orbit-core-pulse {
+  0%, 100% { transform: scale(1); box-shadow: inset 0 1px 0 rgba(255,255,255,.18), 0 0 20px rgba(56,189,248,.2); }
+  50% { transform: scale(1.035); box-shadow: inset 0 1px 0 rgba(255,255,255,.22), 0 0 34px rgba(56,189,248,.36); }
+}
+
 /* Only pointer-precise devices keep the decorative shadow pulse. Animating a
    large box-shadow repaints every frame on iOS, while the static mobile glow
    keeps the same visual hierarchy with no continuous work. */
@@ -571,6 +622,10 @@ body {
     -webkit-backdrop-filter: none;
     backdrop-filter: none;
   }
+
+  .orbit-core {
+    animation: none !important;
+  }
 }
 
 @media (max-height: 760px) {
@@ -589,5 +644,11 @@ body {
   .intro-language-prompt > span,
   .portal-portrait-gleam {
     animation: none !important;
+  }
+
+  .orbit-core,
+  .orbit-phase-star {
+    animation: none !important;
+    transition: none !important;
   }
 }
