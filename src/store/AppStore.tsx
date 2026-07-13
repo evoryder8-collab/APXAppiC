@@ -39,6 +39,7 @@ import {
   normalizeActivityType,
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
+import { upsertConflictTarget } from '../lib/sync'
 import {
   CURRENT_SEED_VERSION,
   repairSeedDefinitions,
@@ -221,8 +222,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       while (queue.length > 0) {
         if (scopeRef.current !== scope) break
         const op = queue[0]
+        const conflictTarget = upsertConflictTarget(op.table)
         const { error } = op.type === 'upsert'
-          ? await supabase.from(op.table).upsert(op.payload)
+          ? conflictTarget
+            ? await supabase.from(op.table).upsert(op.payload, { onConflict: conflictTarget })
+            : await supabase.from(op.table).upsert(op.payload)
           : await supabase
               .from(op.table)
               .delete()
