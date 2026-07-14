@@ -2,27 +2,9 @@ import { useCallback, useEffect, useRef, useState } from 'react'
 import * as L from 'leaflet'
 import 'leaflet/dist/leaflet.css'
 import type { GeoPoint } from '../domain/types.ts'
+import { MAP_TILE_STYLES, mapTileOptions, nextMapStyle, type MapStyle } from '../domain/mapStyles.ts'
+import { cleanRoutePoints, routeGeometryKey } from '../domain/routePresentation.ts'
 import { useOrbitText } from '../ui/i18n.ts'
-
-type MapStyle = 'night' | 'light' | 'satellite'
-
-const TILE_STYLES: Record<MapStyle, { url: string; attribution: string; maxZoom: number }> = {
-  night: {
-    url: 'https://{s}.basemaps.cartocdn.com/dark_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    maxZoom: 20,
-  },
-  light: {
-    url: 'https://{s}.basemaps.cartocdn.com/light_all/{z}/{x}/{y}{r}.png',
-    attribution: '&copy; OpenStreetMap contributors &copy; CARTO',
-    maxZoom: 20,
-  },
-  satellite: {
-    url: 'https://server.arcgisonline.com/ArcGIS/rest/services/World_Imagery/MapServer/tile/{z}/{y}/{x}',
-    attribution: 'Tiles &copy; Esri',
-    maxZoom: 19,
-  },
-}
 
 function latLngs(points: GeoPoint[]): L.LatLngTuple[] {
   return points.map((point) => [point.lat, point.lng])
@@ -84,7 +66,7 @@ export function OrbitMap({
     if (!host.current || mapRef.current) return
     const map = L.map(host.current, {
       zoomControl: false,
-      attributionControl: true,
+      attributionControl: false,
       preferCanvas: true,
       worldCopyJump: true,
       zoomSnap: 0.5,
@@ -108,15 +90,34 @@ export function OrbitMap({
   useEffect(() => {
     const map = mapRef.current
     if (!map) return
-    tileRef.current?.remove()
-    const config = TILE_STYLES[style]
-    tileRef.current = L.tileLayer(config.url, {
-      maxZoom: config.maxZoom,
-      attribution: config.attribution,
-      subdomains: style === 'satellite' ? undefined : 'abcd',
-      className: `orbit-map-tiles orbit-map-tiles-${style}`,
-    }).addTo(map)
-    tileRef.current.setZIndex(0)
+    const previous = tileRef.current
+    const config = MAP_TILE_STYLES[style]
+    let tileErrors = 0
+    let promoted = false
+    const next = L.tileLayer(config.url, mapTileOptions(style)).addTo(map)
+    tileRef.current = next
+    next.setZIndex(previous ? 1 : 0)
+
+    const promote = (): void => {
+      if (promoted || tileRef.current !== next) return
+      promoted = true
+      if (previous && map.hasLayer(previous)) previous.remove()
+      next.setZIndex(0)
+    }
+    const recover = (): void => {
+      tileErrors += 1
+      if (tileErrors < 4 || tileRef.current !== next) return
+      next.remove()
+      tileRef.current = previous && map.hasLayer(previous) ? previous : null
+      if (style !== 'night') setStyle('night')
+    }
+    next.once('load', promote)
+    next.on('tileerror', recover)
+    return () => {
+      next.off('load', promote)
+      next.off('tileerror', recover)
+      if (tileRef.current !== next && map.hasLayer(next)) next.remove()
+    }
   }, [style])
 
   useEffect(() => {
@@ -125,16 +126,28 @@ export function OrbitMap({
     if (!map || !group) return
     group.clearLayers()
 
-    const plannedLatLngs = latLngs(planned)
-    const completedLatLngs = latLngs(completed)
-    const usableHistory = historyVisible ? history.filter((points) => points.length > 1).slice(-60) : []
-    const historyPalette = ['#4f46e5', '#7c3aed', '#2563eb', '#0891b2']
+    const cleanPlanned = cleanRoutePoints(planned)
+    const cleanCompleted = cleanRoutePoints(completed)
+    const plannedLatLngs = latLngs(cleanPlanned)
+    const completedLatLngs = latLngs(cleanCompleted)
+    const primaryKeys = new Set([routeGeometryKey(cleanPlanned), routeGeometryKey(cleanCompleted)])
+    const seenHistory = new Set<string>()
+    const usableHistory = historyVisible ? history
+      .map(cleanRoutePoints)
+      .filter((points) => points.length > 1)
+      .filter((points) => {
+        const key = routeGeometryKey(points)
+        if (primaryKeys.has(key) || seenHistory.has(key)) return false
+        seenHistory.add(key)
+        return true
+      })
+      .slice(-12) : []
 
     usableHistory.forEach((points, index) => {
       const line = latLngs(points)
-      const color = historyPalette[index % historyPalette.length]
-      L.polyline(line, { pane: 'orbitHistory', color, weight: 8, opacity: 0.13, interactive: false, className: 'orbit-history-halo' }).addTo(group)
-      L.polyline(line, { pane: 'orbitHistory', color, weight: 2.25, opacity: 0.58, interactive: false, className: 'orbit-history-line' }).addTo(group)
+      const opacity = Math.min(0.46, 0.22 + index * 0.025)
+      L.polyline(line, { pane: 'orbitHistory', color: '#38bdf8', weight: 7, opacity: 0.08, interactive: false, className: 'orbit-history-halo' }).addTo(group)
+      L.polyline(line, { pane: 'orbitHistory', color: '#818cf8', weight: 2, opacity, interactive: false, className: 'orbit-history-line' }).addTo(group)
     })
 
     if (plannedLatLngs.length > 1) {
@@ -151,8 +164,12 @@ export function OrbitMap({
     if (plannedLatLngs.length > 0) {
       const start = plannedLatLngs[0]
       const finish = plannedLatLngs.at(-1)!
-      L.marker(start, { pane: 'orbitMarkers', interactive: false, icon: L.divIcon({ className: 'orbit-map-pin-shell', html: '<span class="orbit-map-pin orbit-map-pin-start">S</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(group)
-      if (L.latLng(start).distanceTo(L.latLng(finish)) > 12) {
+      const routeDistanceM = cleanPlanned.reduce((total, point, index) => index === 0 ? 0 : total + L.latLng(cleanPlanned[index - 1].lat, cleanPlanned[index - 1].lng).distanceTo(L.latLng(point.lat, point.lng)), 0)
+      const endpointsTogether = L.latLng(start).distanceTo(L.latLng(finish)) <= Math.min(100, Math.max(35, routeDistanceM * 0.06))
+      if (endpointsTogether) {
+        L.marker(start, { pane: 'orbitMarkers', interactive: false, icon: L.divIcon({ className: 'orbit-map-pin-shell', html: '<span class="orbit-map-pin orbit-map-pin-loop">S/F</span>', iconSize: [34, 34], iconAnchor: [17, 17] }) }).addTo(group)
+      } else {
+        L.marker(start, { pane: 'orbitMarkers', interactive: false, icon: L.divIcon({ className: 'orbit-map-pin-shell', html: '<span class="orbit-map-pin orbit-map-pin-start">S</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(group)
         L.marker(finish, { pane: 'orbitMarkers', interactive: false, icon: L.divIcon({ className: 'orbit-map-pin-shell', html: '<span class="orbit-map-pin orbit-map-pin-finish">F</span>', iconSize: [30, 30], iconAnchor: [15, 15] }) }).addTo(group)
       }
     }
@@ -182,7 +199,11 @@ export function OrbitMap({
     map.getContainer().style.cursor = editable ? 'crosshair' : ''
   }, [completed, current, editable, fitMap, followCurrent, history, historyVisible, planned])
 
-  const cycleStyle = (): void => setStyle((currentStyle) => currentStyle === 'night' ? 'light' : currentStyle === 'light' ? 'satellite' : 'night')
+  const cycleStyle = (): void => setStyle(nextMapStyle)
+  const styleLabel = t(style === 'night' ? 'Night map' : style === 'light' ? 'Light map' : 'Satellite map')
+  const historyPrimaryKeys = new Set([routeGeometryKey(planned), routeGeometryKey(completed)])
+  const historyKeys = new Set(history.map(routeGeometryKey).filter((key) => key !== 'empty' && !historyPrimaryKeys.has(key)))
+  const historyRouteCount = historyKeys.size
 
   return (
     <div className={`orbit-map relative h-72 w-full overflow-hidden rounded-[28px] bg-[#050b16] ${className}`} aria-label={t('Interactive run map')}>
@@ -190,17 +211,24 @@ export function OrbitMap({
       <div className="orbit-map-vignette pointer-events-none absolute inset-0 z-[450]" aria-hidden />
       <div className="pointer-events-none absolute top-3 left-3 z-[470] flex items-center gap-2 rounded-full border border-white/12 bg-[#050b16]/88 px-3 py-2 text-white shadow-xl">
         <span className="h-2 w-2 rounded-full bg-cyan-300 shadow-[0_0_12px_rgba(103,232,249,.9)]" />
-        <span className="font-mono text-[9px] font-bold tracking-[.13em]">{t(history.length > 0 ? 'PRIVATE ROUTE NETWORK' : 'ORBIT MAP')}</span>
+        <span className="font-mono text-[9px] font-bold tracking-[.13em]">{t(historyRouteCount > 0 ? 'PRIVATE ROUTE NETWORK' : 'ORBIT MAP')}</span>
       </div>
       {editable && <div className="pointer-events-none absolute bottom-3 left-3 z-[470] rounded-full border border-amber-200/25 bg-[#120b02]/88 px-3 py-2 font-mono text-[9px] font-bold tracking-wide text-amber-100">{t('TAP TO DRAW')}</div>}
       <div className="absolute top-3 right-3 z-[480] flex flex-col gap-2">
         <button type="button" onClick={fitMap} aria-label={t('Fit route')} title={t('Fit route')} className="orbit-map-control"><MarkerIcon kind="fit" /></button>
-        <button type="button" onClick={cycleStyle} aria-label={t('Change map style')} title={t('Change map style')} className="orbit-map-control"><MarkerIcon kind="layers" /><span className="sr-only">{t(style === 'night' ? 'Night map' : style === 'light' ? 'Light map' : 'Satellite map')}</span></button>
-        {history.length > 0 && <button type="button" onClick={() => setHistoryVisible((visible) => !visible)} aria-pressed={historyVisible} aria-label={t(historyVisible ? 'Hide private routes' : 'Show private routes')} title={t(historyVisible ? 'Hide private routes' : 'Show private routes')} className={`orbit-map-control ${historyVisible ? 'orbit-map-control-active' : ''}`}><MarkerIcon kind="history" /></button>}
+        <button type="button" onClick={cycleStyle} aria-label={`${t('Change map style')}: ${styleLabel}`} title={`${t('Change map style')}: ${styleLabel}`} className="orbit-map-control"><MarkerIcon kind="layers" /><span className={`orbit-map-style-dot orbit-map-style-dot-${style}`} aria-hidden /><span className="sr-only">{styleLabel}</span></button>
+        {historyRouteCount > 0 && <button type="button" onClick={() => setHistoryVisible((visible) => !visible)} aria-pressed={historyVisible} aria-label={t(historyVisible ? 'Hide private routes' : 'Show private routes')} title={t(historyVisible ? 'Hide private routes' : 'Show private routes')} className={`orbit-map-control ${historyVisible ? 'orbit-map-control-active' : ''}`}><MarkerIcon kind="history" /></button>}
         <div className="overflow-hidden rounded-full border border-white/12 bg-[#050b16]/88 shadow-xl">
           <button type="button" onClick={() => mapRef.current?.zoomIn(0.5)} aria-label={t('Zoom in')} className="grid h-11 w-11 place-items-center border-b border-white/10 text-xl font-light text-white">+</button>
           <button type="button" onClick={() => mapRef.current?.zoomOut(0.5)} aria-label={t('Zoom out')} className="grid h-11 w-11 place-items-center text-xl font-light text-white">−</button>
         </div>
+      </div>
+      <div className={`orbit-map-attribution absolute bottom-2 z-[470] ${editable ? 'right-[4.4rem]' : 'left-3'}`}>
+        {style === 'satellite' ? (
+          <a href="https://www.esri.com/" target="_blank" rel="noreferrer">© Esri</a>
+        ) : (
+          <><a href="https://www.openstreetmap.org/copyright" target="_blank" rel="noreferrer">© OpenStreetMap</a><span> · </span><a href="https://carto.com/attributions" target="_blank" rel="noreferrer">© CARTO</a></>
+        )}
       </div>
     </div>
   )

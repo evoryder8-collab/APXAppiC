@@ -8,6 +8,7 @@ import { polylineDistanceM, routeDeviationM } from '../domain/geo.ts'
 import { exportGpx, importGpx } from '../domain/gpx.ts'
 import { orbitUuid } from '../domain/ids.ts'
 import { scoreRouteCandidate } from '../domain/missions.ts'
+import { cleanRoutePoints, inferNavigationComplexity, inferRouteShape } from '../domain/routePresentation.ts'
 import type { GeoPoint, OrbitRoute, RouteCandidate, RouteFamiliarity, RouteShape, RouteSurface, RouteTerrain, RunMission } from '../domain/types.ts'
 import { MissionPicker } from '../components/MissionPicker.tsx'
 import { OrbitFrame, OrbitPill } from '../components/OrbitFrame.tsx'
@@ -56,11 +57,12 @@ function SelectRow<T extends string>({ label, value, values, onChange }: {
 
 function routeFromPoints(userId: string, name: string, points: GeoPoint[], mission: RunMission): OrbitRoute {
   const now = new Date().toISOString()
-  const key = `${name}:${now}:${points.length}`
+  const cleanPoints = cleanRoutePoints(points)
+  const key = `${name}:${now}:${cleanPoints.length}`
   return {
     id: orbitUuid(userId, key), user_id: userId, client_idempotency_key: orbitUuid(userId, `client:${key}`),
-    name, note: '', points, distance_m: Math.round(polylineDistanceM(points)), elevation_gain_m: null,
-    surface: 'mixed', terrain: 'rolling', shape: 'loop', navigation_complexity: points.length < 8 ? 'low' : 'moderate',
+    name, note: '', points: cleanPoints, distance_m: Math.round(polylineDistanceM(cleanPoints)), elevation_gain_m: null,
+    surface: 'mixed', terrain: 'rolling', shape: inferRouteShape(cleanPoints), navigation_complexity: inferNavigationComplexity(cleanPoints),
     familiarity_pct: null, favourite: false, rating: null, mission_tags: [mission], preferred_sections: [], avoided_sections: [],
     provider: 'Manual or GPX', attribution: 'User supplied route', created_at: now, updated_at: now, sync_state: 'local',
   }

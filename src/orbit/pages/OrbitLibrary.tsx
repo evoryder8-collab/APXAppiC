@@ -7,8 +7,10 @@ import { buildRouteDna, missionLabel, segmentEffort } from '../domain/analysis.t
 import { exportGpx, importGpx } from '../domain/gpx.ts'
 import { polylineDistanceM } from '../domain/geo.ts'
 import { orbitUuid } from '../domain/ids.ts'
-import { RUN_MISSIONS, type OrbitRoute, type PersonalSegment, type RouteSurface, type RunningShoe, type RunMission } from '../domain/types.ts'
+import { RUN_MISSIONS, type OrbitRoute, type OrbitRun, type PersonalSegment, type RouteSurface, type RunningShoe, type RunMission } from '../domain/types.ts'
 import { OrbitFrame, OrbitPill } from '../components/OrbitFrame.tsx'
+import { RoutePreview } from '../components/RoutePreview.tsx'
+import { inferNavigationComplexity, inferRouteShape } from '../domain/routePresentation.ts'
 import { useOrbitStore } from '../store/OrbitStore.tsx'
 import { formatDistance, formatDuration, formatPace } from '../ui/format.ts'
 import { useOrbitText } from '../ui/i18n.ts'
@@ -22,6 +24,93 @@ function downloadGpx(route: OrbitRoute): void {
   anchor.download = `${route.name.replaceAll(' ', '-').toLowerCase()}.gpx`
   anchor.click()
   URL.revokeObjectURL(url)
+}
+
+function routeShapeLabel(shape: ReturnType<typeof inferRouteShape>): string {
+  if (shape === 'out_back') return 'Out & back'
+  if (shape === 'point_to_point') return 'Point to point'
+  return 'Loop'
+}
+
+function routeSourceLabel(route: OrbitRoute): string {
+  if (route.provider.toLowerCase().includes('manual') || route.name.startsWith('Drawn route')) return 'Map drawing'
+  if (route.provider.toLowerCase().includes('gpx')) return 'GPX import'
+  return route.provider
+}
+
+function RouteAction({ children, onClick, danger = false }: { children: string; onClick: () => void; danger?: boolean }) {
+  return <button type="button" onClick={onClick} className={`min-h-10 rounded-xl border px-3 py-2 text-left text-[11px] font-bold transition active:scale-[.98] ${danger ? 'border-rose-200/80 bg-rose-50/80 text-rose-700' : 'border-slate-200/80 bg-white/75 text-slate-700'}`}>{children}</button>
+}
+
+function SavedRouteCard({
+  route,
+  runs,
+  onStart,
+  onEdit,
+  onAddSegment,
+  onRemove,
+}: {
+  route: OrbitRoute
+  runs: OrbitRun[]
+  onStart: () => void
+  onEdit: (action: 'rename' | 'note' | 'prefer' | 'avoid' | 'reverse' | 'duplicate' | 'favourite' | 'rate' | 'tag') => void
+  onAddSegment: () => void
+  onRemove: () => void
+}) {
+  const t = useOrbitText()
+  const dna = buildRouteDna(route, runs)
+  const completions = runs.filter((run) => run.route_id === route.id && run.status === 'completed').length
+  const shape = inferRouteShape(route.points)
+  const navigation = inferNavigationComplexity(route.points)
+  const created = new Date(route.created_at)
+  const createdLabel = Number.isNaN(created.getTime()) ? '' : new Intl.DateTimeFormat(undefined, { day: 'numeric', month: 'short', year: 'numeric' }).format(created)
+
+  return (
+    <GlassCard accent={route.favourite ? ACCENTS.amber : ACCENTS.ice} className="p-3 sm:p-4">
+      <RoutePreview points={route.points} name={route.name} />
+      <div className="px-1 pt-4 sm:px-2">
+        <div className="flex items-start justify-between gap-3">
+          <div className="min-w-0">
+            <p className="truncate font-display text-xl font-bold text-ink">{route.name}</p>
+            <p className="mt-1 text-[11px] font-semibold text-ink-soft">{t(routeSourceLabel(route))}{createdLabel ? ` · ${createdLabel}` : ''}</p>
+          </div>
+          <button type="button" onClick={() => onEdit('favourite')} aria-label={t(route.favourite ? 'Unfavourite' : 'Favourite')} aria-pressed={route.favourite} className={`grid h-11 w-11 shrink-0 place-items-center rounded-full border text-xl transition active:scale-95 ${route.favourite ? 'border-amber-200 bg-amber-100 text-amber-600' : 'border-slate-200 bg-white/75 text-slate-400'}`}>{route.favourite ? '★' : '☆'}</button>
+        </div>
+
+        <div className="mt-3 grid grid-cols-4 gap-1.5">
+          <div className="rounded-xl bg-slate-950 px-2 py-2.5 text-white"><p className="font-mono text-[11px] font-bold">{formatDistance(route.distance_m)}</p><p className="mt-0.5 text-[8px] font-bold tracking-wide text-slate-400">{t('DISTANCE')}</p></div>
+          <div className="rounded-xl bg-white/65 px-2 py-2.5"><p className="truncate text-[10px] font-bold text-ink">{t(route.terrain)}</p><p className="mt-0.5 text-[8px] font-bold tracking-wide text-ink-faint">{t('TERRAIN')}</p></div>
+          <div className="rounded-xl bg-white/65 px-2 py-2.5"><p className="truncate text-[10px] font-bold text-ink">{t(routeShapeLabel(shape))}</p><p className="mt-0.5 text-[8px] font-bold tracking-wide text-ink-faint">{t('SHAPE')}</p></div>
+          <div className="rounded-xl bg-white/65 px-2 py-2.5"><p className="truncate text-[10px] font-bold text-ink">{t(navigation)}</p><p className="mt-0.5 text-[8px] font-bold tracking-wide text-ink-faint">{t('NAV')}</p></div>
+        </div>
+
+        {route.note && <p className="mt-3 rounded-2xl bg-white/60 px-3 py-2.5 text-sm leading-relaxed text-ink-soft">{route.note}</p>}
+        {route.mission_tags.length > 0 && <div className="mt-3 flex flex-wrap gap-1.5">{route.mission_tags.map((mission) => <span key={mission} className="rounded-full border border-sky-200/80 bg-sky-50 px-2.5 py-1 text-[10px] font-bold text-sky-800">{t(missionLabel(mission))}</span>)}</div>}
+
+        <div className="mt-4 grid grid-cols-[1fr_auto] gap-2">
+          <GradientButton accent={ACCENTS.ice} onClick={onStart} className="min-h-14 w-full text-sm">{t('Start run')}</GradientButton>
+          <div className="grid min-w-20 place-items-center rounded-2xl border border-white/80 bg-white/60 px-3 text-center"><p className="font-mono text-sm font-bold text-sky-800">{completions}</p><p className="text-[8px] font-bold tracking-wide text-ink-faint">{t(completions === 1 ? 'RUN' : 'RUNS')}</p></div>
+        </div>
+
+        {dna && (
+          <details className="group mt-3 rounded-2xl border border-sky-100 bg-sky-50/65 px-3.5 py-3">
+            <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-sky-900"><span>{t('Route insights')}</span><span className="text-[10px] text-sky-700">{formatPace(dna.typical_pace_sec_km)} · {formatDuration(dna.typical_duration_s)} <span className="ml-1 inline-block transition group-open:rotate-180">⌄</span></span></summary>
+            <div className="mt-3 grid grid-cols-2 gap-2 border-t border-sky-100 pt-3 text-[10px] text-sky-900"><span>{t('Typical')} {formatDistance(dna.typical_distance_m)}</span><span>{dna.typical_heart_rate == null ? t('Heart rate unavailable') : `${dna.typical_heart_rate} bpm`}</span><span>{dna.typical_elevation_gain_m == null ? t('Elevation unavailable') : `${dna.typical_elevation_gain_m} m ${t('gain')}`}</span><span>{dna.pace_consistency_pct == null ? t('Pacing baseline developing') : `${dna.pace_consistency_pct.toFixed(1)}% ${t('pace variation')}`}</span></div>
+            <p className="mt-2 text-xs text-sky-800">{t(dna.interpretation)}</p>
+            <p className="mt-1 text-[10px] text-sky-700">{t(dna.recent_trend)}</p>
+          </details>
+        )}
+
+        <details className="group mt-3 rounded-2xl border border-slate-200/80 bg-white/50 px-3.5 py-3">
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3 text-xs font-bold text-ink"><span>{t('Manage route')}</span><span className="text-[10px] text-ink-soft">{t('Edit, personalise or export')} <span className="ml-1 inline-block transition group-open:rotate-180">⌄</span></span></summary>
+          <div className="mt-3 space-y-3 border-t border-slate-200/70 pt-3">
+            <div><p className="mb-1.5 text-[9px] font-bold tracking-widest text-ink-faint">{t('PERSONALISE')}</p><div className="grid grid-cols-2 gap-1.5"><RouteAction onClick={() => onEdit('rate')}>{t('Rate')}</RouteAction><RouteAction onClick={() => onEdit('tag')}>{t('Tag mission')}</RouteAction><RouteAction onClick={() => onEdit('prefer')}>{t('Prefer section')}</RouteAction><RouteAction onClick={() => onEdit('avoid')}>{t('Avoid section')}</RouteAction></div></div>
+            <div><p className="mb-1.5 text-[9px] font-bold tracking-widest text-ink-faint">{t('EDIT & SHARE')}</p><div className="grid grid-cols-2 gap-1.5"><RouteAction onClick={() => onEdit('rename')}>{t('Rename')}</RouteAction><RouteAction onClick={() => onEdit('note')}>{t('Note')}</RouteAction><RouteAction onClick={() => onEdit('reverse')}>{t('Reverse')}</RouteAction><RouteAction onClick={() => onEdit('duplicate')}>{t('Duplicate')}</RouteAction><RouteAction onClick={() => downloadGpx(route)}>{t('Export GPX')}</RouteAction><RouteAction onClick={onAddSegment}>{t('Add segment')}</RouteAction><RouteAction danger onClick={onRemove}>{t('Delete route')}</RouteAction></div></div>
+          </div>
+        </details>
+      </div>
+    </GlassCard>
+  )
 }
 
 export function OrbitLibrary() {
@@ -112,20 +201,26 @@ export function OrbitLibrary() {
     toast(t('Running shoes added.'), 'ok')
   }
 
-  const tabs: Array<[View, string]> = [['runs', t('Recent runs')], ['routes', t('Saved routes')], ['segments', t('Personal segments')], ['shoes', t('Running shoes')]]
+  const removeRoute = async (route: OrbitRoute): Promise<void> => {
+    if (!window.confirm(t(`Delete “${route.name}” and its private segments? This cannot be undone.`))) return
+    const segments = orbit.state.segments.filter((segment) => segment.route_id === route.id)
+    for (const segment of segments) await orbit.removeEntity('segments', segment.id)
+    await orbit.removeEntity('routes', route.id)
+    toast(t('Route deleted.'), 'ok')
+  }
+
+  const tabs: Array<[View, string]> = [['runs', t('Runs')], ['routes', t('Routes')], ['segments', t('Segments')], ['shoes', t('Shoes')]]
   return (
     <OrbitFrame title={view === 'runs' ? 'Recent runs' : view === 'routes' ? 'Saved routes' : view === 'segments' ? 'Personal segments' : 'Running shoes'} subtitle="Private history that becomes more useful with repetition." backTo="/orbit">
       <div className="space-y-4">
-        <div className="flex gap-2 overflow-x-auto pb-1">{tabs.map(([key, label]) => <button key={key} onClick={() => setParams({ view: key })} className={`shrink-0 rounded-full px-4 py-2 text-xs font-bold ${view === key ? 'bg-[#07111f] text-sky-100 shadow-lg' : 'glass text-ink-soft'}`}>{label}</button>)}</div>
+        <div className="glass grid grid-cols-4 gap-1 rounded-[20px] border border-white/80 p-1.5">{tabs.map(([key, label]) => <button key={key} onClick={() => setParams({ view: key })} aria-current={view === key ? 'page' : undefined} className={`min-h-10 rounded-[14px] px-1 text-[10px] font-bold transition active:scale-[.97] ${view === key ? 'bg-[#07111f] text-sky-100 shadow-lg' : 'text-ink-soft'}`}>{label}</button>)}</div>
 
         {view === 'runs' && <div className="space-y-3">{orbit.state.runs.length === 0 ? <GlassCard className="p-7 text-center"><p className="font-display text-lg font-bold text-ink">{t('No run history yet')}</p><p className="mt-1 text-sm text-ink-soft">{t('Your first completed run will become a private performance baseline.')}</p><GradientButton accent={ACCENTS.ice} onClick={() => navigate('/orbit/run')} className="mt-4">{t('Start free run')}</GradientButton></GlassCard> : [...orbit.state.runs].sort((a, b) => b.started_at.localeCompare(a.started_at)).map((run) => <button key={run.id} onClick={() => navigate(`/orbit/debrief/${run.id}`)} className="glass flex w-full items-center justify-between rounded-3xl p-4 text-left active:scale-[.985]"><div><p className="font-display text-base font-bold text-ink">{t(missionLabel(run.mission))}</p><p className="mt-1 text-xs text-ink-soft">{run.local_date} · {formatDuration(run.metrics.moving_s)} · {formatPace(run.metrics.avg_pace_sec_km)}</p></div><span className="font-mono text-base font-bold text-sky-700">{formatDistance(run.metrics.distance_m)}</span></button>)}</div>}
 
         {view === 'routes' && <div className="space-y-3">
-          <div className="flex gap-2"><GradientButton accent={ACCENTS.ice} onClick={() => navigate('/orbit/plan')}>{t('Plan new route')}</GradientButton><GhostButton onClick={() => fileRef.current?.click()}>{t('Import GPX')}</GhostButton><input ref={fileRef} type="file" accept=".gpx,application/gpx+xml,text/xml" className="hidden" onChange={(event) => void saveImported(event.target.files?.[0])} /></div>
-          {orbit.state.routes.length === 0 ? <GlassCard className="p-7 text-center"><p className="font-bold text-ink">{t('No saved routes yet.')}</p><p className="mt-1 text-sm text-ink-soft">{t('Generate several options, draw manually or import GPX.')}</p></GlassCard> : orbit.state.routes.map((route) => {
-            const dna = buildRouteDna(route, orbit.state.runs)
-            return <GlassCard key={route.id} accent={route.favourite ? ACCENTS.amber : ACCENTS.ice} className="p-5"><div className="flex items-start justify-between gap-3"><div><p className="font-display text-lg font-bold text-ink">{route.name}</p><p className="mt-1 font-mono text-[10px] text-ink-faint">{formatDistance(route.distance_m)} · {t(route.terrain).toUpperCase()} · {t(route.navigation_complexity).toUpperCase()} {t('NAV')}</p></div>{route.favourite && <OrbitPill tone="amber">{t('FAVOURITE')}</OrbitPill>}</div>{route.rating != null && <p className="mt-2 text-sm tracking-[.18em] text-amber-500" aria-label={`${route.rating} ${t('out of 5 stars')}`}>{'★'.repeat(route.rating)}<span className="text-slate-300">{'★'.repeat(5 - route.rating)}</span></p>}{route.note && <p className="mt-3 text-sm text-ink-soft">{route.note}</p>}{route.mission_tags.length > 0 && <div className="mt-2 flex flex-wrap gap-1">{route.mission_tags.map((mission) => <OrbitPill key={mission} tone="ice">{t(missionLabel(mission))}</OrbitPill>)}</div>}{dna && <div className="mt-3 rounded-2xl bg-sky-50/60 p-3"><p className="text-xs font-bold text-sky-900">{t('Route DNA')} · {dna.completions} {t('completions')}</p><div className="mt-2 grid grid-cols-2 gap-2 text-[10px] text-sky-900"><span>{t('Typical')} {formatDistance(dna.typical_distance_m)}</span><span>{formatDuration(dna.typical_duration_s)}</span><span>{formatPace(dna.typical_pace_sec_km)}</span><span>{dna.typical_heart_rate == null ? t('Heart rate unavailable') : `${dna.typical_heart_rate} bpm`}</span><span>{dna.typical_elevation_gain_m == null ? t('Elevation unavailable') : `${dna.typical_elevation_gain_m} m ${t('gain')}`}</span><span>{dna.pace_consistency_pct == null ? t('Pacing baseline developing') : `${dna.pace_consistency_pct.toFixed(1)}% ${t('pace variation')}`}</span></div><p className="mt-2 text-xs text-sky-800">{t(dna.interpretation)}</p><p className="mt-1 text-[10px] text-sky-700">{t(dna.recent_trend)}</p></div>}<div className="mt-4 flex flex-wrap gap-2"><GradientButton accent={ACCENTS.ice} onClick={() => navigate('/orbit/run', { state: { routeId: route.id, mission: route.mission_tags[0] ?? 'easy' } })}>{t('Start run')}</GradientButton><GhostButton onClick={() => void editRoute(route, 'favourite')}>{t(route.favourite ? 'Unfavourite' : 'Favourite')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'rate')}>{t('Rate')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'rename')}>{t('Rename')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'note')}>{t('Note')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'reverse')}>{t('Reverse')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'duplicate')}>{t('Duplicate')}</GhostButton><GhostButton onClick={() => downloadGpx(route)}>{t('Export GPX')}</GhostButton><GhostButton onClick={() => void addSegment(route)}>{t('Add segment')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'tag')}>{t('Tag mission')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'prefer')}>{t('Prefer section')}</GhostButton><GhostButton onClick={() => void editRoute(route, 'avoid')}>{t('Avoid section')}</GhostButton></div></GlassCard>
-          })}
+          <div className="grid grid-cols-2 gap-2"><GradientButton accent={ACCENTS.ice} onClick={() => navigate('/orbit/plan')} className="min-h-12 w-full">{t('Plan new route')}</GradientButton><GhostButton onClick={() => fileRef.current?.click()} className="min-h-12 w-full">{t('Import GPX')}</GhostButton><input ref={fileRef} type="file" accept=".gpx,application/gpx+xml,text/xml" className="hidden" onChange={(event) => void saveImported(event.target.files?.[0])} /></div>
+          {orbit.state.routes.length > 0 && <div className="flex items-center justify-between rounded-2xl bg-white/55 px-3.5 py-2.5 text-[11px] font-semibold text-ink-soft"><span>{orbit.state.routes.length} {t(orbit.state.routes.length === 1 ? 'private route' : 'private routes')}</span><span className="font-mono font-bold text-sky-800">{formatDistance(orbit.state.routes.reduce((total, route) => total + route.distance_m, 0))}</span></div>}
+          {orbit.state.routes.length === 0 ? <GlassCard className="p-7 text-center"><p className="font-bold text-ink">{t('No saved routes yet.')}</p><p className="mt-1 text-sm text-ink-soft">{t('Generate several options, draw manually or import GPX.')}</p></GlassCard> : [...orbit.state.routes].sort((a, b) => Number(b.favourite) - Number(a.favourite) || b.updated_at.localeCompare(a.updated_at)).map((route) => <SavedRouteCard key={route.id} route={route} runs={orbit.state.runs} onStart={() => navigate('/orbit/run', { state: { routeId: route.id, mission: route.mission_tags[0] ?? 'easy' } })} onEdit={(action) => void editRoute(route, action)} onAddSegment={() => void addSegment(route)} onRemove={() => void removeRoute(route)} />)}
         </div>}
 
         {view === 'segments' && <div className="space-y-3">{orbit.state.segments.length === 0 ? <GlassCard className="p-7 text-center"><p className="font-bold text-ink">{t('No personal segments yet.')}</p><p className="mt-1 text-sm text-ink-soft">{t('Create a private climb, flat kilometre or finishing stretch from a saved route.')}</p></GlassCard> : orbit.state.segments.map((segment) => {
