@@ -41,6 +41,26 @@ export interface NormalizedCrop {
   scale: number
 }
 
+export interface ComparisonView {
+  scale: number
+  x: number
+  y: number
+}
+
+export interface ComparisonViews {
+  left: ComparisonView
+  right: ComparisonView
+}
+
+export type ComparisonSide = keyof ComparisonViews
+
+export interface CoverCrop {
+  sx: number
+  sy: number
+  width: number
+  height: number
+}
+
 export function fitWithin(
   width: number,
   height: number,
@@ -62,6 +82,49 @@ export function normalizeCrop(x: number, y: number, scale: number): NormalizedCr
     y: Math.max(0, Math.min(1, Number.isFinite(y) ? y : 0.5)),
     scale: Math.max(1, Math.min(3, Number.isFinite(scale) ? scale : 1)),
   }
+}
+
+export function normalizeComparisonView(view: ComparisonView): ComparisonView {
+  const scale = Math.max(1, Math.min(4, Number.isFinite(view.scale) ? view.scale : 1))
+  const limit = scale === 1 ? 0 : Math.min(42, (scale - 1) * 22)
+  if (limit === 0) return { scale, x: 0, y: 0 }
+  return {
+    scale,
+    x: Math.max(-limit, Math.min(limit, Number.isFinite(view.x) ? view.x : 0)),
+    y: Math.max(-limit, Math.min(limit, Number.isFinite(view.y) ? view.y : 0)),
+  }
+}
+
+export function zoomComparisonView(view: ComparisonView, delta: number): ComparisonView {
+  return normalizeComparisonView({ ...view, scale: view.scale + delta })
+}
+
+export function updateComparisonViews(
+  views: ComparisonViews,
+  side: ComparisonSide,
+  view: ComparisonView,
+  synced: boolean,
+): ComparisonViews {
+  const normalized = normalizeComparisonView(view)
+  return synced
+    ? { left: normalized, right: normalized }
+    : { ...views, [side]: normalized }
+}
+
+/* Source rectangle that exactly matches an object-cover preview at the target
+   aspect ratio. Camera capture uses this so the saved image matches the guide
+   the user aligned against on screen. */
+export function coverCrop(width: number, height: number, targetAspectRatio: number): CoverCrop {
+  if (width <= 0 || height <= 0 || !Number.isFinite(targetAspectRatio) || targetAspectRatio <= 0) {
+    throw new Error('Invalid cover-crop dimensions')
+  }
+  const sourceRatio = width / height
+  if (sourceRatio > targetAspectRatio) {
+    const cropWidth = height * targetAspectRatio
+    return { sx: (width - cropWidth) / 2, sy: 0, width: cropWidth, height }
+  }
+  const cropHeight = width / targetAspectRatio
+  return { sx: 0, sy: (height - cropHeight) / 2, width, height: cropHeight }
 }
 
 export function comparisonAspectRatio(a: ProgressPhoto, b: ProgressPhoto): number {

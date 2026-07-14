@@ -236,7 +236,7 @@ export function MealComposer({
         <div className="mt-4 space-y-4">
           <GlassCard accent={amber} className="p-4">
             <label className="text-xs font-bold text-ink-soft">Meal name</label>
-            <input value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full bg-transparent font-display text-lg font-bold text-ink outline-none" />
+            <input aria-label="Meal name" value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full bg-transparent font-display text-lg font-bold text-ink outline-none" />
             <div className="mt-3 grid grid-cols-4 gap-2 border-t border-ink/8 pt-3 text-center">
               {([['kcal', totals.kcal], ['protein', totals.protein_g], ['carbs', totals.carbs_g], ['fat', totals.fat_g]] as const).map(([label, value]) => (
                 <div key={label}><p className="font-mono text-lg font-bold text-ink">{value}</p><p className="text-[9px] font-bold text-ink-faint uppercase">{label}</p></div>
@@ -335,7 +335,7 @@ export function MealComposer({
                     </div>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <input inputMode="decimal" value={item.quantity} onChange={(event) => patchItem(item.id, { quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) })} className="w-28 rounded-xl bg-white/75 px-3 py-2 font-mono text-sm font-bold outline-none" />
+                    <input aria-label={`Amount for ${item.food.name}`} inputMode="decimal" value={item.quantity} onChange={(event) => patchItem(item.id, { quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) })} className="w-28 rounded-xl bg-white/75 px-3 py-2 font-mono text-sm font-bold outline-none" />
                     <select value={item.unit} onChange={(event) => patchItem(item.id, { unit: event.target.value as FoodUnit })} className="rounded-xl bg-white/75 px-3 py-2 text-sm font-bold">
                       {units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
                     </select>

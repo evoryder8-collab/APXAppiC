@@ -2,13 +2,17 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import {
   comparisonAspectRatio,
+  coverCrop,
   daysBetweenPhotos,
   fitWithin,
   mergePhotoUploadsIdempotently,
   normalizeCrop,
+  normalizeComparisonView,
   preferSamePose,
   progressStoragePaths,
   snapshotForProgressDate,
+  updateComparisonViews,
+  zoomComparisonView,
   type ProgressPhoto,
 } from '../src/lib/progressPhoto.ts'
 import type { RpgSnapshot } from '../src/lib/types.ts'
@@ -27,6 +31,25 @@ test('image helpers resize without upscaling and clamp comparison crop', () => {
   assert.deepEqual(fitWithin(4000, 3000, 1600, 2400), { width: 1600, height: 1200, scale: 0.4 })
   assert.deepEqual(fitWithin(800, 600, 1600, 2400), { width: 800, height: 600, scale: 1 })
   assert.deepEqual(normalizeCrop(-2, 4, 9), { x: 0, y: 1, scale: 3 })
+})
+
+test('camera cover crop matches a portrait preview without stretching', () => {
+  assert.deepEqual(coverCrop(1920, 1080, 3 / 4), { sx: 555, sy: 0, width: 810, height: 1080 })
+  assert.deepEqual(coverCrop(1080, 1920, 3 / 4), { sx: 0, sy: 240, width: 1080, height: 1440 })
+})
+
+test('comparison zoom and pan clamp safely and sync only when requested', () => {
+  const identity = { scale: 1, x: 0, y: 0 }
+  assert.deepEqual(normalizeComparisonView({ scale: 0, x: 50, y: -50 }), identity)
+  const zoomed = zoomComparisonView(identity, 0.5)
+  assert.deepEqual(zoomed, { scale: 1.5, x: 0, y: 0 })
+  const views = { left: identity, right: identity }
+  assert.deepEqual(updateComparisonViews(views, 'left', { scale: 2, x: 12, y: -8 }, true), {
+    left: { scale: 2, x: 12, y: -8 }, right: { scale: 2, x: 12, y: -8 },
+  })
+  assert.deepEqual(updateComparisonViews(views, 'right', { scale: 2, x: 12, y: -8 }, false), {
+    left: identity, right: { scale: 2, x: 12, y: -8 },
+  })
 })
 
 test('private storage paths are deterministic and reject unsafe owner segments', () => {

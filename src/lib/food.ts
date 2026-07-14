@@ -169,6 +169,19 @@ export interface MealTotals {
   fat_g: number
 }
 
+export interface PlannedNutritionMeal extends MealTotals {
+  id: string
+  name: string
+}
+
+export interface ConsumedMeal extends MealTotals {
+  id: string
+  name: string
+  planned_meal_id: string | null
+  source: 'logged' | 'checked_plan'
+  logged_meal: LoggedMeal | null
+}
+
 export interface AdaptiveContext {
   target: MealTotals
   consumed: MealTotals
@@ -408,6 +421,70 @@ export function aggregateLoggedMeals(meals: LoggedMeal[]): MealTotals {
     protein_g: Math.round((sum.protein_g + meal.total_protein_g) * 10) / 10,
     carbs_g: Math.round((sum.carbs_g + meal.total_carbs_g) * 10) / 10,
     fat_g: Math.round((sum.fat_g + meal.total_fat_g) * 10) / 10,
+  }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
+}
+
+/* Planned check-offs predate structured food logs. Reconcile both sources into
+   one ledger so a checked plan contributes nutrition, while an edited actual
+   meal linked to that plan replaces it exactly once. If an old client created
+   duplicate linked logs, only the most recently updated snapshot is current. */
+export function reconcileConsumedMeals(
+  loggedMeals: LoggedMeal[],
+  plannedMeals: PlannedNutritionMeal[],
+  checkedPlannedMealIds: Iterable<string>,
+): ConsumedMeal[] {
+  const latestLinked = new Map<string, LoggedMeal>()
+  const custom: LoggedMeal[] = []
+  for (const meal of loggedMeals) {
+    if (!meal.source_planned_meal_id) {
+      custom.push(meal)
+      continue
+    }
+    const previous = latestLinked.get(meal.source_planned_meal_id)
+    if (!previous || previous.updated_at.localeCompare(meal.updated_at) < 0) {
+      latestLinked.set(meal.source_planned_meal_id, meal)
+    }
+  }
+
+  const fromLogged = [...custom, ...latestLinked.values()].map<ConsumedMeal>((meal) => ({
+    id: meal.id,
+    name: meal.display_name,
+    planned_meal_id: meal.source_planned_meal_id,
+    source: 'logged',
+    logged_meal: meal,
+    kcal: meal.total_kcal,
+    protein_g: meal.total_protein_g,
+    carbs_g: meal.total_carbs_g,
+    fat_g: meal.total_fat_g,
+  }))
+
+  const planById = new Map(plannedMeals.map((meal) => [meal.id, meal]))
+  const fallback: ConsumedMeal[] = []
+  for (const mealId of checkedPlannedMealIds) {
+    if (latestLinked.has(mealId)) continue
+    const planned = planById.get(mealId)
+    if (!planned) continue
+    fallback.push({
+      id: `checked-plan:${planned.id}`,
+      name: planned.name,
+      planned_meal_id: planned.id,
+      source: 'checked_plan',
+      logged_meal: null,
+      kcal: planned.kcal,
+      protein_g: planned.protein_g,
+      carbs_g: planned.carbs_g,
+      fat_g: planned.fat_g,
+    })
+  }
+  return [...fromLogged, ...fallback]
+}
+
+export function aggregateConsumedMeals(meals: ConsumedMeal[]): MealTotals {
+  return meals.reduce<MealTotals>((sum, meal) => ({
+    kcal: sum.kcal + meal.kcal,
+    protein_g: Math.round((sum.protein_g + meal.protein_g) * 10) / 10,
+    carbs_g: Math.round((sum.carbs_g + meal.carbs_g) * 10) / 10,
+    fat_g: Math.round((sum.fat_g + meal.fat_g) * 10) / 10,
   }), { kcal: 0, protein_g: 0, carbs_g: 0, fat_g: 0 })
 }
 

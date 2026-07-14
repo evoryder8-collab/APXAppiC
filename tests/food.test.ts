@@ -2,10 +2,12 @@ import assert from 'node:assert/strict'
 import test from 'node:test'
 import { COMMON_FOODS } from '../src/data/foodSeeds.ts'
 import {
+  aggregateConsumedMeals,
   calculatePortion,
   mergeMealsIdempotently,
   parseDecimalInput,
   rankFoods,
+  reconcileConsumedMeals,
   snapshotEntry,
   suggestPresetAdaptation,
   type ComposerFoodItem,
@@ -72,6 +74,43 @@ test('meal merge is idempotent by user and client key', () => {
     created_at: new Date().toISOString(), updated_at: new Date().toISOString(),
   }
   assert.equal(mergeMealsIdempotently([base], [{ ...base, id: crypto.randomUUID() }]).length, 1)
+})
+
+test('checked planned meals and an edited replacement reconcile into one consumed total', () => {
+  const userId = crypto.randomUUID()
+  const now = new Date().toISOString()
+  const replacement: LoggedMeal = {
+    id: crypto.randomUUID(), user_id: userId, local_date: '2026-07-14', meal_slot: 'snack',
+    display_name: 'Migros ready meal', source_preset_id: null, source_planned_meal_id: 'bulgur',
+    logged_at: now, client_idempotency_key: 'replacement', logged_as: 'changed',
+    total_kcal: 562, total_protein_g: 22, total_carbs_g: 67, total_fat_g: 22,
+    created_at: now, updated_at: now,
+  }
+  const rows = reconcileConsumedMeals([replacement], [
+    { id: 'breakfast', name: 'Breakfast', kcal: 404, protein_g: 25, carbs_g: 9, fat_g: 21 },
+    { id: 'lunch', name: 'Oat jar', kcal: 713, protein_g: 39, carbs_g: 120, fat_g: 14 },
+    { id: 'bulgur', name: 'Bulgur snack', kcal: 349, protein_g: 24, carbs_g: 59, fat_g: 5 },
+  ], new Set(['breakfast', 'lunch', 'bulgur']))
+  assert.equal(rows.length, 3)
+  assert.equal(rows.find((row) => row.planned_meal_id === 'bulgur')?.name, 'Migros ready meal')
+  assert.deepEqual(aggregateConsumedMeals(rows), { kcal: 1679, protein_g: 86, carbs_g: 196, fat_g: 57 })
+})
+
+test('a linked actual meal wins over duplicate plan checkoffs and stale linked snapshots', () => {
+  const userId = crypto.randomUUID()
+  const base = {
+    id: 'old', user_id: userId, local_date: '2026-07-14', meal_slot: 'lunch' as const,
+    display_name: 'Old lunch', source_preset_id: null, source_planned_meal_id: 'lunch',
+    logged_at: '2026-07-14T12:00:00Z', client_idempotency_key: 'old', logged_as: 'changed' as const,
+    total_kcal: 500, total_protein_g: 20, total_carbs_g: 60, total_fat_g: 15,
+    created_at: '2026-07-14T12:00:00Z', updated_at: '2026-07-14T12:00:00Z',
+  }
+  const rows = reconcileConsumedMeals([base, { ...base, id: 'new', display_name: 'Current lunch', total_kcal: 620, updated_at: '2026-07-14T13:00:00Z' }], [
+    { id: 'lunch', name: 'Planned lunch', kcal: 700, protein_g: 30, carbs_g: 90, fat_g: 18 },
+  ], ['lunch'])
+  assert.equal(rows.length, 1)
+  assert.equal(rows[0].name, 'Current lunch')
+  assert.equal(rows[0].kcal, 620)
 })
 
 test('Open Food Facts normalization validates barcodes, converts kJ and preserves missing fields', () => {
