@@ -39,7 +39,12 @@ import {
   normalizeActivityType,
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
-import { upsertConflictTarget } from '../lib/sync'
+import {
+  normalizeDailyLogIntegers,
+  normalizeSyncPayload,
+  normalizeSyncRecord,
+  upsertConflictTarget,
+} from '../lib/sync'
 import {
   CURRENT_SEED_VERSION,
   repairSeedDefinitions,
@@ -88,7 +93,7 @@ const Ctx = createContext<StoreValue | null>(null)
 const LOCAL_USER = '00000000-0000-4000-8000-000000000001'
 
 function normalizeDailyLog(log: DailyLog): DailyLog {
-  return {
+  return normalizeDailyLogIntegers({
     ...log,
     estimated_tdee: log.estimated_tdee ?? null,
     computed_pal: log.computed_pal ?? null,
@@ -99,7 +104,7 @@ function normalizeDailyLog(log: DailyLog): DailyLog {
     manual_protein_g: log.manual_protein_g ?? null,
     manual_fat_g: log.manual_fat_g ?? null,
     manual_carbs_g: log.manual_carbs_g ?? null,
-  }
+  })
 }
 
 function normalizeAppData(value: AppData): AppData {
@@ -223,10 +228,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         if (scopeRef.current !== scope) break
         const op = queue[0]
         const conflictTarget = upsertConflictTarget(op.table)
+        const syncPayload = op.type === 'upsert'
+          ? normalizeSyncPayload(op.table, op.payload)
+          : op.payload
         const { error } = op.type === 'upsert'
           ? conflictTarget
-            ? await supabase.from(op.table).upsert(op.payload, { onConflict: conflictTarget })
-            : await supabase.from(op.table).upsert(op.payload)
+            ? await supabase.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
+            : await supabase.from(op.table).upsert(syncPayload)
           : await supabase
               .from(op.table)
               .delete()
@@ -266,7 +274,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     (op: { table: string; type: 'upsert' | 'delete'; payload: object }) => {
       if (!supabase) return
       const queue = loadQueue(scopeRef.current)
-      const payload = op.payload as Record<string, unknown> | Array<Record<string, unknown>>
+      const rawPayload = op.payload as Record<string, unknown> | Array<Record<string, unknown>>
+      const payload = op.type === 'upsert'
+        ? normalizeSyncPayload(op.table, rawPayload)
+        : rawPayload
       const row = Array.isArray(payload) ? null : payload
       const rowKey = typeof row?.id === 'string'
         ? `id:${row.id}`
@@ -309,12 +320,15 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   /* ---------- writes ---------- */
   const upsert = useCallback(
     <T extends { id: string }>(table: ListTable, row: T) => {
+      const normalizedRow = normalizeSyncRecord(table, row)
       const cur = dataRef.current
       const list = cur[table] as unknown as T[]
-      const i = list.findIndex((r) => r.id === row.id)
-      const nextList = i >= 0 ? list.map((r) => (r.id === row.id ? row : r)) : [...list, row]
+      const i = list.findIndex((r) => r.id === normalizedRow.id)
+      const nextList = i >= 0
+        ? list.map((r) => (r.id === normalizedRow.id ? normalizedRow : r))
+        : [...list, normalizedRow]
       persist({ ...cur, [table]: nextList })
-      enqueue({ table, type: 'upsert', payload: row as unknown as Record<string, unknown> })
+      enqueue({ table, type: 'upsert', payload: normalizedRow as unknown as Record<string, unknown> })
     },
     [persist, enqueue],
   )
@@ -323,16 +337,17 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const bulkUpsert = useCallback(
     <T extends { id: string }>(table: ListTable, rows: T[]) => {
       if (rows.length === 0) return
+      const normalizedRows = rows.map((row) => normalizeSyncRecord(table, row))
       const cur = dataRef.current
       const list = cur[table] as unknown as T[]
       const map = new Map(list.map((r) => [r.id, r]))
-      for (const row of rows) map.set(row.id, row)
+      for (const row of normalizedRows) map.set(row.id, row)
       persist({ ...cur, [table]: [...map.values()] })
-      for (let i = 0; i < rows.length; i += 400) {
+      for (let i = 0; i < normalizedRows.length; i += 400) {
         enqueue({
           table,
           type: 'upsert',
-          payload: rows.slice(i, i + 400) as unknown as Array<Record<string, unknown>>,
+          payload: normalizedRows.slice(i, i + 400) as unknown as Array<Record<string, unknown>>,
         })
       }
     },

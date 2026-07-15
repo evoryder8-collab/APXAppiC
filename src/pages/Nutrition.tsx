@@ -43,6 +43,7 @@ import {
   type LoggedFoodEntry,
   type MealSlot,
 } from '../lib/food'
+import { normalizeDailyLogIntegers } from '../lib/sync'
 
 const amber = ACCENTS.amber
 
@@ -399,7 +400,7 @@ export function Nutrition() {
     const existing = data.daily_logs.find((log) => log.date === today)
     const structured = consumedMeals.length > 0
     const wasManual = existing?.nutrition_source !== 'structured'
-    const next: DailyLog = {
+    const next = normalizeDailyLogIntegers<DailyLog>({
       ...emptyDailyLog(today, profile.user_id),
       ...existing,
       manual_kcal: wasManual ? existing?.kcal ?? existing?.manual_kcal ?? null : existing?.manual_kcal ?? null,
@@ -411,7 +412,7 @@ export function Nutrition() {
       carbs_g: structured ? consumed.carbs_g : existing?.manual_carbs_g ?? null,
       fat_g: structured ? consumed.fat_g : existing?.manual_fat_g ?? null,
       nutrition_source: structured ? 'structured' : 'manual',
-    }
+    })
     const unchanged = existing
       && existing.kcal === next.kcal
       && existing.protein_g === next.protein_g
