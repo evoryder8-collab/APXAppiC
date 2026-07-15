@@ -19,6 +19,7 @@ import { activityCatalogMap, activityLogFromBlock, emptyActivityBlock } from '..
 import { activityLogId } from '../lib/ids'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
+import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -107,7 +108,10 @@ export function Player() {
   const navigate = useNavigate()
   const { data, upsert, toast } = useStore()
   const { language } = useLanguage()
-  const voiceText = useCallback((value: string) => translateInterfaceText(value, language), [language])
+  const voiceText = useCallback((value: string) => {
+    const exercise = catalogExerciseByName(value)
+    return exercise ? displayExerciseName(exercise, language) : translateInterfaceText(value, language)
+  }, [language])
 
   const accent: Accent = slug === 'main' || slug === 'custom' ? ACCENTS.violet : ACCENTS.teal
   const plan = useMemo(() => planForDate(data, slug as ProgramSlug, date, lite), [data, slug, date, lite])
@@ -442,6 +446,7 @@ export function Player() {
                 onSaveLog={saveExerciseLog}
                 results={state.results}
                 onSetWeight={(exIdx, setNo, totalSets, weight) => dispatch({ type: 'recordWeight', exIdx, setNo, totalSets, weight })}
+                onSetReps={(exIdx, setNo, reps) => dispatch({ type: 'endSet', key: `${exIdx}-${setNo}`, reps })}
                 guardian={guardian}
                 setGuardian={setGuardian}
                 guardianFactor={data.settings?.guardian_factor ?? 1.5}
@@ -510,6 +515,7 @@ function BlockView(props: {
   onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
   results: Record<number, ExerciseResult>
   onSetWeight: (exIdx: number, setNo: number, totalSets: number, weight: number | null) => void
+  onSetReps: (exIdx: number, setNo: number, reps: number) => void
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
@@ -519,14 +525,21 @@ function BlockView(props: {
 }) {
   const { block, accent } = props
   const { language } = useLanguage()
-  const t = (value: string): string => translateInterfaceText(value, language)
+  const t = (value: string): string => {
+    const exercise = catalogExerciseByName(value)
+    return exercise ? displayExerciseName(exercise, language) : translateInterfaceText(value, language)
+  }
+  const nextLabel = (value: string): string => {
+    const setMatch = value.match(/^(.+), set (\d+)$/i)
+    return setMatch ? `${t(setMatch[1])}, ${t('Set')} ${setMatch[2]}` : t(value)
+  }
 
   if (block.kind === 'warmup') {
     const remaining = Math.max(0, block.duration - props.elapsed)
     return (
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Warm-up')}</p>
-        <p className="mt-2 text-[15px] leading-relaxed font-semibold text-ink">{block.text}</p>
+        <p className="mt-2 text-[15px] leading-relaxed font-semibold text-ink">{t(block.text)}</p>
         <p className="mt-4 font-mono text-5xl font-bold" style={{ color: accent.deep }}>
           {Math.ceil(remaining)}s
         </p>
@@ -545,7 +558,7 @@ function BlockView(props: {
       return (
         <CenterCard accent={accent}>
           <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
-            {e.name} · {block.setNo}/{block.totalSets}
+            {t(e.name)} · {block.setNo}/{block.totalSets}
           </p>
           <RestRing accent={accent} remaining={remaining} total={block.timed} label="hold" />
           <div className="mt-4 flex justify-center gap-2">
@@ -565,7 +578,7 @@ function BlockView(props: {
           {t('Set')} {block.setNo} {t('of')} {block.totalSets}
           {e.per_side ? ` · ${t('per side')}` : ''}
         </p>
-        <h2 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{e.name}</h2>
+        <h2 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{t(e.name)}</h2>
         {e.tempo_note && <p className="mt-1 text-xs font-semibold text-ink-soft">{e.tempo_note}</p>}
         <div className="my-5">
           <motion.p
@@ -585,8 +598,13 @@ function BlockView(props: {
           <PauseButton paused={props.paused} onPause={props.onPause} accent={accent} />
           {block.targetReps == null && (
             <GradientButton accent={accent} onClick={() => props.onEndMaxSet(rep)}>
-              Done at {rep}
+              {t('Done at')} {rep}
             </GradientButton>
+          )}
+          {block.targetReps != null && (
+            <GhostButton onClick={() => props.onEndMaxSet(rep)}>
+              {t('End set at')} {rep}
+            </GhostButton>
           )}
         </div>
       </CenterCard>
@@ -598,19 +616,27 @@ function BlockView(props: {
     const existing = props.results[block.exIdx]
     const recommendation = props.recFor(block.exIdx)
     const captured = existing?.sets[block.afterSet - 1]?.weight ?? existing?.weight ?? recommendation?.weight ?? null
+    const countedReps = props.counted[`${block.exIdx}-${block.afterSet}`]
+      ?? Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)
+    const captureReps = block.exercise.rep_unit === 'reps'
     return (
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Rest')}</p>
-        <RestRing accent={accent} remaining={remaining} total={block.duration} label={`${t('next')}: ${t(block.nextLabel)}`} />
-        {block.captureLoad && (
-          <RestLoadCapture
+        <RestRing accent={accent} remaining={remaining} total={block.duration} label={`${t('next')}: ${nextLabel(block.nextLabel)}`} />
+        {(block.captureLoad || captureReps) && (
+          <RestSetCapture
             key={`${block.exIdx}:${block.afterSet}`}
             accent={accent}
-            exerciseName={block.exercise.name}
+            exerciseName={t(block.exercise.name)}
             setNo={block.afterSet}
-            value={captured}
+            weight={captured}
             recommended={recommendation?.weight ?? null}
-            onChange={(weight) => props.onSetWeight(block.exIdx, block.afterSet, block.exercise.planned_sets, weight)}
+            captureWeight={block.captureLoad}
+            reps={countedReps}
+            targetReps={Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)}
+            captureReps={captureReps}
+            onWeightChange={(weight) => props.onSetWeight(block.exIdx, block.afterSet, block.exercise.planned_sets, weight)}
+            onRepsChange={(reps) => props.onSetReps(block.exIdx, block.afterSet, reps)}
           />
         )}
         <div className="mt-4 flex justify-center gap-2">
@@ -711,37 +737,52 @@ function RestRing({ accent, remaining, total, label }: { accent: Accent; remaini
   )
 }
 
-function RestLoadCapture({
+function RestSetCapture({
   accent,
   exerciseName,
   setNo,
-  value,
+  weight,
   recommended,
-  onChange,
+  captureWeight,
+  reps,
+  targetReps,
+  captureReps,
+  onWeightChange,
+  onRepsChange,
 }: {
   accent: Accent
   exerciseName: string
   setNo: number
-  value: number | null
+  weight: number | null
   recommended: number | null
-  onChange: (weight: number | null) => void
+  captureWeight: boolean
+  reps: number
+  targetReps: number
+  captureReps: boolean
+  onWeightChange: (weight: number | null) => void
+  onRepsChange: (reps: number) => void
 }) {
   const { language } = useLanguage()
   const t = (text: string): string => translateInterfaceText(text, language)
-  const [draft, setDraft] = useState(value == null ? '' : String(value))
-  const update = (next: number | null) => {
+  const [draft, setDraft] = useState(weight == null ? '' : String(weight))
+  const [repDraft, setRepDraft] = useState(String(reps))
+  const updateWeight = (next: number | null) => {
     const safe = next == null || !Number.isFinite(next) ? null : Math.max(0, Math.round(next * 2) / 2)
     setDraft(safe == null ? '' : String(safe))
-    onChange(safe)
+    onWeightChange(safe)
+  }
+  const updateReps = (next: number) => {
+    const safe = Math.max(0, Math.min(999, Math.round(Number.isFinite(next) ? next : 0)))
+    setRepDraft(String(safe))
+    onRepsChange(safe)
   }
 
   return (
     <div className="mx-auto mt-4 max-w-sm rounded-[1.4rem] border border-white/85 bg-white/68 p-3 text-left shadow-[0_14px_32px_-24px_rgba(76,29,149,.75)]">
       <div className="flex items-start justify-between gap-2"><div><p className="font-mono text-[8px] font-black tracking-[0.15em] text-violet-700 uppercase">{t('Log this set during the break')}</p><p className="mt-0.5 truncate text-xs font-black text-ink">{exerciseName} · {t('Set')} {setNo}</p></div>{recommended != null && <span className="shrink-0 rounded-full px-2 py-1 font-mono text-[8px] font-black" style={{ background: accent.wash, color: accent.deep }}>{t('Suggested')} {recommended}</span>}</div>
-      <div className="mt-2 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
-        <button type="button" onClick={() => update((Number(draft.replace(',', '.')) || 0) - 2.5)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button>
-        <label className="relative"><span className="sr-only">{t('Weight used in kilograms')}</span><input autoFocus inputMode="decimal" type="text" value={draft} onChange={(event) => { const next = event.target.value.replace(/[^\d.,]/g, ''); setDraft(next); const parsed = Number(next.replace(',', '.')); onChange(next === '' || !Number.isFinite(parsed) ? null : parsed) }} onBlur={() => update(draft === '' ? null : Number(draft.replace(',', '.')))} placeholder="0" className="w-full rounded-xl border border-violet-200/70 bg-white/90 px-9 py-2 text-center font-mono text-2xl font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-2 flex items-center font-mono text-[9px] font-black text-ink-faint">KG</span></label>
-        <button type="button" onClick={() => update((Number(draft.replace(',', '.')) || 0) + 2.5)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button>
+      <div className={`mt-2 grid gap-2 ${captureWeight && captureReps ? 'grid-cols-2' : 'grid-cols-1'}`}>
+        {captureReps && <div><div className="mb-1 flex items-center justify-between"><span className="font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Actual reps')}</span><span className="font-mono text-[8px] font-bold text-ink-faint">{t('Target')} {targetReps}</span></div><div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-1.5"><button type="button" onClick={() => updateReps((Number(repDraft) || 0) - 1)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button><input inputMode="numeric" type="number" min="0" value={repDraft} onChange={(event) => { setRepDraft(event.target.value); const parsed = Number(event.target.value); if (Number.isFinite(parsed)) onRepsChange(Math.max(0, Math.round(parsed))) }} onBlur={() => updateReps(Number(repDraft))} className="w-full rounded-xl border border-cyan-200/70 bg-white/90 px-2 py-2 text-center font-mono text-xl font-black text-ink outline-none focus:ring-2 focus:ring-cyan-300" /><button type="button" onClick={() => updateReps((Number(repDraft) || 0) + 1)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button></div></div>}
+        {captureWeight && <div><span className="mb-1 block font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Weight used')}</span><div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-1.5"><button type="button" onClick={() => updateWeight((Number(draft.replace(',', '.')) || 0) - 2.5)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button><label className="relative"><span className="sr-only">{t('Weight used in kilograms')}</span><input inputMode="decimal" type="text" value={draft} onChange={(event) => { const next = event.target.value.replace(/[^\d.,]/g, ''); setDraft(next); const parsed = Number(next.replace(',', '.')); onWeightChange(next === '' || !Number.isFinite(parsed) ? null : parsed) }} onBlur={() => updateWeight(draft === '' ? null : Number(draft.replace(',', '.')))} placeholder="0" className="w-full rounded-xl border border-violet-200/70 bg-white/90 px-7 py-2 text-center font-mono text-xl font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center font-mono text-[8px] font-black text-ink-faint">KG</span></label><button type="button" onClick={() => updateWeight((Number(draft.replace(',', '.')) || 0) + 2.5)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button></div></div>}
       </div>
     </div>
   )

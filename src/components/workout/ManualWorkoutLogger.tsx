@@ -1,0 +1,317 @@
+import { useMemo, useRef, useState } from 'react'
+import { format, getISODay, parseISO } from 'date-fns'
+import {
+  EXERCISE_CATALOG,
+  catalogExerciseByName,
+  displayExerciseName,
+  isTreadmillExercise,
+  searchExerciseCatalog,
+  type ExerciseCatalogItem,
+} from '../../data/exerciseCatalog'
+import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import {
+  encodeTreadmillLog,
+  manualWorkoutHasAutomaticTitle,
+  manualSessionsForDate,
+  manualWorkoutNotes,
+  manualWorkoutTitle,
+  rankManualWorkoutPresets,
+  workoutDraftForSession,
+  type ManualExerciseDraft,
+  type ManualSetDraft,
+} from '../../lib/manualWorkout'
+import { ACCENTS, type Accent } from '../../lib/theme'
+import type { Program, ProgramDay, WorkoutLog, WorkoutSession } from '../../lib/types'
+import { useStore } from '../../store/AppStore'
+import { GhostButton, GradientButton, Sheet } from '../ui'
+
+function uid(prefix: string): string {
+  return `${prefix}-${crypto.randomUUID()}`
+}
+
+function numberValue(value: string, max = 999): number {
+  const parsed = Number(value.replace(',', '.'))
+  if (!Number.isFinite(parsed)) return 0
+  return Math.min(max, Math.max(0, parsed))
+}
+
+function starterSets(item: ExerciseCatalogItem): ManualSetDraft[] {
+  return [...Array(Math.max(1, Math.min(5, item.sets)))].map((_, index) => ({
+    id: uid(`set-${index}`),
+    reps: item.unit === 'reps' ? item.reps : 0,
+    weightKg: 0,
+  }))
+}
+
+function draftFromCatalog(item: ExerciseCatalogItem): ManualExerciseDraft {
+  return {
+    id: uid('exercise'),
+    catalogId: item.id,
+    canonicalName: item.name,
+    sets: isTreadmillExercise(item) ? [] : starterSets(item),
+    treadmill: isTreadmillExercise(item) ? { distanceKm: 0, inclineDeg: 0, durationMin: 25 } : null,
+  }
+}
+
+function clonePreset(exercises: ManualExerciseDraft[]): ManualExerciseDraft[] {
+  return exercises.map((exercise) => ({
+    ...exercise,
+    id: uid('exercise'),
+    sets: exercise.sets.map((set) => ({ ...set, id: uid('set') })),
+    treadmill: exercise.treadmill ? { ...exercise.treadmill } : null,
+  }))
+}
+
+function localizedDraftName(exercise: ManualExerciseDraft, language: 'en' | 'ro' | 'th'): string {
+  const catalog = exercise.catalogId
+    ? EXERCISE_CATALOG.find((item) => item.id === exercise.catalogId)
+    : catalogExerciseByName(exercise.canonicalName)
+  return catalog ? displayExerciseName(catalog, language) : exercise.canonicalName
+}
+
+function automaticWorkoutTitle(exercises: ManualExerciseDraft[], language: 'en' | 'ro' | 'th'): string {
+  return exercises.slice(0, 2).map((exercise) => localizedDraftName(exercise, language)).join(' + ')
+}
+
+export function ManualWorkoutLogger({
+  open,
+  onClose,
+  onSaved,
+  date,
+  accent = ACCENTS.teal,
+}: {
+  open: boolean
+  onClose: () => void
+  onSaved?: () => void
+  date: string
+  accent?: Accent
+}) {
+  const { data, upsert, bulkUpsert, toast } = useStore()
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
+  const searchRef = useRef<HTMLInputElement>(null)
+  const [title, setTitle] = useState('')
+  const [query, setQuery] = useState('')
+  const [exercises, setExercises] = useState<ManualExerciseDraft[]>([])
+  const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
+  const results = useMemo(
+    () => searchExerciseCatalog(query, 'all', language).slice(0, query.trim() ? 10 : 8),
+    [language, query],
+  )
+
+  const addExercise = (item: ExerciseCatalogItem): void => {
+    setExercises((current) => [...current, draftFromCatalog(item)])
+    setQuery('')
+    window.setTimeout(() => searchRef.current?.focus(), 50)
+  }
+
+  const updateExercise = (id: string, patch: Partial<ManualExerciseDraft>): void => {
+    setExercises((current) => current.map((exercise) => exercise.id === id ? { ...exercise, ...patch } : exercise))
+  }
+
+  const updateSet = (exerciseId: string, setId: string, patch: Partial<ManualSetDraft>): void => {
+    setExercises((current) => current.map((exercise) => exercise.id === exerciseId
+      ? { ...exercise, sets: exercise.sets.map((set) => set.id === setId ? { ...set, ...patch } : set) }
+      : exercise))
+  }
+
+  const reset = (): void => {
+    setTitle('')
+    setQuery('')
+    setExercises([])
+  }
+
+  const save = (): void => {
+    const profile = data.profile
+    if (!profile || exercises.length === 0) {
+      toast(t('Add at least one exercise.'))
+      return
+    }
+    const usable = exercises.filter((exercise) => exercise.treadmill
+      ? exercise.treadmill.durationMin > 0
+      : exercise.sets.some((set) => set.reps > 0))
+    if (usable.length === 0) {
+      toast(t('Add reps or cardio time before saving.'))
+      return
+    }
+
+    const existingProgram = data.programs.find((program) => program.slug === 'custom')
+    const program: Program = existingProgram ?? {
+      id: crypto.randomUUID(),
+      user_id: profile.user_id,
+      slug: 'custom',
+      name: 'Custom workouts',
+      description: 'Your searchable exercise studio, saved privately.',
+    }
+    const weekday = getISODay(parseISO(date))
+    const existingDay = data.program_days.find((day) => day.program_id === program.id && day.weekday === weekday)
+    const day: ProgramDay = existingDay ?? {
+      id: crypto.randomUUID(),
+      user_id: profile.user_id,
+      program_id: program.id,
+      weekday,
+      name: 'Manual workout',
+      day_type: 'custom',
+      est_minutes: 45,
+      warmup_note: 'Five minutes of pain-free joint preparation',
+      sort_order: weekday,
+    }
+    const now = new Date().toISOString()
+    const session: WorkoutSession = {
+      id: crypto.randomUUID(),
+      user_id: profile.user_id,
+      date,
+      program_day_id: day.id,
+      is_lite: false,
+      is_deload: false,
+      is_event_recovery: false,
+      completed: true,
+      quality_score: 1,
+      started_at: now,
+      completed_at: now,
+      notes: manualWorkoutNotes(title),
+    }
+    const logs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
+      if (exercise.treadmill) {
+        return [{
+          id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
+          exercise_name: encodeTreadmillLog(exercise.canonicalName, exercise.treadmill), set_no: 1,
+          weight_kg: null, reps: null, rir: null, skipped: false, override_flag: false,
+          created_at: new Date(Date.now() + exerciseIndex * 10).toISOString(),
+        }]
+      }
+      return exercise.sets.filter((set) => set.reps > 0).map((set, setIndex) => ({
+        id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
+        exercise_name: exercise.canonicalName, set_no: setIndex + 1,
+        weight_kg: set.weightKg > 0 ? set.weightKg : null, reps: Math.round(set.reps), rir: null,
+        skipped: false, override_flag: false,
+        created_at: new Date(Date.now() + exerciseIndex * 10 + setIndex).toISOString(),
+      }))
+    })
+
+    if (!existingProgram) upsert('programs', program)
+    if (!existingDay) upsert('program_days', day)
+    upsert('workout_sessions', session)
+    bulkUpsert('workout_logs', logs)
+    toast(t('Workout saved for reuse'), 'ok')
+    reset()
+    onClose()
+    onSaved?.()
+  }
+
+  const inputClass = 'w-full rounded-2xl border border-white/90 bg-white/80 px-4 py-3 text-sm font-bold text-ink outline-none placeholder:text-ink-faint focus:border-cyan-300 focus:ring-4 focus:ring-cyan-200/25'
+
+  return (
+    <Sheet open={open} onClose={onClose} wide>
+      <div className="relative overflow-hidden rounded-[28px] bg-[#071624] p-5 text-white">
+        <div className="orbit-stars pointer-events-none absolute inset-0 opacity-45" aria-hidden />
+        <div className="pointer-events-none absolute -top-20 right-0 h-48 w-48 rounded-full bg-cyan-400/25 blur-3xl" aria-hidden />
+        <div className="relative flex items-start justify-between gap-3">
+          <div><p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('QUICK LOG')}</p><h2 className="mt-1 font-display text-2xl font-bold">{t('Add Workout')}</h2><p className="mt-1 text-xs leading-relaxed text-slate-300">{t('Log what you actually did. Every saved workout becomes a reusable smart preset.')}</p></div>
+          <button type="button" onClick={onClose} aria-label={t('Close')} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/8 text-xl font-bold">×</button>
+        </div>
+      </div>
+
+      {exercises.length === 0 && presets.length > 0 && (
+        <div className="mt-4">
+          <div className="flex items-end justify-between gap-2"><div><p className="font-display text-base font-bold text-ink">{t('Ready when you are')}</p><p className="text-[10px] font-semibold text-ink-faint">{t('Ranked from your weekday rhythm and previous workout')}</p></div><span className="font-mono text-[9px] font-black text-cyan-700">{t('SMART PRESETS')}</span></div>
+          <div className="mt-2 flex gap-2 overflow-x-auto pb-2">
+            {presets.map((preset, index) => (
+              <button key={preset.signature} type="button" onClick={() => { setTitle(preset.automaticTitle ? '' : preset.title); setExercises(clonePreset(preset.exercises)) }} className="min-w-[190px] rounded-2xl border border-cyan-100 bg-white/72 p-3 text-left shadow-[0_12px_34px_-28px_rgba(14,116,144,.8)] active:scale-[.985]">
+                <span className="font-mono text-[8px] font-black tracking-wide text-cyan-700 uppercase">{index === 0 ? t('Best match today') : preset.reason === 'sequence' ? t('Follows your last workout') : t('Recently used')}</span>
+                <span className="mt-1 block truncate text-sm font-black text-ink">{preset.automaticTitle ? automaticWorkoutTitle(preset.exercises, language) : preset.title}</span>
+                <span className="mt-1 block text-[10px] font-semibold text-ink-soft">{preset.exercises.length} {t('exercises')} · {t('last')} {preset.lastUsedDate}</span>
+              </button>
+            ))}
+          </div>
+        </div>
+      )}
+
+      <div className="mt-4 space-y-3">
+        <input value={title} onChange={(event) => setTitle(event.target.value)} className={inputClass} placeholder={t('Workout name (optional)')} maxLength={64} />
+        <label className="relative block">
+          <span className="pointer-events-none absolute top-1/2 left-4 -translate-y-1/2 text-ink-faint">⌕</span>
+          <input ref={searchRef} value={query} onChange={(event) => setQuery(event.target.value)} className={`${inputClass} pl-10`} placeholder={t('Type an exercise, e.g. row, pull-up or treadmill')} autoComplete="off" />
+        </label>
+        {(query.trim() || exercises.length === 0) && (
+          <div className="grid max-h-52 gap-2 overflow-y-auto sm:grid-cols-2">
+            {results.map((item) => (
+              <button key={item.id} type="button" onClick={() => addExercise(item)} className="flex min-h-14 items-center justify-between rounded-2xl border border-white bg-white/66 px-3 py-2 text-left active:scale-[.985]">
+                <span className="min-w-0"><span className="block truncate text-sm font-bold text-ink">{displayExerciseName(item, language)}</span><span className="block truncate text-[9px] font-semibold text-ink-faint">{t(item.category)} · {t(item.equipment)}</span></span><span className="ml-2 grid h-8 w-8 shrink-0 place-items-center rounded-full bg-cyan-50 text-lg font-black text-cyan-700">+</span>
+              </button>
+            ))}
+          </div>
+        )}
+      </div>
+
+      {exercises.length > 0 && (
+        <div className="mt-5 space-y-3">
+          {exercises.map((exercise, exerciseIndex) => (
+            <div key={exercise.id} className="rounded-[24px] border border-white bg-white/72 p-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,.7)]">
+              <div className="flex items-center justify-between gap-3"><p className="min-w-0 truncate text-sm font-black text-ink"><span className="mr-2 font-mono text-[9px] text-cyan-700">{String(exerciseIndex + 1).padStart(2, '0')}</span>{localizedDraftName(exercise, language)}</p><button type="button" onClick={() => setExercises((current) => current.filter((item) => item.id !== exercise.id))} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-black text-rose-600" aria-label={t('Remove exercise')}>×</button></div>
+              {exercise.treadmill ? (
+                <div className="mt-3 grid grid-cols-3 gap-2">
+                  {([
+                    ['KM', 'distanceKm', exercise.treadmill.distanceKm, 100],
+                    ['Incline °', 'inclineDeg', exercise.treadmill.inclineDeg, 45],
+                    ['Time min', 'durationMin', exercise.treadmill.durationMin, 600],
+                  ] as const).map(([label, key, value, max]) => (
+                    <label key={key} className="min-w-0"><span className="mb-1 block truncate text-center font-mono text-[8px] font-black text-ink-faint uppercase">{t(label)}</span><input type="text" inputMode="decimal" value={value || ''} onChange={(event) => updateExercise(exercise.id, { treadmill: { ...exercise.treadmill!, [key]: numberValue(event.target.value, max) } })} className="w-full rounded-xl bg-slate-50 px-2 py-2.5 text-center font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-cyan-200" placeholder="0" /></label>
+                  ))}
+                </div>
+              ) : (
+                <div className="mt-2 space-y-1.5">
+                  <div className="grid grid-cols-[1.5rem_1fr_1fr_2rem] gap-2 px-1 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase"><span>#</span><span>{t('Reps')}</span><span>{t('KG')}</span><span /></div>
+                  {exercise.sets.map((set, setIndex) => (
+                    <div key={set.id} className="grid grid-cols-[1.5rem_1fr_1fr_2rem] items-center gap-2"><span className="text-center font-mono text-[10px] font-black text-cyan-700">{setIndex + 1}</span><input aria-label={`${t('Reps')} ${setIndex + 1}`} type="number" inputMode="numeric" min="0" value={set.reps || ''} onChange={(event) => updateSet(exercise.id, set.id, { reps: numberValue(event.target.value, 999) })} className="min-w-0 rounded-xl bg-slate-50 px-2 py-2 text-center font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-cyan-200" placeholder="0" /><input aria-label={`${t('KG')} ${setIndex + 1}`} type="text" inputMode="decimal" value={set.weightKg || ''} onChange={(event) => updateSet(exercise.id, set.id, { weightKg: numberValue(event.target.value, 9999) })} className="min-w-0 rounded-xl bg-slate-50 px-2 py-2 text-center font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-cyan-200" placeholder="0" /><button type="button" onClick={() => updateExercise(exercise.id, { sets: exercise.sets.filter((item) => item.id !== set.id) })} className="grid h-8 w-8 place-items-center rounded-full text-ink-faint" aria-label={t('Remove set')}>×</button></div>
+                  ))}
+                  <button type="button" onClick={() => updateExercise(exercise.id, { sets: [...exercise.sets, { id: uid('set'), reps: exercise.sets.at(-1)?.reps ?? 10, weightKg: exercise.sets.at(-1)?.weightKg ?? 0 }] })} className="mt-1 w-full rounded-xl border border-dashed border-cyan-200 py-2 text-[10px] font-black text-cyan-800">+ {t('Add set')}</button>
+                </div>
+              )}
+            </div>
+          ))}
+          <button type="button" onClick={() => { setQuery(''); searchRef.current?.focus(); searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }} className="w-full rounded-2xl border border-dashed border-cyan-300 bg-cyan-50/55 py-3 text-sm font-black text-cyan-900">+ {t('Add next exercise')}</button>
+        </div>
+      )}
+
+      <div className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+        <GhostButton onClick={reset}>{t('Clear')}</GhostButton>
+        <GradientButton accent={accent} className="py-4" onClick={save}>{t('Save workout')}</GradientButton>
+      </div>
+    </Sheet>
+  )
+}
+
+export function TodayManualWorkoutCard({ date, onAdd, accent = ACCENTS.teal }: { date: string; onAdd: () => void; accent?: Accent }) {
+  const { data } = useStore()
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
+  const sessions = useMemo(() => manualSessionsForDate(data, date), [data, date])
+  const firstExercises = sessions[0] ? workoutDraftForSession(data, sessions[0].id) : []
+  const title = sessions[0]
+    ? manualWorkoutHasAutomaticTitle(sessions[0].notes)
+      ? automaticWorkoutTitle(firstExercises, language)
+      : manualWorkoutTitle(sessions[0].notes)
+    : ''
+
+  if (sessions.length === 0) {
+    return (
+      <button type="button" onClick={onAdd} className="group relative w-full overflow-hidden rounded-[26px] bg-[#071624] p-5 text-left text-white active:scale-[.99]" style={{ boxShadow: `0 24px 55px -34px ${accent.glowStrong}` }}>
+        <div className="orbit-stars pointer-events-none absolute inset-0 opacity-40" aria-hidden /><div className="pointer-events-none absolute -right-16 -bottom-24 h-52 w-52 rounded-full bg-cyan-400/25 blur-3xl" aria-hidden />
+        <div className="relative flex items-center justify-between gap-4"><div><p className="font-mono text-[9px] font-black tracking-[.18em] text-cyan-200 uppercase">{t('TRAIN YOUR WAY')}</p><h2 className="mt-1 font-display text-xl font-bold">{t('Add Workout')}</h2><p className="mt-1 text-xs text-slate-300">{t('Log exercises, sets, reps and weight after training.')}</p></div><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400 text-2xl font-black text-slate-950 transition group-active:scale-90">+</span></div>
+      </button>
+    )
+  }
+
+  return (
+    <div className="rounded-[26px] border border-cyan-100 bg-white/68 p-4" style={{ boxShadow: `0 20px 48px -36px ${accent.glowStrong}` }}>
+      <div className="flex items-center justify-between gap-3"><div><p className="font-mono text-[9px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT LOGGED')}</p><h2 className="font-display text-lg font-bold text-ink">{title}</h2></div><button type="button" onClick={onAdd} className="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800">+ {t('Add another')}</button></div>
+      <div className="mt-3 space-y-3">
+        {sessions.flatMap((session) => workoutDraftForSession(data, session.id)).map((exercise) => (
+          <div key={exercise.id} className="border-t border-ink/7 pt-2 first:border-0 first:pt-0"><p className="text-sm font-black text-ink">{localizedDraftName(exercise, language)}</p>{exercise.treadmill ? <p className="mt-0.5 font-mono text-[11px] font-semibold text-ink-soft">{exercise.treadmill.distanceKm} km · {exercise.treadmill.inclineDeg}° · {exercise.treadmill.durationMin} {t('min')}</p> : <div className="mt-1 space-y-0.5">{exercise.sets.map((set, index) => <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps} {t('reps')}{set.weightKg > 0 ? ` × ${set.weightKg} kg` : ''}</p>)}</div>}</div>
+        ))}
+      </div>
+      <p className="mt-3 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Saved as a smart preset')} · {format(parseISO(date), 'dd MMM')}</p>
+    </div>
+  )
+}

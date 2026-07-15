@@ -28,6 +28,7 @@ import { isTrainingInductionEligible } from '../lib/trainingInduction'
 import { TrainingInductionPanel } from '../components/workout/TrainingInductionPanel'
 import { useLanguage } from '../lib/i18n'
 import { UI_TRANSLATIONS } from '../lib/translations'
+import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -50,6 +51,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showEventForm, setShowEventForm] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
+  const [showManualWorkout, setShowManualWorkout] = useState(false)
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
@@ -180,6 +182,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </GlassCard>
         </motion.div>
 
+        <TodayManualWorkoutCard date={today} onAdd={() => setShowManualWorkout(true)} accent={accent} />
+
         {/* Calendar */}
         <GlassCard accent={accent} className="p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
@@ -296,6 +300,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           accent={ACCENTS.violet}
         />
       </Suspense>
+
+      <ManualWorkoutLogger open={showManualWorkout} onClose={() => setShowManualWorkout(false)} date={today} accent={accent} />
 
       {/* Event form */}
       <Sheet open={showEventForm} onClose={() => setShowEventForm(false)}>

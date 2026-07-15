@@ -10,6 +10,7 @@ import { useStore } from '../store/AppStore'
 import {
   EXERCISE_CATEGORIES,
   EXERCISE_CATALOG,
+  displayExerciseName,
   searchExerciseCatalog,
   type ExerciseCatalogItem,
   type ExerciseCategory,
@@ -84,8 +85,8 @@ export function CustomWorkoutBuilder({
 
   const byId = useMemo(() => new Map(EXERCISE_CATALOG.map((item) => [item.id, item])), [])
   const results = useMemo(
-    () => searchExerciseCatalog(query, category).slice(0, query.trim() ? 24 : 14),
-    [category, query],
+    () => searchExerciseCatalog(query, category, language).slice(0, query.trim() ? 24 : 14),
+    [category, language, query],
   )
   const selectedNames = useMemo(
     () => selected.map((selection) => byId.get(selection.id)?.name).filter((value): value is string => !!value),
@@ -232,7 +233,7 @@ export function CustomWorkoutBuilder({
             return (
               <button key={item.id} type="button" onClick={() => addExercise(item)} className={`flex min-h-[68px] items-center justify-between gap-3 rounded-2xl border p-3 text-left transition active:scale-[.985] ${active ? 'border-violet-300 bg-violet-50/90 shadow-[0_10px_28px_-20px_rgba(109,40,217,.8)]' : 'border-white/95 bg-white/60'}`}>
                 <span className="min-w-0">
-                  <span className="block truncate text-sm font-bold text-ink">{t(item.name)}</span>
+                  <span className="block truncate text-sm font-bold text-ink">{displayExerciseName(item, language)}</span>
                   <span className="mt-0.5 block truncate text-[10px] font-semibold text-ink-soft">{t(item.equipment)} · {t(item.category)}</span>
                 </span>
                 <span className={`grid h-8 w-8 shrink-0 place-items-center rounded-full text-lg font-black ${active ? 'bg-violet-600 text-white' : 'bg-slate-100 text-ink-soft'}`}>{active ? '✓' : '+'}</span>
@@ -259,8 +260,8 @@ export function CustomWorkoutBuilder({
               return (
                 <div key={selection.id} className="rounded-2xl border border-white bg-white/72 p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="min-w-0 truncate text-sm font-bold text-ink"><span className="mr-2 font-mono text-[9px] text-violet-600">{String(index + 1).padStart(2, '0')}</span>{t(item.name)}</p>
-                    <button type="button" onClick={() => addExercise(item)} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-bold text-rose-600" aria-label={`${t('Remove')} ${t(item.name)}`}>×</button>
+                    <p className="min-w-0 truncate text-sm font-bold text-ink"><span className="mr-2 font-mono text-[9px] text-violet-600">{String(index + 1).padStart(2, '0')}</span>{displayExerciseName(item, language)}</p>
+                    <button type="button" onClick={() => addExercise(item)} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-bold text-rose-600" aria-label={`${t('Remove')} ${displayExerciseName(item, language)}`}>×</button>
                   </div>
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     {([

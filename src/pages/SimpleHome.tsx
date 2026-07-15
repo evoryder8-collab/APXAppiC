@@ -19,6 +19,7 @@ import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
 import { NutritionGlance } from '../components/food/NutritionGlance'
+import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
 
 const emerald = ACCENTS.emerald
 
@@ -53,6 +54,7 @@ export function SimpleHome() {
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const [showChecklist, setShowChecklist] = useState(false)
+  const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const today = todayIso()
   const profile = data.profile
@@ -249,6 +251,8 @@ export function SimpleHome() {
           </GlassCard>
         </Link>
 
+        <TodayManualWorkoutCard date={today} onAdd={() => setShowManualWorkout(true)} />
+
         <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
           <div className="mt-2 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
@@ -298,6 +302,7 @@ export function SimpleHome() {
 
         <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to="/transition" className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>
       </div>
+      <ManualWorkoutLogger open={showManualWorkout} onClose={() => setShowManualWorkout(false)} date={today} />
       <PortalLanguageMenu />
     </div>
   )
