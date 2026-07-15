@@ -14,6 +14,25 @@ export interface TimedSimpleAction {
   time: number
 }
 
+export interface SimpleSwipePoint {
+  x: number
+  y: number
+}
+
+/* Horizontal gestures that begin inside a component-owned gesture zone must
+   never escape into Simple Mode's day navigation. */
+export function simpleDaySwipeOffset(
+  start: SimpleSwipePoint,
+  end: SimpleSwipePoint,
+  blockedByLocalGesture = false,
+): -1 | 0 | 1 {
+  if (blockedByLocalGesture) return 0
+  const dx = end.x - start.x
+  const dy = end.y - start.y
+  if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.35) return 0
+  return dx < 0 ? 1 : -1
+}
+
 /* Prefer the most recently due unfinished action. If nothing is due yet,
    surface the earliest upcoming action. This avoids nagging users about a
    05:30 item at dinner while still keeping the next decision obvious. */

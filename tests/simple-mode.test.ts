@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings } from '../src/lib/simpleMode.ts'
+import { selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 
 const settings: Settings = {
@@ -34,4 +34,15 @@ test('Simple Mode water checklist toggles the target instead of adding it twice'
   assert.equal(simpleWaterTargetComplete(2.5, 2.5), true)
   assert.equal(toggleSimpleWaterTarget(2.5, 2.5), 0)
   assert.equal(toggleSimpleWaterTarget(2.25, 2.5), 0)
+})
+
+test('Simple Mode changes days only for a deliberate horizontal swipe', () => {
+  assert.equal(simpleDaySwipeOffset({ x: 200, y: 100 }, { x: 120, y: 104 }), 1)
+  assert.equal(simpleDaySwipeOffset({ x: 120, y: 100 }, { x: 200, y: 104 }), -1)
+  assert.equal(simpleDaySwipeOffset({ x: 200, y: 100 }, { x: 160, y: 104 }), 0)
+  assert.equal(simpleDaySwipeOffset({ x: 200, y: 100 }, { x: 120, y: 180 }), 0)
+})
+
+test('workout-owned gestures never become Simple Mode day swipes', () => {
+  assert.equal(simpleDaySwipeOffset({ x: 200, y: 100 }, { x: 80, y: 100 }, true), 0)
 })

@@ -14,7 +14,7 @@ import { aggregateConsumedMeals, reconcileConsumedMeals, type ComposerFoodItem, 
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { selectNextSimpleAction, simpleCompletion, simpleWaterTargetComplete, toggleSimpleWaterTarget } from '../lib/simpleMode'
+import { selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -60,7 +60,7 @@ export function SimpleHome() {
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const today = todayIso()
   const [selectedDate, setSelectedDate] = useState(today)
-  const swipeStart = useRef<{ x: number; y: number } | null>(null)
+  const swipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedDate), [selectedDate])
   const profile = data.profile
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
@@ -227,10 +227,8 @@ export function SimpleHome() {
     const start = swipeStart.current
     swipeStart.current = null
     if (!start || showManualWorkout) return
-    const dx = x - start.x
-    const dy = y - start.y
-    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.35) return
-    moveDay(dx < 0 ? 1 : -1)
+    const offset = simpleDaySwipeOffset(start, { x, y }, start.blockedByLocalGesture)
+    if (offset !== 0) moveDay(offset)
   }
 
   const nowMinutes = selectedDate === today ? new Date().getHours() * 60 + new Date().getMinutes() : 0
@@ -272,11 +270,16 @@ export function SimpleHome() {
       className="mx-auto w-full max-w-3xl touch-pan-y"
       onTouchStart={(event) => {
         const touch = event.changedTouches[0]
-        if (touch) swipeStart.current = { x: touch.clientX, y: touch.clientY }
+        const target = event.target
+        const blockedByLocalGesture = target instanceof Element && Boolean(target.closest('[data-simple-local-gesture]'))
+        if (touch) swipeStart.current = { x: touch.clientX, y: touch.clientY, blockedByLocalGesture }
       }}
       onTouchEnd={(event) => {
         const touch = event.changedTouches[0]
         if (touch) finishSwipe(touch.clientX, touch.clientY)
+      }}
+      onTouchCancel={() => {
+        swipeStart.current = null
       }}
     >
       <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">

@@ -567,6 +567,7 @@ export function TodayManualWorkoutCard({
       <Reorder.Group
         as="div"
         axis="y"
+        data-simple-local-gesture
         values={activeOrder}
         onReorder={(next) => {
           orderRef.current = next
