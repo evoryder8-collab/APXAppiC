@@ -13,7 +13,7 @@ export type Block =
       repDuration: number // seconds per rep for the cadence engine
       timed: number | null // seconds, for holds/videos, replaces rep counting
     }
-  | { kind: 'rest'; exIdx: number; afterSet: number; duration: number; nextLabel: string }
+  | { kind: 'rest'; exIdx: number; afterSet: number; duration: number; nextLabel: string; exercise: PlannedExercise; captureLoad: boolean }
   | { kind: 'log'; exIdx: number; exercise: PlannedExercise }
   | { kind: 'done' }
 
@@ -58,6 +58,8 @@ export function buildTimeline(plan: PlannedDay): Block[] {
           afterSet: s,
           duration: e.rest_sec,
           nextLabel: `${e.name}, set ${s + 1}`,
+          exercise: e,
+          captureLoad: e.increment_kg > 0,
         })
       }
     }
@@ -70,6 +72,8 @@ export function buildTimeline(plan: PlannedDay): Block[] {
         afterSet: totalSets,
         duration: Math.min(e.rest_sec, 90),
         nextLabel: next.name,
+        exercise: e,
+        captureLoad: false,
       })
     }
   })

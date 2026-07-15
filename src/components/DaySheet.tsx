@@ -11,6 +11,8 @@ import { useStore } from '../store/AppStore'
 import { AccentChip, GradientButton, Sheet, Stepper } from './ui'
 import { DropletIcon } from './Icons'
 import { dailyLogId } from '../lib/ids'
+import { WorkoutStatsSheet } from './workout/WorkoutStatsSheet'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((m) => ({ default: m.HologramStage })),
@@ -40,8 +42,11 @@ function completedSessionFor(
 
 export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps) {
   const { data, upsert, remove } = useStore()
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
   const [lite, setLite] = useState(false)
+  const [statsOpen, setStatsOpen] = useState(false)
 
   const plan = useMemo(() => planForDate(data, slug, dateIso, lite), [data, slug, dateIso, lite])
   const done = useMemo(() => completedSessionFor(data, slug, dateIso), [data, slug, dateIso])
@@ -86,6 +91,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
   const isPastOrToday = dateIso <= todayIso()
 
   return (
+    <>
     <Sheet open={open} onClose={onClose} wide>
       <div className="flex items-start justify-between gap-3">
         <div>
@@ -228,6 +234,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
             ))}
             {logsForDone.length > 14 && <p>… {logsForDone.length - 14} more sets</p>}
           </div>
+          <button type="button" onClick={() => setStatsOpen(true)} className="mt-3 w-full rounded-2xl bg-white/75 px-4 py-3 text-sm font-black shadow-sm" style={{ color: accent.deep }}>{t('Workout stats at a glance')}</button>
         </div>
       )}
 
@@ -272,5 +279,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
         </div>
       )}
     </Sheet>
+    <WorkoutStatsSheet open={statsOpen} onClose={() => setStatsOpen(false)} sessionId={done?.id ?? null} accent={accent} />
+    </>
   )
 }

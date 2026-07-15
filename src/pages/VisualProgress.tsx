@@ -11,6 +11,7 @@ import { CameraIcon } from '../components/Icons'
 import { PhotoComparison } from '../components/progress/PhotoComparison'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { useOrbitText } from '../orbit/ui/i18n'
+import { useLanguage } from '../lib/i18n'
 
 const ProgressCamera = lazy(() => import('../components/progress/ProgressCamera').then((module) => ({ default: module.ProgressCamera })))
 const violet = ACCENTS.violet
@@ -28,6 +29,7 @@ export function VisualProgress() {
   const store = useProgressPhotoStore()
   const orbit = useOrbitStore()
   const t = useOrbitText()
+  const { language } = useLanguage()
   const location = useLocation()
   const backTo = (location.state as { from?: string } | null)?.from === '/nutrition' ? '/nutrition' : '/avatar'
   const [guide, setGuide] = useState(false)
@@ -40,6 +42,11 @@ export function VisualProgress() {
   const [compareIds, setCompareIds] = useState<string[]>([])
   const [compareOpen, setCompareOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const poseLabel = (value: ProgressPose): string => ({
+    en: { front: 'Front', side: 'Side', back: 'Back' },
+    ro: { front: 'Față', side: 'Lateral', back: 'Spate' },
+    th: { front: 'ด้านหน้า', side: 'ด้านข้าง', back: 'ด้านหลัง' },
+  })[language][value]
 
   const reference = useMemo(() => store.photos.find((photo) => photo.pose === pose) ?? store.photos[0] ?? null, [pose, store.photos])
   const comparisonPhotos = compareIds
@@ -160,15 +167,28 @@ export function VisualProgress() {
       </div>
 
       {guide && (
-        <div className="fixed inset-0 z-[90] grid place-items-end bg-black/35 p-4 backdrop-blur-sm sm:place-items-center" role="dialog" aria-modal="true">
-          <GlassCard accent={violet} className="w-full max-w-lg p-5 sm:p-6">
-            <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-violet-700 uppercase">Before the camera opens</p>
-            <h2 className="mt-2 font-display text-xl font-bold text-ink">Build a repeatable image</h2>
-            <div className="mt-4 grid grid-cols-2 gap-2 text-xs font-semibold text-ink-soft"><p className="rounded-2xl bg-white/65 p-3">1. Same room and similar light</p><p className="rounded-2xl bg-white/65 p-3">2. Camera around waist height</p><p className="rounded-2xl bg-white/65 p-3">3. Neutral stance, no forced flex</p><p className="rounded-2xl bg-white/65 p-3">4. Feet on the guide line</p></div>
-            <div className="mt-4 flex gap-2">{(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`flex-1 rounded-xl px-3 py-2 text-xs font-bold uppercase ${pose === value ? 'bg-violet-500 text-white' : 'bg-white/70 text-ink-soft'}`}>{value}</button>)}</div>
-            <div className="mt-3 grid grid-cols-2 gap-2"><input inputMode="decimal" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder="Weight kg (optional)" className="rounded-xl bg-white/70 px-3 py-2 text-sm outline-none" /><input value={note} onChange={(event) => setNote(event.target.value)} placeholder="Short note (optional)" className="rounded-xl bg-white/70 px-3 py-2 text-sm outline-none" /></div>
-            <p className="mt-3 text-[10px] font-medium text-ink-faint">Camera access begins only after you confirm below. Nothing is uploaded until you review and save.</p>
-            <div className="mt-4 flex gap-2"><button type="button" onClick={() => setGuide(false)} className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-bold text-ink">Cancel</button><GradientButton accent={violet} onClick={openCamera} className="flex-1">Got it, open camera</GradientButton></div>
+        <div className="fixed inset-0 z-[90] grid place-items-end bg-black/35 px-3 pt-10 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:place-items-center sm:p-4" role="dialog" aria-modal="true">
+          <GlassCard accent={violet} className="flex min-h-[78dvh] max-h-[94dvh] w-full max-w-lg flex-col overflow-y-auto p-5 sm:min-h-0 sm:p-6">
+            <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-violet-700 uppercase">{t('Before the camera opens')}</p>
+            <h2 className="mt-2 font-display text-2xl font-bold text-ink">{t('Build a repeatable image')}</h2>
+            <p className="mt-2 text-xs leading-relaxed font-medium text-ink-soft">{t('Four calm checks make every future comparison more meaningful.')}</p>
+            <ol className="mt-6 space-y-4 text-sm font-semibold text-ink-soft">
+              {[
+                'Same room and similar light',
+                'Camera around waist height',
+                'Neutral stance, no forced flex',
+                'Feet on the guide line',
+              ].map((step, index) => (
+                <li key={step} className="flex min-h-11 items-center gap-4 px-1">
+                  <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet-500/12 font-mono text-xs font-black text-violet-700">{index + 1}</span>
+                  <span className="leading-snug">{t(step)}</span>
+                </li>
+              ))}
+            </ol>
+            <div className="mt-6 flex gap-2">{(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold uppercase ${pose === value ? 'bg-violet-500 text-white' : 'bg-white/70 text-ink-soft'}`}>{poseLabel(value)}</button>)}</div>
+            <div className="mt-3 grid gap-2 sm:grid-cols-2"><input inputMode="decimal" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder={t('Weight kg (optional)')} className="rounded-xl bg-white/70 px-3 py-2.5 text-sm outline-none" /><input value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('Short note (optional)')} className="rounded-xl bg-white/70 px-3 py-2.5 text-sm outline-none" /></div>
+            <p className="mt-4 text-[10px] leading-relaxed font-medium text-ink-faint">{t('Camera access begins only after you confirm below. Nothing is uploaded until you review and save.')}</p>
+            <div className="mt-auto flex gap-2 pt-5"><button type="button" onClick={() => setGuide(false)} className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-bold text-ink">{t('Cancel')}</button><GradientButton accent={violet} onClick={openCamera} className="flex-1">{t('Got it, open camera')}</GradientButton></div>
           </GlassCard>
         </div>
       )}

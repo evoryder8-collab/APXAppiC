@@ -18,6 +18,7 @@ import { AccentChip, GradientButton, GhostButton, Sheet, EASE } from '../compone
 import { activityCatalogMap, activityLogFromBlock, emptyActivityBlock } from '../lib/activity'
 import { activityLogId } from '../lib/ids'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -25,6 +26,7 @@ interface SetResult {
   reps: number | null
   rir: number | null
   skipped: boolean
+  weight: number | null
 }
 
 interface ExerciseResult {
@@ -50,6 +52,7 @@ type Action =
   | { type: 'extend'; seconds: number }
   | { type: 'endSet'; key: string; reps: number }
   | { type: 'saveLog'; exIdx: number; result: ExerciseResult }
+  | { type: 'recordWeight'; exIdx: number; setNo: number; totalSets: number; weight: number | null }
   | { type: 'restore'; state: PlayerState }
 
 function reducer(state: PlayerState, action: Action): PlayerState {
@@ -67,6 +70,29 @@ function reducer(state: PlayerState, action: Action): PlayerState {
       return { ...state, countedReps: { ...state.countedReps, [action.key]: action.reps } }
     case 'saveLog':
       return { ...state, results: { ...state.results, [action.exIdx]: action.result } }
+    case 'recordWeight': {
+      const existing = state.results[action.exIdx]
+      const sets = [...Array(action.totalSets)].map((_, index) => {
+        const current = existing?.sets[index]
+        return current
+          ? { ...current, weight: current.weight ?? existing?.weight ?? null }
+          : { reps: null, rir: null, skipped: false, weight: null }
+      })
+      sets[action.setNo - 1] = { ...sets[action.setNo - 1], weight: action.weight }
+      const weights = sets.map((set) => set.weight).filter((value): value is number => value != null)
+      return {
+        ...state,
+        results: {
+          ...state.results,
+          [action.exIdx]: {
+            weight: weights.length > 0 ? Math.max(...weights) : null,
+            override: existing?.override ?? false,
+            sets,
+            skippedAll: existing?.skippedAll ?? false,
+          },
+        },
+      }
+    }
     case 'restore':
       return action.state
     default:
@@ -93,7 +119,11 @@ export function Player() {
         | (PlayerState & { slug: string; date: string; lite: boolean })
         | null
       if (saved && saved.slug === slug && saved.date === date && saved.lite === lite) {
-        return { idx: saved.idx, paused: true, elapsed: 0, results: saved.results, countedReps: saved.countedReps, startedAt: saved.startedAt }
+        const restoredResults = Object.fromEntries(Object.entries(saved.results ?? {}).map(([key, result]) => [key, {
+          ...result,
+          sets: (result.sets ?? []).map((set) => ({ ...set, weight: set.weight ?? result.weight ?? null })),
+        }]))
+        return { idx: saved.idx, paused: true, elapsed: 0, results: restoredResults, countedReps: saved.countedReps, startedAt: saved.startedAt }
       }
     } catch {
       /* fresh start */
@@ -143,9 +173,9 @@ export function Player() {
     } else if (block.kind === 'rest' && voice) {
       if (block.duration <= 30.5) {
         announcedRestThirty.current = state.idx
-        speak(`${voiceText('Set finished. Now rest.')} ${voiceText('30 seconds left. Prepare for the next set.')}`, language)
+        speak(`${voiceText('Set finished. Now rest.')} ${block.captureLoad ? `${voiceText('Log the weight used for this set.')} ` : ''}${voiceText('30 seconds left. Prepare for the next set.')}`, language)
       } else {
-        speak(voiceText('Set finished. Now rest.'), language)
+        speak(`${voiceText('Set finished. Now rest.')} ${block.captureLoad ? voiceText('Log the weight used for this set.') : ''}`.trim(), language)
       }
     } else if (block.kind === 'done') {
       stopSpeech()
@@ -212,16 +242,17 @@ export function Player() {
     [plan.exercises, data],
   )
 
-  const saveExerciseLog = (exIdx: number, weight: number | null, rir: number | null, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean): void => {
+  const saveExerciseLog = (exIdx: number, weights: Array<number | null>, rir: number | null, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean): void => {
     const e = plan.exercises[exIdx]
+    const usableWeights = weights.filter((value): value is number => value != null)
     dispatch({
       type: 'saveLog',
       exIdx,
       result: {
-        weight,
+        weight: usableWeights.length > 0 ? Math.max(...usableWeights) : null,
         override,
         skippedAll,
-        sets: repsBySet.map((r) => ({ reps: skippedAll ? null : r, rir, skipped: skippedAll })),
+        sets: repsBySet.map((r, index) => ({ reps: skippedAll ? null : r, rir, skipped: skippedAll, weight: skippedAll ? null : (weights[index] ?? null) })),
       },
     })
     if (voice && !skippedAll) speak(`${voiceText(e.name)}. ${voiceText('Exercise logged.')}`, language)
@@ -231,7 +262,8 @@ export function Player() {
   /* -------- finish -------- */
   const finished = block?.kind === 'done'
   const savedRef = useRef(false)
-  const [summary, setSummary] = useState<{ quality: number; streak: number; deltas: string[] } | null>(null)
+  const [summary, setSummary] = useState<{ quality: number; streak: number; deltas: string[]; sessionId: string } | null>(null)
+  const [showStats, setShowStats] = useState(false)
 
   useEffect(() => {
     if (!finished || savedRef.current || !plan.programDay) return
@@ -274,7 +306,7 @@ export function Player() {
           exercise_id: isRealExercise ? e.id : null,
           exercise_name: e.name,
           set_no: setNo,
-          weight_kg: r?.skippedAll ? null : (r?.weight ?? null),
+          weight_kg: r?.skippedAll ? null : (sr?.weight ?? r?.weight ?? null),
           reps: r?.skippedAll ? null : (sr?.reps ?? state.countedReps[`${exIdx}-${setNo}`] ?? null),
           rir: r?.skippedAll ? null : (sr?.rir ?? null),
           skipped: r?.skippedAll ?? !r,
@@ -322,7 +354,7 @@ export function Player() {
               : ['+Strength (upper)', '+Consistency']
     if (plan.isDeload) deltas.unshift('+Joint Health (deload honored)')
 
-    setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas })
+    setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas, sessionId })
     toast('Session saved', 'ok')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished])
@@ -408,10 +440,13 @@ export function Player() {
                 }}
                 recFor={recFor}
                 onSaveLog={saveExerciseLog}
+                results={state.results}
+                onSetWeight={(exIdx, setNo, totalSets, weight) => dispatch({ type: 'recordWeight', exIdx, setNo, totalSets, weight })}
                 guardian={guardian}
                 setGuardian={setGuardian}
                 guardianFactor={data.settings?.guardian_factor ?? 1.5}
                 summary={summary}
+                onShowStats={() => setShowStats(true)}
                 onFinishExit={() => navigate(-1)}
               />
             )}
@@ -454,6 +489,7 @@ export function Player() {
           })}
         </div>
       </div>
+      <WorkoutStatsSheet open={showStats} onClose={() => setShowStats(false)} sessionId={summary?.sessionId ?? null} accent={accent} />
     </div>
   )
 }
@@ -471,27 +507,32 @@ function BlockView(props: {
   onExtendRest: () => void
   onEndMaxSet: (reps: number) => void
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weight: number | null, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
+  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
+  results: Record<number, ExerciseResult>
+  onSetWeight: (exIdx: number, setNo: number, totalSets: number, weight: number | null) => void
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
-  summary: { quality: number; streak: number; deltas: string[] } | null
+  summary: { quality: number; streak: number; deltas: string[]; sessionId: string } | null
+  onShowStats: () => void
   onFinishExit: () => void
 }) {
   const { block, accent } = props
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
 
   if (block.kind === 'warmup') {
     const remaining = Math.max(0, block.duration - props.elapsed)
     return (
       <CenterCard accent={accent}>
-        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">Warm-up</p>
+        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Warm-up')}</p>
         <p className="mt-2 text-[15px] leading-relaxed font-semibold text-ink">{block.text}</p>
         <p className="mt-4 font-mono text-5xl font-bold" style={{ color: accent.deep }}>
           {Math.ceil(remaining)}s
         </p>
         <div className="mt-5 flex justify-center gap-2">
           <PauseButton paused={props.paused} onPause={props.onPause} accent={accent} />
-          <GhostButton onClick={props.onSkipRest}>Skip</GhostButton>
+          <GhostButton onClick={props.onSkipRest}>{t('Skip')}</GhostButton>
         </div>
       </CenterCard>
     )
@@ -509,7 +550,7 @@ function BlockView(props: {
           <RestRing accent={accent} remaining={remaining} total={block.timed} label="hold" />
           <div className="mt-4 flex justify-center gap-2">
             <PauseButton paused={props.paused} onPause={props.onPause} accent={accent} />
-            <GhostButton onClick={props.onSkipRest}>Done</GhostButton>
+            <GhostButton onClick={props.onSkipRest}>{t('Done')}</GhostButton>
           </div>
         </CenterCard>
       )
@@ -521,8 +562,8 @@ function BlockView(props: {
     return (
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
-          Set {block.setNo} of {block.totalSets}
-          {e.per_side ? ' · per side' : ''}
+          {t('Set')} {block.setNo} {t('of')} {block.totalSets}
+          {e.per_side ? ` · ${t('per side')}` : ''}
         </p>
         <h2 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{e.name}</h2>
         {e.tempo_note && <p className="mt-1 text-xs font-semibold text-ink-soft">{e.tempo_note}</p>}
@@ -537,7 +578,7 @@ function BlockView(props: {
             {rep}
           </motion.p>
           <p className="font-mono text-sm font-semibold text-ink-faint">
-            {block.targetReps != null ? `of ${block.targetReps}` : 'to failure, tap done'}
+            {block.targetReps != null ? `${t('of')} ${block.targetReps}` : t('to failure, tap done')}
           </p>
         </div>
         <div className="flex justify-center gap-2">
@@ -554,14 +595,28 @@ function BlockView(props: {
 
   if (block.kind === 'rest') {
     const remaining = Math.max(0, block.duration - props.elapsed)
+    const existing = props.results[block.exIdx]
+    const recommendation = props.recFor(block.exIdx)
+    const captured = existing?.sets[block.afterSet - 1]?.weight ?? existing?.weight ?? recommendation?.weight ?? null
     return (
       <CenterCard accent={accent}>
-        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">Rest</p>
-        <RestRing accent={accent} remaining={remaining} total={block.duration} label={`next: ${block.nextLabel}`} />
+        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Rest')}</p>
+        <RestRing accent={accent} remaining={remaining} total={block.duration} label={`${t('next')}: ${t(block.nextLabel)}`} />
+        {block.captureLoad && (
+          <RestLoadCapture
+            key={`${block.exIdx}:${block.afterSet}`}
+            accent={accent}
+            exerciseName={block.exercise.name}
+            setNo={block.afterSet}
+            value={captured}
+            recommended={recommendation?.weight ?? null}
+            onChange={(weight) => props.onSetWeight(block.exIdx, block.afterSet, block.exercise.planned_sets, weight)}
+          />
+        )}
         <div className="mt-4 flex justify-center gap-2">
           <GhostButton onClick={props.onExtendRest}>+30s</GhostButton>
           <GradientButton accent={accent} onClick={props.onSkipRest}>
-            Skip
+            {t('Skip')}
           </GradientButton>
         </div>
       </CenterCard>
@@ -575,16 +630,16 @@ function BlockView(props: {
   /* done */
   return (
     <CenterCard accent={accent}>
-      <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">Session complete</p>
+      <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Session complete')}</p>
       {props.summary && (
         <>
           <p className="mt-3 font-mono text-6xl font-bold" style={{ color: accent.deep }}>
             {(props.summary.quality * 100).toFixed(0)}%
           </p>
-          <p className="mt-1 text-sm font-semibold text-ink-soft">plan quality</p>
+          <p className="mt-1 text-sm font-semibold text-ink-soft">{t('plan quality')}</p>
           <div className="mt-4 flex flex-wrap justify-center gap-1.5">
             <AccentChip accent={accent} solid>
-              🔥 {props.summary.streak} DAY STREAK
+              🔥 {props.summary.streak} {t('day streak').toUpperCase()}
             </AccentChip>
             {props.summary.deltas.map((d) => (
               <AccentChip key={d} accent={ACCENTS.emerald}>
@@ -595,8 +650,9 @@ function BlockView(props: {
         </>
       )}
       <div className="mt-6">
+        {props.summary && <GhostButton onClick={props.onShowStats} className="mb-2 w-full">{t('Workout stats at a glance')}</GhostButton>}
         <GradientButton accent={accent} onClick={props.onFinishExit} className="w-full">
-          Back to calendar
+          {t('Back to calendar')}
         </GradientButton>
       </div>
     </CenterCard>
@@ -655,6 +711,42 @@ function RestRing({ accent, remaining, total, label }: { accent: Accent; remaini
   )
 }
 
+function RestLoadCapture({
+  accent,
+  exerciseName,
+  setNo,
+  value,
+  recommended,
+  onChange,
+}: {
+  accent: Accent
+  exerciseName: string
+  setNo: number
+  value: number | null
+  recommended: number | null
+  onChange: (weight: number | null) => void
+}) {
+  const { language } = useLanguage()
+  const t = (text: string): string => translateInterfaceText(text, language)
+  const [draft, setDraft] = useState(value == null ? '' : String(value))
+  const update = (next: number | null) => {
+    const safe = next == null || !Number.isFinite(next) ? null : Math.max(0, Math.round(next * 2) / 2)
+    setDraft(safe == null ? '' : String(safe))
+    onChange(safe)
+  }
+
+  return (
+    <div className="mx-auto mt-4 max-w-sm rounded-[1.4rem] border border-white/85 bg-white/68 p-3 text-left shadow-[0_14px_32px_-24px_rgba(76,29,149,.75)]">
+      <div className="flex items-start justify-between gap-2"><div><p className="font-mono text-[8px] font-black tracking-[0.15em] text-violet-700 uppercase">{t('Log this set during the break')}</p><p className="mt-0.5 truncate text-xs font-black text-ink">{exerciseName} · {t('Set')} {setNo}</p></div>{recommended != null && <span className="shrink-0 rounded-full px-2 py-1 font-mono text-[8px] font-black" style={{ background: accent.wash, color: accent.deep }}>{t('Suggested')} {recommended}</span>}</div>
+      <div className="mt-2 grid grid-cols-[2.5rem_minmax(0,1fr)_2.5rem] items-center gap-2">
+        <button type="button" onClick={() => update((Number(draft.replace(',', '.')) || 0) - 2.5)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button>
+        <label className="relative"><span className="sr-only">{t('Weight used in kilograms')}</span><input autoFocus inputMode="decimal" type="text" value={draft} onChange={(event) => { const next = event.target.value.replace(/[^\d.,]/g, ''); setDraft(next); const parsed = Number(next.replace(',', '.')); onChange(next === '' || !Number.isFinite(parsed) ? null : parsed) }} onBlur={() => update(draft === '' ? null : Number(draft.replace(',', '.')))} placeholder="0" className="w-full rounded-xl border border-violet-200/70 bg-white/90 px-9 py-2 text-center font-mono text-2xl font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-2 flex items-center font-mono text-[9px] font-black text-ink-faint">KG</span></label>
+        <button type="button" onClick={() => update((Number(draft.replace(',', '.')) || 0) + 2.5)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button>
+      </div>
+    </div>
+  )
+}
+
 /* ---------------- 2-tap log ---------------- */
 
 function LogCard(props: {
@@ -663,14 +755,20 @@ function LogCard(props: {
   accent: Accent
   counted: Record<string, number>
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weight: number | null, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
+  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
+  results: Record<number, ExerciseResult>
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
 }) {
   const { exIdx, exercise: e, accent } = props
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const rec = props.recFor(exIdx)
-  const [weight, setWeight] = useState<number | null>(rec?.weight ?? null)
+  const existing = props.results[exIdx]
+  const [weights, setWeights] = useState<Array<number | null>>(() =>
+    [...Array(e.planned_sets)].map((_, index) => existing?.sets[index]?.weight ?? existing?.weight ?? rec?.weight ?? null),
+  )
   const [rir, setRir] = useState<number | null>(1)
   const [reps, setReps] = useState<Array<number | null>>(() =>
     [...Array(e.planned_sets)].map((_, i) => props.counted[`${exIdx}-${i + 1}`] ?? (e.rep_unit === 'reps' ? Math.round((e.rep_min + e.rep_max) / 2) : null)),
@@ -678,14 +776,15 @@ function LogCard(props: {
   const [overridden, setOverridden] = useState(false)
 
   const trySave = (): void => {
-    if (weight != null && rec) {
-      const verdict = guardianCheck(weight, rec, props.guardianFactor)
+    const entered = Math.max(0, ...weights.filter((value): value is number => value != null))
+    if (entered > 0 && rec) {
+      const verdict = guardianCheck(entered, rec, props.guardianFactor)
       if (verdict.triggered && !overridden) {
-        props.setGuardian({ entered: weight, safe: verdict.safeLoad, exIdx })
+        props.setGuardian({ entered, safe: verdict.safeLoad, exIdx })
         return
       }
     }
-    props.onSaveLog(exIdx, weight, rir, reps, false, overridden)
+    props.onSaveLog(exIdx, weights, rir, reps, false, overridden)
   }
 
   return (
@@ -698,32 +797,14 @@ function LogCard(props: {
         </p>
       )}
 
-      {e.increment_kg > 0 && (
-        <div className="mt-4 flex items-center justify-center gap-3">
-          <button type="button" onClick={() => setWeight((w) => Math.max(0, (w ?? 0) - 2.5))} className="glass h-11 w-11 rounded-xl font-mono text-lg font-bold text-ink">
-            -
-          </button>
-          <div>
-            <p className="font-mono text-4xl font-bold text-ink">{weight ?? 0}</p>
-            <p className="text-[10px] font-bold text-ink-faint">KG</p>
-          </div>
-          <button type="button" onClick={() => setWeight((w) => (w ?? 0) + 2.5)} className="glass h-11 w-11 rounded-xl font-mono text-lg font-bold text-ink">
-            +
-          </button>
-        </div>
-      )}
+      {e.increment_kg > 0 && <p className="mt-3 rounded-xl bg-violet-500/8 px-3 py-2 text-[10px] font-semibold text-violet-800">{t('Loads were captured during each rest. Correct any set below before saving.')}</p>}
 
-      <div className="mt-4 space-y-1.5">
+      <div className="mt-4 space-y-2">
         {reps.map((r, i) => (
-          <div key={i} className="flex items-center justify-center gap-2 font-mono text-sm font-semibold text-ink-soft">
+          <div key={i} className="grid grid-cols-[3.2rem_minmax(0,1fr)_auto] items-center gap-2 rounded-2xl bg-white/55 p-2 font-mono text-xs font-semibold text-ink-soft">
             <span>Set {i + 1}</span>
-            <button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? Math.max(0, (v ?? 0) - 1) : v)))}>
-              -
-            </button>
-            <span className="w-8 text-center font-bold text-ink">{r ?? '–'}</span>
-            <button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? (v ?? 0) + 1 : v)))}>
-              +
-            </button>
+            {e.increment_kg > 0 ? <label className="relative min-w-0"><input aria-label={`Set ${i + 1} weight in kilograms`} inputMode="decimal" type="number" min="0" step="0.5" value={weights[i] ?? ''} onChange={(event) => setWeights((current) => current.map((value, index) => index === i ? (event.target.value === '' ? null : Number(event.target.value)) : value))} className="w-full rounded-xl border border-white/80 bg-white/85 py-2 pr-8 pl-2 text-right font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[8px] font-black text-ink-faint">KG</span></label> : <span />}
+            <div className="flex items-center gap-1"><button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? Math.max(0, (v ?? 0) - 1) : v)))}>-</button><span className="w-7 text-center font-bold text-ink">{r ?? '–'}</span><button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? (v ?? 0) + 1 : v)))}>+</button></div>
           </div>
         ))}
       </div>
@@ -750,7 +831,7 @@ function LogCard(props: {
       </div>
 
       <div className="mt-5 flex gap-2">
-        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, null, null, reps.map(() => null), true, false)}>
+        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, reps.map(() => null), null, reps.map(() => null), true, false)}>
           Skipped
         </GhostButton>
         <GradientButton accent={accent} className="flex-[2]" onClick={trySave}>
@@ -778,7 +859,7 @@ function LogCard(props: {
                 accent={ACCENTS.amber}
                 className="flex-1"
                 onClick={() => {
-                  setWeight(props.guardian?.safe ?? weight)
+                  setWeights((current) => current.map((value) => value != null && value > (props.guardian?.safe ?? value) ? (props.guardian?.safe ?? value) : value))
                   props.setGuardian(null)
                 }}
               >

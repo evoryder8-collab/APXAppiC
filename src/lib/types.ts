@@ -283,7 +283,19 @@ export interface Settings {
     /* Stored inside the existing JSON settings record so measured BMR works
        immediately on every deployed database without a blocking schema step. */
     custom_bmr?: number | null
+    /* Weekly subjective joint/load-tolerance check-ins. Keeping these in the
+       existing per-user JSON record makes the feature deploy-safe while still
+       syncing privately across devices. */
+    joint_checkins?: JointCheckin[]
   }
+}
+
+export interface JointCheckin {
+  id: string
+  date: string
+  arms: number
+  core: number
+  legs: number
 }
 
 export interface AppData {

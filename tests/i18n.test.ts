@@ -47,6 +47,13 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Built naturally. Refined intelligently.',
     'Your next run, already reasoned through',
     'Athletic Base',
+    'Living profile',
+    'LIFELONG ATHLETE',
+    'ENDURANCE ATHLETE',
+    'BALANCED PERFORMANCE',
+    'Workout stats at a glance',
+    'Log the weight used for this set.',
+    'Four calm checks make every future comparison more meaningful.',
   ]
   for (const english of critical) {
     assert.ok(UI_TRANSLATIONS[english]?.ro, `missing Romanian: ${english}`)

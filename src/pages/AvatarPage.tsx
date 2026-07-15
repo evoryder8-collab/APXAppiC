@@ -16,6 +16,8 @@ import { format as fmtDate } from 'date-fns'
 import { ageFrom } from '../lib/nutrition'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { CameraIcon } from '../components/Icons'
+import { AvatarPortraitHero } from '../components/avatar/AvatarPortraitHero'
+import { StrengthProgressPanel } from '../components/avatar/StrengthProgressPanel'
 
 const emerald = ACCENTS.emerald
 
@@ -121,6 +123,8 @@ export function AvatarPage() {
       <SectionHeader accent={emerald} title="Avatar" subtitle="Your body, as a living stat sheet" />
 
       <div className="space-y-5">
+        {profile && <AvatarPortraitHero profile={profile} />}
+
         <button type="button" onClick={() => navigate('/progress', { state: { from: '/avatar' } })} className="w-full text-left">
           <GlassCard accent={ACCENTS.violet} className="p-4 sm:p-5">
             <div className="flex items-center justify-between gap-4">
@@ -132,6 +136,8 @@ export function AvatarPage() {
             </div>
           </GlassCard>
         </button>
+
+        <StrengthProgressPanel />
 
         {/* Performance identity + radar */}
         <div className="grid gap-4 sm:grid-cols-2">
