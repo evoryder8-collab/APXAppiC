@@ -1,4 +1,5 @@
 import type { RpgSnapshot } from './types'
+import type { IntroLanguage } from './introLanguage'
 
 export type ProgressPose = 'front' | 'side' | 'back'
 export type PhotoSyncStatus = 'local' | 'queued' | 'syncing' | 'synced' | 'failed'
@@ -59,6 +60,25 @@ export interface CoverCrop {
   sy: number
   width: number
   height: number
+}
+
+export function formatProgressPhotoMoment(
+  photo: Pick<ProgressPhoto, 'captured_at' | 'local_date'>,
+  language: IntroLanguage,
+  timeZone?: string,
+): string {
+  const locale = language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB'
+  const captured = new Date(photo.captured_at)
+  const value = Number.isNaN(captured.getTime()) ? new Date(`${photo.local_date}T12:00:00`) : captured
+  return new Intl.DateTimeFormat(locale, {
+    day: 'numeric',
+    month: 'short',
+    year: 'numeric',
+    hour: '2-digit',
+    minute: '2-digit',
+    hourCycle: 'h23',
+    ...(timeZone ? { timeZone } : {}),
+  }).format(value)
 }
 
 export function fitWithin(

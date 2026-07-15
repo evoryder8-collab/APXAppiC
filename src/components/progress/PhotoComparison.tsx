@@ -2,6 +2,7 @@ import { useEffect, useRef, useState, type PointerEvent as ReactPointerEvent } f
 import {
   comparisonAspectRatio,
   daysBetweenPhotos,
+  formatProgressPhotoMoment,
   normalizeComparisonView,
   updateComparisonViews,
   zoomComparisonView,
@@ -99,8 +100,8 @@ function ComparisonPane({
           }}
         />
       ) : <div className="skeleton h-full w-full bg-white/10" />}
-      <div className={`pointer-events-none absolute inset-x-0 top-0 flex items-center bg-gradient-to-b from-black/65 to-transparent px-2 py-3 ${side === 'right' ? 'justify-end text-right' : ''}`}>
-        <div><p className="font-mono text-[9px] font-bold tracking-wide text-white">{side === 'left' ? copy.before : copy.after}</p><p className="mt-0.5 font-mono text-[8px] text-white/70">{photo.local_date} · {poseLabel}</p></div>
+      <div className={`pointer-events-none absolute inset-x-0 top-0 flex items-center bg-gradient-to-b from-black/70 to-transparent px-2 py-3 ${side === 'right' ? 'justify-end text-right' : ''}`}>
+        <div><p className="font-mono text-[9px] font-bold tracking-wide text-white">{side === 'left' ? copy.before : copy.after}</p><p className="mt-0.5 font-mono text-[8px] text-white/75">{formatProgressPhotoMoment(photo, language)} · {poseLabel}</p></div>
       </div>
     </div>
   )

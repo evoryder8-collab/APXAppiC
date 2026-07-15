@@ -93,15 +93,17 @@ test('championship prefill reaches extra active without manual blocks', () => {
   assert.ok(estimate.pal >= 2)
 })
 
-test('goal changes flex calories and carbs while protein remains pinned', () => {
+test('goal changes recalculate protein, fat, carbohydrate and calories together', () => {
   const blocks = [block('full-gym', { durationMin: 60 })]
   const recomp = estimateActivityDay({ ...baseProfile, goal: 'recomp' }, blocks)
   const maintain = estimateActivityDay({ ...baseProfile, goal: 'maintain' }, blocks)
   const bulk = estimateActivityDay({ ...baseProfile, goal: 'bulk' }, blocks)
-  assert.equal(recomp.proteinG, maintain.proteinG)
-  assert.equal(maintain.proteinG, bulk.proteinG)
+  assert.ok(recomp.proteinG > maintain.proteinG)
+  assert.ok(maintain.proteinG > bulk.proteinG)
   assert.ok(recomp.targetKcal < maintain.targetKcal)
   assert.ok(maintain.targetKcal < bulk.targetKcal)
+  assert.ok(recomp.fatG < maintain.fatG)
+  assert.ok(maintain.fatG < bulk.fatG)
   assert.ok(recomp.carbsG < maintain.carbsG)
   assert.ok(maintain.carbsG < bulk.carbsG)
 
@@ -122,12 +124,35 @@ test('goal changes flex calories and carbs while protein remains pinned', () => 
   })
   const recompMeals = buildTargetMealPlan(meals, asTargets(recomp), 'Sedentary')
   const bulkMeals = buildTargetMealPlan(meals, asTargets(bulk), 'Very active')
-  assert.equal(
+  assert.notEqual(
     recompMeals.reduce((sum, meal) => sum + meal.protein_g, 0),
     bulkMeals.reduce((sum, meal) => sum + meal.protein_g, 0),
   )
   assert.notEqual(recompMeals[0].foods, bulkMeals[0].foods)
   assert.match(recompMeals[0].portionNote, /oats .* instead of 80 g/i)
+})
+
+test('activity selection updates every macro and gives Iulian a realistic maintenance fat target', () => {
+  const iulian = {
+    ...baseProfile,
+    weight_kg: 78,
+    height_cm: 177,
+    birthdate: '1997-05-09',
+    body_fat_pct: 13,
+    goal: 'maintain' as const,
+  }
+  const sedentary = computeTargets({ ...iulian, activity_level: 'sedentary' })
+  const moderate = computeTargets({ ...iulian, activity_level: 'moderate' })
+  const extra = computeTargets({ ...iulian, activity_level: 'extra' })
+  assert.ok(sedentary.protein_g < moderate.protein_g)
+  assert.ok(moderate.protein_g < extra.protein_g)
+  assert.ok(sedentary.fat_g < moderate.fat_g)
+  assert.ok(moderate.fat_g < extra.fat_g)
+  assert.ok(sedentary.carbs_g < moderate.carbs_g)
+  assert.ok(moderate.carbs_g < extra.carbs_g)
+  assert.ok(moderate.fat_g >= 80)
+  const fatShare = moderate.fat_g * 9 / moderate.kcal
+  assert.ok(fatShare >= 0.26 && fatShare <= 0.29)
 })
 
 test('two weeks of stable weight and higher observed intake nudges calibration upward', () => {

@@ -1,5 +1,5 @@
 import type { IntroLanguage } from './introLanguage'
-import type { ComparisonView, ComparisonViews, ProgressPhoto } from './progressPhoto'
+import { formatProgressPhotoMoment, type ComparisonView, type ComparisonViews, type ProgressPhoto } from './progressPhoto.ts'
 import type { AppData, WorkoutLog } from './types'
 
 export interface ProgressStrengthComparison {
@@ -150,17 +150,13 @@ function drawCover(
 
 function fitText(context: CanvasRenderingContext2D, text: string, maxWidth: number, startSize: number, weight = 800, family = 'Space Grotesk Variable, Arial, sans-serif'): number {
   let size = startSize
-  do {
+  while (size >= 10) {
     context.font = `${weight} ${size}px ${family}`
     if (context.measureText(text).width <= maxWidth) return size
     size -= 2
-  } while (size >= 20)
-  return size
-}
-
-function formatDate(date: string, language: IntroLanguage): string {
-  const locale = language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB'
-  return new Intl.DateTimeFormat(locale, { day: 'numeric', month: 'short', year: 'numeric' }).format(new Date(`${date}T12:00:00`))
+  }
+  context.font = `${weight} 10px ${family}`
+  return 10
 }
 
 function poseText(photo: ProgressPhoto, language: IntroLanguage): string {
@@ -197,131 +193,133 @@ export async function createProgressComparisonPoster(input: {
     context.save()
     roundedPath(context, outer.x, outer.y, outer.width, outer.height, outer.radius)
     context.clip()
-    const background = context.createLinearGradient(40, 30, 1040, 1320)
-    background.addColorStop(0, '#070a12')
-    background.addColorStop(0.5, '#101126')
-    background.addColorStop(1, '#07141a')
-    context.fillStyle = background
-    context.fillRect(outer.x, outer.y, outer.width, outer.height)
-    const violetGlow = context.createRadialGradient(900, 120, 0, 900, 120, 430)
-    violetGlow.addColorStop(0, 'rgba(139,92,246,.43)')
-    violetGlow.addColorStop(1, 'rgba(139,92,246,0)')
-    context.fillStyle = violetGlow
-    context.fillRect(outer.x, outer.y, outer.width, outer.height)
-    const cyanGlow = context.createRadialGradient(120, 1160, 0, 120, 1160, 420)
-    cyanGlow.addColorStop(0, 'rgba(34,211,238,.24)')
-    cyanGlow.addColorStop(1, 'rgba(34,211,238,0)')
-    context.fillStyle = cyanGlow
+    context.fillStyle = '#080a12'
     context.fillRect(outer.x, outer.y, outer.width, outer.height)
 
-    context.fillStyle = '#b8a7ff'
-    context.font = '800 24px JetBrains Mono Variable, monospace'
-    context.fillText(copy.kicker, 72, 90)
-    context.fillStyle = '#ffffff'
-    fitText(context, copy.title, 760, input.language === 'th' ? 48 : 58)
-    context.fillText(copy.title, 72, 157)
-    context.fillStyle = 'rgba(255,255,255,.58)'
-    fitText(context, input.athleteName, 420, 28, 700)
-    context.fillText(input.athleteName, 72, 204)
-
-    const photoX = 64
-    const photoY = 246
-    const photoWidth = 952
-    const photoHeight = 674
+    const photoX = 36
+    const photoY = 36
+    const photoWidth = 1008
+    const photoHeight = 1278
     const paneWidth = photoWidth / 2
     context.save()
-    roundedPath(context, photoX, photoY, photoWidth, photoHeight, 44)
+    roundedPath(context, photoX, photoY, photoWidth, photoHeight, 48)
     context.clip()
     drawCover(context, leftImage, input.left, input.views.left, photoX, photoY, paneWidth, photoHeight)
     drawCover(context, rightImage, input.right, input.views.right, photoX + paneWidth, photoY, paneWidth, photoHeight)
-    const topShade = context.createLinearGradient(0, photoY, 0, photoY + 150)
-    topShade.addColorStop(0, 'rgba(3,5,12,.78)')
+
+    const topShade = context.createLinearGradient(0, photoY, 0, photoY + 330)
+    topShade.addColorStop(0, 'rgba(3,5,12,.94)')
+    topShade.addColorStop(0.56, 'rgba(3,5,12,.56)')
     topShade.addColorStop(1, 'rgba(3,5,12,0)')
     context.fillStyle = topShade
-    context.fillRect(photoX, photoY, photoWidth, 150)
-    const bottomShade = context.createLinearGradient(0, photoY + photoHeight - 160, 0, photoY + photoHeight)
+    context.fillRect(photoX, photoY, photoWidth, 330)
+    const bottomShade = context.createLinearGradient(0, photoY + photoHeight - 420, 0, photoY + photoHeight)
     bottomShade.addColorStop(0, 'rgba(3,5,12,0)')
-    bottomShade.addColorStop(1, 'rgba(3,5,12,.86)')
+    bottomShade.addColorStop(0.44, 'rgba(3,5,12,.62)')
+    bottomShade.addColorStop(1, 'rgba(3,5,12,.96)')
     context.fillStyle = bottomShade
-    context.fillRect(photoX, photoY + photoHeight - 160, photoWidth, 160)
+    context.fillRect(photoX, photoY + photoHeight - 420, photoWidth, 420)
+    const violetGlow = context.createRadialGradient(930, 90, 0, 930, 90, 390)
+    violetGlow.addColorStop(0, 'rgba(139,92,246,.31)')
+    violetGlow.addColorStop(1, 'rgba(139,92,246,0)')
+    context.fillStyle = violetGlow
+    context.fillRect(photoX, photoY, photoWidth, photoHeight)
+    const cyanGlow = context.createRadialGradient(120, 1240, 0, 120, 1240, 370)
+    cyanGlow.addColorStop(0, 'rgba(34,211,238,.19)')
+    cyanGlow.addColorStop(1, 'rgba(34,211,238,0)')
+    context.fillStyle = cyanGlow
+    context.fillRect(photoX, photoY, photoWidth, photoHeight)
     context.restore()
 
-    context.strokeStyle = 'rgba(255,255,255,.18)'
+    context.strokeStyle = 'rgba(255,255,255,.2)'
     context.lineWidth = 2
-    roundedPath(context, photoX, photoY, photoWidth, photoHeight, 44)
+    roundedPath(context, photoX, photoY, photoWidth, photoHeight, 48)
     context.stroke()
     const divider = context.createLinearGradient(0, photoY, 0, photoY + photoHeight)
-    divider.addColorStop(0, 'rgba(255,255,255,.05)')
+    divider.addColorStop(0, 'rgba(255,255,255,.08)')
     divider.addColorStop(0.5, 'rgba(255,255,255,.95)')
-    divider.addColorStop(1, 'rgba(255,255,255,.05)')
+    divider.addColorStop(1, 'rgba(255,255,255,.08)')
     context.fillStyle = divider
     context.fillRect(photoX + paneWidth - 1, photoY, 2, photoHeight)
 
+    context.fillStyle = '#c5b8ff'
+    context.font = '800 21px JetBrains Mono Variable, monospace'
+    context.fillText(copy.kicker, 72, 88)
+    context.fillStyle = '#ffffff'
+    fitText(context, copy.title, 800, input.language === 'th' ? 43 : 51)
+    context.fillText(copy.title, 72, 148)
+    context.fillStyle = 'rgba(255,255,255,.72)'
+    fitText(context, input.athleteName, 430, 25, 700)
+    context.fillText(input.athleteName, 72, 188)
+
     const labels = [
-      { x: photoX + 26, align: 'left' as const, label: copy.before, photo: input.left },
-      { x: photoX + photoWidth - 26, align: 'right' as const, label: copy.after, photo: input.right },
+      { x: photoX + 28, align: 'left' as const, label: copy.before, photo: input.left },
+      { x: photoX + photoWidth - 28, align: 'right' as const, label: copy.after, photo: input.right },
     ]
     for (const item of labels) {
       context.textAlign = item.align
       context.fillStyle = '#ffffff'
-      context.font = '800 23px JetBrains Mono Variable, monospace'
-      context.fillText(item.label, item.x, photoY + 46)
-      context.fillStyle = 'rgba(255,255,255,.72)'
-      context.font = '700 18px JetBrains Mono Variable, monospace'
-      context.fillText(`${formatDate(item.photo.local_date, input.language)} • ${poseText(item.photo, input.language)}`, item.x, photoY + photoHeight - 30)
+      context.font = '800 22px JetBrains Mono Variable, monospace'
+      context.fillText(item.label, item.x, 242)
+      context.fillStyle = 'rgba(255,255,255,.78)'
+      context.font = '700 16px JetBrains Mono Variable, monospace'
+      context.fillText(formatProgressPhotoMoment(item.photo, input.language), item.x, 272)
+      context.fillStyle = 'rgba(255,255,255,.58)'
+      context.font = '700 15px JetBrains Mono Variable, monospace'
+      context.fillText(poseText(item.photo, input.language), item.x, 299)
     }
     context.textAlign = 'left'
 
-    const statsX = 64
-    const statsY = 952
-    const statsWidth = 952
-    const statsHeight = 220
-    roundedPath(context, statsX, statsY, statsWidth, statsHeight, 36)
-    context.fillStyle = 'rgba(255,255,255,.065)'
+    const statsX = 60
+    const statsY = 1018
+    const statsWidth = 960
+    const statsHeight = 176
+    roundedPath(context, statsX, statsY, statsWidth, statsHeight, 32)
+    context.fillStyle = 'rgba(7,9,17,.52)'
     context.fill()
-    context.strokeStyle = 'rgba(255,255,255,.12)'
+    context.strokeStyle = 'rgba(255,255,255,.16)'
     context.stroke()
     const columns = [
-      { label: copy.days, value: String(input.stats.days), detail: `${formatDate(input.left.local_date, input.language)} → ${formatDate(input.right.local_date, input.language)}` },
+      { label: copy.days, value: String(input.stats.days), detail: `${input.left.local_date} → ${input.right.local_date}` },
       { label: copy.workouts, value: String(input.stats.workouts), detail: `${input.stats.loadedSets} ${copy.loaded}` },
       { label: copy.load, value: input.stats.averageLoadDeltaKg == null ? copy.baseline : `${input.stats.averageLoadDeltaKg > 0 ? '+' : ''}${input.stats.averageLoadDeltaKg} KG`, detail: input.stats.matchedExercises > 0 ? `${input.stats.matchedExercises} ${copy.matched}` : `${input.stats.loadedSets} ${copy.loaded}` },
     ]
     const columnWidth = statsWidth / columns.length
     columns.forEach((column, index) => {
-      const x = statsX + index * columnWidth + 26
+      const x = statsX + index * columnWidth + 22
       if (index > 0) {
-        context.fillStyle = 'rgba(255,255,255,.10)'
-        context.fillRect(statsX + index * columnWidth, statsY + 34, 1, statsHeight - 68)
+        context.fillStyle = 'rgba(255,255,255,.12)'
+        context.fillRect(statsX + index * columnWidth, statsY + 26, 1, statsHeight - 52)
       }
-      context.fillStyle = index === 2 ? '#8ff4dd' : 'rgba(255,255,255,.55)'
-      fitText(context, column.label, columnWidth - 52, 18, 800, 'JetBrains Mono Variable, monospace')
-      context.fillText(column.label, x, statsY + 52)
+      context.fillStyle = index === 2 ? '#8ff4dd' : 'rgba(255,255,255,.62)'
+      fitText(context, column.label, columnWidth - 44, 17, 800, 'JetBrains Mono Variable, monospace')
+      context.fillText(column.label, x, statsY + 42)
       context.fillStyle = '#ffffff'
-      fitText(context, column.value, columnWidth - 52, 43, 800, 'JetBrains Mono Variable, monospace')
-      context.fillText(column.value, x, statsY + 112)
-      context.fillStyle = 'rgba(255,255,255,.42)'
-      fitText(context, column.detail, columnWidth - 52, 14, 700, 'JetBrains Mono Variable, monospace')
-      context.fillText(column.detail, x, statsY + 154)
+      fitText(context, column.value, columnWidth - 44, 38, 800, 'JetBrains Mono Variable, monospace')
+      context.fillText(column.value, x, statsY + 96)
+      context.fillStyle = 'rgba(255,255,255,.5)'
+      context.font = '700 13px JetBrains Mono Variable, monospace'
+      context.fillText(column.detail, x, statsY + 130)
     })
 
     if (input.left.weight_kg != null && input.right.weight_kg != null) {
       const delta = Math.round((input.right.weight_kg - input.left.weight_kg) * 10) / 10
       const weightLine = `${copy.weight}  ${input.left.weight_kg} → ${input.right.weight_kg} KG  (${delta > 0 ? '+' : ''}${delta} KG)`
-      context.fillStyle = 'rgba(184,167,255,.13)'
-      roundedPath(context, 72, 1194, 550, 54, 27)
+      context.fillStyle = 'rgba(184,167,255,.18)'
+      roundedPath(context, 72, 1210, 560, 50, 25)
       context.fill()
-      context.fillStyle = '#d9d0ff'
-      context.font = '800 17px JetBrains Mono Variable, monospace'
-      context.fillText(weightLine, 94, 1228)
+      context.fillStyle = '#e0d9ff'
+      context.font = '800 16px JetBrains Mono Variable, monospace'
+      context.fillText(weightLine, 94, 1242)
     }
 
-    context.fillStyle = 'rgba(255,255,255,.38)'
-    context.font = '700 16px JetBrains Mono Variable, monospace'
-    context.fillText(copy.private, 72, 1281)
+    context.fillStyle = 'rgba(255,255,255,.48)'
+    context.font = '700 14px JetBrains Mono Variable, monospace'
+    context.fillText(copy.private, 72, 1287)
     context.textAlign = 'right'
     context.fillStyle = '#ffffff'
-    context.font = '900 26px Space Grotesk Variable, Arial, sans-serif'
-    context.fillText('A P E X', 1008, 1283)
+    context.font = '900 25px Space Grotesk Variable, Arial, sans-serif'
+    context.fillText('A P E X', 1008, 1289)
     context.restore()
     return canvasPng(canvas)
   } finally {

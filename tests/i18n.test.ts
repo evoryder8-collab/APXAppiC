@@ -73,11 +73,21 @@ test('login errors are localized without translating June as a month', () => {
   assert.match(localizedLoginError('Those credentials belong to June. Choose that profile to continue.', 'ro'), /June/)
 })
 
-test('shared activity catalog names are translated without per-user copies', () => {
+test('shared activity catalog names, categories and guidance are translated without per-user copies', () => {
   const byName = new Map(ACTIVITY_TRANSLATIONS.map(([english, ro, th]) => [english, { ro, th }]))
-  for (const activity of ['Massage session given', 'Handheld or gimbal filming', 'Full gym session', 'Steps not already covered by the blocks above.']) {
+  for (const activity of [
+    'Massage session given',
+    'Handheld or gimbal filming',
+    'Full gym session',
+    'Steps not already covered by the blocks above.',
+    'Moving while filming with handheld or stabilized camera equipment.',
+  ]) {
     assert.ok(byName.get(activity)?.ro, `missing Romanian activity: ${activity}`)
     assert.ok(byName.get(activity)?.th, `missing Thai activity: ${activity}`)
+  }
+  for (const category of ['Hands-on therapy', 'Camera work', 'General work', 'Errands and life']) {
+    assert.ok(UI_TRANSLATIONS[category]?.ro, `missing Romanian activity category: ${category}`)
+    assert.ok(UI_TRANSLATIONS[category]?.th, `missing Thai activity category: ${category}`)
   }
 })
 

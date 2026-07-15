@@ -11,6 +11,7 @@ import {
 import { COMMON_FOODS } from '../data/foodSeeds'
 import {
   aggregateLoggedMeals,
+  expandFoodSearchQueries,
   mealTotals,
   snapshotEntry,
   type ComposerFoodItem,
@@ -22,6 +23,7 @@ import {
   type MealPresetItem,
   type MealSlot,
 } from '../lib/food'
+import type { IntroLanguage } from '../lib/introLanguage'
 import {
   cacheVisibleFoods,
   deleteMealLocally,
@@ -84,7 +86,7 @@ interface FoodStoreValue {
   meals: LoggedMeal[]
   entries: LoggedFoodEntry[]
   lookupBarcode: (barcode: string) => Promise<FoodLookupResult>
-  widerSearch: (query: string) => Promise<FoodSearchResult>
+  widerSearch: (query: string, language?: IntroLanguage) => Promise<FoodSearchResult>
   savePrivateFood: (food: Omit<FoodRecord, 'id' | 'owner_user_id' | 'source' | 'created_at' | 'updated_at'>) => Promise<FoodRecord>
   setPreference: (foodId: string, patch: Partial<FoodPreference>) => Promise<void>
   logMeal: (input: LogMealInput) => Promise<LoggedMeal>
@@ -117,6 +119,19 @@ function normalizeRemoteFood(row: Record<string, unknown>): FoodRecord {
   }
 }
 
+function mergeFoodCatalog(incoming: FoodRecord[]): FoodRecord[] {
+  const merged = new Map(COMMON_FOODS.map((food) => [food.id, food]))
+  for (const food of incoming) {
+    const fallback = merged.get(food.id)
+    merged.set(food.id, {
+      ...fallback,
+      ...food,
+      names_i18n: { ...(fallback?.names_i18n ?? {}), ...(food.names_i18n ?? {}) },
+    })
+  }
+  return [...merged.values()]
+}
+
 export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const { data, upsert } = useStore()
   const userId = data.profile?.user_id ?? null
@@ -143,9 +158,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         privateGetAllForUser<LoggedMeal>('logged_meals', userId),
         privateGetAllForUser<LoggedFoodEntry>('logged_food_entries', userId),
       ])
-      const initialFoods = new Map(COMMON_FOODS.map((food) => [food.id, food]))
-      for (const food of localFoods) initialFoods.set(food.id, food)
-      setFoods([...initialFoods.values()])
+      setFoods(mergeFoodCatalog(localFoods))
       setPreferences(localPreferences)
       setPresets(localPresets)
       setPresetItems(localPresetItems)
@@ -167,7 +180,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         const firstError = [foodRes, preferenceRes, presetRes, presetItemRes, mealRes, entryRes].find((result) => result.error)?.error
         if (firstError) throw firstError
         const remoteFoods = (foodRes.data ?? []).map((row) => normalizeRemoteFood(row as Record<string, unknown>))
-        setFoods(remoteFoods)
+        setFoods(mergeFoodCatalog(remoteFoods))
         setPreferences((preferenceRes.data ?? []) as FoodPreference[])
         setPresets((presetRes.data ?? []) as MealPreset[])
         setPresetItems((presetItemRes.data ?? []) as MealPresetItem[])
@@ -313,12 +326,22 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     return value
   }, [foods])
 
-  const widerSearch = useCallback(async (query: string): Promise<FoodSearchResult> => {
+  const widerSearch = useCallback(async (query: string, language: IntroLanguage = 'en'): Promise<FoodSearchResult> => {
     if (!supabase) return { state: 'provider_error', results: [], message: 'Wider search needs an internet connection.' }
-    const { data: result, error } = await supabase.functions.invoke('food-lookup', { body: { query } })
-    if (error && !result) return { state: 'provider_error', results: [], message: error.message }
-    const value = result as FoodSearchResult
-    return { ...value, results: (value.results ?? []).map((food) => normalizeRemoteFood(food as unknown as Record<string, unknown>)) }
+    const client = supabase
+    const queries = expandFoodSearchQueries(query, language).slice(0, 3)
+    const responses = await Promise.all(queries.map((candidate) => client.functions.invoke('food-lookup', { body: { query: candidate } })))
+    const firstError = responses.find(({ data, error }) => error && !data)?.error
+    const merged = new Map<string, FoodRecord>()
+    for (const { data: result } of responses) {
+      const value = result as FoodSearchResult | null
+      for (const row of value?.results ?? []) {
+        const food = normalizeRemoteFood(row as unknown as Record<string, unknown>)
+        merged.set(food.id, food)
+      }
+    }
+    if (merged.size === 0 && firstError) return { state: 'provider_error', results: [], message: firstError.message }
+    return { state: 'results', results: [...merged.values()] }
   }, [])
 
   const savePrivateFood = useCallback(async (

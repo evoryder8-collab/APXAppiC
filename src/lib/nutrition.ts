@@ -51,7 +51,67 @@ export interface TargetMeal extends Meal {
   portionNote: string
 }
 
-/* TDEE builds on Katch-McArdle since body fat is known. Protein 2.2 g/kg. */
+const PROTEIN_G_PER_KG: Record<ActivityLevel, number> = {
+  sedentary: 1.6,
+  light: 1.75,
+  moderate: 1.9,
+  very: 2,
+  extra: 2.1,
+}
+
+const GOAL_PROTEIN_ADJUSTMENT: Record<Goal, number> = {
+  recomp: 0.2,
+  maintain: 0,
+  bulk: -0.1,
+}
+
+const FAT_ENERGY_SHARE: Record<Goal, number> = {
+  recomp: 0.25,
+  maintain: 0.275,
+  bulk: 0.28,
+}
+
+const FAT_FLOOR_G_PER_KG: Record<Goal, number> = {
+  recomp: 0.7,
+  maintain: 0.8,
+  bulk: 0.8,
+}
+
+export interface MacroTargets {
+  protein_g: number
+  fat_g: number
+  carbs_g: number
+  protein_g_per_kg: number
+  fat_energy_share: number
+}
+
+/* APEX protects protein inside the athlete-supported range, keeps fat near the
+   middle of the adult AMDR with a body-weight floor, then assigns the remaining
+   energy to carbohydrate. Activity and goal therefore update all three targets
+   instead of leaving protein and fat frozen while only carbohydrate moves. */
+export function computeMacroTargets(
+  weightKg: number,
+  activityLevel: ActivityLevel,
+  goal: Goal,
+  targetKcal: number,
+): MacroTargets {
+  const proteinGPerKg = Math.min(2.4, Math.max(1.6, PROTEIN_G_PER_KG[activityLevel] + GOAL_PROTEIN_ADJUSTMENT[goal]))
+  const proteinG = Math.round(weightKg * proteinGPerKg)
+  const fatEnergyShare = FAT_ENERGY_SHARE[goal]
+  const fatFromEnergy = targetKcal * fatEnergyShare / 9
+  const fatFloor = weightKg * FAT_FLOOR_G_PER_KG[goal]
+  const fatG = Math.round(Math.max(fatFloor, fatFromEnergy))
+  const carbsG = Math.max(0, Math.round((targetKcal - proteinG * 4 - fatG * 9) / 4))
+  return {
+    protein_g: proteinG,
+    fat_g: fatG,
+    carbs_g: carbsG,
+    protein_g_per_kg: Math.round(proteinGPerKg * 100) / 100,
+    fat_energy_share: fatEnergyShare,
+  }
+}
+
+/* TDEE builds on Katch-McArdle when a credible body-fat value is available. */
 export function computeTargets(p: Profile): Targets {
   const katch = bmrKatch(p)
   const mifflin = bmrMifflin(p)
@@ -61,17 +121,15 @@ export function computeTargets(p: Profile): Targets {
   const tdee = Math.round(activeBmr * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
   const formulaTarget = Math.max(activeBmr * 1.05, tdee * GOALS[p.goal].factor)
   const kcal = Math.round(formulaTarget)
-  const protein = Math.round(2.2 * p.weight_kg)
-  const fat = Math.round(0.7 * p.weight_kg)
-  const carbs = Math.max(0, Math.round((kcal - protein * 4 - fat * 9) / 4))
+  const macros = computeMacroTargets(p.weight_kg, p.activity_level, p.goal, kcal)
   return {
     bmrMifflin: mifflin,
     bmrKatch: katch,
     tdee,
     kcal,
-    protein_g: protein,
-    fat_g: fat,
-    carbs_g: carbs,
+    protein_g: macros.protein_g,
+    fat_g: macros.fat_g,
+    carbs_g: macros.carbs_g,
     water_l: 2.75,
     bmrSource: hasCustomBmr ? 'custom' : hasBodyFat ? 'katch' : 'mifflin',
     activeBmr,

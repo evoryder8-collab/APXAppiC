@@ -3,6 +3,7 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
 import {
   calculatePortion,
+  displayFoodName,
   isFoodNutritionComplete,
   mealTotals,
   parseDecimalInput,
@@ -112,7 +113,7 @@ export function MealComposer({
     if (query.trim().length < 2) return
     setSearching(true)
     setMessage(null)
-    const result = await store.widerSearch(query.trim())
+    const result = await store.widerSearch(query.trim(), language)
     setRemoteResults(result.results)
     if (!result.results.length) setMessage(result.message ?? 'No wider-search matches. Create a private food instead.')
     setSearching(false)
@@ -277,7 +278,7 @@ export function MealComposer({
               <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
                 {(remoteResults.length ? remoteResults : ranked).map((food) => (
                   <button key={food.id} type="button" onClick={() => remoteResults.length ? void selectRemote(food) : addFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
-                    <span><span className="block text-sm font-bold text-ink">{food.name}</span><span className="text-[10px] font-medium text-ink-faint">{food.brand || food.preparation_state.replace('_', ' ')} · {food.kcal_100 ?? '?'} kcal / 100</span></span>
+                    <span><span className="block text-sm font-bold text-ink">{displayFoodName(food, language)}</span><span className="text-[10px] font-medium text-ink-faint">{food.brand || translateInterfaceText(food.preparation_state.replace('_', ' '), language)} · {food.kcal_100 ?? '?'} kcal / 100</span></span>
                     <span className="text-lg text-amber-600">+</span>
                   </button>
                 ))}
@@ -328,7 +329,7 @@ export function MealComposer({
               return (
                 <GlassCard key={item.id} accent={amber} className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div><h3 className="text-sm font-bold text-ink">{item.food.name}</h3><p className="text-[10px] text-ink-faint">{item.food.brand || item.food.preparation_state.replace('_', ' ')}</p></div>
+                    <div><h3 className="text-sm font-bold text-ink">{displayFoodName(item.food, language)}</h3><p className="text-[10px] text-ink-faint">{item.food.brand || translateInterfaceText(item.food.preparation_state.replace('_', ' '), language)}</p></div>
                     <div className="flex gap-1">
                       <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="rounded-lg bg-white/65 px-2 py-1 text-xs disabled:opacity-25">↑</button>
                       <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="rounded-lg bg-white/65 px-2 py-1 text-xs disabled:opacity-25">↓</button>

@@ -5,6 +5,8 @@ export const OPEN_FOOD_FACTS_FIELDS = [
   'product_name_de',
   'product_name_fr',
   'product_name_it',
+  'product_name_ro',
+  'product_name_th',
   'brands',
   'quantity',
   'product_quantity',
@@ -25,7 +27,7 @@ export interface OpenFoodFactsResponse {
 
 export interface NormalizedProviderFood {
   name: string
-  names_i18n: Partial<Record<'en' | 'de' | 'fr' | 'it', string>>
+  names_i18n: Partial<Record<'en' | 'de' | 'fr' | 'it' | 'ro' | 'th', string>>
   brand: string | null
   barcode: string
   source: 'open_food_facts'
@@ -105,8 +107,10 @@ export function normalizeOpenFoodFactsProduct(
     de: text(product, 'product_name_de'),
     fr: text(product, 'product_name_fr'),
     it: text(product, 'product_name_it'),
+    ro: text(product, 'product_name_ro'),
+    th: text(product, 'product_name_th'),
   }
-  const name = text(product, 'product_name') ?? localized.en ?? localized.de ?? localized.fr ?? localized.it
+  const name = text(product, 'product_name') ?? localized.en ?? localized.de ?? localized.fr ?? localized.it ?? localized.ro ?? localized.th
   if (!name) return null
   const nutriments = product.nutriments && typeof product.nutriments === 'object'
     ? product.nutriments as Record<string, unknown>

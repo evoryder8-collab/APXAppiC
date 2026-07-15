@@ -10,7 +10,7 @@ import { ACTIVITY_MULTIPLIERS, buildTargetMealPlan, computeTargets, type TargetM
 import { planForDate, todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { DailyLog, Supplement } from '../lib/types'
-import type { ComposerFoodItem, MealSlot } from '../lib/food'
+import { aggregateConsumedMeals, reconcileConsumedMeals, type ComposerFoodItem, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
@@ -18,6 +18,7 @@ import { selectNextSimpleAction, simpleCompletion } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
+import { NutritionGlance } from '../components/food/NutritionGlance'
 
 const emerald = ACCENTS.emerald
 
@@ -63,6 +64,15 @@ export function SimpleHome() {
     [data.meals, profile, targets],
   )
   const todayFoodMeals = useMemo(() => foodStore.mealsForDate(today), [foodStore, today])
+  const todayMealIds = useMemo(
+    () => new Set(data.meal_logs.filter((log) => log.date === today).map((log) => log.meal_id)),
+    [data.meal_logs, today],
+  )
+  const consumedMeals = useMemo(
+    () => reconcileConsumedMeals(todayFoodMeals, mealPlan, todayMealIds),
+    [mealPlan, todayFoodMeals, todayMealIds],
+  )
+  const consumed = useMemo(() => aggregateConsumedMeals(consumedMeals), [consumedMeals])
   const trainingTime = profile?.training_time ?? '19:00'
   const supplementGroups = useMemo(() => {
     const grouped = new Map<string, { label: string; time: number; items: Supplement[] }>()
@@ -227,6 +237,18 @@ export function SimpleHome() {
       </motion.header>
 
       <div className="space-y-4">
+        <Link to="/nutrition" className="block" aria-label={t('Open nutrition details')}>
+          <GlassCard accent={ACCENTS.amber} className="overflow-hidden p-0">
+            <NutritionGlance
+              target={targets}
+              consumed={consumed}
+              mealsDone={completedMeals}
+              mealsTotal={mealPlan.length}
+              status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
+            />
+          </GlassCard>
+        </Link>
+
         <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
           <div className="mt-2 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">

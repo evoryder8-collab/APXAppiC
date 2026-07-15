@@ -4,6 +4,8 @@ import { COMMON_FOODS } from '../src/data/foodSeeds.ts'
 import {
   aggregateConsumedMeals,
   calculatePortion,
+  displayFoodName,
+  expandFoodSearchQueries,
   mergeMealsIdempotently,
   parseDecimalInput,
   rankFoods,
@@ -40,6 +42,17 @@ test('personal aliases, favourites and recent slot use rank before generic foods
     slot_usage: { lunch: 7 }, version: 1, updated_at: new Date().toISOString(),
   }
   assert.equal(rankFoods('my lunch', COMMON_FOODS, [preference], 'lunch')[0].id, COMMON_FOODS[4].id)
+})
+
+test('Romanian and Thai food queries rank localized foods and expand for the remote provider', () => {
+  const rawChicken = COMMON_FOODS.find((food) => food.name === 'Chicken breast, raw')!
+  const microwavedSweetPotato = COMMON_FOODS.find((food) => food.name === 'Sweet potato, microwaved')!
+  assert.equal(rankFoods('piept de pui crud', COMMON_FOODS, [], 'lunch')[0]?.id, rawChicken.id)
+  assert.equal(rankFoods('มันหวานไมโครเวฟ', COMMON_FOODS, [], 'lunch')[0]?.id, microwavedSweetPotato.id)
+  assert.ok(expandFoodSearchQueries('piept de pui crud', 'ro').includes('chicken breast raw'))
+  assert.ok(expandFoodSearchQueries('มันหวานไมโครเวฟ', 'th').includes('sweet potato microwaved'))
+  assert.equal(displayFoodName(rawChicken, 'ro'), 'Piept de pui crud')
+  assert.equal(displayFoodName(rawChicken, 'th'), 'อกไก่ดิบ')
 })
 
 test('logged entries are immutable nutrition snapshots', () => {
@@ -125,4 +138,13 @@ test('Open Food Facts normalization validates barcodes, converts kJ and preserve
   } as never, '4006381333931')
   assert.equal(food?.kcal_100, 100)
   assert.equal(food?.fibre_100, null)
+  const romanianOnly = normalizeOpenFoodFactsProduct({
+    status: 1,
+    product: {
+      code: '4006381333931', product_name_ro: 'Piept de pui crud',
+      nutriments: { 'energy-kcal_100g': 120, proteins_100g: 22.5, carbohydrates_100g: 0, fat_100g: 2.6 },
+    },
+  } as never, '4006381333931')
+  assert.equal(romanianOnly?.name, 'Piept de pui crud')
+  assert.equal(romanianOnly?.names_i18n.ro, 'Piept de pui crud')
 })

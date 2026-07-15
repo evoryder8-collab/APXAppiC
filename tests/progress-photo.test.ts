@@ -5,6 +5,7 @@ import {
   coverCrop,
   daysBetweenPhotos,
   fitWithin,
+  formatProgressPhotoMoment,
   mergePhotoUploadsIdempotently,
   normalizeCrop,
   normalizeComparisonView,
@@ -67,6 +68,13 @@ test('comparison helpers prefer same poses and report elapsed days', () => {
   assert.equal(daysBetweenPhotos(before, after), 28)
   assert.equal(comparisonAspectRatio(before, after), 0.66)
   assert.equal(preferSamePose(before, [side, after])[0].id, 'b')
+})
+
+test('photo moments retain the capture time for timeline and export labels', () => {
+  const captured = photo('time', '2026-06-01', 'front')
+  assert.match(formatProgressPhotoMoment(captured, 'en', 'UTC'), /08:00/)
+  assert.match(formatProgressPhotoMoment(captured, 'ro', 'UTC'), /08:00/)
+  assert.match(formatProgressPhotoMoment(captured, 'th', 'UTC'), /08:00/)
 })
 
 test('comparison strength uses matched movements instead of letting extra sets dominate', () => {

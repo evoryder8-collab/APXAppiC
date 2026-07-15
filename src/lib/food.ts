@@ -1,3 +1,5 @@
+import type { IntroLanguage } from './introLanguage'
+
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack'
 export type FoodUnit = 'g' | 'ml' | 'serving' | 'piece'
 export type NutritionBasis = 'per_100g' | 'per_100ml'
@@ -9,7 +11,7 @@ export interface FoodRecord {
   id: string
   owner_user_id: string | null
   name: string
-  names_i18n: Partial<Record<'en' | 'de' | 'fr' | 'it', string>>
+  names_i18n: Partial<Record<'en' | 'de' | 'fr' | 'it' | 'ro' | 'th', string>>
   brand: string | null
   barcode: string | null
   source: FoodSource
@@ -203,9 +205,65 @@ export function normalizeFoodSearch(value: string): string {
   return value
     .normalize('NFD')
     .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase('en')
-    .replace(/[^a-z0-9]+/g, ' ')
+    .toLocaleLowerCase()
+    .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
     .trim()
+}
+
+const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
+  ro: {
+    'piept de pui crud': 'chicken breast raw',
+    'piept de pui gatit': 'chicken breast cooked',
+    'cartof dulce la microunde': 'sweet potato microwaved',
+    'cartof dulce copt': 'sweet potato baked',
+    'orez alb fiert': 'white rice cooked',
+    'ou intreg': 'whole egg',
+  },
+  th: {
+    'อกไก่ดิบ': 'chicken breast raw',
+    'อกไก่สุก': 'chicken breast cooked',
+    'มันหวานไมโครเวฟ': 'sweet potato microwaved',
+    'มันหวานอบ': 'sweet potato baked',
+    'ข้าวขาวสุก': 'white rice cooked',
+    'ไข่ทั้งฟอง': 'whole egg',
+  },
+}
+
+const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
+  ro: {
+    piept: 'breast', pui: 'chicken', curcan: 'turkey', vita: 'beef', porc: 'pork', peste: 'fish',
+    somon: 'salmon', ton: 'tuna', ou: 'egg', oua: 'eggs', cartof: 'potato', dulce: 'sweet',
+    orez: 'rice', ovaz: 'oats', iaurt: 'yogurt', branza: 'cheese', lapte: 'milk', mar: 'apple',
+    banana: 'banana', broccoli: 'broccoli', crud: 'raw', cruda: 'raw', crude: 'raw', gatit: 'cooked',
+    gatita: 'cooked', fiert: 'boiled', fiarta: 'boiled', copt: 'baked', coapta: 'baked',
+    microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
+  },
+  th: {
+    อกไก่: 'chicken breast', ไก่: 'chicken', ไก่งวง: 'turkey', เนื้อวัว: 'beef', หมู: 'pork', ปลา: 'fish',
+    แซลมอน: 'salmon', ทูน่า: 'tuna', ไข่: 'egg', มันหวาน: 'sweet potato', มันฝรั่ง: 'potato',
+    ข้าว: 'rice', ข้าวโอ๊ต: 'oats', โยเกิร์ต: 'yogurt', ชีส: 'cheese', นม: 'milk',
+    ดิบ: 'raw', สุก: 'cooked', ต้ม: 'boiled', อบ: 'baked', ไมโครเวฟ: 'microwaved',
+    ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
+  },
+}
+
+export function expandFoodSearchQueries(query: string, language: IntroLanguage): string[] {
+  const original = query.trim()
+  if (!original) return []
+  if (language === 'en') return [original]
+  const normalized = normalizeFoodSearch(original)
+  const phrase = FOOD_SEARCH_PHRASES[language][normalized]
+  const tokenMap = FOOD_SEARCH_TOKENS[language]
+  const tokenTranslation = normalized
+    .split(' ')
+    .map((token) => tokenMap[token] ?? token)
+    .join(' ')
+    .trim()
+  return [...new Set([original, phrase, tokenTranslation].filter((value): value is string => Boolean(value)))]
+}
+
+export function displayFoodName(food: FoodRecord, language: IntroLanguage): string {
+  return food.names_i18n[language] || food.name
 }
 
 export function parseDecimalInput(value: string | number): number | null {

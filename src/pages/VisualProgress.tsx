@@ -1,8 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
-import { format } from 'date-fns'
 import { useLocation } from 'react-router-dom'
 import { ACCENTS } from '../lib/theme'
-import { type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
+import { formatProgressPhotoMoment, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
 import { parseDecimalInput } from '../lib/food'
 import { useProgressPhotoStore } from '../store/ProgressPhotoStore'
 import { useStore } from '../store/AppStore'
@@ -139,7 +138,7 @@ export function VisualProgress() {
                   return (
                   <button key={photo.id} type="button" aria-pressed={selecting ? chosen : undefined} onClick={() => selecting ? toggleComparePhoto(photo.id) : setSelected(photo)} className={`glass overflow-hidden rounded-3xl text-left transition ${chosen ? 'ring-2 ring-violet-500 ring-offset-2 ring-offset-transparent' : ''}`}>
                     <div className="relative aspect-[2/3] overflow-hidden bg-white/50"><PhotoImage photo={photo} thumbnail className="h-full w-full object-cover" />{selecting && <span className={`absolute top-2 left-2 grid h-7 w-7 place-items-center rounded-full border text-[10px] font-bold backdrop-blur ${chosen ? 'border-violet-300 bg-violet-500 text-white' : 'border-white/70 bg-black/25 text-white'}`}>{chosen ? compareIndex + 1 : ''}</span>}<span className="absolute right-2 bottom-2 rounded-full bg-black/45 px-2 py-1 text-[9px] font-bold text-white uppercase backdrop-blur">{poseLabel(photo.pose)}</span></div>
-                    <div className="p-3"><p className="font-mono text-[10px] font-bold text-ink">{format(new Date(`${photo.local_date}T12:00:00`), 'd MMM yyyy')}</p><p className="mt-1 truncate text-[10px] text-ink-faint">{photo.weight_kg ? `${photo.weight_kg} kg · ` : ''}{photo.sync_status}</p></div>
+                    <div className="p-3"><p className="font-mono text-[10px] font-bold text-ink">{formatProgressPhotoMoment(photo, language)}</p><p className="mt-1 truncate text-[10px] text-ink-faint">{photo.weight_kg ? `${photo.weight_kg} kg · ` : ''}{photo.sync_status}</p></div>
                   </button>
                 )})}
               </div>
@@ -157,8 +156,8 @@ export function VisualProgress() {
       </div>
 
       {guide && (
-        <div className="fixed inset-0 z-[90] grid place-items-end bg-black/35 px-3 pt-10 pb-[max(.75rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:place-items-center sm:p-4" role="dialog" aria-modal="true">
-          <GlassCard accent={violet} className="flex min-h-[78dvh] max-h-[94dvh] w-full max-w-lg flex-col overflow-y-auto p-5 sm:min-h-0 sm:p-6">
+        <div className="fixed inset-0 z-[90] grid place-items-end bg-black/45 px-3 pt-10 pb-[max(.75rem,env(safe-area-inset-bottom))] sm:place-items-center sm:p-4" style={{ WebkitBackdropFilter: 'blur(12px)', backdropFilter: 'blur(12px)' }} role="dialog" aria-modal="true">
+          <GlassCard accent={violet} className="flex min-h-[78dvh] max-h-[94dvh] w-full max-w-lg flex-col overflow-y-auto p-5 sm:min-h-0 sm:p-6" style={{ background: 'linear-gradient(155deg, rgba(253,253,255,.985), rgba(246,245,252,.97))', WebkitBackdropFilter: 'blur(30px) saturate(120%)', backdropFilter: 'blur(30px) saturate(120%)' }}>
             <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-violet-700 uppercase">{t('Before the camera opens')}</p>
             <h2 className="mt-2 font-display text-2xl font-bold text-ink">{t('Build a repeatable image')}</h2>
             <p className="mt-2 text-xs leading-relaxed font-medium text-ink-soft">{t('Four calm checks make every future comparison more meaningful.')}</p>
@@ -201,7 +200,7 @@ export function VisualProgress() {
 
       {selected && (
         <div className="fixed inset-0 z-[85] flex flex-col bg-[#090a0f] text-white" role="dialog" aria-modal="true">
-          <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3"><div><p className="font-mono text-xs font-bold">{selected.local_date} · {poseLabel(selected.pose)}</p><p className="text-[10px] text-white/55">{selected.weight_kg ? `${selected.weight_kg} kg · ` : ''}{selected.sync_status}</p></div><button type="button" onClick={() => setSelected(null)} className="rounded-full bg-white/12 px-4 py-2 text-sm font-bold">Close</button></div>
+          <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3"><div><p className="font-mono text-xs font-bold">{formatProgressPhotoMoment(selected, language)} · {poseLabel(selected.pose)}</p><p className="text-[10px] text-white/55">{selected.weight_kg ? `${selected.weight_kg} kg · ` : ''}{selected.sync_status}</p></div><button type="button" onClick={() => setSelected(null)} className="rounded-full bg-white/12 px-4 py-2 text-sm font-bold">Close</button></div>
           <div className="min-h-0 flex-1 overflow-hidden"><PhotoImage photo={selected} className="h-full w-full object-contain" /></div>
           <div className="px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]"><p className="text-xs text-white/70">{selected.note || 'No note'}</p>{deleteConfirm === selected.id ? <div className="mt-3 flex gap-2"><button type="button" onClick={() => { void store.deletePhoto(selected.id); setSelected(null); setDeleteConfirm(null) }} className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold">Delete forever</button><button type="button" onClick={() => setDeleteConfirm(null)} className="rounded-xl bg-white/12 px-4 py-2 text-xs font-bold">Cancel</button></div> : <button type="button" onClick={() => setDeleteConfirm(selected.id)} className="mt-3 text-xs font-bold text-red-300">Delete private photo</button>}</div>
         </div>

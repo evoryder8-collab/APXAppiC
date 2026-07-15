@@ -18,6 +18,7 @@ import {
 } from '../lib/activity'
 import { ACCENTS } from '../lib/theme'
 import { GlassCard, GradientButton, Sheet, Stepper } from './ui'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 const amber = ACCENTS.amber
 
@@ -154,6 +155,8 @@ function ActivityEditor({
   onChange: (block: ActivityBlock) => void
   onAdd: () => void
 }) {
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const kcal = Math.round(netKcalForBlock(block, profile.weight_kg, catalog))
   const longDuration = (type.defaultDurationMin ?? 0) >= 60
   const hasSessionLengthPicker = type.id === 'massage-session' || type.id === 'deep-tissue-massage'
@@ -167,14 +170,14 @@ function ActivityEditor({
       <div className="mx-1 mb-3 rounded-[1.4rem] border border-amber-400/20 bg-amber-50/55 p-4 shadow-inner">
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="text-sm font-bold text-ink">Tune this block</p>
-            <p className="mt-0.5 text-[11px] leading-relaxed font-medium text-ink-soft">{type.notes}</p>
+            <p className="text-sm font-bold text-ink">{t('Tune this block')}</p>
+            <p className="mt-0.5 text-[11px] leading-relaxed font-medium text-ink-soft">{t(type.notes)}</p>
           </div>
           <div className="shrink-0 text-right">
             <motion.p key={kcal} initial={{ scale: 1.12, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }} className="font-mono text-xl font-bold" style={{ color: amber.deep }}>
               +{kcal}
             </motion.p>
-            <p className="font-mono text-[8px] font-bold tracking-[0.14em] text-ink-faint uppercase">net kcal</p>
+            <p className="font-mono text-[8px] font-bold tracking-[0.14em] text-ink-faint uppercase">{t('NET KCAL')}</p>
           </div>
         </div>
 
@@ -182,12 +185,12 @@ function ActivityEditor({
           {type.inputStyle === 'count' && (
             <>
               <div className="flex items-center justify-between gap-3">
-                <p className="text-xs font-bold text-ink-soft">How many?</p>
+                <p className="text-xs font-bold text-ink-soft">{t('How many?')}</p>
                 <Stepper value={block.quantity} onChange={(quantity) => onChange({ ...block, quantity })} min={1} max={12} accent={amber} />
               </div>
               {hasSessionLengthPicker ? (
                 <div>
-                  <p className="mb-2 text-xs font-bold text-ink-soft">Length each</p>
+                  <p className="mb-2 text-xs font-bold text-ink-soft">{t('Length each')}</p>
                   <div className="grid grid-cols-3 gap-2">
                     {[30, 60, 90].map((minutes) => (
                       <button
@@ -204,7 +207,7 @@ function ActivityEditor({
                 </div>
               ) : (
                 <div className="flex items-center justify-between rounded-xl bg-white/55 px-3 py-2">
-                  <p className="text-xs font-bold text-ink-soft">Each block</p>
+                  <p className="text-xs font-bold text-ink-soft">{t('Each block')}</p>
                   <p className="font-mono text-xs font-bold text-ink">{type.defaultDurationMin ?? block.durationMin ?? 0} min</p>
                 </div>
               )}
@@ -213,7 +216,7 @@ function ActivityEditor({
 
           {type.inputStyle === 'duration' && (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-ink-soft">Time active</p>
+              <p className="text-xs font-bold text-ink-soft">{t('Time active')}</p>
               <Stepper
                 value={longDuration ? (block.durationMin ?? 60) / 60 : block.durationMin ?? 30}
                 onChange={(value) => onChange({ ...block, durationMin: Math.round(value * (longDuration ? 60 : 1)) })}
@@ -228,21 +231,21 @@ function ActivityEditor({
 
           {type.inputStyle === 'distance' && (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-ink-soft">Distance</p>
+              <p className="text-xs font-bold text-ink-soft">{t('Distance')}</p>
               <Stepper value={block.distanceKm ?? 5} onChange={(distanceKm) => onChange({ ...block, distanceKm })} step={0.5} min={0.5} max={100} unit="km" accent={amber} />
             </div>
           )}
 
           {type.inputStyle === 'steps' && (
             <div>
-              <p className="mb-2 text-xs leading-relaxed font-bold text-ink-soft">Steps not already covered by the blocks above.</p>
+              <p className="mb-2 text-xs leading-relaxed font-bold text-ink-soft">{t('Steps not already covered by the blocks above.')}</p>
               <Stepper value={block.steps ?? 5000} onChange={(steps) => onChange({ ...block, steps })} step={1000} min={0} max={50000} unit="steps" accent={amber} />
             </div>
           )}
 
           {type.inputStyle === 'watch_kcal' && (
             <div className="flex items-center justify-between gap-3">
-              <p className="text-xs font-bold text-ink-soft">Watch reading</p>
+              <p className="text-xs font-bold text-ink-soft">{t('Watch reading')}</p>
               <Stepper value={block.watchKcal ?? 300} onChange={(watchKcal) => onChange({ ...block, watchKcal })} step={25} min={0} max={3000} unit="kcal" accent={amber} />
             </div>
           )}
@@ -250,8 +253,8 @@ function ActivityEditor({
           {type.supportsWatch && type.inputStyle !== 'watch_kcal' && (
             <label className="flex items-center justify-between gap-3 rounded-xl bg-white/55 px-3 py-2">
               <span>
-                <span className="block text-xs font-bold text-ink">Watch kcal <span className="font-medium text-ink-faint">optional</span></span>
-                <span className="block text-[9px] font-medium text-ink-faint">APEX counts 80% and uses the higher estimate, never both.</span>
+                <span className="block text-xs font-bold text-ink">{t('Watch kcal')} <span className="font-medium text-ink-faint">{t('optional')}</span></span>
+                <span className="block text-[9px] font-medium text-ink-faint">{t('APEX counts 80% and uses the higher estimate, never both.')}</span>
               </span>
               <input
                 type="number"
@@ -267,9 +270,9 @@ function ActivityEditor({
         </div>
 
         <div className="mt-4 flex items-center justify-between gap-3">
-          <p className="text-[10px] leading-relaxed font-medium text-ink-faint">Scaled live for {profile.weight_kg} kg</p>
+          <p className="text-[10px] leading-relaxed font-medium text-ink-faint">{t('Scaled live for')} {profile.weight_kg} kg</p>
           <GradientButton accent={amber} onClick={onAdd} className="!rounded-xl !px-4 !py-2.5 !text-xs">
-            Add to today
+            {t('Add to today')}
           </GradientButton>
         </div>
       </div>
@@ -288,6 +291,8 @@ export function TodaysActivities({
   yesterdayBlocks,
   onChange,
 }: TodaysActivitiesProps) {
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const [sheet, setSheet] = useState<'catalog' | 'guide' | null>(null)
   const [category, setCategory] = useState<ActivityCategory>('camera')
   const [draft, setDraft] = useState<ActivityBlock | null>(null)
@@ -554,9 +559,9 @@ export function TodaysActivities({
       <Sheet open={sheet === 'catalog'} onClose={() => { setSheet(null); setDraft(null) }} wide>
         <div className="flex items-start justify-between gap-3">
           <div>
-            <p className="font-mono text-[9px] font-bold tracking-[0.2em] text-amber-700 uppercase">Build the day</p>
-            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">Add an activity block</h2>
-            <p className="mt-1 text-xs font-medium text-ink-soft">Pick the closest real activity, then tune the amount.</p>
+            <p className="font-mono text-[9px] font-bold tracking-[0.2em] text-amber-700 uppercase">{t('Build the day')}</p>
+            <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">{t('Add an activity block')}</h2>
+            <p className="mt-1 text-xs font-medium text-ink-soft">{t('Pick the closest real activity, then tune the amount.')}</p>
           </div>
           <button type="button" onClick={() => { setSheet(null); setDraft(null) }} aria-label="Close add activity sheet" className="flex h-9 w-9 shrink-0 items-center justify-center rounded-full bg-ink/5 text-lg text-ink-soft">×</button>
         </div>
@@ -571,7 +576,7 @@ export function TodaysActivities({
                 className="rounded-full px-3 py-1.5 text-[10px] font-bold transition"
                 style={category === item.id ? { background: amber.gradient, color: '#fff' } : { background: 'rgba(255,255,255,.65)', color: '#55555f', border: '1px solid rgba(26,26,34,.08)' }}
               >
-                {item.label}
+                {t(item.label)}
               </button>
             ))}
           </div>
@@ -587,7 +592,7 @@ export function TodaysActivities({
                 <button
                   type="button"
                   onClick={() => openType(type)}
-                  aria-label={`Configure ${type.name}`}
+                  aria-label={`${t('Configure')} ${t(type.name)}`}
                   className="flex w-full items-center gap-3 rounded-2xl border bg-white/55 p-3 text-left transition active:scale-[0.99]"
                   style={{ borderColor: selected ? amber.glowStrong : 'rgba(26,26,34,.07)', boxShadow: selected ? `0 10px 28px -20px ${amber.glowStrong}` : undefined }}
                 >
@@ -595,12 +600,12 @@ export function TodaysActivities({
                     <ActivityGlyph name={type.icon} />
                   </span>
                   <span className="min-w-0 flex-1">
-                    <span className="block truncate text-[13px] font-bold text-ink">{type.name}</span>
-                    <span className="mt-0.5 block truncate text-[10px] font-medium text-ink-soft">{type.notes}</span>
+                    <span className="block truncate text-[13px] font-bold text-ink">{t(type.name)}</span>
+                    <span className="mt-0.5 block truncate text-[10px] font-medium text-ink-soft">{t(type.notes)}</span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block font-mono text-xs font-bold" style={{ color: amber.deep }}>{kcal > 0 ? `+${kcal}` : 'FLOOR'}</span>
-                    <span className="block font-mono text-[7px] font-semibold tracking-wide text-ink-faint">{kcal > 0 ? 'NET KCAL' : 'COVERED'}</span>
+                    <span className="block font-mono text-xs font-bold" style={{ color: amber.deep }}>{kcal > 0 ? `+${kcal}` : t('FLOOR')}</span>
+                    <span className="block font-mono text-[7px] font-semibold tracking-wide text-ink-faint">{t(kcal > 0 ? 'NET KCAL' : 'COVERED')}</span>
                   </span>
                 </button>
                 {selected && draft && <ActivityEditor type={type} block={draft} profile={profile} catalog={catalog} onChange={setDraft} onAdd={addDraft} />}

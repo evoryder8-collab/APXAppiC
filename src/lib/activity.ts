@@ -1,4 +1,5 @@
 import type { ActivityLevel, ActivityLog, Goal, Profile } from './types'
+import { computeMacroTargets } from './nutrition.ts'
 
 export type ActivityInputStyle = 'count' | 'duration' | 'distance' | 'steps' | 'watch_kcal'
 export type ActivitySource = 'manual' | 'workout_module' | 'event_prefill' | 'orbit'
@@ -339,9 +340,8 @@ export function estimateActivityDay(
   const safetyFloorKcal = bmr * 1.05
   const proposedTarget = tdee * GOAL_FACTORS[profile.goal]
   const targetKcal = Math.max(safetyFloorKcal, proposedTarget)
-  const proteinG = Math.round(profile.weight_kg * 2.2)
-  const fatG = Math.round(profile.weight_kg * 0.7)
-  const carbsG = Math.max(0, Math.round((targetKcal - proteinG * 4 - fatG * 9) / 4))
+  const level = activityLevelForPal(pal)
+  const macros = computeMacroTargets(profile.weight_kg, level, profile.goal, targetKcal)
 
   return {
     bmr: Math.round(bmr),
@@ -350,13 +350,13 @@ export function estimateActivityDay(
     adjustedBlockKcal: Math.round(adjustedBlockKcal),
     tdee: Math.round(tdee),
     pal: Math.round(pal * 100) / 100,
-    level: activityLevelForPal(pal),
+    level,
     targetKcal: Math.round(targetKcal),
     safetyFloorKcal: Math.round(safetyFloorKcal),
     safetyClamped: proposedTarget < safetyFloorKcal,
-    proteinG,
-    fatG,
-    carbsG,
+    proteinG: macros.protein_g,
+    fatG: macros.fat_g,
+    carbsG: macros.carbs_g,
     calibrationK,
   }
 }

@@ -2,6 +2,23 @@ import type { FoodRecord } from '../lib/food'
 
 const created = '2026-07-12T00:00:00.000Z'
 
+const LOCALIZED_NAMES: Record<string, { ro: string; th: string }> = {
+  '10000000-0000-4000-8000-000000000001': { ro: 'Fulgi de ovăz', th: 'ข้าวโอ๊ตรีดแผ่น' },
+  '10000000-0000-4000-8000-000000000002': { ro: 'Orez alb, uscat', th: 'ข้าวขาว ดิบ' },
+  '10000000-0000-4000-8000-000000000003': { ro: 'Orez alb, fiert', th: 'ข้าวขาว สุก' },
+  '10000000-0000-4000-8000-000000000004': { ro: 'Bulgur, uscat', th: 'บัลเกอร์ ดิบ' },
+  '10000000-0000-4000-8000-000000000005': { ro: 'Bulgur, fiert', th: 'บัลเกอร์ สุก' },
+  '10000000-0000-4000-8000-000000000006': { ro: 'Iaurt grecesc simplu', th: 'กรีกโยเกิร์ตรสธรรมชาติ' },
+  '10000000-0000-4000-8000-000000000007': { ro: 'Ou întreg', th: 'ไข่ทั้งฟอง' },
+  '10000000-0000-4000-8000-000000000008': { ro: 'Piept de pui, gătit', th: 'อกไก่ สุก' },
+  '10000000-0000-4000-8000-000000000009': { ro: 'Cartof dulce, gătit', th: 'มันหวาน สุก' },
+  '10000000-0000-4000-8000-000000000010': { ro: 'Broccoli, gătit', th: 'บรอกโคลี สุก' },
+  '10000000-0000-4000-8000-000000000011': { ro: 'Brânză cottage', th: 'คอตเทจชีส' },
+  '10000000-0000-4000-8000-000000000012': { ro: 'Nuci', th: 'วอลนัต' },
+  '10000000-0000-4000-8000-000000000013': { ro: 'Piept de pui crud', th: 'อกไก่ดิบ' },
+  '10000000-0000-4000-8000-000000000014': { ro: 'Cartof dulce la microunde', th: 'มันหวานไมโครเวฟ' },
+}
+
 function food(
   id: string,
   name: string,
@@ -18,7 +35,7 @@ function food(
     id,
     owner_user_id: null,
     name,
-    names_i18n: { en: name, de, fr, it },
+    names_i18n: { en: name, de, fr, it, ...LOCALIZED_NAMES[id] },
     brand: null,
     barcode: null,
     source: 'apex_cache',
@@ -59,4 +76,6 @@ export const COMMON_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000010', 'Broccoli, cooked', 'Brokkoli, gegart', 'Brocoli, cuit', 'Broccoli, cotti', 35, 2.4, 7.2, 0.4, 'cooked'),
   food('10000000-0000-4000-8000-000000000011', 'Cottage cheese', 'Hüttenkäse', 'Cottage cheese', 'Fiocchi di latte', 98, 11.1, 3.4, 4.3),
   food('10000000-0000-4000-8000-000000000012', 'Walnuts', 'Walnüsse', 'Noix', 'Noci', 654, 15.2, 13.7, 65.2),
+  food('10000000-0000-4000-8000-000000000013', 'Chicken breast, raw', 'Hähnchenbrust, roh', 'Blanc de poulet, cru', 'Petto di pollo, crudo', 120, 22.5, 0, 2.6, 'as_sold'),
+  food('10000000-0000-4000-8000-000000000014', 'Sweet potato, microwaved', 'Süßkartoffel, Mikrowelle', 'Patate douce, micro-ondes', 'Patata dolce, microonde', 90, 2, 20.7, 0.2, 'cooked'),
 ]
