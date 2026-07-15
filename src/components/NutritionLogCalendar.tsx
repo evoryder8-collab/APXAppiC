@@ -2,13 +2,16 @@ import { useMemo } from 'react'
 import { addDays, addMonths, format, getISODay, isSameMonth, startOfMonth } from 'date-fns'
 import type { Accent } from '../lib/theme'
 import type { AppData } from '../lib/types'
+import type { LoggedMeal } from '../lib/food'
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 interface NutritionLogCalendarProps {
   month: Date
   selectedDate: string
   today: string
   data: AppData
+  foodMeals: LoggedMeal[]
   accent: Accent
   onMonthChange: (month: Date) => void
   onSelectDate: (dateIso: string) => void
@@ -21,10 +24,13 @@ export function NutritionLogCalendar({
   selectedDate,
   today,
   data,
+  foodMeals,
   accent,
   onMonthChange,
   onSelectDate,
 }: NutritionLogCalendarProps) {
+  const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const cells = useMemo(() => {
     const first = startOfMonth(month)
     const start = addDays(first, -(getISODay(first) - 1))
@@ -35,8 +41,11 @@ export function NutritionLogCalendar({
   const mealCountByDate = useMemo(() => {
     const counts = new Map<string, number>()
     for (const log of data.meal_logs) counts.set(log.date, (counts.get(log.date) ?? 0) + 1)
+    const foodCounts = new Map<string, number>()
+    for (const meal of foodMeals) foodCounts.set(meal.local_date, (foodCounts.get(meal.local_date) ?? 0) + 1)
+    for (const [date, count] of foodCounts) counts.set(date, Math.max(counts.get(date) ?? 0, count))
     return counts
-  }, [data.meal_logs])
+  }, [data.meal_logs, foodMeals])
   const supplementCountByDate = useMemo(() => {
     const counts = new Map<string, number>()
     for (const log of data.supplement_logs) counts.set(log.date, (counts.get(log.date) ?? 0) + 1)
@@ -58,7 +67,7 @@ export function NutritionLogCalendar({
           <ChevronLeftIcon className="h-4 w-4" />
         </button>
         <div className="text-center">
-          <p className="font-display text-base font-bold text-ink">Log history</p>
+          <p className="font-display text-base font-bold text-ink">{t('Nutrition calendar')}</p>
           <p className="font-mono text-[11px] font-semibold text-ink-faint">{format(month, 'MMMM yyyy')}</p>
         </div>
         <button
@@ -101,7 +110,7 @@ export function NutritionLogCalendar({
             <button
               key={dateIso}
               type="button"
-              disabled={!inMonth || future}
+              disabled={!inMonth}
               onClick={() => onSelectDate(dateIso)}
               aria-label={`${format(date, 'd MMMM yyyy')}: ${mealCount} meals, ${supplementCount} supplements, ${daily?.water_l ?? 0} litres water`}
               className="relative aspect-square overflow-hidden rounded-xl transition-transform active:scale-95 disabled:cursor-default"
@@ -118,12 +127,13 @@ export function NutritionLogCalendar({
                   : inMonth
                     ? '1px solid rgba(26,26,34,0.07)'
                     : '1px solid transparent',
-                color: !inMonth || future ? 'rgba(26,26,34,0.22)' : '#1a1a22',
+                color: !inMonth ? 'rgba(26,26,34,0.22)' : future ? 'rgba(26,26,34,0.58)' : '#1a1a22',
                 boxShadow: selected ? `0 0 16px -5px ${accent.glowStrong}` : undefined,
               }}
             >
               {inMonth && <span className="absolute top-1 left-1.5 font-mono text-[11px] font-bold">{format(date, 'd')}</span>}
-              {inMonth && !future && (
+              {inMonth && future && !hasAny && <span className="absolute right-1.5 bottom-1 font-mono text-[11px] font-black text-amber-600">+</span>}
+              {inMonth && (hasAny || !future) && (
                 <span className="absolute inset-x-0 bottom-1.5 flex justify-center gap-1" aria-hidden>
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: mealCount > 0 ? (mealHit ? '#10b981' : '#f59e0b') : 'rgba(26,26,34,0.12)' }} />
                   <span className="h-1.5 w-1.5 rounded-full" style={{ background: supplementCount > 0 ? (supplementHit ? '#10b981' : '#f59e0b') : 'rgba(26,26,34,0.12)' }} />

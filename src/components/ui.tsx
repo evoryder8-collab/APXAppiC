@@ -313,14 +313,14 @@ export function Sheet({
           animate={{ opacity: 1 }}
           exit={{ opacity: 0 }}
         >
-          <div className="absolute inset-0 bg-ink/20 backdrop-blur-sm" onClick={onClose} aria-hidden />
+          <div className="absolute inset-0 bg-ink/35 backdrop-blur-xl" onClick={onClose} aria-hidden />
           <motion.div
             initial={{ y: 60, opacity: 0 }}
             animate={{ y: 0, opacity: 1 }}
             exit={{ y: 60, opacity: 0 }}
             transition={{ duration: 0.28, ease: EASE }}
-            className={`glass relative max-h-[88dvh] w-full overflow-y-auto rounded-t-3xl p-5 sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} m-0 sm:m-4`}
-            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.88), rgba(255,255,255,0.78))' }}
+            className={`relative max-h-[88dvh] w-full overflow-y-auto rounded-t-3xl border border-white/90 p-5 shadow-[0_30px_90px_-28px_rgba(6,16,28,.65)] sm:rounded-3xl ${wide ? 'sm:max-w-2xl' : 'sm:max-w-md'} m-0 sm:m-4`}
+            style={{ background: 'linear-gradient(150deg, rgba(255,255,255,0.995), rgba(247,250,252,0.985))' }}
           >
             {children}
           </motion.div>

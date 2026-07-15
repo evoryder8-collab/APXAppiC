@@ -15,7 +15,7 @@ import {
   type MealSlot,
 } from '../../lib/food'
 import { useFoodStore } from '../../store/FoodStore'
-import { GlassCard, GradientButton } from '../ui'
+import { GlassCard } from '../ui'
 import { BarcodeIcon } from '../Icons'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 
@@ -24,6 +24,8 @@ const amber = ACCENTS.amber
 
 interface MealComposerProps {
   slot: MealSlot
+  date?: string
+  planning?: boolean
   title?: string
   initialItems?: ComposerFoodItem[]
   plannedMealId?: string | null
@@ -42,7 +44,7 @@ function composerItem(food: FoodRecord, index: number): ComposerFoodItem {
   const unit = defaultUnit(food)
   return {
     id: crypto.randomUUID(), food, quantity: unit === 'piece' ? 1 : unit === 'serving' ? 1 : 100,
-    unit, sort_order: index, optional: false, locked: false, adjustable: true,
+    unit, sort_order: index, optional: false, locked: true, adjustable: false,
     minimum_amount: null, maximum_amount: null, step_amount: unit === 'piece' ? 1 : 5,
     adjustment_role: food.carbs_100 != null && food.protein_100 != null && food.carbs_100 > food.protein_100 ? 'carb' : 'protein',
   }
@@ -50,6 +52,8 @@ function composerItem(food: FoodRecord, index: number): ComposerFoodItem {
 
 export function MealComposer({
   slot,
+  date,
+  planning = false,
   title,
   initialItems = [],
   plannedMealId = null,
@@ -59,6 +63,7 @@ export function MealComposer({
 }: MealComposerProps) {
   const store = useFoodStore()
   const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const slotLabel = translateInterfaceText(`${slot[0].toUpperCase()}${slot.slice(1)}`, language)
   const [items, setItems] = useState<ComposerFoodItem[]>(initialItems)
   const [name, setName] = useState(title ?? slotLabel)
@@ -248,8 +253,8 @@ export function MealComposer({
     setSaving(true)
     try {
       await store.logMeal({
-        slot, name: name.trim() || 'Meal', items, sourcePlannedMealId: plannedMealId,
-        replaceMealId, loggedAs: plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
+        date, slot, name: name.trim() || 'Meal', items, sourcePlannedMealId: plannedMealId,
+        replaceMealId, loggedAs: planning ? 'planned' : plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
       })
       onLogged?.()
       onClose()
@@ -265,8 +270,8 @@ export function MealComposer({
       <div className="mx-auto min-h-dvh w-full max-w-3xl px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-[calc(2rem+env(safe-area-inset-bottom))]">
         <div className="sticky top-0 z-20 -mx-2 flex items-center justify-between rounded-2xl bg-canvas/85 px-2 py-2 backdrop-blur-xl">
           <div>
-            <p className="font-mono text-[10px] tracking-[0.18em] text-ink-faint uppercase">{translateInterfaceText('Actual intake', language)} · {slotLabel}</p>
-            <h2 className="font-display text-xl font-bold text-ink">Build this meal</h2>
+            <p className="font-mono text-[10px] tracking-[0.18em] text-ink-faint uppercase">{t(planning ? 'Future meal plan' : 'Actual intake')} · {slotLabel}</p>
+            <h2 className="font-display text-xl font-bold text-ink">{t(planning ? 'Plan this meal' : 'Build this meal')}</h2>
           </div>
           <button type="button" onClick={onClose} className="glass rounded-full px-4 py-2 text-sm font-bold text-ink">Close</button>
         </div>
@@ -384,11 +389,11 @@ export function MealComposer({
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-ink-soft">
                     <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/65 py-1 pr-1.5 pl-2.5">
-                      <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="checkbox" checked={item.adjustable} onChange={(event) => patchItem(item.id, { adjustable: event.target.checked })} className="accent-amber-500" /> adaptive</label>
+                      <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="checkbox" checked={item.adjustable} onChange={(event) => patchItem(item.id, { adjustable: event.target.checked, locked: !event.target.checked })} className="accent-amber-500" /> {t('adaptive')}</label>
                       <button type="button" onClick={() => setControlHelp((current) => current?.itemId === item.id && current.kind === 'adaptive' ? null : { itemId: item.id, kind: 'adaptive' })} className="grid h-4 w-4 place-items-center rounded-full bg-amber-500/15 font-mono text-[8px] font-black text-amber-800" aria-label="Adaptive amount information">i</button>
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/65 py-1 pr-1.5 pl-2.5">
-                      <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="checkbox" checked={item.locked} onChange={(event) => patchItem(item.id, { locked: event.target.checked })} className="accent-amber-500" /> lock</label>
+                      <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="checkbox" checked={item.locked} onChange={(event) => patchItem(item.id, { locked: event.target.checked, adjustable: !event.target.checked })} className="accent-amber-500" /> {t('lock')}</label>
                       <button type="button" onClick={() => setControlHelp((current) => current?.itemId === item.id && current.kind === 'lock' ? null : { itemId: item.id, kind: 'lock' })} className="grid h-4 w-4 place-items-center rounded-full bg-amber-500/15 font-mono text-[8px] font-black text-amber-800" aria-label="Locked amount information">i</button>
                     </span>
                     <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/65 py-1 pr-1.5 pl-1">
@@ -416,19 +421,24 @@ export function MealComposer({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <div className="mt-2 grid grid-cols-2 gap-2">
+                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-2">
                     <input
                       defaultValue={store.preferences.find((value) => value.food_id === item.food.id)?.personal_name ?? ''}
                       onBlur={(event) => void store.setPreference(item.food.id, { personal_name: event.target.value.trim() || null })}
-                      placeholder="Personal label"
+                      placeholder={t('Personal label')}
                       className="rounded-lg bg-white/65 px-2 py-1.5 text-[10px] outline-none"
                     />
-                    <input
-                      defaultValue={(store.preferences.find((value) => value.food_id === item.food.id)?.aliases ?? []).join(', ')}
-                      onBlur={(event) => void store.setPreference(item.food.id, { aliases: event.target.value.split(',').map((value) => value.trim()).filter(Boolean) })}
-                      placeholder="Aliases, comma separated"
-                      className="rounded-lg bg-white/65 px-2 py-1.5 text-[10px] outline-none"
-                    />
+                    {index === items.length - 1 ? (
+                      <button
+                        type="button"
+                        disabled={saving || totals.kcal <= 0}
+                        onClick={() => void log()}
+                        className="rounded-xl px-3 py-2 text-[11px] font-black text-white shadow-[0_12px_24px_-14px_rgba(245,158,11,.9)] disabled:opacity-50"
+                        style={{ background: amber.gradient }}
+                      >
+                        {saving ? t('Saving privately…') : t(replaceMealId ? 'Replace meal' : planning ? 'Add to day' : 'Add food')} · {totals.kcal} kcal
+                      </button>
+                    ) : <span />}
                   </div>
                 </GlassCard>
               )
@@ -445,13 +455,9 @@ export function MealComposer({
                 <button type="button" onClick={() => void savePreset(false)} className="rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-ink">{loadedPresetId ? 'Update preset' : 'Save preset'}</button>
                 {loadedPresetId && <button type="button" onClick={() => void savePreset(true)} className="rounded-xl bg-white/65 px-3 py-2 text-xs font-bold text-ink-soft">Save as new</button>}
               </div>
-              <p className="mt-2 text-[10px] font-medium text-ink-faint">Logging below changes today only. A saved preset changes only when you use the buttons above.</p>
+              <p className="mt-2 text-[10px] font-medium text-ink-faint">{t(planning ? 'Adding this meal changes only the selected date. Saved presets remain unchanged.' : 'Logging below changes today only. A saved preset changes only when you use the buttons above.')}</p>
             </GlassCard>
           )}
-
-          <GradientButton accent={amber} disabled={saving || !items.length} onClick={() => void log()} className="w-full">
-            {saving ? 'Saving privately…' : replaceMealId ? `Replace meal · ${totals.kcal} kcal` : `Log meal · ${totals.kcal} kcal`}
-          </GradientButton>
           <p className="text-center text-[10px] font-medium text-ink-faint">Logged entries are immutable snapshots. Editing a food later will never rewrite your history.</p>
         </div>
       </div>

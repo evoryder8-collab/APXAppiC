@@ -8,8 +8,6 @@ import {
   AccentChip,
   GlassCard,
   SectionHeader,
-  Sparkline,
-  Stepper,
   Toggle,
 } from '../components/ui'
 import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS, type TargetMeal } from '../lib/nutrition'
@@ -124,10 +122,16 @@ export function Nutrition() {
     title: string
     replaceMealId: string | null
   } | null>(null)
+  const [calendarComposer, setCalendarComposer] = useState<{
+    slot: MealSlot
+    title: string
+    items: ComposerFoodItem[]
+  } | null>(null)
 
+  const storedSelectedLog = data.daily_logs.find((d) => d.date === selectedLogDate)
   const selectedLog: DailyLog = {
     ...emptyDailyLog(selectedLogDate, profile?.user_id ?? 'local'),
-    ...data.daily_logs.find((d) => d.date === selectedLogDate),
+    ...storedSelectedLog,
   }
 
   const patchLog = (patch: Partial<DailyLog>): void => {
@@ -152,20 +156,6 @@ export function Nutrition() {
     }
     setWater(parsed)
   }
-
-  /* Sparkline data: the 7-day window ending at the selected history date. */
-  const week = useMemo(() => {
-    const end = new Date(selectedLogDate + 'T12:00:00')
-    const days = [...Array(7)].map((_, i) => format(subDays(end, 6 - i), 'yyyy-MM-dd'))
-    const byDate = new Map(data.daily_logs.map((d) => [d.date, d]))
-    return {
-      kcal: days.map((d) => byDate.get(d)?.kcal ?? null),
-      protein: days.map((d) => byDate.get(d)?.protein_g ?? null),
-      fat: days.map((d) => byDate.get(d)?.fat_g ?? null),
-      carbs: days.map((d) => byDate.get(d)?.carbs_g ?? null),
-      water: days.map((d) => byDate.get(d)?.water_l ?? null),
-    }
-  }, [data.daily_logs, selectedLogDate])
 
   const activeDayLabel = preciseMode && activityEstimate
     ? PAL_LABELS[activityEstimate.level]
@@ -256,8 +246,8 @@ export function Nutrition() {
         unit: entry.unit,
         sort_order: index,
         optional: false,
-        locked: false,
-        adjustable: true,
+        locked: true,
+        adjustable: false,
         minimum_amount: null,
         maximum_amount: null,
         step_amount: entry.unit === 'piece' ? 1 : 5,
@@ -585,6 +575,17 @@ export function Nutrition() {
     (supplement) => !selectedSupplementIds.has(supplement.id),
   )
   const selectedIsPast = selectedLogDate < today
+  const selectedIsFuture = selectedLogDate > today
+  const selectedUnlinkedMeals = selectedLoggedMeals.filter((meal) => meal.source_planned_meal_id == null)
+  const selectedMealRecordCount = Math.max(selectedLoggedMeals.length, selectedEffectiveMealIds.size)
+  const openCalendarMeal = (slot: MealSlot, presetId?: string): void => {
+    const preset = presetId ? foodStore.presets.find((candidate) => candidate.id === presetId) : null
+    setCalendarComposer({
+      slot,
+      title: preset?.name ?? tx(`${slot[0].toUpperCase()}${slot.slice(1)}`),
+      items: preset ? foodStore.itemsForPreset(preset.id).map((item) => ({ ...item, id: crypto.randomUUID() })) : [],
+    })
+  }
 
   return (
     <div className="mx-auto w-full max-w-3xl">
@@ -859,9 +860,11 @@ export function Nutrition() {
             )}
           </div>
           <p className="mt-1 text-[13px] font-medium text-ink-soft">
-            {selectedLogDate === today
-              ? 'Twenty seconds before bed. This feeds the Health stat.'
-              : 'Review or correct this past day. Changes sync to the same daily record.'}
+            {selectedIsFuture
+              ? tx('Plan meals in advance. Saved presets can be added to this date in one tap.')
+              : selectedLogDate === today
+                ? tx('Your consumed nutrition is calculated from the meals you log. Only water and morning weight are entered here.')
+                : tx('Review this day. Nutrition comes from its logged meals, while water and morning weight remain editable.')}
           </p>
           {selectedLogDate === today && preciseMode && (
             <div className="mt-4 rounded-2xl border border-amber-500/15 p-4" style={{ background: amber.wash }}>
@@ -887,131 +890,61 @@ export function Nutrition() {
               </div>
             </div>
           )}
-          {selectedLog.nutrition_source === 'structured' && (
-            <p className="mt-4 rounded-xl bg-amber-500/8 px-3 py-2 text-[11px] font-semibold text-amber-800">
-              Calories and macros are calculated from your actual food entries. Delete or replace a logged meal above to change them. Water and weight stay editable here.
-            </p>
-          )}
-          <div className="mt-4 space-y-4">
+          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
             {(
               [
-                { label: 'Calories', key: 'kcal', step: 50, unit: 'kcal', values: week.kcal },
-                { label: 'Protein', key: 'protein_g', step: 5, unit: 'g', values: week.protein },
-                { label: 'Fat', key: 'fat_g', step: 5, unit: 'g', values: week.fat },
-                { label: 'Carbs', key: 'carbs_g', step: 10, unit: 'g', values: week.carbs },
+                ['Calories', selectedHasConsumedNutrition ? selectedConsumed.kcal : selectedLog.kcal, 'kcal'],
+                ['Protein', selectedHasConsumedNutrition ? selectedConsumed.protein_g : selectedLog.protein_g, 'g'],
+                ['Fat', selectedHasConsumedNutrition ? selectedConsumed.fat_g : selectedLog.fat_g, 'g'],
+                ['Carbs', selectedHasConsumedNutrition ? selectedConsumed.carbs_g : selectedLog.carbs_g, 'g'],
               ] as const
-            ).map((row) => (
-              <div key={row.key} className="flex items-center justify-between gap-3">
-                <div className="w-20">
-                  <p className="text-sm font-bold text-ink">{row.label}</p>
-                  <Sparkline values={row.values} accent={amber} width={72} height={22} />
-                </div>
-                {selectedLog.nutrition_source === 'structured' ? (
-                  <div className="min-w-[9.5rem] rounded-2xl bg-white/70 px-4 py-3 text-center font-mono text-xl font-bold text-ink">
-                    {(selectedLog[row.key] as number | null) ?? 0}<span className="ml-1 text-xs text-ink-soft">{row.unit}</span>
-                  </div>
-                ) : (
-                  <Stepper
-                    accent={amber}
-                    value={(selectedLog[row.key] as number | null) ?? 0}
-                    step={row.step}
-                    unit={row.unit}
-                    onChange={(v) => patchLog({ [row.key]: v, [`manual_${row.key}`]: v, nutrition_source: 'manual' })}
-                  />
-                )}
+            ).map(([label, value, unit]) => (
+              <div key={label} className="rounded-2xl border border-white/80 bg-white/65 px-3 py-3 shadow-sm">
+                <p className="text-[9px] font-black tracking-wide text-ink-faint uppercase">{tx(label)}</p>
+                <p className="mt-1 font-mono text-lg font-black text-ink">{value == null ? tx('Not logged') : `${value}${unit}`}</p>
               </div>
             ))}
-            <div className="flex items-center justify-between gap-3">
-              <div className="w-20">
-                <p className="text-sm font-bold text-ink">Water</p>
-                <Sparkline values={week.water} accent={amber} width={72} height={22} />
+          </div>
+          <p className="mt-2 text-[10px] font-semibold text-ink-faint">{tx(selectedIsFuture ? 'Planned totals from the meals added to this date.' : 'These totals come from the meals recorded for this date.')}</p>
+
+          {selectedIsFuture ? (
+            <div className="mt-4 rounded-[24px] border border-amber-300/25 bg-amber-50/55 p-4">
+              <div className="flex items-center justify-between gap-3"><div><p className="font-display text-sm font-black text-ink">{tx('Plan meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-soft">{tx('Choose a meal slot or reuse one of your saved presets.')}</p></div><span className="font-mono text-[9px] font-black text-amber-700">{format(selectedDateObject, 'd MMM')}</span></div>
+              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
+                {(['breakfast', 'lunch', 'dinner', 'snack'] as MealSlot[]).map((slot) => <button key={slot} type="button" onClick={() => openCalendarMeal(slot)} className="rounded-2xl border border-white bg-white/75 px-3 py-3 text-xs font-black text-ink shadow-sm">+ {tx(`${slot[0].toUpperCase()}${slot.slice(1)}`)}</button>)}
               </div>
-              <div className="flex items-center gap-2" aria-label="Water in litres">
-                <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="decrease water">−</button>
-                <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2">
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={waterDraft}
-                    onChange={(event) => {
-                      if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value)
-                    }}
-                    onBlur={commitWaterDraft}
-                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                    className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none"
-                    aria-label="Exact water in litres"
-                  />
-                  <span className="ml-1 text-xs font-bold text-sky-700">L</span>
-                </label>
-                <button type="button" onClick={() => setWater(selectedLog.water_l + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="increase water">+</button>
-              </div>
+              {foodStore.presets.some((preset) => !preset.archived) && <div className="mt-3 flex gap-2 overflow-x-auto pb-1">{foodStore.presets.filter((preset) => !preset.archived).map((preset) => <button key={preset.id} type="button" onClick={() => openCalendarMeal(preset.meal_slot, preset.id)} className="shrink-0 rounded-full bg-amber-500/12 px-3 py-2 text-[10px] font-black text-amber-800">{preset.name}</button>)}</div>}
             </div>
-            <label className="flex items-center justify-between gap-3">
-              <span>
-                <span className="block text-sm font-bold text-ink">Morning weight</span>
-                <span className="block text-[10px] font-medium text-ink-faint">Optional · feeds the 7-day calibration EMA</span>
-              </span>
-              <span className="glass flex items-center rounded-xl px-3 py-2">
-                <input
-                  type="number"
-                  inputMode="decimal"
-                  min="25"
-                  max="300"
-                  step="0.1"
-                  value={selectedLog.weight_kg ?? ''}
-                  placeholder={String(profile.weight_kg)}
-                  onChange={(event) => patchLog({ weight_kg: event.target.value === '' ? null : Number(event.target.value) })}
-                  className="w-16 bg-transparent text-right font-mono text-base font-bold text-ink outline-none"
-                  aria-label="Morning weight in kilograms"
-                />
-                <span className="ml-1 text-xs font-semibold text-ink-soft">kg</span>
-              </span>
-            </label>
-          </div>
-          <div className="mt-4 border-t border-ink/8 pt-3 text-xs font-medium text-ink-soft">
-            Water is shared with the workout calendars. Log it wherever you are.
-          </div>
+          ) : (
+            <div className="mt-4 space-y-4 border-t border-ink/8 pt-4">
+              <div className="flex items-center justify-between gap-3">
+                <div><p className="text-sm font-bold text-ink">{tx('Water')}</p><p className="text-[10px] font-medium text-ink-faint">{tx('Editable here or from the workout calendar.')}</p></div>
+                <div className="flex items-center gap-2" aria-label="Water in litres">
+                  <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="decrease water">−</button>
+                  <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2"><input type="text" inputMode="decimal" value={waterDraft} onChange={(event) => { if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value) }} onBlur={commitWaterDraft} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none" aria-label="Exact water in litres" /><span className="ml-1 text-xs font-bold text-sky-700">L</span></label>
+                  <button type="button" onClick={() => setWater(selectedLog.water_l + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="increase water">+</button>
+                </div>
+              </div>
+              <label className="flex items-center justify-between gap-3"><span><span className="block text-sm font-bold text-ink">{tx('Morning weight')}</span><span className="block text-[10px] font-medium text-ink-faint">{tx('Optional · feeds the 7-day calibration EMA')}</span></span><span className="glass flex items-center rounded-xl px-3 py-2"><input type="number" inputMode="decimal" min="25" max="300" step="0.1" value={selectedLog.weight_kg ?? ''} placeholder={String(profile.weight_kg)} onChange={(event) => patchLog({ weight_kg: event.target.value === '' ? null : Number(event.target.value) })} className="w-16 bg-transparent text-right font-mono text-base font-bold text-ink outline-none" aria-label="Morning weight in kilograms" /><span className="ml-1 text-xs font-semibold text-ink-soft">kg</span></span></label>
+            </div>
+          )}
 
           <NutritionLogCalendar
             month={logMonth}
             selectedDate={selectedLogDate}
             today={today}
             data={data}
+            foodMeals={foodStore.meals}
             accent={amber}
             onMonthChange={setLogMonth}
             onSelectDate={setSelectedLogDate}
           />
 
-          <div className="mt-4 rounded-2xl p-4" style={{ background: 'rgba(255,255,255,0.48)' }}>
-            <div className="flex flex-wrap items-center justify-between gap-2">
-              <h3 className="font-display text-sm font-bold text-ink">
-                {selectedLogDate === today ? "Today's record" : format(selectedDateObject, 'd MMMM')} at a glance
-              </h3>
-              <span className="font-mono text-[11px] font-bold text-ink-faint">
-                {tx(`${selectedEffectiveMealIds.size}/${data.meals.length} meals · ${selectedSupplementIds.size}/${expectedSupplements.length} supplements`)}
-              </span>
-            </div>
-
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-5">
-              {(
-                [
-                  ['Calories', selectedHasConsumedNutrition ? selectedConsumed.kcal : selectedLog.kcal, 'kcal'],
-                  ['Protein', selectedHasConsumedNutrition ? selectedConsumed.protein_g : selectedLog.protein_g, 'g'],
-                  ['Fat', selectedHasConsumedNutrition ? selectedConsumed.fat_g : selectedLog.fat_g, 'g'],
-                  ['Carbs', selectedHasConsumedNutrition ? selectedConsumed.carbs_g : selectedLog.carbs_g, 'g'],
-                  ['Water', selectedLog.water_l || null, 'L'],
-                ] as const
-              ).map(([label, value, unit]) => (
-                <div key={label} className="rounded-xl px-2.5 py-2" style={{ background: 'rgba(255,255,255,0.62)' }}>
-                  <p className="text-[10px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>
-                  <p className="font-mono text-sm font-bold text-ink">{value == null ? 'Not logged' : `${value}${unit}`}</p>
-                </div>
-              ))}
-            </div>
-
-            <div className="mt-2 grid grid-cols-2 gap-2 sm:grid-cols-4">
+          <div className="mt-5 border-t border-ink/8 pt-4">
+            <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black tracking-wide text-ink-soft uppercase">{tx(selectedIsFuture ? 'Planned day details' : 'Day details')}</p><span className="font-mono text-[10px] font-bold text-ink-faint">{tx(`${selectedMealRecordCount}/${data.meals.length} meals · ${selectedSupplementIds.size}/${expectedSupplements.length} supplements`)}</span></div>
+            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
               {[
-                ['Activity mode', selectedLog.activity_mode === 'precise' ? 'Precise' : 'Quick'],
+                ['Activity mode', !storedSelectedLog ? 'Not logged' : selectedLog.activity_mode === 'precise' ? 'Precise' : 'Quick'],
                 ['Estimated TDEE', selectedLog.estimated_tdee == null ? 'Not logged' : `${selectedLog.estimated_tdee} kcal`],
                 ['PAL', selectedLog.computed_pal == null ? 'Not logged' : Number(selectedLog.computed_pal).toFixed(2)],
                 ['Morning weight', selectedLog.weight_kg == null ? 'Not logged' : `${selectedLog.weight_kg} kg`],
@@ -1040,7 +973,7 @@ export function Nutrition() {
             )}
 
             <div className="mt-4">
-              <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Meals</p>
+              <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">{tx('Meals')}</p>
               <div className="mt-2 space-y-1.5">
                 {[...data.meals]
                   .sort((a, b) => a.time.localeCompare(b.time))
@@ -1053,15 +986,21 @@ export function Nutrition() {
                       <div key={meal.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: done ? 'rgba(16,185,129,0.09)' : selectedIsPast ? 'rgba(220,38,38,0.06)' : 'rgba(26,26,34,0.035)' }}>
                         <div className="min-w-0"><p className="truncate text-xs font-semibold text-ink"><span className="mr-2 font-mono text-ink-faint">{meal.time}</span>{actual?.logged_as === 'changed' ? actual.display_name : meal.name}</p>{actual?.logged_as === 'changed' && <p className="mt-0.5 truncate pl-12 text-[9px] font-medium text-ink-faint">Replaced {meal.name} · {actual.total_kcal} kcal</p>}</div>
                         <span className={`shrink-0 text-[11px] font-bold ${done ? 'text-emerald' : selectedIsPast ? 'text-crimson' : 'text-ink-faint'}`}>
-                          {done ? 'Eaten ✓' : selectedIsPast ? 'Missed / not logged' : 'Not checked'}
+                          {tx(done ? selectedIsFuture ? 'Planned ✓' : 'Eaten ✓' : selectedIsPast ? 'Missed / not logged' : selectedIsFuture ? 'Not planned' : 'Not checked')}
                         </span>
                       </div>
                     )
                   })}
+                {selectedUnlinkedMeals.map((meal) => (
+                  <div key={meal.id} className="flex items-center justify-between gap-3 rounded-xl bg-emerald/8 px-3 py-2">
+                    <div className="min-w-0"><p className="truncate text-xs font-semibold text-ink">{meal.display_name}</p><p className="mt-0.5 font-mono text-[9px] font-bold text-ink-faint">{meal.total_kcal} kcal · P {meal.total_protein_g} · C {meal.total_carbs_g} · F {meal.total_fat_g}</p></div>
+                    <div className="flex shrink-0 items-center gap-2"><span className="text-[10px] font-black text-emerald">{tx(selectedIsFuture ? 'Planned' : 'Logged')}</span><button type="button" onClick={() => void foodStore.deleteMeal(meal.id)} className="grid h-7 w-7 place-items-center rounded-full bg-rose-50 text-xs font-black text-rose-600" aria-label={tx('Remove meal')}>×</button></div>
+                  </div>
+                ))}
               </div>
             </div>
 
-            <div className="mt-4">
+            {!selectedIsFuture && <div className="mt-4">
               <div className="flex items-center justify-between gap-2">
                 <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Supplements</p>
                 {missingSupplements.length === 0 && (
@@ -1082,7 +1021,7 @@ export function Nutrition() {
                   </div>
                 </>
               )}
-            </div>
+            </div>}
 
             {selectedIsPast && (
               <p className="mt-4 text-[10.5px] leading-relaxed font-medium text-ink-faint">
@@ -1113,6 +1052,7 @@ export function Nutrition() {
 
       {plannedComposer && (
         <MealComposer
+          date={today}
           slot={plannedComposer.slot}
           title={plannedComposer.title}
           initialItems={plannedComposer.items}
@@ -1130,6 +1070,17 @@ export function Nutrition() {
             toast(`${plannedComposer.title} logged`, 'ok')
           }}
           onClose={() => setPlannedComposer(null)}
+        />
+      )}
+      {calendarComposer && (
+        <MealComposer
+          date={selectedLogDate}
+          planning
+          slot={calendarComposer.slot}
+          title={calendarComposer.title}
+          initialItems={calendarComposer.items}
+          onLogged={() => toast(tx('Meal added to this date'), 'ok')}
+          onClose={() => setCalendarComposer(null)}
         />
       )}
     </div>

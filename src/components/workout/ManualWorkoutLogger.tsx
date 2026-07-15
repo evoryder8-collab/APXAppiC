@@ -37,11 +37,11 @@ function numberValue(value: string, max = 999): number {
 }
 
 function starterSets(item: ExerciseCatalogItem): ManualSetDraft[] {
-  return [...Array(Math.max(1, Math.min(5, item.sets)))].map((_, index) => ({
-    id: uid(`set-${index}`),
+  return [{
+    id: uid('set-0'),
     reps: item.unit === 'reps' ? item.reps : 0,
     weightKg: 0,
-  }))
+  }]
 }
 
 function draftFromCatalog(item: ExerciseCatalogItem): ManualExerciseDraft {

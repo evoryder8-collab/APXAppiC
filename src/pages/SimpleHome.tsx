@@ -1,6 +1,6 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { format } from 'date-fns'
+import { addDays, format, parseISO } from 'date-fns'
 import { Link, useNavigate } from 'react-router-dom'
 import { motion } from 'framer-motion'
 import { useStore } from '../store/AppStore'
@@ -58,6 +58,9 @@ export function SimpleHome() {
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const today = todayIso()
+  const [selectedDate, setSelectedDate] = useState(today)
+  const swipeStart = useRef<{ x: number; y: number } | null>(null)
+  const selectedDateObject = useMemo(() => parseISO(selectedDate), [selectedDate])
   const profile = data.profile
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
   const mealPlan = useMemo(
@@ -66,14 +69,14 @@ export function SimpleHome() {
       : [],
     [data.meals, profile, targets],
   )
-  const todayFoodMeals = useMemo(() => foodStore.mealsForDate(today), [foodStore, today])
-  const todayMealIds = useMemo(
-    () => new Set(data.meal_logs.filter((log) => log.date === today).map((log) => log.meal_id)),
-    [data.meal_logs, today],
+  const dateFoodMeals = useMemo(() => foodStore.mealsForDate(selectedDate), [foodStore, selectedDate])
+  const dateMealIds = useMemo(
+    () => new Set(data.meal_logs.filter((log) => log.date === selectedDate).map((log) => log.meal_id)),
+    [data.meal_logs, selectedDate],
   )
   const consumedMeals = useMemo(
-    () => reconcileConsumedMeals(todayFoodMeals, mealPlan, todayMealIds),
-    [mealPlan, todayFoodMeals, todayMealIds],
+    () => reconcileConsumedMeals(dateFoodMeals, mealPlan, dateMealIds),
+    [dateFoodMeals, dateMealIds, mealPlan],
   )
   const consumed = useMemo(() => aggregateConsumedMeals(consumedMeals), [consumedMeals])
   const trainingTime = profile?.training_time ?? '19:00'
@@ -89,22 +92,22 @@ export function SimpleHome() {
     }
     return [...grouped.values()].sort((a, b) => a.time - b.time)
   }, [data.supplements, trainingTime])
-  const todaySupplementLogs = useMemo(
-    () => data.supplement_logs.filter((log) => log.date === today),
-    [data.supplement_logs, today],
+  const dateSupplementLogs = useMemo(
+    () => data.supplement_logs.filter((log) => log.date === selectedDate),
+    [data.supplement_logs, selectedDate],
   )
-  const supplementDoneIds = useMemo(() => new Set(todaySupplementLogs.map((log) => log.supplement_id)), [todaySupplementLogs])
-  const plan = useMemo(() => planForDate(data, 'transition', today, false), [data, today])
-  const workoutDone = data.workout_sessions.some((session) => session.date === today && session.completed)
-  const dailyLog = data.daily_logs.find((log) => log.date === today)
+  const supplementDoneIds = useMemo(() => new Set(dateSupplementLogs.map((log) => log.supplement_id)), [dateSupplementLogs])
+  const plan = useMemo(() => planForDate(data, 'transition', selectedDate, false), [data, selectedDate])
+  const workoutDone = data.workout_sessions.some((session) => session.date === selectedDate && session.completed)
+  const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
   const waterDone = targets ? simpleWaterTargetComplete(water, targets.water_l) : false
 
   if (!profile || !targets) return null
 
   const mealIsDone = (meal: TargetMeal): boolean =>
-    todayFoodMeals.some((logged) => logged.source_planned_meal_id === meal.id) ||
-    data.meal_logs.some((logged) => logged.date === today && logged.meal_id === meal.id)
+    dateFoodMeals.some((logged) => logged.source_planned_meal_id === meal.id) ||
+    data.meal_logs.some((logged) => logged.date === selectedDate && logged.meal_id === meal.id)
   const groupIsDone = (group: { items: Supplement[] }): boolean =>
     group.items.length > 0 && group.items.every((item) => supplementDoneIds.has(item.id))
 
@@ -140,8 +143,8 @@ export function SimpleHome() {
     if (!profile || busyMeal) return
     setBusyMeal(meal.id)
     try {
-      const existingFoodMeal = todayFoodMeals.find((logged) => logged.source_planned_meal_id === meal.id)
-      const existingCheck = data.meal_logs.find((logged) => logged.date === today && logged.meal_id === meal.id)
+      const existingFoodMeal = dateFoodMeals.find((logged) => logged.source_planned_meal_id === meal.id)
+      const existingCheck = data.meal_logs.find((logged) => logged.date === selectedDate && logged.meal_id === meal.id)
       if (existingFoodMeal || existingCheck) {
         if (existingFoodMeal) await foodStore.deleteMeal(existingFoodMeal.id)
         if (existingCheck) remove('meal_logs', existingCheck.id)
@@ -149,11 +152,11 @@ export function SimpleHome() {
       } else {
         const item = await plannedFoodItem(meal)
         await foodStore.logMeal({
-          slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
-          loggedAs: 'planned', idempotencyKey: `simple-planned:${profile.user_id}:${today}:${meal.id}`,
+          date: selectedDate, slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
+          loggedAs: 'planned', idempotencyKey: `simple-planned:${profile.user_id}:${selectedDate}:${meal.id}`,
         })
         upsert('meal_logs', {
-          id: crypto.randomUUID(), user_id: profile.user_id, date: today, meal_id: meal.id,
+          id: crypto.randomUUID(), user_id: profile.user_id, date: selectedDate, meal_id: meal.id,
           checked_at: new Date().toISOString(),
         })
         toast(`${meal.name} logged as planned`, 'ok')
@@ -167,7 +170,7 @@ export function SimpleHome() {
     if (!profile) return
     if (groupIsDone(group)) {
       for (const item of group.items) {
-        const existing = todaySupplementLogs.find((log) => log.supplement_id === item.id)
+        const existing = dateSupplementLogs.find((log) => log.supplement_id === item.id)
         if (existing) remove('supplement_logs', existing.id)
       }
       toast(`${group.items.length} supplements reopened`, 'ok')
@@ -176,7 +179,7 @@ export function SimpleHome() {
     for (const item of group.items) {
       if (supplementDoneIds.has(item.id)) continue
       upsert('supplement_logs', {
-        id: crypto.randomUUID(), user_id: profile.user_id, date: today, supplement_id: item.id,
+        id: crypto.randomUUID(), user_id: profile.user_id, date: selectedDate, supplement_id: item.id,
         checked_at: new Date().toISOString(),
       })
     }
@@ -186,7 +189,7 @@ export function SimpleHome() {
   const setWaterAmount = (value: number): void => {
     if (!profile) return
     const base: DailyLog = dailyLog ?? {
-      id: dailyLogId(today, profile.user_id), user_id: profile.user_id, date: today,
+      id: dailyLogId(selectedDate, profile.user_id), user_id: profile.user_id, date: selectedDate,
       kcal: null, protein_g: null, fat_g: null, carbs_g: null, water_l: 0,
       estimated_tdee: null, computed_pal: null, activity_mode: 'quick', weight_kg: null,
     }
@@ -208,10 +211,25 @@ export function SimpleHome() {
     setEditingManualSessionId(null)
   }
   const openTraining = (): void => {
-    navigate(hasWorkout && !workoutDone ? `/player/transition/${today}` : '/transition')
+    navigate(hasWorkout && !workoutDone ? `/player/transition/${selectedDate}` : '/transition')
   }
 
-  const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes()
+  const moveDay = (offset: number): void => {
+    setSelectedDate(format(addDays(selectedDateObject, offset), 'yyyy-MM-dd'))
+    setShowChecklist(false)
+  }
+
+  const finishSwipe = (x: number, y: number): void => {
+    const start = swipeStart.current
+    swipeStart.current = null
+    if (!start || showManualWorkout) return
+    const dx = x - start.x
+    const dy = y - start.y
+    if (Math.abs(dx) < 55 || Math.abs(dx) < Math.abs(dy) * 1.35) return
+    moveDay(dx < 0 ? 1 : -1)
+  }
+
+  const nowMinutes = selectedDate === today ? new Date().getHours() * 60 + new Date().getMinutes() : 0
   const actionCandidates = [
     ...mealPlan.filter((meal) => !mealIsDone(meal)).map((meal) => ({
       time: minuteOf(meal.time), eyebrow: 'Next meal', title: meal.name,
@@ -226,7 +244,7 @@ export function SimpleHome() {
     ...(hasWorkout && !workoutDone ? [{
       time: minuteOf(trainingTime), eyebrow: 'Today’s movement', title: plan.programDay?.name ?? 'Training',
       meta: t(`~${plan.programDay?.est_minutes ?? 15} min · ${plan.exercises.length} exercises`), action: 'Start session',
-      run: () => navigate(`/player/transition/${today}`), accent: ACCENTS.teal,
+      run: () => navigate(`/player/transition/${selectedDate}`), accent: ACCENTS.teal,
     }] : []),
     ...(!waterDone ? [{
       time: 21 * 60, eyebrow: 'Hydration', title: t(`${water.toFixed(2)} of ${targets.water_l.toFixed(2)} L`),
@@ -243,14 +261,31 @@ export function SimpleHome() {
   const previous = snapshots[Math.max(0, snapshots.length - 15)] ?? current
   const momentum = current && previous ? current.overall - previous.overall : 0
   const firstName = profile?.display_name.split(' ')[0] ?? 'You'
-  const orbitSession = orbit.state.sessions.find((session) => session.date === today && session.status === 'planned')
+  const orbitSession = orbit.state.sessions.find((session) => session.date === selectedDate && session.status === 'planned')
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div
+      className="mx-auto w-full max-w-3xl touch-pan-y"
+      onTouchStart={(event) => {
+        const touch = event.changedTouches[0]
+        if (touch) swipeStart.current = { x: touch.clientX, y: touch.clientY }
+      }}
+      onTouchEnd={(event) => {
+        const touch = event.changedTouches[0]
+        if (touch) finishSwipe(touch.clientX, touch.clientY)
+      }}
+    >
       <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
-        <p className="font-mono text-[10px] font-bold tracking-[0.16em] text-ink-faint uppercase">{format(new Date(), 'EEEE, d MMMM')}</p>
+        <div className="flex items-center justify-between gap-3">
+          <button type="button" onClick={() => moveDay(-1)} aria-label={t('Previous day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">‹</button>
+          <button type="button" onClick={() => setSelectedDate(today)} className="min-w-0 rounded-full bg-white/55 px-4 py-2 text-center shadow-sm">
+            <span className="block truncate font-mono text-[10px] font-bold tracking-[0.14em] text-ink-faint uppercase">{format(selectedDateObject, 'EEEE, d MMMM')}</span>
+            <span className="mt-0.5 block text-[9px] font-black tracking-wide text-violet-700 uppercase">{selectedDate === today ? t('Today') : t('Tap to return to today')}</span>
+          </button>
+          <button type="button" onClick={() => moveDay(1)} aria-label={t('Next day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">›</button>
+        </div>
         <div className="mt-1 flex items-end justify-between gap-3">
-          <div><h1 className="font-display text-[30px] leading-tight font-bold tracking-tight text-ink">{t(`Today, ${firstName}.`)}</h1><p className="mt-1 text-sm font-medium text-ink-soft">Only what matters. One tap at a time.</p></div>
+          <div><h1 className="font-display text-[30px] leading-tight font-bold tracking-tight text-ink">{selectedDate === today ? t(`Today, ${firstName}.`) : `${firstName}.`}</h1><p className="mt-1 text-sm font-medium text-ink-soft">{t(selectedDate === today ? 'Only what matters. One tap at a time.' : 'Swipe between days. Plan ahead or review what happened.')}</p></div>
           <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#10b981 ${completion}%, rgba(26,26,34,0.08) 0)` }}>
             <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-white/90 font-mono text-sm font-bold text-ink">{completion}%</div>
           </div>
@@ -270,7 +305,7 @@ export function SimpleHome() {
           </GlassCard>
         </Link>
 
-        <TodayManualWorkoutCard date={today} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />
+        <TodayManualWorkoutCard date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />
 
         <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
@@ -303,7 +338,7 @@ export function SimpleHome() {
 
         {hasWorkout && !workoutDone && (
           <GlassCard accent={ACCENTS.teal} className="p-4">
-            <div className="flex items-center justify-between gap-3"><div><p className="font-display text-base font-bold text-ink">{plan.programDay?.name}</p><p className="text-[11px] font-medium text-ink-soft">Start directly. Skip calendar and setup.</p></div><div className="flex gap-2"><button type="button" onClick={() => navigate(`/player/transition/${today}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">Quick</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/transition/${today}`)}>Start</GradientButton></div></div>
+            <div className="flex items-center justify-between gap-3"><div><p className="font-display text-base font-bold text-ink">{plan.programDay?.name}</p><p className="text-[11px] font-medium text-ink-soft">Start directly. Skip calendar and setup.</p></div><div className="flex gap-2"><button type="button" onClick={() => navigate(`/player/transition/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">Quick</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/transition/${selectedDate}`)}>Start</GradientButton></div></div>
           </GlassCard>
         )}
 
@@ -321,7 +356,7 @@ export function SimpleHome() {
 
         <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to="/transition" className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>
       </div>
-      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={today} editSessionId={editingManualSessionId} />
+      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} />
       <PortalLanguageMenu />
     </div>
   )
