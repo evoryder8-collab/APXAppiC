@@ -26,7 +26,6 @@ export function ActualFoodTracker({
   consumedMeals,
   plannedRows,
   activityLabel,
-  trainingToday,
   onTogglePlanned,
   onEditPlanned,
 }: {
@@ -35,7 +34,6 @@ export function ActualFoodTracker({
   consumedMeals: ConsumedMeal[]
   plannedRows: PlannedMealTrackerRow[]
   activityLabel: string
-  trainingToday: boolean
   onTogglePlanned: (row: PlannedMealTrackerRow) => Promise<void>
   onEditPlanned: (row: PlannedMealTrackerRow) => Promise<void>
 }) {
@@ -122,7 +120,7 @@ export function ActualFoodTracker({
         </div>
       </GlassCard>
 
-      {composer && <MealComposer slot={composer} adaptiveContext={{ target, consumed, activityLabel, trainingToday }} onClose={() => setComposer(null)} />}
+      {composer && <MealComposer slot={composer} onClose={() => setComposer(null)} />}
     </>
   )
 }

@@ -30,6 +30,16 @@ function json(origin: string | null, body: unknown, status = 200): Response {
   })
 }
 
+function extendedSearchScore(query: string, food: { name?: string; brand?: string | null }): number {
+  const needle = query.toLocaleLowerCase()
+  const text = `${food.brand ?? ''} ${food.name ?? ''}`.toLocaleLowerCase()
+  const plainPotato = /potato|cartof|มันฝรั่ง/.test(needle) && !/sweet|dulce|มันหวาน/.test(needle)
+  if (!plainPotato) return 0
+  if (/pringles|lays|chips|crisps|potato snack/.test(text)) return -1000
+  if (/raw|boiled|baked|air fryer|whole potato/.test(text)) return 300
+  return 0
+}
+
 Deno.serve(async (request) => {
   const origin = request.headers.get('origin')
   if (request.method === 'OPTIONS') return new Response(null, { status: 204, headers: cors(origin) })
@@ -76,17 +86,17 @@ Deno.serve(async (request) => {
         headers: { Accept: 'application/json', 'User-Agent': 'APEX private performance app/1.0' },
         signal: AbortSignal.timeout(8000),
       })
-      if (!response.ok) return json(origin, { state: 'provider_error', message: 'Open Food Facts search is unavailable' }, 502)
+      if (!response.ok) return json(origin, { state: 'provider_error', message: 'Extended search is temporarily unavailable' })
       const payload = await response.json() as { products?: Array<Record<string, unknown>> }
       const results = (payload.products ?? []).flatMap((product) => {
         const code = normalizeBarcode(String(product.code ?? ''))
         if (!code) return []
         const normalized = normalizeOpenFoodFactsProduct({ status: 1, product } as never, code)
         return normalized ? [{ id: `off:${code}`, owner_user_id: null, barcode: code, ...normalized }] : []
-      })
+      }).sort((a, b) => extendedSearchScore(rawQuery, b) - extendedSearchScore(rawQuery, a))
       return json(origin, { state: 'results', query: rawQuery, results })
     } catch {
-      return json(origin, { state: 'provider_error', message: 'Open Food Facts search did not respond' }, 502)
+      return json(origin, { state: 'provider_error', message: 'Extended search is temporarily unavailable' })
     }
   }
   const barcode = normalizeBarcode(rawBarcode)

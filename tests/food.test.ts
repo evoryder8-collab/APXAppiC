@@ -6,6 +6,7 @@ import {
   calculatePortion,
   displayFoodName,
   expandFoodSearchQueries,
+  mergeExtendedFoodResults,
   mergeMealsIdempotently,
   parseDecimalInput,
   rankFoods,
@@ -51,8 +52,61 @@ test('Romanian and Thai food queries rank localized foods and expand for the rem
   assert.equal(rankFoods('มันหวานไมโครเวฟ', COMMON_FOODS, [], 'lunch')[0]?.id, microwavedSweetPotato.id)
   assert.ok(expandFoodSearchQueries('piept de pui crud', 'ro').includes('chicken breast raw'))
   assert.ok(expandFoodSearchQueries('มันหวานไมโครเวฟ', 'th').includes('sweet potato microwaved'))
-  assert.equal(displayFoodName(rawChicken, 'ro'), 'Piept de pui crud')
-  assert.equal(displayFoodName(rawChicken, 'th'), 'อกไก่ดิบ')
+  assert.equal(displayFoodName(rawChicken, 'ro'), 'Piept de pui, crud')
+  assert.equal(displayFoodName(rawChicken, 'th'), 'อกไก่ ดิบ')
+})
+
+test('fundamental chicken and potato preparations stay first before and after extended search', () => {
+  const chicken = rankFoods('piept de pui', COMMON_FOODS, [], 'lunch')
+  assert.deepEqual(chicken.slice(0, 3).map((food) => food.name), [
+    'Chicken breast, raw',
+    'Chicken breast, boiled',
+    'Chicken breast, air fryer, no added oil',
+  ])
+
+  const chips = {
+    ...COMMON_FOODS[0],
+    id: 'off:chips',
+    name: 'Pringles potato crisps',
+    names_i18n: { en: 'Pringles potato crisps', ro: 'Chipsuri de cartofi Pringles' },
+    brand: 'Pringles',
+    source: 'open_food_facts' as const,
+    provider_product_id: 'chips',
+  }
+  const plain = {
+    ...COMMON_FOODS[0],
+    id: 'off:plain-potato',
+    name: 'Whole potato, steamed',
+    names_i18n: { en: 'Whole potato, steamed', ro: 'Cartof întreg, la abur' },
+    brand: 'Generic',
+    source: 'open_food_facts' as const,
+    provider_product_id: 'plain-potato',
+  }
+  const potatoes = rankFoods('cartof', COMMON_FOODS, [], 'lunch')
+  assert.deepEqual(potatoes.slice(0, 3).map((food) => food.name), [
+    'Potato, raw',
+    'Potato, baked',
+    'Potato, air fryer, no added oil',
+  ])
+  const extended = mergeExtendedFoodResults('cartof', potatoes, [chips, plain])
+  assert.deepEqual(extended.slice(0, 3).map((food) => food.name), potatoes.slice(0, 3).map((food) => food.name))
+  assert.equal(extended.at(-1)?.name, 'Pringles potato crisps')
+})
+
+test('whey and protein searches work in English, Romanian and Thai with verified brands', () => {
+  for (const query of ['whey', 'protein', 'proteină din zer', 'เวย์โปรตีน']) {
+    const brands = new Set(rankFoods(query, COMMON_FOODS, [], 'snack').map((food) => food.brand))
+    assert.ok(brands.has('Lee-Sport'), `${query} should find Lee-Sport`)
+    assert.ok(brands.has('M-Budget'), `${query} should find M-Budget`)
+    assert.ok(brands.has('ESN'), `${query} should find ESN`)
+  }
+})
+
+test('raw chicken uses the current USDA Foundation fat reference', () => {
+  const rawChicken = COMMON_FOODS.find((food) => food.name === 'Chicken breast, raw')!
+  assert.equal(rawChicken.kcal_100, 106)
+  assert.equal(rawChicken.protein_100, 22.5)
+  assert.equal(rawChicken.fat_100, 1.93)
 })
 
 test('logged entries are immutable nutrition snapshots', () => {

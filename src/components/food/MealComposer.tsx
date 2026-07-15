@@ -6,17 +6,16 @@ import {
   displayFoodName,
   isFoodNutritionComplete,
   mealTotals,
+  mergeExtendedFoodResults,
   parseDecimalInput,
   rankFoods,
-  suggestPresetAdaptation,
-  type AdaptiveContext,
   type ComposerFoodItem,
   type FoodRecord,
   type FoodUnit,
   type MealSlot,
 } from '../../lib/food'
 import { useFoodStore } from '../../store/FoodStore'
-import { AccentChip, GlassCard, GradientButton } from '../ui'
+import { GlassCard, GradientButton } from '../ui'
 import { BarcodeIcon } from '../Icons'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 
@@ -29,7 +28,6 @@ interface MealComposerProps {
   initialItems?: ComposerFoodItem[]
   plannedMealId?: string | null
   replaceMealId?: string | null
-  adaptiveContext?: AdaptiveContext
   onClose: () => void
   onLogged?: () => void
 }
@@ -56,7 +54,6 @@ export function MealComposer({
   initialItems = [],
   plannedMealId = null,
   replaceMealId = null,
-  adaptiveContext,
   onClose,
   onLogged,
 }: MealComposerProps) {
@@ -78,14 +75,49 @@ export function MealComposer({
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
 
   const ranked = useMemo(() => rankFoods(query, store.foods, store.preferences, slot).slice(0, 12), [query, slot, store.foods, store.preferences])
+  const displayedFoods = useMemo(() => mergeExtendedFoodResults(query, ranked, remoteResults).slice(0, 30), [query, ranked, remoteResults])
   const totals = useMemo(() => mealTotals(items), [items])
-  const suggestions = useMemo(() => adaptiveContext ? suggestPresetAdaptation(items, adaptiveContext) : [], [adaptiveContext, items])
   const slotPresets = useMemo(() => store.presets.filter((preset) => !preset.archived && preset.meal_slot === slot), [slot, store.presets])
   const recentMeals = useMemo(() => store.meals.filter((meal) => meal.meal_slot === slot).slice(0, 4), [slot, store.meals])
 
-  const addFood = (food: FoodRecord) => {
-    const preference = store.preferences.find((value) => value.food_id === food.id)
-    const next = composerItem(food, items.length)
+  const materializeFood = async (food: FoodRecord): Promise<FoodRecord> => {
+    const needsPrivateCopy = food.id.startsWith('off:') || food.provider_product_id?.startsWith('apex-curated:')
+    if (!needsPrivateCopy || food.owner_user_id) return food
+    const existing = store.foods.find((candidate) => candidate.owner_user_id && (
+      candidate.provider_product_id === food.provider_product_id || Boolean(food.barcode && candidate.barcode === food.barcode)
+    ))
+    if (existing) return existing
+    return store.savePrivateFood({
+      name: food.name,
+      names_i18n: food.names_i18n,
+      brand: food.brand,
+      barcode: food.barcode,
+      provider_product_id: food.provider_product_id,
+      external_image_url: food.external_image_url,
+      package_quantity: food.package_quantity,
+      nutrition_basis: food.nutrition_basis,
+      preparation_state: food.preparation_state,
+      kcal_100: food.kcal_100,
+      protein_100: food.protein_100,
+      carbs_100: food.carbs_100,
+      fat_100: food.fat_100,
+      fibre_100: food.fibre_100,
+      sugar_100: food.sugar_100,
+      saturated_fat_100: food.saturated_fat_100,
+      salt_100: food.salt_100,
+      serving_amount: food.serving_amount,
+      serving_unit: food.serving_unit,
+      serving_grams_or_ml: food.serving_grams_or_ml,
+      piece_grams_or_ml: food.piece_grams_or_ml,
+      provider_updated_at: food.provider_updated_at,
+      confidence: food.confidence,
+    })
+  }
+
+  const addFood = async (food: FoodRecord) => {
+    const trackableFood = await materializeFood(food)
+    const preference = store.preferences.find((value) => value.food_id === trackableFood.id)
+    const next = composerItem(trackableFood, items.length)
     if (preference?.usual_amount && preference.usual_unit) {
       next.quantity = preference.usual_amount
       next.unit = preference.usual_unit
@@ -113,10 +145,15 @@ export function MealComposer({
     if (query.trim().length < 2) return
     setSearching(true)
     setMessage(null)
-    const result = await store.widerSearch(query.trim(), language)
-    setRemoteResults(result.results)
-    if (!result.results.length) setMessage(result.message ?? 'No wider-search matches. Create a private food instead.')
-    setSearching(false)
+    try {
+      const result = await store.widerSearch(query.trim(), language)
+      setRemoteResults(result.results)
+      if (!result.results.length) setMessage(result.message ?? 'No additional matches. Your essential foods are still available above.')
+    } catch {
+      setMessage('Extended search is temporarily unavailable. Your essential foods are still available above.')
+    } finally {
+      setSearching(false)
+    }
   }
 
   const lookupCode = async (barcode: string) => {
@@ -124,7 +161,7 @@ export function MealComposer({
     setSearching(true)
     const result = await store.lookupBarcode(barcode)
     setSearching(false)
-    if (result.food && isFoodNutritionComplete(result.food)) addFood(result.food)
+    if (result.food && isFoodNutritionComplete(result.food)) await addFood(result.food)
     else if (result.food) {
       setManual({
         name: result.food.name,
@@ -140,6 +177,10 @@ export function MealComposer({
   }
 
   const selectRemote = async (food: FoodRecord) => {
+    if (isFoodNutritionComplete(food)) {
+      await addFood(food)
+      return
+    }
     if (!food.barcode) return
     await lookupCode(food.barcode)
   }
@@ -159,13 +200,8 @@ export function MealComposer({
       serving_amount: null, serving_unit: null, serving_grams_or_ml: null, piece_grams_or_ml: null,
       provider_updated_at: null, confidence: 'user_entered',
     })
-    addFood(food)
+    await addFood(food)
     setManualOpen(false)
-  }
-
-  const applySuggestion = () => {
-    const suggestion = suggestions[0]
-    if (suggestion) patchItem(suggestion.item_id, { quantity: suggestion.proposed_quantity })
   }
 
   const loadPreset = (id: string) => {
@@ -270,21 +306,21 @@ export function MealComposer({
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
               {store.preferences.filter((value) => value.favourite).slice(0, 6).map((preference) => {
                 const food = store.foods.find((value) => value.id === preference.food_id)
-                return food ? <button key={food.id} type="button" onClick={() => addFood(food)} className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700">★ {preference.personal_name || food.name}</button> : null
+                return food ? <button key={food.id} type="button" onClick={() => void addFood(food)} className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700">★ {preference.personal_name || food.name}</button> : null
               })}
               <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">+ Private food</button>
             </div>
             {(query || remoteResults.length > 0) && (
               <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
-                {(remoteResults.length ? remoteResults : ranked).map((food) => (
-                  <button key={food.id} type="button" onClick={() => remoteResults.length ? void selectRemote(food) : addFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
+                {displayedFoods.map((food) => (
+                  <button key={food.id} type="button" onClick={() => food.source === 'open_food_facts' ? void selectRemote(food) : void addFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
                     <span><span className="block text-sm font-bold text-ink">{displayFoodName(food, language)}</span><span className="text-[10px] font-medium text-ink-faint">{food.brand || translateInterfaceText(food.preparation_state.replace('_', ' '), language)} · {food.kcal_100 ?? '?'} kcal / 100</span></span>
                     <span className="text-lg text-amber-600">+</span>
                   </button>
                 ))}
-                {!remoteResults.length && query.length >= 2 && (
+                {query.length >= 2 && (
                   <button type="button" disabled={searching} onClick={() => void searchWider()} className="w-full rounded-xl border border-amber-500/20 px-3 py-2 text-xs font-bold text-amber-700">
-                    {searching ? 'Searching Open Food Facts…' : 'Search wider on Open Food Facts'}
+                    {translateInterfaceText(searching ? 'Searching more foods…' : 'Extend search', language)}
                   </button>
                 )}
               </div>
@@ -399,16 +435,7 @@ export function MealComposer({
             })}
           </div>
 
-          {suggestions[0] && (
-            <GlassCard accent={amber} className="p-4">
-              <div className="flex items-start justify-between gap-3">
-                <div><AccentChip accent={amber}>APEX SUGGESTION</AccentChip><p className="mt-2 text-xs font-semibold text-ink-soft">{suggestions[0].explanation}</p><p className="mt-1 font-mono text-xs font-bold text-ink">{suggestions[0].original_quantity} → {suggestions[0].proposed_quantity} {suggestions[0].unit} · {suggestions[0].delta.kcal > 0 ? '+' : ''}{suggestions[0].delta.kcal} kcal</p></div>
-                <button type="button" onClick={applySuggestion} className="rounded-xl bg-amber-500 px-3 py-2 text-xs font-bold text-white">Apply</button>
-              </div>
-            </GlassCard>
-          )}
-
-          {message && <p className="rounded-2xl bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-800">{message}</p>}
+          {message && <p className="rounded-2xl bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-800">{translateInterfaceText(message, language)}</p>}
 
           {items.length > 0 && (
             <GlassCard className="p-4">

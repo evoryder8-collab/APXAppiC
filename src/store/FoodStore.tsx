@@ -41,6 +41,11 @@ import { isLocalMode, supabase } from '../lib/supabase'
 import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import { useStore } from './AppStore'
+import {
+  OPEN_FOOD_FACTS_FIELDS,
+  normalizeBarcode,
+  normalizeOpenFoodFactsProduct,
+} from '../../shared/openFoodFacts'
 
 interface LogMealInput {
   date?: string
@@ -116,6 +121,37 @@ function normalizeRemoteFood(row: Record<string, unknown>): FoodRecord {
   return {
     ...(row as unknown as FoodRecord),
     names_i18n: (row.names_i18n ?? {}) as FoodRecord['names_i18n'],
+  }
+}
+
+async function searchPublicFoodCatalog(query: string): Promise<FoodRecord[]> {
+  const searchUrl = new URL('https://world.openfoodfacts.org/cgi/search.pl')
+  searchUrl.searchParams.set('search_terms', query)
+  searchUrl.searchParams.set('search_simple', '1')
+  searchUrl.searchParams.set('action', 'process')
+  searchUrl.searchParams.set('json', '1')
+  searchUrl.searchParams.set('page_size', '15')
+  searchUrl.searchParams.set('fields', OPEN_FOOD_FACTS_FIELDS)
+  try {
+    const response = await fetch(searchUrl, { headers: { Accept: 'application/json' } })
+    if (!response.ok) return []
+    const payload = await response.json() as { products?: Array<Record<string, unknown>> }
+    const now = new Date().toISOString()
+    return (payload.products ?? []).flatMap((product) => {
+      const code = normalizeBarcode(String(product.code ?? ''))
+      if (!code) return []
+      const normalized = normalizeOpenFoodFactsProduct({ status: 1, product }, code)
+      return normalized ? [{
+        id: `off:${code}`,
+        owner_user_id: null,
+        ...normalized,
+        piece_grams_or_ml: null,
+        created_at: now,
+        updated_at: now,
+      }] : []
+    })
+  } catch {
+    return []
   }
 }
 
@@ -327,21 +363,28 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   }, [foods])
 
   const widerSearch = useCallback(async (query: string, language: IntroLanguage = 'en'): Promise<FoodSearchResult> => {
-    if (!supabase) return { state: 'provider_error', results: [], message: 'Wider search needs an internet connection.' }
-    const client = supabase
     const queries = expandFoodSearchQueries(query, language).slice(0, 3)
-    const responses = await Promise.all(queries.map((candidate) => client.functions.invoke('food-lookup', { body: { query: candidate } })))
-    const firstError = responses.find(({ data, error }) => error && !data)?.error
-    const merged = new Map<string, FoodRecord>()
-    for (const { data: result } of responses) {
-      const value = result as FoodSearchResult | null
-      for (const row of value?.results ?? []) {
-        const food = normalizeRemoteFood(row as unknown as Record<string, unknown>)
-        merged.set(food.id, food)
+    const responses = await Promise.all(queries.map(async (candidate) => {
+      if (supabase) {
+        try {
+          const { data: result } = await supabase.functions.invoke('food-lookup', { body: { query: candidate } })
+          const value = result as FoodSearchResult | null
+          if (value?.results?.length) return value.results.map((row) => normalizeRemoteFood(row as unknown as Record<string, unknown>))
+        } catch {
+          // The public fallback below keeps search useful when the edge function is unavailable.
+        }
       }
+      return searchPublicFoodCatalog(candidate)
+    }))
+    const merged = new Map<string, FoodRecord>()
+    for (const foods of responses) {
+      for (const food of foods) merged.set(food.provider_product_id ?? food.id, food)
     }
-    if (merged.size === 0 && firstError) return { state: 'provider_error', results: [], message: firstError.message }
-    return { state: 'results', results: [...merged.values()] }
+    return {
+      state: 'results',
+      results: [...merged.values()],
+      message: merged.size ? undefined : 'No additional matches. Your essential foods are still available above.',
+    }
   }, [])
 
   const savePrivateFood = useCallback(async (

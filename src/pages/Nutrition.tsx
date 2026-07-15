@@ -617,7 +617,6 @@ export function Nutrition() {
           consumedMeals={consumedMeals}
           plannedRows={plannedRows}
           activityLabel={activeDayLabel}
-          trainingToday={isTrainingDay}
           onTogglePlanned={toggleMeal}
           onEditPlanned={editAndLog}
         />
@@ -1119,12 +1118,6 @@ export function Nutrition() {
           initialItems={plannedComposer.items}
           plannedMealId={plannedComposer.meal.id}
           replaceMealId={plannedComposer.replaceMealId}
-          adaptiveContext={{
-            target: { kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g },
-            consumed,
-            activityLabel: activeDayLabel,
-            trainingToday: isTrainingDay,
-          }}
           onLogged={() => {
             const existing = data.meal_logs.find((log) => log.date === today && log.meal_id === plannedComposer.meal.id)
             if (!existing) upsert('meal_logs', {

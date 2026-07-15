@@ -207,23 +207,38 @@ export function normalizeFoodSearch(value: string): string {
     .replace(/[\u0300-\u036f]/g, '')
     .toLocaleLowerCase()
     .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
+    .replace(/\b(?:airfryer|airfried)\b/g, 'air fryer')
     .trim()
 }
 
 const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
   ro: {
+    'piept de pui': 'chicken breast',
     'piept de pui crud': 'chicken breast raw',
+    'piept de pui fiert': 'chicken breast boiled',
     'piept de pui gatit': 'chicken breast cooked',
+    'piept de pui la air fryer': 'chicken breast air fryer',
+    'cartof': 'potato',
+    'cartofi': 'potato',
     'cartof dulce la microunde': 'sweet potato microwaved',
     'cartof dulce copt': 'sweet potato baked',
+    'proteina din zer': 'whey protein',
+    'izolat proteic din zer': 'whey protein isolate',
+    'izolat proteic din cazeina': 'casein protein isolate',
     'orez alb fiert': 'white rice cooked',
     'ou intreg': 'whole egg',
   },
   th: {
+    'อกไก่': 'chicken breast',
     'อกไก่ดิบ': 'chicken breast raw',
     'อกไก่สุก': 'chicken breast cooked',
+    'อกไก่ต้ม': 'chicken breast boiled',
+    'มันฝรั่ง': 'potato',
     'มันหวานไมโครเวฟ': 'sweet potato microwaved',
     'มันหวานอบ': 'sweet potato baked',
+    'เวย์โปรตีน': 'whey protein',
+    'เวย์โปรตีนไอโซเลต': 'whey protein isolate',
+    'เคซีนโปรตีนไอโซเลต': 'casein protein isolate',
     'ข้าวขาวสุก': 'white rice cooked',
     'ไข่ทั้งฟอง': 'whole egg',
   },
@@ -237,6 +252,8 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     banana: 'banana', broccoli: 'broccoli', crud: 'raw', cruda: 'raw', crude: 'raw', gatit: 'cooked',
     gatita: 'cooked', fiert: 'boiled', fiarta: 'boiled', copt: 'baked', coapta: 'baked',
     microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
+    proteina: 'protein', proteic: 'protein', zer: 'whey', cazeina: 'casein', izolat: 'isolate',
+    de: '', din: '', la: '',
   },
   th: {
     อกไก่: 'chicken breast', ไก่: 'chicken', ไก่งวง: 'turkey', เนื้อวัว: 'beef', หมู: 'pork', ปลา: 'fish',
@@ -244,6 +261,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     ข้าว: 'rice', ข้าวโอ๊ต: 'oats', โยเกิร์ต: 'yogurt', ชีส: 'cheese', นม: 'milk',
     ดิบ: 'raw', สุก: 'cooked', ต้ม: 'boiled', อบ: 'baked', ไมโครเวฟ: 'microwaved',
     ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
+    เวย์: 'whey', โปรตีน: 'protein', เคซีน: 'casein', ไอโซเลต: 'isolate',
   },
 }
 
@@ -257,6 +275,7 @@ export function expandFoodSearchQueries(query: string, language: IntroLanguage):
   const tokenTranslation = normalized
     .split(' ')
     .map((token) => tokenMap[token] ?? token)
+    .filter(Boolean)
     .join(' ')
     .trim()
   return [...new Set([original, phrase, tokenTranslation].filter((value): value is string => Boolean(value)))]
@@ -368,6 +387,51 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
   return preferences.find((preference) => preference.food_id === foodId)
 }
 
+function foodSearchText(food: FoodRecord): string {
+  return [food.name, food.brand ?? '', ...Object.values(food.names_i18n)]
+    .map(normalizeFoodSearch)
+    .join(' ')
+}
+
+function includesAny(value: string, terms: string[]): boolean {
+  return terms.some((term) => value.includes(term))
+}
+
+function categorySearchBoost(query: string, food: FoodRecord): number {
+  const text = foodSearchText(food)
+  const curated = food.provider_product_id?.startsWith('apex-curated:') ? 220 : 0
+  const chickenQuery = includesAny(query, ['chicken breast', 'piept de pui', 'อกไก่'])
+  if (chickenQuery) {
+    if (includesAny(text, [' raw', ' crud', ' ดิบ'])) return curated + 840
+    if (includesAny(text, ['boiled', 'fiert', 'bouilli', 'bollito', ' ต้ม'])) return curated + 760
+    if (includesAny(text, ['air fryer', 'heissluftfritteuse', 'heißluftfritteuse', 'หม้อทอดไร้น้ำมัน'])) return curated + 680
+    if (includesAny(text, ['cooked', 'gatit', 'gegart', 'cuit', 'cotto', ' สุก'])) return curated + 520
+  }
+
+  const plainPotatoQuery = includesAny(query, ['potato', 'cartof', 'มันฝรั่ง'])
+    && !includesAny(query, ['sweet potato', 'cartof dulce', 'มันหวาน'])
+  if (plainPotatoQuery) {
+    if (includesAny(text, ['pringles', 'lays', 'chips', 'crisps', 'potato snack', 'cartofi chips'])) return -1200
+    if (includesAny(text, ['sweet potato', 'cartof dulce', 'มันหวาน'])) return -500
+    if (includesAny(text, [' raw', ' crud', ' crue', ' cruda', ' ดิบ'])) return curated + 840
+    if (includesAny(text, ['french fries', 'cartofi prajiti', 'pommes frites', 'frites', 'เฟรนช์ฟรายส์'])) return curated + 520
+    if (includesAny(text, ['baked', 'copt', 'gebacken', 'cuite au four', 'al forno', ' อบ'])) return curated + 760
+    if (includesAny(text, ['air fryer', 'heissluftfritteuse', 'heißluftfritteuse', 'หม้อทอดไร้น้ำมัน'])) return curated + 680
+  }
+
+  const proteinPowderQuery = includesAny(query, ['whey', 'protein', 'proteina', 'zer', 'casein', 'cazeina', 'เวย์', 'โปรตีน', 'เคซีน'])
+  if (proteinPowderQuery && includesAny(text, ['whey', 'protein', 'proteina', 'zer', 'casein', 'cazeina', 'เวย์', 'โปรตีน', 'เคซีน'])) {
+    return curated + (food.confidence === 'provider_verified' ? 180 : 80)
+  }
+  return curated
+}
+
+function foodIdentity(food: FoodRecord): string {
+  if (food.provider_product_id) return `provider:${food.provider_product_id}`
+  if (food.barcode) return `barcode:${food.barcode}`
+  return `name:${normalizeFoodSearch(`${food.brand ?? ''} ${food.name}`)}`
+}
+
 export function rankFoods(
   query: string,
   foods: FoodRecord[],
@@ -406,13 +470,37 @@ export function rankFoods(
         const ageDays = Math.max(0, (now - new Date(preference.last_used_at).getTime()) / 86_400_000)
         score += Math.max(0, 160 - ageDays * 4)
       }
+      score += categorySearchBoost(needle, food)
       if (food.owner_user_id) score += 70
       if (food.source === 'apex_cache') score += 30
       return { food, score }
     })
     .filter((candidate) => Number.isFinite(candidate.score))
     .sort((a, b) => b.score - a.score || a.food.name.localeCompare(b.food.name))
-    .map((candidate) => candidate.food)
+    .reduce<FoodRecord[]>((results, candidate) => {
+      const identity = foodIdentity(candidate.food)
+      if (!results.some((food) => foodIdentity(food) === identity)) results.push(candidate.food)
+      return results
+    }, [])
+}
+
+export function mergeExtendedFoodResults(
+  query: string,
+  localResults: FoodRecord[],
+  providerResults: FoodRecord[],
+): FoodRecord[] {
+  const seen = new Set(localResults.map(foodIdentity))
+  const provider = providerResults
+    .filter((food) => {
+      const identity = foodIdentity(food)
+      if (seen.has(identity)) return false
+      seen.add(identity)
+      return true
+    })
+    .map((food, index) => ({ food, index, score: categorySearchBoost(normalizeFoodSearch(query), food) }))
+    .sort((a, b) => b.score - a.score || a.index - b.index)
+    .map(({ food }) => food)
+  return [...localResults, ...provider]
 }
 
 function clampStepped(value: number, min: number, max: number, step: number): number {
