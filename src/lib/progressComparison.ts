@@ -1,6 +1,6 @@
 import type { IntroLanguage } from './introLanguage'
 import { formatProgressPhotoMoment, type ComparisonView, type ComparisonViews, type ProgressPhoto } from './progressPhoto.ts'
-import type { AppData, WorkoutLog } from './types'
+import type { AppData, Settings, WorkoutLog } from './types'
 
 export interface ProgressStrengthComparison {
   averageLoadDeltaKg: number | null
@@ -11,6 +11,22 @@ export interface ProgressStrengthComparison {
 export interface ProgressPosterStats extends ProgressStrengthComparison {
   days: number
   workouts: number
+}
+
+export type ProgressExportMode = NonNullable<Settings['addons']['comparison_export_mode']>
+
+export function resolveProgressExportMode(value: unknown): ProgressExportMode {
+  return value === 'minimal' ? 'minimal' : 'detailed'
+}
+
+export function progressPosterContent(mode: ProgressExportMode): {
+  stats: boolean
+  athlete: boolean
+  pose: boolean
+  privateFooter: boolean
+} {
+  const detailed = mode === 'detailed'
+  return { stats: detailed, athlete: detailed, pose: detailed, privateFooter: detailed }
 }
 
 function logKey(log: Pick<WorkoutLog, 'exercise_id' | 'exercise_name'>): string {
@@ -58,13 +74,13 @@ export function progressStrengthComparison(data: AppData, firstDate: string, sec
 
 const POSTER_COPY = {
   en: {
-    kicker: 'APEX • PRIVATE PROGRESS', title: 'THE WORK, MADE VISIBLE.', before: 'BEFORE', after: 'AFTER', days: 'DAYS', workouts: 'WORKOUTS', load: 'AVG LOAD / SET', baseline: 'BASELINE', matched: 'MATCHED EXERCISES', loaded: 'WEIGHTED SETS', weight: 'BODY WEIGHT', private: 'CREATED PRIVATELY ON DEVICE', profile: 'PROFILE', side: 'SIDE', back: 'BACK', front: 'FRONT',
+    kicker: 'APEX • PRIVATE PROGRESS', before: 'BEFORE', after: 'AFTER', days: 'DAYS', workouts: 'WORKOUTS', load: 'AVG LOAD / SET', baseline: 'BASELINE', matched: 'MATCHED EXERCISES', loaded: 'WEIGHTED SETS', weight: 'BODY WEIGHT', private: 'CREATED PRIVATELY ON DEVICE', profile: 'PROFILE', side: 'SIDE', back: 'BACK', front: 'FRONT',
   },
   ro: {
-    kicker: 'APEX • PROGRES PRIVAT', title: 'MUNCA DEVINE VIZIBILĂ.', before: 'ÎNAINTE', after: 'DUPĂ', days: 'ZILE', workouts: 'ANTRENAMENTE', load: 'MEDIE KG / SET', baseline: 'REPER', matched: 'EXERCIȚII COMPARATE', loaded: 'SETURI CU GREUTATE', weight: 'GREUTATE', private: 'CREAT PRIVAT PE DISPOZITIV', profile: 'PROFIL', side: 'PROFIL', back: 'SPATE', front: 'FAȚĂ',
+    kicker: 'APEX • PROGRES PRIVAT', before: 'ÎNAINTE', after: 'DUPĂ', days: 'ZILE', workouts: 'ANTRENAMENTE', load: 'MEDIE KG / SET', baseline: 'REPER', matched: 'EXERCIȚII COMPARATE', loaded: 'SETURI CU GREUTATE', weight: 'GREUTATE', private: 'CREAT PRIVAT PE DISPOZITIV', profile: 'PROFIL', side: 'PROFIL', back: 'SPATE', front: 'FAȚĂ',
   },
   th: {
-    kicker: 'APEX • ความก้าวหน้าส่วนตัว', title: 'ให้ผลงานพูดแทนคุณ', before: 'ก่อน', after: 'หลัง', days: 'วัน', workouts: 'การฝึก', load: 'กก. เฉลี่ย / เซต', baseline: 'ค่าฐาน', matched: 'ท่าที่เปรียบเทียบ', loaded: 'เซตมีน้ำหนัก', weight: 'น้ำหนักตัว', private: 'สร้างแบบส่วนตัวบนอุปกรณ์', profile: 'ด้านข้าง', side: 'ด้านข้าง', back: 'ด้านหลัง', front: 'ด้านหน้า',
+    kicker: 'APEX • ความก้าวหน้าส่วนตัว', before: 'ก่อน', after: 'หลัง', days: 'วัน', workouts: 'การฝึก', load: 'กก. เฉลี่ย / เซต', baseline: 'ค่าฐาน', matched: 'ท่าที่เปรียบเทียบ', loaded: 'เซตมีน้ำหนัก', weight: 'น้ำหนักตัว', private: 'สร้างแบบส่วนตัวบนอุปกรณ์', profile: 'ด้านข้าง', side: 'ด้านข้าง', back: 'ด้านหลัง', front: 'ด้านหน้า',
   },
 } satisfies Record<IntroLanguage, Record<string, string>>
 
@@ -177,6 +193,7 @@ export async function createProgressComparisonPoster(input: {
   stats: ProgressPosterStats
   athleteName: string
   language: IntroLanguage
+  mode: ProgressExportMode
 }): Promise<Blob> {
   await document.fonts?.ready
   const [leftImage, rightImage] = await Promise.all([decodePosterImage(input.leftUrl), decodePosterImage(input.rightUrl)])
@@ -187,6 +204,7 @@ export async function createProgressComparisonPoster(input: {
     const context = canvas.getContext('2d')
     if (!context) throw new Error('Canvas is unavailable.')
     const copy = POSTER_COPY[input.language]
+    const content = progressPosterContent(input.mode)
     const outer = { x: 20, y: 20, width: 1040, height: 1310, radius: 62 }
 
     context.clearRect(0, 0, canvas.width, canvas.height)
@@ -213,12 +231,13 @@ export async function createProgressComparisonPoster(input: {
     topShade.addColorStop(1, 'rgba(3,5,12,0)')
     context.fillStyle = topShade
     context.fillRect(photoX, photoY, photoWidth, 330)
-    const bottomShade = context.createLinearGradient(0, photoY + photoHeight - 420, 0, photoY + photoHeight)
+    const bottomShadeHeight = content.stats ? 420 : 220
+    const bottomShade = context.createLinearGradient(0, photoY + photoHeight - bottomShadeHeight, 0, photoY + photoHeight)
     bottomShade.addColorStop(0, 'rgba(3,5,12,0)')
     bottomShade.addColorStop(0.44, 'rgba(3,5,12,.62)')
     bottomShade.addColorStop(1, 'rgba(3,5,12,.96)')
     context.fillStyle = bottomShade
-    context.fillRect(photoX, photoY + photoHeight - 420, photoWidth, 420)
+    context.fillRect(photoX, photoY + photoHeight - bottomShadeHeight, photoWidth, bottomShadeHeight)
     const violetGlow = context.createRadialGradient(930, 90, 0, 930, 90, 390)
     violetGlow.addColorStop(0, 'rgba(139,92,246,.31)')
     violetGlow.addColorStop(1, 'rgba(139,92,246,0)')
@@ -242,15 +261,16 @@ export async function createProgressComparisonPoster(input: {
     context.fillStyle = divider
     context.fillRect(photoX + paneWidth - 1, photoY, 2, photoHeight)
 
-    context.fillStyle = '#c5b8ff'
-    context.font = '800 21px JetBrains Mono Variable, monospace'
-    context.fillText(copy.kicker, 72, 88)
-    context.fillStyle = '#ffffff'
-    fitText(context, copy.title, 800, input.language === 'th' ? 43 : 51)
-    context.fillText(copy.title, 72, 148)
-    context.fillStyle = 'rgba(255,255,255,.72)'
-    fitText(context, input.athleteName, 430, 25, 700)
-    context.fillText(input.athleteName, 72, 188)
+    if (content.stats) {
+      context.fillStyle = '#c5b8ff'
+      context.font = '800 21px JetBrains Mono Variable, monospace'
+      context.fillText(copy.kicker, 72, 88)
+    }
+    if (content.athlete) {
+      context.fillStyle = 'rgba(255,255,255,.72)'
+      fitText(context, input.athleteName, 430, 25, 700)
+      context.fillText(input.athleteName, 72, 128)
+    }
 
     const labels = [
       { x: photoX + 28, align: 'left' as const, label: copy.before, photo: input.left },
@@ -260,62 +280,68 @@ export async function createProgressComparisonPoster(input: {
       context.textAlign = item.align
       context.fillStyle = '#ffffff'
       context.font = '800 22px JetBrains Mono Variable, monospace'
-      context.fillText(item.label, item.x, 242)
+      context.fillText(item.label, item.x, content.stats ? 198 : 118)
       context.fillStyle = 'rgba(255,255,255,.78)'
       context.font = '700 16px JetBrains Mono Variable, monospace'
-      context.fillText(formatProgressPhotoMoment(item.photo, input.language), item.x, 272)
-      context.fillStyle = 'rgba(255,255,255,.58)'
-      context.font = '700 15px JetBrains Mono Variable, monospace'
-      context.fillText(poseText(item.photo, input.language), item.x, 299)
+      context.fillText(formatProgressPhotoMoment(item.photo, input.language), item.x, content.stats ? 228 : 148)
+      if (content.pose) {
+        context.fillStyle = 'rgba(255,255,255,.58)'
+        context.font = '700 15px JetBrains Mono Variable, monospace'
+        context.fillText(poseText(item.photo, input.language), item.x, 255)
+      }
     }
     context.textAlign = 'left'
 
-    const statsX = 60
-    const statsY = 1018
-    const statsWidth = 960
-    const statsHeight = 176
-    roundedPath(context, statsX, statsY, statsWidth, statsHeight, 32)
-    context.fillStyle = 'rgba(7,9,17,.52)'
-    context.fill()
-    context.strokeStyle = 'rgba(255,255,255,.16)'
-    context.stroke()
-    const columns = [
-      { label: copy.days, value: String(input.stats.days), detail: `${input.left.local_date} → ${input.right.local_date}` },
-      { label: copy.workouts, value: String(input.stats.workouts), detail: `${input.stats.loadedSets} ${copy.loaded}` },
-      { label: copy.load, value: input.stats.averageLoadDeltaKg == null ? copy.baseline : `${input.stats.averageLoadDeltaKg > 0 ? '+' : ''}${input.stats.averageLoadDeltaKg} KG`, detail: input.stats.matchedExercises > 0 ? `${input.stats.matchedExercises} ${copy.matched}` : `${input.stats.loadedSets} ${copy.loaded}` },
-    ]
-    const columnWidth = statsWidth / columns.length
-    columns.forEach((column, index) => {
-      const x = statsX + index * columnWidth + 22
-      if (index > 0) {
-        context.fillStyle = 'rgba(255,255,255,.12)'
-        context.fillRect(statsX + index * columnWidth, statsY + 26, 1, statsHeight - 52)
-      }
-      context.fillStyle = index === 2 ? '#8ff4dd' : 'rgba(255,255,255,.62)'
-      fitText(context, column.label, columnWidth - 44, 17, 800, 'JetBrains Mono Variable, monospace')
-      context.fillText(column.label, x, statsY + 42)
-      context.fillStyle = '#ffffff'
-      fitText(context, column.value, columnWidth - 44, 38, 800, 'JetBrains Mono Variable, monospace')
-      context.fillText(column.value, x, statsY + 96)
-      context.fillStyle = 'rgba(255,255,255,.5)'
-      context.font = '700 13px JetBrains Mono Variable, monospace'
-      context.fillText(column.detail, x, statsY + 130)
-    })
-
-    if (input.left.weight_kg != null && input.right.weight_kg != null) {
-      const delta = Math.round((input.right.weight_kg - input.left.weight_kg) * 10) / 10
-      const weightLine = `${copy.weight}  ${input.left.weight_kg} → ${input.right.weight_kg} KG  (${delta > 0 ? '+' : ''}${delta} KG)`
-      context.fillStyle = 'rgba(184,167,255,.18)'
-      roundedPath(context, 72, 1210, 560, 50, 25)
+    if (content.stats) {
+      const statsX = 60
+      const statsY = 1018
+      const statsWidth = 960
+      const statsHeight = 176
+      roundedPath(context, statsX, statsY, statsWidth, statsHeight, 32)
+      context.fillStyle = 'rgba(7,9,17,.52)'
       context.fill()
-      context.fillStyle = '#e0d9ff'
-      context.font = '800 16px JetBrains Mono Variable, monospace'
-      context.fillText(weightLine, 94, 1242)
-    }
+      context.strokeStyle = 'rgba(255,255,255,.16)'
+      context.stroke()
+      const columns = [
+        { label: copy.days, value: String(input.stats.days), detail: `${input.left.local_date} → ${input.right.local_date}` },
+        { label: copy.workouts, value: String(input.stats.workouts), detail: `${input.stats.loadedSets} ${copy.loaded}` },
+        { label: copy.load, value: input.stats.averageLoadDeltaKg == null ? copy.baseline : `${input.stats.averageLoadDeltaKg > 0 ? '+' : ''}${input.stats.averageLoadDeltaKg} KG`, detail: input.stats.matchedExercises > 0 ? `${input.stats.matchedExercises} ${copy.matched}` : `${input.stats.loadedSets} ${copy.loaded}` },
+      ]
+      const columnWidth = statsWidth / columns.length
+      columns.forEach((column, index) => {
+        const x = statsX + index * columnWidth + 22
+        if (index > 0) {
+          context.fillStyle = 'rgba(255,255,255,.12)'
+          context.fillRect(statsX + index * columnWidth, statsY + 26, 1, statsHeight - 52)
+        }
+        context.fillStyle = index === 2 ? '#8ff4dd' : 'rgba(255,255,255,.62)'
+        fitText(context, column.label, columnWidth - 44, 17, 800, 'JetBrains Mono Variable, monospace')
+        context.fillText(column.label, x, statsY + 42)
+        context.fillStyle = '#ffffff'
+        fitText(context, column.value, columnWidth - 44, 38, 800, 'JetBrains Mono Variable, monospace')
+        context.fillText(column.value, x, statsY + 96)
+        context.fillStyle = 'rgba(255,255,255,.5)'
+        context.font = '700 13px JetBrains Mono Variable, monospace'
+        context.fillText(column.detail, x, statsY + 130)
+      })
 
-    context.fillStyle = 'rgba(255,255,255,.48)'
-    context.font = '700 14px JetBrains Mono Variable, monospace'
-    context.fillText(copy.private, 72, 1287)
+      if (input.left.weight_kg != null && input.right.weight_kg != null) {
+        const delta = Math.round((input.right.weight_kg - input.left.weight_kg) * 10) / 10
+        const weightLine = `${copy.weight}  ${input.left.weight_kg} → ${input.right.weight_kg} KG  (${delta > 0 ? '+' : ''}${delta} KG)`
+        context.fillStyle = 'rgba(184,167,255,.18)'
+        roundedPath(context, 72, 1210, 560, 50, 25)
+        context.fill()
+        context.fillStyle = '#e0d9ff'
+        context.font = '800 16px JetBrains Mono Variable, monospace'
+        context.fillText(weightLine, 94, 1242)
+      }
+
+      if (content.privateFooter) {
+        context.fillStyle = 'rgba(255,255,255,.48)'
+        context.font = '700 14px JetBrains Mono Variable, monospace'
+        context.fillText(copy.private, 72, 1287)
+      }
+    }
     context.textAlign = 'right'
     context.fillStyle = '#ffffff'
     context.font = '900 25px Space Grotesk Variable, Arial, sans-serif'

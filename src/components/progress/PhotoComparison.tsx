@@ -10,7 +10,7 @@ import {
   type ComparisonViews,
   type ProgressPhoto,
 } from '../../lib/progressPhoto'
-import { createProgressComparisonPoster, type ProgressStrengthComparison } from '../../lib/progressComparison'
+import { createProgressComparisonPoster, type ProgressExportMode, type ProgressStrengthComparison } from '../../lib/progressComparison'
 import { useLanguage } from '../../lib/i18n'
 
 const IDENTITY = { scale: 1, x: 0, y: 0 }
@@ -113,6 +113,7 @@ export function PhotoComparison({
   workoutCount,
   strengthComparison,
   athleteName,
+  exportMode,
   photoUrls,
   fullPhotoUrls,
   ensurePhotoUrl,
@@ -123,6 +124,7 @@ export function PhotoComparison({
   workoutCount: number
   strengthComparison: ProgressStrengthComparison
   athleteName: string
+  exportMode: ProgressExportMode
   photoUrls: Record<string, string>
   fullPhotoUrls: Record<string, string>
   ensurePhotoUrl: (photo: ProgressPhoto) => Promise<unknown>
@@ -213,6 +215,7 @@ export function PhotoComparison({
         views,
         athleteName,
         language,
+        mode: exportMode,
         stats: { days: daysBetweenPhotos(left, right), workouts: workoutCount, ...strengthComparison },
       })
       const url = URL.createObjectURL(blob)

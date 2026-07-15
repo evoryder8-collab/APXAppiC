@@ -277,6 +277,35 @@ export function Settings() {
           </div>
         </GlassCard>
 
+        <GlassCard accent={violet} className="p-5">
+          <h2 className="font-display text-lg font-bold text-ink">Camera &amp; comparison</h2>
+          <p className={`${sub} mt-1`}>Choose what appears on exported progress comparisons.</p>
+          <div className="mt-4 rounded-3xl border border-violet-200/60 bg-white/45 p-3">
+            <p className={label}>Comparison export stats</p>
+            <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-ink/6 p-1" role="group" aria-label="Comparison export stats">
+              {(['minimal', 'detailed'] as const).map((mode) => {
+                const active = (settings.addons.comparison_export_mode ?? 'detailed') === mode
+                return (
+                  <button
+                    key={mode}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setSettings({ addons: { ...settings.addons, comparison_export_mode: mode } })}
+                    className={`rounded-xl px-3 py-2.5 text-xs font-black transition ${active ? 'bg-white text-violet-800 shadow-sm' : 'text-ink-soft'}`}
+                  >
+                    {mode === 'minimal' ? 'Minimal' : 'Detailed'}
+                  </button>
+                )
+              })}
+            </div>
+            <p className="mt-3 text-[11px] leading-relaxed font-medium text-ink-soft">
+              {(settings.addons.comparison_export_mode ?? 'detailed') === 'minimal'
+                ? 'Minimal exports show only APEX, Before/After, and each photo’s date and time.'
+                : 'Detailed exports add elapsed days, completed workouts, and strength/load stats.'}
+            </p>
+          </div>
+        </GlassCard>
+
         {profile.persona === 'constantine' && <GlassCard accent={emerald} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Main Phase add-on protocols</h2>
           <p className={sub}>Off by default. They appear inside Main Phase sessions when on.</p>

@@ -445,7 +445,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
 function settingsFor(userId: string): Settings {
   return {
     user_id: userId, voice_on: true, ticks_on: true, notifications_on: false,
-    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced', newbie_mode: false, training_induction: null },
+    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced', newbie_mode: false, training_induction: null, comparison_export_mode: 'detailed' },
   }
 }
 

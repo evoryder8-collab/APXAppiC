@@ -66,7 +66,7 @@ export function seedSettings(userId: string): Settings {
     ticks_on: true,
     notifications_on: false,
     guardian_factor: 1.5,
-    addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced', newbie_mode: false, training_induction: null },
+    addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced', newbie_mode: false, training_induction: null, comparison_export_mode: 'detailed' },
   }
 }
 

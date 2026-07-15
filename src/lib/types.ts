@@ -291,6 +291,9 @@ export interface Settings {
        training. Constantine and June retain their bespoke programmes. */
     newbie_mode?: boolean
     training_induction?: TrainingInductionProfile | null
+    /* Controls only the shareable progress-photo PNG. Minimal keeps the two
+       timestamps and before/after labels; Detailed adds training statistics. */
+    comparison_export_mode?: 'minimal' | 'detailed'
   }
 }
 

@@ -108,7 +108,7 @@ function normalizeDailyLog(log: DailyLog): DailyLog {
 }
 
 function normalizeAppData(value: AppData): AppData {
-  const settings = value.settings
+  const settings: Settings | null = value.settings
     ? {
         ...value.settings,
         addons: {
@@ -118,6 +118,7 @@ function normalizeAppData(value: AppData): AppData {
           endurance3: value.settings.addons?.endurance3 ?? false,
           newbie_mode: value.settings.addons?.newbie_mode ?? false,
           training_induction: value.settings.addons?.training_induction ?? null,
+          comparison_export_mode: value.settings.addons?.comparison_export_mode === 'minimal' ? 'minimal' : 'detailed',
         },
       }
     : null

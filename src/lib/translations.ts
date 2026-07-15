@@ -569,6 +569,13 @@ const rows: Array<[string, string, string]> = [
   ['Account', 'Cont', 'บัญชี'],
   ['Switch person', 'Schimbă persoana', 'เปลี่ยนผู้ใช้'],
   ['Sign out', 'Deconectare', 'ออกจากระบบ'],
+  ['Camera & comparison', 'Cameră și comparație', 'กล้องและการเปรียบเทียบ'],
+  ['Choose what appears on exported progress comparisons.', 'Alege ce apare în comparațiile de progres exportate.', 'เลือกสิ่งที่จะแสดงในการเปรียบเทียบความก้าวหน้าที่ส่งออก'],
+  ['Comparison export stats', 'Statistici în exportul comparației', 'สถิติในการส่งออกภาพเปรียบเทียบ'],
+  ['Minimal', 'Minimal', 'มินิมอล'],
+  ['Detailed', 'Detaliat', 'แบบละเอียด'],
+  ['Minimal exports show only APEX, Before/After, and each photo’s date and time.', 'Exportul minimal arată doar APEX, Înainte/După și data și ora fiecărei fotografii.', 'การส่งออกแบบมินิมอลจะแสดงเฉพาะ APEX ก่อน/หลัง และวันที่กับเวลาของแต่ละภาพ'],
+  ['Detailed exports add elapsed days, completed workouts, and strength/load stats.', 'Exportul detaliat adaugă zilele trecute, antrenamentele finalizate și statisticile de forță și greutate.', 'การส่งออกแบบละเอียดจะเพิ่มจำนวนวันที่ผ่านไป การฝึกที่เสร็จแล้ว และสถิติความแข็งแรงกับน้ำหนักฝึก'],
 
   // Visual progress
   ['Visual Progress', 'Progres vizual', 'ภาพความก้าวหน้า'],

@@ -17,7 +17,7 @@ import {
   type ProgressPhoto,
 } from '../src/lib/progressPhoto.ts'
 import type { RpgSnapshot } from '../src/lib/types.ts'
-import { progressStrengthComparison } from '../src/lib/progressComparison.ts'
+import { progressPosterContent, progressStrengthComparison, resolveProgressExportMode } from '../src/lib/progressComparison.ts'
 import { buildSeedData } from '../src/data/seed.ts'
 
 function photo(id: string, date: string, pose: ProgressPhoto['pose'], ratio = 2 / 3): ProgressPhoto {
@@ -75,6 +75,18 @@ test('photo moments retain the capture time for timeline and export labels', () 
   assert.match(formatProgressPhotoMoment(captured, 'en', 'UTC'), /08:00/)
   assert.match(formatProgressPhotoMoment(captured, 'ro', 'UTC'), /08:00/)
   assert.match(formatProgressPhotoMoment(captured, 'th', 'UTC'), /08:00/)
+})
+
+test('comparison export mode defaults safely and keeps minimal cards free of stats', () => {
+  assert.equal(resolveProgressExportMode('minimal'), 'minimal')
+  assert.equal(resolveProgressExportMode('detailed'), 'detailed')
+  assert.equal(resolveProgressExportMode('unexpected'), 'detailed')
+  assert.deepEqual(progressPosterContent('minimal'), {
+    stats: false, athlete: false, pose: false, privateFooter: false,
+  })
+  assert.deepEqual(progressPosterContent('detailed'), {
+    stats: true, athlete: true, pose: true, privateFooter: true,
+  })
 })
 
 test('comparison strength uses matched movements instead of letting extra sets dominate', () => {

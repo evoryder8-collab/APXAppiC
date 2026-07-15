@@ -10,7 +10,7 @@ import { CameraIcon } from '../components/Icons'
 import { PhotoComparison } from '../components/progress/PhotoComparison'
 import { useOrbitText } from '../orbit/ui/i18n'
 import { useLanguage } from '../lib/i18n'
-import { progressStrengthComparison } from '../lib/progressComparison'
+import { progressStrengthComparison, resolveProgressExportMode } from '../lib/progressComparison'
 
 const ProgressCamera = lazy(() => import('../components/progress/ProgressCamera').then((module) => ({ default: module.ProgressCamera })))
 const violet = ACCENTS.violet
@@ -191,6 +191,7 @@ export function VisualProgress() {
           workoutCount={workoutCount}
           strengthComparison={strengthComparison}
           athleteName={data.profile?.display_name ?? 'APEX athlete'}
+          exportMode={resolveProgressExportMode(data.settings?.addons.comparison_export_mode)}
           photoUrls={{ ...store.thumbnailUrls, ...store.fullUrls }}
           fullPhotoUrls={store.fullUrls}
           ensurePhotoUrl={store.ensurePhotoUrl}
