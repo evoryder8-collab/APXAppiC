@@ -21,6 +21,9 @@ export interface PlannedMealTrackerRow extends MealTotals {
 }
 
 export function ActualFoodTracker({
+  date,
+  planning,
+  dateLabel,
   target,
   consumed,
   consumedMeals,
@@ -29,6 +32,9 @@ export function ActualFoodTracker({
   onTogglePlanned,
   onEditPlanned,
 }: {
+  date: string
+  planning: boolean
+  dateLabel: string | null
   target: MealTotals
   consumed: MealTotals
   consumedMeals: ConsumedMeal[]
@@ -62,7 +68,7 @@ export function ActualFoodTracker({
   return (
     <>
       <GlassCard accent={amber} className="overflow-hidden p-0">
-        <NutritionGlance target={target} consumed={consumed} mealsDone={plannedRows.filter((row) => row.done).length} mealsTotal={plannedRows.length} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
+        <NutritionGlance key={date} eyebrow={dateLabel} target={target} consumed={consumed} mealsDone={plannedRows.filter((row) => row.done).length} mealsTotal={plannedRows.length} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
 
         <div className="border-t border-ink/6 bg-white/35 p-4 sm:p-5">
           <div className="flex items-end justify-between gap-3"><div><h3 className="font-display text-lg font-bold text-ink">Meals</h3><p className="text-[11px] font-medium text-ink-soft">One tap logs the plan. Change anything you actually ate.</p></div><span className="font-mono text-[9px] font-bold text-ink-faint">{activityLabel.toUpperCase()}</span></div>
@@ -120,7 +126,7 @@ export function ActualFoodTracker({
         </div>
       </GlassCard>
 
-      {composer && <MealComposer slot={composer} onClose={() => setComposer(null)} />}
+      {composer && <MealComposer date={date} planning={planning} slot={composer} onClose={() => setComposer(null)} />}
     </>
   )
 }

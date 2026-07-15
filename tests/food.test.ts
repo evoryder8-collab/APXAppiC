@@ -56,6 +56,27 @@ test('Romanian and Thai food queries rank localized foods and expand for the rem
   assert.equal(displayFoodName(rawChicken, 'th'), 'อกไก่ ดิบ')
 })
 
+test('localized staple search finds oats, som tam, fish sauce, avocado and prepared eggs', () => {
+  const organicOats = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-173904')!
+  const somTam = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:som-tam-thai-reference')!
+  const fishSauce = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-2706457')!
+  const avocado = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-171705')!
+  const rawEgg = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-171287')!
+  const boiledEgg = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-173424')!
+
+  assert.equal(rankFoods('ovaz', COMMON_FOODS, [], 'breakfast')[0]?.id, organicOats.id)
+  assert.equal(rankFoods('ส้มตำ', COMMON_FOODS, [], 'lunch')[0]?.id, somTam.id)
+  assert.equal(rankFoods('sos de peste', COMMON_FOODS, [], 'lunch')[0]?.id, fishSauce.id)
+  assert.equal(rankFoods('อะโวคาโด', COMMON_FOODS, [], 'breakfast')[0]?.id, avocado.id)
+  assert.equal(rankFoods('ou crud', COMMON_FOODS, [], 'breakfast')[0]?.id, rawEgg.id)
+  assert.equal(rankFoods('ไข่ต้ม', COMMON_FOODS, [], 'breakfast')[0]?.id, boiledEgg.id)
+
+  assert.ok(expandFoodSearchQueries('ovăz integral organic', 'ro').includes('organic whole grain oats'))
+  assert.ok(expandFoodSearchQueries('ส้มตำไทย', 'th').includes('som tam thai green papaya salad'))
+  assert.equal(displayFoodName(organicOats, 'ro'), 'Ovăz integral organic')
+  assert.equal(displayFoodName(somTam, 'th'), 'ส้มตำไทย')
+})
+
 test('fundamental chicken and potato preparations stay first before and after extended search', () => {
   const chicken = rankFoods('piept de pui', COMMON_FOODS, [], 'lunch')
   assert.deepEqual(chicken.slice(0, 3).map((food) => food.name), [

@@ -227,6 +227,17 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'izolat proteic din cazeina': 'casein protein isolate',
     'orez alb fiert': 'white rice cooked',
     'ou intreg': 'whole egg',
+    'ovaz': 'oats',
+    'ovaz integral': 'whole grain oats',
+    'ovaz integral organic': 'organic whole grain oats',
+    'som tam': 'som tam thai green papaya salad',
+    'salata de papaya verde': 'green papaya salad',
+    'sos de peste': 'fish sauce',
+    'avocado crud': 'avocado raw',
+    'ou crud': 'egg raw',
+    'oua crude': 'eggs raw',
+    'ou fiert': 'egg boiled',
+    'oua fierte': 'eggs boiled',
   },
   th: {
     'อกไก่': 'chicken breast',
@@ -241,6 +252,14 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'เคซีนโปรตีนไอโซเลต': 'casein protein isolate',
     'ข้าวขาวสุก': 'white rice cooked',
     'ไข่ทั้งฟอง': 'whole egg',
+    'ข้าวโอ๊ตออร์แกนิก': 'organic oats',
+    'ข้าวโอ๊ตโฮลเกรนออร์แกนิก': 'organic whole grain oats',
+    'ส้มตำ': 'som tam thai green papaya salad',
+    'ส้มตำไทย': 'som tam thai green papaya salad',
+    'น้ำปลา': 'fish sauce',
+    'อะโวคาโด': 'avocado',
+    'ไข่ดิบ': 'egg raw',
+    'ไข่ต้ม': 'egg boiled',
   },
 }
 
@@ -253,6 +272,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     gatita: 'cooked', fiert: 'boiled', fiarta: 'boiled', copt: 'baked', coapta: 'baked',
     microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
     proteina: 'protein', proteic: 'protein', zer: 'whey', cazeina: 'casein', izolat: 'isolate',
+    integral: 'whole grain', organic: 'organic', sos: 'sauce', avocado: 'avocado',
     de: '', din: '', la: '',
   },
   th: {
@@ -262,6 +282,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     ดิบ: 'raw', สุก: 'cooked', ต้ม: 'boiled', อบ: 'baked', ไมโครเวฟ: 'microwaved',
     ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
     เวย์: 'whey', โปรตีน: 'protein', เคซีน: 'casein', ไอโซเลต: 'isolate',
+    ส้มตำ: 'som tam', น้ำปลา: 'fish sauce', อะโวคาโด: 'avocado', ไข่ดิบ: 'egg raw', ไข่ต้ม: 'egg boiled',
   },
 }
 
@@ -387,8 +408,27 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
   return preferences.find((preference) => preference.food_id === foodId)
 }
 
+const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-curated:usda-fdc-173904': [
+    'oats', 'organic oats', 'whole grain oats', 'organic whole grain oats',
+    'ovaz', 'ovăz', 'ovaz integral', 'ovăz integral', 'ovaz integral organic', 'ovăz integral organic',
+    'ข้าวโอ๊ต', 'ข้าวโอ๊ตออร์แกนิก', 'ข้าวโอ๊ตโฮลเกรนออร์แกนิก',
+  ],
+  'apex-curated:som-tam-thai-reference': [
+    'som tam', 'som tam thai', 'green papaya salad', 'salata de papaya verde', 'salată de papaya verde', 'ส้มตำ', 'ส้มตำไทย',
+  ],
+  'apex-curated:usda-fdc-2706457': ['fish sauce', 'sos de peste', 'sos de pește', 'น้ำปลา'],
+  'apex-curated:usda-fdc-171705': ['avocado', 'avocado raw', 'avocado crud', 'อะโวคาโด', 'อะโวคาโดดิบ'],
+  'apex-curated:usda-fdc-171287': ['raw egg', 'whole egg raw', 'egg raw', 'ou crud', 'oua crude', 'ouă crude', 'ไข่ดิบ', 'ไข่ไก่ดิบ'],
+  'apex-curated:usda-fdc-173424': ['boiled egg', 'hard boiled egg', 'whole egg boiled', 'ou fiert', 'oua fierte', 'ouă fierte', 'ไข่ต้ม', 'ไข่ต้มสุก'],
+}
+
+function catalogAliases(food: FoodRecord): string[] {
+  return food.provider_product_id ? FOOD_CATALOG_ALIASES[food.provider_product_id] ?? [] : []
+}
+
 function foodSearchText(food: FoodRecord): string {
-  return [food.name, food.brand ?? '', ...Object.values(food.names_i18n)]
+  return [food.name, food.brand ?? '', ...Object.values(food.names_i18n), ...catalogAliases(food)]
     .map(normalizeFoodSearch)
     .join(' ')
 }
@@ -451,13 +491,15 @@ export function rankFoods(
       ].map(normalizeFoodSearch)
       const personal = normalizeFoodSearch(preference?.personal_name ?? '')
       const aliases = (preference?.aliases ?? []).map(normalizeFoodSearch)
-      const searchable = [...names, personal, ...aliases].filter(Boolean)
+      const curatedAliases = catalogAliases(food).map(normalizeFoodSearch)
+      const searchable = [...names, personal, ...aliases, ...curatedAliases].filter(Boolean)
       if (needle && !searchable.some((value) => value.includes(needle))) return { food, score: -Infinity }
 
       let score = 0
       if (needle) {
         if (personal === needle) score += 1200
         if (aliases.includes(needle)) score += 1120
+        if (curatedAliases.includes(needle)) score += 1100
         if (names[0] === needle) score += 1040
         if (`${names[1]} ${names[0]}`.trim() === needle) score += 1000
         if (searchable.some((value) => value.startsWith(needle))) score += 500

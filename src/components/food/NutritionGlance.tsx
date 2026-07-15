@@ -12,12 +12,14 @@ export function NutritionGlance({
   mealsDone,
   mealsTotal,
   status,
+  eyebrow = 'Today',
 }: {
   target: MealTotals
   consumed: MealTotals
   mealsDone: number
   mealsTotal: number
   status: string
+  eyebrow?: string | null
 }) {
   const { language } = useLanguage()
   const reduceMotion = useReducedMotion()
@@ -34,7 +36,7 @@ export function NutritionGlance({
     <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/95 via-white/80 to-cyan-50/80 p-5 sm:p-6">
       <div className="pointer-events-none absolute -top-20 -right-14 h-52 w-52 rounded-full bg-amber-300/20 blur-3xl" />
       <div className="relative flex items-start justify-between gap-3">
-        <div><p className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t('Today')}</p><h2 className="mt-1 font-display text-xl font-bold text-ink">{t('Nutrition at a glance')}</h2></div>
+        <div>{eyebrow && <p key={eyebrow} className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t(eyebrow)}</p>}<h2 className={eyebrow ? 'mt-1 font-display text-xl font-bold text-ink' : 'font-display text-xl font-bold text-ink'}>{t('Nutrition at a glance')}</h2></div>
         <AccentChip accent={amber}>{t(status)}</AccentChip>
       </div>
 

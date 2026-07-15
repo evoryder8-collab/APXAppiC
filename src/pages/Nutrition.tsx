@@ -1,7 +1,7 @@
-import { useEffect, useMemo, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link } from 'react-router-dom'
-import { differenceInCalendarDays, format, getISODay, startOfMonth, subDays } from 'date-fns'
+import { addDays, differenceInCalendarDays, format, parseISO, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
 import {
@@ -24,7 +24,6 @@ import {
   blockSummary,
   calibrateActivityK,
   estimateActivityDay,
-  netKcalForBlock,
   PAL_LABELS,
   type ActivityBlock,
   type ActivityPreset,
@@ -43,6 +42,7 @@ import {
 } from '../lib/food'
 import { normalizeDailyLogIntegers } from '../lib/sync'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { simpleDaySwipeOffset } from '../lib/simpleMode'
 
 const amber = ACCENTS.amber
 
@@ -84,15 +84,19 @@ export function Nutrition() {
   const tx = (value: string): string => translateInterfaceText(value, language)
   const foodStore = useFoodStore()
   const today = todayIso()
+  const [selectedLogDate, setSelectedLogDate] = useState(today)
+  const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
+  const nutritionSwipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
+  const selectedDateObject = useMemo(() => parseISO(selectedLogDate), [selectedLogDate])
   const profile = data.profile
   const catalog = useMemo(() => activityCatalogMap(data.activity_types), [data.activity_types])
-  const todayActivityLogs = useMemo(
-    () => data.activity_logs.filter((log) => log.date === today),
-    [data.activity_logs, today],
+  const selectedActivityLogs = useMemo(
+    () => data.activity_logs.filter((log) => log.date === selectedLogDate),
+    [data.activity_logs, selectedLogDate],
   )
   const activityBlocks = useMemo(
-    () => todayActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
-    [catalog, todayActivityLogs],
+    () => selectedActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
+    [catalog, selectedActivityLogs],
   )
   const quickTargets = useMemo(() => (profile ? computeTargets(profile) : null), [profile])
   const activityEstimate = useMemo(
@@ -112,9 +116,7 @@ export function Nutrition() {
     }
   }, [activityEstimate, preciseMode, quickTargets])
   const [showBmrInfo, setShowBmrInfo] = useState(false)
-  const [selectedLogDate, setSelectedLogDate] = useState(today)
   const [waterDraft, setWaterDraft] = useState('0')
-  const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
   const [plannedComposer, setPlannedComposer] = useState<{
     meal: TargetMeal
     slot: MealSlot
@@ -122,12 +124,6 @@ export function Nutrition() {
     title: string
     replaceMealId: string | null
   } | null>(null)
-  const [calendarComposer, setCalendarComposer] = useState<{
-    slot: MealSlot
-    title: string
-    items: ComposerFoodItem[]
-  } | null>(null)
-
   const storedSelectedLog = data.daily_logs.find((d) => d.date === selectedLogDate)
   const selectedLog: DailyLog = {
     ...emptyDailyLog(selectedLogDate, profile?.user_id ?? 'local'),
@@ -195,12 +191,12 @@ export function Nutrition() {
   }
 
   const logAsPlanned = async (meal: TargetMeal): Promise<void> => {
-    const existing = foodStore.meals.find((value) => value.local_date === today && value.source_planned_meal_id === meal.id)
+    const existing = foodStore.meals.find((value) => value.local_date === selectedLogDate && value.source_planned_meal_id === meal.id)
     if (existing) return
     const item = await plannedFoodItem(meal)
     await foodStore.logMeal({
-      slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
-      loggedAs: 'planned', idempotencyKey: `planned:${profile?.user_id}:${today}:${meal.id}`,
+      date: selectedLogDate, slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
+      loggedAs: 'planned', idempotencyKey: `planned:${profile?.user_id}:${selectedLogDate}:${meal.id}`,
     })
   }
 
@@ -266,8 +262,8 @@ export function Nutrition() {
   }
 
   const yesterday = useMemo(
-    () => format(subDays(new Date(`${today}T12:00:00`), 1), 'yyyy-MM-dd'),
-    [today],
+    () => format(subDays(selectedDateObject, 1), 'yyyy-MM-dd'),
+    [selectedDateObject],
   )
   const yesterdayBlocks = useMemo(
     () => data.activity_logs
@@ -278,7 +274,7 @@ export function Nutrition() {
   const frequentPresets = useMemo<ActivityPreset[]>(() => {
     const grouped = new Map<string, { block: ActivityBlock; count: number; latest: string }>()
     for (const log of data.activity_logs) {
-      if (log.date >= today || log.source !== 'manual') continue
+      if (log.date >= selectedLogDate || log.source !== 'manual') continue
       const block = blockFromActivityLog(log, catalog)
       const signature = [
         block.typeId,
@@ -312,7 +308,7 @@ export function Nutrition() {
           },
         }
       })
-  }, [catalog, data.activity_logs, today])
+  }, [catalog, data.activity_logs, selectedLogDate])
 
   const calibration = useMemo(
     () => profile
@@ -357,30 +353,30 @@ export function Nutrition() {
     toast('Activity engine calibrated from your last two weeks', 'ok')
   }, [calibration, profile, setProfile, toast, today])
 
-  /* Index today's check-offs once. A toggle updates the Set on the next data
+  /* Index the selected day's check-offs once. A toggle updates the Set on the next data
      render without rescanning the full history for every visible pill. */
-  const todayMealIds = useMemo(
-    () => new Set(data.meal_logs.filter((log) => log.date === today).map((log) => log.meal_id)),
-    [data.meal_logs, today],
+  const dayMealIds = useMemo(
+    () => new Set(data.meal_logs.filter((log) => log.date === selectedLogDate).map((log) => log.meal_id)),
+    [data.meal_logs, selectedLogDate],
   )
-  const todayLoggedMeals = useMemo(
-    () => foodStore.mealsForDate(today),
-    [foodStore, today],
+  const dayLoggedMeals = useMemo(
+    () => foodStore.mealsForDate(selectedLogDate),
+    [foodStore, selectedLogDate],
   )
   const consumedMeals = useMemo(
-    () => reconcileConsumedMeals(todayLoggedMeals, mealPlan, todayMealIds),
-    [mealPlan, todayLoggedMeals, todayMealIds],
+    () => reconcileConsumedMeals(dayLoggedMeals, mealPlan, dayMealIds),
+    [dayLoggedMeals, dayMealIds, mealPlan],
   )
   const consumed = useMemo(() => aggregateConsumedMeals(consumedMeals), [consumedMeals])
   const actualByPlannedMeal = useMemo(() => {
-    const result = new Map<string, (typeof todayLoggedMeals)[number]>()
-    for (const actual of todayLoggedMeals) {
+    const result = new Map<string, (typeof dayLoggedMeals)[number]>()
+    for (const actual of dayLoggedMeals) {
       if (!actual.source_planned_meal_id) continue
       const previous = result.get(actual.source_planned_meal_id)
       if (!previous || previous.updated_at.localeCompare(actual.updated_at) < 0) result.set(actual.source_planned_meal_id, actual)
     }
     return result
-  }, [todayLoggedMeals])
+  }, [dayLoggedMeals])
   const plannedRows = useMemo<PlannedMealTrackerRow[]>(() => mealPlan
     .slice()
     .sort((a, b) => a.time.localeCompare(b.time))
@@ -395,14 +391,14 @@ export function Nutrition() {
         protein_g: meal.protein_g,
         carbs_g: meal.carbs_g,
         fat_g: meal.fat_g,
-        done: todayMealIds.has(meal.id) || actual != null,
+        done: dayMealIds.has(meal.id) || actual != null,
         actual,
         entries: actual ? foodStore.entries.filter((entry) => entry.meal_id === actual.id).sort((a, b) => a.sort_order - b.sort_order) : [],
       }
-    }), [actualByPlannedMeal, foodStore.entries, mealPlan, todayMealIds])
-  const todaySupplementIds = useMemo(
-    () => new Set(data.supplement_logs.filter((log) => log.date === today).map((log) => log.supplement_id)),
-    [data.supplement_logs, today],
+    }), [actualByPlannedMeal, dayMealIds, foodStore.entries, mealPlan])
+  const daySupplementIds = useMemo(
+    () => new Set(data.supplement_logs.filter((log) => log.date === selectedLogDate).map((log) => log.supplement_id)),
+    [data.supplement_logs, selectedLogDate],
   )
 
   /* Keep the daily record, the nutrition brain consumed by Avatar, reports and
@@ -410,11 +406,11 @@ export function Nutrition() {
      days where checkmarks existed before structured meal snapshots did. */
   useEffect(() => {
     if (!profile) return
-    const existing = data.daily_logs.find((log) => log.date === today)
+    const existing = data.daily_logs.find((log) => log.date === selectedLogDate)
     const structured = consumedMeals.length > 0
     const wasManual = existing?.nutrition_source !== 'structured'
     const next = normalizeDailyLogIntegers<DailyLog>({
-      ...emptyDailyLog(today, profile.user_id),
+      ...emptyDailyLog(selectedLogDate, profile.user_id),
       ...existing,
       manual_kcal: wasManual ? existing?.kcal ?? existing?.manual_kcal ?? null : existing?.manual_kcal ?? null,
       manual_protein_g: wasManual ? existing?.protein_g ?? existing?.manual_protein_g ?? null : existing?.manual_protein_g ?? null,
@@ -437,14 +433,14 @@ export function Nutrition() {
       && existing.manual_carbs_g === next.manual_carbs_g
       && existing.manual_fat_g === next.manual_fat_g
     if (!unchanged) upsert('daily_logs', next)
-  }, [consumed.carbs_g, consumed.fat_g, consumed.kcal, consumed.protein_g, consumedMeals.length, data.daily_logs, profile, today, upsert])
+  }, [consumed.carbs_g, consumed.fat_g, consumed.kcal, consumed.protein_g, consumedMeals.length, data.daily_logs, profile, selectedLogDate, upsert])
 
-  /* Meal check-offs for today */
+  /* Meal check-offs for the selected day */
   const toggleMeal = async (row: PlannedMealTrackerRow): Promise<void> => {
     const meal = mealPlan.find((candidate) => candidate.id === row.id)
     if (!meal || !profile) return
-    const existingCheck = data.meal_logs.find((log) => log.date === today && log.meal_id === meal.id)
-    const actualMeals = foodStore.meals.filter((actual) => actual.local_date === today && actual.source_planned_meal_id === meal.id)
+    const existingCheck = data.meal_logs.find((log) => log.date === selectedLogDate && log.meal_id === meal.id)
+    const actualMeals = foodStore.meals.filter((actual) => actual.local_date === selectedLogDate && actual.source_planned_meal_id === meal.id)
     if (row.done) {
       for (const actual of actualMeals) await foodStore.deleteMeal(actual.id)
       if (existingCheck) remove('meal_logs', existingCheck.id)
@@ -456,7 +452,7 @@ export function Nutrition() {
       upsert('meal_logs', {
         id: crypto.randomUUID(),
         user_id: profile.user_id,
-        date: today,
+        date: selectedLogDate,
         meal_id: meal.id,
         checked_at: new Date().toISOString(),
       })
@@ -482,15 +478,15 @@ export function Nutrition() {
       .sort((a, b) => a.time - b.time)
   }, [data.supplements, trainingTime, isTrainingDay])
 
-  const supDone = (id: string): boolean => todaySupplementIds.has(id)
+  const supDone = (id: string): boolean => daySupplementIds.has(id)
   const toggleSup = (id: string): void => {
-    const existing = data.supplement_logs.find((l) => l.date === today && l.supplement_id === id)
+    const existing = data.supplement_logs.find((l) => l.date === selectedLogDate && l.supplement_id === id)
     if (existing) remove('supplement_logs', existing.id)
     else
       upsert('supplement_logs', {
         id: crypto.randomUUID(),
         user_id: profile?.user_id ?? '',
-        date: today,
+        date: selectedLogDate,
         supplement_id: id,
         checked_at: new Date().toISOString(),
       })
@@ -510,20 +506,20 @@ export function Nutrition() {
 
   const persistActivityBlocks = (nextBlocks: ActivityBlock[]): void => {
     const nextIds = new Set(nextBlocks.map((block) => block.id))
-    for (const existing of todayActivityLogs) {
+    for (const existing of selectedActivityLogs) {
       if (!nextIds.has(existing.id)) remove('activity_logs', existing.id)
     }
     for (const block of nextBlocks) {
-      const existing = todayActivityLogs.find((log) => log.id === block.id)
-      upsert('activity_logs', activityLogFromBlock(block, profile, today, catalog, existing))
+      const existing = selectedActivityLogs.find((log) => log.id === block.id)
+      upsert('activity_logs', activityLogFromBlock(block, profile, selectedLogDate, catalog, existing))
     }
 
     const nextEstimate = estimateActivityDay(profile, nextBlocks, catalog)
     const mode = nextBlocks.length > 0 ? 'precise' : 'quick'
     const estimatedTdee = mode === 'precise' ? nextEstimate.tdee : quickTargets.tdee
-    const existingDay = data.daily_logs.find((log) => log.date === today)
+    const existingDay = data.daily_logs.find((log) => log.date === selectedLogDate)
     upsert('daily_logs', {
-      ...emptyDailyLog(today, profile.user_id),
+      ...emptyDailyLog(selectedLogDate, profile.user_id),
       ...existingDay,
       activity_mode: mode,
       estimated_tdee: estimatedTdee,
@@ -545,54 +541,43 @@ export function Nutrition() {
   }
 
   const num = 'font-mono font-bold text-ink'
-  const selectedDateObject = new Date(selectedLogDate + 'T12:00:00')
-  const selectedMealIds = new Set(
-    data.meal_logs.filter((log) => log.date === selectedLogDate).map((log) => log.meal_id),
-  )
-  const selectedLoggedMeals = foodStore.mealsForDate(selectedLogDate)
-  const selectedConsumedMeals = reconcileConsumedMeals(selectedLoggedMeals, mealPlan, selectedMealIds)
-  const selectedConsumed = aggregateConsumedMeals(selectedConsumedMeals)
-  const selectedHasConsumedNutrition = selectedConsumedMeals.length > 0
-  const selectedEffectiveMealIds = new Set([
-    ...selectedMealIds,
-    ...selectedLoggedMeals.map((meal) => meal.source_planned_meal_id).filter((id): id is string => id != null),
-  ])
-  const selectedSupplementIds = new Set(
-    data.supplement_logs
-      .filter((log) => log.date === selectedLogDate)
-      .map((log) => log.supplement_id),
-  )
-  const selectedActivityBlocks = data.activity_logs
-    .filter((log) => log.date === selectedLogDate)
-    .map((log) => blockFromActivityLog(log, catalog))
-  const plannedTrainingOnSelectedDate = data.program_days.some(
-    (day) => day.weekday === getISODay(selectedDateObject),
-  )
-  const expectedSupplements = [...data.supplements]
-    .filter((supplement) => !supplement.training_days_only || plannedTrainingOnSelectedDate)
-    .sort((a, b) => a.sort_order - b.sort_order)
-  const missingSupplements = expectedSupplements.filter(
-    (supplement) => !selectedSupplementIds.has(supplement.id),
-  )
-  const selectedIsPast = selectedLogDate < today
   const selectedIsFuture = selectedLogDate > today
-  const selectedUnlinkedMeals = selectedLoggedMeals.filter((meal) => meal.source_planned_meal_id == null)
-  const selectedMealRecordCount = Math.max(selectedLoggedMeals.length, selectedEffectiveMealIds.size)
-  const openCalendarMeal = (slot: MealSlot, presetId?: string): void => {
-    const preset = presetId ? foodStore.presets.find((candidate) => candidate.id === presetId) : null
-    setCalendarComposer({
-      slot,
-      title: preset?.name ?? tx(`${slot[0].toUpperCase()}${slot.slice(1)}`),
-      items: preset ? foodStore.itemsForPreset(preset.id).map((item) => ({ ...item, id: crypto.randomUUID() })) : [],
-    })
+
+  const moveNutritionDay = (offset: number): void => {
+    const nextDate = addDays(selectedDateObject, offset)
+    setSelectedLogDate(format(nextDate, 'yyyy-MM-dd'))
+    setLogMonth(startOfMonth(nextDate))
+  }
+
+  const finishNutritionSwipe = (x: number, y: number): void => {
+    const start = nutritionSwipeStart.current
+    nutritionSwipeStart.current = null
+    if (!start || plannedComposer) return
+    const offset = simpleDaySwipeOffset(start, { x, y }, start.blockedByLocalGesture)
+    if (offset !== 0) moveNutritionDay(offset)
   }
 
   return (
-    <div className="mx-auto w-full max-w-3xl">
+    <div
+      className="mx-auto w-full max-w-3xl touch-pan-y"
+      onTouchStart={(event) => {
+        const touch = event.changedTouches[0]
+        const target = event.target
+        const blockedByLocalGesture = target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, [role="button"], [data-nutrition-local-gesture]'))
+        if (touch) nutritionSwipeStart.current = { x: touch.clientX, y: touch.clientY, blockedByLocalGesture }
+      }}
+      onTouchEnd={(event) => {
+        const touch = event.changedTouches[0]
+        if (touch) finishNutritionSwipe(touch.clientX, touch.clientY)
+      }}
+      onTouchCancel={() => {
+        nutritionSwipeStart.current = null
+      }}
+    >
       <SectionHeader
         accent={amber}
         title="Nutrition"
-        eyebrow={format(new Date(`${today}T12:00:00`), 'EEEE, d MMMM yyyy')}
+        eyebrow={format(selectedDateObject, 'EEEE, d MMMM yyyy')}
         subtitle="What you ate, what remains, and one clear next action"
         right={
           !data.settings?.notifications_on ? (
@@ -607,12 +592,26 @@ export function Nutrition() {
         }
       />
 
+      <div className="mb-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3" data-nutrition-local-gesture>
+        <button type="button" onClick={() => moveNutritionDay(-1)} aria-label={tx('Previous day')} className="glass grid h-10 w-10 place-items-center rounded-full text-lg font-black text-ink-soft">‹</button>
+        <button type="button" onClick={() => { setSelectedLogDate(today); setLogMonth(startOfMonth(new Date())) }} className="glass min-w-0 rounded-2xl px-4 py-2.5 text-center">
+          <span className="block truncate font-mono text-[10px] font-black tracking-[0.13em] text-ink uppercase">{format(selectedDateObject, 'EEEE, d MMMM')}</span>
+          <span className="mt-0.5 block text-[9px] font-black tracking-wide text-amber-700 uppercase">{selectedLogDate === today ? tx('Today') : tx('Tap to return to today')}</span>
+        </button>
+        <button type="button" onClick={() => moveNutritionDay(1)} aria-label={tx('Next day')} className="glass grid h-10 w-10 place-items-center rounded-full text-lg font-black text-ink-soft">›</button>
+      </div>
+      <p className="mb-4 text-center text-[10px] font-semibold text-ink-faint">{tx('Swipe between days. Plan ahead or review what happened.')}</p>
+
       <div className="mb-4 flex justify-end">
         <Link to="/progress" state={{ from: '/nutrition' }} className="glass rounded-full px-3 py-2 text-[11px] font-bold text-violet-700">◫ Private visual progress</Link>
       </div>
 
       <div className="space-y-5">
         <ActualFoodTracker
+          key={selectedLogDate}
+          date={selectedLogDate}
+          planning={selectedIsFuture}
+          dateLabel={selectedLogDate === today ? 'Today' : null}
           target={{ kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g }}
           consumed={consumed}
           consumedMeals={consumedMeals}
@@ -757,13 +756,37 @@ export function Nutrition() {
             </div>
           </div>
         </GlassCard>
+        {preciseMode && selectedLogDate === today && (
+          <div className="rounded-2xl border border-amber-500/15 p-4" style={{ background: amber.wash }}>
+            <div className="flex flex-wrap items-center justify-between gap-3">
+              <div>
+                <p className="font-display text-sm font-bold text-ink">{tx('Did the day go as planned?')}</p>
+                <p className="mt-0.5 text-[10px] font-medium text-ink-soft">
+                  {activityEstimate.tdee.toLocaleString()} kcal TDEE · PAL {activityEstimate.pal.toFixed(2)} · {PAL_LABELS[activityEstimate.level]}
+                </p>
+              </div>
+              {allActivityFinal ? (
+                <span className="rounded-full bg-emerald/10 px-3 py-1.5 text-[10px] font-bold text-emerald">{tx('Reconciled ✓')}</span>
+              ) : (
+                <div className="flex gap-2">
+                  <button type="button" onClick={adjustActivities} className="rounded-xl bg-white/65 px-3 py-2 text-[10px] font-bold text-ink-soft shadow-sm">
+                    {tx('Adjust blocks')}
+                  </button>
+                  <button type="button" onClick={reconcileActivities} className="rounded-xl px-3 py-2 text-[10px] font-bold text-white shadow-sm" style={{ background: amber.gradient }}>
+                    {tx('Yes, finalize')}
+                  </button>
+                </div>
+              )}
+            </div>
+          </div>
+        )}
           </div>
         </details>
 
         {/* -------- Supplement timeline -------- */}
         <details className="glass group rounded-3xl p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <div><p className="font-display text-sm font-bold text-ink">Supplement stack</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{tx(`${todaySupplementIds.size}/${data.supplements.length} checked today`)}</p></div>
+            <div><p className="font-display text-sm font-bold text-ink">Supplement stack</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{data.supplements.length} · {format(selectedDateObject, 'd MMM')}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
           </summary>
           <div className="mt-4 border-t border-ink/7 pt-4">
@@ -785,7 +808,7 @@ export function Nutrition() {
               aria-hidden
             />
             {groups.map((group) => {
-              const active = nowMin >= group.time - 10 && nowMin <= group.time + 50
+              const active = selectedLogDate === today && nowMin >= group.time - 10 && nowMin <= group.time + 50
               const allDone = group.items.every((s) => supDone(s.id))
               return (
                 <div key={group.label} className="relative">
@@ -836,200 +859,68 @@ export function Nutrition() {
           </div>
         </details>
 
-        {/* -------- Evening daily log -------- */}
-        <GlassCard accent={amber} className="defer-paint-tall p-5 sm:p-6">
-          <div className="flex flex-wrap items-center justify-between gap-2">
-            <div>
-              <h2 className="font-display text-lg font-bold text-ink">Daily log</h2>
-              <span className="font-mono text-xs font-bold text-ink-faint">
-                {format(selectedDateObject, 'EEEE, d MMMM yyyy')}
-              </span>
-            </div>
-            {selectedLogDate !== today && (
-              <button
-                type="button"
-                onClick={() => {
-                  setSelectedLogDate(today)
-                  setLogMonth(startOfMonth(new Date()))
-                }}
-                className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
-                style={{ background: amber.gradient }}
-              >
-                Back to today
-              </button>
-            )}
-          </div>
-          <p className="mt-1 text-[13px] font-medium text-ink-soft">
-            {selectedIsFuture
-              ? tx('Plan meals in advance. Saved presets can be added to this date in one tap.')
-              : selectedLogDate === today
-                ? tx('Your consumed nutrition is calculated from the meals you log. Only water and morning weight are entered here.')
-                : tx('Review this day. Nutrition comes from its logged meals, while water and morning weight remain editable.')}
-          </p>
-          {selectedLogDate === today && preciseMode && (
-            <div className="mt-4 rounded-2xl border border-amber-500/15 p-4" style={{ background: amber.wash }}>
-              <div className="flex flex-wrap items-center justify-between gap-3">
-                <div>
-                  <p className="font-display text-sm font-bold text-ink">Did the day go as planned?</p>
-                  <p className="mt-0.5 text-[10px] font-medium text-ink-soft">
-                    {activityEstimate.tdee.toLocaleString()} kcal TDEE · PAL {activityEstimate.pal.toFixed(2)} · {PAL_LABELS[activityEstimate.level]}
-                  </p>
-                </div>
-                {allActivityFinal ? (
-                  <span className="rounded-full bg-emerald/10 px-3 py-1.5 text-[10px] font-bold text-emerald">Reconciled ✓</span>
-                ) : (
-                  <div className="flex gap-2">
-                    <button type="button" onClick={adjustActivities} className="rounded-xl bg-white/65 px-3 py-2 text-[10px] font-bold text-ink-soft shadow-sm">
-                      Adjust blocks
-                    </button>
-                    <button type="button" onClick={reconcileActivities} className="rounded-xl px-3 py-2 text-[10px] font-bold text-white shadow-sm" style={{ background: amber.gradient }}>
-                      Yes, finalize
-                    </button>
-                  </div>
-                )}
+        {/* -------- Focused daily log -------- */}
+        {!selectedIsFuture && (
+          <div data-nutrition-local-gesture>
+          <GlassCard accent={amber} className="defer-paint-tall p-5 sm:p-6">
+            <div className="flex flex-wrap items-center justify-between gap-2">
+              <div>
+                <h2 className="font-display text-lg font-bold text-ink">{tx('Daily log')}</h2>
+                <span className="font-mono text-xs font-bold text-ink-faint">
+                  {format(selectedDateObject, 'EEEE, d MMMM yyyy')}
+                </span>
               </div>
-            </div>
-          )}
-          <div className="mt-4 grid grid-cols-2 gap-2 sm:grid-cols-4">
-            {(
-              [
-                ['Calories', selectedHasConsumedNutrition ? selectedConsumed.kcal : selectedLog.kcal, 'kcal'],
-                ['Protein', selectedHasConsumedNutrition ? selectedConsumed.protein_g : selectedLog.protein_g, 'g'],
-                ['Fat', selectedHasConsumedNutrition ? selectedConsumed.fat_g : selectedLog.fat_g, 'g'],
-                ['Carbs', selectedHasConsumedNutrition ? selectedConsumed.carbs_g : selectedLog.carbs_g, 'g'],
-              ] as const
-            ).map(([label, value, unit]) => (
-              <div key={label} className="rounded-2xl border border-white/80 bg-white/65 px-3 py-3 shadow-sm">
-                <p className="text-[9px] font-black tracking-wide text-ink-faint uppercase">{tx(label)}</p>
-                <p className="mt-1 font-mono text-lg font-black text-ink">{value == null ? tx('Not logged') : `${value}${unit}`}</p>
-              </div>
-            ))}
-          </div>
-          <p className="mt-2 text-[10px] font-semibold text-ink-faint">{tx(selectedIsFuture ? 'Planned totals from the meals added to this date.' : 'These totals come from the meals recorded for this date.')}</p>
-
-          {selectedIsFuture ? (
-            <div className="mt-4 rounded-[24px] border border-amber-300/25 bg-amber-50/55 p-4">
-              <div className="flex items-center justify-between gap-3"><div><p className="font-display text-sm font-black text-ink">{tx('Plan meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-soft">{tx('Choose a meal slot or reuse one of your saved presets.')}</p></div><span className="font-mono text-[9px] font-black text-amber-700">{format(selectedDateObject, 'd MMM')}</span></div>
-              <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-                {(['breakfast', 'lunch', 'dinner', 'snack'] as MealSlot[]).map((slot) => <button key={slot} type="button" onClick={() => openCalendarMeal(slot)} className="rounded-2xl border border-white bg-white/75 px-3 py-3 text-xs font-black text-ink shadow-sm">+ {tx(`${slot[0].toUpperCase()}${slot.slice(1)}`)}</button>)}
-              </div>
-              {foodStore.presets.some((preset) => !preset.archived) && <div className="mt-3 flex gap-2 overflow-x-auto pb-1">{foodStore.presets.filter((preset) => !preset.archived).map((preset) => <button key={preset.id} type="button" onClick={() => openCalendarMeal(preset.meal_slot, preset.id)} className="shrink-0 rounded-full bg-amber-500/12 px-3 py-2 text-[10px] font-black text-amber-800">{preset.name}</button>)}</div>}
-            </div>
-          ) : (
-            <div className="mt-4 space-y-4 border-t border-ink/8 pt-4">
-              <div className="flex items-center justify-between gap-3">
-                <div><p className="text-sm font-bold text-ink">{tx('Water')}</p><p className="text-[10px] font-medium text-ink-faint">{tx('Editable here or from the workout calendar.')}</p></div>
-                <div className="flex items-center gap-2" aria-label="Water in litres">
-                  <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="decrease water">−</button>
-                  <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2"><input type="text" inputMode="decimal" value={waterDraft} onChange={(event) => { if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value) }} onBlur={commitWaterDraft} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none" aria-label="Exact water in litres" /><span className="ml-1 text-xs font-bold text-sky-700">L</span></label>
-                  <button type="button" onClick={() => setWater(selectedLog.water_l + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="increase water">+</button>
-                </div>
-              </div>
-              <label className="flex items-center justify-between gap-3"><span><span className="block text-sm font-bold text-ink">{tx('Morning weight')}</span><span className="block text-[10px] font-medium text-ink-faint">{tx('Optional · feeds the 7-day calibration EMA')}</span></span><span className="glass flex items-center rounded-xl px-3 py-2"><input type="number" inputMode="decimal" min="25" max="300" step="0.1" value={selectedLog.weight_kg ?? ''} placeholder={String(profile.weight_kg)} onChange={(event) => patchLog({ weight_kg: event.target.value === '' ? null : Number(event.target.value) })} className="w-16 bg-transparent text-right font-mono text-base font-bold text-ink outline-none" aria-label="Morning weight in kilograms" /><span className="ml-1 text-xs font-semibold text-ink-soft">kg</span></span></label>
-            </div>
-          )}
-
-          <NutritionLogCalendar
-            month={logMonth}
-            selectedDate={selectedLogDate}
-            today={today}
-            data={data}
-            foodMeals={foodStore.meals}
-            accent={amber}
-            onMonthChange={setLogMonth}
-            onSelectDate={setSelectedLogDate}
-          />
-
-          <div className="mt-5 border-t border-ink/8 pt-4">
-            <div className="flex flex-wrap items-center justify-between gap-2"><p className="text-xs font-black tracking-wide text-ink-soft uppercase">{tx(selectedIsFuture ? 'Planned day details' : 'Day details')}</p><span className="font-mono text-[10px] font-bold text-ink-faint">{tx(`${selectedMealRecordCount}/${data.meals.length} meals · ${selectedSupplementIds.size}/${expectedSupplements.length} supplements`)}</span></div>
-            <div className="mt-3 grid grid-cols-2 gap-2 sm:grid-cols-4">
-              {[
-                ['Activity mode', !storedSelectedLog ? 'Not logged' : selectedLog.activity_mode === 'precise' ? 'Precise' : 'Quick'],
-                ['Estimated TDEE', selectedLog.estimated_tdee == null ? 'Not logged' : `${selectedLog.estimated_tdee} kcal`],
-                ['PAL', selectedLog.computed_pal == null ? 'Not logged' : Number(selectedLog.computed_pal).toFixed(2)],
-                ['Morning weight', selectedLog.weight_kg == null ? 'Not logged' : `${selectedLog.weight_kg} kg`],
-              ].map(([label, value]) => (
-                <div key={label} className="rounded-xl px-2.5 py-2" style={{ background: amber.wash }}>
-                  <p className="text-[9px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>
-                  <p className="mt-0.5 font-mono text-xs font-bold text-ink">{value}</p>
-                </div>
-              ))}
-            </div>
-
-            {selectedActivityBlocks.length > 0 && (
-              <div className="mt-4">
-                <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Activities</p>
-                <div className="mt-2 flex flex-wrap gap-1.5">
-                  {selectedActivityBlocks.map((block) => {
-                    const type = catalog.get(block.typeId)
-                    return (
-                      <span key={block.id} className="rounded-full px-2.5 py-1 text-[10px] font-semibold text-ink-soft" style={{ background: amber.wash }}>
-                        {type?.shortName ?? 'Activity'} · {blockSummary(block, catalog)} · {Math.round(netKcalForBlock(block, profile.weight_kg, catalog))} kcal
-                      </span>
-                    )
-                  })}
-                </div>
-              </div>
-            )}
-
-            <div className="mt-4">
-              <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">{tx('Meals')}</p>
-              <div className="mt-2 space-y-1.5">
-                {[...data.meals]
-                  .sort((a, b) => a.time.localeCompare(b.time))
-                  .map((meal) => {
-                    const done = selectedEffectiveMealIds.has(meal.id)
-                    const actual = selectedLoggedMeals
-                      .filter((logged) => logged.source_planned_meal_id === meal.id)
-                      .sort((a, b) => b.updated_at.localeCompare(a.updated_at))[0]
-                    return (
-                      <div key={meal.id} className="flex items-center justify-between gap-3 rounded-xl px-3 py-2" style={{ background: done ? 'rgba(16,185,129,0.09)' : selectedIsPast ? 'rgba(220,38,38,0.06)' : 'rgba(26,26,34,0.035)' }}>
-                        <div className="min-w-0"><p className="truncate text-xs font-semibold text-ink"><span className="mr-2 font-mono text-ink-faint">{meal.time}</span>{actual?.logged_as === 'changed' ? actual.display_name : meal.name}</p>{actual?.logged_as === 'changed' && <p className="mt-0.5 truncate pl-12 text-[9px] font-medium text-ink-faint">Replaced {meal.name} · {actual.total_kcal} kcal</p>}</div>
-                        <span className={`shrink-0 text-[11px] font-bold ${done ? 'text-emerald' : selectedIsPast ? 'text-crimson' : 'text-ink-faint'}`}>
-                          {tx(done ? selectedIsFuture ? 'Planned ✓' : 'Eaten ✓' : selectedIsPast ? 'Missed / not logged' : selectedIsFuture ? 'Not planned' : 'Not checked')}
-                        </span>
-                      </div>
-                    )
-                  })}
-                {selectedUnlinkedMeals.map((meal) => (
-                  <div key={meal.id} className="flex items-center justify-between gap-3 rounded-xl bg-emerald/8 px-3 py-2">
-                    <div className="min-w-0"><p className="truncate text-xs font-semibold text-ink">{meal.display_name}</p><p className="mt-0.5 font-mono text-[9px] font-bold text-ink-faint">{meal.total_kcal} kcal · P {meal.total_protein_g} · C {meal.total_carbs_g} · F {meal.total_fat_g}</p></div>
-                    <div className="flex shrink-0 items-center gap-2"><span className="text-[10px] font-black text-emerald">{tx(selectedIsFuture ? 'Planned' : 'Logged')}</span><button type="button" onClick={() => void foodStore.deleteMeal(meal.id)} className="grid h-7 w-7 place-items-center rounded-full bg-rose-50 text-xs font-black text-rose-600" aria-label={tx('Remove meal')}>×</button></div>
-                  </div>
-                ))}
-              </div>
-            </div>
-
-            {!selectedIsFuture && <div className="mt-4">
-              <div className="flex items-center justify-between gap-2">
-                <p className="text-xs font-bold tracking-wide text-ink-soft uppercase">Supplements</p>
-                {missingSupplements.length === 0 && (
-                  <span className="text-[11px] font-bold text-emerald">All scheduled items logged ✓</span>
-                )}
-              </div>
-              {missingSupplements.length > 0 && (
-                <>
-                  <p className={`mt-1 text-[11px] font-semibold ${selectedIsPast ? 'text-crimson' : 'text-ink-faint'}`}>
-                    {selectedIsPast ? 'Missed or not logged:' : 'Still unchecked:'}
-                  </p>
-                  <div className="mt-2 flex flex-wrap gap-1.5">
-                    {missingSupplements.map((supplement) => (
-                      <span key={supplement.id} className="rounded-full px-2.5 py-1 text-[10px] font-semibold text-ink-soft" style={{ background: selectedIsPast ? 'rgba(220,38,38,0.07)' : amber.wash }}>
-                        {supplement.name}{supplement.dose ? ` · ${supplement.dose}` : ''}
-                      </span>
-                    ))}
-                  </div>
-                </>
+              {selectedLogDate !== today && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    setSelectedLogDate(today)
+                    setLogMonth(startOfMonth(new Date()))
+                  }}
+                  className="rounded-full px-3 py-1.5 text-xs font-bold text-white"
+                  style={{ background: amber.gradient }}
+                >
+                  {tx('Back to today')}
+                </button>
               )}
-            </div>}
+            </div>
+            <p className="mt-1 text-[13px] font-medium text-ink-soft">
+              {tx('Nutrition is calculated from logged meals. Enter only water and morning weight here.')}
+            </p>
 
-            {selectedIsPast && (
-              <p className="mt-4 text-[10.5px] leading-relaxed font-medium text-ink-faint">
-                “Missed / not logged” means no completion was recorded for that item; the app does not assume whether it was intentionally skipped.
-              </p>
-            )}
+            <div className="mt-5 space-y-4 border-t border-ink/8 pt-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div><p className="text-sm font-bold text-ink">{tx('Water')}</p><p className="text-[10px] font-medium text-ink-faint">{tx('Editable here or from the workout calendar.')}</p></div>
+                <div className="flex items-center gap-2" aria-label={tx('Water in litres')}>
+                  <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Decrease water')}>−</button>
+                  <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2"><input type="text" inputMode="decimal" value={waterDraft} onChange={(event) => { if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value) }} onBlur={commitWaterDraft} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none" aria-label={tx('Exact water in litres')} /><span className="ml-1 text-xs font-bold text-sky-700">L</span></label>
+                  <button type="button" onClick={() => setWater(selectedLog.water_l + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Increase water')}>+</button>
+                </div>
+              </div>
+              <label className="flex flex-wrap items-center justify-between gap-3"><span><span className="block text-sm font-bold text-ink">{tx('Morning weight')}</span><span className="block text-[10px] font-medium text-ink-faint">{tx('Optional · feeds the 7-day calibration EMA')}</span></span><span className="glass flex items-center rounded-xl px-3 py-2"><input type="number" inputMode="decimal" min="25" max="300" step="0.1" value={selectedLog.weight_kg ?? ''} placeholder={String(profile.weight_kg)} onChange={(event) => patchLog({ weight_kg: event.target.value === '' ? null : Number(event.target.value) })} className="w-16 bg-transparent text-right font-mono text-base font-bold text-ink outline-none" aria-label={tx('Morning weight in kilograms')} /><span className="ml-1 text-xs font-semibold text-ink-soft">kg</span></span></label>
+            </div>
+          </GlassCard>
           </div>
-        </GlassCard>
+        )}
+
+        <details className="glass group rounded-3xl p-4" data-nutrition-local-gesture>
+          <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
+            <div><p className="font-display text-sm font-bold text-ink">{tx('Calendar')}</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{tx('Open any past or future date.')}</p></div>
+            <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
+          </summary>
+          <div className="mt-4 border-t border-ink/7 pt-4">
+            <NutritionLogCalendar
+              month={logMonth}
+              selectedDate={selectedLogDate}
+              today={today}
+              data={data}
+              foodMeals={foodStore.meals}
+              accent={amber}
+              onMonthChange={setLogMonth}
+              onSelectDate={setSelectedLogDate}
+            />
+          </div>
+        </details>
 
         {/* Reminders toggle */}
         {data.settings && (
@@ -1052,35 +943,25 @@ export function Nutrition() {
 
       {plannedComposer && (
         <MealComposer
-          date={today}
+          date={selectedLogDate}
+          planning={selectedIsFuture}
           slot={plannedComposer.slot}
           title={plannedComposer.title}
           initialItems={plannedComposer.items}
           plannedMealId={plannedComposer.meal.id}
           replaceMealId={plannedComposer.replaceMealId}
           onLogged={() => {
-            const existing = data.meal_logs.find((log) => log.date === today && log.meal_id === plannedComposer.meal.id)
+            const existing = data.meal_logs.find((log) => log.date === selectedLogDate && log.meal_id === plannedComposer.meal.id)
             if (!existing) upsert('meal_logs', {
               id: crypto.randomUUID(),
               user_id: profile.user_id,
-              date: today,
+              date: selectedLogDate,
               meal_id: plannedComposer.meal.id,
               checked_at: new Date().toISOString(),
             })
             toast(`${plannedComposer.title} logged`, 'ok')
           }}
           onClose={() => setPlannedComposer(null)}
-        />
-      )}
-      {calendarComposer && (
-        <MealComposer
-          date={selectedLogDate}
-          planning
-          slot={calendarComposer.slot}
-          title={calendarComposer.title}
-          initialItems={calendarComposer.items}
-          onLogged={() => toast(tx('Meal added to this date'), 'ok')}
-          onClose={() => setCalendarComposer(null)}
         />
       )}
     </div>

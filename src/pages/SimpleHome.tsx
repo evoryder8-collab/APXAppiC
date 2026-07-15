@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
 import { addDays, format, parseISO } from 'date-fns'
 import { Link, useNavigate } from 'react-router-dom'
@@ -58,6 +58,7 @@ export function SimpleHome() {
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
+  const [weightDraft, setWeightDraft] = useState('')
   const today = todayIso()
   const [selectedDate, setSelectedDate] = useState(today)
   const swipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
@@ -103,6 +104,10 @@ export function SimpleHome() {
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
   const waterDone = targets ? simpleWaterTargetComplete(water, targets.water_l) : false
+
+  useEffect(() => {
+    setWeightDraft(dailyLog?.weight_kg == null ? '' : String(dailyLog.weight_kg))
+  }, [dailyLog?.weight_kg, selectedDate])
 
   if (!profile || !targets) return null
 
@@ -187,14 +192,36 @@ export function SimpleHome() {
     toast(`${group.items.length} supplements checked`, 'ok')
   }
 
-  const setWaterAmount = (value: number): void => {
+  const patchDailyLog = (patch: Partial<DailyLog>): void => {
     if (!profile) return
     const base: DailyLog = dailyLog ?? {
       id: dailyLogId(selectedDate, profile.user_id), user_id: profile.user_id, date: selectedDate,
       kcal: null, protein_g: null, fat_g: null, carbs_g: null, water_l: 0,
       estimated_tdee: null, computed_pal: null, activity_mode: 'quick', weight_kg: null,
     }
-    upsert('daily_logs', { ...base, water_l: Math.min(6, Math.max(0, Number(value.toFixed(2)))) })
+    upsert('daily_logs', { ...base, ...patch })
+  }
+
+  const setWaterAmount = (value: number): void => {
+    patchDailyLog({ water_l: Math.min(6, Math.max(0, Number(value.toFixed(2)))) })
+  }
+
+  const commitMorningWeight = (): void => {
+    const normalized = weightDraft.trim().replace(',', '.')
+    if (!normalized) {
+      patchDailyLog({ weight_kg: null })
+      return
+    }
+    const value = Number(normalized)
+    if (!Number.isFinite(value) || value < 25 || value > 300) {
+      setWeightDraft(dailyLog?.weight_kg == null ? '' : String(dailyLog.weight_kg))
+      toast(t('Enter a weight between 25 and 300 kg.'), 'error')
+      return
+    }
+    const rounded = Number(value.toFixed(1))
+    setWeightDraft(String(rounded))
+    patchDailyLog({ weight_kg: rounded })
+    toast(t('Morning weight saved'), 'ok')
   }
 
   const addWater = (): void => setWaterAmount(water + 0.25)
@@ -300,6 +327,35 @@ export function SimpleHome() {
       </motion.header>
 
       <div className="space-y-4">
+        {selectedDate <= today && (
+          <div data-simple-local-gesture>
+            <GlassCard accent={ACCENTS.ice} className="p-4">
+              <div className="flex flex-wrap items-center justify-between gap-3">
+                <div>
+                  <p className="font-display text-sm font-bold text-ink">{t('Morning weight')}</p>
+                  <p className="mt-0.5 text-[10px] font-medium text-ink-faint">{t('Optional · feeds the 7-day calibration EMA')}</p>
+                </div>
+                <label className="glass flex items-center rounded-xl px-3 py-2">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={weightDraft}
+                    placeholder={String(profile.weight_kg)}
+                    onChange={(event) => {
+                      if (/^\d*(?:[.,]\d{0,1})?$/.test(event.target.value)) setWeightDraft(event.target.value)
+                    }}
+                    onBlur={commitMorningWeight}
+                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                    className="w-20 bg-transparent text-right font-mono text-lg font-bold text-ink outline-none"
+                    aria-label={t('Morning weight in kilograms')}
+                  />
+                  <span className="ml-1 text-xs font-bold text-ink-soft">kg</span>
+                </label>
+              </div>
+            </GlassCard>
+          </div>
+        )}
+
         <Link to="/nutrition" className="block" aria-label={t('Open nutrition details')}>
           <GlassCard accent={ACCENTS.amber} className="overflow-hidden p-0">
             <NutritionGlance

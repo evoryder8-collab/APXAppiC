@@ -28,6 +28,12 @@ const LOCALIZED_NAMES: Record<string, { ro: string; th: string }> = {
   '10000000-0000-4000-8000-000000000023': { ro: 'Proteină din cazeină izolată, neutră', th: 'เคซีนโปรตีนไอโซเลต รสธรรมชาติ' },
   '10000000-0000-4000-8000-000000000024': { ro: 'Proteină din zer M-Budget, vanilie', th: 'เวย์โปรตีน M-Budget วานิลลา' },
   '10000000-0000-4000-8000-000000000025': { ro: 'Proteină din zer izolată ESN, profil de referință', th: 'เวย์โปรตีนไอโซเลต ESN สูตรอ้างอิง' },
+  '10000000-0000-4000-8000-000000000026': { ro: 'Ovăz integral organic', th: 'ข้าวโอ๊ตโฮลเกรนออร์แกนิก' },
+  '10000000-0000-4000-8000-000000000027': { ro: 'Som tam thailandez, salată de papaya verde', th: 'ส้มตำไทย' },
+  '10000000-0000-4000-8000-000000000028': { ro: 'Sos de pește', th: 'น้ำปลา' },
+  '10000000-0000-4000-8000-000000000029': { ro: 'Avocado, crud', th: 'อะโวคาโด ดิบ' },
+  '10000000-0000-4000-8000-000000000030': { ro: 'Ou întreg, crud', th: 'ไข่ไก่ทั้งฟอง ดิบ' },
+  '10000000-0000-4000-8000-000000000031': { ro: 'Ou întreg, fiert tare', th: 'ไข่ต้มสุก' },
 }
 
 interface FoodOptions {
@@ -108,4 +114,10 @@ export const COMMON_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000023', 'Casein protein isolate, unflavoured', 'Casein Isolate, neutral', 'Isolat de caséine, neutre', 'Caseina isolata, neutra', 379, 90, 0.2, 1, 'as_sold', { brand: 'Lee-Sport', providerId: 'apex-curated:lee-sport-casein-isolate-neutral', servingGrams: 30, confidence: 'provider_verified' }),
   food('10000000-0000-4000-8000-000000000024', 'M-Budget whey protein, vanilla', 'M-Budget Whey Protein, Vanille', 'Protéine whey M-Budget, vanille', 'Proteine whey M-Budget, vaniglia', 379, 75, 8.8, 4.9, 'as_sold', { brand: 'M-Budget', providerId: 'apex-curated:m-budget-whey-vanilla', servingGrams: 25, confidence: 'provider_verified' }),
   food('10000000-0000-4000-8000-000000000025', 'ESN Iso Whey Protein, reference profile', 'ESN Iso Whey Protein, Referenzprofil', 'ESN Iso Whey Protein, profil de référence', 'ESN Iso Whey Protein, profilo di riferimento', 364, 86, 3.3, 0.7, 'as_sold', { brand: 'ESN', providerId: 'apex-curated:esn-iso-whey-reference', servingGrams: 30, confidence: 'provider_verified' }),
+  food('10000000-0000-4000-8000-000000000026', 'Organic whole-grain rolled oats', 'Bio-Vollkorn-Haferflocken', 'Flocons d’avoine complète bio', 'Fiocchi d’avena integrale biologica', 379, 13.2, 67.7, 6.52, 'dry', { providerId: 'apex-curated:usda-fdc-173904', confidence: 'provider_verified' }),
+  food('10000000-0000-4000-8000-000000000027', 'Som tam Thai, green papaya salad', 'Som Tam Thai, grüner Papayasalat', 'Som tam thaï, salade de papaye verte', 'Som tam thai, insalata di papaya verde', 92, 4, 13.7, 3.3, 'prepared', { providerId: 'apex-curated:som-tam-thai-reference', servingGrams: 250, confidence: 'complete' }),
+  food('10000000-0000-4000-8000-000000000028', 'Fish sauce', 'Fischsauce', 'Sauce de poisson', 'Salsa di pesce', 35, 5.06, 3.64, 0.01, 'as_sold', { providerId: 'apex-curated:usda-fdc-2706457', confidence: 'provider_verified' }),
+  { ...food('10000000-0000-4000-8000-000000000029', 'Avocado, raw', 'Avocado, roh', 'Avocat, cru', 'Avocado, crudo', 160, 2, 8.53, 14.7, 'as_sold', { providerId: 'apex-curated:usda-fdc-171705', confidence: 'provider_verified' }), piece_grams_or_ml: 150 },
+  { ...food('10000000-0000-4000-8000-000000000030', 'Whole egg, raw', 'Vollei, roh', 'Œuf entier, cru', 'Uovo intero, crudo', 143, 12.6, 0.72, 9.51, 'as_sold', { providerId: 'apex-curated:usda-fdc-171287', confidence: 'provider_verified' }), piece_grams_or_ml: 50 },
+  { ...food('10000000-0000-4000-8000-000000000031', 'Whole egg, hard-boiled', 'Vollei, hartgekocht', 'Œuf entier, dur', 'Uovo intero, sodo', 155, 12.6, 1.12, 10.6, 'cooked', { providerId: 'apex-curated:usda-fdc-173424', confidence: 'provider_verified' }), piece_grams_or_ml: 50 },
 ]
