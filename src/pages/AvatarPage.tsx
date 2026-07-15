@@ -137,8 +137,6 @@ export function AvatarPage() {
           </GlassCard>
         </button>
 
-        <StrengthProgressPanel />
-
         {/* Performance identity + radar */}
         <div className="grid gap-4 sm:grid-cols-2">
           <div className="relative overflow-hidden rounded-3xl border border-emerald-300/20 bg-[#07130f] p-5 text-white shadow-[0_26px_70px_-32px_rgba(16,185,129,0.8)]">
@@ -342,6 +340,9 @@ export function AvatarPage() {
             </motion.div>
           )}
         </GlassCard>
+
+        {/* Load history follows the at-a-glance body index and fitness scores. */}
+        <StrengthProgressPanel />
 
         {/* Baseline reasoning */}
         <GlassCard accent={emerald} className="p-5">

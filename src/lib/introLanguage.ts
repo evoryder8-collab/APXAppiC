@@ -142,3 +142,40 @@ export const LOGIN_COPY = {
     credentials: 'ข้อมูลเข้าสู่ระบบจะถูกส่งตรงไปยังบริการยืนยันตัวตนและจะไม่ถูกจัดเก็บในแอป',
   },
 } as const
+
+export function localizedLoginError(message: string, language: IntroLanguage): string {
+  const normalized = message.trim().toLocaleLowerCase('en')
+  const profileMismatch = message.match(/^Those credentials belong to (.+)\. Choose that profile to continue\.$/)
+
+  if (profileMismatch) {
+    const name = profileMismatch[1]
+    if (language === 'ro') return `Aceste date aparțin profilului ${name}. Alege profilul corect pentru a continua.`
+    if (language === 'th') return `ข้อมูลเข้าสู่ระบบนี้เป็นของโปรไฟล์ ${name} โปรดเลือกโปรไฟล์นั้นเพื่อดำเนินการต่อ`
+    return message
+  }
+
+  if (normalized.includes('invalid login credentials') || normalized.includes('invalid email or password')) {
+    if (language === 'ro') return 'Adresa de e-mail sau parola sunt incorecte.'
+    if (language === 'th') return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
+    return 'The email address or password is incorrect.'
+  }
+  if (normalized.includes('email not confirmed')) {
+    if (language === 'ro') return 'Adresa de e-mail nu este confirmată. Deschide mesajul de confirmare, apoi încearcă din nou.'
+    if (language === 'th') return 'อีเมลยังไม่ได้รับการยืนยัน โปรดเปิดอีเมลยืนยันแล้วลองอีกครั้ง'
+    return 'Your email is not confirmed. Open the confirmation message, then try again.'
+  }
+  if (normalized.includes('too many requests') || normalized.includes('rate limit')) {
+    if (language === 'ro') return 'Prea multe încercări. Așteaptă puțin, apoi încearcă din nou.'
+    if (language === 'th') return 'มีการลองเข้าสู่ระบบมากเกินไป โปรดรอสักครู่แล้วลองอีกครั้ง'
+    return 'Too many attempts. Wait a moment, then try again.'
+  }
+  if (normalized.includes('failed to fetch') || normalized.includes('network')) {
+    if (language === 'ro') return 'Conexiunea nu este disponibilă. Verifică internetul și încearcă din nou.'
+    if (language === 'th') return 'ไม่สามารถเชื่อมต่อได้ โปรดตรวจสอบอินเทอร์เน็ตแล้วลองอีกครั้ง'
+    return 'The connection is unavailable. Check your internet and try again.'
+  }
+
+  if (language === 'ro') return 'Autentificarea nu a reușit. Verifică datele și încearcă din nou.'
+  if (language === 'th') return 'เข้าสู่ระบบไม่สำเร็จ โปรดตรวจสอบข้อมูลแล้วลองอีกครั้ง'
+  return message || 'Sign-in failed. Check your details and try again.'
+}

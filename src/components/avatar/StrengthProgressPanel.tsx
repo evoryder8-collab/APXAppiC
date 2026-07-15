@@ -183,7 +183,8 @@ export function StrengthProgressPanel() {
   }
 
   return (
-    <GlassCard accent={ACCENTS.violet} className="overflow-hidden p-0">
+    <div data-no-translate>
+      <GlassCard accent={ACCENTS.violet} className="overflow-hidden p-0">
       <div className="relative bg-[radial-gradient(circle_at_85%_0%,rgba(139,92,246,.18),transparent_32%),radial-gradient(circle_at_5%_80%,rgba(34,211,238,.14),transparent_32%)] p-5 sm:p-6">
         <p className="font-mono text-[9px] font-black tracking-[0.2em] text-violet-700 uppercase">{copy.eyebrow}</p>
         <div className="mt-1 flex flex-col justify-between gap-3 sm:flex-row sm:items-end">
@@ -212,7 +213,8 @@ export function StrengthProgressPanel() {
           <p className="mt-3 text-[9px] leading-relaxed text-white/32">{copy.method}</p>
         </div>
       </div>
-    </GlassCard>
+      </GlassCard>
+    </div>
   )
 }
 

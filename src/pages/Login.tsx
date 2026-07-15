@@ -3,7 +3,7 @@ import { motion } from 'framer-motion'
 import { ApexMark } from '../components/Icons'
 import { EASE } from '../components/ui'
 import { personaBySlug, type PersonaSlug } from '../lib/persona'
-import { getIntroLanguage, LOGIN_COPY } from '../lib/introLanguage'
+import { getIntroLanguage, localizedLoginError, LOGIN_COPY } from '../lib/introLanguage'
 import { useStore } from '../store/AppStore'
 
 export function Login({
@@ -17,7 +17,8 @@ export function Login({
 }) {
   const { signIn } = useStore()
   const persona = personaBySlug(personaSlug)
-  const copy = LOGIN_COPY[getIntroLanguage()]
+  const language = getIntroLanguage()
+  const copy = LOGIN_COPY[language]
   const [email, setEmail] = useState('')
   const [password, setPassword] = useState('')
   const [showPassword, setShowPassword] = useState(false)
@@ -29,7 +30,7 @@ export function Login({
     setBusy(true)
     setError(null)
     const signInError = await signIn(email.trim(), password)
-    if (signInError) setError(signInError)
+    if (signInError) setError(localizedLoginError(signInError, language))
     else onSuccess()
     setBusy(false)
   }

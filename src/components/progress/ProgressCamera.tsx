@@ -1,5 +1,6 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import { coverCrop, type ProgressPose } from '../../lib/progressPhoto'
+import { useLanguage } from '../../lib/i18n'
 
 type CameraFacing = 'user' | 'environment'
 
@@ -14,6 +15,7 @@ export function ProgressCamera({
   onSave: (blob: Blob, pose: ProgressPose) => Promise<void>
   onClose: () => void
 }) {
+  const { language } = useLanguage()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const countdownRef = useRef<number | null>(null)
@@ -28,6 +30,11 @@ export function ProgressCamera({
   const [ghostOpacity, setGhostOpacity] = useState(referenceUrl ? 0.25 : 0)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const poseLabel = (value: ProgressPose): string => ({
+    en: { front: 'Front', side: 'Profile', back: 'Back' },
+    ro: { front: 'Față', side: 'Profil', back: 'Spate' },
+    th: { front: 'ด้านหน้า', side: 'ด้านข้าง', back: 'ด้านหลัง' },
+  })[language][value]
 
   const stop = useCallback(() => {
     if (countdownRef.current != null) window.clearInterval(countdownRef.current)
@@ -189,7 +196,7 @@ export function ProgressCamera({
       <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-12">
         <button type="button" onClick={onClose} className="rounded-full bg-black/40 px-4 py-2 text-sm font-bold backdrop-blur">Close</button>
         <div className="flex rounded-full bg-black/40 p-1 backdrop-blur">
-          {(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${pose === value ? 'bg-white text-black' : 'text-white/70'}`}>{value}</button>)}
+          {(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${pose === value ? 'bg-white text-black' : 'text-white/70'}`}>{poseLabel(value)}</button>)}
         </div>
       </div>
 

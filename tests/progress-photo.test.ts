@@ -16,6 +16,8 @@ import {
   type ProgressPhoto,
 } from '../src/lib/progressPhoto.ts'
 import type { RpgSnapshot } from '../src/lib/types.ts'
+import { progressStrengthComparison } from '../src/lib/progressComparison.ts'
+import { buildSeedData } from '../src/data/seed.ts'
 
 function photo(id: string, date: string, pose: ProgressPhoto['pose'], ratio = 2 / 3): ProgressPhoto {
   return {
@@ -65,6 +67,29 @@ test('comparison helpers prefer same poses and report elapsed days', () => {
   assert.equal(daysBetweenPhotos(before, after), 28)
   assert.equal(comparisonAspectRatio(before, after), 0.66)
   assert.equal(preferSamePose(before, [side, after])[0].id, 'b')
+})
+
+test('comparison strength uses matched movements instead of letting extra sets dominate', () => {
+  const userId = 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa'
+  const data = buildSeedData(userId, 'constantine')
+  data.workout_sessions = [
+    { id: 'before', user_id: userId, date: '2026-06-02', program_day_id: 'p1', is_lite: false, is_deload: false, is_event_recovery: false, completed: true, quality_score: 1, started_at: '2026-06-02T08:00:00Z', completed_at: '2026-06-02T09:00:00Z', notes: '' },
+    { id: 'after', user_id: userId, date: '2026-06-28', program_day_id: 'p1', is_lite: false, is_deload: false, is_event_recovery: false, completed: true, quality_score: 1, started_at: '2026-06-28T08:00:00Z', completed_at: '2026-06-28T09:00:00Z', notes: '' },
+  ]
+  const log = (id: string, sessionId: string, exerciseName: string, setNo: number, weight: number) => ({
+    id, user_id: userId, session_id: sessionId, exercise_id: null, exercise_name: exerciseName,
+    set_no: setNo, weight_kg: weight, reps: 8, rir: 2, skipped: false, override_flag: false,
+    created_at: `${sessionId === 'before' ? '2026-06-02' : '2026-06-28'}T09:00:00Z`,
+  })
+  data.workout_logs = [
+    log('a1', 'before', 'Squat', 1, 80), log('a2', 'before', 'Squat', 2, 80), log('a3', 'after', 'Squat', 1, 90),
+    log('b1', 'before', 'Bench press', 1, 60), log('b2', 'after', 'Bench press', 1, 64), log('b3', 'after', 'Bench press', 2, 64), log('b4', 'after', 'Bench press', 3, 64),
+  ]
+  assert.deepEqual(progressStrengthComparison(data, '2026-06-01', '2026-06-30'), {
+    averageLoadDeltaKg: 7,
+    matchedExercises: 2,
+    loadedSets: 7,
+  })
 })
 
 test('photo stat overlays use the latest snapshot on or before capture and never borrow from the future', () => {

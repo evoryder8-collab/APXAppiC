@@ -40,7 +40,6 @@ export function AvatarPortraitHero({ profile }: { profile: Profile }) {
       <div className="pointer-events-none absolute inset-x-0 top-[47%] flex -translate-y-1/2 justify-center" aria-hidden><div className="avatar-portrait-orbit h-[245px] w-[330px] rounded-[50%] border border-white/10 sm:h-[290px] sm:w-[410px]" /></div>
       <div className="pointer-events-none absolute inset-x-0 top-[48%] flex -translate-y-1/2 justify-center" aria-hidden><div className="avatar-portrait-orbit avatar-portrait-orbit-delay h-[190px] w-[285px] rounded-[50%] border sm:h-[230px] sm:w-[350px]" style={{ borderColor: `${persona.color}30` }} /></div>
       <div className="avatar-portrait-floor pointer-events-none absolute bottom-[3.9rem] left-1/2 h-16 w-[62%] max-w-[330px] -translate-x-1/2 rounded-[50%]" style={{ background: `radial-gradient(ellipse, ${persona.halo} 0%, rgba(2,6,16,.65) 38%, transparent 72%)` }} aria-hidden />
-      <div className="pointer-events-none absolute inset-x-0 top-[16%] z-[12] flex justify-center" aria-hidden><div className="avatar-portrait-scan h-[215px] w-px opacity-50 sm:h-[260px]" style={{ background: `linear-gradient(transparent, ${persona.colorSoft}, transparent)` }} /></div>
 
       <motion.div
         initial={reducedMotion ? false : { opacity: 0, y: -8 }}
@@ -72,7 +71,7 @@ export function AvatarPortraitHero({ profile }: { profile: Profile }) {
         transition={{ delay: 0.72, duration: 0.62, ease: [0.16, 1, 0.3, 1] }}
         className="absolute inset-x-3 bottom-0 z-20 text-center"
       >
-        <p className="font-mono text-[9px] font-black tracking-[0.24em] uppercase" style={{ color: persona.color }}>
+        <p className="mx-auto inline-flex rounded-full border border-white/12 bg-[#07111f]/90 px-3 py-1.5 font-mono text-[9px] font-black tracking-[0.24em] uppercase shadow-[0_8px_22px_-13px_rgba(2,6,23,.95)] backdrop-blur-md" style={{ color: persona.colorSoft }}>
           {t(persona.title)}
         </p>
         <h1 className="mt-1 font-display text-[2rem] leading-none font-black tracking-[-0.045em] text-ink sm:text-4xl">{persona.name}</h1>

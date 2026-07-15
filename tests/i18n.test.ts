@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { isSelectableIntroLanguage, LANGUAGE_OPTIONS } from '../src/lib/introLanguage.ts'
+import { isSelectableIntroLanguage, LANGUAGE_OPTIONS, localizedLoginError } from '../src/lib/introLanguage.ts'
 import { ACTIVITY_TRANSLATIONS, UI_TRANSLATIONS } from '../src/lib/translations.ts'
 import { translateAvatarAssessmentSummary } from '../src/lib/avatarLocalization.ts'
 
@@ -54,11 +54,19 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Workout stats at a glance',
     'Log the weight used for this set.',
     'Four calm checks make every future comparison more meaningful.',
+    'Shareable progress card',
+    'Export PNG',
   ]
   for (const english of critical) {
     assert.ok(UI_TRANSLATIONS[english]?.ro, `missing Romanian: ${english}`)
     assert.ok(UI_TRANSLATIONS[english]?.th, `missing Thai: ${english}`)
   }
+})
+
+test('login errors are localized without translating June as a month', () => {
+  assert.equal(localizedLoginError('Invalid login credentials', 'ro'), 'Adresa de e-mail sau parola sunt incorecte.')
+  assert.equal(localizedLoginError('Invalid login credentials', 'th'), 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
+  assert.match(localizedLoginError('Those credentials belong to June. Choose that profile to continue.', 'ro'), /June/)
 })
 
 test('shared activity catalog names are translated without per-user copies', () => {

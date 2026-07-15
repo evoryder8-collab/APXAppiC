@@ -463,11 +463,16 @@ export function translateInterfaceText(value: string, language: IntroLanguage): 
   const dynamic = translateDynamic(core, language)
   if (dynamic) return `${leading}${dynamic}${trailing}`
 
-  let translated = translateDates(core, language)
+  /* June is a person's immutable name throughout APEX. Mask it from the
+     generic month translator unless it is clearly adjacent to a day number. */
+  const juneIsDate = /(?:\bJune\s+\d{1,2}|\d{1,2}\s+June\b)/.test(core)
+  const protectedJune = juneIsDate ? core : core.replace(/\bJune\b/g, '\uE000APEX_PERSON_JUNE\uE001')
+  let translated = translateDates(protectedJune, language)
   for (const [english, romanian, thai] of segments.sort(([a], [b]) => b.length - a.length)) {
     if (!translated.includes(english)) continue
     translated = translated.split(english).join(language === 'ro' ? romanian : thai)
   }
+  translated = translated.replaceAll('\uE000APEX_PERSON_JUNE\uE001', 'June')
   return `${leading}${translated}${trailing}`
 }
 
