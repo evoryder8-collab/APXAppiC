@@ -56,6 +56,7 @@ export function SimpleHome() {
   const [showChecklist, setShowChecklist] = useState(false)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
+  const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const today = todayIso()
   const [selectedDate, setSelectedDate] = useState(today)
@@ -200,15 +201,18 @@ export function SimpleHome() {
   const toggleWater = (): void => setWaterAmount(toggleSimpleWaterTarget(water, targets.water_l))
   const openNewManualWorkout = (): void => {
     setEditingManualSessionId(null)
+    setEditingManualExerciseName(null)
     setShowManualWorkout(true)
   }
-  const openManualWorkout = (sessionId: string): void => {
+  const openManualWorkout = (sessionId: string, canonicalName: string): void => {
     setEditingManualSessionId(sessionId)
+    setEditingManualExerciseName(canonicalName)
     setShowManualWorkout(true)
   }
   const closeManualWorkout = (): void => {
     setShowManualWorkout(false)
     setEditingManualSessionId(null)
+    setEditingManualExerciseName(null)
   }
   const openTraining = (): void => {
     navigate(hasWorkout && !workoutDone ? `/player/transition/${selectedDate}` : '/transition')
@@ -356,7 +360,7 @@ export function SimpleHome() {
 
         <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to="/transition" className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>
       </div>
-      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} />
+      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseName={editingManualExerciseName} />
       <PortalLanguageMenu />
     </div>
   )

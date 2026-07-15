@@ -44,6 +44,18 @@ export interface ManualWorkoutEditorDraft {
   exercises: ManualExerciseDraft[]
 }
 
+export interface ManualExerciseOrderReference {
+  sessionId: string
+  canonicalName: string
+}
+
+export interface ManualExerciseTimelineEntry extends ManualExerciseOrderReference {
+  key: string
+  session: WorkoutSession
+  exercise: ManualExerciseDraft
+  firstCreatedAt: string
+}
+
 export function manualWorkoutNotes(title: string): string {
   return `${MANUAL_WORKOUT_PREFIX}|${encodeURIComponent(title.trim() || AUTOMATIC_TITLE)}`
 }
@@ -126,6 +138,57 @@ function draftFromLogs(logs: WorkoutLog[]): ManualExerciseDraft[] {
 
 export function workoutDraftForSession(data: AppData, sessionId: string): ManualExerciseDraft[] {
   return draftFromLogs(data.workout_logs.filter((log) => log.session_id === sessionId))
+}
+
+export function manualExerciseOrderKey(sessionId: string, canonicalName: string): string {
+  return `${sessionId}:${encodeURIComponent(canonicalName)}`
+}
+
+export function manualExerciseTimelineForDate(data: AppData, dateIso: string): ManualExerciseTimelineEntry[] {
+  const timeline = manualSessionsForDate(data, dateIso).flatMap((session, sessionIndex) => {
+    const sessionLogs = data.workout_logs.filter((log) => log.session_id === session.id)
+    const exercises = workoutDraftForSession(data, session.id)
+    return exercises.map((exercise, exerciseIndex) => {
+      const exerciseLogs = sessionLogs.filter((log) => baseExerciseName(log.exercise_name) === exercise.canonicalName)
+      const firstCreatedAt = exerciseLogs
+        .map((log) => log.created_at)
+        .filter(Boolean)
+        .sort((a, b) => a.localeCompare(b))[0]
+        ?? session.started_at
+        ?? session.completed_at
+        ?? `${session.date}T00:00:00.000Z`
+      return {
+        key: manualExerciseOrderKey(session.id, exercise.canonicalName),
+        sessionId: session.id,
+        canonicalName: exercise.canonicalName,
+        session,
+        exercise,
+        firstCreatedAt,
+        fallbackOrder: sessionIndex * 1_000 + exerciseIndex,
+      }
+    })
+  })
+
+  return timeline
+    .sort((a, b) => a.firstCreatedAt.localeCompare(b.firstCreatedAt) || a.fallbackOrder - b.fallbackOrder)
+    .map(({ fallbackOrder: _fallbackOrder, ...entry }) => entry)
+}
+
+export function resequenceManualWorkoutLogs(
+  logs: WorkoutLog[],
+  order: ManualExerciseOrderReference[],
+): WorkoutLog[] {
+  const rank = new Map(order.map((entry, index) => [manualExerciseOrderKey(entry.sessionId, entry.canonicalName), index]))
+  const orderedLogs = logs.filter((log) => rank.has(manualExerciseOrderKey(log.session_id, baseExerciseName(log.exercise_name))))
+  const validTimes = orderedLogs.map((log) => Date.parse(log.created_at)).filter(Number.isFinite)
+  const baseTime = validTimes.length > 0 ? Math.min(...validTimes) : Date.now()
+
+  return logs.map((log) => {
+    const index = rank.get(manualExerciseOrderKey(log.session_id, baseExerciseName(log.exercise_name)))
+    if (index == null) return log
+    const setOffset = Math.max(0, log.set_no - 1) * 100
+    return { ...log, created_at: new Date(baseTime + index * 60_000 + setOffset).toISOString() }
+  })
 }
 
 export function manualWorkoutEditorDraft(data: AppData, sessionId: string): ManualWorkoutEditorDraft | null {
@@ -218,5 +281,9 @@ export function rankManualWorkoutPresets(data: AppData, dateIso: string): Manual
 export function manualSessionsForDate(data: AppData, dateIso: string): WorkoutSession[] {
   return data.workout_sessions
     .filter((session) => session.completed && session.date === dateIso && manualWorkoutTitle(session.notes) != null)
-    .sort((a, b) => (b.completed_at ?? '').localeCompare(a.completed_at ?? ''))
+    .sort((a, b) => {
+      const left = a.started_at ?? a.completed_at ?? `${a.date}T00:00:00.000Z`
+      const right = b.started_at ?? b.completed_at ?? `${b.date}T00:00:00.000Z`
+      return left.localeCompare(right) || a.id.localeCompare(b.id)
+    })
 }

@@ -1,5 +1,7 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
+import type { PointerEvent as ReactPointerEvent } from 'react'
 import { format, getISODay, parseISO } from 'date-fns'
+import { Reorder, motion, useDragControls } from 'framer-motion'
 import {
   EXERCISE_CATALOG,
   catalogExerciseByName,
@@ -10,15 +12,15 @@ import {
 } from '../../data/exerciseCatalog'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import {
+  baseExerciseName,
   encodeTreadmillLog,
-  manualWorkoutHasAutomaticTitle,
+  manualExerciseTimelineForDate,
   manualWorkoutEditorDraft,
-  manualSessionsForDate,
   manualWorkoutNotes,
-  manualWorkoutTitle,
   rankManualWorkoutPresets,
-  workoutDraftForSession,
+  resequenceManualWorkoutLogs,
   type ManualExerciseDraft,
+  type ManualExerciseTimelineEntry,
   type ManualSetDraft,
 } from '../../lib/manualWorkout'
 import { ACCENTS, type Accent } from '../../lib/theme'
@@ -80,6 +82,7 @@ export function ManualWorkoutLogger({
   onSaved,
   date,
   editSessionId = null,
+  focusExerciseName = null,
   accent = ACCENTS.teal,
 }: {
   open: boolean
@@ -87,15 +90,18 @@ export function ManualWorkoutLogger({
   onSaved?: () => void
   date: string
   editSessionId?: string | null
+  focusExerciseName?: string | null
   accent?: Accent
 }) {
   const { data, upsert, bulkUpsert, remove, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const searchRef = useRef<HTMLInputElement>(null)
+  const exerciseEditorRefs = useRef(new Map<string, HTMLDivElement>())
   const [title, setTitle] = useState('')
   const [query, setQuery] = useState('')
   const [exercises, setExercises] = useState<ManualExerciseDraft[]>([])
+  const [focusedExercise, setFocusedExercise] = useState<string | null>(null)
   const loadedEditorRef = useRef<string | null | undefined>(undefined)
   const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
   const editorDraft = useMemo(() => editSessionId ? manualWorkoutEditorDraft(data, editSessionId) : null, [data, editSessionId])
@@ -115,6 +121,22 @@ export function ManualWorkoutLogger({
     setTitle(editorDraft?.title ?? '')
     setExercises(editorDraft ? clonePreset(editorDraft.exercises) : [])
   }, [editSessionId, editorDraft, open])
+
+  useEffect(() => {
+    if (!open || !editSessionId || !focusExerciseName) {
+      setFocusedExercise(null)
+      return
+    }
+    setFocusedExercise(focusExerciseName)
+    const scrollTimer = window.setTimeout(() => {
+      exerciseEditorRefs.current.get(focusExerciseName)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+    }, 220)
+    const clearTimer = window.setTimeout(() => setFocusedExercise(null), 1_800)
+    return () => {
+      window.clearTimeout(scrollTimer)
+      window.clearTimeout(clearTimer)
+    }
+  }, [editSessionId, focusExerciseName, open])
 
   const addExercise = (item: ExerciseCatalogItem): void => {
     setExercises((current) => [...current, draftFromCatalog(item)])
@@ -193,13 +215,26 @@ export function ManualWorkoutLogger({
       completed_at: now,
       notes: manualWorkoutNotes(title),
     }
+    const existingLogs = existingSession
+      ? data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id)
+      : []
+    const existingExerciseTimes = new Map<string, number>()
+    for (const log of existingLogs) {
+      const key = baseExerciseName(log.exercise_name)
+      const timestamp = Date.parse(log.created_at)
+      if (!Number.isFinite(timestamp)) continue
+      existingExerciseTimes.set(key, Math.min(existingExerciseTimes.get(key) ?? timestamp, timestamp))
+    }
+    const newExerciseBaseTime = Date.now()
     const logs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
+      const exerciseTime = existingExerciseTimes.get(exercise.canonicalName)
+        ?? newExerciseBaseTime + exerciseIndex * 60_000
       if (exercise.treadmill) {
         return [{
           id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
           exercise_name: encodeTreadmillLog(exercise.canonicalName, exercise.treadmill), set_no: 1,
           weight_kg: null, reps: null, rir: null, skipped: false, override_flag: false,
-          created_at: new Date(Date.now() + exerciseIndex * 10).toISOString(),
+          created_at: new Date(exerciseTime).toISOString(),
         }]
       }
       return exercise.sets.filter((set) => set.reps > 0).map((set, setIndex) => ({
@@ -207,7 +242,7 @@ export function ManualWorkoutLogger({
         exercise_name: exercise.canonicalName, set_no: setIndex + 1,
         weight_kg: set.weightKg > 0 ? set.weightKg : null, reps: Math.round(set.reps), rir: null,
         skipped: false, override_flag: false,
-        created_at: new Date(Date.now() + exerciseIndex * 10 + setIndex).toISOString(),
+        created_at: new Date(exerciseTime + setIndex * 100).toISOString(),
       }))
     })
 
@@ -274,7 +309,14 @@ export function ManualWorkoutLogger({
       {exercises.length > 0 && (
         <div className="mt-5 space-y-3">
           {exercises.map((exercise, exerciseIndex) => (
-            <div key={exercise.id} className="rounded-[24px] border border-white bg-white/72 p-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,.7)]">
+            <div
+              key={exercise.id}
+              ref={(node) => {
+                if (node) exerciseEditorRefs.current.set(exercise.canonicalName, node)
+                else exerciseEditorRefs.current.delete(exercise.canonicalName)
+              }}
+              className={`rounded-[24px] border bg-white/72 p-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,.7)] transition-[border-color,box-shadow] duration-500 ${focusedExercise === exercise.canonicalName ? 'border-cyan-300 ring-4 ring-cyan-200/35 shadow-[0_20px_54px_-28px_rgba(6,182,212,.9)]' : 'border-white'}`}
+            >
               <div className="flex items-center justify-between gap-3"><p className="min-w-0 truncate text-sm font-black text-ink"><span className="mr-2 font-mono text-[9px] text-cyan-700">{String(exerciseIndex + 1).padStart(2, '0')}</span>{localizedDraftName(exercise, language)}</p><button type="button" onClick={() => setExercises((current) => current.filter((item) => item.id !== exercise.id))} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-black text-rose-600" aria-label={t('Remove exercise')}>×</button></div>
               {exercise.treadmill ? (
                 <div className="mt-3 grid grid-cols-3 gap-2">
@@ -309,20 +351,208 @@ export function ManualWorkoutLogger({
   )
 }
 
-export function TodayManualWorkoutCard({ date, onAdd, onEdit, accent = ACCENTS.teal }: { date: string; onAdd: () => void; onEdit?: (sessionId: string) => void; accent?: Accent }) {
-  const { data } = useStore()
+function ManualWorkoutTimelineItem({
+  item,
+  position,
+  language,
+  onEdit,
+  onRequestDelete,
+  onReorderCommit,
+}: {
+  item: ManualExerciseTimelineEntry
+  position: number
+  language: 'en' | 'ro' | 'th'
+  onEdit: () => void
+  onRequestDelete: () => void
+  onReorderCommit: () => void
+}) {
+  const t = (value: string): string => translateInterfaceText(value, language)
+  const reorderControls = useDragControls()
+  const holdTimer = useRef<number | null>(null)
+  const pointerStart = useRef<{ x: number; y: number } | null>(null)
+  const longPressed = useRef(false)
+  const swipeStarted = useRef(false)
+  const [dragging, setDragging] = useState(false)
+  const [revealed, setRevealed] = useState(false)
+  const name = localizedDraftName(item.exercise, language)
+
+  const clearHold = (): void => {
+    if (holdTimer.current != null) window.clearTimeout(holdTimer.current)
+    holdTimer.current = null
+  }
+
+  useEffect(() => () => clearHold(), [])
+
+  const beginHold = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (event.pointerType === 'mouse' && event.button !== 0) return
+    clearHold()
+    pointerStart.current = { x: event.clientX, y: event.clientY }
+    longPressed.current = false
+    swipeStarted.current = false
+    const startEvent = event.nativeEvent
+    holdTimer.current = window.setTimeout(() => {
+      longPressed.current = true
+      setDragging(true)
+      setRevealed(false)
+      reorderControls.start(startEvent)
+    }, 1_000)
+  }
+
+  const trackPointer = (event: ReactPointerEvent<HTMLDivElement>): void => {
+    if (!pointerStart.current || longPressed.current) return
+    const dx = event.clientX - pointerStart.current.x
+    const dy = event.clientY - pointerStart.current.y
+    if (Math.hypot(dx, dy) > 10) clearHold()
+  }
+
+  const finishPointer = (): void => {
+    clearHold()
+    pointerStart.current = null
+    if (longPressed.current) window.setTimeout(() => { longPressed.current = false }, 0)
+  }
+
+  return (
+    <Reorder.Item
+      as="div"
+      value={item.key}
+      dragListener={false}
+      dragControls={reorderControls}
+      layout
+      onDragStart={() => {
+        setDragging(true)
+        setRevealed(false)
+      }}
+      onDragEnd={() => {
+        setDragging(false)
+        onReorderCommit()
+      }}
+      className="relative overflow-hidden rounded-2xl"
+      style={{ zIndex: dragging ? 20 : 0 }}
+    >
+      <button
+        type="button"
+        onClick={onRequestDelete}
+        tabIndex={revealed ? 0 : -1}
+        aria-hidden={!revealed}
+        aria-label={`${t('Delete exercise')}: ${name}`}
+        className="absolute inset-y-0 right-0 flex w-[82px] flex-col items-center justify-center bg-rose-600 text-white"
+      >
+        <span className="grid h-7 w-7 place-items-center rounded-full bg-white/18 text-lg font-black">×</span>
+        <span className="mt-1 text-[9px] font-black uppercase">{t('Delete')}</span>
+      </button>
+      <motion.div
+        drag={dragging ? false : 'x'}
+        dragConstraints={{ left: -82, right: 0 }}
+        dragElastic={0.04}
+        dragMomentum={false}
+        animate={{ x: revealed ? -82 : 0, scale: dragging ? 1.015 : 1 }}
+        transition={{ type: 'spring', stiffness: 520, damping: 40 }}
+        role="button"
+        tabIndex={0}
+        aria-label={`${name}. ${t('Tap to edit')}`}
+        onPointerDown={beginHold}
+        onPointerMove={trackPointer}
+        onPointerUp={finishPointer}
+        onPointerCancel={finishPointer}
+        onContextMenu={(event) => event.preventDefault()}
+        onDragStart={() => {
+          swipeStarted.current = true
+        }}
+        onDragEnd={(_event, info) => {
+          const shouldReveal = info.offset.x < -42 || info.velocity.x < -350
+          setRevealed(shouldReveal)
+          window.setTimeout(() => { swipeStarted.current = false }, 0)
+        }}
+        onClick={() => {
+          if (longPressed.current || swipeStarted.current) return
+          if (revealed) {
+            setRevealed(false)
+            return
+          }
+          onEdit()
+        }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          onEdit()
+        }}
+        className={`relative min-h-[94px] cursor-pointer select-none border bg-white px-3 py-3 transition-[border-color,box-shadow] ${dragging ? 'border-cyan-300 shadow-[0_24px_54px_-24px_rgba(6,182,212,.75)]' : 'border-white/95 shadow-[0_12px_30px_-28px_rgba(15,23,42,.65)]'}`}
+        style={{ touchAction: dragging ? 'none' : 'pan-y' }}
+      >
+        <div className="flex items-start gap-3">
+          <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-cyan-50 font-mono text-[9px] font-black text-cyan-800">{String(position).padStart(2, '0')}</span>
+          <div className="min-w-0 flex-1">
+            <p className="truncate text-sm font-black text-ink">{name}</p>
+            {item.exercise.treadmill ? (
+              <p className="mt-1 font-mono text-[11px] font-semibold text-ink-soft">{item.exercise.treadmill.distanceKm} km · {item.exercise.treadmill.inclineDeg}° · {item.exercise.treadmill.durationMin} {t('min')}</p>
+            ) : (
+              <div className="mt-1 space-y-0.5">
+                {item.exercise.sets.map((set, index) => (
+                  <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps} {t('reps')}{set.weightKg > 0 ? ` × ${set.weightKg} kg` : ''}</p>
+                ))}
+              </div>
+            )}
+          </div>
+          <span aria-hidden className="mt-1 shrink-0 font-mono text-sm tracking-[-.25em] text-ink-faint">⠿</span>
+        </div>
+      </motion.div>
+    </Reorder.Item>
+  )
+}
+
+export function TodayManualWorkoutCard({
+  date,
+  onAdd,
+  onEdit,
+  accent = ACCENTS.teal,
+}: {
+  date: string
+  onAdd: () => void
+  onEdit?: (sessionId: string, canonicalName: string) => void
+  accent?: Accent
+}) {
+  const { data, bulkUpsert, remove, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
-  const sessions = useMemo(() => manualSessionsForDate(data, date), [data, date])
-  const workoutCards = sessions.map((session) => {
-    const exercises = workoutDraftForSession(data, session.id)
-    const title = manualWorkoutHasAutomaticTitle(session.notes)
-      ? automaticWorkoutTitle(exercises, language)
-      : manualWorkoutTitle(session.notes)
-    return { session, exercises, title }
-  })
+  const timeline = useMemo(() => manualExerciseTimelineForDate(data, date), [data, date])
+  const [orderKeys, setOrderKeys] = useState<string[]>([])
+  const orderRef = useRef<string[]>([])
+  const [confirmDelete, setConfirmDelete] = useState<ManualExerciseTimelineEntry | null>(null)
 
-  if (sessions.length === 0) {
+  useEffect(() => {
+    const available = timeline.map((item) => item.key)
+    const availableSet = new Set(available)
+    setOrderKeys((current) => {
+      const merged = [...current.filter((key) => availableSet.has(key)), ...available.filter((key) => !current.includes(key))]
+      orderRef.current = merged
+      return merged
+    })
+  }, [timeline])
+
+  const timelineByKey = new Map(timeline.map((item) => [item.key, item]))
+  const activeOrder = orderKeys.length > 0 ? orderKeys : timeline.map((item) => item.key)
+  const orderedTimeline = activeOrder.map((key) => timelineByKey.get(key)).filter((item): item is ManualExerciseTimelineEntry => Boolean(item))
+
+  const commitOrder = (): void => {
+    const ordered = orderRef.current.map((key) => timelineByKey.get(key)).filter((item): item is ManualExerciseTimelineEntry => Boolean(item))
+    if (ordered.length !== timeline.length) return
+    const sessionIds = new Set(timeline.map((item) => item.sessionId))
+    const relevantLogs = data.workout_logs.filter((log) => sessionIds.has(log.session_id))
+    const resequenced = resequenceManualWorkoutLogs(relevantLogs, ordered)
+    bulkUpsert('workout_logs', resequenced)
+  }
+
+  const deleteExercise = (): void => {
+    if (!confirmDelete) return
+    const sessionLogs = data.workout_logs.filter((log) => log.session_id === confirmDelete.sessionId)
+    const exerciseLogs = sessionLogs.filter((log) => baseExerciseName(log.exercise_name) === confirmDelete.canonicalName)
+    for (const log of exerciseLogs) remove('workout_logs', log.id)
+    if (exerciseLogs.length === sessionLogs.length) remove('workout_sessions', confirmDelete.sessionId)
+    setConfirmDelete(null)
+    toast(t('Exercise removed'), 'ok')
+  }
+
+  if (timeline.length === 0) {
     return (
       <button type="button" onClick={onAdd} className="group relative w-full overflow-hidden rounded-[26px] bg-[#071624] p-5 text-left text-white active:scale-[.99]" style={{ boxShadow: `0 24px 55px -34px ${accent.glowStrong}` }}>
         <div className="orbit-stars pointer-events-none absolute inset-0 opacity-40" aria-hidden /><div className="pointer-events-none absolute -right-16 -bottom-24 h-52 w-52 rounded-full bg-cyan-400/25 blur-3xl" aria-hidden />
@@ -334,15 +564,43 @@ export function TodayManualWorkoutCard({ date, onAdd, onEdit, accent = ACCENTS.t
   return (
     <div className="rounded-[26px] border border-cyan-100 bg-white/68 p-4" style={{ boxShadow: `0 20px 48px -36px ${accent.glowStrong}` }}>
       <div className="flex items-center justify-between gap-3"><p className="font-mono text-[9px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT LOGGED')}</p><button type="button" onClick={onAdd} className="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800">+ {t('Add another')}</button></div>
-      <div className="mt-3 space-y-4">
-        {workoutCards.map(({ session, exercises, title }) => (
-          <section key={session.id} className="border-t border-ink/7 pt-3 first:border-0 first:pt-0">
-            <div className="flex items-center justify-between gap-3"><h2 className="min-w-0 truncate font-display text-lg font-bold text-ink">{title}</h2>{onEdit && <button type="button" onClick={() => onEdit(session.id)} className="shrink-0 rounded-xl bg-violet-50 px-3 py-2 text-[10px] font-black text-violet-700">{t('Edit')}</button>}</div>
-            <div className="mt-2 space-y-3">{exercises.map((exercise) => <div key={exercise.id}><p className="text-sm font-black text-ink">{localizedDraftName(exercise, language)}</p>{exercise.treadmill ? <p className="mt-0.5 font-mono text-[11px] font-semibold text-ink-soft">{exercise.treadmill.distanceKm} km · {exercise.treadmill.inclineDeg}° · {exercise.treadmill.durationMin} {t('min')}</p> : <div className="mt-1 space-y-0.5">{exercise.sets.map((set, index) => <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps} {t('reps')}{set.weightKg > 0 ? ` × ${set.weightKg} kg` : ''}</p>)}</div>}</div>)}</div>
-          </section>
+      <Reorder.Group
+        as="div"
+        axis="y"
+        values={activeOrder}
+        onReorder={(next) => {
+          orderRef.current = next
+          setOrderKeys(next)
+        }}
+        className="mt-3 space-y-2"
+      >
+        {orderedTimeline.map((item, index) => (
+          <ManualWorkoutTimelineItem
+            key={item.key}
+            item={item}
+            position={index + 1}
+            language={language}
+            onEdit={() => onEdit?.(item.sessionId, item.canonicalName)}
+            onRequestDelete={() => setConfirmDelete(item)}
+            onReorderCommit={commitOrder}
+          />
         ))}
-      </div>
-      <p className="mt-3 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Saved as a smart preset')} · {format(parseISO(date), 'dd MMM')}</p>
+      </Reorder.Group>
+      <p className="mt-3 text-center text-[9px] font-semibold text-ink-faint">{t('Tap to edit · Hold for 1 second to reorder · Swipe left to remove')}</p>
+      <p className="mt-2 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Saved as a smart preset')} · {format(parseISO(date), 'dd MMM')}</p>
+
+      <Sheet open={Boolean(confirmDelete)} onClose={() => setConfirmDelete(null)}>
+        <div role="alertdialog" aria-modal="true" aria-labelledby="delete-workout-exercise-title">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-rose-100 text-2xl font-black text-rose-600">×</div>
+          <h2 id="delete-workout-exercise-title" className="mt-3 text-center font-display text-xl font-bold text-ink">{t('Delete exercise?')}</h2>
+          <p className="mt-2 text-center text-sm font-medium leading-relaxed text-ink-soft">{confirmDelete ? localizedDraftName(confirmDelete.exercise, language) : ''}</p>
+          <p className="mt-1 text-center text-xs leading-relaxed text-ink-faint">{t('Remove this exercise and all of its sets from this workout?')}</p>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-ink">{t('Keep exercise')}</button>
+            <button type="button" onClick={deleteExercise} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-rose-600/20">{t('Delete')}</button>
+          </div>
+        </div>
+      </Sheet>
     </div>
   )
 }

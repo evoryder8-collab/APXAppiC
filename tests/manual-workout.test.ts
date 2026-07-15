@@ -3,11 +3,14 @@ import test from 'node:test'
 import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '../src/lib/types.ts'
 import {
   encodeTreadmillLog,
+  manualExerciseTimelineForDate,
   manualWorkoutHasAutomaticTitle,
   manualWorkoutEditorDraft,
   manualWorkoutNotes,
+  manualSessionsForDate,
   parseTreadmillLog,
   rankManualWorkoutPresets,
+  resequenceManualWorkoutLogs,
 } from '../src/lib/manualWorkout.ts'
 
 function session(id: string, date: string, title: string): WorkoutSession {
@@ -51,6 +54,48 @@ test('a saved manual workout reopens with its title, exercises, sets and weights
   assert.equal(draft?.title, 'Back day')
   assert.equal(draft?.exercises[0]?.canonicalName, 'Seated Cable Row')
   assert.deepEqual(draft?.exercises[0]?.sets.map((set) => [set.reps, set.weightKg]), [[10, 80], [8, 86]])
+})
+
+test('manual workout exercises read from first performed at the top to last performed at the bottom', () => {
+  const early = {
+    ...session('early', '2026-07-15', 'Pull-ups'),
+    started_at: '2026-07-15T08:00:00Z',
+    completed_at: '2026-07-15T08:10:00Z',
+  }
+  const late = {
+    ...session('late', '2026-07-15', 'Hammer curls'),
+    started_at: '2026-07-15T09:00:00Z',
+    completed_at: '2026-07-15T09:10:00Z',
+  }
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [late, early],
+    workout_logs: [
+      { ...log('late', 'Hammer Curl'), created_at: '2026-07-15T09:05:00Z' },
+      { ...log('early', 'Pull-up'), created_at: '2026-07-15T08:05:00Z' },
+    ],
+  }
+
+  assert.deepEqual(manualSessionsForDate(data, '2026-07-15').map((item) => item.id), ['early', 'late'])
+  assert.deepEqual(manualExerciseTimelineForDate(data, '2026-07-15').map((item) => item.canonicalName), ['Pull-up', 'Hammer Curl'])
+})
+
+test('manual exercise reordering persists through workout-log chronology', () => {
+  const firstSession = session('first', '2026-07-15', 'Pull-ups')
+  const secondSession = session('second', '2026-07-15', 'Rows')
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [firstSession, secondSession],
+    workout_logs: [
+      { ...log('first', 'Pull-up'), created_at: '2026-07-15T08:00:00Z' },
+      { ...log('second', 'Seated Cable Row'), created_at: '2026-07-15T09:00:00Z' },
+    ],
+  }
+  const reversed = manualExerciseTimelineForDate(data, '2026-07-15').reverse()
+  const workoutLogs = resequenceManualWorkoutLogs(data.workout_logs, reversed)
+  const reordered = manualExerciseTimelineForDate({ ...data, workout_logs: workoutLogs }, '2026-07-15')
+
+  assert.deepEqual(reordered.map((item) => item.canonicalName), ['Seated Cable Row', 'Pull-up'])
 })
 
 test('smart presets prioritize a repeated workout on the same weekday', () => {

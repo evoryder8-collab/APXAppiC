@@ -53,6 +53,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
+  const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
@@ -183,7 +184,20 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </GlassCard>
         </motion.div>
 
-        <TodayManualWorkoutCard date={today} onAdd={() => { setEditingManualSessionId(null); setShowManualWorkout(true) }} onEdit={(sessionId) => { setEditingManualSessionId(sessionId); setShowManualWorkout(true) }} accent={accent} />
+        <TodayManualWorkoutCard
+          date={today}
+          onAdd={() => {
+            setEditingManualSessionId(null)
+            setEditingManualExerciseName(null)
+            setShowManualWorkout(true)
+          }}
+          onEdit={(sessionId, canonicalName) => {
+            setEditingManualSessionId(sessionId)
+            setEditingManualExerciseName(canonicalName)
+            setShowManualWorkout(true)
+          }}
+          accent={accent}
+        />
 
         {/* Calendar */}
         <GlassCard accent={accent} className="p-4 sm:p-5">
@@ -302,7 +316,18 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         />
       </Suspense>
 
-      <ManualWorkoutLogger open={showManualWorkout} onClose={() => { setShowManualWorkout(false); setEditingManualSessionId(null) }} date={today} editSessionId={editingManualSessionId} accent={accent} />
+      <ManualWorkoutLogger
+        open={showManualWorkout}
+        onClose={() => {
+          setShowManualWorkout(false)
+          setEditingManualSessionId(null)
+          setEditingManualExerciseName(null)
+        }}
+        date={today}
+        editSessionId={editingManualSessionId}
+        focusExerciseName={editingManualExerciseName}
+        accent={accent}
+      />
 
       {/* Event form */}
       <Sheet open={showEventForm} onClose={() => setShowEventForm(false)}>
