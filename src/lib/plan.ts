@@ -11,6 +11,7 @@ import type {
   ProgramDay,
   ProgramSlug,
 } from './types'
+import { activeInductionDayIds, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
 
 export interface PlannedExercise extends Exercise {
   planned_sets: number
@@ -161,8 +162,16 @@ export function planForDate(
 ): PlannedDay {
   const program = data.programs.find((p) => p.slug === slug)
   const weekday = getISODay(parse(date))
-  const programDay =
-    data.program_days.find((d) => d.program_id === program?.id && d.weekday === weekday) ?? null
+  const induction = data.settings?.addons.training_induction
+  const activeDayIds = activeInductionDayIds(induction, slug)
+  const insideWindow = isInsideInductionWindow(induction, slug, date)
+  const programDay = insideWindow
+    ? data.program_days.find((d) =>
+        d.program_id === program?.id &&
+        d.weekday === weekday &&
+        (!activeDayIds || activeDayIds.has(d.id)),
+      ) ?? null
+    : null
 
   const empty: PlannedDay = {
     programDay,
@@ -195,6 +204,19 @@ export function planForDate(
     badges.push('Lite: first two exercises only')
   }
   if (lite) badges.push('Lite day: every set 0-1 RIR')
+
+  if (induction && slug === 'transition') {
+    const week = inductionWeek(induction, date)
+    if (week <= 4) {
+      exercises = exercises.map((exercise) => ({ ...exercise, planned_sets: Math.min(2, exercise.planned_sets) }))
+      badges.push(`Foundation week ${week} of 12: restore movement quality`)
+    } else if (week <= 8) {
+      badges.push(`Foundation week ${week} of 12: build repeatable volume`)
+    } else {
+      badges.push(`Foundation week ${week} of 12: progress controlled load`)
+    }
+  }
+  if (induction && slug === 'main') badges.push('Personal main phase: progress only from clean logged sets')
 
   const constantineProtocol = (data.profile?.persona ?? 'constantine') === 'constantine'
   let warmup = constantineProtocol

@@ -286,6 +286,124 @@ const MATTHEW_DAYS: DaySpec[] = [
   },
 ]
 
+/* Iulian-Andrei is an experienced natural bodybuilder who trains in a gym.
+   His definitions deliberately share no home or calisthenics fallback with
+   Matthew. Transition uses the lite rows; Main Phase uses the full rows. */
+const IULIAN_DAYS: DaySpec[] = [
+  {
+    weekday: 1, name: 'Chest + Delts + Triceps', type: 'push', minutes: 66,
+    warmup: 'Five minutes easy cardio, cuff preparation and two progressive incline-press sets',
+    full: [
+      { name: 'Incline Smith Machine Press', sets: 4, reps: [6, 10], rest: 150, increment: 2.5, note: 'Stop at 1-2 RIR; stable scapulae' },
+      { name: 'Machine Chest Press', sets: 3, reps: [8, 12], rest: 105, increment: 2.5 },
+      { name: 'Cable Fly', sets: 3, reps: [10, 15], rest: 75, increment: 1 },
+      { name: 'Cable Lateral Raise', sets: 4, reps: [12, 20], rest: 60, increment: 1 },
+      { name: 'Cable Triceps Extension', sets: 3, reps: [8, 14], rest: 75, increment: 1 },
+    ],
+    lite: [
+      { name: 'Incline Smith Machine Press', sets: 3, reps: [8, 10], rest: 120, increment: 2.5 },
+      { name: 'Machine Chest Press', sets: 2, reps: [10, 12], rest: 90, increment: 2.5 },
+      { name: 'Cable Lateral Raise', sets: 3, reps: [12, 18], rest: 60, increment: 1 },
+    ],
+  },
+  {
+    weekday: 2, name: 'Back + Biceps', type: 'pull', minutes: 68,
+    warmup: 'Easy rower, scapular pulldowns and two progressive chest-supported row sets',
+    full: [
+      { name: 'Chest-Supported T-Bar Row', sets: 4, reps: [6, 10], rest: 150, increment: 2.5 },
+      { name: 'Neutral-Grip Lat Pulldown', sets: 3, reps: [8, 12], rest: 105, increment: 2.5 },
+      { name: 'Single-Arm Cable Row', sets: 3, reps: [10, 14], perSide: true, rest: 75, increment: 1 },
+      { name: 'Reverse Pec Deck', sets: 3, reps: [12, 18], rest: 60, increment: 1 },
+      { name: 'Incline Dumbbell Curl', sets: 3, reps: [8, 12], rest: 75, increment: 1 },
+    ],
+    lite: [
+      { name: 'Chest-Supported T-Bar Row', sets: 3, reps: [8, 10], rest: 120, increment: 2.5 },
+      { name: 'Neutral-Grip Lat Pulldown', sets: 3, reps: [8, 12], rest: 90, increment: 2.5 },
+      { name: 'Incline Dumbbell Curl', sets: 2, reps: [10, 12], rest: 60, increment: 1 },
+    ],
+  },
+  {
+    weekday: 3, name: 'Legs A · Quad Bias', type: 'legs_a', minutes: 72,
+    warmup: 'Bike, ankle rocks, controlled bodyweight squats and three ramp-up hack-squat sets',
+    full: [
+      { name: 'Hack Squat', sets: 4, reps: [6, 10], rest: 165, increment: 5 },
+      { name: 'Leg Press', sets: 3, reps: [10, 15], rest: 135, increment: 5 },
+      { name: 'Leg Extension', sets: 3, reps: [12, 18], rest: 75, increment: 2.5 },
+      { name: 'Seated Leg Curl', sets: 3, reps: [8, 12], rest: 90, increment: 2.5 },
+      { name: 'Standing Calf Raise Machine', sets: 4, reps: [8, 14], rest: 75, increment: 5 },
+    ],
+    lite: [
+      { name: 'Hack Squat', sets: 3, reps: [8, 10], rest: 135, increment: 5 },
+      { name: 'Leg Press', sets: 2, reps: [10, 15], rest: 105, increment: 5 },
+      { name: 'Seated Leg Curl', sets: 2, reps: [10, 12], rest: 75, increment: 2.5 },
+    ],
+  },
+  {
+    weekday: 4, name: 'Gym Recovery + Mobility', type: 'mobility', minutes: 30,
+    warmup: 'Keep the entire session restorative and finish feeling better than you started',
+    full: [
+      { name: 'Easy Incline Treadmill Walk', sets: 1, reps: [12, 18], unit: 'minutes', rest: 0 },
+      { name: 'Cable External Rotation', sets: 3, reps: [12, 18], perSide: true, rest: 45, increment: 0.5 },
+      { name: 'Cable Face Pull', sets: 3, reps: [15, 20], rest: 45, increment: 1 },
+      { name: '90/90 Hip Mobility', sets: 2, reps: [6, 10], perSide: true, rest: 30 },
+      { name: 'Dead Bug', sets: 3, reps: [8, 12], perSide: true, rest: 30 },
+    ],
+    lite: [
+      { name: 'Easy Incline Treadmill Walk', sets: 1, reps: [10, 15], unit: 'minutes', rest: 0 },
+      { name: 'Cable Face Pull', sets: 2, reps: [15, 20], rest: 45, increment: 1 },
+      { name: '90/90 Hip Mobility', sets: 2, reps: [6, 8], perSide: true, rest: 30 },
+    ],
+  },
+  {
+    weekday: 5, name: 'Upper · Hypertrophy', type: 'upper', minutes: 70,
+    warmup: 'Shoulder preparation and two controlled ramp-up sets for the first press and row',
+    full: [
+      { name: 'Flat Dumbbell Press', sets: 3, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Chest-Supported Machine Row', sets: 3, reps: [8, 12], rest: 120, increment: 2.5 },
+      { name: 'Machine Shoulder Press', sets: 3, reps: [8, 12], rest: 105, increment: 2.5 },
+      { name: 'Cable Lateral Raise', sets: 4, reps: [12, 20], rest: 60, increment: 1 },
+      { name: 'Cable Curl + Rope Pressdown', sets: 3, reps: [10, 15], rest: 75, increment: 1 },
+    ],
+    lite: [
+      { name: 'Flat Dumbbell Press', sets: 3, reps: [8, 12], rest: 105, increment: 2 },
+      { name: 'Chest-Supported Machine Row', sets: 3, reps: [8, 12], rest: 105, increment: 2.5 },
+      { name: 'Cable Lateral Raise', sets: 3, reps: [12, 18], rest: 60, increment: 1 },
+    ],
+  },
+  {
+    weekday: 6, name: 'Legs B · Posterior Chain', type: 'legs_b', minutes: 72,
+    warmup: 'Bike, hip airplanes and three gradual Romanian-deadlift warm-up sets',
+    full: [
+      { name: 'Romanian Deadlift', sets: 4, reps: [6, 10], rest: 165, increment: 5 },
+      { name: 'Smith Machine Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2.5 },
+      { name: 'Lying Leg Curl', sets: 3, reps: [8, 12], rest: 90, increment: 2.5 },
+      { name: 'Machine Hip Thrust', sets: 3, reps: [8, 12], rest: 120, increment: 5 },
+      { name: 'Seated Calf Raise', sets: 4, reps: [10, 16], rest: 75, increment: 2.5 },
+    ],
+    lite: [
+      { name: 'Romanian Deadlift', sets: 3, reps: [8, 10], rest: 135, increment: 5 },
+      { name: 'Smith Machine Split Squat', sets: 2, reps: [8, 10], perSide: true, rest: 105, increment: 2.5 },
+      { name: 'Lying Leg Curl', sets: 2, reps: [10, 12], rest: 75, increment: 2.5 },
+    ],
+  },
+  {
+    weekday: 7, name: 'Gym Reset + Aerobic Base', type: 'mobility', minutes: 32,
+    warmup: 'Conversational effort only; this session protects Monday instead of competing with it',
+    full: [
+      { name: 'Stationary Bike Zone 2', sets: 1, reps: [15, 22], unit: 'minutes', rest: 0 },
+      { name: 'Cable Face Pull', sets: 3, reps: [15, 20], rest: 45, increment: 1 },
+      { name: 'Hanging Scapular Depression', sets: 3, reps: [6, 10], rest: 45 },
+      { name: 'Hip Flexor Mobility', sets: 2, reps: [45, 60], unit: 'seconds', perSide: true, rest: 20 },
+      { name: 'Pallof Press', sets: 3, reps: [8, 12], perSide: true, rest: 45, increment: 1 },
+    ],
+    lite: [
+      { name: 'Stationary Bike Zone 2', sets: 1, reps: [12, 18], unit: 'minutes', rest: 0 },
+      { name: 'Cable Face Pull', sets: 2, reps: [15, 20], rest: 45, increment: 1 },
+      { name: 'Hip Flexor Mobility', sets: 2, reps: [45, 60], unit: 'seconds', perSide: true, rest: 20 },
+    ],
+  },
+]
+
 function profileFor(userId: string, persona: FriendPersona): Profile {
   if (persona === 'june') {
     return {
@@ -327,7 +445,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
 function settingsFor(userId: string): Settings {
   return {
     user_id: userId, voice_on: true, ticks_on: true, notifications_on: false,
-    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced' },
+    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced', newbie_mode: false, training_induction: null },
   }
 }
 
@@ -397,22 +515,22 @@ function supplementsFor(userId: string, persona: FriendPersona): Supplement[] {
 }
 
 function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'programs' | 'program_days' | 'exercises'> {
-  const days = persona === 'june' ? JUNE_DAYS : MATTHEW_DAYS
+  const days = persona === 'june' ? JUNE_DAYS : persona === 'iulian' ? IULIAN_DAYS : MATTHEW_DAYS
   const programs: Program[] = [
     {
       id: uuidFor(userId, 'program:transition'), user_id: userId, slug: 'transition',
-      name: persona === 'june' ? 'Growth Minimum' : persona === 'iulian' ? 'Athletic Base' : 'Morning Base',
+      name: persona === 'june' ? 'Growth Minimum' : persona === 'iulian' ? 'Gym Re-Entry' : 'Morning Base',
       description: persona === 'june'
         ? 'Busy-day programme that protects glute growth without demanding the full session.'
-        : persona === 'iulian' ? 'Balanced strength and calisthenics sessions for a naturally muscular athlete.'
+        : persona === 'iulian' ? 'A reduced-volume gym block that restores tolerance without treating an experienced bodybuilder like a beginner.'
         : 'Fast, repeatable morning sessions that establish the cut without draining the day.',
     },
     {
       id: uuidFor(userId, 'program:main'), user_id: userId, slug: 'main',
-      name: persona === 'june' ? 'Glute Architecture' : persona === 'iulian' ? 'Natural Performance' : 'Lean & Ripped 8AM',
+      name: persona === 'june' ? 'Glute Architecture' : persona === 'iulian' ? 'Natural Bodybuilding' : 'Lean & Ripped 8AM',
       description: persona === 'june'
         ? 'Seven-day home programme with two non-negotiable glute exposures and occupational recovery.'
-        : persona === 'iulian' ? 'A complete strength, muscle and conditioning week with precise recovery.'
+        : persona === 'iulian' ? 'Experienced gym-only bodybuilding with simple progression, balanced volume and two recovery exposures.'
         : 'Age-aware calisthenics, strength, SkiErg and recovery structured around 07:30 mornings.',
     },
   ]

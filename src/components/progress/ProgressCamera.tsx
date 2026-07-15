@@ -88,7 +88,7 @@ export function ProgressCamera({
         if (cancelled) return
         const name = cause instanceof DOMException ? cause.name : ''
         setError(name === 'NotAllowedError' || name === 'SecurityError'
-          ? 'Camera access is blocked. Allow camera access in Safari settings, then tap Retry—or choose a photo from your library.'
+          ? 'Camera access is blocked. Allow camera access in Safari settings, then tap Retry, or choose a photo from your library.'
           : 'The camera could not start. Tap Retry or choose a photo from your library.')
       }
     }

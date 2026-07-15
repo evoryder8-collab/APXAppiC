@@ -6,6 +6,9 @@ import { BoltIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Ico
 import { useStore } from '../store/AppStore'
 import { personaBySlug } from '../lib/persona'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
+import { useOrbitText } from '../orbit/ui/i18n'
+import { useLanguage } from '../lib/i18n'
+import { UI_TRANSLATIONS } from '../lib/translations'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -19,6 +22,9 @@ function greeting(now: Date, name: string): string {
 
 export function Portal() {
   const { data } = useStore()
+  const t = useOrbitText()
+  const { language } = useLanguage()
+  const portalText = (value: string): string => language === 'en' ? value : UI_TRANSLATIONS[value]?.[language] ?? t(value)
   const now = new Date()
   const profile = data.profile
   const persona = personaBySlug(profile?.persona ?? 'constantine')
@@ -55,16 +61,28 @@ export function Portal() {
         <PortalCard
           to="/transition"
           accent={ACCENTS.teal}
-          title={(transition?.name ?? 'Transition phase').toUpperCase()}
-          subtitle={profile?.persona === 'june' ? 'Busy-day glute growth fallback' : profile?.persona === 'matthew' ? 'Fast, repeatable morning training' : 'Current program, home training'}
+          title={portalText(transition?.name ?? 'Transition phase').toUpperCase()}
+          subtitle={portalText(profile?.persona === 'june'
+            ? 'Busy-day glute growth fallback'
+            : profile?.persona === 'matthew'
+              ? 'Fast, repeatable morning training'
+              : profile?.persona === 'iulian'
+                ? 'Reduced-volume gym re-entry'
+                : 'Current program, home training')}
           icon={<TransitionIcon className="h-7 w-7" />}
           index={1}
         />
         <PortalCard
           to="/main-phase"
           accent={ACCENTS.violet}
-          title={(main?.name ?? 'Main phase').toUpperCase()}
-          subtitle={profile?.persona === 'june' ? 'Full glute-focused home programme' : profile?.persona === 'matthew' ? 'Lean power, abs and conditioning' : 'Elite V6, ready when you are'}
+          title={portalText(main?.name ?? 'Main phase').toUpperCase()}
+          subtitle={portalText(profile?.persona === 'june'
+            ? 'Full glute-focused home programme'
+            : profile?.persona === 'matthew'
+              ? 'Lean power, abs and conditioning'
+              : profile?.persona === 'iulian'
+                ? 'Experienced bodybuilding, gym only'
+                : 'Elite V6, ready when you are')}
           icon={<BoltIcon className="h-7 w-7" />}
           index={2}
         />

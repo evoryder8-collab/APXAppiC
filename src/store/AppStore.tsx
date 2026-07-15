@@ -116,6 +116,8 @@ function normalizeAppData(value: AppData): AppData {
           endurance1: value.settings.addons?.endurance1 ?? false,
           endurance2: value.settings.addons?.endurance2 ?? false,
           endurance3: value.settings.addons?.endurance3 ?? false,
+          newbie_mode: value.settings.addons?.newbie_mode ?? false,
+          training_induction: value.settings.addons?.training_induction ?? null,
         },
       }
     : null
@@ -473,6 +475,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const persona = getSelectedPersona() ?? 'constantine'
         void import('../data/seed').then(({ buildSeedData }) => {
           if (!dataRef.current.profile) persist(buildSeedData(LOCAL_USER, persona))
+        })
+      } else if (Number(dataRef.current.profile.seed_version ?? 0) < CURRENT_SEED_VERSION) {
+        const persona = dataRef.current.profile.persona
+        void import('../data/seed').then(({ buildSeedData }) => {
+          const current = dataRef.current
+          if (!current.profile || Number(current.profile.seed_version ?? 0) >= CURRENT_SEED_VERSION) return
+          persist(normalizeAppData(repairSeedDefinitions(current, buildSeedData(LOCAL_USER, persona)).data))
         })
       }
       return

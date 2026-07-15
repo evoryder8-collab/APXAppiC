@@ -22,7 +22,7 @@ const COPY = {
   en: {
     eyebrow: 'STRENGTH HISTORY', title: 'Progress you can actually see', subtitle: 'Every curve comes from the loads and reps logged during your workouts.',
     exercise: 'Exercise', noData: 'Your first weighted workout will create this curve automatically.', bestLoad: 'Best working load', estimated: 'Estimated strength', change: 'Range change', sessions: 'Sessions',
-    months: 'Months', window: 'History window', weekly: 'WEEKLY LOAD-TOLERANCE CHECK', weeklyTitle: 'How are your joints this week?', weeklyBody: 'Rate fatigue or pain—not normal muscle soreness. One minute now can prevent a bad load decision later.',
+    months: 'Months', window: 'History window', weekly: 'WEEKLY LOAD-TOLERANCE CHECK', weeklyTitle: 'How are your joints this week?', weeklyBody: 'Rate fatigue or pain, not normal muscle soreness. One minute now can prevent a bad load decision later.',
     arms: 'Arms', armsDetail: 'shoulders · elbows · wrists', core: 'Core', coreDetail: 'lower/middle back · hips', legs: 'Legs', legsDetail: 'knees · ankles',
     save: 'Save weekly check-in', due: 'Due now', current: 'Current guidance', update: 'Update now', nextWeek: 'Recorded this week', method: 'APEX combines your trend with the actual training load. This is training guidance, not a diagnosis.',
   },

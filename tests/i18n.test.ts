@@ -56,6 +56,10 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Four calm checks make every future comparison more meaningful.',
     'Shareable progress card',
     'Export PNG',
+    '12-Week Home Foundation',
+    'Home Full Body B',
+    'Natural Bodybuilding',
+    'Reduced-volume gym re-entry',
   ]
   for (const english of critical) {
     assert.ok(UI_TRANSLATIONS[english]?.ro, `missing Romanian: ${english}`)
@@ -81,8 +85,8 @@ test('Avatar runtime titles and recommendation copy are available in both locali
   const avatarCopy = [
     'Endurance & VO2max',
     'Solid base with a clear next unlock',
-    'Strong foundation — refine the weak link',
-    'Foundation phase — make the basics repeatable',
+    'Strong foundation. Refine the weak link',
+    'Foundation phase. Make the basics repeatable',
     'Aerobic adaptations fade fastest, on a half-life of roughly 12 days without a stimulus.',
     'Make hydration, protein and a complete evening log the daily floor; those are the fastest controllable inputs to your Health score.',
   ]

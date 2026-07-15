@@ -8,6 +8,7 @@ import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { isTrainingInductionEligible } from '../lib/trainingInduction'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -65,6 +66,23 @@ export function Settings() {
   }, [profile?.custom_bmr])
   if (!profile || !settings) return null
   const targets = computeTargets(profile)
+  const starterCopy = language === 'ro'
+    ? {
+        title: 'Sunt începător',
+        body: 'Activează inducția scurtă în fazele de tranziție și principală. APEX va construi un traseu simplu de 12 săptămâni pe baza pauzei, durerilor, locului și echipamentului tău.',
+        active: 'Inducția este vizibilă în paginile de antrenament.',
+      }
+    : language === 'th'
+      ? {
+          title: 'ฉันเป็นมือใหม่',
+          body: 'เปิดแบบประเมินสั้นในช่วงเปลี่ยนผ่านและช่วงหลัก APEX จะสร้างเส้นทาง 12 สัปดาห์ที่เรียบง่ายจากช่วงที่หยุดฝึก อาการปวด สถานที่ และอุปกรณ์ของคุณ',
+          active: 'แบบประเมินจะแสดงในหน้าการฝึก',
+        }
+      : {
+          title: 'I’m a newbie',
+          body: 'Turn on the short induction in Transition and Main Phase. APEX will build a simple 12-week path around your training gap, pain, location and equipment.',
+          active: 'The induction is visible on your workout pages.',
+        }
 
   const commitCustomBmr = (): void => {
     const parsed = customBmrDraft.trim() === '' ? null : Number(customBmrDraft)
@@ -107,6 +125,26 @@ export function Settings() {
             </div>
           )}
         </GlassCard>
+
+        {isTrainingInductionEligible(profile.persona) && (
+          <div data-no-translate>
+            <GlassCard accent={emerald} className="p-5">
+              <div className={row}>
+                <div className="max-w-[78%]">
+                  <h2 className="font-display text-lg font-bold text-ink">{starterCopy.title}</h2>
+                  <p className={`${sub} mt-1 leading-relaxed`}>{starterCopy.body}</p>
+                  {settings.addons.newbie_mode && <p className="mt-2 text-[11px] font-bold text-emerald-700">✓ {starterCopy.active}</p>}
+                </div>
+                <Toggle
+                  accent={emerald}
+                  on={settings.addons.newbie_mode ?? false}
+                  label={starterCopy.title}
+                  onChange={(value) => setSettings({ addons: { ...settings.addons, newbie_mode: value } })}
+                />
+              </div>
+            </GlassCard>
+          </div>
+        )}
 
         <GlassCard accent={violet} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Body profile</h2>

@@ -24,6 +24,10 @@ import { ChevronLeftIcon, ChevronRightIcon } from '../components/Icons'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
 import { useOrbitText } from '../orbit/ui/i18n'
+import { isTrainingInductionEligible } from '../lib/trainingInduction'
+import { TrainingInductionPanel } from '../components/workout/TrainingInductionPanel'
+import { useLanguage } from '../lib/i18n'
+import { UI_TRANSLATIONS } from '../lib/translations'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -40,6 +44,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const orbit = useOrbitStore()
   const navigate = useNavigate()
   const t = useOrbitText()
+  const { language } = useLanguage()
   const [month, setMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [showEventForm, setShowEventForm] = useState(false)
@@ -51,6 +56,36 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const streak = useMemo(() => currentStreak(data, today), [data, today])
   const todayPlan = useMemo(() => planForDate(data, slug, today, false), [data, slug, today])
   const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
+  const showTrainingInduction = Boolean(
+    data.profile &&
+    isTrainingInductionEligible(data.profile.persona) &&
+    data.settings?.addons.newbie_mode &&
+    (slug === 'transition' || slug === 'main'),
+  )
+  const planText = (value: string): string => {
+    if (language === 'en') return value
+    const exact = UI_TRANSLATIONS[value]?.[language]
+    if (exact) return exact
+    const foundation = value.match(/^Foundation week (\d+) of 12: (restore movement quality|build repeatable volume|progress controlled load)$/i)
+    if (foundation) {
+      const phase = foundation[2].toLocaleLowerCase('en')
+      if (language === 'ro') {
+        const detail = phase === 'restore movement quality'
+          ? 'refacerea calității mișcării'
+          : phase === 'build repeatable volume'
+            ? 'construirea unui volum repetabil'
+            : 'progresie controlată a greutății'
+        return `Săptămâna ${foundation[1]} din 12: ${detail}`
+      }
+      const detail = phase === 'restore movement quality'
+        ? 'ฟื้นคุณภาพการเคลื่อนไหว'
+        : phase === 'build repeatable volume'
+          ? 'สร้างปริมาณที่ทำซ้ำได้'
+          : 'เพิ่มน้ำหนักอย่างควบคุม'
+      return `สัปดาห์ ${foundation[1]} จาก 12: ${detail}`
+    }
+    return t(value)
+  }
 
   /* Deload marking via long-press */
   const toggleDeload = (dateIso: string): void => {
@@ -96,8 +131,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
     <div className="mx-auto w-full max-w-3xl">
       <SectionHeader
         accent={accent}
-        title={program?.name ?? title}
-        subtitle={program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')}
+        title={planText(program?.name ?? title)}
+        subtitle={planText(program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme'))}
         right={
           <div className="flex items-center gap-2">
             <div className="relative overflow-hidden rounded-2xl border border-white/85 bg-white/72 px-3 py-2 text-right shadow-[0_12px_30px_-20px_rgba(109,40,217,.8)] backdrop-blur-xl">
@@ -110,14 +145,16 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
       />
 
       <div className="space-y-5">
+        {showTrainingInduction && <TrainingInductionPanel slug={slug} />}
+
         {/* Today hero */}
         <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }}>
           <GlassCard accent={accent} breathe className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
                 <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">Today</p>
-                <h2 className="truncate font-display text-xl font-bold text-ink">
-                  {todayPlan.isRecoveryMicro ? 'Recovery micro-session' : (todayPlan.programDay?.name ?? 'Rest day')}
+                <h2 data-plan-day-id={todayPlan.programDay?.id ?? ''} className="truncate font-display text-xl font-bold text-ink">
+                  {planText(todayPlan.isRecoveryMicro ? 'Recovery micro-session' : (todayPlan.programDay?.name ?? 'Rest day'))}
                 </h2>
                 {todayPlan.programDay && (
                   <p className="text-xs font-semibold text-ink-soft">
@@ -135,7 +172,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
               <div className="mt-2.5 flex flex-wrap gap-1.5">
                 {todayPlan.badges.slice(0, 3).map((b) => (
                   <AccentChip key={b} accent={ACCENTS.amber}>
-                    {b.toUpperCase()}
+                    {planText(b).toUpperCase()}
                   </AccentChip>
                 ))}
               </div>

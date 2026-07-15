@@ -16,6 +16,7 @@ import {
 import type { Accent } from '../lib/theme'
 import type { AppData, DayType, ProgramSlug } from '../lib/types'
 import { approachRamp, eventContextFor } from '../lib/plan'
+import { activeInductionDayIds, isInsideInductionWindow } from '../lib/trainingInduction'
 import type { CampaignSession } from '../orbit/domain/types'
 import { useOrbitText } from '../orbit/ui/i18n'
 
@@ -63,11 +64,12 @@ export function Calendar({ month, data, slug, accent, orbitSessions = [], onSele
   /* weekday (1-7) -> session type for this program */
   const typeByWeekday = useMemo(() => {
     const map = new Map<number, DayType>()
+    const activeIds = activeInductionDayIds(data.settings?.addons.training_induction, slug)
     for (const d of data.program_days) {
-      if (d.program_id === program?.id) map.set(d.weekday, d.day_type)
+      if (d.program_id === program?.id && (!activeIds || activeIds.has(d.id))) map.set(d.weekday, d.day_type)
     }
     return map
-  }, [data.program_days, program])
+  }, [data.program_days, data.settings?.addons.training_induction, program, slug])
 
   const completedByDate = useMemo(() => {
     const dayById = new Map(
@@ -144,7 +146,9 @@ export function Calendar({ month, data, slug, accent, orbitSessions = [], onSele
           const ramp = approachRamp(dateIso, data.events)
           const during = eventContextFor(dateIso, data.events)?.isDuring ?? false
           const today = isToday(d)
-          const planType = typeByWeekday.get(getISODay(d)) ?? null
+          const planType = isInsideInductionWindow(data.settings?.addons.training_induction, slug, dateIso)
+            ? typeByWeekday.get(getISODay(d)) ?? null
+            : null
           const meta = planType ? DAY_TYPE_META[planType] : null
           const orbitSession = orbitSessions.find((session) => session.date === dateIso)
 

@@ -362,6 +362,24 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   if (exerciseCount) return language === 'ro'
     ? `~${exerciseCount[1]} min · ${exerciseCount[2]} exerciții`
     : `~${exerciseCount[1]} นาที · ${exerciseCount[2]} ท่า`
+  const foundationWeek = value.match(/^Foundation week (\d+) of 12: (restore movement quality|build repeatable volume|progress controlled load)$/i)
+  if (foundationWeek) {
+    const phase = foundationWeek[2].toLocaleLowerCase('en')
+    if (language === 'ro') {
+      const detail = phase === 'restore movement quality'
+        ? 'refacerea calității mișcării'
+        : phase === 'build repeatable volume'
+          ? 'construirea unui volum repetabil'
+          : 'progresie controlată a greutății'
+      return `Săptămâna ${foundationWeek[1]} din 12: ${detail}`
+    }
+    const detail = phase === 'restore movement quality'
+      ? 'ฟื้นคุณภาพการเคลื่อนไหว'
+      : phase === 'build repeatable volume'
+        ? 'สร้างปริมาณที่ทำซ้ำได้'
+        : 'เพิ่มน้ำหนักอย่างควบคุม'
+    return `สัปดาห์ ${foundationWeek[1]} จาก 12: ${detail}`
+  }
   const levelProgress = value.match(/^(\d+)% to level (\d+)$/)
   if (levelProgress) return language === 'ro' ? `${levelProgress[1]}% până la nivelul ${levelProgress[2]}` : `อีก ${levelProgress[1]}% ถึงระดับ ${levelProgress[2]}`
   const calibrated = value.match(/^Calibrated for (.+): age (\d+), ([\d.]+) kg, ([\d.]+)% body fat and ([\d.]+) cm\. (.+)$/)

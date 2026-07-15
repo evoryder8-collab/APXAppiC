@@ -415,8 +415,8 @@ export function Nutrition() {
     [data.supplement_logs, today],
   )
 
-  /* Keep the daily record—the nutrition brain consumed by Avatar, reports and
-     history—in lockstep with the reconciled ledger. This also repairs legacy
+  /* Keep the daily record, the nutrition brain consumed by Avatar, reports and
+     history, in lockstep with the reconciled ledger. This also repairs legacy
      days where checkmarks existed before structured meal snapshots did. */
   useEffect(() => {
     if (!profile) return

@@ -711,12 +711,12 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
 
   const title =
     now.overall >= 75
-      ? 'Strong foundation — refine the weak link'
+      ? 'Strong foundation. Refine the weak link'
       : now.overall >= 60
         ? 'Solid base with a clear next unlock'
         : now.overall >= 45
-          ? 'Rebuilding phase — consistency will compound quickly'
-          : 'Foundation phase — make the basics repeatable'
+          ? 'Rebuilding phase. Consistency will compound quickly'
+          : 'Foundation phase. Make the basics repeatable'
 
   const strengths: string[] = [
     `${strongest.label} is your strongest current signal at ${strongest.value.toFixed(0)}.`,

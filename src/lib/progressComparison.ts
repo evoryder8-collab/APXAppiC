@@ -282,7 +282,7 @@ export async function createProgressComparisonPoster(input: {
     context.strokeStyle = 'rgba(255,255,255,.12)'
     context.stroke()
     const columns = [
-      { label: copy.days, value: String(input.stats.days), detail: `${formatDate(input.left.local_date, input.language)} — ${formatDate(input.right.local_date, input.language)}` },
+      { label: copy.days, value: String(input.stats.days), detail: `${formatDate(input.left.local_date, input.language)} → ${formatDate(input.right.local_date, input.language)}` },
       { label: copy.workouts, value: String(input.stats.workouts), detail: `${input.stats.loadedSets} ${copy.loaded}` },
       { label: copy.load, value: input.stats.averageLoadDeltaKg == null ? copy.baseline : `${input.stats.averageLoadDeltaKg > 0 ? '+' : ''}${input.stats.averageLoadDeltaKg} KG`, detail: input.stats.matchedExercises > 0 ? `${input.stats.matchedExercises} ${copy.matched}` : `${input.stats.loadedSets} ${copy.loaded}` },
     ]

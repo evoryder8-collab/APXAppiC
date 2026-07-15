@@ -287,7 +287,50 @@ export interface Settings {
        existing per-user JSON record makes the feature deploy-safe while still
        syncing privately across devices. */
     joint_checkins?: JointCheckin[]
+    /* Optional onboarding for people starting or returning to resistance
+       training. Constantine and June retain their bespoke programmes. */
+    newbie_mode?: boolean
+    training_induction?: TrainingInductionProfile | null
   }
+}
+
+export type TrainingInactivity =
+  | 'currently_training'
+  | 'under_1_month'
+  | 'one_to_three_months'
+  | 'three_to_six_months'
+  | 'six_to_twelve_months'
+  | 'over_one_year'
+
+export type TrainingVenue = 'home' | 'gym'
+export type TrainingGoal = 'rebuild' | 'muscle' | 'strength'
+export type TrainingPainArea =
+  | 'shoulders'
+  | 'elbows'
+  | 'wrists'
+  | 'hips'
+  | 'knees'
+  | 'ankles'
+
+export type TrainingPlanCaution = 'standard' | 'cautious' | 'clearance'
+
+export interface TrainingInductionProfile {
+  version: 1
+  completed_at: string
+  start_date: string
+  main_start_date: string
+  transition_weeks: 12
+  inactivity: TrainingInactivity
+  venue: TrainingVenue
+  equipment: string[]
+  pain_areas: TrainingPainArea[]
+  recent_operation: boolean
+  chronic_lower_back_pain: boolean
+  sessions_per_week: 2 | 3 | 4
+  goal: TrainingGoal
+  caution: TrainingPlanCaution
+  transition_day_ids: string[]
+  main_day_ids: string[]
 }
 
 export interface JointCheckin {
