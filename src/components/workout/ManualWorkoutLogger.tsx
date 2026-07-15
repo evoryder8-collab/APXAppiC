@@ -1,4 +1,4 @@
-import { useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState } from 'react'
 import { format, getISODay, parseISO } from 'date-fns'
 import {
   EXERCISE_CATALOG,
@@ -12,6 +12,7 @@ import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import {
   encodeTreadmillLog,
   manualWorkoutHasAutomaticTitle,
+  manualWorkoutEditorDraft,
   manualSessionsForDate,
   manualWorkoutNotes,
   manualWorkoutTitle,
@@ -78,26 +79,42 @@ export function ManualWorkoutLogger({
   onClose,
   onSaved,
   date,
+  editSessionId = null,
   accent = ACCENTS.teal,
 }: {
   open: boolean
   onClose: () => void
   onSaved?: () => void
   date: string
+  editSessionId?: string | null
   accent?: Accent
 }) {
-  const { data, upsert, bulkUpsert, toast } = useStore()
+  const { data, upsert, bulkUpsert, remove, toast } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const searchRef = useRef<HTMLInputElement>(null)
   const [title, setTitle] = useState('')
   const [query, setQuery] = useState('')
   const [exercises, setExercises] = useState<ManualExerciseDraft[]>([])
+  const loadedEditorRef = useRef<string | null | undefined>(undefined)
   const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
+  const editorDraft = useMemo(() => editSessionId ? manualWorkoutEditorDraft(data, editSessionId) : null, [data, editSessionId])
   const results = useMemo(
     () => searchExerciseCatalog(query, 'all', language).slice(0, query.trim() ? 10 : 8),
     [language, query],
   )
+
+  useEffect(() => {
+    if (!open) {
+      loadedEditorRef.current = undefined
+      return
+    }
+    if (loadedEditorRef.current === editSessionId) return
+    loadedEditorRef.current = editSessionId
+    setQuery('')
+    setTitle(editorDraft?.title ?? '')
+    setExercises(editorDraft ? clonePreset(editorDraft.exercises) : [])
+  }, [editSessionId, editorDraft, open])
 
   const addExercise = (item: ExerciseCatalogItem): void => {
     setExercises((current) => [...current, draftFromCatalog(item)])
@@ -157,17 +174,22 @@ export function ManualWorkoutLogger({
       sort_order: weekday,
     }
     const now = new Date().toISOString()
+    const existingSession = editSessionId ? data.workout_sessions.find((candidate) => candidate.id === editSessionId) : null
+    if (editSessionId && !existingSession) {
+      toast(t('This workout could not be reopened.'))
+      return
+    }
     const session: WorkoutSession = {
-      id: crypto.randomUUID(),
+      id: existingSession?.id ?? crypto.randomUUID(),
       user_id: profile.user_id,
       date,
-      program_day_id: day.id,
-      is_lite: false,
-      is_deload: false,
-      is_event_recovery: false,
+      program_day_id: existingSession?.program_day_id ?? day.id,
+      is_lite: existingSession?.is_lite ?? false,
+      is_deload: existingSession?.is_deload ?? false,
+      is_event_recovery: existingSession?.is_event_recovery ?? false,
       completed: true,
       quality_score: 1,
-      started_at: now,
+      started_at: existingSession?.started_at ?? now,
       completed_at: now,
       notes: manualWorkoutNotes(title),
     }
@@ -189,11 +211,16 @@ export function ManualWorkoutLogger({
       }))
     })
 
-    if (!existingProgram) upsert('programs', program)
-    if (!existingDay) upsert('program_days', day)
+    if (!existingSession && !existingProgram) upsert('programs', program)
+    if (!existingSession && !existingDay) upsert('program_days', day)
+    if (existingSession) {
+      for (const log of data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id)) {
+        remove('workout_logs', log.id)
+      }
+    }
     upsert('workout_sessions', session)
     bulkUpsert('workout_logs', logs)
-    toast(t('Workout saved for reuse'), 'ok')
+    toast(t(existingSession ? 'Workout updated' : 'Workout saved for reuse'), 'ok')
     reset()
     onClose()
     onSaved?.()
@@ -207,7 +234,7 @@ export function ManualWorkoutLogger({
         <div className="orbit-stars pointer-events-none absolute inset-0 opacity-45" aria-hidden />
         <div className="pointer-events-none absolute -top-20 right-0 h-48 w-48 rounded-full bg-cyan-400/25 blur-3xl" aria-hidden />
         <div className="relative flex items-start justify-between gap-3">
-          <div><p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('QUICK LOG')}</p><h2 className="mt-1 font-display text-2xl font-bold">{t('Add Workout')}</h2><p className="mt-1 text-xs leading-relaxed text-slate-300">{t('Log what you actually did. Every saved workout becomes a reusable smart preset.')}</p></div>
+          <div><p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('QUICK LOG')}</p><h2 className="mt-1 font-display text-2xl font-bold">{t(editSessionId ? 'Edit Workout' : 'Add Workout')}</h2><p className="mt-1 text-xs leading-relaxed text-slate-300">{t('Log what you actually did. Every saved workout becomes a reusable smart preset.')}</p></div>
           <button type="button" onClick={onClose} aria-label={t('Close')} className="grid h-10 w-10 shrink-0 place-items-center rounded-full border border-white/10 bg-white/8 text-xl font-bold">×</button>
         </div>
       </div>
@@ -276,23 +303,24 @@ export function ManualWorkoutLogger({
 
       <div className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
         <GhostButton onClick={reset}>{t('Clear')}</GhostButton>
-        <GradientButton accent={accent} className="py-4" onClick={save}>{t('Save workout')}</GradientButton>
+        <GradientButton accent={accent} className="py-4" onClick={save}>{t(editSessionId ? 'Update workout' : 'Save workout')}</GradientButton>
       </div>
     </Sheet>
   )
 }
 
-export function TodayManualWorkoutCard({ date, onAdd, accent = ACCENTS.teal }: { date: string; onAdd: () => void; accent?: Accent }) {
+export function TodayManualWorkoutCard({ date, onAdd, onEdit, accent = ACCENTS.teal }: { date: string; onAdd: () => void; onEdit?: (sessionId: string) => void; accent?: Accent }) {
   const { data } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const sessions = useMemo(() => manualSessionsForDate(data, date), [data, date])
-  const firstExercises = sessions[0] ? workoutDraftForSession(data, sessions[0].id) : []
-  const title = sessions[0]
-    ? manualWorkoutHasAutomaticTitle(sessions[0].notes)
-      ? automaticWorkoutTitle(firstExercises, language)
-      : manualWorkoutTitle(sessions[0].notes)
-    : ''
+  const workoutCards = sessions.map((session) => {
+    const exercises = workoutDraftForSession(data, session.id)
+    const title = manualWorkoutHasAutomaticTitle(session.notes)
+      ? automaticWorkoutTitle(exercises, language)
+      : manualWorkoutTitle(session.notes)
+    return { session, exercises, title }
+  })
 
   if (sessions.length === 0) {
     return (
@@ -305,10 +333,13 @@ export function TodayManualWorkoutCard({ date, onAdd, accent = ACCENTS.teal }: {
 
   return (
     <div className="rounded-[26px] border border-cyan-100 bg-white/68 p-4" style={{ boxShadow: `0 20px 48px -36px ${accent.glowStrong}` }}>
-      <div className="flex items-center justify-between gap-3"><div><p className="font-mono text-[9px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT LOGGED')}</p><h2 className="font-display text-lg font-bold text-ink">{title}</h2></div><button type="button" onClick={onAdd} className="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800">+ {t('Add another')}</button></div>
-      <div className="mt-3 space-y-3">
-        {sessions.flatMap((session) => workoutDraftForSession(data, session.id)).map((exercise) => (
-          <div key={exercise.id} className="border-t border-ink/7 pt-2 first:border-0 first:pt-0"><p className="text-sm font-black text-ink">{localizedDraftName(exercise, language)}</p>{exercise.treadmill ? <p className="mt-0.5 font-mono text-[11px] font-semibold text-ink-soft">{exercise.treadmill.distanceKm} km · {exercise.treadmill.inclineDeg}° · {exercise.treadmill.durationMin} {t('min')}</p> : <div className="mt-1 space-y-0.5">{exercise.sets.map((set, index) => <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps} {t('reps')}{set.weightKg > 0 ? ` × ${set.weightKg} kg` : ''}</p>)}</div>}</div>
+      <div className="flex items-center justify-between gap-3"><p className="font-mono text-[9px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT LOGGED')}</p><button type="button" onClick={onAdd} className="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800">+ {t('Add another')}</button></div>
+      <div className="mt-3 space-y-4">
+        {workoutCards.map(({ session, exercises, title }) => (
+          <section key={session.id} className="border-t border-ink/7 pt-3 first:border-0 first:pt-0">
+            <div className="flex items-center justify-between gap-3"><h2 className="min-w-0 truncate font-display text-lg font-bold text-ink">{title}</h2>{onEdit && <button type="button" onClick={() => onEdit(session.id)} className="shrink-0 rounded-xl bg-violet-50 px-3 py-2 text-[10px] font-black text-violet-700">{t('Edit')}</button>}</div>
+            <div className="mt-2 space-y-3">{exercises.map((exercise) => <div key={exercise.id}><p className="text-sm font-black text-ink">{localizedDraftName(exercise, language)}</p>{exercise.treadmill ? <p className="mt-0.5 font-mono text-[11px] font-semibold text-ink-soft">{exercise.treadmill.distanceKm} km · {exercise.treadmill.inclineDeg}° · {exercise.treadmill.durationMin} {t('min')}</p> : <div className="mt-1 space-y-0.5">{exercise.sets.map((set, index) => <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps} {t('reps')}{set.weightKg > 0 ? ` × ${set.weightKg} kg` : ''}</p>)}</div>}</div>)}</div>
+          </section>
         ))}
       </div>
       <p className="mt-3 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Saved as a smart preset')} · {format(parseISO(date), 'dd MMM')}</p>

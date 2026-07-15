@@ -52,6 +52,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showExport, setShowExport] = useState(false)
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
+  const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
@@ -182,7 +183,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </GlassCard>
         </motion.div>
 
-        <TodayManualWorkoutCard date={today} onAdd={() => setShowManualWorkout(true)} accent={accent} />
+        <TodayManualWorkoutCard date={today} onAdd={() => { setEditingManualSessionId(null); setShowManualWorkout(true) }} onEdit={(sessionId) => { setEditingManualSessionId(sessionId); setShowManualWorkout(true) }} accent={accent} />
 
         {/* Calendar */}
         <GlassCard accent={accent} className="p-4 sm:p-5">
@@ -301,7 +302,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         />
       </Suspense>
 
-      <ManualWorkoutLogger open={showManualWorkout} onClose={() => setShowManualWorkout(false)} date={today} accent={accent} />
+      <ManualWorkoutLogger open={showManualWorkout} onClose={() => { setShowManualWorkout(false); setEditingManualSessionId(null) }} date={today} editSessionId={editingManualSessionId} accent={accent} />
 
       {/* Event form */}
       <Sheet open={showEventForm} onClose={() => setShowEventForm(false)}>

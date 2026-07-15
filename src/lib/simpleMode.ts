@@ -27,3 +27,15 @@ export function simpleCompletion(completed: number, total: number): number {
   if (total <= 0) return 100
   return Math.max(0, Math.min(100, Math.round((completed / total) * 100)))
 }
+
+export function simpleWaterTargetComplete(waterLitres: number, targetLitres: number): boolean {
+  const target = Math.max(0, targetLitres)
+  return target > 0 && Math.max(0, waterLitres) >= target * 0.9
+}
+
+/* The checklist is a binary promise, while the hydration action remains a
+   250 ml stepper. Checking sets today's target once; unchecking clears it. */
+export function toggleSimpleWaterTarget(waterLitres: number, targetLitres: number): number {
+  if (simpleWaterTargetComplete(waterLitres, targetLitres)) return 0
+  return Math.round(Math.max(0, targetLitres) * 100) / 100
+}

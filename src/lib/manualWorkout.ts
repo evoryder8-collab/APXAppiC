@@ -38,6 +38,12 @@ export interface ManualWorkoutPreset {
   score: number
 }
 
+export interface ManualWorkoutEditorDraft {
+  session: WorkoutSession
+  title: string
+  exercises: ManualExerciseDraft[]
+}
+
 export function manualWorkoutNotes(title: string): string {
   return `${MANUAL_WORKOUT_PREFIX}|${encodeURIComponent(title.trim() || AUTOMATIC_TITLE)}`
 }
@@ -120,6 +126,16 @@ function draftFromLogs(logs: WorkoutLog[]): ManualExerciseDraft[] {
 
 export function workoutDraftForSession(data: AppData, sessionId: string): ManualExerciseDraft[] {
   return draftFromLogs(data.workout_logs.filter((log) => log.session_id === sessionId))
+}
+
+export function manualWorkoutEditorDraft(data: AppData, sessionId: string): ManualWorkoutEditorDraft | null {
+  const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
+  if (!session || manualWorkoutTitle(session.notes) == null) return null
+  return {
+    session,
+    title: manualWorkoutHasAutomaticTitle(session.notes) ? '' : manualWorkoutTitle(session.notes) ?? '',
+    exercises: workoutDraftForSession(data, session.id),
+  }
 }
 
 export function catalogForDraft(exercise: ManualExerciseDraft): ExerciseCatalogItem | null {

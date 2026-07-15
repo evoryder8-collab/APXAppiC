@@ -14,7 +14,7 @@ import { aggregateConsumedMeals, reconcileConsumedMeals, type ComposerFoodItem, 
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { selectNextSimpleAction, simpleCompletion } from '../lib/simpleMode'
+import { selectNextSimpleAction, simpleCompletion, simpleWaterTargetComplete, toggleSimpleWaterTarget } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -55,6 +55,7 @@ export function SimpleHome() {
   const t = (value: string): string => translateInterfaceText(value, language)
   const [showChecklist, setShowChecklist] = useState(false)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
+  const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const today = todayIso()
   const profile = data.profile
@@ -97,7 +98,7 @@ export function SimpleHome() {
   const workoutDone = data.workout_sessions.some((session) => session.date === today && session.completed)
   const dailyLog = data.daily_logs.find((log) => log.date === today)
   const water = dailyLog?.water_l ?? 0
-  const waterDone = targets ? water >= targets.water_l * 0.9 : false
+  const waterDone = targets ? simpleWaterTargetComplete(water, targets.water_l) : false
 
   if (!profile || !targets) return null
 
@@ -182,14 +183,32 @@ export function SimpleHome() {
     toast(`${group.items.length} supplements checked`, 'ok')
   }
 
-  const addWater = (): void => {
+  const setWaterAmount = (value: number): void => {
     if (!profile) return
     const base: DailyLog = dailyLog ?? {
       id: dailyLogId(today, profile.user_id), user_id: profile.user_id, date: today,
       kcal: null, protein_g: null, fat_g: null, carbs_g: null, water_l: 0,
       estimated_tdee: null, computed_pal: null, activity_mode: 'quick', weight_kg: null,
     }
-    upsert('daily_logs', { ...base, water_l: Math.min(6, Number((water + 0.25).toFixed(2))) })
+    upsert('daily_logs', { ...base, water_l: Math.min(6, Math.max(0, Number(value.toFixed(2)))) })
+  }
+
+  const addWater = (): void => setWaterAmount(water + 0.25)
+  const toggleWater = (): void => setWaterAmount(toggleSimpleWaterTarget(water, targets.water_l))
+  const openNewManualWorkout = (): void => {
+    setEditingManualSessionId(null)
+    setShowManualWorkout(true)
+  }
+  const openManualWorkout = (sessionId: string): void => {
+    setEditingManualSessionId(sessionId)
+    setShowManualWorkout(true)
+  }
+  const closeManualWorkout = (): void => {
+    setShowManualWorkout(false)
+    setEditingManualSessionId(null)
+  }
+  const openTraining = (): void => {
+    navigate(hasWorkout && !workoutDone ? `/player/transition/${today}` : '/transition')
   }
 
   const nowMinutes = new Date().getHours() * 60 + new Date().getMinutes()
@@ -251,7 +270,7 @@ export function SimpleHome() {
           </GlassCard>
         </Link>
 
-        <TodayManualWorkoutCard date={today} onAdd={() => setShowManualWorkout(true)} />
+        <TodayManualWorkoutCard date={today} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />
 
         <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
@@ -262,10 +281,10 @@ export function SimpleHome() {
         </GlassCard>
 
         <div className="grid grid-cols-4 gap-2">
-          <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${mealPlan.length}`} label="Meals" done={completedMeals === mealPlan.length} />
-          <SimpleMetric icon="✦" value={`${completedGroups}/${supplementGroups.length}`} label="Supps" done={completedGroups === supplementGroups.length} />
-          <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label="Water" done={waterDone} />
-          <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? 'Done' : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : 'Rest'} label="Training" done={workoutDone || !hasWorkout} />
+          <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${mealPlan.length}`} label={t('Meals')} done={completedMeals === mealPlan.length} />
+          <SimpleMetric icon="✦" value={`${completedGroups}/${supplementGroups.length}`} label={t('Supps')} done={completedGroups === supplementGroups.length} />
+          <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} />
+          <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
         </div>
 
         <GlassCard className="p-4">
@@ -277,7 +296,7 @@ export function SimpleHome() {
             <div className="mt-3 space-y-2 border-t border-ink/8 pt-3">
               {mealPlan.map((meal) => <ChecklistRow key={meal.id} time={meal.time} title={meal.name} detail={`${meal.kcal} kcal`} done={mealIsDone(meal)} busy={busyMeal === meal.id} onClick={() => void toggleMeal(meal)} />)}
               {supplementGroups.map((group) => <ChecklistRow key={group.label} time={clockOf(group.time)} title={group.label} detail={t(`${group.items.length} supplements`)} done={groupIsDone(group)} onClick={() => toggleSupplementGroup(group)} />)}
-              <ChecklistRow time="NOW" title="Water" detail={`${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L`} done={waterDone} onClick={addWater} />
+              <ChecklistRow time="NOW" title={t('Water')} detail={`${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L`} done={waterDone} onClick={toggleWater} />
             </div>
           )}
         </GlassCard>
@@ -302,14 +321,16 @@ export function SimpleHome() {
 
         <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to="/transition" className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>
       </div>
-      <ManualWorkoutLogger open={showManualWorkout} onClose={() => setShowManualWorkout(false)} date={today} />
+      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={today} editSessionId={editingManualSessionId} />
       <PortalLanguageMenu />
     </div>
   )
 }
 
-function SimpleMetric({ icon, value, label, done }: { icon: ReactNode; value: string; label: string; done: boolean }) {
-  return <div className={`glass rounded-2xl px-1.5 py-2.5 text-center ${done ? 'ring-1 ring-emerald/25' : ''}`}><div className={`mx-auto grid h-6 w-6 place-items-center rounded-full ${done ? 'bg-emerald/12 text-emerald' : 'bg-ink/5 text-ink-soft'}`}>{done ? '✓' : icon}</div><p className="mt-1 font-mono text-[10px] font-bold text-ink">{value}</p><p className="truncate text-[8px] font-bold tracking-wide text-ink-faint uppercase">{label}</p></div>
+function SimpleMetric({ icon, value, label, done, onClick, ariaLabel }: { icon: ReactNode; value: string; label: string; done: boolean; onClick?: () => void; ariaLabel?: string }) {
+  const className = `glass relative rounded-2xl px-1.5 py-2.5 text-center ${done ? 'ring-1 ring-emerald/25' : ''} ${onClick ? 'cursor-pointer transition active:scale-[.96]' : ''}`
+  const content = <><div className={`mx-auto grid h-6 w-6 place-items-center rounded-full ${done ? 'bg-emerald/12 text-emerald' : 'bg-ink/5 text-ink-soft'}`}>{done ? '✓' : icon}</div><p className="mt-1 font-mono text-[10px] font-bold text-ink">{value}</p><p className="truncate text-[8px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>{onClick && <span className="absolute top-1.5 right-2 text-[8px] font-black text-ink-faint">↗</span>}</>
+  return onClick ? <button type="button" onClick={onClick} aria-label={ariaLabel ?? label} className={className}>{content}</button> : <div className={className}>{content}</div>
 }
 
 function ChecklistRow({ time, title, detail, done, busy = false, onClick }: { time: string; title: string; detail: string; done: boolean; busy?: boolean; onClick: () => void }) {

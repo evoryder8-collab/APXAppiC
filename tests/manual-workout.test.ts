@@ -4,6 +4,7 @@ import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '
 import {
   encodeTreadmillLog,
   manualWorkoutHasAutomaticTitle,
+  manualWorkoutEditorDraft,
   manualWorkoutNotes,
   parseTreadmillLog,
   rankManualWorkoutPresets,
@@ -37,6 +38,19 @@ test('treadmill metrics round trip without becoming strength load', () => {
 test('automatic workout titles remain localizable after a language switch', () => {
   const notes = manualWorkoutNotes('')
   assert.equal(manualWorkoutHasAutomaticTitle(notes), true)
+})
+
+test('a saved manual workout reopens with its title, exercises, sets and weights', () => {
+  const savedSession = session('editable', '2026-07-15', 'Back day')
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [savedSession],
+    workout_logs: [log('editable', 'Seated Cable Row', 1), { ...log('editable', 'Seated Cable Row', 2), weight_kg: 86, reps: 8 }],
+  }
+  const draft = manualWorkoutEditorDraft(data, savedSession.id)
+  assert.equal(draft?.title, 'Back day')
+  assert.equal(draft?.exercises[0]?.canonicalName, 'Seated Cable Row')
+  assert.deepEqual(draft?.exercises[0]?.sets.map((set) => [set.reps, set.weightKg]), [[10, 80], [8, 86]])
 })
 
 test('smart presets prioritize a repeated workout on the same weekday', () => {

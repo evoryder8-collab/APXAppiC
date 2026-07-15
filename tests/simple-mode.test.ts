@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { selectNextSimpleAction, settingsForUiMode, simpleCompletion, uiModeFromSettings } from '../src/lib/simpleMode.ts'
+import { selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 
 const settings: Settings = {
@@ -27,4 +27,11 @@ test('Simple Mode completion is bounded and handles an empty routine', () => {
   assert.equal(simpleCompletion(3, 4), 75)
   assert.equal(simpleCompletion(0, 0), 100)
   assert.equal(simpleCompletion(8, 4), 100)
+})
+
+test('Simple Mode water checklist toggles the target instead of adding it twice', () => {
+  assert.equal(toggleSimpleWaterTarget(0, 2.5), 2.5)
+  assert.equal(simpleWaterTargetComplete(2.5, 2.5), true)
+  assert.equal(toggleSimpleWaterTarget(2.5, 2.5), 0)
+  assert.equal(toggleSimpleWaterTarget(2.25, 2.5), 0)
 })
