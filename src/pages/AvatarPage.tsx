@@ -449,14 +449,27 @@ function EngineCard({ synergies }: { synergies: SynergyEvent[] }) {
 
 function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
   const { language } = useLanguage()
-  const t = (value: string): string => translateInterfaceText(value, language)
+  const copy = {
+    en: {
+      aria: 'Stat radar', health: ['HEALTH'], joint: ['JOINTS'], flexibility: ['MOBILITY'], endurance: ['ENDURANCE'],
+      upper: ['UPPER-BODY', 'STRENGTH'], lower: ['LOWER-BODY', 'STRENGTH'],
+    },
+    ro: {
+      aria: 'Radar statistici', health: ['SĂNĂTATE'], joint: ['ARTICULAȚII'], flexibility: ['MOBILITATE'], endurance: ['ANDURANȚĂ'],
+      upper: ['FORȚĂ', 'CORP SUPERIOR'], lower: ['FORȚĂ', 'CORP INFERIOR'],
+    },
+    th: {
+      aria: 'เรดาร์ค่าสมรรถภาพ', health: ['สุขภาพ'], joint: ['ข้อต่อ'], flexibility: ['ความคล่องตัว'], endurance: ['ความอึด'],
+      upper: ['ความแข็งแรง', 'ช่วงบน'], lower: ['ความแข็งแรง', 'ช่วงล่าง'],
+    },
+  }[language]
   const axes = [
-    { label: 'HEALTH', lines: ['HEALTH'], value: snapshot.health },
-    { label: 'JOINT', lines: ['JOINT'], value: snapshot.joint },
-    { label: 'FLEX', lines: ['FLEX'], value: snapshot.flexibility },
-    { label: 'ENDUR', lines: ['ENDUR'], value: snapshot.endurance },
-    { label: 'UPPER BODY STRENGTH', lines: ['UPPER BODY', 'STRENGTH'], value: snapshot.strength_upper },
-    { label: 'LOWER BODY STRENGTH', lines: ['LOWER BODY', 'STRENGTH'], value: snapshot.strength_lower },
+    { key: 'health', lines: copy.health, value: snapshot.health, label: { x: 130, y: 18, anchor: 'middle' as const } },
+    { key: 'joint', lines: copy.joint, value: snapshot.joint, label: { x: 250, y: 58, anchor: 'end' as const } },
+    { key: 'flexibility', lines: copy.flexibility, value: snapshot.flexibility, label: { x: 250, y: 179, anchor: 'end' as const } },
+    { key: 'endurance', lines: copy.endurance, value: snapshot.endurance, label: { x: 130, y: 224, anchor: 'middle' as const } },
+    { key: 'lower-strength', lines: copy.lower, value: snapshot.strength_lower, label: { x: 10, y: 190, anchor: 'start' as const } },
+    { key: 'upper-strength', lines: copy.upper, value: snapshot.strength_upper, label: { x: 10, y: 53, anchor: 'start' as const } },
   ]
   const cx = 130
   const cy = 118
@@ -481,7 +494,7 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
         boxShadow: 'inset 0 0 0 1px rgba(16,185,129,0.22), inset 0 0 55px rgba(3,4,12,0.7)',
       }}
     >
-      <svg viewBox="0 0 260 236" className="w-full" role="img" aria-label="Stat radar">
+      <svg data-no-translate viewBox="0 0 260 236" className="w-full" role="img" aria-label={copy.aria}>
         <defs>
           <linearGradient id="radar-stroke" x1="0" y1="0" x2="1" y2="1">
             <stop offset="0" stopColor="#34d399" />
@@ -539,7 +552,7 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
           const [x, y] = point(i, a.value)
           const [lx, ly] = point(i, Math.min(a.value + 16, 112))
           return (
-            <g key={a.label}>
+            <g key={a.key}>
               <circle cx={x} cy={y} r={5} fill="#22d3ee" opacity="0.35" filter="url(#radar-glow)" />
               <circle cx={x} cy={y} r={2.6} fill="#d9fbff" />
               <text
@@ -559,28 +572,24 @@ function Radar({ snapshot }: { snapshot: RpgSnapshot }) {
         })}
 
         {/* axis labels */}
-        {axes.map((a, i) => {
-          const [x, y] = point(i, 132)
-          const anchor = x < 55 ? 'start' : x > 205 ? 'end' : 'middle'
-          return (
+        {axes.map((a) => (
             <text
-              key={a.label}
-              x={x}
-              y={y}
-              textAnchor={anchor}
+              key={a.key}
+              x={a.label.x}
+              y={a.label.y}
+              textAnchor={a.label.anchor}
               dominantBaseline="middle"
-              fontSize={a.lines.length > 1 ? '7.2' : '9.5'}
+              fontSize={a.lines.length > 1 ? '6.7' : '8.6'}
               fontWeight="700"
-              letterSpacing={a.lines.length > 1 ? '0.7' : '1.5'}
+              letterSpacing={a.lines.length > 1 ? '0.45' : '1.05'}
               fill="rgba(214, 226, 245, 0.72)"
               className="font-mono"
             >
               {a.lines.map((line, lineIndex) => (
-                <tspan key={line} x={x} dy={lineIndex === 0 ? (a.lines.length > 1 ? '-0.45em' : '0') : '1.15em'}>{t(line)}</tspan>
+                <tspan key={line} x={a.label.x} dy={lineIndex === 0 ? (a.lines.length > 1 ? '-0.55em' : '0') : '1.25em'}>{line}</tspan>
               ))}
             </text>
-          )
-        })}
+        ))}
       </svg>
       {/* inner vignette, mirrors the hologram stage */}
       <div className="pointer-events-none absolute inset-0 rounded-[20px]" style={{ boxShadow: 'inset 0 0 40px rgba(0,0,0,0.5)' }} aria-hidden />
