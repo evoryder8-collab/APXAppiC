@@ -44,6 +44,7 @@ import {
   type MealSlot,
 } from '../lib/food'
 import { normalizeDailyLogIntegers } from '../lib/sync'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 const amber = ACCENTS.amber
 
@@ -81,6 +82,8 @@ export function resolveSupplementTime(s: Supplement, trainingTime: string): numb
 
 export function Nutrition() {
   const { data, upsert, remove, setProfile, setSettings, toast } = useStore()
+  const { language } = useLanguage()
+  const tx = (value: string): string => translateInterfaceText(value, language)
   const foodStore = useFoodStore()
   const today = todayIso()
   const profile = data.profile
@@ -112,6 +115,7 @@ export function Nutrition() {
   }, [activityEstimate, preciseMode, quickTargets])
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [selectedLogDate, setSelectedLogDate] = useState(today)
+  const [waterDraft, setWaterDraft] = useState('0')
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
   const [plannedComposer, setPlannedComposer] = useState<{
     meal: TargetMeal
@@ -128,6 +132,25 @@ export function Nutrition() {
 
   const patchLog = (patch: Partial<DailyLog>): void => {
     upsert('daily_logs', { ...selectedLog, ...patch })
+  }
+
+  useEffect(() => {
+    setWaterDraft(String(selectedLog.water_l ?? 0))
+  }, [selectedLog.water_l, selectedLogDate])
+
+  const setWater = (value: number): void => {
+    const next = Math.min(6, Math.max(0, Math.round(value * 100) / 100))
+    setWaterDraft(String(next))
+    patchLog({ water_l: next })
+  }
+
+  const commitWaterDraft = (): void => {
+    const parsed = Number(waterDraft.replace(',', '.'))
+    if (!Number.isFinite(parsed)) {
+      setWaterDraft(String(selectedLog.water_l ?? 0))
+      return
+    }
+    setWater(parsed)
   }
 
   /* Sparkline data: the 7-day window ending at the selected history date. */
@@ -666,6 +689,9 @@ export function Nutrition() {
             <p className="font-medium text-ink-soft">
               TDEE: <span className={num}>{targets.tdee}</span>
             </p>
+            {targets.bmrSource === 'custom' && (
+              <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-800">{tx(`Measured BMR active · ${targets.activeBmr} kcal`)}</span>
+            )}
           </div>
           {showBmrInfo && (
             <motion.p
@@ -674,51 +700,61 @@ export function Nutrition() {
               className="mt-2 rounded-xl px-3 py-2 text-[13px] leading-relaxed font-medium text-ink-soft"
               style={{ background: amber.wash }}
             >
-              Katch-McArdle computes from lean body mass instead of total weight, so measured fat
-              mass does not inflate the estimate. Your current {profile.body_fat_pct}% body-fat
-              entry produces the reference TDEE above. APEX uses that estimate with your selected activity and goal to build the live target.
+              {targets.bmrSource === 'custom'
+                ? tx('The measured BMR overrides the formula for live TDEE and targets. Katch-McArdle remains visible only as a reference.')
+                : language === 'ro'
+                  ? `Katch-McArdle calculează din masa corporală slabă, nu din greutatea totală, astfel încât masa grasă măsurată să nu umfle estimarea. Valoarea actuală de ${profile.body_fat_pct}% grăsime corporală produce TDEE-ul de referință de mai sus. APEX îl combină cu activitatea și obiectivul selectate pentru ținta live.`
+                  : language === 'th'
+                    ? `Katch-McArdle คำนวณจากมวลไร้ไขมันแทนน้ำหนักรวม จึงไม่ทำให้ค่าประมาณสูงเกินจากไขมันที่วัดได้ ค่าไขมันร่างกายปัจจุบัน ${profile.body_fat_pct}% สร้าง TDEE อ้างอิงด้านบน และ APEX จะรวมค่านี้กับกิจกรรมและเป้าหมายที่เลือกเพื่อสร้างเป้าปัจจุบัน`
+                    : `Katch-McArdle computes from lean body mass instead of total weight, so measured fat mass does not inflate the estimate. Your current ${profile.body_fat_pct}% body-fat entry produces the reference TDEE above. APEX uses that estimate with your selected activity and goal to build the live target.`}
             </motion.p>
           )}
 
-          <div className="mt-4 flex flex-wrap gap-2">
-            {Object.entries(ACTIVITY_MULTIPLIERS).map(([key, v]) => (
-              <button
-                key={key}
-                type="button"
-                disabled={preciseMode}
-                onClick={() => setProfile({ activity_level: key as ActivityLevel })}
-                className="rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:grayscale disabled:opacity-35"
-                style={
-                  profile.activity_level === key
-                    ? { background: amber.gradient, color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                }
-              >
-                {v.label}
-              </button>
-            ))}
+          <div className="mt-5 rounded-2xl border border-white/80 bg-white/38 p-3.5">
+            <p className="mb-2 font-mono text-[9px] font-bold tracking-[0.16em] text-ink-faint uppercase">Activity level</p>
+            <div className="flex flex-wrap gap-2">
+              {Object.entries(ACTIVITY_MULTIPLIERS).map(([key, v]) => (
+                <button
+                  key={key}
+                  type="button"
+                  disabled={preciseMode}
+                  onClick={() => setProfile({ activity_level: key as ActivityLevel })}
+                  className="rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:grayscale disabled:opacity-35"
+                  style={
+                    profile.activity_level === key
+                      ? { background: amber.gradient, color: '#fff' }
+                      : { background: 'rgba(255,255,255,0.72)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
+                  }
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
           </div>
           {preciseMode && (
             <p className="mt-2 text-[11px] font-semibold text-ink-faint">
               Computed from your day. Clear every activity block to return to Quick Mode.
             </p>
           )}
-          <div className="mt-2 flex flex-wrap gap-2">
-            {Object.entries(GOALS).map(([key, v]) => (
-              <button
-                key={key}
-                type="button"
-                onClick={() => setProfile({ goal: key as Goal })}
-                className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
-                style={
-                  profile.goal === key
-                    ? { background: amber.gradient, color: '#fff' }
-                    : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                }
-              >
-                {v.label}
-              </button>
-            ))}
+          <div className="mt-3 rounded-2xl border border-amber-300/15 bg-amber-50/48 p-3.5">
+            <p className="mb-2 font-mono text-[10px] font-black tracking-[0.18em] text-amber-800 uppercase">Goal</p>
+            <div className="grid gap-2 sm:grid-cols-3">
+              {Object.entries(GOALS).map(([key, v]) => (
+                <button
+                  key={key}
+                  type="button"
+                  onClick={() => setProfile({ goal: key as Goal })}
+                  className="min-h-12 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all"
+                  style={
+                    profile.goal === key
+                      ? { background: amber.gradient, color: '#fff', boxShadow: `0 12px 26px -14px ${amber.glowStrong}` }
+                      : { background: 'rgba(255,255,255,0.82)', color: '#3f3f48', border: '1px solid rgba(245,158,11,0.15)' }
+                  }
+                >
+                  {v.label}
+                </button>
+              ))}
+            </div>
           </div>
         </GlassCard>
           </div>
@@ -727,7 +763,7 @@ export function Nutrition() {
         {/* -------- Supplement timeline -------- */}
         <details className="glass group rounded-3xl p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <div><p className="font-display text-sm font-bold text-ink">Supplement stack</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{todaySupplementIds.size}/{data.supplements.length} checked today</p></div>
+            <div><p className="font-display text-sm font-bold text-ink">Supplement stack</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{tx(`${todaySupplementIds.size}/${data.supplements.length} checked today`)}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
           </summary>
           <div className="mt-4 border-t border-ink/7 pt-4">
@@ -891,13 +927,25 @@ export function Nutrition() {
                 <p className="text-sm font-bold text-ink">Water</p>
                 <Sparkline values={week.water} accent={amber} width={72} height={22} />
               </div>
-              <Stepper
-                accent={amber}
-                value={selectedLog.water_l}
-                step={0.25}
-                unit="L"
-                onChange={(v) => patchLog({ water_l: v })}
-              />
+              <div className="flex items-center gap-2" aria-label="Water in litres">
+                <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="decrease water">−</button>
+                <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2">
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={waterDraft}
+                    onChange={(event) => {
+                      if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value)
+                    }}
+                    onBlur={commitWaterDraft}
+                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                    className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none"
+                    aria-label="Exact water in litres"
+                  />
+                  <span className="ml-1 text-xs font-bold text-sky-700">L</span>
+                </label>
+                <button type="button" onClick={() => setWater(selectedLog.water_l + 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label="increase water">+</button>
+              </div>
             </div>
             <label className="flex items-center justify-between gap-3">
               <span>
@@ -941,7 +989,7 @@ export function Nutrition() {
                 {selectedLogDate === today ? "Today's record" : format(selectedDateObject, 'd MMMM')} at a glance
               </h3>
               <span className="font-mono text-[11px] font-bold text-ink-faint">
-                {selectedEffectiveMealIds.size}/{data.meals.length} meals · {selectedSupplementIds.size}/{expectedSupplements.length} supplements
+                {tx(`${selectedEffectiveMealIds.size}/${data.meals.length} meals · ${selectedSupplementIds.size}/${expectedSupplements.length} supplements`)}
               </span>
             </div>
 

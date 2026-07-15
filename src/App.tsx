@@ -94,6 +94,14 @@ function AnimatedRoutes() {
             </Page>
           }
         />
+        <Route
+          path="/custom-workouts"
+          element={
+            <Page>
+              <WorkoutSection slug="custom" accent={ACCENTS.violet} title="Custom workouts" />
+            </Page>
+          }
+        />
         <Route path="/avatar" element={<Page><AvatarPage /></Page>} />
         <Route path="/progress" element={<Page><VisualProgress /></Page>} />
         <Route path="/orbit" element={<Page><OrbitHome /></Page>} />

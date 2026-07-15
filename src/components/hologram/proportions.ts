@@ -91,4 +91,5 @@ export const MUSCLE_MAP: Record<DayType, RegionKey[]> = {
   mobility: ['spine', 'glutes'],
   fix: ['spine', 'traps', 'lats'],
   t25: [], // full-body wave handled by the sweep mode
+  custom: [], // exact exercise targets are resolved by the catalog muscle map
 }

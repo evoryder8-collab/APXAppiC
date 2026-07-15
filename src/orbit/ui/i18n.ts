@@ -814,6 +814,15 @@ const copy: OrbitCopy = {
   'missed': { ro: 'ratat', th: 'พลาด' },
   'skipped': { ro: 'omis', th: 'ข้าม' },
   'APEX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise.': { ro: 'APEX Orbit Marathon Campaign oferă antrenament personalizat, ghidare educațională și urmărirea performanței pentru adulți care se pregătesc pentru probe de anduranță. Nu diagnostichează, tratează, monitorizează, prezice sau previne boli ori accidentări și nu stabilește aptitudinea medicală pentru efort.', th: 'APEX Orbit Marathon Campaign ให้แผนฝึกเฉพาะบุคคล ความรู้ และการติดตามผลงานสำหรับผู้ใหญ่ที่เตรียมแข่งความอดทน ไม่ใช้เพื่อวินิจฉัย รักษา เฝ้าระวัง คาดการณ์ หรือป้องกันโรคหรือการบาดเจ็บ และไม่ใช้ตัดสินความพร้อมทางการแพทย์ในการออกกำลังกาย' },
+  'CAMPAIGN CONTROL': { ro: 'CONTROLUL CAMPANIEI', th: 'ควบคุมแผน' },
+  'Cancel marathon campaign': { ro: 'Anulează campania de maraton', th: 'ยกเลิกแผนมาราธอน' },
+  'All planned campaign runs will disappear from Orbit and the workout calendar. Completed run history stays private and intact.': { ro: 'Toate alergările planificate din campanie vor dispărea din Orbit și din calendarul de antrenament. Istoricul alergărilor finalizate rămâne privat și intact.', th: 'การวิ่งที่วางแผนไว้ทั้งหมดจะหายจาก Orbit และปฏิทินการฝึก ส่วนประวัติการวิ่งที่ทำเสร็จจะยังคงเป็นส่วนตัวและไม่เปลี่ยนแปลง' },
+  'Remove this campaign and every planned run?': { ro: 'Elimini această campanie și toate alergările planificate?', th: 'ลบแผนนี้และการวิ่งที่วางไว้ทั้งหมดหรือไม่?' },
+  'Keep campaign': { ro: 'Păstrează campania', th: 'เก็บแผนไว้' },
+  'Cancel campaign and remove planned runs': { ro: 'Anulează campania și elimină alergările planificate', th: 'ยกเลิกแผนและลบการวิ่งที่วางไว้' },
+  'Removing…': { ro: 'Se elimină…', th: 'กำลังลบ…' },
+  'Campaign cancelled. Planned runs were removed.': { ro: 'Campania a fost anulată. Alergările planificate au fost eliminate.', th: 'ยกเลิกแผนแล้ว และลบการวิ่งที่วางไว้แล้ว' },
+  'The campaign could not be removed. Try again.': { ro: 'Campania nu a putut fi eliminată. Încearcă din nou.', th: 'ไม่สามารถลบแผนได้ กรุณาลองอีกครั้ง' },
 }
 
 registerInterfaceTranslations(copy)

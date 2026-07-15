@@ -108,9 +108,23 @@ function normalizeDailyLog(log: DailyLog): DailyLog {
 }
 
 function normalizeAppData(value: AppData): AppData {
+  const settings = value.settings
+    ? {
+        ...value.settings,
+        addons: {
+          ...value.settings.addons,
+          endurance1: value.settings.addons?.endurance1 ?? false,
+          endurance2: value.settings.addons?.endurance2 ?? false,
+          endurance3: value.settings.addons?.endurance3 ?? false,
+        },
+      }
+    : null
+  const settingsHasCustomBmr = Boolean(settings?.addons && Object.prototype.hasOwnProperty.call(settings.addons, 'custom_bmr'))
+  const storedCustomBmr = settingsHasCustomBmr ? settings!.addons.custom_bmr : value.profile?.custom_bmr
   const profile = value.profile
     ? {
         ...value.profile,
+        custom_bmr: storedCustomBmr == null ? null : Number(storedCustomBmr),
         calibration_k: Number(value.profile.calibration_k ?? 1),
         seed_version: Number(value.profile.seed_version ?? 0),
         calibration_history: Array.isArray(value.profile.calibration_history)
@@ -122,6 +136,7 @@ function normalizeAppData(value: AppData): AppData {
     ...EMPTY_DATA,
     ...value,
     profile,
+    settings,
     activity_types: value.activity_types?.length ? value.activity_types : ACTIVITY_CATALOG,
     activity_logs: value.activity_logs ?? [],
     daily_logs: (value.daily_logs ?? []).map(normalizeDailyLog),
@@ -380,7 +395,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const cur = dataRef.current
       if (!cur.settings) return
       const settings = { ...cur.settings, ...patch }
-      persist({ ...cur, settings })
+      const hasCustomBmr = Boolean(patch.addons && Object.prototype.hasOwnProperty.call(patch.addons, 'custom_bmr'))
+      const profile = hasCustomBmr && cur.profile
+        ? { ...cur.profile, custom_bmr: patch.addons?.custom_bmr ?? null, updated_at: new Date().toISOString() }
+        : cur.profile
+      persist({ ...cur, settings, profile })
       enqueue({ table: 'settings', type: 'upsert', payload: settings })
     },
     [persist, enqueue],
@@ -422,6 +441,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             target_protein_g: cachedProfile.target_protein_g ?? null,
             target_fat_g: cachedProfile.target_fat_g ?? null,
             target_carbs_g: cachedProfile.target_carbs_g ?? null,
+            custom_bmr: cachedProfile.custom_bmr == null ? null : Number(cachedProfile.custom_bmr),
             profile_note: cachedProfile.profile_note ?? '',
             seed_version: Number(cachedProfile.seed_version ?? 0),
             calibration_k: Number(cachedProfile.calibration_k ?? 1),
@@ -605,7 +625,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         const cur = dataRef.current
         if (table === 'profile') {
           if (payload.new) {
-            const profile = payload.new as NonNullable<AppData['profile']>
+            const incoming = payload.new as NonNullable<AppData['profile']>
+            const profile = {
+              ...incoming,
+              custom_bmr: cur.settings?.addons.custom_bmr ?? cur.profile?.custom_bmr ?? null,
+            }
             if (cur.profile && recordsEqual(cur.profile, profile)) return
             persistSilent({ ...cur, profile })
           }
@@ -615,7 +639,11 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           if (payload.new) {
             const settings = payload.new as Settings
             if (cur.settings && recordsEqual(cur.settings, settings)) return
-            persistSilent({ ...cur, settings })
+            const hasCustomBmr = Object.prototype.hasOwnProperty.call(settings.addons ?? {}, 'custom_bmr')
+            const profile = hasCustomBmr && cur.profile
+              ? { ...cur.profile, custom_bmr: settings.addons.custom_bmr ?? null }
+              : cur.profile
+            persistSilent({ ...cur, settings, profile })
           }
           return
         }

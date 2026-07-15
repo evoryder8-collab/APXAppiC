@@ -13,9 +13,12 @@ import {
   type SelectableIntroLanguage,
 } from '../lib/introLanguage'
 
-function circularOffset(index: number, active: number): -1 | 0 | 1 {
+function circularOffset(index: number, active: number): -2 | -1 | 0 | 1 {
   const raw = (index - active + PERSONAS.length) % PERSONAS.length
-  return raw === 0 ? 0 : raw === 1 ? 1 : -1
+  if (raw === 0) return 0
+  if (raw === 1) return 1
+  if (raw === PERSONAS.length - 1) return -1
+  return -2
 }
 
 function IntroLanguageMenu({
@@ -143,8 +146,8 @@ function IntroLanguageMenu({
 }
 
 export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) => void }) {
-  /* Matthew starts centre, with June left and Constantine right. */
-  const [active, setActive] = useState(1)
+  /* Matthew starts centre; the fourth profile remains one swipe away. */
+  const [active, setActive] = useState(() => Math.max(0, PERSONAS.findIndex((persona) => persona.slug === 'matthew')))
   const [confirming, setConfirming] = useState(false)
   const [language, setLanguage] = useState<IntroLanguage>(getIntroLanguage)
   const selected = PERSONAS[active]
@@ -247,6 +250,7 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
             const isActive = offset === 0
             /* Keep the side-card centre outside the active card's hit area so
                tapping a visible side portrait reliably rotates it forward. */
+            const hiddenRear = Math.abs(offset) > 1
             const x = offset === 0 ? '0%' : offset < 0 ? '-82%' : '82%'
             return (
               <motion.button
@@ -254,11 +258,11 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                 key={persona.slug}
                 initial={{ opacity: 0, scale: 0.25, y: 90, filter: 'blur(18px)' }}
                 animate={{
-                  opacity: isActive ? 1 : 0.48,
-                  scale: isActive ? 1 : 0.7,
+                  opacity: isActive ? 1 : hiddenRear ? 0 : 0.48,
+                  scale: isActive ? 1 : hiddenRear ? 0.48 : 0.7,
                   x,
                   y: isActive ? 0 : 34,
-                  z: isActive ? 95 : -175,
+                  z: isActive ? 95 : hiddenRear ? -360 : -175,
                   rotateY: offset * -35,
                   filter: isActive ? 'blur(0px)' : 'blur(1.2px)',
                 }}
@@ -278,7 +282,7 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
                   }
                 }}
                 className="absolute inset-y-0 left-1/2 w-[68vw] max-w-[430px] -translate-x-1/2 cursor-pointer outline-none focus-visible:ring-2 focus-visible:ring-white/70"
-                style={{ transformStyle: 'preserve-3d', zIndex: isActive ? 20 : 10, pointerEvents: isActive ? 'auto' : 'none' }}
+                style={{ transformStyle: 'preserve-3d', zIndex: isActive ? 20 : hiddenRear ? 0 : 10, pointerEvents: isActive ? 'auto' : 'none' }}
                 tabIndex={isActive ? 0 : -1}
                 aria-label={isActive ? copy.continueAs(persona.name) : copy.preview(persona.name)}
                 aria-pressed={isActive}

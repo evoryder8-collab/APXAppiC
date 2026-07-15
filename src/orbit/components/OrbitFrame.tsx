@@ -66,12 +66,18 @@ export function OrbitFrame({ title, subtitle, backTo = '/', children, action, hi
   )
 }
 
-export function OrbitPill({ children, tone = 'ice' }: { children: ReactNode; tone?: 'ice' | 'amber' | 'emerald' | 'violet' }) {
+export function OrbitPill({ children, tone = 'ice', contrast = false }: { children: ReactNode; tone?: 'ice' | 'amber' | 'emerald' | 'violet'; contrast?: boolean }) {
   const tones = {
     ice: 'border-sky-200/25 bg-sky-300/10 text-sky-100',
     amber: 'border-amber-200/25 bg-amber-300/10 text-amber-100',
     emerald: 'border-emerald-200/25 bg-emerald-300/10 text-emerald-100',
     violet: 'border-violet-200/25 bg-violet-300/10 text-violet-100',
   }
-  return <span className={`inline-flex rounded-full border px-3 py-1 font-mono text-[10px] font-bold tracking-wide ${tones[tone]}`}>{children}</span>
+  const contrastTones = {
+    ice: 'border-sky-300/80 bg-sky-100 text-sky-950 shadow-[0_8px_22px_-14px_rgba(2,132,199,.85)]',
+    amber: 'border-amber-300/80 bg-amber-100 text-amber-950 shadow-[0_8px_22px_-14px_rgba(217,119,6,.8)]',
+    emerald: 'border-emerald-300/80 bg-emerald-100 text-emerald-950 shadow-[0_8px_22px_-14px_rgba(5,150,105,.8)]',
+    violet: 'border-violet-300/80 bg-violet-100 text-violet-950 shadow-[0_8px_22px_-14px_rgba(124,58,237,.8)]',
+  }
+  return <span className={`inline-flex rounded-full border px-3 py-1 font-mono text-[10px] font-black tracking-wide ${contrast ? contrastTones[tone] : tones[tone]}`}>{children}</span>
 }

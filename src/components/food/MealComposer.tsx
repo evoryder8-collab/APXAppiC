@@ -73,6 +73,7 @@ export function MealComposer({
   const [presetName, setPresetName] = useState('')
   const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [controlHelp, setControlHelp] = useState<{ itemId: string; kind: 'adaptive' | 'lock' | 'role' } | null>(null)
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
 
   const ranked = useMemo(() => rankFoods(query, store.foods, store.preferences, slot).slice(0, 12), [query, slot, store.foods, store.preferences])
@@ -344,13 +345,40 @@ export function MealComposer({
                   <div className="mt-2 flex gap-3 font-mono text-[10px] font-semibold text-ink-soft">
                     <span>{portion?.kcal ?? '?'} kcal</span><span>P {portion?.protein_g ?? '?'}</span><span>C {portion?.carbs_g ?? '?'}</span><span>F {portion?.fat_g ?? '?'}</span>
                   </div>
-                  <div className="mt-2 flex flex-wrap gap-2 text-[10px] font-semibold text-ink-soft">
-                    <label><input type="checkbox" checked={item.adjustable} onChange={(event) => patchItem(item.id, { adjustable: event.target.checked })} /> adaptive</label>
-                    <label><input type="checkbox" checked={item.locked} onChange={(event) => patchItem(item.id, { locked: event.target.checked })} /> lock</label>
-                    <select value={item.adjustment_role} onChange={(event) => patchItem(item.id, { adjustment_role: event.target.value as ComposerFoodItem['adjustment_role'] })} className="rounded-lg bg-white/65 px-2">
-                      <option value="carb">carb flex</option><option value="protein">protein flex</option><option value="energy">energy flex</option><option value="none">fixed</option>
-                    </select>
+                  <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-ink-soft">
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/65 py-1 pr-1.5 pl-2.5">
+                      <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="checkbox" checked={item.adjustable} onChange={(event) => patchItem(item.id, { adjustable: event.target.checked })} className="accent-amber-500" /> adaptive</label>
+                      <button type="button" onClick={() => setControlHelp((current) => current?.itemId === item.id && current.kind === 'adaptive' ? null : { itemId: item.id, kind: 'adaptive' })} className="grid h-4 w-4 place-items-center rounded-full bg-amber-500/15 font-mono text-[8px] font-black text-amber-800" aria-label="Adaptive amount information">i</button>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/65 py-1 pr-1.5 pl-2.5">
+                      <label className="inline-flex cursor-pointer items-center gap-1.5"><input type="checkbox" checked={item.locked} onChange={(event) => patchItem(item.id, { locked: event.target.checked })} className="accent-amber-500" /> lock</label>
+                      <button type="button" onClick={() => setControlHelp((current) => current?.itemId === item.id && current.kind === 'lock' ? null : { itemId: item.id, kind: 'lock' })} className="grid h-4 w-4 place-items-center rounded-full bg-amber-500/15 font-mono text-[8px] font-black text-amber-800" aria-label="Locked amount information">i</button>
+                    </span>
+                    <span className="inline-flex items-center gap-1 rounded-full border border-white/90 bg-white/65 py-1 pr-1.5 pl-1">
+                      <select value={item.adjustment_role} onChange={(event) => patchItem(item.id, { adjustment_role: event.target.value as ComposerFoodItem['adjustment_role'] })} className="rounded-full bg-transparent px-1.5 outline-none">
+                        <option value="carb">carb flex</option><option value="protein">protein flex</option><option value="energy">energy flex</option><option value="none">fixed</option>
+                      </select>
+                      <button type="button" onClick={() => setControlHelp((current) => current?.itemId === item.id && current.kind === 'role' ? null : { itemId: item.id, kind: 'role' })} className="grid h-4 w-4 place-items-center rounded-full bg-amber-500/15 font-mono text-[8px] font-black text-amber-800" aria-label="Adjustment role information">i</button>
+                    </span>
                   </div>
+                  <AnimatePresence initial={false}>
+                    {controlHelp?.itemId === item.id && (
+                      <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                        <div className="mt-2 rounded-xl border border-amber-400/15 bg-amber-50/70 px-3 py-2">
+                          <p className="text-[10px] font-bold text-amber-900">
+                            {controlHelp.kind === 'adaptive' ? 'Adaptive amount' : controlHelp.kind === 'lock' ? 'Locked amount' : 'Adjustment role'}
+                          </p>
+                          <p className="mt-0.5 text-[10px] leading-relaxed font-medium text-amber-950/70">
+                            {controlHelp.kind === 'adaptive'
+                              ? 'APEX may suggest a portion change when your activity or remaining macros change.'
+                              : controlHelp.kind === 'lock'
+                                ? 'Keep this exact amount today. Lock overrides adaptation, so Adaptive can stay on for later meals or future use.'
+                                : 'Choose which macro this food is allowed to balance. Fixed means APEX never changes its amount.'}
+                          </p>
+                        </div>
+                      </motion.div>
+                    )}
+                  </AnimatePresence>
                   <div className="mt-2 grid grid-cols-2 gap-2">
                     <input
                       defaultValue={store.preferences.find((value) => value.food_id === item.food.id)?.personal_name ?? ''}

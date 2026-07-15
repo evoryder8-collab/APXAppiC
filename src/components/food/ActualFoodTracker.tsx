@@ -1,5 +1,5 @@
 import { useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
 import type { ConsumedMeal, LoggedFoodEntry, LoggedMeal, MealSlot, MealTotals } from '../../lib/food'
 import { useFoodStore } from '../../store/FoodStore'
@@ -41,6 +41,7 @@ export function ActualFoodTracker({
 }) {
   const store = useFoodStore()
   const { language } = useLanguage()
+  const reduceMotion = useReducedMotion()
   const [composer, setComposer] = useState<MealSlot | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [expanded, setExpanded] = useState<string | null>(null)
@@ -80,9 +81,37 @@ export function ActualFoodTracker({
 
           <div className="relative mt-5 grid grid-cols-[1fr_1.45fr_1fr] items-center gap-2 text-center">
             <div><p className="font-mono text-2xl font-bold text-ink">{Math.round(consumed.kcal)}</p><p className="mt-1 text-[10px] font-bold tracking-wide text-ink-faint uppercase">Eaten</p></div>
-            <div className="relative mx-auto grid aspect-square w-full max-w-36 place-items-center rounded-full" style={{ background: `conic-gradient(${remaining < 0 ? '#f97316' : amber.bright} ${calorieProgress * 360}deg, rgba(26,26,34,.08) 0deg)` }}>
-              <div className="absolute inset-[10px] rounded-full bg-white/95 shadow-inner" />
-              <div className="relative"><p className="text-[10px] font-semibold text-ink-soft">{remaining >= 0 ? 'Remaining' : 'Over by'}</p><p className="font-mono text-3xl leading-tight font-bold text-ink">{Math.abs(Math.round(remaining))}</p><p className="font-mono text-[9px] font-semibold text-ink-faint">of {Math.round(target.kcal)} kcal</p></div>
+            <div className="relative mx-auto aspect-square w-full max-w-40">
+              <motion.div
+                className="absolute -inset-3 rounded-full blur-xl"
+                style={{ background: remaining < 0 ? 'rgba(249,115,22,.28)' : 'radial-gradient(circle, rgba(251,191,36,.35), rgba(56,189,248,.12) 58%, transparent 72%)' }}
+                animate={reduceMotion ? undefined : { opacity: [0.42, 0.86, 0.48], scale: [0.94, 1.06, 0.97] }}
+                transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
+                aria-hidden
+              />
+              <div
+                className="absolute inset-0 rounded-full p-[9px] shadow-[0_18px_45px_-22px_rgba(245,158,11,.72)]"
+                style={{ background: `conic-gradient(from -90deg, ${remaining < 0 ? '#f97316' : '#fb923c'} 0deg, ${remaining < 0 ? '#ef4444' : '#fbbf24'} ${calorieProgress * 270}deg, ${remaining < 0 ? '#fb7185' : '#22d3ee'} ${calorieProgress * 360}deg, rgba(26,26,34,.075) 0deg)` }}
+              >
+                <div className="relative grid h-full w-full place-items-center overflow-hidden rounded-full border border-white/85 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,.98),rgba(255,251,235,.93)_48%,rgba(236,254,255,.88))] shadow-[inset_0_2px_10px_rgba(255,255,255,.95),inset_0_-10px_24px_rgba(245,158,11,.08)]">
+                  <motion.div
+                    className="absolute -inset-1 rounded-full opacity-65"
+                    style={{ background: 'conic-gradient(from 10deg, transparent 0 68%, rgba(255,255,255,.85) 74%, rgba(251,191,36,.22) 79%, transparent 86%)' }}
+                    animate={reduceMotion ? undefined : { rotate: 360 }}
+                    transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
+                    aria-hidden
+                  />
+                  <motion.div
+                    className="relative"
+                    animate={reduceMotion ? undefined : { scale: [1, 1.025, 1] }}
+                    transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}
+                  >
+                    <p className="text-[10px] font-semibold text-ink-soft">{remaining >= 0 ? 'Remaining' : 'Over by'}</p>
+                    <p className="font-mono text-3xl leading-tight font-bold text-ink">{Math.abs(Math.round(remaining))}</p>
+                    <p className="font-mono text-[9px] font-semibold text-ink-faint">of {Math.round(target.kcal)} kcal</p>
+                  </motion.div>
+                </div>
+              </div>
             </div>
             <div><p className="font-mono text-lg font-bold text-ink">{plannedRows.filter((row) => row.done).length}/{plannedRows.length}</p><p className="mt-1 text-[10px] font-bold tracking-wide text-ink-faint uppercase">Meals</p></div>
           </div>
@@ -91,8 +120,11 @@ export function ActualFoodTracker({
             {metrics.map(([label, value, goal, color]) => {
               const progress = goal > 0 ? Math.min(1, value / goal) : 0
               return (
-                <div key={label} className="rounded-2xl border border-white/80 bg-white/70 p-3 shadow-sm">
-                  <div className="flex items-baseline justify-between gap-1"><span className="text-[10px] font-bold text-ink">{label}</span><span className="font-mono text-[9px] font-bold text-ink-faint">{Math.round(value)}/{Math.round(goal)}g</span></div>
+                <div key={label} className="min-w-0 rounded-2xl border border-white/80 bg-white/72 px-2.5 py-3 shadow-[0_8px_22px_-18px_rgba(15,23,42,.55)] sm:px-3">
+                  <div className="min-w-0">
+                    <span className="block min-h-5 break-words text-[9px] leading-[1.05rem] font-bold text-ink sm:text-[10px]">{label}</span>
+                    <span className="mt-0.5 block whitespace-nowrap font-mono text-[clamp(8px,2.25vw,10px)] font-bold tracking-[-0.04em] text-ink-faint sm:tracking-normal">{Math.round(value)}/{Math.round(goal)}g</span>
+                  </div>
                   <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8"><motion.div initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} className="h-full rounded-full" style={{ background: color }} /></div>
                 </div>
               )

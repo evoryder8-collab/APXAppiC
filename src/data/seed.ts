@@ -40,6 +40,7 @@ export function seedProfile(userId: string): Profile {
     sex: 'male',
     weight_kg: 70,
     body_fat_pct: 23,
+    custom_bmr: null,
     height_cm: 178,
     birthdate: '1992-07-25',
     activity_level: 'moderate',
@@ -529,7 +530,7 @@ export function seedPrograms(userId: string): {
 }
 
 export function buildSeedData(userId: string, persona: PersonaSlug = 'constantine'): AppData {
-  if (persona === 'june' || persona === 'matthew') return buildFriendSeedData(userId, persona)
+  if (persona === 'june' || persona === 'matthew' || persona === 'iulian') return buildFriendSeedData(userId, persona)
   seq = 0
   const { programs, program_days, exercises } = seedPrograms(userId)
   return {

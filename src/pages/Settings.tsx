@@ -1,4 +1,4 @@
-import { useRef, useState } from 'react'
+import { useEffect, useRef, useState } from 'react'
 import { AccentChip, GlassCard, GradientButton, SectionHeader, Stepper, Toggle } from '../components/ui'
 import { ACCENTS } from '../lib/theme'
 import { useStore } from '../store/AppStore'
@@ -7,6 +7,7 @@ import { ageFrom, computeTargets } from '../lib/nutrition'
 import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -19,6 +20,7 @@ type ImportState =
 
 export function Settings() {
   const { data, setProfile, setSettings, signOut, toast, bulkUpsert } = useStore()
+  const { language } = useLanguage()
   const fileRef = useRef<HTMLInputElement>(null)
   const [importState, setImportState] = useState<ImportState>({ phase: 'idle' })
 
@@ -57,8 +59,19 @@ export function Settings() {
   const profile = data.profile
   const settings = data.settings
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
+  const [customBmrDraft, setCustomBmrDraft] = useState(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
+  useEffect(() => {
+    setCustomBmrDraft(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
+  }, [profile?.custom_bmr])
   if (!profile || !settings) return null
   const targets = computeTargets(profile)
+
+  const commitCustomBmr = (): void => {
+    const parsed = customBmrDraft.trim() === '' ? null : Number(customBmrDraft)
+    const next = parsed == null || !Number.isFinite(parsed) ? null : Math.min(4000, Math.max(800, Math.round(parsed)))
+    setCustomBmrDraft(next == null ? '' : String(next))
+    setSettings({ addons: { ...settings.addons, custom_bmr: next } })
+  }
 
   const row = 'flex items-center justify-between gap-3 py-3'
   const label = 'text-sm font-bold text-ink'
@@ -109,6 +122,50 @@ export function Settings() {
               <span className={label}>Body fat</span>
               <Stepper accent={violet} value={profile.body_fat_pct} step={0.5} unit="%" onChange={(v) => setProfile({ body_fat_pct: v })} />
             </div>
+            <div className={`${row} items-start`}>
+              <div className="max-w-[58%]">
+                <p className={label}>Measured BMR (optional)</p>
+                <p className={sub}>Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula.</p>
+              </div>
+              <div className="flex shrink-0 items-center gap-2">
+                <span className="glass flex items-center rounded-xl px-3 py-2">
+                  <input
+                    type="number"
+                    inputMode="numeric"
+                    min="800"
+                    max="4000"
+                    step="1"
+                    value={customBmrDraft}
+                    placeholder={String(targets.bmrKatch)}
+                    onChange={(event) => setCustomBmrDraft(event.target.value)}
+                    onBlur={commitCustomBmr}
+                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                    className="w-20 bg-transparent text-right font-mono text-base font-bold text-ink outline-none"
+                    aria-label="Custom BMR"
+                  />
+                  <span className="ml-1 text-xs font-semibold text-ink-soft">kcal</span>
+                </span>
+                {profile.custom_bmr != null && (
+                  <button
+                    type="button"
+                    onClick={() => {
+                      setCustomBmrDraft('')
+                      setSettings({ addons: { ...settings.addons, custom_bmr: null } })
+                    }}
+                    className="rounded-xl border border-violet-200/70 bg-white/70 px-2.5 py-2 text-[10px] font-bold text-violet-800"
+                  >
+                    Clear
+                  </button>
+                )}
+              </div>
+            </div>
+            {targets.bmrSource === 'custom' && (
+              <div className="-mt-1 rounded-2xl border border-violet-300/20 bg-violet-500/8 px-3 py-2 text-[11px] font-semibold text-violet-800">
+                {language === 'en'
+                  ? `Measured BMR active · TDEE now uses ${targets.activeBmr} kcal`
+                  : `${translateInterfaceText('Measured BMR active', language)} · ${language === 'ro' ? `TDEE folosește acum ${targets.activeBmr} kcal` : `TDEE ใช้ ${targets.activeBmr} แคลอรี`}`}
+              </div>
+            )}
             <div className={row}>
               <span className={label}>Height</span>
               <Stepper accent={violet} value={profile.height_cm} step={1} unit="cm" onChange={(v) => setProfile({ height_cm: v })} />
@@ -143,7 +200,7 @@ export function Settings() {
             <div className={row}>
               <div>
                 <p className={label}>Voice announcements</p>
-                <p className={sub}>Rep numbers and cues, Web Speech</p>
+                <p className={sub}>Counts, set cues, breaks and the 30-second warning follow the interface language.</p>
               </div>
               <Toggle accent={violet} on={settings.voice_on} onChange={(v) => setSettings({ voice_on: v })} />
             </div>

@@ -41,6 +41,7 @@ export const DAY_TYPE_META: Record<DayType, { code: string; label: string; brigh
   mobility: { code: 'MO', label: 'Mobility', bright: '#38bdf8', deep: '#0369a1', gradient: 'linear-gradient(135deg, #0ea5e9, #7dd3fc)' },
   fix: { code: 'FX', label: 'Fix', bright: '#38bdf8', deep: '#0369a1', gradient: 'linear-gradient(135deg, #0ea5e9, #7dd3fc)' },
   t25: { code: 'T25', label: 'Cardio', bright: '#f43f5e', deep: '#be123c', gradient: 'linear-gradient(135deg, #e11d48, #fb7185)' },
+  custom: { code: 'MY', label: 'Custom', bright: '#a855f7', deep: '#7e22ce', gradient: 'linear-gradient(135deg, #7c3aed, #22d3ee)' },
 }
 
 function hexToRgba(hex: string, alpha: number): string {

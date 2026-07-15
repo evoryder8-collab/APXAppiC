@@ -21,3 +21,14 @@ test('hologram falls back to an anatomically useful day map when exercises are u
   assert.ok(musclesForWorkout('fix').includes('rearDelts'))
   assert.ok(musclesForWorkout('t25').includes('quads'))
 })
+
+test('catalog exercises use exact muscle metadata before fuzzy name matching', () => {
+  assert.deepEqual(
+    musclesForWorkout('custom', ['Leg Press']),
+    ['quads', 'glutes', 'hamstrings'],
+  )
+  const flag = musclesForWorkout('custom', ['Human Flag Progression'])
+  assert.ok(flag.includes('lats'))
+  assert.ok(flag.includes('obliques'))
+  assert.ok(flag.includes('forearms'))
+})

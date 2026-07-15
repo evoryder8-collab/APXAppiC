@@ -1,4 +1,5 @@
 /* Voice announcements (Web Speech) + subtle WebAudio ticks for the player. */
+import type { IntroLanguage } from './introLanguage'
 
 let ctx: AudioContext | null = null
 
@@ -26,11 +27,16 @@ export function tick(kind: 'soft' | 'accent' = 'soft'): void {
   osc.stop(ac.currentTime + 0.16)
 }
 
-export function speak(text: string): void {
+const VOICE_LANG: Record<IntroLanguage, string> = { en: 'en-US', ro: 'ro-RO', th: 'th-TH' }
+
+export function speak(text: string, language: IntroLanguage = 'en'): void {
   try {
     if (!('speechSynthesis' in window)) return
     window.speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(text)
+    u.lang = VOICE_LANG[language]
+    const matchingVoice = window.speechSynthesis.getVoices().find((voice) => voice.lang.toLowerCase().startsWith(VOICE_LANG[language].slice(0, 2).toLowerCase()))
+    if (matchingVoice) u.voice = matchingVoice
     u.rate = 1.05
     u.pitch = 1
     u.volume = 0.9

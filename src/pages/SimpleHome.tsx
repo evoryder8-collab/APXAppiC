@@ -229,9 +229,9 @@ export function SimpleHome() {
       <div className="space-y-4">
         <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
-          <div className="mt-2 flex items-end justify-between gap-4">
-            <div className="min-w-0"><h2 className="truncate font-display text-2xl font-bold text-ink">{nextAction.title}</h2><p className="mt-1 text-xs font-semibold text-ink-soft">{nextAction.meta}</p></div>
-            <GradientButton accent={nextAction.accent} onClick={nextAction.run} className="shrink-0">{nextAction.action}</GradientButton>
+          <div className="mt-2 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div className="min-w-0"><h2 className="break-words font-display text-[clamp(1.35rem,6vw,1.75rem)] leading-tight font-bold text-ink">{nextAction.title}</h2><p className="mt-1 text-xs font-semibold text-ink-soft">{nextAction.meta}</p></div>
+            <GradientButton accent={nextAction.accent} onClick={nextAction.run} className="w-full sm:w-auto sm:shrink-0">{nextAction.action}</GradientButton>
           </div>
         </GlassCard>
 

@@ -36,6 +36,7 @@ interface OrbitStoreValue {
   savePoster: (poster: RoutePoster) => Promise<void>
   saveInduction: (induction: MarathonInduction) => Promise<void>
   saveCampaign: (campaign: MarathonCampaign, sessions: CampaignSession[]) => Promise<void>
+  cancelCampaign: (campaignId: string) => Promise<void>
   saveSession: (session: CampaignSession) => Promise<void>
   setActiveRun: (run: ActiveRun | null) => Promise<void>
   removeEntity: (store: EntityStore, id: string) => Promise<void>
@@ -245,6 +246,16 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
     for (const session of sessions) await saveEntity('sessions', session)
   }, [saveEntity])
 
+  const cancelCampaign = useCallback(async (campaignId: string) => {
+    const campaignSessions = stateRef.current.sessions.filter((session) => session.campaign_id === campaignId)
+    const sessionIds = new Set(campaignSessions.map((session) => session.id))
+    if (stateRef.current.active_run?.campaign_session_id && sessionIds.has(stateRef.current.active_run.campaign_session_id)) {
+      await setActiveRun(null)
+    }
+    for (const session of campaignSessions) await removeEntity('sessions', session.id)
+    await removeEntity('campaigns', campaignId)
+  }, [removeEntity, setActiveRun])
+
   const exportPrivateData = useCallback(() => {
     if (!userId) return
     const blob = new Blob([JSON.stringify({ exported_at: new Date().toISOString(), user_id: userId, ...stateRef.current }, null, 2)], { type: 'application/json' })
@@ -276,9 +287,9 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
     saveRoute: (route) => saveEntity('routes', route), saveRun,
     saveSegment: (segment) => saveEntity('segments', segment), saveShoe: (shoe) => saveEntity('shoes', shoe),
     savePoster: (poster) => saveEntity('posters', poster), saveInduction: (induction) => saveEntity('inductions', induction),
-    saveCampaign, saveSession: (session) => saveEntity('sessions', session), setActiveRun, removeEntity, syncNow,
+    saveCampaign, cancelCampaign, saveSession: (session) => saveEntity('sessions', session), setActiveRun, removeEntity, syncNow,
     exportPrivateData, deleteAllPrivateData,
-  }), [deleteAllPrivateData, exportPrivateData, queueLength, ready, removeEntity, saveCampaign, saveEntity, saveRun, setActiveRun, state, syncNow])
+  }), [cancelCampaign, deleteAllPrivateData, exportPrivateData, queueLength, ready, removeEntity, saveCampaign, saveEntity, saveRun, setActiveRun, state, syncNow])
 
   return <OrbitContext.Provider value={value}>{children}</OrbitContext.Provider>
 }

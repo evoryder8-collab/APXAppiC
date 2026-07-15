@@ -291,6 +291,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
     return {
       id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'June', sex: 'female',
       weight_kg: 41.5, body_fat_pct: 18, height_cm: 153, birthdate: '1983-06-19',
+      custom_bmr: null,
       activity_level: 'extra', goal: 'bulk', target_kcal: 2500, target_protein_g: 110,
       target_fat_g: 130, target_carbs_g: 220, training_time: '19:00', baseline_date: today(),
       profile_note: 'Petite, highly muscular massage therapist. Body-fat percentage is a working estimate; protect energy availability and occupational recovery.',
@@ -299,9 +300,21 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
       updated_at: new Date().toISOString(),
     }
   }
+  if (persona === 'iulian') {
+    return {
+      id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'Iulian-Andrei', sex: 'male',
+      weight_kg: 78, body_fat_pct: 13, custom_bmr: null, height_cm: 177, birthdate: '1997-05-09',
+      activity_level: 'moderate', goal: 'maintain', target_kcal: null, target_protein_g: null,
+      target_fat_g: null, target_carbs_g: null, training_time: '18:30', baseline_date: today(),
+      profile_note: 'Naturally muscular Romanian athlete. Meals begin empty so the nutrition plan can be built entirely from his actual routine.',
+      seed_version: CURRENT_SEED_VERSION, calibration_k: 1, calibration_history: [],
+      updated_at: new Date().toISOString(),
+    }
+  }
   return {
     id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'Matthew Hua', sex: 'male',
     weight_kg: 78, body_fat_pct: 22, height_cm: 172, birthdate: '1971-01-01',
+    custom_bmr: null,
     activity_level: 'very', goal: 'recomp', target_kcal: 2350, target_protein_g: 155,
     target_fat_g: 80, target_carbs_g: 253, training_time: '07:30', baseline_date: today(),
     profile_note: 'Experienced endurance and calisthenics athlete. Height and birthdate are working estimates; adjust them in Settings when confirmed.',
@@ -319,6 +332,7 @@ function settingsFor(userId: string): Settings {
 }
 
 function mealsFor(userId: string, persona: FriendPersona): Meal[] {
+  if (persona === 'iulian') return []
   const rows = persona === 'june'
     ? [
         ['07:00', 'Breakfast', '4 eggs + 40 g walnuts. High-fat, protein-first morning.', 425, 20, 36, 3],
@@ -341,7 +355,22 @@ function mealsFor(userId: string, persona: FriendPersona): Meal[] {
 
 function supplementsFor(userId: string, persona: FriendPersona): Supplement[] {
   type Row = [string, string, string, string | null, number | null, boolean?]
-  const rows: Row[] = persona === 'june'
+  const rows: Row[] = persona === 'iulian'
+    ? [
+        ['Zinc', '30 mg', 'Morning', '07:00', null], ['DIM', '200 mg', 'Morning', '07:00', null],
+        ['Vitamin B12', '1000 mg', 'Morning', '07:00', null], ['Folic acid', '5000 mg', 'Morning', '07:00', null],
+        ['Vitamin B1', '100 mg', 'Morning', '07:00', null], ['Astaxanthin', '12 mg', 'Morning', '07:00', null],
+        ['Alpha-GPC', '300 mg', 'Morning', '07:00', null], ['Vitamin B6', '100 mg', 'Morning', '07:00', null],
+        ['Ubiquinol', '100 mg', 'Morning', '07:00', null], ['Red yeast rice', '600 mg', 'Morning', '07:00', null],
+        ['Vitamin D3 + K2', '5000 IU · 100 mcg', 'Morning', '07:00', null], ['Citrus bergamot', '250 mg', 'Morning', '07:00', null],
+        ['Nattokinase', '100 mg', 'Morning', '07:00', null], ['Wellbutrin', '150 mg', 'Morning', '07:00', null],
+        ['Fish oil', '3 capsules', 'Morning', '07:00', null], ['Creatine', '5 g', 'Morning', '07:00', null],
+        ['Magnesium', '300 mg', 'Evening', '21:30', null], ['Zinc', '30 mg', 'Evening', '21:30', null],
+        ['Red yeast rice', '600 mg', 'Evening', '21:30', null], ['Citrus bergamot', '250 mg', 'Evening', '21:30', null],
+        ['Nattokinase', '100 mg', 'Evening', '21:30', null], ['Lipanthyl', '200 mg', 'Evening', '21:30', null],
+        ['Ezetimibe', '10 mg', 'Evening', '21:30', null], ['Ubiquinol', '100 mg', 'Evening', '21:30', null],
+      ]
+    : persona === 'june'
     ? [
         ['Rhodiola Rosea', '', 'Wake', '05:30', null], ['L-Tyrosine', '', 'Wake', '05:30', null], ['Taurine', '', 'Wake', '05:30', null],
         ['Fish oil', '', 'Breakfast', '07:00', null], ['Vitamin D3 + K2 (MK-7)', 'confirm label dose', 'Breakfast', '07:00', null],
@@ -372,16 +401,18 @@ function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'p
   const programs: Program[] = [
     {
       id: uuidFor(userId, 'program:transition'), user_id: userId, slug: 'transition',
-      name: persona === 'june' ? 'Growth Minimum' : 'Morning Base',
+      name: persona === 'june' ? 'Growth Minimum' : persona === 'iulian' ? 'Athletic Base' : 'Morning Base',
       description: persona === 'june'
         ? 'Busy-day programme that protects glute growth without demanding the full session.'
+        : persona === 'iulian' ? 'Balanced strength and calisthenics sessions for a naturally muscular athlete.'
         : 'Fast, repeatable morning sessions that establish the cut without draining the day.',
     },
     {
       id: uuidFor(userId, 'program:main'), user_id: userId, slug: 'main',
-      name: persona === 'june' ? 'Glute Architecture' : 'Lean & Ripped 8AM',
+      name: persona === 'june' ? 'Glute Architecture' : persona === 'iulian' ? 'Natural Performance' : 'Lean & Ripped 8AM',
       description: persona === 'june'
         ? 'Seven-day home programme with two non-negotiable glute exposures and occupational recovery.'
+        : persona === 'iulian' ? 'A complete strength, muscle and conditioning week with precise recovery.'
         : 'Age-aware calisthenics, strength, SkiErg and recovery structured around 07:30 mornings.',
     },
   ]

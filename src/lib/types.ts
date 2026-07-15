@@ -23,6 +23,9 @@ export interface Profile {
   sex: 'male' | 'female'
   weight_kg: number
   body_fat_pct: number
+  /* Optional measured resting metabolism from a recent DEXA/metabolic test.
+     When present it becomes the energy engine's BMR source. */
+  custom_bmr?: number | null
   height_cm: number
   birthdate: string // ISO date
   activity_level: ActivityLevel
@@ -86,7 +89,7 @@ export interface SupplementLog {
   checked_at: string
 }
 
-export type ProgramSlug = 'transition' | 'main'
+export type ProgramSlug = 'transition' | 'main' | 'custom'
 
 export interface Program {
   id: string
@@ -105,6 +108,7 @@ export type DayType =
   | 'mobility'
   | 'fix'
   | 't25'
+  | 'custom'
 
 export interface ProgramDay {
   id: string
@@ -276,6 +280,9 @@ export interface Settings {
     endurance2: boolean
     endurance3: boolean
     uiMode?: 'simple' | 'advanced'
+    /* Stored inside the existing JSON settings record so measured BMR works
+       immediately on every deployed database without a blocking schema step. */
+    custom_bmr?: number | null
   }
 }
 

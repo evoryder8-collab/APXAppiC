@@ -55,3 +55,18 @@ test('legacy offline batches are repaired before replay', () => {
     { id: 'yesterday', carbs_g: null, protein_g: 155 },
   ])
 })
+
+test('measured BMR remains compatible with the existing profile schema', () => {
+  const profile = normalizeSyncRecord('profile', {
+    id: 'profile-id',
+    user_id: 'user-id',
+    weight_kg: 78,
+    custom_bmr: 1840,
+  })
+
+  assert.deepEqual(profile, {
+    id: 'profile-id',
+    user_id: 'user-id',
+    weight_kg: 78,
+  })
+})

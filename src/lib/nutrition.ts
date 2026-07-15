@@ -41,6 +41,8 @@ export interface Targets {
   fat_g: number
   carbs_g: number
   water_l: number
+  bmrSource: 'custom' | 'katch' | 'mifflin'
+  activeBmr: number
 }
 
 export interface TargetMeal extends Meal {
@@ -54,7 +56,8 @@ export function computeTargets(p: Profile): Targets {
   const katch = bmrKatch(p)
   const mifflin = bmrMifflin(p)
   const hasBodyFat = Number.isFinite(p.body_fat_pct) && p.body_fat_pct > 0 && p.body_fat_pct < 75
-  const activeBmr = hasBodyFat ? katch : mifflin
+  const hasCustomBmr = p.custom_bmr != null && Number.isFinite(p.custom_bmr) && p.custom_bmr >= 800 && p.custom_bmr <= 4000
+  const activeBmr = hasCustomBmr ? Math.round(p.custom_bmr!) : hasBodyFat ? katch : mifflin
   const tdee = Math.round(activeBmr * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
   const formulaTarget = Math.max(activeBmr * 1.05, tdee * GOALS[p.goal].factor)
   const kcal = Math.round(formulaTarget)
@@ -70,6 +73,8 @@ export function computeTargets(p: Profile): Targets {
     fat_g: fat,
     carbs_g: carbs,
     water_l: 2.75,
+    bmrSource: hasCustomBmr ? 'custom' : hasBodyFat ? 'katch' : 'mifflin',
+    activeBmr,
   }
 }
 

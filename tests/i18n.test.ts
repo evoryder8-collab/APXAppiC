@@ -31,6 +31,22 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Holographic body',
     'You’re about to log out. Are you sure?',
     'Language',
+    'Replace meal',
+    'adaptive',
+    'lock',
+    'fixed',
+    "Today's record",
+    'Activity mode',
+    'Estimated TDEE',
+    'Eaten ✓',
+    'Not checked',
+    'Create your own workout',
+    'Voice coach',
+    'Measured BMR (optional)',
+    'protein / 100 g',
+    'Built naturally. Refined intelligently.',
+    'Your next run, already reasoned through',
+    'Athletic Base',
   ]
   for (const english of critical) {
     assert.ok(UI_TRANSLATIONS[english]?.ro, `missing Romanian: ${english}`)

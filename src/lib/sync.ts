@@ -39,7 +39,15 @@ export function normalizeDailyLogIntegers<T extends object>(row: T): T {
 }
 
 export function normalizeSyncRecord<T extends object>(table: string, row: T): T {
-  return table === 'daily_logs' ? normalizeDailyLogIntegers(row) : row
+  if (table === 'daily_logs') return normalizeDailyLogIntegers(row)
+  if (table === 'profile') {
+    /* Measured BMR is persisted in settings.addons, an existing JSONB field.
+       Keep the derived runtime property off profile writes so this release is
+       compatible with databases that have not added a profile column. */
+    const { custom_bmr: _customBmr, ...databaseRow } = row as Record<string, unknown>
+    return databaseRow as T
+  }
+  return row
 }
 
 export function normalizeSyncPayload(

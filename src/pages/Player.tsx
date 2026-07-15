@@ -17,6 +17,7 @@ import { currentStreak } from '../lib/streak'
 import { AccentChip, GradientButton, GhostButton, Sheet, EASE } from '../components/ui'
 import { activityCatalogMap, activityLogFromBlock, emptyActivityBlock } from '../lib/activity'
 import { activityLogId } from '../lib/ids'
+import { translateInterfaceText, useLanguage } from '../lib/i18n'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -79,8 +80,10 @@ export function Player() {
   const lite = params.get('lite') === '1'
   const navigate = useNavigate()
   const { data, upsert, toast } = useStore()
+  const { language } = useLanguage()
+  const voiceText = useCallback((value: string) => translateInterfaceText(value, language), [language])
 
-  const accent: Accent = slug === 'main' ? ACCENTS.violet : ACCENTS.teal
+  const accent: Accent = slug === 'main' || slug === 'custom' ? ACCENTS.violet : ACCENTS.teal
   const plan = useMemo(() => planForDate(data, slug as ProgramSlug, date, lite), [data, slug, date, lite])
   const blocks = useMemo(() => buildTimeline(plan), [plan])
 
@@ -115,6 +118,7 @@ export function Player() {
   /* announced rep tracker to fire voice/tick exactly once per rep */
   const lastRep = useRef(0)
   const announcedBlock = useRef(-1)
+  const announcedRestThirty = useRef(-1)
 
   const advance = useCallback(() => {
     lastRep.current = 0
@@ -133,13 +137,20 @@ export function Player() {
     announcedBlock.current = state.idx
     lastRep.current = 0
     if (block.kind === 'set' && voice) {
-      speak(`${block.exercise.name}. Set ${block.setNo} of ${block.totalSets}.`)
+      speak(`${voiceText(block.exercise.name)}. ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`, language)
     } else if (block.kind === 'warmup' && voice) {
-      speak('Warm up. Band pull aparts, three sets of twenty.')
+      speak(voiceText('Warm up. Get ready for the first exercise.'), language)
+    } else if (block.kind === 'rest' && voice) {
+      if (block.duration <= 30.5) {
+        announcedRestThirty.current = state.idx
+        speak(`${voiceText('Set finished. Now rest.')} ${voiceText('30 seconds left. Prepare for the next set.')}`, language)
+      } else {
+        speak(voiceText('Set finished. Now rest.'), language)
+      }
     } else if (block.kind === 'done') {
       stopSpeech()
     }
-  }, [state.idx, block, voice])
+  }, [state.idx, block, voice, voiceText, language])
 
   /* cadence + auto-advance */
   useEffect(() => {
@@ -150,9 +161,13 @@ export function Player() {
     }
     if (block.kind === 'rest') {
       const remaining = block.duration - state.elapsed
+      if (remaining <= 30.05 && remaining > 29.75 && announcedRestThirty.current !== state.idx) {
+        announcedRestThirty.current = state.idx
+        if (voice) speak(voiceText('30 seconds left. Prepare for the next set.'), language)
+      }
       if (ticks && remaining <= 3.05 && remaining > 0 && Math.abs(remaining % 1) < 0.11) tick('accent')
       if (remaining <= 0) {
-        if (voice) speak(`Rest over. ${block.nextLabel}.`)
+        if (voice) speak(`${voiceText('Rest over.')} ${voiceText(block.nextLabel)}.`, language)
         advance()
       }
       return
@@ -171,7 +186,7 @@ export function Player() {
         lastRep.current = rep
         if (target == null || rep <= target) {
           if (ticks) tick('accent')
-          if (voice) speak(String(rep))
+          if (voice) speak(String(rep), language)
         }
       }
       if (target != null && state.elapsed >= target * block.repDuration + 0.3) {
@@ -179,7 +194,7 @@ export function Player() {
         advance()
       }
     }
-  }, [state.elapsed, state.paused, block, advance, voice, ticks])
+  }, [state.elapsed, state.paused, state.idx, block, advance, voice, ticks, voiceText, language])
 
   /* stop speech on unmount */
   useEffect(() => () => stopSpeech(), [])
@@ -209,7 +224,7 @@ export function Player() {
         sets: repsBySet.map((r) => ({ reps: skippedAll ? null : r, rir, skipped: skippedAll })),
       },
     })
-    if (voice && !skippedAll) speak(`${e.name} logged.`)
+    if (voice && !skippedAll) speak(`${voiceText(e.name)}. ${voiceText('Exercise logged.')}`, language)
     advance()
   }
 

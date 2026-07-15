@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { lazy, Suspense, useMemo, useState } from 'react'
 import { addMonths, format, subDays } from 'date-fns'
 import { motion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
@@ -25,6 +25,10 @@ import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
 import { useOrbitText } from '../orbit/ui/i18n'
 
+const CustomWorkoutBuilder = lazy(() =>
+  import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
+)
+
 const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
   { value: 'filming_championship', label: 'Filming Championship' },
   { value: 'travel', label: 'Travel' },
@@ -40,6 +44,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
   const [showEventForm, setShowEventForm] = useState(false)
   const [showExport, setShowExport] = useState(false)
+  const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
@@ -95,9 +100,11 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         subtitle={program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')}
         right={
           <div className="flex items-center gap-2">
-            <AccentChip accent={accent} solid className="!text-[12px]">
-              🔥 {streak} DAY{streak === 1 ? '' : 'S'}
-            </AccentChip>
+            <div className="relative overflow-hidden rounded-2xl border border-white/85 bg-white/72 px-3 py-2 text-right shadow-[0_12px_30px_-20px_rgba(109,40,217,.8)] backdrop-blur-xl">
+              <div className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-violet-400/70 to-transparent" />
+              <p className="font-mono text-[7px] font-black tracking-[0.18em] text-violet-700 uppercase">{t('Streak')}</p>
+              <p className="mt-0.5 whitespace-nowrap font-mono text-[11px] font-black text-ink">🔥 {t(`${streak} ${streak === 1 ? 'day' : 'days'}`)}</p>
+            </div>
           </div>
         }
       />
@@ -114,7 +121,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
                 </h2>
                 {todayPlan.programDay && (
                   <p className="text-xs font-semibold text-ink-soft">
-                    ~{todayPlan.programDay.est_minutes} min · {todayPlan.exercises.length} exercises
+                    {t(`~${todayPlan.programDay.est_minutes} min · ${todayPlan.exercises.length} exercises`)}
                   </p>
                 )}
               </div>
@@ -172,6 +179,23 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('APEX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
         </GlassCard>
 
+        {/* Custom workout studio */}
+        <div className="relative overflow-hidden rounded-[30px] border border-violet-200/35 bg-[#07111f] p-5 text-white shadow-[0_28px_70px_-38px_rgba(109,40,217,.95)] sm:p-6">
+          <div className="orbit-stars pointer-events-none absolute inset-0 opacity-55" aria-hidden />
+          <div className="pointer-events-none absolute -top-24 right-[-3rem] h-64 w-64 rounded-full bg-violet-500/25 blur-3xl" aria-hidden />
+          <div className="pointer-events-none absolute -bottom-28 left-[-4rem] h-56 w-56 rounded-full bg-cyan-400/15 blur-3xl" aria-hidden />
+          <div className="relative grid items-center gap-5 sm:grid-cols-[minmax(0,1fr)_auto]">
+            <div>
+              <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('APEX WORKOUT STUDIO')}</p>
+              <h2 className="mt-2 font-display text-2xl font-bold">{t('Create your own workout')}</h2>
+              <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>
+            </div>
+            <button type="button" onClick={() => setShowWorkoutBuilder(true)} className="min-h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 text-sm font-black text-white shadow-[0_18px_42px_-18px_rgba(168,85,247,.9)] transition active:scale-[.98]">
+              {t('Build a workout')} →
+            </button>
+          </div>
+        </div>
+
         {/* Events */}
         <GlassCard accent={ACCENTS.amber} className="p-5">
           <div className="flex items-center justify-between">
@@ -224,6 +248,17 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           accent={accent}
         />
       )}
+
+      <Suspense fallback={null}>
+        <CustomWorkoutBuilder
+          open={showWorkoutBuilder}
+          onClose={() => setShowWorkoutBuilder(false)}
+          onSaved={() => {
+            if (slug !== 'custom') navigate('/custom-workouts')
+          }}
+          accent={ACCENTS.violet}
+        />
+      </Suspense>
 
       {/* Event form */}
       <Sheet open={showEventForm} onClose={() => setShowEventForm(false)}>

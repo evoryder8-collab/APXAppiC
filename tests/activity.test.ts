@@ -50,6 +50,21 @@ test('Quick Mode uses the selected multiplier before applying the goal factor', 
   assert.equal(targets.kcal, Math.round(Math.max(bmr * 1.05, targets.tdee * 0.89)))
 })
 
+test('a measured BMR becomes the authoritative source for TDEE and targets', () => {
+  const targets = computeTargets({
+    ...baseProfile,
+    activity_level: 'moderate',
+    goal: 'maintain',
+    custom_bmr: 1840,
+  })
+
+  assert.equal(targets.bmrSource, 'custom')
+  assert.equal(targets.activeBmr, 1840)
+  assert.equal(targets.tdee, Math.round(1840 * 1.55))
+  assert.equal(targets.kcal, targets.tdee)
+  assert.notEqual(targets.bmrKatch, targets.activeBmr)
+})
+
 test('massage, supermarket, and incidental steps add only net energy above the floor', () => {
   const blocks = [
     block('massage-session', { quantity: 2, durationMin: 60 }),

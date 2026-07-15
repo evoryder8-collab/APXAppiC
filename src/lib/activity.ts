@@ -268,7 +268,10 @@ function ageOnDate(birthdate: string, at = new Date()): number {
   return age
 }
 
-export function activityBmr(profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct'>): number {
+export function activityBmr(profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'custom_bmr'>): number {
+  if (profile.custom_bmr != null && Number.isFinite(profile.custom_bmr) && profile.custom_bmr >= 800 && profile.custom_bmr <= 4000) {
+    return profile.custom_bmr
+  }
   if (Number.isFinite(profile.body_fat_pct) && profile.body_fat_pct > 0 && profile.body_fat_pct < 75) {
     const leanMassKg = profile.weight_kg * (1 - profile.body_fat_pct / 100)
     return 370 + 21.6 * leanMassKg
@@ -322,7 +325,7 @@ export function netKcalForBlock(block: ActivityBlock, weightKg: number, catalog 
 }
 
 export function estimateActivityDay(
-  profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'goal'> & { calibration_k?: number },
+  profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'custom_bmr' | 'goal'> & { calibration_k?: number },
   blocks: ActivityBlock[],
   catalog = ACTIVITY_BY_ID,
 ): ActivityEstimate {

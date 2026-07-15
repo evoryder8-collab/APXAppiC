@@ -161,17 +161,20 @@ export function GhostButton({
   children,
   onClick,
   className = '',
+  disabled = false,
 }: {
   children: ReactNode
   onClick?: () => void
   className?: string
+  disabled?: boolean
 }) {
   return (
     <motion.button
       type="button"
+      disabled={disabled}
       whileTap={{ scale: 0.97 }}
       onClick={onClick}
-      className={`glass inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold text-ink ${className}`}
+      className={`glass inline-flex items-center justify-center gap-2 rounded-2xl px-4 py-2.5 text-sm font-bold text-ink disabled:cursor-not-allowed disabled:opacity-50 ${className}`}
     >
       {children}
     </motion.button>

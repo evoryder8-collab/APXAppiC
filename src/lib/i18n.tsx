@@ -134,6 +134,59 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   const assessmentSummary = translateAvatarAssessmentSummary(value, language)
   if (assessmentSummary) return assessmentSummary
 
+  const mealAction = value.match(/^(Replace meal|Log meal) · ([\d,.]+) kcal$/)
+  if (mealAction) {
+    const action = translateInterfaceText(mealAction[1], language)
+    return language === 'ro' ? `${action} · ${mealAction[2]} kcal` : `${action} · ${mealAction[2]} แคลอรี`
+  }
+  const adaptiveSuggestion = value.match(/^APEX suggests you (increase|reduce) this adjustable item\. (.+)$/)
+  if (adaptiveSuggestion) {
+    const direction = adaptiveSuggestion[1]
+    const rationale = adaptiveSuggestion[2]
+    const action = language === 'ro'
+      ? (direction === 'increase' ? 'să mărești acest aliment adaptiv' : 'să reduci acest aliment adaptiv')
+      : (direction === 'increase' ? 'เพิ่มปริมาณรายการที่ปรับได้' : 'ลดปริมาณรายการที่ปรับได้')
+    if (rationale === 'Protein is meaningfully below today’s protected target.') {
+      return language === 'ro'
+        ? `APEX îți sugerează ${action}. Proteinele sunt semnificativ sub obiectivul protejat de azi.`
+        : `APEX แนะนำให้${action} โปรตีนยังต่ำกว่าเป้าหมายที่ระบบปกป้องไว้สำหรับวันนี้อย่างชัดเจน`
+    }
+    const flexibleEnergy = rationale.match(/^(.+?)( training)? leaves (more|less) flexible energy for this meal\.$/)
+    if (flexibleEnergy) {
+      const activity = translateInterfaceText(flexibleEnergy[1], language)
+      const training = Boolean(flexibleEnergy[2])
+      const more = flexibleEnergy[3] === 'more'
+      if (language === 'ro') {
+        return `APEX îți sugerează ${action}. Nivelul ${activity}${training ? ' și antrenamentul' : ''} lasă ${more ? 'mai multă' : 'mai puțină'} energie flexibilă pentru această masă.`
+      }
+      return `APEX แนะนำให้${action} ระดับ${activity}${training ? 'และการฝึก' : ''}ทำให้มื้อนี้มีพลังงานที่ปรับได้${more ? 'มากขึ้น' : 'น้อยลง'}`
+    }
+  }
+  const foodAmount = value.match(/^Amount for (.+)$/)
+  if (foodAmount) return language === 'ro' ? `Cantitate pentru ${foodAmount[1]}` : `ปริมาณสำหรับ ${foodAmount[1]}`
+  const plannedPrescription = value.match(/^(.+) · planned prescription$/)
+  if (plannedPrescription) return `${translateInterfaceText(plannedPrescription[1], language)} · ${translateInterfaceText('planned prescription', language)}`
+  const recordSummary = value.match(/^(\d+)\/(\d+) meals · (\d+)\/(\d+) supplements$/)
+  if (recordSummary) return language === 'ro'
+    ? `${recordSummary[1]}/${recordSummary[2]} mese · ${recordSummary[3]}/${recordSummary[4]} suplimente`
+    : `มื้อ ${recordSummary[1]}/${recordSummary[2]} · อาหารเสริม ${recordSummary[3]}/${recordSummary[4]}`
+  const checkedToday = value.match(/^(\d+)\/(\d+) checked today$/)
+  if (checkedToday) return language === 'ro'
+    ? `${checkedToday[1]}/${checkedToday[2]} bifate azi`
+    : `เช็กวันนี้ ${checkedToday[1]}/${checkedToday[2]}`
+  const calendarRecord = value.match(/^(.+): (\d+) meals, (\d+) supplements, ([\d.]+) litres water$/)
+  if (calendarRecord) {
+    const date = translateDates(calendarRecord[1], language)
+    return language === 'ro'
+      ? `${date}: ${calendarRecord[2]} mese, ${calendarRecord[3]} suplimente, ${calendarRecord[4]} litri de apă`
+      : `${date}: ${calendarRecord[2]} มื้อ, ${calendarRecord[3]} รายการอาหารเสริม, น้ำ ${calendarRecord[4]} ลิตร`
+  }
+  const measuredBmr = value.match(/^Measured BMR active(?: · TDEE now uses)? ·?\s*(\d+)?\s*kcal$/)
+  if (measuredBmr) {
+    const amount = measuredBmr[1] ? ` · ${measuredBmr[1]} ${language === 'ro' ? 'kcal' : 'แคลอรี'}` : ''
+    return `${translateInterfaceText('Measured BMR active', language)}${amount}`
+  }
+
   const durationMission = value.match(/^(\d+) (minutes|min) · (.+)$/)
   if (durationMission) {
     const durationUnit = language === 'ro' ? 'min' : 'นาที'
@@ -290,11 +343,21 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   if (age) return language === 'ro' ? `Vârstă ${age[1]}` : `อายุ ${age[1]} ปี`
   const count = value.match(/^(\d+) (meals|supplements|workouts|photos|days)$/)
   if (count) {
-    const nouns = language === 'ro'
-      ? { meals: 'mese', supplements: 'suplimente', workouts: 'antrenamente', photos: 'fotografii', days: 'zile' }
-      : { meals: 'มื้อ', supplements: 'รายการอาหารเสริม', workouts: 'การฝึก', photos: 'ภาพ', days: 'วัน' }
-    return language === 'ro' ? `${count[1]} ${nouns[count[2] as keyof typeof nouns]}` : `${nouns[count[2] as keyof typeof nouns]} ${count[1]}`
+    if (language === 'ro') {
+      const nouns = { meals: 'mese', supplements: 'suplimente', workouts: 'antrenamente', photos: 'fotografii', days: 'zile' }
+      return `${count[1]} ${nouns[count[2] as keyof typeof nouns]}`
+    }
+    const nouns = { meals: 'มื้อ', supplements: 'รายการอาหารเสริม', workouts: 'ครั้ง', photos: 'ภาพ', days: 'วัน' }
+    return count[2] === 'workouts' ? `ฝึก ${count[1]} ครั้ง` : `${count[1]} ${nouns[count[2] as keyof typeof nouns]}`
   }
+  const dayStreak = value.match(/^🔥?\s*(\d+) DAY STREAK$/i)
+  if (dayStreak) return language === 'ro' ? `🔥 SERIE DE ${dayStreak[1]} ZILE` : `🔥 ต่อเนื่อง ${dayStreak[1]} วัน`
+  const nextLabel = value.match(/^next:\s*(.+)$/i)
+  if (nextLabel) return language === 'ro'
+    ? `urmează: ${translateInterfaceText(nextLabel[1], language)}`
+    : `ถัดไป: ${translateInterfaceText(nextLabel[1], language)}`
+  const checkpoint = value.match(/^Checkpoint (\d+)$/)
+  if (checkpoint) return language === 'ro' ? `Reper ${checkpoint[1]}` : `จุดตรวจ ${checkpoint[1]}`
   const exerciseCount = value.match(/^~?(\d+) min · (\d+) exercises$/)
   if (exerciseCount) return language === 'ro'
     ? `~${exerciseCount[1]} min · ${exerciseCount[2]} exerciții`

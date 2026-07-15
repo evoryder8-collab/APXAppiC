@@ -130,7 +130,13 @@ interface PartOpts {
 }
 
 function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
-  const constrainedGpu = window.matchMedia('(hover: none) and (pointer: coarse)').matches || (navigator.hardwareConcurrency ?? 8) <= 4;
+  const coarsePointer = window.matchMedia('(hover: none) and (pointer: coarse)').matches;
+  const deviceMemory = (navigator as Navigator & { deviceMemory?: number }).deviceMemory ?? 8;
+  /* A touch screen is not a weak GPU. Modern iPhones previously fell into the
+     low-resolution path solely because they use a coarse pointer, which made
+     the body look soft and disabled bloom. Degrade only on genuinely limited
+     hardware, while keeping a guarded performance watchdog below. */
+  const constrainedGpu = (navigator.hardwareConcurrency ?? 8) <= 4 || deviceMemory <= 4;
   const reducedMotion = window.matchMedia('(prefers-reduced-motion: reduce)').matches;
   const hiColor = opts.highlightTone === 'copper'
     ? new THREE.Color(1.0, 0.52, 0.28)
@@ -142,8 +148,11 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
   const camera = new THREE.PerspectiveCamera(35, 1, 0.1, 30);
   camera.position.set(0.6, 1.15, 3.5);
 
-  const renderer = new THREE.WebGLRenderer({ antialias: !constrainedGpu, powerPreference: constrainedGpu ? 'low-power' : 'high-performance' });
-  renderer.setPixelRatio(constrainedGpu ? 1 : Math.min(window.devicePixelRatio || 1, 1.75));
+  const renderer = new THREE.WebGLRenderer({ antialias: true, powerPreference: constrainedGpu ? 'low-power' : 'high-performance' });
+  renderer.setPixelRatio(Math.min(window.devicePixelRatio || 1, constrainedGpu ? 1.25 : coarsePointer ? 2 : 2.25));
+  renderer.outputColorSpace = THREE.SRGBColorSpace;
+  renderer.toneMapping = THREE.ACESFilmicToneMapping;
+  renderer.toneMappingExposure = 1.12;
   container.appendChild(renderer.domElement);
   renderer.domElement.style.cssText = 'display:block;width:100%;height:100%;touch-action:none;cursor:grab';
 

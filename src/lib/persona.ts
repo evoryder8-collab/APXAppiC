@@ -1,8 +1,9 @@
 import constantinePortrait from '../../constantine.webp'
 import junePortrait from '../../june.webp'
 import matthewPortrait from '../../matthew.webp'
+import iulianPortrait from '../../andrei iulian transparent.webp'
 
-export type PersonaSlug = 'june' | 'matthew' | 'constantine'
+export type PersonaSlug = 'june' | 'matthew' | 'iulian' | 'constantine'
 
 export interface PersonaDefinition {
   slug: PersonaSlug
@@ -18,8 +19,21 @@ export interface PersonaDefinition {
   gradient: string
 }
 
-/* Order is intentional: June begins left, Matthew centre, Constantine right. */
+/* Matthew remains the initial centre; every profile is reachable by swipe. */
 export const PERSONAS: PersonaDefinition[] = [
+  {
+    slug: 'iulian',
+    name: 'Iulian-Andrei',
+    firstName: 'Iulian-Andrei',
+    title: 'THE NATURAL',
+    signature: 'Built naturally. Refined intelligently.',
+    mission: 'Muscular performance · metabolic precision · durable strength',
+    portrait: iulianPortrait,
+    color: '#2dd4bf',
+    colorSoft: '#99f6e4',
+    halo: 'rgba(45,212,191,0.44)',
+    gradient: 'linear-gradient(135deg, #0f766e 0%, #14b8a6 48%, #99f6e4 100%)',
+  },
   {
     slug: 'june',
     name: 'June',
@@ -65,11 +79,11 @@ const SELECTED_KEY = 'apex.selected-persona.v1'
 const ENTRY_KEY = 'apex.entry-granted.v1'
 
 export function isPersonaSlug(value: unknown): value is PersonaSlug {
-  return value === 'june' || value === 'matthew' || value === 'constantine'
+  return value === 'june' || value === 'matthew' || value === 'iulian' || value === 'constantine'
 }
 
 export function personaBySlug(slug: PersonaSlug): PersonaDefinition {
-  return PERSONAS.find((persona) => persona.slug === slug) ?? PERSONAS[1]
+  return PERSONAS.find((persona) => persona.slug === slug) ?? PERSONAS.find((persona) => persona.slug === 'constantine')!
 }
 
 export function getSelectedPersona(): PersonaSlug | null {
