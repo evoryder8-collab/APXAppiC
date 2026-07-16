@@ -64,6 +64,14 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'Home Full Body B',
     'Natural Bodybuilding',
     'Reduced-volume gym re-entry',
+    'This food could not be added. Please try again.',
+    'This provider record is incomplete. Review the missing values before saving your private corrected copy.',
+    'Product not found. Add it manually and keep it private.',
+    'Nutrition is incomplete. Review it manually before logging.',
+    'Barcode lookup is temporarily unavailable. Search by name or create a private food instead.',
+    'This result is incomplete. Review all per-100 g values before saving it privately.',
+    'Name and all four per-100 g nutrition values are required.',
+    'Planned meal',
   ]
   for (const english of critical) {
     assert.ok(UI_TRANSLATIONS[english]?.ro, `missing Romanian: ${english}`)

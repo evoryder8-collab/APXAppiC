@@ -10,8 +10,10 @@ import {
 } from 'react'
 import { COMMON_FOODS } from '../data/foodSeeds'
 import {
+  addLoggedMealToHistory,
   aggregateLoggedMeals,
   expandFoodSearchQueries,
+  foodPreferenceUsageUpdates,
   mealTotals,
   snapshotEntry,
   type ComposerFoodItem,
@@ -133,8 +135,10 @@ async function searchPublicFoodCatalog(query: string): Promise<FoodRecord[]> {
   searchUrl.searchParams.set('json', '1')
   searchUrl.searchParams.set('page_size', '15')
   searchUrl.searchParams.set('fields', OPEN_FOOD_FACTS_FIELDS)
+  const controller = new AbortController()
+  const timeout = window.setTimeout(() => controller.abort(), 8_000)
   try {
-    const response = await fetch(searchUrl, { headers: { Accept: 'application/json' } })
+    const response = await fetch(searchUrl, { headers: { Accept: 'application/json' }, signal: controller.signal })
     if (!response.ok) return []
     const payload = await response.json() as { products?: Array<Record<string, unknown>> }
     const now = new Date().toISOString()
@@ -153,6 +157,8 @@ async function searchPublicFoodCatalog(query: string): Promise<FoodRecord[]> {
     })
   } catch {
     return []
+  } finally {
+    window.clearTimeout(timeout)
   }
 }
 
@@ -179,9 +185,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const [queued, setQueued] = useState(false)
   const [foods, setFoods] = useState<FoodRecord[]>(COMMON_FOODS)
   const [preferences, setPreferences] = useState<FoodPreference[]>([])
+  const preferencesRef = useRef<FoodPreference[]>([])
   const [presets, setPresets] = useState<MealPreset[]>([])
   const [presetItems, setPresetItems] = useState<MealPresetItem[]>([])
   const [meals, setMeals] = useState<LoggedMeal[]>([])
+  const mealsRef = useRef<LoggedMeal[]>([])
   const [entries, setEntries] = useState<LoggedFoodEntry[]>([])
   const flushingUsers = useRef(new Set<string>())
   const requestedFlushUsers = useRef(new Set<string>())
@@ -194,9 +202,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       hydrationGeneration.current === generation && userIdRef.current === expectedUserId
     if (!expectedUserId) {
       setFoods(COMMON_FOODS)
+      preferencesRef.current = []
       setPreferences([])
       setPresets([])
       setPresetItems([])
+      mealsRef.current = []
       setMeals([])
       setEntries([])
       setQueued(false)
@@ -216,9 +226,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       ])
       if (!current()) return
       setFoods(mergeFoodCatalog(localFoods))
+      preferencesRef.current = localPreferences
       setPreferences(localPreferences)
       setPresets(localPresets)
       setPresetItems(localPresetItems)
+      mealsRef.current = localMeals
       setMeals(localMeals)
       setEntries(localEntries)
       const pending = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', expectedUserId)
@@ -253,9 +265,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
           entries: (entryRes.data ?? []).filter((row) => row.user_id === expectedUserId) as LoggedFoodEntry[],
         }, latestPending)
         setFoods(mergeFoodCatalog(replayed.foods))
+        preferencesRef.current = replayed.preferences
         setPreferences(replayed.preferences)
         setPresets(replayed.presets)
         setPresetItems(replayed.presetItems)
+        mealsRef.current = replayed.meals
         setMeals(replayed.meals)
         setEntries(replayed.entries)
         await Promise.all([
@@ -401,26 +415,30 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     const cached = foods.find((food) => food.barcode === barcode)
     if (cached) return { state: 'found', food: cached }
     if (!supabase) return { state: 'provider_error', message: 'Barcode lookup needs an internet connection.' }
-    const { data: result, error } = await supabase.functions.invoke('food-lookup', { body: { barcode } })
-    if (error && !result) return { state: 'provider_error', message: error.message }
-    const value = result as FoodLookupResult
-    if (value.food) {
-      const food = normalizeRemoteFood(value.food as unknown as Record<string, unknown>)
-      setFoods((current) => current.some((item) => item.id === food.id) ? current : [food, ...current])
-      await privatePut('foods', food)
-      return { ...value, food }
+    try {
+      const { data: result, error } = await supabase.functions.invoke('food-lookup', { body: { barcode } })
+      if (error || !result) return { state: 'provider_error', message: 'The barcode provider is temporarily unavailable. Search by name or add a private food.' }
+      const value = result as FoodLookupResult
+      if (value.food) {
+        const food = normalizeRemoteFood(value.food as unknown as Record<string, unknown>)
+        setFoods((current) => current.some((item) => item.id === food.id) ? current : [food, ...current])
+        await privatePut('foods', food)
+        return { ...value, food }
+      }
+      return value
+    } catch {
+      return { state: 'provider_error', message: 'The barcode provider is temporarily unavailable. Search by name or add a private food.' }
     }
-    return value
   }, [foods])
 
   const widerSearch = useCallback(async (query: string, language: IntroLanguage = 'en'): Promise<FoodSearchResult> => {
     const queries = expandFoodSearchQueries(query, language).slice(0, 3)
-    const responses = await Promise.all(queries.map(async (candidate) => {
+    const responses = await Promise.allSettled(queries.map(async (candidate) => {
       if (supabase) {
         try {
-          const { data: result } = await supabase.functions.invoke('food-lookup', { body: { query: candidate } })
+          const { data: result, error } = await supabase.functions.invoke('food-lookup', { body: { query: candidate } })
           const value = result as FoodSearchResult | null
-          if (value?.results?.length) return value.results.map((row) => normalizeRemoteFood(row as unknown as Record<string, unknown>))
+          if (!error && value?.results?.length) return value.results.map((row) => normalizeRemoteFood(row as unknown as Record<string, unknown>))
         } catch {
           // The public fallback below keeps search useful when the edge function is unavailable.
         }
@@ -428,8 +446,9 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       return searchPublicFoodCatalog(candidate)
     }))
     const merged = new Map<string, FoodRecord>()
-    for (const foods of responses) {
-      for (const food of foods) merged.set(food.provider_product_id ?? food.id, food)
+    for (const response of responses) {
+      if (response.status !== 'fulfilled') continue
+      for (const food of response.value) merged.set(food.provider_product_id ?? food.id, food)
     }
     return {
       state: 'results',
@@ -454,7 +473,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
 
   const setPreference = useCallback(async (foodId: string, patch: Partial<FoodPreference>) => {
     if (!userId) return
-    const current = preferences.find((preference) => preference.food_id === foodId)
+    const current = preferencesRef.current.find((preference) => preference.food_id === foodId)
     const next: FoodPreference = {
       id: current?.id ?? crypto.randomUUID(),
       user_id: userId,
@@ -473,15 +492,23 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       ...current,
       ...patch,
     }
-    setPreferences((values) => [...values.filter((value) => value.food_id !== foodId), next])
+    const nextPreferences = [...preferencesRef.current.filter((value) => value.food_id !== foodId), next]
+    preferencesRef.current = nextPreferences
+    setPreferences(nextPreferences)
     await privatePut('food_preferences', next)
     if (!isLocalMode) await privatePut('private_outbox', outbox(userId, 'save_preference', next.id, next))
     if (!isLocalMode) setQueued(true)
     if (!isLocalMode && navigator.onLine) await flush()
-  }, [flush, preferences, userId])
+  }, [flush, userId])
 
   const logMeal = useCallback(async (input: LogMealInput): Promise<LoggedMeal> => {
     if (!userId) throw new Error('Sign in before logging food')
+    if (input.idempotencyKey) {
+      const existing = mealsRef.current.find((meal) => (
+        meal.user_id === userId && meal.client_idempotency_key === input.idempotencyKey
+      ))
+      if (existing) return existing
+    }
     const date = input.date ?? todayIso()
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
@@ -506,52 +533,39 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     }
     const snapshots = input.items.flatMap((item) => snapshotEntry(item, userId, id, now) ?? [])
     if (snapshots.length !== input.items.length) throw new Error('Every item needs complete nutrition and a reliable portion unit')
-    const preferenceUpdates = input.items.map((item) => {
-      const current = preferences.find((preference) => preference.food_id === item.food.id)
-      return {
-        id: current?.id ?? crypto.randomUUID(),
-        user_id: userId,
-        food_id: item.food.id,
-        personal_name: current?.personal_name ?? null,
-        aliases: current?.aliases ?? [],
-        favourite: current?.favourite ?? false,
-        usual_amount: current?.usual_amount ?? item.quantity,
-        usual_unit: current?.usual_unit ?? item.unit,
-        usage_count: (current?.usage_count ?? 0) + 1,
-        last_used_at: now,
-        hidden: current?.hidden ?? false,
-        slot_usage: { ...(current?.slot_usage ?? {}), [input.slot]: (current?.slot_usage?.[input.slot] ?? 0) + 1 },
-        version: (current?.version ?? 0) + 1,
-        updated_at: now,
-      } satisfies FoodPreference
-    })
+    const preferenceUpdates = foodPreferenceUsageUpdates(preferencesRef.current, input.items, userId, input.slot, now)
     const payloadMeal = { ...meal, replace_meal_id: input.replaceMealId ?? null }
     const operation = outbox(userId, 'log_meal', id, { meal: payloadMeal, entries: snapshots })
     await saveMealAtomically(meal, snapshots, preferenceUpdates, isLocalMode ? null : operation)
     if (!isLocalMode) setQueued(true)
-    const nextMeals = [meal, ...meals.filter((value) => value.id !== input.replaceMealId)]
+    const nextMeals = addLoggedMealToHistory(mealsRef.current, meal, input.replaceMealId ?? null)
+    mealsRef.current = nextMeals
     setMeals(nextMeals)
     applyDayAggregate(date, nextMeals)
     setEntries((current) => [...snapshots, ...current.filter((value) => value.meal_id !== input.replaceMealId)])
-    setPreferences((current) => [...current.filter((value) => !preferenceUpdates.some((next) => next.food_id === value.food_id)), ...preferenceUpdates])
+    const updatedFoodIds = new Set(preferenceUpdates.map((preference) => preference.food_id))
+    const nextPreferences = [...preferencesRef.current.filter((value) => !updatedFoodIds.has(value.food_id)), ...preferenceUpdates]
+    preferencesRef.current = nextPreferences
+    setPreferences(nextPreferences)
     if (!isLocalMode && navigator.onLine) await flush()
     return meal
-  }, [applyDayAggregate, flush, meals, preferences, userId])
+  }, [applyDayAggregate, flush, userId])
 
   const deleteMeal = useCallback(async (mealId: string) => {
     if (!userId) return
-    const removed = meals.find((meal) => meal.id === mealId)
+    const removed = mealsRef.current.find((meal) => meal.id === mealId)
     if (!removed) return
     await deleteMealLocally(mealId)
     const operation = outbox(userId, 'delete_meal', mealId, null)
     if (!isLocalMode) await privatePut('private_outbox', operation)
     if (!isLocalMode) setQueued(true)
-    const nextMeals = meals.filter((meal) => meal.id !== mealId)
+    const nextMeals = mealsRef.current.filter((meal) => meal.id !== mealId)
+    mealsRef.current = nextMeals
     setMeals(nextMeals)
     applyDayAggregate(removed.local_date, nextMeals)
     setEntries((current) => current.filter((entry) => entry.meal_id !== mealId))
     if (!isLocalMode && navigator.onLine) await flush()
-  }, [applyDayAggregate, flush, meals, userId])
+  }, [applyDayAggregate, flush, userId])
 
   const savePreset = useCallback(async (input: SavePresetInput): Promise<MealPreset> => {
     if (!userId) throw new Error('Sign in before saving a preset')

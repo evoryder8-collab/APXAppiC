@@ -34,12 +34,26 @@ const LOCALIZED_NAMES: Record<string, { ro: string; th: string }> = {
   '10000000-0000-4000-8000-000000000029': { ro: 'Avocado, crud', th: 'อะโวคาโด ดิบ' },
   '10000000-0000-4000-8000-000000000030': { ro: 'Ou întreg, crud', th: 'ไข่ไก่ทั้งฟอง ดิบ' },
   '10000000-0000-4000-8000-000000000031': { ro: 'Ou întreg, fiert tare', th: 'ไข่ต้มสุก' },
+  '10000000-0000-4000-8000-000000000032': { ro: 'File de ton Nixe în suc propriu', th: 'เนื้อปลาทูน่า Nixe ในน้ำแร่' },
+  '10000000-0000-4000-8000-000000000033': { ro: 'Afine proaspete, profil de referință elvețian', th: 'บลูเบอร์รีสด ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000034': { ro: 'Afine congelate, fără zahăr, profil de referință elvețian', th: 'บลูเบอร์รีแช่แข็ง ไม่เติมน้ำตาล ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000035': { ro: 'Zmeură proaspătă, profil de referință elvețian', th: 'ราสป์เบอร์รีสด ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000036': { ro: 'Zmeură congelată, fără zahăr, profil de referință elvețian', th: 'ราสป์เบอร์รีแช่แข็ง ไม่เติมน้ำตาล ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000037': { ro: 'Fructe de pădure congelate, fără zahăr, profil de referință elvețian', th: 'เบอร์รีรวมแช่แข็ง ไม่เติมน้ำตาล ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000038': { ro: 'Spanac proaspăt, profil de referință elvețian', th: 'ผักโขมสด ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000039': { ro: 'Spanac congelat, profil de referință elvețian', th: 'ผักโขมแช่แข็ง ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000040': { ro: 'Mazăre verde congelată, profil de referință elvețian', th: 'ถั่วลันเตาแช่แข็ง ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
 }
 
 interface FoodOptions {
   brand?: string
   providerId?: string
   servingGrams?: number
+  packageQuantity?: string
+  fibre?: number
+  sugar?: number
+  saturatedFat?: number
+  salt?: number
   confidence?: FoodRecord['confidence']
 }
 
@@ -66,17 +80,17 @@ function food(
     source: 'apex_cache',
     provider_product_id: options.providerId ?? `apex-common:${id}`,
     external_image_url: null,
-    package_quantity: null,
+    package_quantity: options.packageQuantity ?? null,
     nutrition_basis: 'per_100g',
     preparation_state: preparation,
     kcal_100: kcal,
     protein_100: protein,
     carbs_100: carbs,
     fat_100: fat,
-    fibre_100: null,
-    sugar_100: null,
-    saturated_fat_100: null,
-    salt_100: null,
+    fibre_100: options.fibre ?? null,
+    sugar_100: options.sugar ?? null,
+    saturated_fat_100: options.saturatedFat ?? null,
+    salt_100: options.salt ?? null,
     serving_amount: options.servingGrams ?? null,
     serving_unit: options.servingGrams ? 'g' : null,
     serving_grams_or_ml: options.servingGrams ?? null,
@@ -120,4 +134,13 @@ export const COMMON_FOODS: FoodRecord[] = [
   { ...food('10000000-0000-4000-8000-000000000029', 'Avocado, raw', 'Avocado, roh', 'Avocat, cru', 'Avocado, crudo', 160, 2, 8.53, 14.7, 'as_sold', { providerId: 'apex-curated:usda-fdc-171705', confidence: 'provider_verified' }), piece_grams_or_ml: 150 },
   { ...food('10000000-0000-4000-8000-000000000030', 'Whole egg, raw', 'Vollei, roh', 'Œuf entier, cru', 'Uovo intero, crudo', 143, 12.6, 0.72, 9.51, 'as_sold', { providerId: 'apex-curated:usda-fdc-171287', confidence: 'provider_verified' }), piece_grams_or_ml: 50 },
   { ...food('10000000-0000-4000-8000-000000000031', 'Whole egg, hard-boiled', 'Vollei, hartgekocht', 'Œuf entier, dur', 'Uovo intero, sodo', 155, 12.6, 1.12, 10.6, 'cooked', { providerId: 'apex-curated:usda-fdc-173424', confidence: 'provider_verified' }), piece_grams_or_ml: 50 },
+  food('10000000-0000-4000-8000-000000000032', 'Nixe tuna fillets in own juice', 'Nixe Thunfischfilets im eigenen Saft', 'Filets de thon Nixe au naturel', 'Filetti di tonno Nixe al naturale', 111, 26, 0, 0.7, 'drained', { brand: 'Nixe', providerId: 'apex-curated:lidl-nixe-tuna-own-juice-label', packageQuantity: '195 g', fibre: 0, sugar: 0, saturatedFat: 0, salt: 0.9, confidence: 'provider_verified' }),
+  food('10000000-0000-4000-8000-000000000033', 'Blueberries, fresh, Swiss retail reference', 'Heidelbeeren, frisch, Schweizer Handelsreferenz', 'Myrtilles, fraîches, référence commerce suisse', 'Mirtilli, freschi, riferimento retail svizzero', 57, 0.74, 14.49, 0.33, 'as_sold', { providerId: 'apex-curated:swiss-retail-blueberries-fresh-reference' }),
+  food('10000000-0000-4000-8000-000000000034', 'Blueberries, frozen, unsweetened, Swiss retail reference', 'Heidelbeeren, tiefgekühlt, ungezuckert, Schweizer Handelsreferenz', 'Myrtilles, surgelées, sans sucre, référence commerce suisse', 'Mirtilli, surgelati, senza zucchero, riferimento retail svizzero', 51, 0.42, 12.17, 0.64, 'as_sold', { providerId: 'apex-curated:swiss-retail-blueberries-frozen-reference' }),
+  food('10000000-0000-4000-8000-000000000035', 'Raspberries, fresh, Swiss retail reference', 'Himbeeren, frisch, Schweizer Handelsreferenz', 'Framboises, fraîches, référence commerce suisse', 'Lamponi, freschi, riferimento retail svizzero', 52, 1.2, 11.94, 0.65, 'as_sold', { providerId: 'apex-curated:swiss-retail-raspberries-fresh-reference' }),
+  food('10000000-0000-4000-8000-000000000036', 'Raspberries, frozen, unsweetened, Swiss retail reference', 'Himbeeren, tiefgekühlt, ungezuckert, Schweizer Handelsreferenz', 'Framboises, surgelées, sans sucre, référence commerce suisse', 'Lamponi, surgelati, senza zucchero, riferimento retail svizzero', 52, 1.2, 11.94, 0.65, 'as_sold', { providerId: 'apex-curated:swiss-retail-raspberries-frozen-reference' }),
+  food('10000000-0000-4000-8000-000000000037', 'Mixed berries, frozen, unsweetened, Swiss retail reference', 'Beerenmischung, tiefgekühlt, ungezuckert, Schweizer Handelsreferenz', 'Mélange de baies, surgelé, sans sucre, référence commerce suisse', 'Frutti di bosco misti, surgelati, senza zucchero, riferimento retail svizzero', 48, 1, 10, 0.4, 'as_sold', { providerId: 'apex-curated:swiss-retail-mixed-berries-frozen-reference' }),
+  food('10000000-0000-4000-8000-000000000038', 'Spinach, fresh, Swiss retail reference', 'Spinat, frisch, Schweizer Handelsreferenz', 'Épinards, frais, référence commerce suisse', 'Spinaci, freschi, riferimento retail svizzero', 23, 2.86, 3.63, 0.39, 'as_sold', { providerId: 'apex-curated:swiss-retail-spinach-fresh-reference' }),
+  food('10000000-0000-4000-8000-000000000039', 'Spinach, frozen, Swiss retail reference', 'Spinat, tiefgekühlt, Schweizer Handelsreferenz', 'Épinards, surgelés, référence commerce suisse', 'Spinaci, surgelati, riferimento retail svizzero', 29, 3.63, 4.21, 0.57, 'as_sold', { providerId: 'apex-curated:swiss-retail-spinach-frozen-reference' }),
+  food('10000000-0000-4000-8000-000000000040', 'Green peas, frozen, Swiss retail reference', 'Erbsen, tiefgekühlt, Schweizer Handelsreferenz', 'Petits pois, surgelés, référence commerce suisse', 'Piselli, surgelati, riferimento retail svizzero', 77, 5.22, 13.62, 0.4, 'as_sold', { providerId: 'apex-curated:swiss-retail-green-peas-frozen-reference' }),
 ]

@@ -2,6 +2,19 @@ import type { Settings } from './types.ts'
 
 export type UiMode = 'simple' | 'advanced'
 export type WeightUnit = 'kg' | 'lb'
+export type SimpleMacroKey = 'protein_g' | 'carbs_g' | 'fat_g'
+
+export interface SimpleMacroEntry {
+  snapshot_name: string
+  protein_g: number
+  carbs_g: number
+  fat_g: number
+}
+
+export interface SimpleMacroContributor {
+  name: string
+  amount: number
+}
 
 export function uiModeFromSettings(settings: Settings | null): UiMode {
   return settings?.addons.uiMode === 'simple' ? 'simple' : 'advanced'
@@ -84,4 +97,32 @@ export function simpleWaterTargetComplete(waterLitres: number, targetLitres: num
 export function toggleSimpleWaterTarget(waterLitres: number, targetLitres: number): number {
   if (simpleWaterTargetComplete(waterLitres, targetLitres)) return 0
   return Math.round(Math.max(0, targetLitres) * 100) / 100
+}
+
+/* A copied calendar day can be pasted anywhere except back onto itself. Keeping
+   this rule pure makes the highlighted target state and the eventual action use
+   exactly the same condition. */
+export function canPasteSimpleDay(sourceDate: string | null, targetDate: string): boolean {
+  return Boolean(sourceDate && /^\d{4}-\d{2}-\d{2}$/.test(sourceDate) && /^\d{4}-\d{2}-\d{2}$/.test(targetDate) && sourceDate !== targetDate)
+}
+
+/* Food rows are snapshots, so repeated foods can be safely combined without
+   consulting a mutable food catalogue. The result is deliberately ranked by
+   contribution to answer the useful question: what drove this macro today? */
+export function rankSimpleMacroContributors(
+  entries: SimpleMacroEntry[],
+  macro: SimpleMacroKey,
+  limit = 6,
+): SimpleMacroContributor[] {
+  const totals = new Map<string, number>()
+  for (const entry of entries) {
+    const name = entry.snapshot_name.trim()
+    const amount = Number(entry[macro])
+    if (!name || !Number.isFinite(amount) || amount <= 0) continue
+    totals.set(name, (totals.get(name) ?? 0) + amount)
+  }
+  return [...totals.entries()]
+    .map(([name, amount]) => ({ name, amount: Math.round(amount * 10) / 10 }))
+    .sort((left, right) => right.amount - left.amount || left.name.localeCompare(right.name))
+    .slice(0, Math.max(0, limit))
 }

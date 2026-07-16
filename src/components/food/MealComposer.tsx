@@ -2,7 +2,11 @@ import { lazy, Suspense, useMemo, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
 import {
+  availableFoodUnits,
+  beginFoodSelection,
   calculatePortion,
+  commitFoodSelection,
+  composerItemFromSelection,
   displayFoodName,
   isFoodNutritionComplete,
   mealTotals,
@@ -11,6 +15,7 @@ import {
   rankFoods,
   type ComposerFoodItem,
   type FoodRecord,
+  type FoodSelectionDraft,
   type FoodUnit,
   type MealSlot,
 } from '../../lib/food'
@@ -34,20 +39,11 @@ interface MealComposerProps {
   onLogged?: () => void
 }
 
-function defaultUnit(food: FoodRecord): FoodUnit {
-  if (food.piece_grams_or_ml) return 'piece'
-  if (food.serving_grams_or_ml) return 'serving'
-  return food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'
-}
-
-function composerItem(food: FoodRecord, index: number): ComposerFoodItem {
-  const unit = defaultUnit(food)
-  return {
-    id: crypto.randomUUID(), food, quantity: unit === 'piece' ? 1 : unit === 'serving' ? 1 : 100,
-    unit, sort_order: index, optional: false, locked: true, adjustable: false,
-    minimum_amount: null, maximum_amount: null, step_amount: unit === 'piece' ? 1 : 5,
-    adjustment_role: food.carbs_100 != null && food.protein_100 != null && food.carbs_100 > food.protein_100 ? 'carb' : 'protein',
-  }
+function foodProvenanceLabel(food: FoodRecord): string {
+  if (food.source === 'private') return 'Your private food'
+  if (food.source === 'open_food_facts') return 'Open Food Facts community record. Check the package label.'
+  if (food.confidence === 'provider_verified') return 'Verified label or nutrition-provider reference'
+  return 'Curated reference profile. Product labels can vary.'
 }
 
 export function MealComposer({
@@ -76,12 +72,19 @@ export function MealComposer({
   const [presetName, setPresetName] = useState('')
   const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
+  const [addingSelection, setAddingSelection] = useState(false)
   const [controlHelp, setControlHelp] = useState<{ itemId: string; kind: 'adaptive' | 'lock' | 'role' } | null>(null)
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
 
   const ranked = useMemo(() => rankFoods(query, store.foods, store.preferences, slot).slice(0, 12), [query, slot, store.foods, store.preferences])
   const displayedFoods = useMemo(() => mergeExtendedFoodResults(query, ranked, remoteResults).slice(0, 30), [query, ranked, remoteResults])
   const totals = useMemo(() => mealTotals(items), [items])
+  const selectionPortion = useMemo(
+    () => selection ? calculatePortion(selection.food, selection.quantity, selection.unit) : null,
+    [selection],
+  )
+  const selectionReady = Boolean(selection && selection.quantity > 0 && selectionPortion)
   const slotPresets = useMemo(() => store.presets.filter((preset) => !preset.archived && preset.meal_slot === slot), [slot, store.presets])
   const recentMeals = useMemo(() => store.meals.filter((meal) => meal.meal_slot === slot).slice(0, 4), [slot, store.meals])
 
@@ -119,17 +122,26 @@ export function MealComposer({
     })
   }
 
-  const addFood = async (food: FoodRecord) => {
-    const trackableFood = await materializeFood(food)
-    const preference = store.preferences.find((value) => value.food_id === trackableFood.id)
-    const next = composerItem(trackableFood, items.length)
-    if (preference?.usual_amount && preference.usual_unit) {
-      next.quantity = preference.usual_amount
-      next.unit = preference.usual_unit
+  const openFoodSelection = (food: FoodRecord) => {
+    const preference = store.preferences.find((value) => value.food_id === food.id)
+    setSelection(beginFoodSelection(food, preference))
+    setMessage(null)
+  }
+
+  const confirmFoodSelection = async () => {
+    if (!selection || selection.quantity <= 0 || !calculatePortion(selection.food, selection.quantity, selection.unit)) return
+    setAddingSelection(true)
+    try {
+      const trackableFood = await materializeFood(selection.food)
+      setItems((current) => commitFoodSelection(current, { ...selection, food: trackableFood }))
+      setQuery('')
+      setRemoteResults([])
+      setSelection(null)
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'This food could not be added. Please try again.')
+    } finally {
+      setAddingSelection(false)
     }
-    setItems((current) => [...current, next])
-    setQuery('')
-    setRemoteResults([])
   }
 
   const patchItem = (id: string, patch: Partial<ComposerFoodItem>) => {
@@ -164,30 +176,47 @@ export function MealComposer({
   const lookupCode = async (barcode: string) => {
     setScanner(false)
     setSearching(true)
-    const result = await store.lookupBarcode(barcode)
-    setSearching(false)
-    if (result.food && isFoodNutritionComplete(result.food)) await addFood(result.food)
-    else if (result.food) {
-      setManual({
-        name: result.food.name,
-        kcal: result.food.kcal_100 == null ? '' : String(result.food.kcal_100),
-        protein: result.food.protein_100 == null ? '' : String(result.food.protein_100),
-        carbs: result.food.carbs_100 == null ? '' : String(result.food.carbs_100),
-        fat: result.food.fat_100 == null ? '' : String(result.food.fat_100),
-        preparation: result.food.preparation_state,
-      })
-      setManualOpen(true)
-      setMessage('This provider record is incomplete. Review the missing values before saving your private corrected copy.')
-    } else setMessage(result.message ?? (result.state === 'not_found' ? 'Product not found. Add it manually and keep it private.' : 'Nutrition is incomplete. Review it manually before logging.'))
+    try {
+      const result = await store.lookupBarcode(barcode)
+      if (result.food && isFoodNutritionComplete(result.food)) openFoodSelection(result.food)
+      else if (result.food) {
+        setManual({
+          name: result.food.name,
+          kcal: result.food.kcal_100 == null ? '' : String(result.food.kcal_100),
+          protein: result.food.protein_100 == null ? '' : String(result.food.protein_100),
+          carbs: result.food.carbs_100 == null ? '' : String(result.food.carbs_100),
+          fat: result.food.fat_100 == null ? '' : String(result.food.fat_100),
+          preparation: result.food.preparation_state,
+        })
+        setManualOpen(true)
+        setMessage('This provider record is incomplete. Review the missing values before saving your private corrected copy.')
+      } else setMessage(result.message ?? (result.state === 'not_found' ? 'Product not found. Add it manually and keep it private.' : 'Nutrition is incomplete. Review it manually before logging.'))
+    } catch {
+      setMessage('Barcode lookup is temporarily unavailable. Search by name or create a private food instead.')
+    } finally {
+      setSearching(false)
+    }
   }
 
-  const selectRemote = async (food: FoodRecord) => {
+  const selectFood = async (food: FoodRecord) => {
     if (isFoodNutritionComplete(food)) {
-      await addFood(food)
+      openFoodSelection(food)
       return
     }
-    if (!food.barcode) return
-    await lookupCode(food.barcode)
+    if (food.barcode) {
+      await lookupCode(food.barcode)
+      return
+    }
+    setManual({
+      name: food.name,
+      kcal: food.kcal_100 == null ? '' : String(food.kcal_100),
+      protein: food.protein_100 == null ? '' : String(food.protein_100),
+      carbs: food.carbs_100 == null ? '' : String(food.carbs_100),
+      fat: food.fat_100 == null ? '' : String(food.fat_100),
+      preparation: food.preparation_state,
+    })
+    setManualOpen(true)
+    setMessage('This result is incomplete. Review all per-100 g values before saving it privately.')
   }
 
   const createManual = async () => {
@@ -205,7 +234,7 @@ export function MealComposer({
       serving_amount: null, serving_unit: null, serving_grams_or_ml: null, piece_grams_or_ml: null,
       provider_updated_at: null, confidence: 'user_entered',
     })
-    await addFood(food)
+    openFoodSelection(food)
     setManualOpen(false)
   }
 
@@ -222,7 +251,7 @@ export function MealComposer({
     const next = store.entries.filter((entry) => entry.meal_id === mealId).map((entry, index) => {
       const food = store.foods.find((value) => value.id === entry.food_id)
       if (!food) return null
-      return { ...composerItem(food, index), quantity: entry.quantity, unit: entry.unit }
+      return composerItemFromSelection({ food, quantity: entry.quantity, unit: entry.unit }, index)
     }).filter((item): item is ComposerFoodItem => item != null)
     setItems(next)
     setName(meal.display_name)
@@ -311,16 +340,16 @@ export function MealComposer({
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
               {store.preferences.filter((value) => value.favourite).slice(0, 6).map((preference) => {
                 const food = store.foods.find((value) => value.id === preference.food_id)
-                return food ? <button key={food.id} type="button" onClick={() => void addFood(food)} className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700">★ {preference.personal_name || food.name}</button> : null
+                return food ? <button key={food.id} type="button" onClick={() => void selectFood(food)} className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700">★ {preference.personal_name || food.name}</button> : null
               })}
               <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">+ Private food</button>
             </div>
             {(query || remoteResults.length > 0) && (
               <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
                 {displayedFoods.map((food) => (
-                  <button key={food.id} type="button" onClick={() => food.source === 'open_food_facts' ? void selectRemote(food) : void addFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
+                  <button key={food.id} type="button" onClick={() => void selectFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
                     <span><span className="block text-sm font-bold text-ink">{displayFoodName(food, language)}</span><span className="text-[10px] font-medium text-ink-faint">{food.brand || translateInterfaceText(food.preparation_state.replace('_', ' '), language)} · {food.kcal_100 ?? '?'} kcal / 100</span></span>
-                    <span className="text-lg text-amber-600">+</span>
+                    <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[9px] font-black tracking-wide text-amber-700 uppercase">{t('Configure')}</span>
                   </button>
                 ))}
                 {query.length >= 2 && (
@@ -366,7 +395,7 @@ export function MealComposer({
           <div className="space-y-2">
             {items.map((item, index) => {
               const portion = calculatePortion(item.food, item.quantity, item.unit)
-              const units: FoodUnit[] = ['g', 'ml', ...(item.food.serving_grams_or_ml ? ['serving' as const] : []), ...(item.food.piece_grams_or_ml ? ['piece' as const] : [])]
+              const units = availableFoodUnits(item.food)
               return (
                 <GlassCard key={item.id} accent={amber} className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -461,6 +490,113 @@ export function MealComposer({
           <p className="text-center text-[10px] font-medium text-ink-faint">Logged entries are immutable snapshots. Editing a food later will never rewrite your history.</p>
         </div>
       </div>
+      <AnimatePresence>
+        {selection && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[100] grid place-items-center overflow-y-auto bg-slate-950/48 px-4 py-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-md"
+            onPointerDown={(event) => { if (event.target === event.currentTarget && !addingSelection) setSelection(null) }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 18, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 12, scale: 0.98 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('Configure food amount')}
+              className="w-full max-w-md rounded-[1.75rem] border border-white/85 bg-canvas/96 p-4 shadow-[0_32px_90px_-32px_rgba(15,23,42,.65)] backdrop-blur-2xl"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-4">
+                <div className="min-w-0">
+                  <p className="font-mono text-[9px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t('Configure amount')}</p>
+                  <h3 className="mt-1 font-display text-lg leading-tight font-bold text-ink">{displayFoodName(selection.food, language)}</h3>
+                  {selection.food.brand && <p className="mt-0.5 text-xs font-semibold text-ink-soft">{selection.food.brand}</p>}
+                </div>
+                <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/75 text-lg font-bold text-ink-soft disabled:opacity-40" aria-label={t('Close')}>×</button>
+              </div>
+
+              <div className="mt-4 rounded-2xl border border-white/80 bg-white/64 p-3">
+                <div className="flex items-center justify-between gap-2">
+                  <p className="text-[10px] font-black tracking-wide text-ink-faint uppercase">
+                    {t('Nutrition per')} 100 {selection.food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'}
+                  </p>
+                  <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[8px] font-bold text-amber-800">{t(selection.food.preparation_state.replace('_', ' '))}</span>
+                </div>
+                <div className="mt-3 grid grid-cols-4 gap-2 text-center">
+                  {([
+                    [t('kcal'), selection.food.kcal_100 ?? t('N/A')],
+                    [t('Protein'), selection.food.protein_100 == null ? t('N/A') : `${selection.food.protein_100}g`],
+                    [t('Carbs'), selection.food.carbs_100 == null ? t('N/A') : `${selection.food.carbs_100}g`],
+                    [t('Fat'), selection.food.fat_100 == null ? t('N/A') : `${selection.food.fat_100}g`],
+                  ] as const).map(([label, value]) => (
+                    <div key={label} className="min-w-0">
+                      <p className="truncate font-mono text-sm font-black text-ink">{value}</p>
+                      <p className="mt-0.5 truncate text-[8px] font-bold text-ink-faint uppercase">{label}</p>
+                    </div>
+                  ))}
+                </div>
+                {selection.food.salt_100 != null && <p className="mt-2 text-right text-[9px] font-semibold text-ink-faint">{t('Salt')} {selection.food.salt_100}g</p>}
+              </div>
+
+              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-2">
+                <label className="min-w-0">
+                  <span className="mb-1 block text-[9px] font-bold tracking-wide text-ink-faint uppercase">{t('Quantity')}</span>
+                  <input
+                    autoFocus
+                    inputMode="decimal"
+                    value={selection.quantity}
+                    onChange={(event) => setSelection((current) => current ? { ...current, quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) } : current)}
+                    className="w-full rounded-xl bg-white/80 px-3 py-2.5 font-mono text-base font-black text-ink outline-none ring-amber-400/40 focus:ring-2"
+                    aria-label={t('Food quantity')}
+                  />
+                </label>
+                <label className="min-w-0">
+                  <span className="mb-1 block text-[9px] font-bold tracking-wide text-ink-faint uppercase">{t('Serving type')}</span>
+                  <select
+                    value={selection.unit}
+                    onChange={(event) => {
+                      const unit = event.target.value as FoodUnit
+                      setSelection((current) => current ? { ...current, unit, quantity: unit === 'g' || unit === 'ml' ? 100 : 1 } : current)
+                    }}
+                    className="w-full rounded-xl bg-white/80 px-3 py-2.5 text-sm font-bold text-ink outline-none ring-amber-400/40 focus:ring-2"
+                  >
+                    {availableFoodUnits(selection.food).map((unit) => {
+                      const equivalent = unit === 'serving' ? selection.food.serving_grams_or_ml : unit === 'piece' ? selection.food.piece_grams_or_ml : null
+                      return <option key={unit} value={unit}>{t(unit)}{equivalent ? ` (${equivalent} ${selection.food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'})` : ''}</option>
+                    })}
+                  </select>
+                </label>
+              </div>
+
+              <div className="mt-3 rounded-xl bg-amber-500/8 px-3 py-2">
+                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold text-ink-soft">
+                  <span>{selectionPortion?.kcal ?? t('N/A')} kcal</span>
+                  <span>P {selectionPortion?.protein_g ?? t('N/A')}g</span>
+                  <span>C {selectionPortion?.carbs_g ?? t('N/A')}g</span>
+                  <span>F {selectionPortion?.fat_g ?? t('N/A')}g</span>
+                </div>
+                <p className="mt-1 text-[9px] leading-relaxed font-medium text-ink-faint">{t(foodProvenanceLabel(selection.food))}</p>
+              </div>
+
+              <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="rounded-xl bg-white/75 px-4 py-3 text-xs font-bold text-ink-soft disabled:opacity-40">{t('Cancel')}</button>
+                <button
+                  type="button"
+                  disabled={addingSelection || !selectionReady}
+                  onClick={() => void confirmFoodSelection()}
+                  className="rounded-xl px-4 py-3 text-sm font-black text-white shadow-[0_12px_28px_-14px_rgba(245,158,11,.95)] disabled:opacity-45"
+                  style={{ background: amber.gradient }}
+                >
+                  {t(addingSelection ? 'Adding…' : 'Add food')} · {selectionPortion?.kcal ?? 0} kcal
+                </button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       {scanner && <Suspense fallback={null}><BarcodeScanner onDetected={(code) => void lookupCode(code)} onClose={() => setScanner(false)} /></Suspense>}
     </div>
   )

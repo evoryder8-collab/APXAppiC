@@ -18,15 +18,15 @@ import { AnimatePresence, motion } from 'framer-motion'
 import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
-import { ACTIVITY_MULTIPLIERS, buildTargetMealPlan, computeTargets, type TargetMeal } from '../lib/nutrition'
+import { ACTIVITY_MULTIPLIERS, GOALS, buildTargetMealPlan, computeTargets, type TargetMeal } from '../lib/nutrition'
 import { planForDate, todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
-import type { DailyLog, Supplement } from '../lib/types'
-import { aggregateConsumedMeals, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
+import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
+import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { parseWaterAmountToLitres, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, weightFromKg, weightToKg, weightUnitFromSettings } from '../lib/simpleMode'
+import { canPasteSimpleDay, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -59,20 +59,22 @@ function mealSlotFor(meal: TargetMeal): MealSlot {
   return 'dinner'
 }
 
+const legacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
+
 export function SimpleHome() {
-  const { data, snapshots, upsert, remove, toast } = useStore()
+  const { data, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
   const navigate = useNavigate()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
-  const [showChecklist, setShowChecklist] = useState(false)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
-  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | null>(null)
+  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | null>(null)
+  const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealSlot, setQuickMealSlot] = useState<MealSlot | null>(null)
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
@@ -81,6 +83,14 @@ export function SimpleHome() {
   const [selectedDate, setSelectedDate] = useState(today)
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseISO(today)))
+  const [calendarContextDate, setCalendarContextDate] = useState<string | null>(null)
+  const [copiedDay, setCopiedDay] = useState<string | null>(null)
+  const [pasteTarget, setPasteTarget] = useState<string | null>(null)
+  const [selectingCopyMeals, setSelectingCopyMeals] = useState(false)
+  const [selectedCopyMealIds, setSelectedCopyMealIds] = useState<Set<string>>(new Set())
+  const [calendarBusy, setCalendarBusy] = useState(false)
+  const calendarPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const calendarLongPressFired = useRef(false)
   const swipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
   const summaryActionsRef = useRef<HTMLDivElement>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedDate), [selectedDate])
@@ -90,6 +100,7 @@ export function SimpleHome() {
   const adhdMode = settings?.addons.adhd_mode ?? false
   const showOrbitShortcut = settings?.addons.simple_show_orbit ?? true
   const showBodyIndexShortcut = settings?.addons.simple_show_body_index ?? true
+  const showGuidedPlan = settings?.addons.simple_show_guided_plan ?? true
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
   const mealPlan = useMemo(
     () => profile && targets
@@ -107,6 +118,37 @@ export function SimpleHome() {
     [dateFoodMeals, dateMealIds, mealPlan],
   )
   const consumed = useMemo(() => aggregateConsumedMeals(consumedMeals), [consumedMeals])
+  const macroContributors = useMemo(() => {
+    const mealIds = new Set(dateFoodMeals.map((meal) => meal.id))
+    const localizedEntries = foodStore.entries
+      .filter((entry) => mealIds.has(entry.meal_id))
+      .map((entry) => {
+        const food = entry.food_id ? foodStore.foods.find((candidate) => candidate.id === entry.food_id) : null
+        return food ? { ...entry, snapshot_name: displayFoodName(food, language) } : entry
+      })
+    return rankSimpleMacroContributors(localizedEntries, selectedMacro)
+  }, [dateFoodMeals, foodStore.entries, foodStore.foods, language, selectedMacro])
+  const copiedMeals = useMemo(
+    () => copiedDay ? foodStore.mealsForDate(copiedDay).slice().sort((left, right) => left.logged_at.localeCompare(right.logged_at)) : [],
+    [copiedDay, foodStore],
+  )
+  const copiedLegacyChecks = useMemo(() => {
+    if (!copiedDay) return []
+    const structuredPlannedIds = new Set(copiedMeals.flatMap((meal) => meal.source_planned_meal_id ? [meal.source_planned_meal_id] : []))
+    const unique = new Map<string, { selectionId: string; mealId: string; name: string; slot: MealSlot; kcal: number }>()
+    for (const log of data.meal_logs.filter((candidate) => candidate.date === copiedDay)) {
+      if (structuredPlannedIds.has(log.meal_id) || unique.has(log.meal_id)) continue
+      const planned = mealPlan.find((meal) => meal.id === log.meal_id)
+      unique.set(log.meal_id, {
+        selectionId: legacyMealSelectionId(log.meal_id),
+        mealId: log.meal_id,
+        name: planned?.name ?? 'Planned meal',
+        slot: planned ? mealSlotFor(planned) : 'snack',
+        kcal: planned?.kcal ?? 0,
+      })
+    }
+    return [...unique.values()]
+  }, [copiedDay, copiedMeals, data.meal_logs, mealPlan])
   const trainingTime = profile?.training_time ?? '19:00'
   const supplementGroups = useMemo(() => {
     const grouped = new Map<string, { label: string; time: number; items: Supplement[] }>()
@@ -142,7 +184,11 @@ export function SimpleHome() {
     window.requestAnimationFrame(() => summaryActionsRef.current?.scrollIntoView({ block: 'center' }))
   }, [])
 
-  if (!profile || !targets) return null
+  useEffect(() => () => {
+    if (calendarPressTimer.current) clearTimeout(calendarPressTimer.current)
+  }, [])
+
+  if (!profile || !targets || !settings) return null
 
   const mealIsDone = (meal: TargetMeal): boolean =>
     dateFoodMeals.some((logged) => logged.source_planned_meal_id === meal.id) ||
@@ -192,7 +238,26 @@ export function SimpleHome() {
 
   const snapshotFood = async (entry: (typeof foodStore.entries)[number]): Promise<FoodRecord> => {
     const existing = entry.food_id ? foodStore.foods.find((food) => food.id === entry.food_id) : null
-    if (existing) return existing
+    const frozenUnitSize = entry.quantity > 0 ? entry.equivalent_amount / entry.quantity : null
+    if (existing) {
+      return {
+        ...existing,
+        name: entry.snapshot_name,
+        brand: entry.snapshot_brand,
+        nutrition_basis: entry.snapshot_nutrition_basis,
+        preparation_state: entry.snapshot_preparation_state,
+        kcal_100: entry.snapshot_kcal_100,
+        protein_100: entry.snapshot_protein_100,
+        carbs_100: entry.snapshot_carbs_100,
+        fat_100: entry.snapshot_fat_100,
+        fibre_100: entry.snapshot_fibre_100,
+        sugar_100: entry.snapshot_sugar_100,
+        saturated_fat_100: entry.snapshot_saturated_fat_100,
+        salt_100: entry.snapshot_salt_100,
+        serving_grams_or_ml: entry.unit === 'serving' ? frozenUnitSize : existing.serving_grams_or_ml,
+        piece_grams_or_ml: entry.unit === 'piece' ? frozenUnitSize : existing.piece_grams_or_ml,
+      }
+    }
     return foodStore.savePrivateFood({
       name: entry.snapshot_name, names_i18n: { en: entry.snapshot_name }, brand: entry.snapshot_brand,
       barcode: null, provider_product_id: null, external_image_url: null, package_quantity: null,
@@ -201,7 +266,10 @@ export function SimpleHome() {
       carbs_100: entry.snapshot_carbs_100, fat_100: entry.snapshot_fat_100,
       fibre_100: entry.snapshot_fibre_100, sugar_100: entry.snapshot_sugar_100,
       saturated_fat_100: entry.snapshot_saturated_fat_100, salt_100: entry.snapshot_salt_100,
-      serving_amount: null, serving_unit: null, serving_grams_or_ml: null, piece_grams_or_ml: null,
+      serving_amount: entry.unit === 'serving' ? 1 : null,
+      serving_unit: entry.unit === 'serving' ? 'serving' : null,
+      serving_grams_or_ml: entry.unit === 'serving' ? frozenUnitSize : null,
+      piece_grams_or_ml: entry.unit === 'piece' ? frozenUnitSize : null,
       provider_updated_at: null, confidence: 'user_entered',
     })
   }
@@ -283,15 +351,18 @@ export function SimpleHome() {
     toast(`${group.items.length} supplements checked`, 'ok')
   }
 
-  const patchDailyLog = (patch: Partial<DailyLog>): void => {
+  const patchDailyLogForDate = (date: string, patch: Partial<DailyLog>): void => {
     if (!profile) return
-    const base: DailyLog = dailyLog ?? {
-      id: dailyLogId(selectedDate, profile.user_id), user_id: profile.user_id, date: selectedDate,
+    const existing = data.daily_logs.find((log) => log.date === date)
+    const base: DailyLog = existing ?? {
+      id: dailyLogId(date, profile.user_id), user_id: profile.user_id, date,
       kcal: null, protein_g: null, fat_g: null, carbs_g: null, water_l: 0,
       estimated_tdee: null, computed_pal: null, activity_mode: 'quick', weight_kg: null,
     }
     upsert('daily_logs', { ...base, ...patch })
   }
+
+  const patchDailyLog = (patch: Partial<DailyLog>): void => patchDailyLogForDate(selectedDate, patch)
 
   const setWaterAmount = (value: number): void => {
     patchDailyLog({ water_l: Math.min(6, Math.max(0, Number(value.toFixed(2)))) })
@@ -317,7 +388,6 @@ export function SimpleHome() {
   }
 
   const addWater = (): void => setWaterAmount(water + 0.25)
-  const toggleWater = (): void => setWaterAmount(toggleSimpleWaterTarget(water, targets.water_l))
   const openNewManualWorkout = (): void => {
     setEditingManualSessionId(null)
     setEditingManualExerciseName(null)
@@ -359,19 +429,120 @@ export function SimpleHome() {
     addQuickWater(litres)
   }
 
+  const beginCopyDay = (sourceDate: string): void => {
+    setCopiedDay(sourceDate)
+    setCalendarContextDate(null)
+    setPasteTarget(null)
+    setSelectingCopyMeals(false)
+    setSelectedCopyMealIds(new Set())
+  }
+
+  const copyDayToTarget = async (targetDate: string, selectedMealIds: Set<string> | null): Promise<void> => {
+    if (!profile || !copiedDay || !canPasteSimpleDay(copiedDay, targetDate) || calendarBusy) return
+    setCalendarBusy(true)
+    try {
+      const sourceMeals = foodStore.mealsForDate(copiedDay)
+        .filter((meal) => selectedMealIds == null || selectedMealIds.has(meal.id))
+        .sort((left, right) => left.logged_at.localeCompare(right.logged_at))
+      let targetMeals = foodStore.mealsForDate(targetDate)
+      const targetPlannedChecks = new Set(data.meal_logs.filter((log) => log.date === targetDate).map((log) => log.meal_id))
+
+      for (const sourceMeal of sourceMeals) {
+        const replaceMeal = sourceMeal.source_planned_meal_id
+          ? targetMeals.find((meal) => meal.source_planned_meal_id === sourceMeal.source_planned_meal_id)
+          : undefined
+        const copiedMeal = await foodStore.logMeal({
+          date: targetDate,
+          slot: sourceMeal.meal_slot,
+          name: sourceMeal.display_name,
+          items: await loggedMealItems(sourceMeal),
+          sourcePresetId: sourceMeal.source_preset_id,
+          sourcePlannedMealId: sourceMeal.source_planned_meal_id,
+          replaceMealId: replaceMeal?.id,
+          loggedAs: sourceMeal.logged_as,
+          idempotencyKey: `simple-day-copy:${profile.user_id}:${copiedDay}:${targetDate}:${sourceMeal.id}`,
+        })
+        targetMeals = [copiedMeal, ...targetMeals.filter((meal) => meal.id !== replaceMeal?.id)]
+        if (sourceMeal.source_planned_meal_id && !targetPlannedChecks.has(sourceMeal.source_planned_meal_id)) {
+          upsert('meal_logs', {
+            id: crypto.randomUUID(), user_id: profile.user_id, date: targetDate,
+            meal_id: sourceMeal.source_planned_meal_id, checked_at: new Date().toISOString(),
+          })
+          targetPlannedChecks.add(sourceMeal.source_planned_meal_id)
+        }
+      }
+
+      const structuredSourcePlannedIds = new Set(
+        foodStore.mealsForDate(copiedDay).flatMap((meal) => meal.source_planned_meal_id ? [meal.source_planned_meal_id] : []),
+      )
+      for (const sourceCheck of data.meal_logs.filter((log) => log.date === copiedDay)) {
+        const selectedLegacyCheck = !structuredSourcePlannedIds.has(sourceCheck.meal_id) && selectedMealIds?.has(legacyMealSelectionId(sourceCheck.meal_id))
+        if (selectedMealIds != null && !selectedLegacyCheck) continue
+        if (targetPlannedChecks.has(sourceCheck.meal_id)) continue
+        upsert('meal_logs', {
+          id: crypto.randomUUID(), user_id: profile.user_id, date: targetDate,
+          meal_id: sourceCheck.meal_id, checked_at: new Date().toISOString(),
+        })
+        targetPlannedChecks.add(sourceCheck.meal_id)
+      }
+
+      toast(t(selectedMealIds == null ? 'Day pasted' : 'Selected meals pasted'), 'ok')
+      setSelectedDate(targetDate)
+      setCalendarMonth(startOfMonth(parseISO(targetDate)))
+      setShowCalendar(false)
+      setCopiedDay(null)
+      setPasteTarget(null)
+      setSelectingCopyMeals(false)
+      setSelectedCopyMealIds(new Set())
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('Could not paste this day.'), 'error')
+    } finally {
+      setCalendarBusy(false)
+    }
+  }
+
+  const clearCalendarDay = async (date: string): Promise<void> => {
+    if (calendarBusy) return
+    setCalendarBusy(true)
+    try {
+      for (const meal of foodStore.mealsForDate(date)) await foodStore.deleteMeal(meal.id)
+      for (const log of data.meal_logs.filter((value) => value.date === date)) remove('meal_logs', log.id)
+      toast(t('Meal and snack selections cleared'), 'ok')
+      setCalendarContextDate(null)
+      if (copiedDay === date) setCopiedDay(null)
+    } catch (error) {
+      toast(error instanceof Error ? error.message : t('Could not clear this day.'), 'error')
+    } finally {
+      setCalendarBusy(false)
+    }
+  }
+
+  const resetCalendarCopy = (): void => {
+    setCalendarContextDate(null)
+    setCopiedDay(null)
+    setPasteTarget(null)
+    setSelectingCopyMeals(false)
+    setSelectedCopyMealIds(new Set())
+  }
+
+  const closeCalendar = (): void => {
+    setShowCalendar(false)
+    resetCalendarCopy()
+  }
+
   const moveDay = (offset: number): void => {
     setSelectedDate(format(addDays(selectedDateObject, offset), 'yyyy-MM-dd'))
-    setShowChecklist(false)
     setQuickPanel(null)
     setShowCalendar(false)
+    resetCalendarCopy()
   }
 
   const chooseDate = (date: Date): void => {
     setSelectedDate(format(date, 'yyyy-MM-dd'))
     setCalendarMonth(startOfMonth(date))
-    setShowChecklist(false)
     setQuickPanel(null)
     setShowCalendar(false)
+    resetCalendarCopy()
   }
 
   const finishSwipe = (x: number, y: number): void => {
@@ -394,7 +565,7 @@ export function SimpleHome() {
       meta: `${clockOf(group.time)} · ${t(`${group.items.length} items`)}`, action: 'Mark group done',
       run: () => toggleSupplementGroup(group), accent: ACCENTS.ice,
     })),
-    ...(hasWorkout && !workoutDone ? [{
+    ...(showGuidedPlan && hasWorkout && !workoutDone ? [{
       time: minuteOf(trainingTime), eyebrow: 'Today’s movement', title: plan.programDay?.name ?? 'Training',
       meta: t(`~${plan.programDay?.est_minutes ?? 15} min · ${plan.exercises.length} exercises`), action: 'Start session',
       run: () => navigate(`/player/transition/${selectedDate}`), accent: ACCENTS.teal,
@@ -430,6 +601,36 @@ export function SimpleHome() {
       || data.supplement_logs.some((log) => log.date === iso)
       || data.workout_sessions.some((session) => session.date === iso)
       || foodStore.mealsForDate(iso).length > 0
+  }
+
+  const beginCalendarPress = (date: Date): void => {
+    if (calendarPressTimer.current) clearTimeout(calendarPressTimer.current)
+    calendarLongPressFired.current = false
+    calendarPressTimer.current = setTimeout(() => {
+      calendarLongPressFired.current = true
+      setCalendarContextDate(format(date, 'yyyy-MM-dd'))
+      if (typeof navigator !== 'undefined' && 'vibrate' in navigator) navigator.vibrate?.(12)
+    }, 520)
+  }
+
+  const endCalendarPress = (): void => {
+    if (calendarPressTimer.current) clearTimeout(calendarPressTimer.current)
+    calendarPressTimer.current = null
+  }
+
+  const activateCalendarDate = (date: Date): void => {
+    const iso = format(date, 'yyyy-MM-dd')
+    if (calendarLongPressFired.current) {
+      calendarLongPressFired.current = false
+      return
+    }
+    if (copiedDay === iso) return
+    if (canPasteSimpleDay(copiedDay, iso)) {
+      setPasteTarget(iso)
+      setSelectingCopyMeals(false)
+      return
+    }
+    chooseDate(date)
   }
 
   return (
@@ -481,6 +682,8 @@ export function SimpleHome() {
             mealsTotal={mealPlan.length}
             status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
             onOpen={() => openNutritionSection('meals')}
+            onRingClick={() => setQuickPanel('targets')}
+            onMacroClick={(macro) => { setSelectedMacro(macro); setQuickPanel('macro') }}
             cornerControl={selectedDate <= today ? (
               <label data-simple-local-gesture className="flex items-center rounded-lg border border-amber-200/65 bg-white/82 px-2 py-1 shadow-sm" title={t('Morning weight')}>
                 <input
@@ -520,23 +723,13 @@ export function SimpleHome() {
           </div>
         </GlassCard>}
 
-        {!adhdMode && <GlassCard className="p-4">
-          <button type="button" onClick={() => setShowChecklist((value) => !value)} className="flex w-full items-center justify-between text-left">
-            <div><p className="font-display text-base font-bold text-ink">Today’s checklist</p><p className="mt-0.5 text-[11px] font-medium text-ink-soft">{t(`${completedTasks} of ${totalTasks} essentials complete`)}</p></div>
-            <span className="text-xl text-ink-soft">{showChecklist ? '−' : '+'}</span>
-          </button>
-          {showChecklist && (
-            <div className="mt-3 space-y-2 border-t border-ink/8 pt-3">
-              {mealPlan.map((meal) => <ChecklistRow key={meal.id} time={meal.time} title={meal.name} detail={`${meal.kcal} kcal`} done={mealIsDone(meal)} busy={busyMeal === meal.id} onClick={() => void toggleMeal(meal)} />)}
-              {supplementGroups.map((group) => <ChecklistRow key={group.label} time={clockOf(group.time)} title={group.label} detail={t(`${group.items.length} supplements`)} done={groupIsDone(group)} onClick={() => toggleSupplementGroup(group)} />)}
-              <ChecklistRow time="NOW" title={t('Water')} detail={`${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L`} done={waterDone} onClick={toggleWater} />
-            </div>
-          )}
-        </GlassCard>}
-
-        {!adhdMode && hasWorkout && !workoutDone && (
+        {!adhdMode && showGuidedPlan && hasWorkout && !workoutDone && (
           <GlassCard accent={ACCENTS.teal} className="p-4">
-            <div className="flex items-center justify-between gap-3"><div><p className="font-display text-base font-bold text-ink">{plan.programDay?.name}</p><p className="text-[11px] font-medium text-ink-soft">Start directly. Skip calendar and setup.</p></div><div className="flex gap-2"><button type="button" onClick={() => navigate(`/player/transition/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">Quick</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/transition/${selectedDate}`)}>Start</GradientButton></div></div>
+            <div className="flex items-start justify-between gap-3">
+              <div className="min-w-0"><p className="truncate font-display text-base font-bold text-ink">{t(plan.programDay?.name ?? 'Guided workout')}</p><p className="text-[11px] font-medium text-ink-soft">{t('Start directly. Skip calendar and setup.')}</p></div>
+              <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>
+            </div>
+            <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/transition/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/transition/${selectedDate}`)}>{t('Start')}</GradientButton></div>
           </GlassCard>
         )}
 
@@ -563,7 +756,7 @@ export function SimpleHome() {
             exit={{ opacity: 0 }}
             data-simple-local-gesture
           >
-            <button type="button" onClick={() => setShowCalendar(false)} aria-label={t('Close calendar')} className="absolute inset-0 bg-ink/20 backdrop-blur-md" />
+            <button type="button" onClick={closeCalendar} aria-label={t('Close calendar')} className="absolute inset-0 bg-ink/20 backdrop-blur-md" />
             <motion.div
               initial={{ opacity: 0, scale: 0.93, y: 10 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
@@ -575,7 +768,7 @@ export function SimpleHome() {
             >
               <div className="flex items-center justify-between gap-2">
                 <button type="button" onClick={() => setCalendarMonth((value) => addMonths(value, -1))} aria-label={t('Previous month')} className="grid h-8 w-8 place-items-center rounded-full bg-ink/5 font-black text-ink-soft">‹</button>
-                <div className="text-center"><p className="font-display text-sm font-black text-ink capitalize">{calendarMonthLabel}</p><button type="button" onClick={() => chooseDate(parseISO(today))} className="mt-0.5 font-mono text-[8px] font-black tracking-wide text-violet-700 uppercase">{t('Jump to today')}</button></div>
+                <div className="text-center"><p className="font-display text-sm font-black text-ink capitalize">{calendarMonthLabel}</p>{copiedDay ? <p className="mt-0.5 font-mono text-[8px] font-black tracking-wide text-cyan-700 uppercase">{t('Choose where to paste')}</p> : <button type="button" onClick={() => chooseDate(parseISO(today))} className="mt-0.5 font-mono text-[8px] font-black tracking-wide text-violet-700 uppercase">{t('Jump to today')}</button>}</div>
                 <button type="button" onClick={() => setCalendarMonth((value) => addMonths(value, 1))} aria-label={t('Next month')} className="grid h-8 w-8 place-items-center rounded-full bg-ink/5 font-black text-ink-soft">›</button>
               </div>
               <div className="mt-2 grid grid-cols-7 text-center font-mono text-[8px] font-black text-ink-faint uppercase">
@@ -587,21 +780,81 @@ export function SimpleHome() {
                   const todayDate = isSameDay(date, parseISO(today))
                   const inMonth = isSameMonth(date, calendarMonth)
                   const populated = hasDayData(date)
+                  const iso = format(date, 'yyyy-MM-dd')
+                  const copiedSource = copiedDay === iso
+                  const pasteable = canPasteSimpleDay(copiedDay, iso)
                   return (
                     <button
-                      key={format(date, 'yyyy-MM-dd')}
+                      key={iso}
                       type="button"
-                      onClick={() => chooseDate(date)}
+                      onPointerDown={() => beginCalendarPress(date)}
+                      onPointerUp={endCalendarPress}
+                      onPointerCancel={endCalendarPress}
+                      onPointerLeave={endCalendarPress}
+                      onContextMenu={(event) => {
+                        event.preventDefault()
+                        endCalendarPress()
+                        calendarLongPressFired.current = true
+                        setCalendarContextDate(iso)
+                      }}
+                      onClick={() => activateCalendarDate(date)}
                       aria-pressed={active}
                       aria-label={new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)}
-                      className={`relative grid min-h-0 place-items-center rounded-xl font-mono text-[10px] font-black transition active:scale-90 ${active ? 'bg-violet-500 text-white shadow-sm' : todayDate ? 'bg-violet-100 text-violet-800' : inMonth ? 'text-ink' : 'text-ink-faint/45'}`}
+                      className={`relative grid min-h-0 touch-manipulation place-items-center rounded-xl font-mono text-[10px] font-black transition active:scale-90 ${copiedSource ? 'bg-cyan-700 text-white ring-2 ring-cyan-200' : pasteable ? 'border border-dashed border-cyan-400 bg-cyan-50 text-cyan-900' : active ? 'bg-violet-500 text-white shadow-sm' : todayDate ? 'bg-violet-100 text-violet-800' : inMonth ? 'text-ink' : 'text-ink-faint/45'}`}
                     >
                       {format(date, 'd')}
+                      {copiedSource && <span className="absolute top-0.5 right-1 text-[7px]" aria-hidden>⧉</span>}
                       {populated && !active && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-emerald" />}
                     </button>
                   )
                 })}
               </div>
+            </motion.div>
+          </motion.div>
+        )}
+        {showCalendar && calendarContextDate && (
+          <motion.div className="fixed inset-0 z-[82] flex items-center justify-center p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} data-simple-local-gesture>
+            <button type="button" onClick={() => setCalendarContextDate(null)} aria-label={t('Close')} className="absolute inset-0 bg-ink/28 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 8 }} className="relative w-full max-w-[310px] rounded-[24px] border border-white bg-white/96 p-4 shadow-2xl" role="dialog" aria-modal="true">
+              <p className="font-display text-base font-black text-ink">{new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(parseISO(calendarContextDate))}</p>
+              <p className="mt-1 text-[10px] font-semibold text-ink-faint">{t('Copy or clear this day’s meals and snacks.')}</p>
+              <div className="mt-4 space-y-2">
+                <button type="button" disabled={calendarBusy || foodStore.mealsForDate(calendarContextDate).length === 0 && !data.meal_logs.some((log) => log.date === calendarContextDate)} onClick={() => beginCopyDay(calendarContextDate)} className="w-full rounded-2xl bg-cyan-50 px-3 py-3 text-left text-xs font-black text-cyan-900 active:scale-[.98] disabled:opacity-40">⧉ {t('Copy')}</button>
+                <button type="button" disabled={calendarBusy || foodStore.mealsForDate(calendarContextDate).length === 0 && !data.meal_logs.some((log) => log.date === calendarContextDate)} onClick={() => void clearCalendarDay(calendarContextDate)} className="w-full rounded-2xl bg-rose-50 px-3 py-3 text-left text-xs font-black text-rose-700 active:scale-[.98] disabled:opacity-40">{calendarBusy ? '…' : `× ${t('Clear')}`}</button>
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+        {showCalendar && copiedDay && pasteTarget && (
+          <motion.div className="fixed inset-0 z-[82] flex items-center justify-center p-5" initial={{ opacity: 0 }} animate={{ opacity: 1 }} exit={{ opacity: 0 }} data-simple-local-gesture>
+            <button type="button" onClick={() => { setPasteTarget(null); setSelectingCopyMeals(false) }} aria-label={t('Close')} className="absolute inset-0 bg-ink/28 backdrop-blur-md" />
+            <motion.div initial={{ scale: 0.92, y: 10 }} animate={{ scale: 1, y: 0 }} exit={{ scale: 0.95, y: 8 }} className="relative w-full max-w-[330px] overflow-hidden rounded-[24px] border border-white bg-white/96 p-4 shadow-2xl" role="dialog" aria-modal="true">
+              <div className="flex items-start justify-between gap-3">
+                <div><p className="font-display text-base font-black text-ink">{t(selectingCopyMeals ? 'Select meals or snacks' : 'Paste copied day')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{new Intl.DateTimeFormat(dateLocale, { day: 'numeric', month: 'short' }).format(parseISO(copiedDay))} → {new Intl.DateTimeFormat(dateLocale, { day: 'numeric', month: 'short' }).format(parseISO(pasteTarget))}</p></div>
+                <button type="button" onClick={() => { setPasteTarget(null); setSelectingCopyMeals(false) }} aria-label={t('Close')} className="grid h-8 w-8 place-items-center rounded-full bg-ink/5 font-black text-ink-soft">×</button>
+              </div>
+              {!selectingCopyMeals ? (
+                <div className="mt-4 space-y-2">
+                  <button type="button" disabled={calendarBusy} onClick={() => void copyDayToTarget(pasteTarget, null)} className="w-full rounded-2xl bg-cyan-600 px-4 py-3 text-left text-xs font-black text-white shadow-sm active:scale-[.98] disabled:opacity-50"><span className="block">{calendarBusy ? t('Pasting…') : t('Paste')}</span><span className="mt-0.5 block text-[9px] font-semibold text-white/75">{t('All selected meals and snacks')}</span></button>
+                  <button type="button" disabled={copiedMeals.length + copiedLegacyChecks.length === 0} onClick={() => { setSelectedCopyMealIds(new Set([...copiedMeals.map((meal) => meal.id), ...copiedLegacyChecks.map((check) => check.selectionId)])); setSelectingCopyMeals(true) }} className="w-full rounded-2xl border border-violet-100 bg-violet-50/70 px-4 py-3 text-left text-xs font-black text-violet-900 active:scale-[.98] disabled:opacity-40"><span className="block">{t('Select')}</span><span className="mt-0.5 block text-[9px] font-semibold text-violet-700/70">{t('Choose individual meals or snacks')}</span></button>
+                </div>
+              ) : (
+                <div className="mt-3">
+                  <div className="max-h-[36dvh] space-y-1.5 overflow-y-auto pr-0.5">
+                    {copiedMeals.map((meal) => {
+                      const checked = selectedCopyMealIds.has(meal.id)
+                      const slotLabel = `${meal.meal_slot[0].toUpperCase()}${meal.meal_slot.slice(1)}`
+                      return <button key={meal.id} type="button" aria-pressed={checked} onClick={() => setSelectedCopyMealIds((current) => { const next = new Set(current); if (checked) next.delete(meal.id); else next.add(meal.id); return next })} className="flex w-full items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2.5 text-left"><span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black ${checked ? 'bg-violet-600 text-white' : 'border border-violet-200 text-transparent'}`}>✓</span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{t(meal.display_name)}</span><span className="block font-mono text-[8px] font-semibold text-ink-faint">{t(slotLabel)} · {Math.round(meal.total_kcal)} kcal</span></span></button>
+                    })}
+                    {copiedLegacyChecks.map((check) => {
+                      const checked = selectedCopyMealIds.has(check.selectionId)
+                      const slotLabel = `${check.slot[0].toUpperCase()}${check.slot.slice(1)}`
+                      return <button key={check.selectionId} type="button" aria-pressed={checked} onClick={() => setSelectedCopyMealIds((current) => { const next = new Set(current); if (checked) next.delete(check.selectionId); else next.add(check.selectionId); return next })} className="flex w-full items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2.5 text-left"><span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black ${checked ? 'bg-violet-600 text-white' : 'border border-violet-200 text-transparent'}`}>✓</span><span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{t(check.name)}</span><span className="block font-mono text-[8px] font-semibold text-ink-faint">{t(slotLabel)}{check.kcal > 0 ? ` · ${Math.round(check.kcal)} kcal` : ''}</span></span></button>
+                    })}
+                  </div>
+                  <button type="button" disabled={calendarBusy || selectedCopyMealIds.size === 0} onClick={() => void copyDayToTarget(pasteTarget, selectedCopyMealIds)} className="mt-3 w-full rounded-2xl bg-violet-600 px-4 py-3 text-xs font-black text-white active:scale-[.98] disabled:opacity-40">{calendarBusy ? t('Pasting…') : `${t('Paste selected')} · ${selectedCopyMealIds.size}`}</button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -621,10 +874,10 @@ export function SimpleHome() {
               className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : 'max-w-[330px]'}`}
               role="dialog"
               aria-modal="true"
-              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : 'Quick meals')}
+              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
@@ -680,6 +933,38 @@ export function SimpleHome() {
                     ))}
                   </div>
                   <button type="button" onClick={() => openNutritionSection('supplements')} className="mt-3 w-full rounded-2xl bg-violet-100/80 px-3 py-2.5 text-xs font-black text-violet-900">{t('Open full supplement stack')}</button>
+                </div>
+              ) : quickPanel === 'targets' ? (
+                <div className="mt-4">
+                  <p className="font-mono text-[9px] font-black tracking-wide text-ink-faint uppercase">{t('Goal')}</p>
+                  <div className="mt-2 grid grid-cols-3 gap-1.5">
+                    {(Object.keys(GOALS) as Goal[]).map((goal) => {
+                      const active = profile.goal === goal
+                      return <button key={goal} type="button" aria-pressed={active} onClick={() => setProfile({ goal })} className={`rounded-xl px-2 py-2.5 text-[9px] font-black transition active:scale-95 ${active ? 'bg-amber-500 text-white shadow-sm' : 'bg-amber-50 text-amber-900'}`}>{t(GOALS[goal].label)}</button>
+                    })}
+                  </div>
+                  <p className="mt-4 border-t border-ink/8 pt-3 font-mono text-[9px] font-black tracking-wide text-ink-faint uppercase">{t('Activity level')}</p>
+                  <div className="mt-2 grid grid-cols-2 gap-1.5">
+                    {(Object.keys(ACTIVITY_MULTIPLIERS) as ActivityLevel[]).map((activity) => {
+                      const active = profile.activity_level === activity
+                      return <button key={activity} type="button" aria-pressed={active} onClick={() => setProfile({ activity_level: activity })} className={`rounded-xl px-2.5 py-2 text-[9px] font-black transition active:scale-95 ${active ? 'bg-cyan-600 text-white shadow-sm' : 'bg-cyan-50 text-cyan-900'}`}>{t(ACTIVITY_MULTIPLIERS[activity].label)}</button>
+                    })}
+                  </div>
+                  <p className="mt-3 text-center font-mono text-[9px] font-black text-ink-soft">{t('Updated target')}: {targets.kcal} kcal</p>
+                </div>
+              ) : quickPanel === 'macro' ? (
+                <div className="mt-4">
+                  <div className="flex gap-1 rounded-xl bg-ink/5 p-1">
+                    {(['protein_g', 'carbs_g', 'fat_g'] as SimpleMacroKey[]).map((macro) => {
+                      const label = macro === 'protein_g' ? 'Protein' : macro === 'carbs_g' ? 'Carbs' : 'Fat'
+                      return <button key={macro} type="button" onClick={() => setSelectedMacro(macro)} aria-pressed={selectedMacro === macro} className={`flex-1 rounded-lg px-2 py-2 text-[9px] font-black ${selectedMacro === macro ? 'bg-white text-violet-800 shadow-sm' : 'text-ink-soft'}`}>{t(label)}</button>
+                    })}
+                  </div>
+                  <div className="mt-3 max-h-[34dvh] space-y-1.5 overflow-y-auto">
+                    {macroContributors.length > 0 ? macroContributors.map((contributor, index) => (
+                      <div key={contributor.name} className="flex items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2.5"><span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-violet-100 font-mono text-[9px] font-black text-violet-800">{index + 1}</span><span className="min-w-0 flex-1 truncate text-[11px] font-black text-ink">{contributor.name}</span><span className="shrink-0 font-mono text-[10px] font-black text-ink-soft">{contributor.amount.toFixed(contributor.amount % 1 ? 1 : 0)} g</span></div>
+                    )) : <div className="rounded-2xl bg-slate-50 px-3 py-5 text-center text-[11px] font-semibold text-ink-faint">{t('No logged foods contribute to this macro yet.')}</div>}
+                  </div>
                 </div>
               ) : (
                 <div className="mt-4">
@@ -737,8 +1022,4 @@ function SimpleMetric({ icon, value, label, done, onClick, ariaLabel }: { icon: 
   const className = `glass relative rounded-2xl px-1.5 py-2.5 text-center ${done ? 'ring-1 ring-emerald/25' : ''} ${onClick ? 'cursor-pointer transition active:scale-[.96]' : ''}`
   const content = <><div className={`mx-auto grid h-6 w-6 place-items-center rounded-full ${done ? 'bg-emerald/12 text-emerald' : 'bg-ink/5 text-ink-soft'}`}>{done ? '✓' : icon}</div><p className="mt-1 font-mono text-[10px] font-bold text-ink">{value}</p><p className="truncate text-[8px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>{onClick && <span className="absolute top-1.5 right-2 text-[8px] font-black text-ink-faint">↗</span>}</>
   return onClick ? <button type="button" onClick={onClick} aria-label={ariaLabel ?? label} className={className}>{content}</button> : <div className={className}>{content}</div>
-}
-
-function ChecklistRow({ time, title, detail, done, busy = false, onClick }: { time: string; title: string; detail: string; done: boolean; busy?: boolean; onClick: () => void }) {
-  return <button type="button" disabled={busy} onClick={onClick} className="flex w-full items-center gap-3 rounded-2xl bg-white/55 px-3 py-2.5 text-left disabled:opacity-60"><span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-bold ${done ? 'bg-emerald text-white' : 'border border-ink/15 text-transparent'}`}>✓</span><span className="min-w-0 flex-1"><span className={`block truncate text-[13px] font-bold ${done ? 'text-ink-soft line-through' : 'text-ink'}`}>{title}</span><span className="block truncate text-[10px] font-medium text-ink-faint">{detail}</span></span><span className="font-mono text-[9px] font-bold text-ink-faint">{time}</span></button>
 }

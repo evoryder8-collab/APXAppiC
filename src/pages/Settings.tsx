@@ -153,6 +153,10 @@ export function Settings() {
                 <div><p className={label}>{t('Show Body Index shortcut')}</p><p className={sub}>{t('Keep your body score shortcut on the Simple Mode home screen.')}</p></div>
                 <Toggle accent={ACCENTS.ice} label={t('Show Body Index shortcut')} on={settings.addons.simple_show_body_index ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_body_index: value } })} />
               </div>
+              <div className={row}>
+                <div><p className={label}>{t('Show guided workout card')}</p><p className={sub}>{t('Hide the transition plan card when you prefer your own training.')}</p></div>
+                <Toggle accent={ACCENTS.teal} label={t('Show guided workout card')} on={settings.addons.simple_show_guided_plan ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: value } })} />
+              </div>
             </div>
 
             <div className="mt-3 rounded-[22px] border border-violet-200/70 bg-[linear-gradient(135deg,rgba(237,233,254,.8),rgba(236,254,255,.78))] p-4">

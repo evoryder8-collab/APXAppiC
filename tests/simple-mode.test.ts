@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { parseWaterAmountToLitres, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canPasteSimpleDay, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 
 const settings: Settings = {
@@ -60,4 +60,25 @@ test('Simple Mode custom water accepts millilitres and litres safely', () => {
   assert.equal(parseWaterAmountToLitres('0,5 L'), 0.5)
   assert.equal(parseWaterAmountToLitres('7 litres'), null)
   assert.equal(parseWaterAmountToLitres('water'), null)
+})
+
+test('copied calendar days highlight only genuinely valid paste targets', () => {
+  assert.equal(canPasteSimpleDay('2026-07-15', '2026-07-16'), true)
+  assert.equal(canPasteSimpleDay('2026-07-15', '2026-07-15'), false)
+  assert.equal(canPasteSimpleDay(null, '2026-07-16'), false)
+  assert.equal(canPasteSimpleDay('not-a-date', '2026-07-16'), false)
+})
+
+test('macro details combine duplicate foods and rank their daily contribution', () => {
+  const rows = [
+    { snapshot_name: 'Chicken', protein_g: 31, carbs_g: 0, fat_g: 3.6 },
+    { snapshot_name: 'Oats', protein_g: 10, carbs_g: 60, fat_g: 7 },
+    { snapshot_name: 'Chicken', protein_g: 15.5, carbs_g: 0, fat_g: 1.8 },
+    { snapshot_name: 'Water', protein_g: 0, carbs_g: 0, fat_g: 0 },
+  ]
+  assert.deepEqual(rankSimpleMacroContributors(rows, 'protein_g'), [
+    { name: 'Chicken', amount: 46.5 },
+    { name: 'Oats', amount: 10 },
+  ])
+  assert.deepEqual(rankSimpleMacroContributors(rows, 'carbs_g', 1), [{ name: 'Oats', amount: 60 }])
 })

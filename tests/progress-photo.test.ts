@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
   comparisonAspectRatio,
@@ -27,6 +28,7 @@ import type { RpgSnapshot } from '../src/lib/types.ts'
 import { progressPosterContent, progressStrengthComparison, resolveProgressExportMode } from '../src/lib/progressComparison.ts'
 import { buildSeedData } from '../src/data/seed.ts'
 import { openPrivateDb, resetPrivateDbConnection } from '../src/lib/privateDb.ts'
+import { releaseProgressCamera } from '../src/lib/mediaCapture.ts'
 
 function photo(id: string, date: string, pose: ProgressPhoto['pose'], ratio = 2 / 3): ProgressPhoto {
   return {
@@ -262,4 +264,39 @@ test('gallery processing falls back when Safari exposes but rejects createImageB
     if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument)
     else delete (globalThis as { document?: unknown }).document
   }
+})
+
+test('progress camera release stops every attached track and clears the video element', () => {
+  const stopped: string[] = []
+  const track = (id: string) => ({
+    enabled: true,
+    stop() { stopped.push(id) },
+  }) as unknown as MediaStreamTrack
+  const videoTrack = track('video')
+  const audioTrack = track('audio')
+  const attachedTrack = track('attached')
+  const retainedStream = { getTracks: () => [videoTrack, audioTrack] } as MediaStream
+  const attachedStream = { getTracks: () => [attachedTrack, videoTrack] } as MediaStream
+  let paused = 0
+  const video = {
+    srcObject: attachedStream,
+    pause() { paused += 1 },
+  } as unknown as HTMLVideoElement
+
+  assert.equal(releaseProgressCamera(retainedStream, video), 3)
+  assert.deepEqual(stopped, ['video', 'audio', 'attached'])
+  assert.equal(videoTrack.enabled, false)
+  assert.equal(audioTrack.enabled, false)
+  assert.equal(attachedTrack.enabled, false)
+  assert.equal(video.srcObject, null)
+  assert.equal(paused, 1)
+})
+
+test('progress camera never requests audio and releases capture on page lifecycle boundaries', () => {
+  const source = readFileSync(new URL('../src/components/progress/ProgressCamera.tsx', import.meta.url), 'utf8')
+  assert.doesNotMatch(source, /audio:\s*true/)
+  assert.match(source, /getUserMedia\(\{\s*audio:\s*false/)
+  assert.match(source, /addEventListener\('pagehide',\s*suspend\)/)
+  assert.match(source, /addEventListener\('visibilitychange',\s*visibility\)/)
+  assert.match(source, /const encoded[\s\S]*?stop\(\)[\s\S]*?blob = await encoded/)
 })

@@ -299,6 +299,7 @@ export interface Settings {
     weight_unit?: 'kg' | 'lb'
     simple_show_orbit?: boolean
     simple_show_body_index?: boolean
+    simple_show_guided_plan?: boolean
     adhd_mode?: boolean
   }
 }

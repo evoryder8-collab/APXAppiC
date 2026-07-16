@@ -138,6 +138,7 @@ function normalizeAppData(value: AppData): AppData {
           weight_unit: value.settings.addons?.weight_unit === 'lb' ? 'lb' : 'kg',
           simple_show_orbit: value.settings.addons?.simple_show_orbit ?? true,
           simple_show_body_index: value.settings.addons?.simple_show_body_index ?? true,
+          simple_show_guided_plan: value.settings.addons?.simple_show_guided_plan ?? true,
           adhd_mode: value.settings.addons?.adhd_mode ?? false,
         },
       }

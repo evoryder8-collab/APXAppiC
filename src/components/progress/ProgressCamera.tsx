@@ -1,4 +1,5 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
+import { releaseProgressCamera } from '../../lib/mediaCapture'
 import {
   coverCrop,
   isProgressCameraShutterKey,
@@ -12,6 +13,11 @@ import {
 import { useLanguage } from '../../lib/i18n'
 
 type CameraFacing = 'user' | 'environment'
+type CameraPrivacyState = 'released' | 'requesting' | 'live'
+
+function capturePageIsHidden(): boolean {
+  return document.visibilityState === 'hidden'
+}
 
 export function ProgressCamera({
   initialPose,
@@ -29,16 +35,20 @@ export function ProgressCamera({
   const { language } = useLanguage()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
+  const streamRequestRef = useRef(0)
   const countdownRef = useRef<number | null>(null)
   const libraryInputRef = useRef<HTMLInputElement>(null)
   const libraryRequestRef = useRef(0)
   const processedCaptureRef = useRef<ProcessedProgressPhoto | null>(null)
-  const libraryCaptureRef = useRef(false)
+  const previewRef = useRef<string | null>(null)
+  const importingRef = useRef(false)
+  const suspendedRef = useRef(false)
   const [pose, setPose] = useState<ProgressPose>(initialPose)
   const [framingMode, setFramingMode] = useState<ProgressFramingMode>(initialFramingMode)
   const [facing, setFacing] = useState<CameraFacing>('user')
   const [restartKey, setRestartKey] = useState(0)
   const [ready, setReady] = useState(false)
+  const [cameraPrivacyState, setCameraPrivacyState] = useState<CameraPrivacyState>('released')
   const [timer, setTimer] = useState<3 | 5 | 10>(5)
   const [countdown, setCountdown] = useState<number | null>(null)
   const [captured, setCaptured] = useState<Blob | null>(null)
@@ -47,6 +57,8 @@ export function ProgressCamera({
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
+  previewRef.current = preview
+  importingRef.current = importing
   const poseLabel = (value: ProgressPose): string => ({
     en: { front: 'Front', side: 'Side', back: 'Back' },
     ro: { front: 'Față', side: 'Profil', back: 'Spate' },
@@ -57,24 +69,34 @@ export function ProgressCamera({
     ro: { full: 'Corp întreg', torso: 'Trunchi', free: 'Liber' },
     th: { full: 'เต็มตัว', torso: 'ช่วงลำตัว', free: 'อิสระ' },
   })[language][value]
+  const privacyCopy = ({
+    en: { requesting: 'STARTING CAMERA · MICROPHONE OFF', live: 'CAMERA ONLY · MICROPHONE OFF', released: 'CAMERA RELEASED' },
+    ro: { requesting: 'SE PORNEȘTE CAMERA · MICROFON OPRIT', live: 'DOAR CAMERA · MICROFON OPRIT', released: 'CAMERA OPRITĂ' },
+    th: { requesting: 'กำลังเปิดกล้อง · ปิดไมโครโฟน', live: 'กล้องเท่านั้น · ปิดไมโครโฟน', released: 'ปิดกล้องแล้ว' },
+  })[language]
 
   const stop = useCallback(() => {
+    streamRequestRef.current += 1
     if (countdownRef.current != null) window.clearInterval(countdownRef.current)
     countdownRef.current = null
-    for (const track of streamRef.current?.getTracks() ?? []) track.stop()
+    releaseProgressCamera(streamRef.current, videoRef.current)
     streamRef.current = null
+    setCameraPrivacyState('released')
   }, [])
 
   useEffect(() => {
     let cancelled = false
     const connect = async () => {
       stop()
+      const requestId = streamRequestRef.current
       setReady(false)
       setError(null)
+      if (capturePageIsHidden()) return
       if (!navigator.mediaDevices?.getUserMedia) {
         setError('Live camera is unavailable in this browser. Choose a photo from your library instead.')
         return
       }
+      setCameraPrivacyState('requesting')
       try {
         let stream: MediaStream
         try {
@@ -89,25 +111,37 @@ export function ProgressCamera({
         } catch (firstError) {
           const name = firstError instanceof DOMException ? firstError.name : ''
           if (name === 'NotAllowedError' || name === 'SecurityError') throw firstError
+          if (cancelled || requestId !== streamRequestRef.current || capturePageIsHidden()) return
           stream = await navigator.mediaDevices.getUserMedia({ audio: false, video: true })
         }
-        if (cancelled) {
-          stream.getTracks().forEach((track) => track.stop())
+        if (cancelled || requestId !== streamRequestRef.current || capturePageIsHidden()) {
+          releaseProgressCamera(stream, null)
           return
         }
         streamRef.current = stream
         const video = videoRef.current
-        if (!video) return
+        if (!video) {
+          releaseProgressCamera(stream, null)
+          streamRef.current = null
+          return
+        }
         video.srcObject = stream
         video.muted = true
         if (video.readyState < 1) {
           await new Promise<void>((resolve) => video.addEventListener('loadedmetadata', () => resolve(), { once: true }))
         }
         await video.play()
-        if (cancelled) return
+        if (cancelled || requestId !== streamRequestRef.current || capturePageIsHidden()) {
+          stop()
+          return
+        }
         setReady(true)
+        setCameraPrivacyState('live')
       } catch (cause) {
         if (cancelled) return
+        const stale = requestId !== streamRequestRef.current || capturePageIsHidden()
+        stop()
+        if (stale) return
         const name = cause instanceof DOMException ? cause.name : ''
         setError(name === 'NotAllowedError' || name === 'SecurityError'
           ? 'Camera access is blocked. Allow camera access in Safari settings, then tap Retry, or choose a photo from your library.'
@@ -120,6 +154,35 @@ export function ProgressCamera({
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
   useEffect(() => () => { libraryRequestRef.current += 1 }, [])
+
+  useEffect(() => {
+    const suspend = () => {
+      suspendedRef.current = true
+      stop()
+      setReady(false)
+      setCountdown(null)
+    }
+    const resume = () => {
+      if (!suspendedRef.current || document.visibilityState === 'hidden') return
+      suspendedRef.current = false
+      if (!previewRef.current && !importingRef.current) {
+        setRestartKey((value) => value + 1)
+      }
+    }
+    const visibility = () => {
+      if (document.visibilityState === 'hidden') suspend()
+      else resume()
+    }
+    window.addEventListener('pagehide', suspend)
+    window.addEventListener('pageshow', resume)
+    document.addEventListener('visibilitychange', visibility)
+    return () => {
+      window.removeEventListener('pagehide', suspend)
+      window.removeEventListener('pageshow', resume)
+      document.removeEventListener('visibilitychange', visibility)
+      stop()
+    }
+  }, [stop])
 
   const captureFrame = useCallback(async () => {
     const video = videoRef.current
@@ -136,22 +199,40 @@ export function ProgressCamera({
     canvas.width = Math.max(1, Math.min(1440, Math.round(crop.width)))
     canvas.height = Math.max(1, Math.round(canvas.width / captureRatio))
     const context = canvas.getContext('2d', { alpha: false })
-    if (!context) return
-    if (facing === 'user') {
-      context.translate(canvas.width, 0)
-      context.scale(-1, 1)
+    if (!context) {
+      stop()
+      setReady(false)
+      setError('The photo could not be captured. Tap Retry camera and try again.')
+      return
     }
-    context.drawImage(video, crop.sx, crop.sy, crop.width, crop.height, 0, 0, canvas.width, canvas.height)
-    const blob = await new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.94))
-    if (!blob) return
+    let blob: Blob | null = null
+    try {
+      if (facing === 'user') {
+        context.translate(canvas.width, 0)
+        context.scale(-1, 1)
+      }
+      context.drawImage(video, crop.sx, crop.sy, crop.width, crop.height, 0, 0, canvas.width, canvas.height)
+      const encoded = new Promise<Blob | null>((resolve) => canvas.toBlob(resolve, 'image/jpeg', 0.94))
+      // drawImage has copied the frame synchronously, so the physical camera
+      // is no longer needed while JPEG encoding finishes.
+      stop()
+      setReady(false)
+      blob = await encoded
+    } catch {
+      stop()
+      setReady(false)
+    }
+    if (!blob) {
+      setError('The photo could not be captured. Tap Retry camera and try again.')
+      return
+    }
     if (preview) URL.revokeObjectURL(preview)
     const url = URL.createObjectURL(blob)
     processedCaptureRef.current = null
-    libraryCaptureRef.current = false
     setCaptured(blob)
     setPreview(url)
     navigator.vibrate?.(40)
-  }, [facing, framingMode, preview])
+  }, [facing, framingMode, preview, stop])
 
   const beginCountdown = useCallback(() => {
     if (countdown != null || !ready || importing) return
@@ -186,6 +267,8 @@ export function ProgressCamera({
     const requestId = ++libraryRequestRef.current
     setImporting(true)
     setError(null)
+    stop()
+    setReady(false)
     try {
       // Decode and re-encode gallery photos before review. This applies EXIF
       // orientation, strips GPS metadata, handles iPhone image dimensions and
@@ -193,16 +276,12 @@ export function ProgressCamera({
       const processed = await processProgressPhoto(file)
       if (requestId !== libraryRequestRef.current) return
       if (preview) URL.revokeObjectURL(preview)
-      stop()
-      setReady(false)
       processedCaptureRef.current = processed
-      libraryCaptureRef.current = true
       setCaptured(processed.full)
       setPreview(URL.createObjectURL(processed.full))
     } catch (cause) {
       if (requestId !== libraryRequestRef.current) return
       processedCaptureRef.current = null
-      libraryCaptureRef.current = false
       setCaptured(null)
       setPreview(null)
       setError(progressPhotoSaveError(cause).message)
@@ -213,15 +292,19 @@ export function ProgressCamera({
   }
 
   const retake = () => {
+    const hadPreview = Boolean(preview)
     if (preview) URL.revokeObjectURL(preview)
     setPreview(null)
     setCaptured(null)
     processedCaptureRef.current = null
     setError(null)
-    if (libraryCaptureRef.current) {
-      libraryCaptureRef.current = false
-      setRestartKey((value) => value + 1)
-    }
+    if (hadPreview) setRestartKey((value) => value + 1)
+  }
+
+  const closeCamera = () => {
+    stop()
+    setReady(false)
+    onClose()
   }
 
   const save = async () => {
@@ -274,7 +357,7 @@ export function ProgressCamera({
       )}
 
       <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-12">
-        <button type="button" onClick={onClose} className="rounded-full bg-black/40 px-4 py-2 text-sm font-bold backdrop-blur">Close</button>
+        <button type="button" onClick={closeCamera} className="rounded-full bg-black/40 px-4 py-2 text-sm font-bold backdrop-blur">Close</button>
         <div className="flex rounded-full bg-black/40 p-1 backdrop-blur">
           {(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${pose === value ? 'bg-white text-black' : 'text-white/70'}`}>{poseLabel(value)}</button>)}
         </div>
@@ -298,7 +381,7 @@ export function ProgressCamera({
 
       <div className="absolute inset-x-0 bottom-0 bg-gradient-to-t from-black/90 via-black/55 to-transparent px-4 pt-20 pb-[calc(1rem+env(safe-area-inset-bottom))]">
         {preview ? (
-          <div className="mx-auto flex max-w-md gap-3"><button type="button" onClick={retake} className="flex-1 rounded-2xl bg-white/15 px-5 py-4 font-bold backdrop-blur">Retake</button><button type="button" disabled={saving} onClick={() => void save()} className="flex-[1.4] rounded-2xl bg-emerald-500 px-5 py-4 font-bold disabled:opacity-50">{saving ? 'Saving privately…' : 'Save privately'}</button></div>
+          <div className="mx-auto max-w-md"><div className="flex gap-3"><button type="button" onClick={retake} className="flex-1 rounded-2xl bg-white/15 px-5 py-4 font-bold backdrop-blur">Retake</button><button type="button" disabled={saving} onClick={() => void save()} className="flex-[1.4] rounded-2xl bg-emerald-500 px-5 py-4 font-bold disabled:opacity-50">{saving ? 'Saving privately…' : 'Save privately'}</button></div><p className="mt-2 text-center font-mono text-[8px] font-bold tracking-[0.1em] text-white/60" aria-live="polite">{privacyCopy.released}</p></div>
         ) : (
           <div className="mx-auto max-w-md space-y-3">
             <div className="flex items-center justify-between gap-2">
@@ -306,6 +389,7 @@ export function ProgressCamera({
               {referenceUrl && <label className="flex items-center gap-2 rounded-full bg-black/40 px-3 py-2 text-[10px] font-bold backdrop-blur">Ghost <input type="range" min="0" max="0.55" step="0.05" value={ghostOpacity} onChange={(event) => setGhostOpacity(Number(event.target.value))} className="w-16" /></label>}
               <button type="button" onClick={() => setFacing((value) => value === 'user' ? 'environment' : 'user')} className="rounded-full bg-black/40 px-3 py-2 text-[10px] font-bold backdrop-blur">Flip camera</button>
             </div>
+            <p className="text-center font-mono text-[8px] font-bold tracking-[0.1em] text-emerald-100/80" aria-live="polite">{privacyCopy[cameraPrivacyState]}</p>
             <div className="grid grid-cols-[4rem_1fr_4rem] items-center">
               <label className={`rounded-full bg-white/15 px-3 py-2 text-center text-[10px] font-bold backdrop-blur ${importing ? 'cursor-wait opacity-60' : 'cursor-pointer'}`}>{importing ? 'Preparing…' : 'Library'}<input ref={libraryInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" disabled={importing} onChange={(event) => { void acceptLibrary(event.target.files?.[0]) }} className="sr-only" /></label>
               <button type="button" disabled={!ready || importing} onClick={beginCountdown} className="mx-auto h-20 w-20 rounded-full border-4 border-white bg-white/20 active:scale-95 disabled:opacity-35" style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.4)' }} aria-label={`Take photo in ${timer} seconds`} />

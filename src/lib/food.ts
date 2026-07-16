@@ -82,6 +82,106 @@ export interface ComposerFoodItem {
   adjustment_role: 'carb' | 'protein' | 'energy' | 'none'
 }
 
+export function foodPreferenceUsageUpdates(
+  current: FoodPreference[],
+  items: ComposerFoodItem[],
+  userId: string,
+  slot: MealSlot,
+  now: string,
+  createId: () => string = () => crypto.randomUUID(),
+): FoodPreference[] {
+  const working = new Map(current.map((preference) => [preference.food_id, preference]))
+  const touched = new Set<string>()
+  for (const item of items) {
+    const previous = working.get(item.food.id)
+    working.set(item.food.id, {
+      id: previous?.id ?? createId(),
+      user_id: userId,
+      food_id: item.food.id,
+      personal_name: previous?.personal_name ?? null,
+      aliases: previous?.aliases ?? [],
+      favourite: previous?.favourite ?? false,
+      usual_amount: previous?.usual_amount ?? item.quantity,
+      usual_unit: previous?.usual_unit ?? item.unit,
+      usage_count: (previous?.usage_count ?? 0) + 1,
+      last_used_at: now,
+      hidden: previous?.hidden ?? false,
+      slot_usage: { ...(previous?.slot_usage ?? {}), [slot]: (previous?.slot_usage?.[slot] ?? 0) + 1 },
+      version: (previous?.version ?? 0) + 1,
+      updated_at: now,
+    })
+    touched.add(item.food.id)
+  }
+  return [...touched].map((foodId) => working.get(foodId)!)
+}
+
+/**
+ * A search result is intentionally kept separate from the meal until the user
+ * confirms its amount. This prevents a tap on a result from silently logging a
+ * 100 g portion and gives the composer one canonical quantity calculation path.
+ */
+export interface FoodSelectionDraft {
+  food: FoodRecord
+  quantity: number
+  unit: FoodUnit
+}
+
+export function availableFoodUnits(food: FoodRecord): FoodUnit[] {
+  const basisUnit: FoodUnit = food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'
+  return [
+    basisUnit,
+    ...(food.serving_grams_or_ml != null && food.serving_grams_or_ml > 0 ? ['serving' as const] : []),
+    ...(food.piece_grams_or_ml != null && food.piece_grams_or_ml > 0 ? ['piece' as const] : []),
+  ]
+}
+
+export function beginFoodSelection(food: FoodRecord, preference?: FoodPreference): FoodSelectionDraft {
+  const units = availableFoodUnits(food)
+  if (
+    preference?.usual_amount != null
+    && preference.usual_amount > 0
+    && preference.usual_unit != null
+    && units.includes(preference.usual_unit)
+  ) {
+    return { food, quantity: preference.usual_amount, unit: preference.usual_unit }
+  }
+  if (food.piece_grams_or_ml != null && food.piece_grams_or_ml > 0) return { food, quantity: 1, unit: 'piece' }
+  if (food.serving_grams_or_ml != null && food.serving_grams_or_ml > 0) return { food, quantity: 1, unit: 'serving' }
+  return { food, quantity: 100, unit: units[0] }
+}
+
+export function composerItemFromSelection(
+  selection: FoodSelectionDraft,
+  index: number,
+  id: string = crypto.randomUUID(),
+): ComposerFoodItem {
+  const { food, quantity, unit } = selection
+  return {
+    id,
+    food,
+    quantity,
+    unit,
+    sort_order: index,
+    optional: false,
+    locked: true,
+    adjustable: false,
+    minimum_amount: null,
+    maximum_amount: null,
+    step_amount: unit === 'piece' || unit === 'serving' ? 1 : 5,
+    adjustment_role: food.carbs_100 != null && food.protein_100 != null && food.carbs_100 > food.protein_100
+      ? 'carb'
+      : 'protein',
+  }
+}
+
+export function commitFoodSelection(
+  items: ComposerFoodItem[],
+  selection: FoodSelectionDraft,
+  id?: string,
+): ComposerFoodItem[] {
+  return [...items, composerItemFromSelection(selection, items.length, id)]
+}
+
 export interface LoggedMeal {
   id: string
   user_id: string
@@ -133,6 +233,17 @@ export interface LoggedFoodEntry {
   saturated_fat_g: number | null
   salt_g: number | null
   created_at: string
+}
+
+/* Always derive the next history from the latest committed collection. This is
+   intentionally tiny, but centralising the rule prevents rapid multi-meal
+   operations from replacing one another with a stale render snapshot. */
+export function addLoggedMealToHistory(
+  current: LoggedMeal[],
+  meal: LoggedMeal,
+  replaceMealId: string | null = null,
+): LoggedMeal[] {
+  return [meal, ...current.filter((value) => value.id !== replaceMealId && value.id !== meal.id)]
 }
 
 export interface MealPreset {
@@ -238,6 +349,18 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'oua crude': 'eggs raw',
     'ou fiert': 'egg boiled',
     'oua fierte': 'eggs boiled',
+    'afine': 'blueberries',
+    'afine proaspete': 'fresh blueberries',
+    'afine congelate': 'frozen blueberries',
+    'zmeura': 'raspberries',
+    'zmeura proaspata': 'fresh raspberries',
+    'zmeura congelata': 'frozen raspberries',
+    'fructe de padure': 'mixed berries',
+    'fructe de padure congelate': 'frozen mixed berries',
+    'spanac proaspat': 'fresh spinach',
+    'spanac congelat': 'frozen spinach',
+    'mazare congelata': 'frozen green peas',
+    'ton in suc propriu': 'tuna in own juice',
   },
   th: {
     'อกไก่': 'chicken breast',
@@ -260,6 +383,19 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'อะโวคาโด': 'avocado',
     'ไข่ดิบ': 'egg raw',
     'ไข่ต้ม': 'egg boiled',
+    'บลูเบอร์รี': 'blueberries',
+    'บลูเบอร์รี่': 'blueberries',
+    'บลูเบอร์รีสด': 'fresh blueberries',
+    'บลูเบอร์รี่สด': 'fresh blueberries',
+    'บลูเบอร์รีแช่แข็ง': 'frozen blueberries',
+    'บลูเบอร์รี่แช่แข็ง': 'frozen blueberries',
+    'ราสป์เบอร์รี': 'raspberries',
+    'ราสเบอร์รี': 'raspberries',
+    'เบอร์รีรวมแช่แข็ง': 'frozen mixed berries',
+    'ผักโขมสด': 'fresh spinach',
+    'ผักโขมแช่แข็ง': 'frozen spinach',
+    'ถั่วลันเตาแช่แข็ง': 'frozen green peas',
+    'ทูน่าในน้ำแร่': 'tuna in own juice',
   },
 }
 
@@ -273,6 +409,9 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
     proteina: 'protein', proteic: 'protein', zer: 'whey', cazeina: 'casein', izolat: 'isolate',
     integral: 'whole grain', organic: 'organic', sos: 'sauce', avocado: 'avocado',
+    afine: 'blueberries', zmeura: 'raspberries', fructe: 'fruit', padure: 'berries',
+    spanac: 'spinach', mazare: 'peas', proaspat: 'fresh', proaspata: 'fresh', proaspete: 'fresh',
+    congelat: 'frozen', congelata: 'frozen', congelate: 'frozen', suc: 'juice', propriu: 'own',
     de: '', din: '', la: '',
   },
   th: {
@@ -283,6 +422,8 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
     เวย์: 'whey', โปรตีน: 'protein', เคซีน: 'casein', ไอโซเลต: 'isolate',
     ส้มตำ: 'som tam', น้ำปลา: 'fish sauce', อะโวคาโด: 'avocado', ไข่ดิบ: 'egg raw', ไข่ต้ม: 'egg boiled',
+    บลูเบอร์รี: 'blueberries', บลูเบอร์รี่: 'blueberries', ราสป์เบอร์รี: 'raspberries', ราสเบอร์รี: 'raspberries',
+    เบอร์รี: 'berries', ผักโขม: 'spinach', ถั่วลันเตา: 'green peas', สด: 'fresh', แช่แข็ง: 'frozen',
   },
 }
 
@@ -421,6 +562,41 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
   'apex-curated:usda-fdc-171705': ['avocado', 'avocado raw', 'avocado crud', 'อะโวคาโด', 'อะโวคาโดดิบ'],
   'apex-curated:usda-fdc-171287': ['raw egg', 'whole egg raw', 'egg raw', 'ou crud', 'oua crude', 'ouă crude', 'ไข่ดิบ', 'ไข่ไก่ดิบ'],
   'apex-curated:usda-fdc-173424': ['boiled egg', 'hard boiled egg', 'whole egg boiled', 'ou fiert', 'oua fierte', 'ouă fierte', 'ไข่ต้ม', 'ไข่ต้มสุก'],
+  'apex-curated:lidl-nixe-tuna-own-juice-label': [
+    'nixe tuna', 'nixe thunfischfilets', 'tuna in own juice', 'ton in suc propriu', 'ton nixe',
+    'ทูน่าในน้ำแร่', 'ทูน่า nixe', 'lidl tuna', 'lidl ton',
+  ],
+  'apex-curated:swiss-retail-blueberries-fresh-reference': [
+    'blueberries', 'fresh blueberries', 'afine', 'afine proaspete', 'afine proaspătă',
+    'บลูเบอร์รี', 'บลูเบอร์รี่', 'บลูเบอร์รีสด', 'aldi blueberries', 'lidl blueberries',
+  ],
+  'apex-curated:swiss-retail-blueberries-frozen-reference': [
+    'blueberries', 'frozen blueberries', 'afine', 'afine congelate',
+    'บลูเบอร์รีแช่แข็ง', 'บลูเบอร์รี่แช่แข็ง', 'aldi frozen fruit', 'lidl frozen fruit',
+  ],
+  'apex-curated:swiss-retail-raspberries-fresh-reference': [
+    'raspberries', 'fresh raspberries', 'zmeura', 'zmeură', 'zmeura proaspata',
+    'ราสป์เบอร์รี', 'ราสเบอร์รี', 'aldi raspberries', 'lidl raspberries',
+  ],
+  'apex-curated:swiss-retail-raspberries-frozen-reference': [
+    'raspberries', 'frozen raspberries', 'zmeura congelata', 'zmeură congelată',
+    'ราสป์เบอร์รีแช่แข็ง', 'ราสเบอร์รีแช่แข็ง', 'aldi frozen fruit', 'lidl frozen fruit',
+  ],
+  'apex-curated:swiss-retail-mixed-berries-frozen-reference': [
+    'mixed berries', 'frozen mixed berries', 'fructe de padure', 'fructe de pădure congelate',
+    'เบอร์รีรวมแช่แข็ง', 'aldi frozen berries', 'lidl frozen berries',
+  ],
+  'apex-curated:swiss-retail-spinach-fresh-reference': [
+    'spinach', 'fresh spinach', 'spanac', 'spanac proaspat', 'spanac proaspăt', 'ผักโขมสด',
+    'aldi spinach', 'lidl spinach',
+  ],
+  'apex-curated:swiss-retail-spinach-frozen-reference': [
+    'spinach', 'frozen spinach', 'spanac congelat', 'ผักโขมแช่แข็ง', 'aldi frozen spinach', 'lidl frozen spinach',
+  ],
+  'apex-curated:swiss-retail-green-peas-frozen-reference': [
+    'green peas', 'frozen peas', 'mazare congelata', 'mazăre congelată', 'ถั่วลันเตาแช่แข็ง',
+    'aldi frozen peas', 'lidl frozen peas',
+  ],
 }
 
 function catalogAliases(food: FoodRecord): string[] {

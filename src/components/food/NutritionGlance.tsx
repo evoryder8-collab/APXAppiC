@@ -16,6 +16,8 @@ export function NutritionGlance({
   eyebrow = 'Today',
   cornerControl,
   onOpen,
+  onRingClick,
+  onMacroClick,
 }: {
   target: MealTotals
   consumed: MealTotals
@@ -25,6 +27,8 @@ export function NutritionGlance({
   eyebrow?: string | null
   cornerControl?: ReactNode
   onOpen?: () => void
+  onRingClick?: () => void
+  onMacroClick?: (macro: 'protein_g' | 'carbs_g' | 'fat_g') => void
 }) {
   const { language } = useLanguage()
   const reduceMotion = useReducedMotion()
@@ -32,9 +36,9 @@ export function NutritionGlance({
   const remaining = target.kcal - consumed.kcal
   const calorieProgress = target.kcal > 0 ? Math.min(1, consumed.kcal / target.kcal) : 0
   const metrics = [
-    ['Protein', consumed.protein_g, target.protein_g, '#ec4899'],
-    ['Carbs', consumed.carbs_g, target.carbs_g, '#38bdf8'],
-    ['Fat', consumed.fat_g, target.fat_g, '#a78bfa'],
+    ['Protein', 'protein_g', consumed.protein_g, target.protein_g, '#ec4899'],
+    ['Carbs', 'carbs_g', consumed.carbs_g, target.carbs_g, '#38bdf8'],
+    ['Fat', 'fat_g', consumed.fat_g, target.fat_g, '#a78bfa'],
   ] as const
 
   return (
@@ -50,7 +54,14 @@ export function NutritionGlance({
 
       <div className="relative mt-5 grid grid-cols-[1fr_1.45fr_1fr] items-center gap-2 text-center">
         <div><p className="font-mono text-2xl font-bold text-ink">{Math.round(consumed.kcal)}</p><p className="mt-1 text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Eaten')}</p></div>
-        <div className="relative mx-auto aspect-square w-full max-w-40">
+        <motion.button
+          type="button"
+          onClick={onRingClick}
+          disabled={!onRingClick}
+          whileTap={onRingClick ? { scale: 0.96 } : undefined}
+          aria-label={onRingClick ? t('Change calorie goal and activity level') : undefined}
+          className="relative mx-auto aspect-square w-full max-w-40 rounded-full text-center disabled:cursor-default"
+        >
           <motion.div
             className="absolute -inset-3 rounded-full blur-xl"
             style={{ background: remaining < 0 ? 'rgba(249,115,22,.28)' : 'radial-gradient(circle, rgba(251,191,36,.35), rgba(56,189,248,.12) 58%, transparent 72%)' }}
@@ -77,21 +88,26 @@ export function NutritionGlance({
               </motion.div>
             </div>
           </div>
-        </div>
+          {onRingClick && <span className="pointer-events-none absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full border border-white bg-white/90 text-[10px] font-black text-amber-700 shadow-sm" aria-hidden>✦</span>}
+        </motion.button>
         <div><p className="font-mono text-lg font-bold text-ink">{mealsDone}/{mealsTotal}</p><p className="mt-1 text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Meals')}</p></div>
       </div>
 
       <div className="relative mt-5 grid grid-cols-3 gap-2">
-        {metrics.map(([label, value, goal, color]) => {
+        {metrics.map(([label, macro, value, goal, color]) => {
           const progress = goal > 0 ? Math.min(1, value / goal) : 0
-          return (
-            <div key={label} className="min-w-0 rounded-2xl border border-white/80 bg-white/72 px-2.5 py-3 shadow-[0_8px_22px_-18px_rgba(15,23,42,.55)] sm:px-3">
-              <div className="min-w-0">
-                <span className="block min-h-5 break-words text-[9px] leading-[1.05rem] font-bold text-ink sm:text-[10px]">{t(label)}</span>
-                <span className="mt-0.5 block whitespace-nowrap font-mono text-[clamp(8px,2.25vw,10px)] font-bold tracking-[-0.04em] text-ink-faint sm:tracking-normal">{Math.round(value)}/{Math.round(goal)}g</span>
-              </div>
-              <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8"><motion.div initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} className="h-full rounded-full" style={{ background: color }} /></div>
+          const className = "min-w-0 rounded-2xl border border-white/80 bg-white/72 px-2.5 py-3 text-left shadow-[0_8px_22px_-18px_rgba(15,23,42,.55)] sm:px-3"
+          const content = <>
+            <div className="min-w-0">
+              <span className="block min-h-5 break-words text-[9px] leading-[1.05rem] font-bold text-ink sm:text-[10px]">{t(label)}</span>
+              <span className="mt-0.5 block whitespace-nowrap font-mono text-[clamp(8px,2.25vw,10px)] font-bold tracking-[-0.04em] text-ink-faint sm:tracking-normal">{Math.round(value)}/{Math.round(goal)}g</span>
             </div>
+            <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8"><motion.div initial={{ width: 0 }} animate={{ width: `${progress * 100}%` }} className="h-full rounded-full" style={{ background: color }} /></div>
+          </>
+          return (
+            onMacroClick
+              ? <motion.button key={label} type="button" whileTap={{ scale: 0.96 }} onClick={() => onMacroClick(macro)} aria-label={`${t(label)}: ${t('show daily food contributors')}`} className={className}>{content}</motion.button>
+              : <div key={label} className={className}>{content}</div>
           )
         })}
       </div>
