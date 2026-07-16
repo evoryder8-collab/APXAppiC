@@ -22,6 +22,7 @@ type ImportState =
 export function Settings() {
   const { data, setProfile, setSettings, signOut, toast, bulkUpsert } = useStore()
   const { language } = useLanguage()
+  const t = (value: string): string => translateInterfaceText(value, language)
   const fileRef = useRef<HTMLInputElement>(null)
   const [importState, setImportState] = useState<ImportState>({ phase: 'idle' })
 
@@ -125,6 +126,43 @@ export function Settings() {
             </div>
           )}
         </GlassCard>
+
+        <div data-no-translate>
+          <GlassCard accent={ACCENTS.ice} className="p-5">
+            <div className="flex items-start justify-between gap-3">
+              <div><h2 className="font-display text-lg font-bold text-ink">{t('Simple Mode')}</h2><p className={`${sub} mt-1`}>{t('Choose exactly what stays visible on your distraction-free home screen.')}</p></div>
+              {(settings.addons.adhd_mode ?? false) && <span className="rounded-full bg-cyan-100 px-2.5 py-1 font-mono text-[8px] font-black tracking-wide text-cyan-800">{t('ADHD ACTIVE')}</span>}
+            </div>
+
+            <div className="mt-4 rounded-2xl border border-cyan-100/80 bg-white/50 p-3">
+              <p className={label}>{t('Weight unit')}</p>
+              <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-ink/6 p-1" role="group" aria-label={t('Weight unit')}>
+                {(['kg', 'lb'] as const).map((unit) => {
+                  const active = (settings.addons.weight_unit ?? 'kg') === unit
+                  return <button key={unit} type="button" aria-pressed={active} onClick={() => setSettings({ addons: { ...settings.addons, weight_unit: unit } })} className={`rounded-lg px-3 py-2 text-[11px] font-black transition ${active ? 'bg-white text-cyan-800 shadow-sm' : 'text-ink-soft'}`}>{unit === 'kg' ? t('Kilograms (kg)') : t('Pounds (lb)')}</button>
+                })}
+              </div>
+            </div>
+
+            <div className="mt-2 divide-y divide-ink/8">
+              <div className={row}>
+                <div><p className={label}>{t('Show APEX Orbit shortcut')}</p><p className={sub}>{t('Keep running intelligence on the Simple Mode home screen.')}</p></div>
+                <Toggle accent={ACCENTS.ice} label={t('Show APEX Orbit shortcut')} on={settings.addons.simple_show_orbit ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_orbit: value } })} />
+              </div>
+              <div className={row}>
+                <div><p className={label}>{t('Show Body Index shortcut')}</p><p className={sub}>{t('Keep your body score shortcut on the Simple Mode home screen.')}</p></div>
+                <Toggle accent={ACCENTS.ice} label={t('Show Body Index shortcut')} on={settings.addons.simple_show_body_index ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_body_index: value } })} />
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-[22px] border border-violet-200/70 bg-[linear-gradient(135deg,rgba(237,233,254,.8),rgba(236,254,255,.78))] p-4">
+              <div className="flex items-center justify-between gap-3">
+                <div className="max-w-[76%]"><p className="font-display text-base font-black text-ink">{t('ADHD mode')}</p><p className="mt-1 text-[11px] leading-relaxed font-semibold text-ink-soft">{t('Only nutrition, four quick actions and your editable workout stay visible. Everything else is hidden from Simple Mode.')}</p></div>
+                <Toggle accent={violet} label={t('ADHD mode')} on={settings.addons.adhd_mode ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, adhd_mode: value } })} />
+              </div>
+            </div>
+          </GlassCard>
+        </div>
 
         {isTrainingInductionEligible(profile.persona) && (
           <div data-no-translate>

@@ -1,4 +1,5 @@
 import { motion, useReducedMotion } from 'framer-motion'
+import type { ReactNode } from 'react'
 import { ACCENTS } from '../../lib/theme'
 import type { MealTotals } from '../../lib/food'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
@@ -13,6 +14,8 @@ export function NutritionGlance({
   mealsTotal,
   status,
   eyebrow = 'Today',
+  cornerControl,
+  onOpen,
 }: {
   target: MealTotals
   consumed: MealTotals
@@ -20,6 +23,8 @@ export function NutritionGlance({
   mealsTotal: number
   status: string
   eyebrow?: string | null
+  cornerControl?: ReactNode
+  onOpen?: () => void
 }) {
   const { language } = useLanguage()
   const reduceMotion = useReducedMotion()
@@ -36,8 +41,11 @@ export function NutritionGlance({
     <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/95 via-white/80 to-cyan-50/80 p-5 sm:p-6">
       <div className="pointer-events-none absolute -top-20 -right-14 h-52 w-52 rounded-full bg-amber-300/20 blur-3xl" />
       <div className="relative flex items-start justify-between gap-3">
-        <div>{eyebrow && <p key={eyebrow} className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t(eyebrow)}</p>}<h2 className={eyebrow ? 'mt-1 font-display text-xl font-bold text-ink' : 'font-display text-xl font-bold text-ink'}>{t('Nutrition at a glance')}</h2></div>
-        <AccentChip accent={amber}>{t(status)}</AccentChip>
+        <div>{eyebrow && <p key={eyebrow} className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t(eyebrow)}</p>}{onOpen ? <button type="button" onClick={onOpen} className={`${eyebrow ? 'mt-1 ' : ''}flex items-center gap-1.5 text-left font-display text-xl font-bold text-ink active:opacity-65`}>{t('Nutrition at a glance')}<span className="text-sm text-amber-700" aria-hidden>↗</span></button> : <h2 className={eyebrow ? 'mt-1 font-display text-xl font-bold text-ink' : 'font-display text-xl font-bold text-ink'}>{t('Nutrition at a glance')}</h2>}</div>
+        <div className="flex shrink-0 flex-col items-end gap-2">
+          <AccentChip accent={amber}>{t(status)}</AccentChip>
+          {cornerControl}
+        </div>
       </div>
 
       <div className="relative mt-5 grid grid-cols-[1fr_1.45fr_1fr] items-center gap-2 text-center">

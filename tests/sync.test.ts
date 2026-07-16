@@ -1,9 +1,14 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  hasPendingSyncForRecord,
   normalizeDailyLogIntegers,
   normalizeSyncPayload,
   normalizeSyncRecord,
+  replayPendingList,
+  replayPendingSingleton,
+  syncOperationConflicts,
+  syncOperationKeys,
   upsertConflictTarget,
 } from '../src/lib/sync.ts'
 
@@ -69,4 +74,44 @@ test('measured BMR remains compatible with the existing profile schema', () => {
     user_id: 'user-id',
     weight_kg: 78,
   })
+})
+
+test('fresh server reads replay queued upserts and deletes without hiding offline edits', () => {
+  const rows = replayPendingList('daily_logs', [
+    { id: 'remote-kept', user_id: 'user', water_l: 1 },
+    { id: 'remote-deleted', user_id: 'user', water_l: 2 },
+  ], [
+    { table: 'daily_logs', type: 'delete', payload: { id: 'remote-deleted' } },
+    { table: 'daily_logs', type: 'upsert', payload: { id: 'local-new', user_id: 'user', water_l: 3 } },
+    { table: 'daily_logs', type: 'upsert', payload: { id: 'remote-kept', user_id: 'user', water_l: 4 } },
+  ])
+
+  assert.deepEqual(rows, [
+    { id: 'remote-kept', user_id: 'user', water_l: 4 },
+    { id: 'local-new', user_id: 'user', water_l: 3 },
+  ])
+})
+
+test('queued singleton settings remain authoritative during reconnect hydration', () => {
+  const settings = replayPendingSingleton('settings', { id: 'settings', user_id: 'user', language: 'en' }, [
+    { table: 'settings', type: 'upsert', payload: { id: 'settings', user_id: 'user', language: 'ro' } },
+  ])
+  assert.deepEqual(settings, { id: 'settings', user_id: 'user', language: 'ro' })
+})
+
+test('realtime conflict guard detects records inside ordinary and bulk queue payloads', () => {
+  const operations = [
+    { table: 'meals', type: 'upsert' as const, payload: [{ id: 'meal-1' }, { id: 'meal-2' }] },
+  ]
+  assert.equal(hasPendingSyncForRecord(operations, 'meals', 'meal-2'), true)
+  assert.equal(hasPendingSyncForRecord(operations, 'meals', 'meal-3'), false)
+  assert.equal(hasPendingSyncForRecord(operations, 'supplements', 'meal-2'), false)
+})
+
+test('a failed record blocks only later writes for the same queued entity', () => {
+  const failed = { table: 'meals', type: 'upsert' as const, payload: { id: 'meal-1' } }
+  const blocked = new Set(syncOperationKeys(failed))
+  assert.equal(syncOperationConflicts({ table: 'meals', type: 'delete', payload: { id: 'meal-1' } }, blocked), true)
+  assert.equal(syncOperationConflicts({ table: 'meals', type: 'upsert', payload: { id: 'meal-2' } }, blocked), false)
+  assert.equal(syncOperationConflicts({ table: 'daily_logs', type: 'upsert', payload: { id: 'meal-1' } }, blocked), false)
 })

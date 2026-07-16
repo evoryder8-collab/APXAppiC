@@ -1,7 +1,7 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ACCENTS } from '../lib/theme'
-import { formatProgressPhotoMoment, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
+import { formatProgressPhotoMoment, type ProcessedProgressPhoto, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
 import { parseDecimalInput } from '../lib/food'
 import { useProgressPhotoStore } from '../store/ProgressPhotoStore'
 import { useStore } from '../store/AppStore'
@@ -85,15 +85,26 @@ export function VisualProgress() {
     if (comparisonPhotos.length !== 2) return
     setCompareOpen(true)
   }
-  const saveCapture = async (blob: Blob, capturedPose: ProgressPose) => {
-    await store.savePhoto({ raw: blob, pose: capturedPose, weightKg: parseDecimalInput(weight), note, referencePhotoId: reference?.id ?? null })
+  const saveCapture = async (blob: Blob, capturedPose: ProgressPose, processed?: ProcessedProgressPhoto) => {
+    await store.savePhoto({
+      raw: blob,
+      processed,
+      pose: capturedPose,
+      weightKg: parseDecimalInput(weight),
+      note,
+      // The alignment guide can remain local, but server metadata may only
+      // reference a row that has already crossed the sync boundary.
+      referencePhotoId: reference?.sync_status === 'synced' ? reference.id : null,
+    })
     setCamera(false)
     setNote('')
   }
 
   return (
     <div className="mx-auto w-full max-w-4xl">
-      <SectionHeader accent={violet} title="Visual Progress" subtitle="A private, consistent record of physical change" backTo={backTo} backLabel={backTo === '/nutrition' ? 'Nutrition' : 'Avatar'} right={<AccentChip accent={violet}>{store.syncing ? 'SYNCING' : store.photos.some((photo) => photo.sync_status === 'failed') ? 'RETRY PENDING' : store.photos.some((photo) => photo.sync_status === 'queued') ? 'QUEUED OFFLINE' : 'PRIVATE'}</AccentChip>} />
+      <SectionHeader accent={violet} title="Visual Progress" subtitle="A private, consistent record of physical change" backTo={backTo} backLabel={backTo === '/nutrition' ? 'Nutrition' : 'Avatar'} right={store.photos.some((photo) => photo.sync_status === 'failed') && !store.syncing
+        ? <button type="button" onClick={() => { void store.retrySync() }} aria-label="Retry private photo sync"><AccentChip accent={violet}>RETRY SYNC</AccentChip></button>
+        : <AccentChip accent={violet}>{store.syncing ? 'SYNCING' : store.photos.some((photo) => photo.sync_status === 'queued') ? 'QUEUED OFFLINE' : 'PRIVATE'}</AccentChip>} />
 
       <div className="space-y-5">
         <GlassCard accent={violet} className="overflow-hidden p-5 sm:p-7">

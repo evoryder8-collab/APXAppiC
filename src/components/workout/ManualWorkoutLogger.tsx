@@ -505,11 +505,13 @@ export function TodayManualWorkoutCard({
   onAdd,
   onEdit,
   accent = ACCENTS.teal,
+  compact = false,
 }: {
   date: string
   onAdd: () => void
   onEdit?: (sessionId: string, canonicalName: string) => void
   accent?: Accent
+  compact?: boolean
 }) {
   const { data, bulkUpsert, remove, toast } = useStore()
   const { language } = useLanguage()
@@ -553,6 +555,14 @@ export function TodayManualWorkoutCard({
   }
 
   if (timeline.length === 0) {
+    if (compact) {
+      return (
+        <button type="button" onClick={onAdd} className="flex w-full items-center justify-between gap-3 rounded-2xl border border-cyan-100/90 bg-white/68 px-4 py-3 text-left shadow-[0_16px_38px_-34px_rgba(8,145,178,.8)] active:scale-[.99]">
+          <span className="min-w-0"><span className="block font-mono text-[8px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT')}</span><span className="mt-0.5 block truncate text-sm font-black text-ink">{t('Add Workout')}</span></span>
+          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-xl bg-cyan-50 text-xl font-black text-cyan-800">+</span>
+        </button>
+      )
+    }
     return (
       <button type="button" onClick={onAdd} className="group relative w-full overflow-hidden rounded-[26px] bg-[#071624] p-5 text-left text-white active:scale-[.99]" style={{ boxShadow: `0 24px 55px -34px ${accent.glowStrong}` }}>
         <div className="orbit-stars pointer-events-none absolute inset-0 opacity-40" aria-hidden /><div className="pointer-events-none absolute -right-16 -bottom-24 h-52 w-52 rounded-full bg-cyan-400/25 blur-3xl" aria-hidden />

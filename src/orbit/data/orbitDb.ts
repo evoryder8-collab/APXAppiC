@@ -27,6 +27,8 @@ export interface OrbitOutboxOp {
   payload: Record<string, unknown>
   attempts: number
   created_at: string
+  last_attempt_at?: string | null
+  last_error?: string | null
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null
@@ -49,8 +51,15 @@ function complete(transaction: IDBTransaction): Promise<void> {
 export function openOrbitDb(): Promise<IDBDatabase> {
   if (!('indexedDB' in globalThis)) return Promise.reject(new Error('IndexedDB is unavailable'))
   if (dbPromise) return dbPromise
-  dbPromise = new Promise((resolve, reject) => {
+  const opening = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
+    let settled = false
+    const fail = (error: Error): void => {
+      if (settled) return
+      settled = true
+      if (dbPromise === opening) dbPromise = null
+      reject(error)
+    }
     request.onupgradeneeded = () => {
       const database = request.result
       const stores: OrbitStoreName[] = ['runs', 'routes', 'segments', 'shoes', 'posters', 'inductions', 'campaigns', 'sessions', 'active_runs', 'outbox']
@@ -63,10 +72,44 @@ export function openOrbitDb(): Promise<IDBDatabase> {
         if (name === 'runs' && !store.indexNames.contains('local_date')) store.createIndex('local_date', ['user_id', 'local_date'], { unique: false })
       }
     }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('Could not open Orbit private storage'))
+    request.onsuccess = () => {
+      if (settled) {
+        request.result.close()
+        return
+      }
+      settled = true
+      const database = request.result
+      const reset = (): void => {
+        database.close()
+        if (dbPromise === opening) dbPromise = null
+      }
+      database.onversionchange = reset
+      database.onclose = () => { if (dbPromise === opening) dbPromise = null }
+      resolve(database)
+    }
+    request.onerror = () => fail(request.error ?? new Error('Could not open Orbit private storage'))
+    request.onblocked = () => fail(new Error('Orbit private storage is blocked by another open app tab. Close it and retry.'))
   })
-  return dbPromise
+  dbPromise = opening
+  void opening.catch(() => { if (dbPromise === opening) dbPromise = null })
+  return opening
+}
+
+function scheduleLatestOutbox(transaction: IDBTransaction, op: OrbitOutboxOp): void {
+  const store = transaction.objectStore('outbox')
+  const cursorRequest = store.index('user_id').openCursor(IDBKeyRange.only(op.user_id))
+  cursorRequest.onsuccess = () => {
+    const cursor = cursorRequest.result
+    if (!cursor) {
+      store.put(op)
+      return
+    }
+    const existing = cursor.value as OrbitOutboxOp
+    if (existing.store === op.store && existing.entity_id === op.entity_id && existing.id !== op.id) {
+      cursor.delete()
+    }
+    cursor.continue()
+  }
 }
 
 export async function orbitPut<T>(storeName: OrbitStoreName, value: T): Promise<void> {
@@ -83,6 +126,29 @@ export async function orbitPutMany<T>(storeName: OrbitStoreName, values: T[]): P
   const store = transaction.objectStore(storeName)
   for (const value of values) store.put(value)
   await complete(transaction)
+}
+
+export async function orbitReplaceForUser<T extends { user_id: string }>(
+  storeName: OrbitStoreName,
+  userId: string,
+  values: T[],
+): Promise<void> {
+  if (values.some((value) => value.user_id !== userId)) throw new Error('Orbit refused a cross-account cache replace.')
+  const database = await openOrbitDb()
+  const transaction = database.transaction(storeName, 'readwrite')
+  const completion = complete(transaction)
+  const store = transaction.objectStore(storeName)
+  const cursorRequest = store.index('user_id').openCursor(IDBKeyRange.only(userId))
+  cursorRequest.onsuccess = () => {
+    const cursor = cursorRequest.result
+    if (cursor) {
+      cursor.delete()
+      cursor.continue()
+      return
+    }
+    for (const value of values) store.put(value)
+  }
+  await completion
 }
 
 export async function orbitGet<T>(storeName: OrbitStoreName, id: string): Promise<T | null> {
@@ -128,11 +194,89 @@ export async function loadActiveRun(userId: string): Promise<ActiveRun | null> {
 }
 
 export async function queueOrbitOp(op: OrbitOutboxOp): Promise<void> {
-  await orbitPut('outbox', op)
+  const database = await openOrbitDb()
+  const transaction = database.transaction('outbox', 'readwrite')
+  scheduleLatestOutbox(transaction, op)
+  await complete(transaction)
 }
 
 export async function orbitOutbox(userId: string): Promise<OrbitOutboxOp[]> {
   return (await orbitForUser<OrbitOutboxOp>('outbox', userId)).sort((a, b) => a.created_at.localeCompare(b.created_at))
+}
+
+export async function recordOrbitOutboxFailure(op: OrbitOutboxOp, message: string): Promise<boolean> {
+  const database = await openOrbitDb()
+  const transaction = database.transaction('outbox', 'readwrite')
+  const store = transaction.objectStore('outbox')
+  const request = store.get(op.id)
+  let retained = false
+  request.onsuccess = () => {
+    const current = request.result as OrbitOutboxOp | undefined
+    /* A newer edit may have coalesced this operation while its request was in
+       flight. Never resurrect the superseded payload. */
+    if (!current) return
+    retained = true
+    store.put({
+      ...current,
+      attempts: Number(current.attempts ?? 0) + 1,
+      last_attempt_at: new Date().toISOString(),
+      last_error: message,
+    } satisfies OrbitOutboxOp)
+  }
+  await complete(transaction)
+  return retained
+}
+
+export async function acknowledgeOrbitOutbox(op: OrbitOutboxOp): Promise<boolean> {
+  const database = await openOrbitDb()
+  const transaction = database.transaction(['outbox', op.store], 'readwrite')
+  const outboxStore = transaction.objectStore('outbox')
+  outboxStore.delete(op.id)
+  let markedSynced = false
+  const cursorRequest = outboxStore.index('user_id').openCursor(IDBKeyRange.only(op.user_id))
+  cursorRequest.onsuccess = () => {
+    const cursor = cursorRequest.result
+    if (cursor) {
+      const pending = cursor.value as OrbitOutboxOp
+      if (pending.store === op.store && pending.entity_id === op.entity_id) return
+      cursor.continue()
+      return
+    }
+    const entityStore = transaction.objectStore(op.store)
+    const entityRequest = entityStore.get(op.entity_id)
+    entityRequest.onsuccess = () => {
+      const entity = entityRequest.result as { user_id?: string; sync_state?: string } | undefined
+      if (!entity || entity.user_id !== op.user_id) return
+      markedSynced = true
+      entityStore.put({ ...entity, sync_state: 'synced' })
+    }
+  }
+  await complete(transaction)
+  return markedSynced
+}
+
+export async function saveEntityAtomically<T>(
+  storeName: Exclude<OrbitStoreName, 'active_runs' | 'outbox'>,
+  value: T,
+  outbox: OrbitOutboxOp,
+): Promise<void> {
+  const database = await openOrbitDb()
+  const transaction = database.transaction([storeName, 'outbox'], 'readwrite')
+  transaction.objectStore(storeName).put(value)
+  scheduleLatestOutbox(transaction, outbox)
+  await complete(transaction)
+}
+
+export async function deleteEntityAtomically(
+  storeName: Exclude<OrbitStoreName, 'active_runs' | 'outbox'>,
+  id: string,
+  outbox: OrbitOutboxOp,
+): Promise<void> {
+  const database = await openOrbitDb()
+  const transaction = database.transaction([storeName, 'outbox'], 'readwrite')
+  transaction.objectStore(storeName).delete(id)
+  scheduleLatestOutbox(transaction, outbox)
+  await complete(transaction)
 }
 
 export async function saveRunAtomically(run: OrbitRun, outbox: OrbitOutboxOp): Promise<void> {
@@ -140,6 +284,6 @@ export async function saveRunAtomically(run: OrbitRun, outbox: OrbitOutboxOp): P
   const transaction = database.transaction(['runs', 'active_runs', 'outbox'], 'readwrite')
   transaction.objectStore('runs').put(run)
   transaction.objectStore('active_runs').delete(run.user_id)
-  transaction.objectStore('outbox').put(outbox)
+  scheduleLatestOutbox(transaction, outbox)
   await complete(transaction)
 }

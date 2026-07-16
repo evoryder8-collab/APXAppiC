@@ -7,6 +7,13 @@ const LEGACY_QUEUE_KEY = 'apex.queue.v1'
 const CACHE_KEY = 'apex.cache.v2'
 const QUEUE_KEY = 'apex.queue.v2'
 
+/* localStorage can be unavailable even while the page is usable (private
+   browsing, a full quota, or an embedded browser policy). Keep the latest
+   queue in memory in that case so the current session can still flush it
+   instead of throwing from an interaction and silently abandoning the
+   server write. A reload may still require storage to be available. */
+const volatileQueues = new Map<string, SyncOp[]>()
+
 function scopedKey(base: string, scope: string): string {
   return `${base}.${scope}`
 }
@@ -40,6 +47,8 @@ export function saveCache(data: AppData, scope = 'local'): void {
 }
 
 export function loadQueue(scope = 'local'): SyncOp[] {
+  const volatile = volatileQueues.get(scope)
+  if (volatile) return [...volatile]
   try {
     const raw = localStorage.getItem(scopedKey(QUEUE_KEY, scope)) ??
       (scope === 'local' ? localStorage.getItem(LEGACY_QUEUE_KEY) : null)
@@ -50,14 +59,24 @@ export function loadQueue(scope = 'local'): SyncOp[] {
 }
 
 export function saveQueue(queue: SyncOp[], scope = 'local'): void {
-  localStorage.setItem(scopedKey(QUEUE_KEY, scope), JSON.stringify(queue))
+  try {
+    localStorage.setItem(scopedKey(QUEUE_KEY, scope), JSON.stringify(queue))
+    volatileQueues.delete(scope)
+  } catch {
+    volatileQueues.set(scope, [...queue])
+  }
 }
 
 export function clearAllLocal(scope = 'local'): void {
-  localStorage.removeItem(scopedKey(CACHE_KEY, scope))
-  localStorage.removeItem(scopedKey(QUEUE_KEY, scope))
-  if (scope === 'local') {
-    localStorage.removeItem(LEGACY_CACHE_KEY)
-    localStorage.removeItem(LEGACY_QUEUE_KEY)
+  volatileQueues.delete(scope)
+  try {
+    localStorage.removeItem(scopedKey(CACHE_KEY, scope))
+    localStorage.removeItem(scopedKey(QUEUE_KEY, scope))
+    if (scope === 'local') {
+      localStorage.removeItem(LEGACY_CACHE_KEY)
+      localStorage.removeItem(LEGACY_QUEUE_KEY)
+    }
+  } catch {
+    /* The volatile account scope was still cleared above. */
   }
 }

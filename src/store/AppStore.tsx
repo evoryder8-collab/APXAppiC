@@ -40,9 +40,14 @@ import {
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
 import {
+  hasPendingSyncForRecord,
   normalizeDailyLogIntegers,
   normalizeSyncPayload,
   normalizeSyncRecord,
+  replayPendingList,
+  replayPendingSingleton,
+  syncOperationConflicts,
+  syncOperationKeys,
   upsertConflictTarget,
 } from '../lib/sync'
 import {
@@ -69,6 +74,17 @@ export type ListTable =
   | 'deload_marks'
   | 'health_metrics'
   | 'imported_activities'
+
+const LIST_TABLES: readonly ListTable[] = [
+  'meals', 'meal_logs', 'supplements', 'supplement_logs', 'programs', 'program_days',
+  'exercises', 'workout_sessions', 'workout_logs', 'activity_logs', 'daily_logs', 'events',
+  'deload_marks', 'health_metrics', 'imported_activities',
+]
+const LIST_TABLE_SET = new Set<string>(LIST_TABLES)
+
+function isListTable(value: string): value is ListTable {
+  return LIST_TABLE_SET.has(value)
+}
 
 interface StoreValue {
   data: AppData
@@ -119,6 +135,10 @@ function normalizeAppData(value: AppData): AppData {
           newbie_mode: value.settings.addons?.newbie_mode ?? false,
           training_induction: value.settings.addons?.training_induction ?? null,
           comparison_export_mode: value.settings.addons?.comparison_export_mode === 'minimal' ? 'minimal' : 'detailed',
+          weight_unit: value.settings.addons?.weight_unit === 'lb' ? 'lb' : 'kg',
+          simple_show_orbit: value.settings.addons?.simple_show_orbit ?? true,
+          simple_show_body_index: value.settings.addons?.simple_show_body_index ?? true,
+          adhd_mode: value.settings.addons?.adhd_mode ?? false,
         },
       }
     : null
@@ -186,6 +206,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   dataRef.current = data
   const flushing = useRef(false)
   const lastSchemaToastAt = useRef(0)
+  const lastSyncErrorToastAt = useRef(0)
   const pendingCache = useRef<{ data: AppData; scope: string } | null>(null)
   const cacheSaveTimer = useRef<number | null>(null)
 
@@ -242,21 +263,37 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const scope = scopeRef.current
     try {
       let queue = loadQueue(scope)
+      const attemptedIds = new Set<string>()
+      const blockedKeys = new Set<string>()
       while (queue.length > 0) {
         if (scopeRef.current !== scope) break
-        const op = queue[0]
+        const op = queue.find((candidate) =>
+          !attemptedIds.has(candidate.id) && !syncOperationConflicts(candidate, blockedKeys),
+        )
+        if (!op) break
+        attemptedIds.add(op.id)
         const conflictTarget = upsertConflictTarget(op.table)
         const syncPayload = op.type === 'upsert'
           ? normalizeSyncPayload(op.table, op.payload)
           : op.payload
-        const { error } = op.type === 'upsert'
-          ? conflictTarget
-            ? await supabase.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
-            : await supabase.from(op.table).upsert(syncPayload)
-          : await supabase
-              .from(op.table)
-              .delete()
-              .eq('id', (op.payload as Record<string, unknown>).id as string)
+        let error: { code?: string; message: string } | null = null
+        let requestThrew = false
+        try {
+          const result = op.type === 'upsert'
+            ? conflictTarget
+              ? await supabase.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
+              : await supabase.from(op.table).upsert(syncPayload)
+            : await supabase
+                .from(op.table)
+                .delete()
+                .eq('id', (op.payload as Record<string, unknown>).id as string)
+          error = result.error
+        } catch (requestError) {
+          requestThrew = true
+          error = {
+            message: requestError instanceof Error ? requestError.message : 'The network request failed',
+          }
+        }
         if (scopeRef.current !== scope) break
         if (error) {
           /* A PostgREST schema refresh can lag just after a migration. Keep the
@@ -266,18 +303,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
               lastSchemaToastAt.current = Date.now()
               toast('Sync is reconnecting. Your changes are queued safely.')
             }
-            break
-          }
-          /* RLS/validation errors would loop forever: drop op and surface it */
-          if (error.code && error.code !== 'PGRST301' && !error.message.includes('fetch')) {
-            /* Re-read before removing: more writes may have joined the queue
-               while this network request was in flight. */
-            queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
-            saveQueue(queue, scope)
-            toast(`Sync error on ${op.table}: ${error.message}`)
+            blockedKeys.add(`${op.table}:*`)
             continue
           }
-          break // network-ish: retry later
+          /* Never discard the only durable copy of a user's server-write
+             intent. Validation and policy failures can be repaired by an app
+             or schema update, so retain the operation for a later replay. */
+          if (Date.now() - lastSyncErrorToastAt.current > 15_000) {
+            lastSyncErrorToastAt.current = Date.now()
+            toast(`Sync paused on ${op.table}. Your change remains queued: ${error.message}`)
+          }
+          if (requestThrew || error.message.toLowerCase().includes('fetch')) break
+          for (const key of syncOperationKeys(op)) blockedKeys.add(key)
+          continue
         }
         queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
         saveQueue(queue, scope)
@@ -497,40 +535,49 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const fetchAll = useCallback(async () => {
     const sb = supabase
     if (!sb || !session) return
+    const sessionUserId = session.user.id
     const accountPersona = personaFromUserMetadata(session.user.user_metadata)
-    const tables: ListTable[] = [
-      'meals', 'meal_logs', 'supplements', 'supplement_logs', 'programs', 'program_days',
-      'exercises', 'workout_sessions', 'workout_logs', 'activity_logs', 'daily_logs', 'events', 'deload_marks',
-      'health_metrics', 'imported_activities',
-    ]
     try {
       const results = await Promise.all([
-        sb.from('profile').select('*').maybeSingle(),
-        sb.from('settings').select('*').maybeSingle(),
+        sb.from('profile').select('*').eq('user_id', sessionUserId).maybeSingle(),
+        sb.from('settings').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('activity_types').select('*'),
-        ...tables.map((t) => sb.from(t).select('*')),
+        ...LIST_TABLES.map((table) => sb.from(table).select('*').eq('user_id', sessionUserId)),
       ])
-      if (scopeRef.current !== session.user.id) return
+      if (scopeRef.current !== sessionUserId) return
       const [profileRes, settingsRes, catalogRes, ...listRes] = results
+      const failed = results.find((result) => result.error)?.error
+      if (failed) throw failed
+      const pending = loadQueue(sessionUserId)
       const next: AppData = {
         ...EMPTY_DATA,
-        profile: (profileRes.data as AppData['profile']) ?? null,
-        settings: (settingsRes.data as Settings | null) ?? null,
+        profile: replayPendingSingleton(
+          'profile',
+          (profileRes.data?.user_id === sessionUserId ? profileRes.data : null) as NonNullable<AppData['profile']> | null,
+          pending,
+        ) as AppData['profile'],
+        settings: replayPendingSingleton(
+          'settings',
+          (settingsRes.data?.user_id === sessionUserId ? settingsRes.data : null) as Settings | null,
+          pending,
+        ),
         activity_types: catalogRes.data?.length
           ? catalogRes.data.map((row) => normalizeActivityType(row as Parameters<typeof normalizeActivityType>[0]))
           : ACTIVITY_CATALOG,
         rpg_snapshots: dataRef.current.rpg_snapshots,
       }
-      tables.forEach((t, i) => {
-        ;(next as unknown as Record<string, unknown>)[t] = listRes[i].data ?? []
+      LIST_TABLES.forEach((table, index) => {
+        const remoteRows = (listRes[index].data ?? [])
+          .filter((row) => row.user_id === sessionUserId) as Array<{ id: string }>
+        ;(next as unknown as Record<string, unknown>)[table] = replayPendingList(table, remoteRows, pending)
       })
       next.daily_logs = next.daily_logs.map(normalizeDailyLog)
 
       const needsSeedRepair = !next.profile || Number(next.profile.seed_version ?? 0) < CURRENT_SEED_VERSION
       if (needsSeedRepair) {
         const { buildSeedData } = await import('../data/seed')
-        if (scopeRef.current !== session.user.id) return
-        const seeded = buildSeedData(session.user.id, accountPersona)
+        if (scopeRef.current !== sessionUserId) return
+        const seeded = buildSeedData(sessionUserId, accountPersona)
         const repair = repairSeedDefinitions(next, seeded)
         persist(normalizeAppData(repair.data))
 
@@ -631,11 +678,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .channel(`apex-sync-${session.user.id}`)
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
         if (scopeRef.current !== session.user.id) return
-        const table = payload.table as ListTable | 'profile' | 'settings'
+        const table = payload.table
+        if (table !== 'profile' && table !== 'settings' && !isListTable(table)) return
         const cur = dataRef.current
         if (table === 'profile') {
           if (payload.new) {
             const incoming = payload.new as NonNullable<AppData['profile']>
+            if (incoming.user_id !== session.user.id) return
+            if (hasPendingSyncForRecord(loadQueue(session.user.id), table, incoming.id)) return
             const profile = {
               ...incoming,
               custom_bmr: cur.settings?.addons.custom_bmr ?? cur.profile?.custom_bmr ?? null,
@@ -648,6 +698,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         if (table === 'settings') {
           if (payload.new) {
             const settings = payload.new as Settings
+            if (settings.user_id !== session.user.id) return
+            if (hasPendingSyncForRecord(loadQueue(session.user.id), table, settings.user_id)) return
             if (cur.settings && recordsEqual(cur.settings, settings)) return
             const hasCustomBmr = Object.prototype.hasOwnProperty.call(settings.addons ?? {}, 'custom_bmr')
             const profile = hasCustomBmr && cur.profile
@@ -659,10 +711,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }
         const list = cur[table] as Array<{ id: string }>
         if (payload.eventType === 'DELETE') {
-          const oldId = (payload.old as { id?: string }).id
-          if (oldId) persistSilent({ ...cur, [table]: list.filter((r) => r.id !== oldId) })
+          const old = payload.old as { id?: string; user_id?: string }
+          if (old.user_id && old.user_id !== session.user.id) return
+          const oldId = old.id
+          if (!oldId || hasPendingSyncForRecord(loadQueue(session.user.id), table, oldId)) return
+          /* With the default replica identity a delete may contain only the
+             primary key. Only remove ids already present in this account. */
+          if (list.some((row) => row.id === oldId)) {
+            persistSilent({ ...cur, [table]: list.filter((row) => row.id !== oldId) })
+          }
         } else {
-          const row = payload.new as { id: string }
+          const incoming = payload.new as { id: string; user_id?: string }
+          if (incoming.user_id !== session.user.id) return
+          if (hasPendingSyncForRecord(loadQueue(session.user.id), table, incoming.id)) return
+          const row = normalizeSyncRecord(table, incoming)
           const i = list.findIndex((r) => r.id === row.id)
           if (i >= 0 && recordsEqual(list[i], row)) return
           const nextList = i >= 0 ? list.map((r) => (r.id === row.id ? row : r)) : [...list, row]

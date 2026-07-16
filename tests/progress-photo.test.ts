@@ -10,7 +10,10 @@ import {
   normalizeCrop,
   normalizeComparisonView,
   preferSamePose,
+  processProgressPhoto,
+  progressPhotoSaveError,
   progressStoragePaths,
+  runProgressPhotoSyncBatch,
   snapshotForProgressDate,
   updateComparisonViews,
   zoomComparisonView,
@@ -19,6 +22,7 @@ import {
 import type { RpgSnapshot } from '../src/lib/types.ts'
 import { progressPosterContent, progressStrengthComparison, resolveProgressExportMode } from '../src/lib/progressComparison.ts'
 import { buildSeedData } from '../src/data/seed.ts'
+import { openPrivateDb, resetPrivateDbConnection } from '../src/lib/privateDb.ts'
 
 function photo(id: string, date: string, pose: ProgressPhoto['pose'], ratio = 2 / 3): ProgressPhoto {
   return {
@@ -129,4 +133,111 @@ test('offline photo upload queue de-duplicates retries', () => {
   const retry = { entity_id: 'photo-1', operation: 'upload_photo', attempt: 1 }
   const merged = mergePhotoUploadsIdempotently([first], retry)
   assert.deepEqual(merged, [retry])
+})
+
+test('one rejected photo sync does not block later queued captures', async () => {
+  const operations = [{ id: 'broken' }, { id: 'healthy' }]
+  const attempted: string[] = []
+  const result = await runProgressPhotoSyncBatch(operations, async (operation) => {
+    attempted.push(operation.id)
+    if (operation.id === 'broken') throw new Error('metadata rejected')
+  })
+  assert.deepEqual(attempted, ['broken', 'healthy'])
+  assert.deepEqual(result.succeeded, [{ id: 'healthy' }])
+  assert.equal(result.failed.length, 1)
+  assert.equal(result.failed[0].operation.id, 'broken')
+})
+
+test('photo storage errors are recoverable and user-facing', () => {
+  assert.match(progressPhotoSaveError(new DOMException('full', 'QuotaExceededError')).message, /storage is full/i)
+  assert.match(progressPhotoSaveError(new Error('IndexedDB transaction failed')).message, /temporarily unavailable/i)
+  assert.match(progressPhotoSaveError(new Error('photo format could not be decoded')).message, /could not be decoded/i)
+})
+
+test('a rejected IndexedDB open is not cached for the next photo save', async () => {
+  const original = globalThis.indexedDB
+  let opens = 0
+  const database = {
+    close() {},
+    onclose: null,
+    onversionchange: null,
+  } as unknown as IDBDatabase
+  const fakeIndexedDb = {
+    open() {
+      opens += 1
+      const request: Record<string, unknown> = { result: database, error: null }
+      queueMicrotask(() => {
+        if (opens === 1) {
+          request.error = new DOMException('temporary open failure', 'UnknownError')
+          ;(request.onerror as (() => void) | null)?.()
+        } else {
+          ;(request.onsuccess as (() => void) | null)?.()
+        }
+      })
+      return request as unknown as IDBOpenDBRequest
+    },
+  } as IDBFactory
+  Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: fakeIndexedDb })
+  resetPrivateDbConnection()
+  try {
+    await assert.rejects(openPrivateDb(), /temporary open failure/)
+    assert.equal(await openPrivateDb(), database)
+    assert.equal(opens, 2)
+  } finally {
+    resetPrivateDbConnection()
+    Object.defineProperty(globalThis, 'indexedDB', { configurable: true, value: original })
+  }
+})
+
+test('gallery processing falls back when Safari exposes but rejects createImageBitmap', async () => {
+  const originalBitmap = Object.getOwnPropertyDescriptor(globalThis, 'createImageBitmap')
+  const originalImage = Object.getOwnPropertyDescriptor(globalThis, 'Image')
+  const originalDocument = Object.getOwnPropertyDescriptor(globalThis, 'document')
+  let bitmapAttempts = 0
+  class FakeImage {
+    decoding = ''
+    naturalWidth = 3024
+    naturalHeight = 4032
+    onload: (() => void) | null = null
+    onerror: (() => void) | null = null
+    set src(_value: string) { queueMicrotask(() => this.onload?.()) }
+  }
+  const fakeDocument = {
+    createElement(name: string) {
+      assert.equal(name, 'canvas')
+      return {
+        width: 0,
+        height: 0,
+        getContext: () => ({
+          imageSmoothingEnabled: false,
+          imageSmoothingQuality: 'low',
+          drawImage() {},
+        }),
+        toBlob(callback: (blob: Blob) => void, type: string) {
+          callback(new Blob(['normalized'], { type }))
+        },
+      }
+    },
+  }
+  Object.defineProperty(globalThis, 'createImageBitmap', {
+    configurable: true,
+    value: async () => { bitmapAttempts += 1; throw new TypeError('options unsupported') },
+  })
+  Object.defineProperty(globalThis, 'Image', { configurable: true, value: FakeImage })
+  Object.defineProperty(globalThis, 'document', { configurable: true, value: fakeDocument })
+  try {
+    const processed = await processProgressPhoto(new Blob(['iphone-photo'], { type: 'image/heic' }))
+    assert.equal(bitmapAttempts, 2)
+    assert.equal(processed.width, 1600)
+    assert.equal(processed.height, 2133)
+    assert.equal(processed.full.type, 'image/webp')
+    assert.equal(processed.thumbnail.type, 'image/webp')
+  } finally {
+    if (originalBitmap) Object.defineProperty(globalThis, 'createImageBitmap', originalBitmap)
+    else delete (globalThis as { createImageBitmap?: unknown }).createImageBitmap
+    if (originalImage) Object.defineProperty(globalThis, 'Image', originalImage)
+    else delete (globalThis as { Image?: unknown }).Image
+    if (originalDocument) Object.defineProperty(globalThis, 'document', originalDocument)
+    else delete (globalThis as { document?: unknown }).document
+  }
 })

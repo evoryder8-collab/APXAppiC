@@ -294,6 +294,12 @@ export interface Settings {
     /* Controls only the shareable progress-photo PNG. Minimal keeps the two
        timestamps and before/after labels; Detailed adds training statistics. */
     comparison_export_mode?: 'minimal' | 'detailed'
+    /* Simple Mode is intentionally user-configurable without requiring new
+       database columns; settings.addons is already the synced JSON payload. */
+    weight_unit?: 'kg' | 'lb'
+    simple_show_orbit?: boolean
+    simple_show_body_index?: boolean
+    adhd_mode?: boolean
   }
 }
 

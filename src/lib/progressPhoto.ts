@@ -196,17 +196,41 @@ function canvasBlob(canvas: HTMLCanvasElement, type: string, quality: number): P
   })
 }
 
+async function tryImageBitmap(blob: Blob): Promise<ImageBitmap | null> {
+  if (typeof createImageBitmap !== 'function') return null
+  try {
+    return await createImageBitmap(blob, { imageOrientation: 'from-image' })
+  } catch {
+    try {
+      // Older Safari versions expose createImageBitmap but reject the options
+      // object. The default decode still applies embedded image orientation.
+      return await createImageBitmap(blob)
+    } catch {
+      return null
+    }
+  }
+}
+
 async function imageSource(blob: Blob): Promise<{ source: CanvasImageSource; width: number; height: number; close: () => void }> {
-  if ('createImageBitmap' in globalThis) {
-    const bitmap = await createImageBitmap(blob, { imageOrientation: 'from-image' })
+  const bitmap = await tryImageBitmap(blob)
+  if (bitmap) {
     return { source: bitmap, width: bitmap.width, height: bitmap.height, close: () => bitmap.close() }
   }
   const url = URL.createObjectURL(blob)
   const image = new Image()
   image.decoding = 'async'
-  image.src = url
-  await image.decode()
-  return { source: image, width: image.naturalWidth, height: image.naturalHeight, close: () => URL.revokeObjectURL(url) }
+  try {
+    await new Promise<void>((resolve, reject) => {
+      image.onload = () => resolve()
+      image.onerror = () => reject(new Error('This photo format could not be decoded. Try exporting it as JPEG, PNG, or WebP.'))
+      image.src = url
+    })
+    if (!image.naturalWidth || !image.naturalHeight) throw new Error('The selected photo has no readable image data.')
+    return { source: image, width: image.naturalWidth, height: image.naturalHeight, close: () => URL.revokeObjectURL(url) }
+  } catch (error) {
+    URL.revokeObjectURL(url)
+    throw error
+  }
 }
 
 function drawResized(source: CanvasImageSource, width: number, height: number): HTMLCanvasElement {
@@ -224,6 +248,7 @@ function drawResized(source: CanvasImageSource, width: number, height: number): 
 /* Re-encoding through canvas applies orientation, strips EXIF/GPS metadata,
    normalizes dimensions and produces a compact comparison asset locally. */
 export async function processProgressPhoto(blob: Blob): Promise<ProcessedProgressPhoto> {
+  if (!blob || blob.size === 0) throw new Error('The selected photo is empty. Choose another image.')
   const decoded = await imageSource(blob)
   try {
     const fitted = fitWithin(decoded.width, decoded.height, 1600, 2400)
@@ -249,6 +274,46 @@ export async function processProgressPhoto(blob: Blob): Promise<ProcessedProgres
   } finally {
     decoded.close()
   }
+}
+
+export interface ProgressPhotoSyncFailure<T> {
+  operation: T
+  cause: unknown
+}
+
+/* A damaged or permanently rejected photo must not block later captures in
+   the offline outbox. Every operation is attempted independently; failed
+   work remains queued for an explicit or lifecycle retry. */
+export async function runProgressPhotoSyncBatch<T>(
+  operations: T[],
+  send: (operation: T) => Promise<void>,
+): Promise<{ succeeded: T[]; failed: ProgressPhotoSyncFailure<T>[] }> {
+  const succeeded: T[] = []
+  const failed: ProgressPhotoSyncFailure<T>[] = []
+  for (const operation of operations) {
+    try {
+      await send(operation)
+      succeeded.push(operation)
+    } catch (cause) {
+      failed.push({ operation, cause })
+    }
+  }
+  return { succeeded, failed }
+}
+
+export function progressPhotoSaveError(cause: unknown): Error {
+  const name = cause instanceof DOMException ? cause.name : cause instanceof Error ? cause.name : ''
+  const message = cause instanceof Error ? cause.message : ''
+  if (name === 'QuotaExceededError' || /quota|storage.*full/i.test(message)) {
+    return new Error('Private photo storage is full on this device. Remove an older progress photo, then try again.')
+  }
+  if (/decode|image data|photo format|image encoding/i.test(message)) {
+    return new Error(message || 'This photo could not be decoded. Try a JPEG, PNG, or WebP image.')
+  }
+  if (/indexeddb|database|transaction|private storage|invalidstate/i.test(`${name} ${message}`)) {
+    return new Error('Private photo storage was temporarily unavailable. Your photo is still on this review screen, so you can retry safely.')
+  }
+  return cause instanceof Error ? cause : new Error('The photo could not be saved. It is still available on this review screen.')
 }
 
 export function mergePhotoUploadsIdempotently<T extends { entity_id: string; operation: string }>(

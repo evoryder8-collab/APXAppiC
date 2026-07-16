@@ -3,19 +3,23 @@ import { supabase } from '../../lib/supabase.ts'
 import { useStore } from '../../store/AppStore.tsx'
 import { EMPTY_ORBIT_STATE, type ActiveRun, type CampaignSession, type MarathonCampaign, type MarathonInduction, type OrbitRoute, type OrbitRun, type OrbitState, type PersonalSegment, type RoutePoster, type RunningShoe } from '../domain/types.ts'
 import {
+  acknowledgeOrbitOutbox,
+  deleteEntityAtomically,
   loadActiveRun,
   orbitDelete,
   orbitDeleteForUser,
   orbitForUser,
   orbitOutbox,
   orbitPut,
-  orbitPutMany,
-  queueOrbitOp,
+  orbitReplaceForUser,
+  recordOrbitOutboxFailure,
   saveActiveRun,
+  saveEntityAtomically,
   saveRunAtomically,
   type OrbitOutboxOp,
   type OrbitStoreName,
 } from '../data/orbitDb.ts'
+import { hasPendingOrbitEntity, mergeOrbitEntityRows } from '../domain/sync.ts'
 
 type EntityStore = Exclude<OrbitStoreName, 'active_runs' | 'outbox'>
 type OrbitEntity = OrbitRun | OrbitRoute | PersonalSegment | RunningShoe | RoutePoster | MarathonInduction | MarathonCampaign | CampaignSession
@@ -59,43 +63,92 @@ function stateKey(store: EntityStore): keyof Omit<OrbitState, 'active_run'> {
 export function OrbitStoreProvider({ children }: { children: ReactNode }) {
   const { data, toast } = useStore()
   const userId = data.profile?.user_id ?? null
+  const userIdRef = useRef(userId)
+  userIdRef.current = userId
   const [state, setState] = useState<OrbitState>(EMPTY_ORBIT_STATE)
   const stateRef = useRef(state)
   stateRef.current = state
   const [ready, setReady] = useState(false)
   const [queueLength, setQueueLength] = useState(0)
-  const syncing = useRef(false)
+  const syncingUsers = useRef(new Set<string>())
+  const lastSyncToastAt = useRef(0)
 
-  const refreshQueueLength = useCallback(async () => {
-    if (!userId) return setQueueLength(0)
-    setQueueLength((await orbitOutbox(userId)).length)
+  const refreshQueueLength = useCallback(async (expectedUserId = userId) => {
+    if (!expectedUserId) {
+      if (!userIdRef.current) setQueueLength(0)
+      return
+    }
+    const length = (await orbitOutbox(expectedUserId)).length
+    if (userIdRef.current === expectedUserId) setQueueLength(length)
   }, [userId])
 
-  const syncNow = useCallback(async () => {
-    if (!supabase || !userId || !navigator.onLine || syncing.current) return
-    syncing.current = true
-    try {
-      const queue = await orbitOutbox(userId)
-      for (const op of queue) {
-        const request = op.operation === 'upsert'
-          ? supabase.from(op.table).upsert(op.payload)
-          : supabase.from(op.table).delete().eq('id', op.entity_id).eq('user_id', userId)
-        const { error } = await request
-        if (error) {
-          const retryable = error.message.includes('fetch') || error.message.includes('schema cache') || error.code === 'PGRST205'
-          if (!retryable) {
-            await orbitDelete('outbox', op.id)
-            toast(`Orbit sync error: ${error.message}`)
-          }
-          break
-        }
-        await orbitDelete('outbox', op.id)
-      }
-      await refreshQueueLength()
-    } finally {
-      syncing.current = false
+  const markEntitySyncState = useCallback(async (
+    expectedUserId: string,
+    store: EntityStore,
+    entityId: string,
+    syncState: 'synced' | 'failed',
+  ) => {
+    if (userIdRef.current !== expectedUserId) return
+    const key = stateKey(store)
+    const current = stateRef.current[key] as OrbitEntity[]
+    const entity = current.find((row) => row.id === entityId)
+    if (!entity || entity.user_id !== expectedUserId || entity.sync_state === syncState) return
+    const stamped = { ...entity, sync_state: syncState } as OrbitEntity
+    const nextState = {
+      ...stateRef.current,
+      [key]: current.map((row) => row.id === entityId ? stamped : row),
     }
-  }, [refreshQueueLength, toast, userId])
+    stateRef.current = nextState
+    setState(nextState)
+    await orbitPut(store, stamped)
+  }, [])
+
+  const syncNow = useCallback(async () => {
+    if (!supabase || !userId || !navigator.onLine || syncingUsers.current.has(userId)) return
+    const syncUserId = userId
+    syncingUsers.current.add(syncUserId)
+    try {
+      const queue = await orbitOutbox(syncUserId)
+      for (const op of queue) {
+        let error: { message: string } | null = null
+        try {
+          const request = op.operation === 'upsert'
+            ? supabase.from(op.table).upsert(op.payload)
+            : supabase.from(op.table).delete().eq('id', op.entity_id).eq('user_id', syncUserId)
+          const result = await request
+          error = result.error
+        } catch (requestError) {
+          error = { message: requestError instanceof Error ? requestError.message : 'The network request failed' }
+        }
+        if (error) {
+          const retained = await recordOrbitOutboxFailure(op, error.message)
+          if (retained) await markEntitySyncState(syncUserId, op.store, op.entity_id, 'failed')
+          if (Date.now() - lastSyncToastAt.current > 15_000) {
+            lastSyncToastAt.current = Date.now()
+            toast(`Orbit sync paused. Your change remains safely queued: ${error.message}`)
+          }
+          continue
+        }
+        await acknowledgeOrbitOutbox(op)
+        const pending = await orbitOutbox(syncUserId)
+        if (!hasPendingOrbitEntity(pending, op.store, op.entity_id)) {
+          await markEntitySyncState(syncUserId, op.store, op.entity_id, 'synced')
+        }
+      }
+    } catch (syncError) {
+      if (Date.now() - lastSyncToastAt.current > 15_000) {
+        lastSyncToastAt.current = Date.now()
+        toast(`Orbit sync will retry automatically: ${syncError instanceof Error ? syncError.message : 'private storage is unavailable'}`)
+      }
+    } finally {
+      syncingUsers.current.delete(syncUserId)
+      try {
+        await refreshQueueLength(syncUserId)
+      } catch {
+        /* The next focus/online event retries private storage as well. */
+      }
+    }
+  }, [markEntitySyncState, refreshQueueLength, toast, userId])
 
   useEffect(() => {
     if (!userId) {
@@ -135,20 +188,15 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
             const [store, rows] = result.value
             const key = stateKey(store)
             const localRows = merged[key] as OrbitEntity[]
-            const storeOps = pendingOps.filter((operation) => operation.store === store)
-            const deletedIds = new Set(storeOps.filter((operation) => operation.operation === 'delete').map((operation) => operation.entity_id))
-            const pendingUpsertIds = new Set(storeOps.filter((operation) => operation.operation === 'upsert').map((operation) => operation.entity_id))
-            const byId = new Map<string, OrbitEntity>()
-            for (const remote of rows as OrbitEntity[]) {
-              if (!deletedIds.has(remote.id)) byId.set(remote.id, { ...remote, sync_state: 'synced' } as OrbitEntity)
-            }
-            for (const local of localRows) {
-              if (pendingUpsertIds.has(local.id) || local.sync_state !== 'synced') byId.set(local.id, local)
-            }
-            const values = [...byId.values()]
+            const values = mergeOrbitEntityRows(rows as OrbitEntity[], localRows, pendingOps, store)
             merged = { ...merged, [key]: values }
-            await orbitPutMany(store, values)
+            /* Replace the owner-scoped snapshot, rather than only putting the
+               merged rows. Otherwise a server-side deletion disappears from
+               React state but remains in IndexedDB and resurrects offline on
+               the next launch. Pending local rows are already in values. */
+            await orbitReplaceForUser(store, userId, values)
           }
+          if (cancelled || userIdRef.current !== userId) return
           setState(merged)
           stateRef.current = merged
           await syncNow()
@@ -164,14 +212,37 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
   }, [refreshQueueLength, syncNow, toast, userId])
 
   useEffect(() => {
-    const online = () => void syncNow()
-    window.addEventListener('online', online)
-    return () => window.removeEventListener('online', online)
+    const retry = (): void => { if (navigator.onLine) void syncNow() }
+    const visible = (): void => { if (document.visibilityState === 'visible') retry() }
+    window.addEventListener('online', retry)
+    window.addEventListener('pageshow', retry)
+    document.addEventListener('visibilitychange', visible)
+    return () => {
+      window.removeEventListener('online', retry)
+      window.removeEventListener('pageshow', retry)
+      document.removeEventListener('visibilitychange', visible)
+    }
   }, [syncNow])
+
+  /* A write queued while another request is in flight must get its own drain
+     pass. Without this dependency it could remain stranded until the browser
+     happened to emit a later online event. */
+  useEffect(() => {
+    if (userId && queueLength > 0 && navigator.onLine) void syncNow()
+  }, [queueLength, syncNow, userId])
 
   const saveEntity = useCallback(async (store: EntityStore, entity: OrbitEntity) => {
     if (!userId || entity.user_id !== userId) throw new Error('Orbit refused a cross-account write.')
     const stamped = { ...entity, sync_state: supabase ? 'queued' : 'local' } as OrbitEntity
+    if (supabase) {
+      const outbox: OrbitOutboxOp = {
+        id: crypto.randomUUID(), user_id: userId, store, table: TABLES[store], operation: 'upsert', entity_id: stamped.id,
+        payload: withoutSyncState(stamped), attempts: 0, created_at: new Date().toISOString(),
+      }
+      await saveEntityAtomically(store, stamped, outbox)
+    } else {
+      await orbitPut(store, stamped)
+    }
     const key = stateKey(store)
     const current = stateRef.current[key] as OrbitEntity[]
     const nextRows = current.some((row) => row.id === stamped.id)
@@ -180,14 +251,8 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
     const nextState = { ...stateRef.current, [key]: nextRows }
     stateRef.current = nextState
     setState(nextState)
-    await orbitPut(store, stamped)
     if (supabase) {
-      const outbox: OrbitOutboxOp = {
-        id: crypto.randomUUID(), user_id: userId, store, table: TABLES[store], operation: 'upsert', entity_id: stamped.id,
-        payload: withoutSyncState(stamped), attempts: 0, created_at: new Date().toISOString(),
-      }
-      await queueOrbitOp(outbox)
-      await refreshQueueLength()
+      await refreshQueueLength(userId)
       void syncNow()
     }
   }, [refreshQueueLength, syncNow, userId])
@@ -195,12 +260,6 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
   const saveRun = useCallback(async (run: OrbitRun) => {
     if (!userId || run.user_id !== userId) throw new Error('Orbit refused a cross-account run.')
     const stamped = { ...run, sync_state: supabase ? 'queued' as const : 'local' as const }
-    const rows = stateRef.current.runs.some((item) => item.id === run.id)
-      ? stateRef.current.runs.map((item) => item.id === run.id ? stamped : item)
-      : [...stateRef.current.runs, stamped]
-    const nextState = { ...stateRef.current, runs: rows, active_run: null }
-    stateRef.current = nextState
-    setState(nextState)
     const outbox: OrbitOutboxOp = {
       id: crypto.randomUUID(), user_id: userId, store: 'runs', table: TABLES.runs, operation: 'upsert', entity_id: stamped.id,
       payload: withoutSyncState(stamped), attempts: 0, created_at: new Date().toISOString(),
@@ -210,33 +269,44 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
       await orbitPut('runs', stamped)
       await saveActiveRun(null, userId)
     }
-    await refreshQueueLength()
+    const rows = stateRef.current.runs.some((item) => item.id === run.id)
+      ? stateRef.current.runs.map((item) => item.id === run.id ? stamped : item)
+      : [...stateRef.current.runs, stamped]
+    const nextState = { ...stateRef.current, runs: rows, active_run: null }
+    stateRef.current = nextState
+    setState(nextState)
+    await refreshQueueLength(userId)
     void syncNow()
   }, [refreshQueueLength, syncNow, userId])
 
   const setActiveRun = useCallback(async (run: ActiveRun | null) => {
     if (!userId) return
     if (run && run.user_id !== userId) throw new Error('Orbit refused a cross-account active run.')
+    await saveActiveRun(run, userId)
     const next = { ...stateRef.current, active_run: run }
     stateRef.current = next
     setState(next)
-    await saveActiveRun(run, userId)
   }, [userId])
 
   const removeEntity = useCallback(async (store: EntityStore, id: string) => {
     if (!userId) return
     const key = stateKey(store)
+    const existing = (stateRef.current[key] as OrbitEntity[]).find((row) => row.id === id)
+    if (!existing || existing.user_id !== userId) throw new Error('Orbit refused a cross-account delete.')
+    if (supabase) {
+      await deleteEntityAtomically(store, id, {
+        id: crypto.randomUUID(), user_id: userId, store, table: TABLES[store], operation: 'delete', entity_id: id,
+        payload: { id, user_id: userId }, attempts: 0, created_at: new Date().toISOString(),
+      })
+    } else {
+      await orbitDelete(store, id)
+    }
     const rows = (stateRef.current[key] as OrbitEntity[]).filter((row) => row.id !== id)
     const next = { ...stateRef.current, [key]: rows }
     stateRef.current = next
     setState(next)
-    await orbitDelete(store, id)
     if (supabase) {
-      await queueOrbitOp({
-        id: crypto.randomUUID(), user_id: userId, store, table: TABLES[store], operation: 'delete', entity_id: id,
-        payload: { id, user_id: userId }, attempts: 0, created_at: new Date().toISOString(),
-      })
-      await refreshQueueLength()
+      await refreshQueueLength(userId)
       void syncNow()
     }
   }, [refreshQueueLength, syncNow, userId])
@@ -277,9 +347,11 @@ export function OrbitStoreProvider({ children }: { children: ReactNode }) {
       }
     }
     await Promise.all([...stores, 'active_runs', 'outbox'].map((store) => orbitDeleteForUser(store as OrbitStoreName, userId)))
-    stateRef.current = EMPTY_ORBIT_STATE
-    setState(EMPTY_ORBIT_STATE)
-    setQueueLength(0)
+    if (userIdRef.current === userId) {
+      stateRef.current = EMPTY_ORBIT_STATE
+      setState(EMPTY_ORBIT_STATE)
+      setQueueLength(0)
+    }
   }, [userId])
 
   const value = useMemo<OrbitStoreValue>(() => ({

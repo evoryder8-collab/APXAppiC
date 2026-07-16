@@ -24,6 +24,7 @@ import {
   type MealSlot,
 } from '../lib/food'
 import type { IntroLanguage } from '../lib/introLanguage'
+import { replayFoodOutbox } from '../lib/foodSync'
 import {
   cacheVisibleFoods,
   deleteMealLocally,
@@ -171,6 +172,8 @@ function mergeFoodCatalog(incoming: FoodRecord[]): FoodRecord[] {
 export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const { data, upsert } = useStore()
   const userId = data.profile?.user_id ?? null
+  const userIdRef = useRef(userId)
+  userIdRef.current = userId
   const [ready, setReady] = useState(false)
   const [syncing, setSyncing] = useState(false)
   const [queued, setQueued] = useState(false)
@@ -180,62 +183,97 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const [presetItems, setPresetItems] = useState<MealPresetItem[]>([])
   const [meals, setMeals] = useState<LoggedMeal[]>([])
   const [entries, setEntries] = useState<LoggedFoodEntry[]>([])
-  const flushing = useRef(false)
+  const flushingUsers = useRef(new Set<string>())
+  const requestedFlushUsers = useRef(new Set<string>())
+  const hydrationGeneration = useRef(0)
 
   const hydrate = useCallback(async () => {
-    if (!userId) return
+    const expectedUserId = userId
+    const generation = ++hydrationGeneration.current
+    const current = (): boolean =>
+      hydrationGeneration.current === generation && userIdRef.current === expectedUserId
+    if (!expectedUserId) {
+      setFoods(COMMON_FOODS)
+      setPreferences([])
+      setPresets([])
+      setPresetItems([])
+      setMeals([])
+      setEntries([])
+      setQueued(false)
+      setSyncing(false)
+      setReady(true)
+      return
+    }
     setReady(false)
     try {
       const [localFoods, localPreferences, localPresets, localPresetItems, localMeals, localEntries] = await Promise.all([
-        loadVisibleFoods(userId),
-        privateGetAllForUser<FoodPreference>('food_preferences', userId),
-        privateGetAllForUser<MealPreset>('meal_presets', userId),
-        privateGetAllForUser<MealPresetItem>('meal_preset_items', userId),
-        privateGetAllForUser<LoggedMeal>('logged_meals', userId),
-        privateGetAllForUser<LoggedFoodEntry>('logged_food_entries', userId),
+        loadVisibleFoods(expectedUserId),
+        privateGetAllForUser<FoodPreference>('food_preferences', expectedUserId),
+        privateGetAllForUser<MealPreset>('meal_presets', expectedUserId),
+        privateGetAllForUser<MealPresetItem>('meal_preset_items', expectedUserId),
+        privateGetAllForUser<LoggedMeal>('logged_meals', expectedUserId),
+        privateGetAllForUser<LoggedFoodEntry>('logged_food_entries', expectedUserId),
       ])
+      if (!current()) return
       setFoods(mergeFoodCatalog(localFoods))
       setPreferences(localPreferences)
       setPresets(localPresets)
       setPresetItems(localPresetItems)
       setMeals(localMeals)
       setEntries(localEntries)
-      const pending = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', userId)
+      const pending = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', expectedUserId)
+      if (!current()) return
       setQueued(pending.some((operation) => operation.domain === 'food'))
 
       if (supabase) {
         setSyncing(true)
         const [foodRes, preferenceRes, presetRes, presetItemRes, mealRes, entryRes] = await Promise.all([
-          supabase.from('foods').select('*').or(`owner_user_id.is.null,owner_user_id.eq.${userId}`),
-          supabase.from('food_preferences').select('*').eq('user_id', userId),
-          supabase.from('meal_presets').select('*').eq('user_id', userId),
-          supabase.from('meal_preset_items').select('*').eq('user_id', userId),
-          supabase.from('logged_meals').select('*').eq('user_id', userId).order('logged_at', { ascending: false }).limit(500),
-          supabase.from('logged_food_entries').select('*').eq('user_id', userId).limit(2000),
+          supabase.from('foods').select('*').or(`owner_user_id.is.null,owner_user_id.eq.${expectedUserId}`),
+          supabase.from('food_preferences').select('*').eq('user_id', expectedUserId),
+          supabase.from('meal_presets').select('*').eq('user_id', expectedUserId),
+          supabase.from('meal_preset_items').select('*').eq('user_id', expectedUserId),
+          supabase.from('logged_meals').select('*').eq('user_id', expectedUserId).order('logged_at', { ascending: false }).limit(500),
+          supabase.from('logged_food_entries').select('*').eq('user_id', expectedUserId).limit(2000),
         ])
+        if (!current()) return
         const firstError = [foodRes, preferenceRes, presetRes, presetItemRes, mealRes, entryRes].find((result) => result.error)?.error
         if (firstError) throw firstError
-        const remoteFoods = (foodRes.data ?? []).map((row) => normalizeRemoteFood(row as Record<string, unknown>))
-        setFoods(mergeFoodCatalog(remoteFoods))
-        setPreferences((preferenceRes.data ?? []) as FoodPreference[])
-        setPresets((presetRes.data ?? []) as MealPreset[])
-        setPresetItems((presetItemRes.data ?? []) as MealPresetItem[])
-        setMeals((mealRes.data ?? []) as LoggedMeal[])
-        setEntries((entryRes.data ?? []) as LoggedFoodEntry[])
+        const latestPending = (await privateGetAllForUser<PrivateOutboxOp>('private_outbox', expectedUserId))
+          .filter((operation) => operation.domain === 'food')
+        if (!current()) return
+        const remoteFoods = (foodRes.data ?? [])
+          .map((row) => normalizeRemoteFood(row as Record<string, unknown>))
+          .filter((food) => food.owner_user_id == null || food.owner_user_id === expectedUserId)
+        const replayed = replayFoodOutbox({
+          foods: remoteFoods,
+          preferences: (preferenceRes.data ?? []).filter((row) => row.user_id === expectedUserId) as FoodPreference[],
+          presets: (presetRes.data ?? []).filter((row) => row.user_id === expectedUserId) as MealPreset[],
+          presetItems: (presetItemRes.data ?? []).filter((row) => row.user_id === expectedUserId) as MealPresetItem[],
+          meals: (mealRes.data ?? []).filter((row) => row.user_id === expectedUserId) as LoggedMeal[],
+          entries: (entryRes.data ?? []).filter((row) => row.user_id === expectedUserId) as LoggedFoodEntry[],
+        }, latestPending)
+        setFoods(mergeFoodCatalog(replayed.foods))
+        setPreferences(replayed.preferences)
+        setPresets(replayed.presets)
+        setPresetItems(replayed.presetItems)
+        setMeals(replayed.meals)
+        setEntries(replayed.entries)
         await Promise.all([
-          cacheVisibleFoods(userId, remoteFoods),
-          privatePutMany('food_preferences', (preferenceRes.data ?? []) as FoodPreference[]),
-          privatePutMany('meal_presets', (presetRes.data ?? []) as MealPreset[]),
-          privatePutMany('meal_preset_items', (presetItemRes.data ?? []) as MealPresetItem[]),
-          privatePutMany('logged_meals', (mealRes.data ?? []) as LoggedMeal[]),
-          privatePutMany('logged_food_entries', (entryRes.data ?? []) as LoggedFoodEntry[]),
+          cacheVisibleFoods(expectedUserId, replayed.foods),
+          privatePutMany('food_preferences', replayed.preferences),
+          privatePutMany('meal_presets', replayed.presets),
+          privatePutMany('meal_preset_items', replayed.presetItems),
+          privatePutMany('logged_meals', replayed.meals),
+          privatePutMany('logged_food_entries', replayed.entries),
         ])
       }
     } catch (error) {
-      console.warn('Food history refresh failed; using private offline cache', error)
+      if (current()) console.warn('Food history refresh failed; using private offline cache', error)
     } finally {
-      setSyncing(false)
-      setReady(true)
+      if (current()) {
+        setSyncing(false)
+        setReady(true)
+      }
     }
   }, [userId])
 
@@ -311,10 +349,15 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   }, [])
 
   const flush = useCallback(async () => {
-    if (!userId || !supabase || !navigator.onLine || flushing.current) return
-    flushing.current = true
+    if (!userId || !supabase || !navigator.onLine) return
+    const syncUserId = userId
+    if (flushingUsers.current.has(syncUserId)) {
+      requestedFlushUsers.current.add(syncUserId)
+      return
+    }
+    flushingUsers.current.add(syncUserId)
     try {
-      const operations = (await privateGetAllForUser<PrivateOutboxOp>('private_outbox', userId))
+      const operations = (await privateGetAllForUser<PrivateOutboxOp>('private_outbox', syncUserId))
         .filter((operation) => operation.domain === 'food')
         .sort((a, b) => {
           const byTime = a.created_at.localeCompare(b.created_at)
@@ -327,15 +370,23 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
           await sendOutbox(operation)
           await privateDelete('private_outbox', operation.id)
         } catch (error) {
-          await privatePut('private_outbox', { ...operation, attempts: operation.attempts + 1 })
+          await privatePut('private_outbox', {
+            ...operation,
+            attempts: operation.attempts + 1,
+            last_attempt_at: new Date().toISOString(),
+            last_error: error instanceof Error ? error.message : 'Food sync request failed',
+          })
           console.warn('Food sync remains queued', error)
           break
         }
       }
-      const remaining = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', userId)
-      setQueued(remaining.some((operation) => operation.domain === 'food'))
+      const remaining = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', syncUserId)
+      if (userIdRef.current === syncUserId) setQueued(remaining.some((operation) => operation.domain === 'food'))
+    } catch (error) {
+      console.warn('Food sync will retry from its private queue', error)
     } finally {
-      flushing.current = false
+      flushingUsers.current.delete(syncUserId)
+      if (requestedFlushUsers.current.delete(syncUserId) && navigator.onLine) void flush()
     }
   }, [sendOutbox, userId])
 

@@ -1,6 +1,6 @@
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
-import { Link } from 'react-router-dom'
+import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { addDays, differenceInCalendarDays, format, parseISO, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
@@ -83,8 +83,14 @@ export function Nutrition() {
   const { language } = useLanguage()
   const tx = (value: string): string => translateInterfaceText(value, language)
   const foodStore = useFoodStore()
+  const navigate = useNavigate()
+  const [searchParams] = useSearchParams()
+  const requestedSection = searchParams.get('section')
+  const requestedDate = searchParams.get('date')
+  const returnToSimple = searchParams.get('return') === 'simple'
+  const handledRequestedSection = useRef(false)
   const today = todayIso()
-  const [selectedLogDate, setSelectedLogDate] = useState(today)
+  const [selectedLogDate, setSelectedLogDate] = useState(() => requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
   const nutritionSwipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedLogDate), [selectedLogDate])
@@ -137,6 +143,16 @@ export function Nutrition() {
   useEffect(() => {
     setWaterDraft(String(selectedLog.water_l ?? 0))
   }, [selectedLog.water_l, selectedLogDate])
+
+  useEffect(() => {
+    if (handledRequestedSection.current || (requestedSection !== 'meals' && requestedSection !== 'supplements')) return
+    handledRequestedSection.current = true
+    window.requestAnimationFrame(() => {
+      const target = document.getElementById(`nutrition-${requestedSection}`)
+      if (target instanceof HTMLDetailsElement) target.open = true
+      target?.scrollIntoView({ behavior: 'smooth', block: 'start' })
+    })
+  }, [requestedSection])
 
   const setWater = (value: number): void => {
     const next = Math.min(6, Math.max(0, Math.round(value * 100) / 100))
@@ -592,6 +608,12 @@ export function Nutrition() {
         }
       />
 
+      {returnToSimple && (
+        <button type="button" onClick={() => navigate(-1)} className="glass mb-3 inline-flex items-center gap-2 rounded-full px-3 py-2 text-[11px] font-black text-amber-800" data-nutrition-local-gesture>
+          <span aria-hidden>‹</span> {tx('Back to Simple Mode')}
+        </button>
+      )}
+
       <div className="mb-3 grid grid-cols-[auto_minmax(0,1fr)_auto] items-center gap-3" data-nutrition-local-gesture>
         <button type="button" onClick={() => moveNutritionDay(-1)} aria-label={tx('Previous day')} className="glass grid h-10 w-10 place-items-center rounded-full text-lg font-black text-ink-soft">‹</button>
         <button type="button" onClick={() => { setSelectedLogDate(today); setLogMonth(startOfMonth(new Date())) }} className="glass min-w-0 rounded-2xl px-4 py-2.5 text-center">
@@ -607,6 +629,7 @@ export function Nutrition() {
       </div>
 
       <div className="space-y-5">
+        <div id="nutrition-meals" className="scroll-mt-28">
         <ActualFoodTracker
           key={selectedLogDate}
           date={selectedLogDate}
@@ -620,6 +643,7 @@ export function Nutrition() {
           onTogglePlanned={toggleMeal}
           onEditPlanned={editAndLog}
         />
+        </div>
 
         <details className="glass group rounded-3xl p-3 sm:p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-1 text-left">
@@ -784,7 +808,7 @@ export function Nutrition() {
         </details>
 
         {/* -------- Supplement timeline -------- */}
-        <details className="glass group rounded-3xl p-4">
+        <details id="nutrition-supplements" className="glass group scroll-mt-28 rounded-3xl p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
             <div><p className="font-display text-sm font-bold text-ink">Supplement stack</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{data.supplements.length} · {format(selectedDateObject, 'd MMM')}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>

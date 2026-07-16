@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings } from '../src/lib/simpleMode.ts'
+import { parseWaterAmountToLitres, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 
 const settings: Settings = {
@@ -45,4 +45,19 @@ test('Simple Mode changes days only for a deliberate horizontal swipe', () => {
 
 test('workout-owned gestures never become Simple Mode day swipes', () => {
   assert.equal(simpleDaySwipeOffset({ x: 200, y: 100 }, { x: 80, y: 100 }, true), 0)
+})
+
+test('Simple Mode weight preference defaults to metric and converts without changing stored kilograms', () => {
+  assert.equal(weightUnitFromSettings(settings), 'kg')
+  assert.equal(weightUnitFromSettings({ ...settings, addons: { ...settings.addons, weight_unit: 'lb' } }), 'lb')
+  assert.equal(Math.round(weightFromKg(78, 'lb') * 10) / 10, 172)
+  assert.equal(Math.round(weightToKg(172, 'lb') * 10) / 10, 78)
+})
+
+test('Simple Mode custom water accepts millilitres and litres safely', () => {
+  assert.equal(parseWaterAmountToLitres('750 ml'), 0.75)
+  assert.equal(parseWaterAmountToLitres('300'), 0.3)
+  assert.equal(parseWaterAmountToLitres('0,5 L'), 0.5)
+  assert.equal(parseWaterAmountToLitres('7 litres'), null)
+  assert.equal(parseWaterAmountToLitres('water'), null)
 })

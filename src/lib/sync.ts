@@ -14,6 +14,12 @@ const DAILY_LOG_INTEGER_FIELDS = [
   'manual_carbs_g',
 ] as const
 
+export interface PendingSyncOperation {
+  table: string
+  type: 'upsert' | 'delete'
+  payload: Record<string, unknown> | Array<Record<string, unknown>>
+}
+
 function databaseInteger(value: unknown): unknown {
   if (value == null) return value
   const numeric = typeof value === 'number'
@@ -61,4 +67,73 @@ export function normalizeSyncPayload(
 
 export function upsertConflictTarget(table: string): string | undefined {
   return UPSERT_CONFLICT_TARGETS[table]
+}
+
+function operationRows(operation: PendingSyncOperation): Record<string, unknown>[] {
+  return Array.isArray(operation.payload) ? operation.payload : [operation.payload]
+}
+
+export function syncOperationKeys(operation: PendingSyncOperation): string[] {
+  const keys = operationRows(operation).flatMap((row) => {
+    if (typeof row.id === 'string') return [`${operation.table}:id:${row.id}`]
+    if (typeof row.user_id === 'string') return [`${operation.table}:user:${row.user_id}`]
+    return []
+  })
+  return keys.length > 0 ? [...new Set(keys)] : [`${operation.table}:*`]
+}
+
+export function syncOperationConflicts(operation: PendingSyncOperation, blockedKeys: ReadonlySet<string>): boolean {
+  const wildcard = `${operation.table}:*`
+  return blockedKeys.has(wildcard) || syncOperationKeys(operation).some((key) => blockedKeys.has(key))
+}
+
+/**
+ * Replays the durable offline queue over a fresh server response. Fetching
+ * and flushing are intentionally independent, so a reconnecting fetch must
+ * not make an optimistic edit disappear while its queued write is still in
+ * flight. Operations are applied in queue order, making the latest local
+ * intent authoritative until Supabase acknowledges it.
+ */
+export function replayPendingList<T extends { id: string }>(
+  table: string,
+  serverRows: T[],
+  operations: readonly PendingSyncOperation[],
+): T[] {
+  const rows = new Map(serverRows.map((row) => [row.id, row]))
+  for (const operation of operations) {
+    if (operation.table !== table) continue
+    for (const raw of operationRows(operation)) {
+      const id = typeof raw.id === 'string' ? raw.id : null
+      if (!id) continue
+      if (operation.type === 'delete') rows.delete(id)
+      else rows.set(id, normalizeSyncRecord(table, raw) as T)
+    }
+  }
+  return [...rows.values()]
+}
+
+export function replayPendingSingleton<T extends object>(
+  table: string,
+  serverRow: T | null,
+  operations: readonly PendingSyncOperation[],
+): T | null {
+  let row = serverRow
+  for (const operation of operations) {
+    if (operation.table !== table) continue
+    const latest = operationRows(operation).at(-1)
+    if (!latest) continue
+    row = operation.type === 'delete' ? null : normalizeSyncRecord(table, latest) as unknown as T
+  }
+  return row
+}
+
+/** Prevent a delayed realtime echo from replacing a newer local intent. */
+export function hasPendingSyncForRecord(
+  operations: readonly PendingSyncOperation[],
+  table: string,
+  id: string,
+): boolean {
+  return operations.some((operation) =>
+    operation.table === table && operationRows(operation).some((row) => row.id === id || row.user_id === id),
+  )
 }

@@ -40,9 +40,17 @@ export interface PrivateOutboxOp {
   payload: unknown
   created_at: string
   attempts: number
+  last_attempt_at?: string | null
+  last_error?: string | null
 }
 
 let dbPromise: Promise<IDBDatabase> | null = null
+
+export function resetPrivateDbConnection(): void {
+  const current = dbPromise
+  dbPromise = null
+  if (current) void current.then((database) => database.close()).catch(() => undefined)
+}
 
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
@@ -62,8 +70,15 @@ function transactionDone(transaction: IDBTransaction): Promise<void> {
 export function openPrivateDb(): Promise<IDBDatabase> {
   if (!('indexedDB' in globalThis)) return Promise.reject(new Error('IndexedDB is unavailable'))
   if (dbPromise) return dbPromise
-  dbPromise = new Promise((resolve, reject) => {
+  const opening = new Promise<IDBDatabase>((resolve, reject) => {
     const request = indexedDB.open(DB_NAME, DB_VERSION)
+    let settled = false
+    const fail = (error: Error) => {
+      if (settled) return
+      settled = true
+      if (dbPromise === opening) dbPromise = null
+      reject(error)
+    }
     request.onupgradeneeded = () => {
       const database = request.result
       const definitions: Array<{ name: PrivateStoreName; userIndex: boolean }> = [
@@ -95,10 +110,27 @@ export function openPrivateDb(): Promise<IDBDatabase> {
         }
       }
     }
-    request.onsuccess = () => resolve(request.result)
-    request.onerror = () => reject(request.error ?? new Error('Could not open APEX private storage'))
+    request.onsuccess = () => {
+      if (settled) {
+        request.result.close()
+        return
+      }
+      settled = true
+      const database = request.result
+      database.onversionchange = () => {
+        database.close()
+        if (dbPromise === opening) dbPromise = null
+      }
+      database.onclose = () => {
+        if (dbPromise === opening) dbPromise = null
+      }
+      resolve(database)
+    }
+    request.onerror = () => fail(request.error ?? new Error('Could not open APEX private storage'))
+    request.onblocked = () => fail(new Error('APEX private storage is blocked by another open app tab. Close the other tab and retry.'))
   })
-  return dbPromise
+  dbPromise = opening
+  return opening
 }
 
 export async function privatePut<T>(storeName: PrivateStoreName, value: T): Promise<void> {
@@ -204,20 +236,32 @@ export async function saveProgressPhotoAtomically(
   thumbnail: Blob,
   outbox: PrivateOutboxOp | null,
 ): Promise<void> {
-  const database = await openPrivateDb()
-  const stores: PrivateStoreName[] = ['progress_photos', 'photo_blobs']
-  if (outbox) stores.push('private_outbox')
-  const transaction = database.transaction(stores, 'readwrite')
-  transaction.objectStore('progress_photos').put(photo)
-  const updated = new Date().toISOString()
-  transaction.objectStore('photo_blobs').put({
-    id: `${photo.id}:full`, user_id: photo.user_id, photo_id: photo.id, kind: 'full', blob: full, updated_at: updated,
-  } satisfies StoredPhotoBlob)
-  transaction.objectStore('photo_blobs').put({
-    id: `${photo.id}:thumbnail`, user_id: photo.user_id, photo_id: photo.id, kind: 'thumbnail', blob: thumbnail, updated_at: updated,
-  } satisfies StoredPhotoBlob)
-  if (outbox) transaction.objectStore('private_outbox').put(outbox)
-  await transactionDone(transaction)
+  const commit = async () => {
+    const database = await openPrivateDb()
+    const stores: PrivateStoreName[] = ['progress_photos', 'photo_blobs']
+    if (outbox) stores.push('private_outbox')
+    const transaction = database.transaction(stores, 'readwrite')
+    transaction.objectStore('progress_photos').put(photo)
+    const updated = new Date().toISOString()
+    transaction.objectStore('photo_blobs').put({
+      id: `${photo.id}:full`, user_id: photo.user_id, photo_id: photo.id, kind: 'full', blob: full, updated_at: updated,
+    } satisfies StoredPhotoBlob)
+    transaction.objectStore('photo_blobs').put({
+      id: `${photo.id}:thumbnail`, user_id: photo.user_id, photo_id: photo.id, kind: 'thumbnail', blob: thumbnail, updated_at: updated,
+    } satisfies StoredPhotoBlob)
+    if (outbox) transaction.objectStore('private_outbox').put(outbox)
+    await transactionDone(transaction)
+  }
+  try {
+    await commit()
+  } catch (error) {
+    if (!(error instanceof DOMException) || error.name !== 'InvalidStateError') throw error
+    // A backgrounded iOS tab can leave a resolved promise pointing at a
+    // closed IndexedDB connection. Reopen once; the transaction is atomic, so
+    // this retry cannot create a partial or duplicate photo.
+    resetPrivateDbConnection()
+    await commit()
+  }
 }
 
 export async function deleteProgressPhotoLocally(photoId: string): Promise<void> {

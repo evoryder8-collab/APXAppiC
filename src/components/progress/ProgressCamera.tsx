@@ -1,5 +1,11 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
-import { coverCrop, type ProgressPose } from '../../lib/progressPhoto'
+import {
+  coverCrop,
+  processProgressPhoto,
+  progressPhotoSaveError,
+  type ProcessedProgressPhoto,
+  type ProgressPose,
+} from '../../lib/progressPhoto'
 import { useLanguage } from '../../lib/i18n'
 
 type CameraFacing = 'user' | 'environment'
@@ -12,13 +18,17 @@ export function ProgressCamera({
 }: {
   initialPose: ProgressPose
   referenceUrl?: string | null
-  onSave: (blob: Blob, pose: ProgressPose) => Promise<void>
+  onSave: (blob: Blob, pose: ProgressPose, processed?: ProcessedProgressPhoto) => Promise<void>
   onClose: () => void
 }) {
   const { language } = useLanguage()
   const videoRef = useRef<HTMLVideoElement>(null)
   const streamRef = useRef<MediaStream | null>(null)
   const countdownRef = useRef<number | null>(null)
+  const libraryInputRef = useRef<HTMLInputElement>(null)
+  const libraryRequestRef = useRef(0)
+  const processedCaptureRef = useRef<ProcessedProgressPhoto | null>(null)
+  const libraryCaptureRef = useRef(false)
   const [pose, setPose] = useState<ProgressPose>(initialPose)
   const [facing, setFacing] = useState<CameraFacing>('user')
   const [restartKey, setRestartKey] = useState(0)
@@ -30,6 +40,7 @@ export function ProgressCamera({
   const [ghostOpacity, setGhostOpacity] = useState(referenceUrl ? 0.25 : 0)
   const [error, setError] = useState<string | null>(null)
   const [saving, setSaving] = useState(false)
+  const [importing, setImporting] = useState(false)
   const poseLabel = (value: ProgressPose): string => ({
     en: { front: 'Front', side: 'Profile', back: 'Back' },
     ro: { front: 'Față', side: 'Profil', back: 'Spate' },
@@ -97,6 +108,7 @@ export function ProgressCamera({
   }, [facing, restartKey, stop])
 
   useEffect(() => () => { if (preview) URL.revokeObjectURL(preview) }, [preview])
+  useEffect(() => () => { libraryRequestRef.current += 1 }, [])
 
   const captureFrame = useCallback(async () => {
     const video = videoRef.current
@@ -122,13 +134,15 @@ export function ProgressCamera({
     if (!blob) return
     if (preview) URL.revokeObjectURL(preview)
     const url = URL.createObjectURL(blob)
+    processedCaptureRef.current = null
+    libraryCaptureRef.current = false
     setCaptured(blob)
     setPreview(url)
     navigator.vibrate?.(40)
   }, [facing, preview])
 
   const beginCountdown = () => {
-    if (countdown != null || !ready) return
+    if (countdown != null || !ready || importing) return
     setCountdown(timer)
     let current = timer
     countdownRef.current = window.setInterval(() => {
@@ -142,18 +156,50 @@ export function ProgressCamera({
     }, 1000)
   }
 
-  const acceptLibrary = (file: File | undefined) => {
+  const acceptLibrary = async (file: File | undefined) => {
     if (!file) return
-    if (preview) URL.revokeObjectURL(preview)
-    setCaptured(file)
-    setPreview(URL.createObjectURL(file))
+    if (countdownRef.current != null) window.clearInterval(countdownRef.current)
+    countdownRef.current = null
+    setCountdown(null)
+    const requestId = ++libraryRequestRef.current
+    setImporting(true)
     setError(null)
+    try {
+      // Decode and re-encode gallery photos before review. This applies EXIF
+      // orientation, strips GPS metadata, handles iPhone image dimensions and
+      // guarantees the same upload formats used by live camera captures.
+      const processed = await processProgressPhoto(file)
+      if (requestId !== libraryRequestRef.current) return
+      if (preview) URL.revokeObjectURL(preview)
+      stop()
+      setReady(false)
+      processedCaptureRef.current = processed
+      libraryCaptureRef.current = true
+      setCaptured(processed.full)
+      setPreview(URL.createObjectURL(processed.full))
+    } catch (cause) {
+      if (requestId !== libraryRequestRef.current) return
+      processedCaptureRef.current = null
+      libraryCaptureRef.current = false
+      setCaptured(null)
+      setPreview(null)
+      setError(progressPhotoSaveError(cause).message)
+    } finally {
+      if (requestId === libraryRequestRef.current) setImporting(false)
+      if (libraryInputRef.current) libraryInputRef.current.value = ''
+    }
   }
 
   const retake = () => {
     if (preview) URL.revokeObjectURL(preview)
     setPreview(null)
     setCaptured(null)
+    processedCaptureRef.current = null
+    setError(null)
+    if (libraryCaptureRef.current) {
+      libraryCaptureRef.current = false
+      setRestartKey((value) => value + 1)
+    }
   }
 
   const save = async () => {
@@ -161,7 +207,7 @@ export function ProgressCamera({
     setSaving(true)
     setError(null)
     try {
-      await onSave(captured, pose)
+      await onSave(captured, pose, processedCaptureRef.current ?? undefined)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The photo could not be saved. It remains on this review screen so you can retry.')
     } finally {
@@ -205,7 +251,7 @@ export function ProgressCamera({
       {error && (
         <div className="absolute top-28 right-4 left-4 z-10 rounded-2xl bg-red-700/80 px-4 py-3 text-xs font-semibold backdrop-blur">
           <p>{error}</p>
-          <button type="button" onClick={() => setRestartKey((value) => value + 1)} className="mt-2 rounded-lg bg-white/18 px-3 py-1.5 text-[10px] font-bold">Retry camera</button>
+          {!preview && !ready && <button type="button" onClick={() => setRestartKey((value) => value + 1)} className="mt-2 rounded-lg bg-white/18 px-3 py-1.5 text-[10px] font-bold">Retry camera</button>}
         </div>
       )}
 
@@ -220,8 +266,8 @@ export function ProgressCamera({
               <button type="button" onClick={() => setFacing((value) => value === 'user' ? 'environment' : 'user')} className="rounded-full bg-black/40 px-3 py-2 text-[10px] font-bold backdrop-blur">Flip camera</button>
             </div>
             <div className="grid grid-cols-[4rem_1fr_4rem] items-center">
-              <label className="cursor-pointer rounded-full bg-white/15 px-3 py-2 text-center text-[10px] font-bold backdrop-blur">Library<input type="file" accept="image/*" onChange={(event) => acceptLibrary(event.target.files?.[0])} className="sr-only" /></label>
-              <button type="button" disabled={!ready} onClick={beginCountdown} className="mx-auto h-20 w-20 rounded-full border-4 border-white bg-white/20 active:scale-95 disabled:opacity-35" style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.4)' }} aria-label={`Take photo in ${timer} seconds`} />
+              <label className={`rounded-full bg-white/15 px-3 py-2 text-center text-[10px] font-bold backdrop-blur ${importing ? 'cursor-wait opacity-60' : 'cursor-pointer'}`}>{importing ? 'Preparing…' : 'Library'}<input ref={libraryInputRef} type="file" accept="image/jpeg,image/png,image/webp,image/heic,image/heif" disabled={importing} onChange={(event) => { void acceptLibrary(event.target.files?.[0]) }} className="sr-only" /></label>
+              <button type="button" disabled={!ready || importing} onClick={beginCountdown} className="mx-auto h-20 w-20 rounded-full border-4 border-white bg-white/20 active:scale-95 disabled:opacity-35" style={{ boxShadow: '0 0 0 2px rgba(255,255,255,0.4)' }} aria-label={`Take photo in ${timer} seconds`} />
               <span className="text-center font-mono text-[9px] font-bold text-white/65">{facing === 'user' ? 'FRONT' : 'REAR'}</span>
             </div>
           </div>

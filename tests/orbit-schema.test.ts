@@ -48,7 +48,9 @@ test('active run finish is atomic and the offline outbox is user indexed', () =>
   assert.match(offline, /transaction\(\['runs', 'active_runs', 'outbox'\], 'readwrite'\)/)
   assert.match(offline, /createIndex\('user_id'/)
   assert.match(offline, /transaction\.objectStore\('active_runs'\)\.delete\(run\.user_id\)/)
-  assert.match(offline, /transaction\.objectStore\('outbox'\)\.put\(outbox\)/)
+  assert.match(offline, /scheduleLatestOutbox\(transaction, outbox\)/)
+  assert.match(offline, /recordOrbitOutboxFailure/)
+  assert.match(offline, /orbitReplaceForUser/)
 })
 
 test('critical Orbit actions and induction copy ship in Romanian and Thai', () => {

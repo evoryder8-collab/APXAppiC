@@ -1,6 +1,7 @@
 import type { Settings } from './types.ts'
 
 export type UiMode = 'simple' | 'advanced'
+export type WeightUnit = 'kg' | 'lb'
 
 export function uiModeFromSettings(settings: Settings | null): UiMode {
   return settings?.addons.uiMode === 'simple' ? 'simple' : 'advanced'
@@ -8,6 +9,32 @@ export function uiModeFromSettings(settings: Settings | null): UiMode {
 
 export function settingsForUiMode(settings: Settings, uiMode: UiMode): Pick<Settings, 'addons'> {
   return { addons: { ...settings.addons, uiMode } }
+}
+
+export function weightUnitFromSettings(settings: Settings | null): WeightUnit {
+  return settings?.addons.weight_unit === 'lb' ? 'lb' : 'kg'
+}
+
+export function weightFromKg(weightKg: number, unit: WeightUnit): number {
+  return unit === 'lb' ? weightKg * 2.2046226218 : weightKg
+}
+
+export function weightToKg(weight: number, unit: WeightUnit): number {
+  return unit === 'lb' ? weight / 2.2046226218 : weight
+}
+
+/* Custom hydration accepts the way people naturally type it: `750`,
+   `750 ml`, `.75 l`, or a decimal comma. A unit-less amount above 10 is
+   treated as millilitres; smaller values are litres. */
+export function parseWaterAmountToLitres(value: string): number | null {
+  const normalized = value.trim().toLocaleLowerCase('en').replace(',', '.')
+  const match = normalized.match(/^(\d*\.?\d+)\s*(ml|millilit(?:er|re)s?|l|lit(?:er|re)s?)?$/)
+  if (!match) return null
+  const amount = Number(match[1])
+  if (!Number.isFinite(amount) || amount <= 0) return null
+  const unit = match[2]
+  const litres = unit?.startsWith('m') || (!unit && amount > 10) ? amount / 1000 : amount
+  return litres > 0 && litres <= 6 ? Math.round(litres * 1000) / 1000 : null
 }
 
 export interface TimedSimpleAction {
