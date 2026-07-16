@@ -97,6 +97,21 @@ test('ordinary snacks never spill into the Post-workout block', () => {
   assert.equal(statuses.filter((status) => status.completed).length, 1)
 })
 
+test('a custom extra meal never steals a canonical completion block', () => {
+  const settings = normalizeMealBlockSettings({
+    custom_blocks: [{ id: 'custom:second-lunch', label: 'Second lunch', slot: 'lunch', time: '15:30', enabled: true }],
+  })
+  const extra = loggedMeal({
+    meal_slot: 'lunch',
+    display_name: 'Second lunch',
+    source_preset_id: null,
+    client_idempotency_key: mealBlockIdempotencyKey('extra', 'custom:second-lunch'),
+  })
+  const statuses = resolveMealBlockStatuses({ settings, loggedMeals: [extra] })
+  assert.equal(statuses.some((status) => status.loggedMeal?.id === extra.id), false)
+  assert.equal(statuses.filter((status) => status.completed).length, 0)
+})
+
 test('an ordinary snack does not become Post-workout when Snack is disabled', () => {
   const settings = normalizeMealBlockSettings({
     blocks: normalizeMealBlockSettings(undefined).blocks.map((block) => block.id === 'snack' ? { ...block, enabled: false } : block),

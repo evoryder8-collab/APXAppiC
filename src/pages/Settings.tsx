@@ -9,7 +9,7 @@ import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/heal
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { isTrainingInductionEligible } from '../lib/trainingInduction'
-import { mealBlockLabel, normalizeMealBlockSettings, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
+import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -103,6 +103,15 @@ export function Settings() {
     setSettings({ addons: { ...settings.addons, meal_blocks: { ...mealBlockSettings, blocks: nextBlocks } } })
   }
 
+  const updateCustomMealBlock = (id: CustomMealBlockId, patch: Partial<CustomMealBlock>): void => {
+    const customBlocks = mealBlockSettings.custom_blocks.map((block) => block.id === id ? { ...block, ...patch } : block)
+    setSettings({ addons: { ...settings.addons, meal_blocks: { ...mealBlockSettings, custom_blocks: customBlocks } } })
+  }
+
+  const removeCustomMealBlock = (id: CustomMealBlockId): void => {
+    setSettings({ addons: { ...settings.addons, meal_blocks: { ...mealBlockSettings, custom_blocks: mealBlockSettings.custom_blocks.filter((block) => block.id !== id) } } })
+  }
+
   const row = 'flex items-center justify-between gap-3 py-3'
   const label = 'text-sm font-bold text-ink'
   const sub = 'text-xs font-medium text-ink-soft'
@@ -175,6 +184,14 @@ export function Settings() {
                     />
                   </div>
                 ))}
+                {mealBlockSettings.custom_blocks.map((block) => (
+                  <div key={block.id} className={`flex items-center gap-2 rounded-2xl border px-3 py-2.5 transition ${block.enabled ? 'border-cyan-200/70 bg-cyan-50/45' : 'border-transparent bg-white/38 opacity-65'}`}>
+                    <input type="checkbox" checked={block.enabled} onChange={(event) => updateCustomMealBlock(block.id, { enabled: event.target.checked })} aria-label={`${block.label} ${t('enabled')}`} className="h-4 w-4 shrink-0 accent-cyan-600" />
+                    <input value={block.label} onChange={(event) => updateCustomMealBlock(block.id, { label: event.target.value.slice(0, 60) })} aria-label={t('Custom meal name')} className="min-w-0 flex-1 bg-transparent text-xs font-black text-ink outline-none" />
+                    <input type="time" value={block.time} disabled={!block.enabled} onChange={(event) => updateCustomMealBlock(block.id, { time: event.target.value })} aria-label={`${block.label} ${t('time')}`} className="w-[5.9rem] rounded-xl border border-cyan-100 bg-white/88 px-1.5 py-1.5 text-center font-mono text-[10px] font-black text-ink outline-none disabled:opacity-50" />
+                    <button type="button" onClick={() => removeCustomMealBlock(block.id)} aria-label={`${t('Delete')} ${block.label}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rose-50 text-xs font-black text-rose-600">×</button>
+                  </div>
+                ))}
               </div>
             </div>
 
@@ -198,6 +215,10 @@ export function Settings() {
               <div className={row}>
                 <div><p className={label}>{t('Show workout summary card')}</p><p className={sub}>{t('Show the editable workout list and Add Workout card below the four quick actions.')}</p></div>
                 <Toggle accent={ACCENTS.teal} label={t('Show workout summary card')} on={settings.addons.simple_show_manual_workout ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: value } })} />
+              </div>
+              <div className={row}>
+                <div><p className={label}>{t('Show next action card')}</p><p className={sub}>{t('Show the next meal or supplement shortcut below the four quick actions.')}</p></div>
+                <Toggle accent={ACCENTS.amber} label={t('Show next action card')} on={settings.addons.simple_show_next_action ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_next_action: value } })} />
               </div>
             </div>
 

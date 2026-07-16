@@ -23,8 +23,9 @@ import { useFoodStore } from '../../store/FoodStore'
 import { GlassCard } from '../ui'
 import { BarcodeIcon } from '../Icons'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
-import { mealBlockIdempotencyKey, normalizeMealBlockSettings, type MealBlockKind } from '../../lib/mealBlocks'
+import { mealBlockIdempotencyKey, normalizeMealBlockSettings, type MealBlockIdentity, type MealBlockKind } from '../../lib/mealBlocks'
 import { useStore } from '../../store/AppStore'
+import { rankMealHistoryRecommendations } from '../../lib/mealExperience'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -37,6 +38,8 @@ interface MealComposerProps {
   initialItems?: ComposerFoodItem[]
   plannedMealId?: string | null
   mealBlockId?: MealBlockKind | null
+  mealIdentity?: MealBlockIdentity | null
+  targetTime?: string | null
   replaceMealId?: string | null
   onClose: () => void
   onLogged?: () => void
@@ -57,6 +60,8 @@ export function MealComposer({
   initialItems = [],
   plannedMealId = null,
   mealBlockId = null,
+  mealIdentity = null,
+  targetTime = null,
   replaceMealId = null,
   onClose,
   onLogged,
@@ -82,7 +87,37 @@ export function MealComposer({
   const [controlHelp, setControlHelp] = useState<{ itemId: string; kind: 'adaptive' | 'lock' | 'role' } | null>(null)
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
 
-  const ranked = useMemo(() => rankFoods(query, store.foods, store.preferences, slot).slice(0, 12), [query, slot, store.foods, store.preferences])
+  const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(data.settings?.addons.meal_blocks), [data.settings?.addons.meal_blocks])
+  const effectiveTargetTime = targetTime
+    ?? (mealBlockId ? mealBlockSettings.blocks.find((block) => block.id === mealBlockId)?.time ?? null : null)
+  const sequenceIndex = mealBlockId
+    ? mealBlockSettings.blocks.filter((block) => block.enabled).slice().sort((left, right) => left.time.localeCompare(right.time)).findIndex((block) => block.id === mealBlockId)
+    : null
+  const historyStarts = useMemo(() => rankMealHistoryRecommendations({
+    context: {
+      date: date ?? new Date().toISOString().slice(0, 10),
+      slot,
+      blockId: mealIdentity ?? mealBlockId,
+      targetTime: effectiveTargetTime,
+      sequenceIndex: sequenceIndex != null && sequenceIndex >= 0 ? sequenceIndex : null,
+      excludeMealId: replaceMealId,
+    },
+    meals: store.meals,
+    entries: store.entries,
+    foods: store.foods,
+    presets: store.presets,
+  }), [date, effectiveTargetTime, mealBlockId, mealIdentity, replaceMealId, sequenceIndex, slot, store.entries, store.foods, store.meals, store.presets])
+  const ranked = useMemo(() => {
+    if (query.trim()) return rankFoods(query, store.foods, store.preferences, slot).slice(0, 12)
+    const usedFoodIds = new Set(store.preferences.filter((preference) => preference.favourite || preference.usage_count > 0).map((preference) => preference.food_id))
+    const preferenceBackfill = rankFoods('', store.foods, store.preferences, slot).filter((food) => usedFoodIds.has(food.id))
+    const seen = new Set<string>()
+    return [...historyStarts.foods, ...preferenceBackfill].filter((food) => {
+      if (seen.has(food.id)) return false
+      seen.add(food.id)
+      return true
+    }).slice(0, 12)
+  }, [historyStarts.foods, query, slot, store.foods, store.preferences])
   const displayedFoods = useMemo(() => mergeExtendedFoodResults(query, ranked, remoteResults).slice(0, 30), [query, ranked, remoteResults])
   const totals = useMemo(() => mealTotals(items), [items])
   const selectionPortion = useMemo(
@@ -90,14 +125,16 @@ export function MealComposer({
     [selection],
   )
   const selectionReady = Boolean(selection && selection.quantity > 0 && selectionPortion)
-  const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(data.settings?.addons.meal_blocks), [data.settings?.addons.meal_blocks])
-  const slotPresets = useMemo(() => store.presets.filter((preset) => {
+  const slotPresets = useMemo(() => {
+    const historicalOrder = new Map(historyStarts.presets.map((preset, index) => [preset.id, index]))
+    return store.presets.filter((preset) => {
     if (preset.archived || preset.meal_slot !== slot) return false
     if (!mealBlockId) return true
     const assigned = mealBlockSettings.preset_assignments[preset.id]
     return assigned == null || assigned === mealBlockId
-  }), [mealBlockId, mealBlockSettings.preset_assignments, slot, store.presets])
-  const recentMeals = useMemo(() => store.meals.filter((meal) => meal.meal_slot === slot).slice(0, 4), [slot, store.meals])
+    }).sort((left, right) => (historicalOrder.get(left.id) ?? 999) - (historicalOrder.get(right.id) ?? 999) || right.updated_at.localeCompare(left.updated_at)).slice(0, 6)
+  }, [historyStarts.presets, mealBlockId, mealBlockSettings.preset_assignments, slot, store.presets])
+  const recentMeals = historyStarts.meals
 
   const materializeFood = async (food: FoodRecord): Promise<FoodRecord> => {
     const needsPrivateCopy = food.id.startsWith('off:') || food.provider_product_id?.startsWith('apex-curated:')
@@ -303,7 +340,7 @@ export function MealComposer({
     }
     setSaving(true)
     try {
-      const assignedBlock = mealBlockId ?? (loadedPresetId ? mealBlockSettings.preset_assignments[loadedPresetId] : null)
+      const assignedBlock = mealIdentity ?? mealBlockId ?? (loadedPresetId ? mealBlockSettings.preset_assignments[loadedPresetId] : null)
       await store.logMeal({
         date, slot, name: name.trim() || 'Meal', items, sourcePresetId: loadedPresetId,
         sourcePlannedMealId: plannedMealId,
@@ -369,8 +406,9 @@ export function MealComposer({
               })}
               <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">+ Private food</button>
             </div>
-            {(query || remoteResults.length > 0) && (
+            {(displayedFoods.length > 0 || remoteResults.length > 0) && (
               <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
+                {!query.trim() && <p className="px-3 pb-1 text-[9px] font-black tracking-[0.14em] text-ink-faint uppercase">{t('Recent for this meal')}</p>}
                 {displayedFoods.map((food) => (
                   <button key={food.id} type="button" onClick={() => void selectFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
                     <span><span className="block text-sm font-bold text-ink">{displayFoodName(food, language)}</span><span className="text-[10px] font-medium text-ink-faint">{food.brand || translateInterfaceText(food.preparation_state.replace('_', ' '), language)} · {food.kcal_100 ?? '?'} kcal / 100</span></span>

@@ -37,7 +37,7 @@ const Settings = lazy(() => import('./pages/Settings').then((module) => ({ defau
 const Player = lazy(() => import('./pages/Player').then((module) => ({ default: module.Player })))
 const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })))
 const VisualProgress = lazy(() => import('./pages/VisualProgress').then((module) => ({ default: module.VisualProgress })))
-const PersonaIntro = lazy(() => import('./components/PersonaIntro').then((module) => ({ default: module.PersonaIntro })))
+const NeutralEntry = lazy(() => import('./components/NeutralEntry').then((module) => ({ default: module.NeutralEntry })))
 const OrbitHome = lazy(() => import('./orbit/pages/OrbitHome').then((module) => ({ default: module.OrbitHome })))
 const RoutePlanner = lazy(() => import('./orbit/pages/RoutePlanner').then((module) => ({ default: module.RoutePlanner })))
 const LiveRun = lazy(() => import('./orbit/pages/LiveRun').then((module) => ({ default: module.LiveRun })))
@@ -141,6 +141,7 @@ function Shell() {
     hasEntryGrant() ? getSelectedPersona() : null,
   )
   const [entryGranted, setEntryGranted] = useState(hasEntryGrant)
+  const [entrySurface, setEntrySurface] = useState<'neutral' | 'login'>('neutral')
   const [switchingPersona, setSwitchingPersona] = useState(false)
 
   const returnToPersonaIntro = async (): Promise<void> => {
@@ -150,6 +151,7 @@ function Shell() {
     // keeps the persistent switcher responsive even when sign-out is slow.
     setSelectedPersonaState(null)
     setEntryGranted(false)
+    setEntrySurface('neutral')
     clearSelectedPersona()
     clearEntryGrant()
     window.location.hash = '#/'
@@ -167,16 +169,18 @@ function Shell() {
       </div>
     )
   }
-  if (!selectedPersona) {
+  const needsEntry = !selectedPersona || !entryGranted || !authed
+  if (needsEntry && entrySurface === 'neutral') {
     return (
       <>
         <Suspense fallback={<LoadingSurface />}>
-          <PersonaIntro
-            onSelect={(persona) => {
-              setSelectedPersona(persona)
-              setSelectedPersonaState(persona)
+          <NeutralEntry
+            onLogin={() => {
+              clearSelectedPersona()
               clearEntryGrant()
+              setSelectedPersonaState(null)
               setEntryGranted(false)
+              setEntrySurface('login')
             }}
           />
         </Suspense>
@@ -184,19 +188,21 @@ function Shell() {
       </>
     )
   }
-  if (!entryGranted || !authed) {
+  if (needsEntry) {
     return (
       <>
         <Suspense fallback={<LoadingSurface />}>
           <Login
-            persona={selectedPersona}
             onBack={() => {
               clearSelectedPersona()
               clearEntryGrant()
               setSelectedPersonaState(null)
               setEntryGranted(false)
+              setEntrySurface('neutral')
             }}
-            onSuccess={() => {
+            onSuccess={(persona) => {
+              setSelectedPersona(persona)
+              setSelectedPersonaState(persona)
               grantEntry()
               setEntryGranted(true)
             }}

@@ -2,6 +2,8 @@ import type { LoggedMeal, MealSlot } from './food'
 import type { Meal } from './types'
 
 export type MealBlockKind = 'breakfast' | 'lunch' | 'dinner' | 'snack' | 'post_workout'
+export type CustomMealBlockId = `custom:${string}`
+export type MealBlockIdentity = MealBlockKind | CustomMealBlockId
 
 export interface MealBlock {
   id: MealBlockKind
@@ -10,8 +12,20 @@ export interface MealBlock {
   enabled: boolean
 }
 
+/** User-created meal moments live in the already-synced settings JSON. They
+ * deliberately do not alter the five canonical blocks or the structured food
+ * ledger, which keeps older clients and immutable meal snapshots compatible. */
+export interface CustomMealBlock {
+  id: CustomMealBlockId
+  label: string
+  slot: MealSlot
+  time: string
+  enabled: boolean
+}
+
 export interface MealBlockSettings {
   blocks: MealBlock[]
+  custom_blocks: CustomMealBlock[]
   preset_assignments: Record<string, MealBlockKind>
 }
 
@@ -33,6 +47,7 @@ export const DEFAULT_MEAL_BLOCKS: readonly MealBlock[] = [
 ] as const
 
 const BLOCK_IDS = new Set<MealBlockKind>(DEFAULT_MEAL_BLOCKS.map((block) => block.id))
+const MEAL_SLOTS = new Set<MealSlot>(['breakfast', 'lunch', 'dinner', 'snack'])
 const BLOCK_MARKER = 'apex-meal-block='
 
 function validClock(value: unknown, fallback: string): string {
@@ -58,13 +73,66 @@ export function normalizeMealBlockSettings(value: unknown): MealBlockSettings {
   })
   if (!blocks.some((block) => block.enabled)) blocks[0] = { ...blocks[0], enabled: true }
 
+  const custom_blocks: CustomMealBlock[] = []
+  const seenCustomIds = new Set<string>()
+  for (const candidate of Array.isArray(input.custom_blocks) ? input.custom_blocks : []) {
+    if (!candidate || typeof candidate !== 'object') continue
+    const record = candidate as Partial<CustomMealBlock>
+    const id = typeof record.id === 'string' ? record.id : ''
+    const label = typeof record.label === 'string' ? record.label.trim().replace(/\s+/g, ' ').slice(0, 60) : ''
+    if (!/^custom:[a-z0-9][a-z0-9-]{5,80}$/i.test(id) || !label || seenCustomIds.has(id)) continue
+    const slot = MEAL_SLOTS.has(record.slot as MealSlot) ? record.slot as MealSlot : mealSlotForClock(record.time)
+    custom_blocks.push({
+      id: id as CustomMealBlockId,
+      label,
+      slot,
+      time: validClock(record.time, defaultTimeForSlot(slot)),
+      enabled: record.enabled !== false,
+    })
+    seenCustomIds.add(id)
+    if (custom_blocks.length >= 12) break
+  }
+
   const preset_assignments: Record<string, MealBlockKind> = {}
   if (input.preset_assignments && typeof input.preset_assignments === 'object') {
     for (const [presetId, blockId] of Object.entries(input.preset_assignments)) {
       if (presetId && BLOCK_IDS.has(blockId as MealBlockKind)) preset_assignments[presetId] = blockId as MealBlockKind
     }
   }
-  return { blocks, preset_assignments }
+  return { blocks, custom_blocks, preset_assignments }
+}
+
+function defaultTimeForSlot(slot: MealSlot): string {
+  if (slot === 'breakfast') return '07:00'
+  if (slot === 'lunch') return '13:00'
+  if (slot === 'dinner') return '19:00'
+  return '16:00'
+}
+
+export function mealSlotForClock(value: unknown): MealSlot {
+  const clock = validClock(value, '16:00')
+  const hour = Number(clock.slice(0, 2))
+  if (hour < 11) return 'breakfast'
+  if (hour < 15) return 'lunch'
+  if (hour >= 18) return 'dinner'
+  return 'snack'
+}
+
+export function createCustomMealBlock(input: {
+  label: string
+  time: string
+  slot?: MealSlot
+}, createId: () => string = () => crypto.randomUUID()): CustomMealBlock {
+  const label = input.label.trim().replace(/\s+/g, ' ').slice(0, 60) || 'Extra meal'
+  const slot = input.slot && MEAL_SLOTS.has(input.slot) ? input.slot : mealSlotForClock(input.time)
+  const token = createId().toLocaleLowerCase().replace(/[^a-z0-9-]/g, '').slice(0, 72) || 'meal-000000'
+  return {
+    id: `custom:${token}`,
+    label,
+    slot,
+    time: validClock(input.time, defaultTimeForSlot(slot)),
+    enabled: true,
+  }
 }
 
 export function mealBlockLabel(kind: MealBlockKind): string {
@@ -76,16 +144,22 @@ export function mealSlotForBlock(kind: MealBlockKind): MealSlot {
   return kind === 'post_workout' ? 'snack' : kind
 }
 
-export function mealBlockIdempotencyKey(base: string, blockId: MealBlockKind | null | undefined): string {
+export function mealBlockIdempotencyKey(base: string, blockId: MealBlockIdentity | null | undefined): string {
   if (!blockId) return base
   return `${base}|${BLOCK_MARKER}${blockId}`
 }
 
-export function mealBlockIdFromIdempotencyKey(value: string): MealBlockKind | null {
+export function mealMomentIdFromIdempotencyKey(value: string): MealBlockIdentity | null {
   const marker = value.lastIndexOf(BLOCK_MARKER)
   if (marker < 0) return null
-  const blockId = value.slice(marker + BLOCK_MARKER.length).split('|')[0] as MealBlockKind
-  return BLOCK_IDS.has(blockId) ? blockId : null
+  const blockId = value.slice(marker + BLOCK_MARKER.length).split('|')[0]
+  if (BLOCK_IDS.has(blockId as MealBlockKind)) return blockId as MealBlockKind
+  return /^custom:[a-z0-9][a-z0-9-]{5,80}$/i.test(blockId) ? blockId as CustomMealBlockId : null
+}
+
+export function mealBlockIdFromIdempotencyKey(value: string): MealBlockKind | null {
+  const identity = mealMomentIdFromIdempotencyKey(value)
+  return identity && BLOCK_IDS.has(identity as MealBlockKind) ? identity as MealBlockKind : null
 }
 
 function minutes(clock: string): number {
@@ -178,6 +252,10 @@ export function resolveMealBlockStatuses<TMeal extends PlannedMealReference>(inp
   }
   for (const meal of pending) {
     if (assignedMealIds.has(meal.id)) continue
+    /* Custom meal moments are deliberately independent from the five
+       canonical completion blocks. Without this guard a "Second lunch"
+       could silently occupy Lunch merely because both use the lunch slot. */
+    if (mealMomentIdFromIdempotencyKey(meal.client_idempotency_key)?.startsWith('custom:')) continue
     const block = nearestAvailableBlock(blocks, loggedKind(meal), occupied)
     assign(meal, block?.id ?? null)
   }

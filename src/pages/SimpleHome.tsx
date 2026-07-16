@@ -32,9 +32,11 @@ import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
 import { NutritionGlance } from '../components/food/NutritionGlance'
 import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
+import { QuickWorkoutLauncher } from '../components/workout/QuickWorkoutLauncher'
 import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
-import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockKind } from '../lib/mealBlocks'
+import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
+import { manualSessionsForDate } from '../lib/manualWorkout'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -73,13 +75,13 @@ export function SimpleHome() {
   const t = (value: string): string => translateInterfaceText(value, language)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
-  const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
+  const [editingManualExerciseId, setEditingManualExerciseId] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
   const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | 'weight' | null>(null)
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealBlockId, setQuickMealBlockId] = useState<MealBlockKind | null>(null)
-  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
+  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
   const [customWaterDraft, setCustomWaterDraft] = useState('')
   const today = todayIso()
@@ -106,7 +108,9 @@ export function SimpleHome() {
   const showGuidedPlan = settings?.addons.simple_show_guided_plan ?? true
   const showHydrationReminder = settings?.addons.simple_show_hydration_reminder ?? false
   const showManualWorkoutCard = settings?.addons.simple_show_manual_workout ?? false
+  const showNextAction = settings?.addons.simple_show_next_action ?? false
   const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(settings?.addons.meal_blocks), [settings?.addons.meal_blocks])
+  const hasManualWorkout = useMemo(() => manualSessionsForDate(data, selectedDate).length > 0, [data, selectedDate])
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
   const mealPlan = useMemo(
     () => profile && targets
@@ -217,8 +221,10 @@ export function SimpleHome() {
     })
   }
 
-  const completedMeals = mealBlockStatuses.filter((status) => status.completed).length
-  const totalMealBlocks = mealBlockStatuses.length
+  const enabledCustomMealBlocks = mealBlockSettings.custom_blocks.filter((block) => block.enabled)
+  const completedCustomMealBlocks = enabledCustomMealBlocks.filter((block) => dateFoodMeals.some((meal) => mealMomentIdFromIdempotencyKey(meal.client_idempotency_key) === block.id)).length
+  const completedMeals = mealBlockStatuses.filter((status) => status.completed).length + completedCustomMealBlocks
+  const totalMealBlocks = mealBlockStatuses.length + enabledCustomMealBlocks.length
   const completedGroups = supplementGroups.filter(groupIsDone).length
   const hasWorkout = plan.exercises.length > 0
   const totalTasks = totalMealBlocks + supplementGroups.length + 1 + Number(hasWorkout)
@@ -301,12 +307,13 @@ export function SimpleHome() {
     const items = actual ? await loggedMealItems(actual) : [await plannedFoodItem(meal)]
     setQuickPanel(null)
     setQuickMealEditor({
-      slot: mealSlotForBlock(blockId), blockId, title: actual?.display_name ?? meal.name, items,
+      slot: mealSlotForBlock(blockId), blockId, mealIdentity: blockId, title: actual?.display_name ?? meal.name, items,
       plannedMealId: meal.id, replaceMealId: actual?.id ?? null,
     })
   }
 
   const editQuickCustomMeal = async (meal: LoggedMeal, blockId?: MealBlockKind): Promise<void> => {
+    const durableIdentity = mealMomentIdFromIdempotencyKey(meal.client_idempotency_key)
     const assignedBlock = blockId
       ?? mealBlockIdFromIdempotencyKey(meal.client_idempotency_key)
       ?? (meal.source_preset_id ? mealBlockSettings.preset_assignments[meal.source_preset_id] : undefined)
@@ -314,7 +321,7 @@ export function SimpleHome() {
       ?? (meal.meal_slot as MealBlockKind)
     setQuickPanel(null)
     setQuickMealEditor({
-      slot: meal.meal_slot, blockId: assignedBlock, title: meal.display_name, items: await loggedMealItems(meal),
+      slot: meal.meal_slot, blockId: durableIdentity?.startsWith('custom:') ? null : assignedBlock, mealIdentity: durableIdentity ?? assignedBlock, title: meal.display_name, items: await loggedMealItems(meal),
       plannedMealId: meal.source_planned_meal_id, replaceMealId: meal.id,
     })
   }
@@ -428,18 +435,18 @@ export function SimpleHome() {
   const addWater = (): void => setWaterAmount(water + 0.25)
   const openNewManualWorkout = (): void => {
     setEditingManualSessionId(null)
-    setEditingManualExerciseName(null)
+    setEditingManualExerciseId(null)
     setShowManualWorkout(true)
   }
-  const openManualWorkout = (sessionId: string, canonicalName: string): void => {
+  const openManualWorkout = (sessionId: string, exerciseId: string): void => {
     setEditingManualSessionId(sessionId)
-    setEditingManualExerciseName(canonicalName)
+    setEditingManualExerciseId(exerciseId)
     setShowManualWorkout(true)
   }
   const closeManualWorkout = (): void => {
     setShowManualWorkout(false)
     setEditingManualSessionId(null)
-    setEditingManualExerciseName(null)
+    setEditingManualExerciseId(null)
   }
   const openTraining = (): void => {
     navigate(hasWorkout && !workoutDone ? `/player/transition/${selectedDate}` : '/transition')
@@ -778,9 +785,17 @@ export function SimpleHome() {
           <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
         </div>
 
-        {showManualWorkoutCard && <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />}
+        <div className="flex justify-end" data-simple-local-gesture>
+          <QuickWorkoutLauncher
+            date={selectedDate}
+            accent={emerald}
+            onSaved={() => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: true } })}
+          />
+        </div>
 
-        {!adhdMode && <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
+        {hasManualWorkout && (adhdMode || showManualWorkoutCard) && <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />}
+
+        {!adhdMode && showNextAction && <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
           <div className="mt-2 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
             <div className="min-w-0"><h2 className="break-words font-display text-[clamp(1.35rem,6vw,1.75rem)] leading-tight font-bold text-ink">{nextAction.title}</h2><p className="mt-1 text-xs font-semibold text-ink-soft">{nextAction.meta}</p></div>
@@ -1068,6 +1083,7 @@ export function SimpleHome() {
           <QuickMealComposer
             slot={quickMealEditor.slot}
             mealBlockId={quickMealEditor.blockId}
+            mealIdentity={quickMealEditor.mealIdentity}
             date={selectedDate}
             title={quickMealEditor.title}
             initialItems={quickMealEditor.items}
@@ -1078,7 +1094,7 @@ export function SimpleHome() {
           />
         </Suspense>
       )}
-      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseName={editingManualExerciseName} />
+      <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseId={editingManualExerciseId} />
       <PortalLanguageMenu />
     </div>
   )

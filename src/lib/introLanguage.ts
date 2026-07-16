@@ -63,6 +63,12 @@ export const INTRO_COPY = {
   en: {
     network: 'Private performance network',
     secure: 'Secure',
+    neutralEyebrow: 'Private performance, one account',
+    neutralTitle: 'Your system, privately yours.',
+    neutralBody: 'Sign in first. APEX reveals only the identity attached to the authenticated account.',
+    enter: 'Enter APEX',
+    browse: 'Browse profiles',
+    browseBack: 'Back to secure entry',
     protocol: 'Identity protocol',
     chooseSystem: 'Choose your system',
     selectorLabel: 'Swipe left or right to choose a person',
@@ -82,6 +88,12 @@ export const INTRO_COPY = {
   ro: {
     network: 'Rețea privată de performanță',
     secure: 'Securizat',
+    neutralEyebrow: 'Performanță privată, un singur cont',
+    neutralTitle: 'Sistemul tău, doar al tău.',
+    neutralBody: 'Autentifică-te mai întâi. APEX dezvăluie doar identitatea asociată contului autentificat.',
+    enter: 'Intră în APEX',
+    browse: 'Vezi profilurile',
+    browseBack: 'Înapoi la accesul securizat',
     protocol: 'Protocol de identitate',
     chooseSystem: 'Alege sistemul tău',
     selectorLabel: 'Glisează la stânga sau la dreapta pentru a alege o persoană',
@@ -101,6 +113,12 @@ export const INTRO_COPY = {
   th: {
     network: 'เครือข่ายสมรรถนะส่วนตัว',
     secure: 'ปลอดภัย',
+    neutralEyebrow: 'ประสิทธิภาพส่วนตัว หนึ่งบัญชี',
+    neutralTitle: 'ระบบของคุณ เป็นส่วนตัวสำหรับคุณ',
+    neutralBody: 'เข้าสู่ระบบก่อน APEX จะแสดงเฉพาะตัวตนที่เชื่อมกับบัญชีซึ่งยืนยันแล้วเท่านั้น',
+    enter: 'เข้าสู่ APEX',
+    browse: 'ดูโปรไฟล์',
+    browseBack: 'กลับไปยังการเข้าสู่ระบบที่ปลอดภัย',
     protocol: 'ระบบยืนยันตัวตน',
     chooseSystem: 'เลือกระบบของคุณ',
     selectorLabel: 'ปัดซ้ายหรือขวาเพื่อเลือกผู้ใช้',
@@ -121,49 +139,38 @@ export const INTRO_COPY = {
 
 export const LOGIN_COPY = {
   en: {
-    encrypted: 'Encrypted session', welcome: (name: string) => `Welcome, ${name}`,
-    authenticate: 'Authenticate your private system', email: 'Email address', password: 'Password',
+    encrypted: 'Encrypted session', access: 'Private access', title: 'Enter your private system', welcome: (name: string) => `Welcome, ${name}`,
+    authenticate: 'Your identity appears only after successful authentication.', email: 'Email address', password: 'Password',
     passwordPlaceholder: 'Enter your password', hide: 'Hide', show: 'Show', verifying: 'Verifying identity…',
-    unlock: (name: string) => `Unlock ${name}'s APEX`, back: '← Choose another person', private: 'Private',
+    unlock: 'Enter APEX', back: '← Back', private: 'Private', verified: 'Identity verified', ready: 'Your private system is ready.',
     credentials: 'Credentials are sent directly to the authentication service and are never stored in this app.',
   },
   ro: {
-    encrypted: 'Sesiune criptată', welcome: (name: string) => `Bine ai venit, ${name}`,
-    authenticate: 'Autentifică-te în sistemul tău privat', email: 'Adresă de e-mail', password: 'Parolă',
+    encrypted: 'Sesiune criptată', access: 'Acces privat', title: 'Intră în sistemul tău privat', welcome: (name: string) => `Bine ai venit, ${name}`,
+    authenticate: 'Identitatea ta apare doar după autentificarea reușită.', email: 'Adresă de e-mail', password: 'Parolă',
     passwordPlaceholder: 'Introdu parola', hide: 'Ascunde', show: 'Arată', verifying: 'Se verifică identitatea…',
-    unlock: (name: string) => `Deblochează APEX pentru ${name}`, back: '← Alege altă persoană', private: 'Privat',
+    unlock: 'Intră în APEX', back: '← Înapoi', private: 'Privat', verified: 'Identitate confirmată', ready: 'Sistemul tău privat este pregătit.',
     credentials: 'Datele de autentificare sunt trimise direct serviciului securizat și nu sunt stocate niciodată în aplicație.',
   },
   th: {
-    encrypted: 'เซสชันเข้ารหัส', welcome: (name: string) => `ยินดีต้อนรับ ${name}`,
-    authenticate: 'ยืนยันเพื่อเข้าสู่ระบบส่วนตัวของคุณ', email: 'อีเมล', password: 'รหัสผ่าน',
+    encrypted: 'เซสชันเข้ารหัส', access: 'การเข้าถึงส่วนตัว', title: 'เข้าสู่ระบบส่วนตัวของคุณ', welcome: (name: string) => `ยินดีต้อนรับ ${name}`,
+    authenticate: 'ตัวตนของคุณจะแสดงหลังจากยืนยันสำเร็จเท่านั้น', email: 'อีเมล', password: 'รหัสผ่าน',
     passwordPlaceholder: 'ป้อนรหัสผ่าน', hide: 'ซ่อน', show: 'แสดง', verifying: 'กำลังตรวจสอบตัวตน…',
-    unlock: (name: string) => `เปิด APEX ของ ${name}`, back: '← เลือกผู้ใช้คนอื่น', private: 'ส่วนตัว',
+    unlock: 'เข้าสู่ APEX', back: '← กลับ', private: 'ส่วนตัว', verified: 'ยืนยันตัวตนแล้ว', ready: 'ระบบส่วนตัวของคุณพร้อมแล้ว',
     credentials: 'ข้อมูลเข้าสู่ระบบจะถูกส่งตรงไปยังบริการยืนยันตัวตนและจะไม่ถูกจัดเก็บในแอป',
   },
 } as const
 
 export function localizedLoginError(message: string, language: IntroLanguage): string {
   const normalized = message.trim().toLocaleLowerCase('en')
-  const profileMismatch = message.match(/^Those credentials belong to (.+)\. Choose that profile to continue\.$/)
-
-  if (profileMismatch) {
-    const name = profileMismatch[1]
-    if (language === 'ro') return `Aceste date aparțin profilului ${name}. Alege profilul corect pentru a continua.`
-    if (language === 'th') return `ข้อมูลเข้าสู่ระบบนี้เป็นของโปรไฟล์ ${name} โปรดเลือกโปรไฟล์นั้นเพื่อดำเนินการต่อ`
-    return message
-  }
-
-  if (normalized.includes('invalid login credentials') || normalized.includes('invalid email or password')) {
+  const profileMismatch = /^Those credentials belong to .+\. Choose that profile to continue\.$/.test(message)
+  const invalidCredentials = (): string => {
     if (language === 'ro') return 'Adresa de e-mail sau parola sunt incorecte.'
     if (language === 'th') return 'อีเมลหรือรหัสผ่านไม่ถูกต้อง'
     return 'The email address or password is incorrect.'
   }
-  if (normalized.includes('email not confirmed')) {
-    if (language === 'ro') return 'Adresa de e-mail nu este confirmată. Deschide mesajul de confirmare, apoi încearcă din nou.'
-    if (language === 'th') return 'อีเมลยังไม่ได้รับการยืนยัน โปรดเปิดอีเมลยืนยันแล้วลองอีกครั้ง'
-    return 'Your email is not confirmed. Open the confirmation message, then try again.'
-  }
+
+  if (profileMismatch || normalized.includes('invalid login credentials') || normalized.includes('invalid email or password') || normalized.includes('email not confirmed')) return invalidCredentials()
   if (normalized.includes('too many requests') || normalized.includes('rate limit')) {
     if (language === 'ro') return 'Prea multe încercări. Așteaptă puțin, apoi încearcă din nou.'
     if (language === 'th') return 'มีการลองเข้าสู่ระบบมากเกินไป โปรดรอสักครู่แล้วลองอีกครั้ง'
@@ -177,5 +184,5 @@ export function localizedLoginError(message: string, language: IntroLanguage): s
 
   if (language === 'ro') return 'Autentificarea nu a reușit. Verifică datele și încearcă din nou.'
   if (language === 'th') return 'เข้าสู่ระบบไม่สำเร็จ โปรดตรวจสอบข้อมูลแล้วลองอีกครั้ง'
-  return message || 'Sign-in failed. Check your details and try again.'
+  return 'Sign-in failed. Check your details and try again.'
 }

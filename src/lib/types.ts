@@ -303,6 +303,7 @@ export interface Settings {
     simple_show_guided_plan?: boolean
     simple_show_hydration_reminder?: boolean
     simple_show_manual_workout?: boolean
+    simple_show_next_action?: boolean
     adhd_mode?: boolean
     /* Account-scoped meal moments and preset associations. This stays inside
        the existing synced JSON settings record, so no schema rollout is

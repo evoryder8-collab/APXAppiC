@@ -4,6 +4,7 @@ import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '
 import {
   encodeTreadmillLog,
   manualExerciseTimelineForDate,
+  manualWorkoutDeletionPlan,
   manualWorkoutHasAutomaticTitle,
   manualWorkoutEditorDraft,
   manualWorkoutNotes,
@@ -55,6 +56,24 @@ test('a saved manual workout reopens with its title, exercises, sets and weights
   assert.equal(draft?.title, 'Back day')
   assert.equal(draft?.exercises[0]?.canonicalName, 'Seated Cable Row')
   assert.deepEqual(draft?.exercises[0]?.sets.map((set) => [set.reps, set.weightKg]), [[10, 80], [8, 86]])
+})
+
+test('repeated same-name exercises remain separate occurrences after reload', () => {
+  const savedSession = session('repeat', '2026-07-15', 'Back and arms')
+  const rows = [
+    { ...log('repeat', 'Hammer Curl', 1), id: 'curl-a-1', created_at: '2026-07-15T10:00:00.000Z', reps: 12 },
+    { ...log('repeat', 'Hammer Curl', 2), id: 'curl-a-2', created_at: '2026-07-15T10:00:00.100Z', reps: 10 },
+    { ...log('repeat', 'Hammer Curl', 1), id: 'curl-b-1', created_at: '2026-07-15T10:01:00.000Z', reps: 8 },
+    { ...log('repeat', 'Hammer Curl', 2), id: 'curl-b-2', created_at: '2026-07-15T10:01:00.100Z', reps: 6 },
+  ]
+  const data: AppData = { ...EMPTY_DATA, workout_sessions: [savedSession], workout_logs: rows }
+
+  const draft = manualWorkoutEditorDraft(data, savedSession.id)
+  assert.deepEqual(draft?.exercises.map((exercise) => exercise.sets.map((set) => set.reps)), [[12, 10], [8, 6]])
+  const timeline = manualExerciseTimelineForDate(data, savedSession.date)
+  assert.equal(timeline.length, 2)
+  assert.deepEqual(timeline.map((entry) => entry.logIds), [['curl-a-1', 'curl-a-2'], ['curl-b-1', 'curl-b-2']])
+  assert.notEqual(timeline[0].key, timeline[1].key)
 })
 
 test('editing a workout preserves matching set ids and deletes only removed sets', () => {
@@ -121,6 +140,26 @@ test('manual exercise reordering persists through workout-log chronology', () =>
   assert.deepEqual(reordered.map((item) => item.canonicalName), ['Seated Cable Row', 'Pull-up'])
 })
 
+test('exercise order keys remain stable after chronology changes', () => {
+  const savedSession = session('stable-order', '2026-07-15', 'A B C')
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [savedSession],
+    workout_logs: [
+      { ...log(savedSession.id, 'Exercise A'), id: 'log-a', created_at: '2026-07-15T08:00:00Z' },
+      { ...log(savedSession.id, 'Exercise B'), id: 'log-b', created_at: '2026-07-15T08:01:00Z' },
+      { ...log(savedSession.id, 'Exercise C'), id: 'log-c', created_at: '2026-07-15T08:02:00Z' },
+    ],
+  }
+  const initial = manualExerciseTimelineForDate(data, '2026-07-15')
+  const requested = [initial[1], initial[0], initial[2]]
+  const resequenced = resequenceManualWorkoutLogs(data.workout_logs, requested)
+  const reloaded = manualExerciseTimelineForDate({ ...data, workout_logs: resequenced }, '2026-07-15')
+
+  assert.deepEqual(reloaded.map((item) => item.canonicalName), ['Exercise B', 'Exercise A', 'Exercise C'])
+  assert.deepEqual(reloaded.map((item) => item.key), requested.map((item) => item.key))
+})
+
 test('smart presets prioritize a repeated workout on the same weekday', () => {
   const workoutSessions = [
     session('back-1', '2026-07-01', 'Back'),
@@ -139,6 +178,20 @@ test('smart presets prioritize a repeated workout on the same weekday', () => {
   assert.equal(ranked[0]?.reason, 'same-weekday')
 })
 
+test('same-weekday fit remains stronger than a frequently used but off-day recent workout', () => {
+  const sameDay = session('wednesday', '2026-07-01', 'Wednesday workout')
+  const recentSessions = Array.from({ length: 8 }, (_, index) => (
+    session(`frequent-${index}`, '2026-07-14', 'Frequent workout')
+  ))
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [sameDay, ...recentSessions],
+    workout_logs: [log(sameDay.id, 'Pull-up'), ...recentSessions.map((item) => log(item.id, 'Leg Press'))],
+  }
+
+  assert.equal(rankManualWorkoutPresets(data, '2026-07-15')[0]?.title, 'Wednesday workout')
+})
+
 test('smart presets fall back to the workout that followed yesterday in past weeks', () => {
   const workoutSessions = [
     session('push-old', '2026-06-01', 'Push'),
@@ -154,4 +207,61 @@ test('smart presets fall back to the workout that followed yesterday in past wee
   const ranked = rankManualWorkoutPresets(data, '2026-07-10')
   assert.equal(ranked[0]?.title, 'Pull')
   assert.equal(ranked[0]?.reason, 'sequence')
+})
+
+test('quick workout ranking returns at most seven persisted workout signatures', () => {
+  const workoutSessions = Array.from({ length: 9 }, (_, index) => (
+    session(`session-${index}`, `2026-06-${String(index + 1).padStart(2, '0')}`, `Workout ${index + 1}`)
+  ))
+  const workoutLogs = workoutSessions.map((item, index) => log(item.id, `Exercise ${index + 1}`))
+  const data: AppData = { ...EMPTY_DATA, workout_sessions: workoutSessions, workout_logs: workoutLogs }
+
+  const ranked = rankManualWorkoutPresets(data, '2026-07-15')
+  assert.equal(ranked.length, 7)
+  assert.equal(new Set(ranked.map((preset) => preset.signature)).size, 7)
+})
+
+test('preset learning and whole-workout deletion stay inside the active owner and selected date', () => {
+  const ownerSession = session('owner-session', '2026-07-15', 'Back day')
+  const otherDateSession = session('owner-other-date', '2026-07-14', 'Leg day')
+  const foreignSession = { ...session('foreign-session', '2026-07-15', 'Foreign day'), user_id: 'foreign' }
+  const ownerLog = log(ownerSession.id, 'Seated Cable Row')
+  const otherDateLog = log(otherDateSession.id, 'Leg Press')
+  const foreignLog = { ...log(foreignSession.id, 'Machine Chest Press'), user_id: 'foreign' }
+  const data: AppData = {
+    ...EMPTY_DATA,
+    profile: { user_id: 'user' } as NonNullable<AppData['profile']>,
+    workout_sessions: [ownerSession, otherDateSession, foreignSession],
+    workout_logs: [ownerLog, otherDateLog, foreignLog],
+  }
+
+  assert.deepEqual(rankManualWorkoutPresets(data, '2026-07-15').map((preset) => preset.title), ['Leg day'])
+  assert.deepEqual(manualWorkoutDeletionPlan(data, '2026-07-15'), {
+    sessionIds: [ownerSession.id],
+    logIds: [ownerLog.id],
+  })
+})
+
+test('quick presets never learn from workouts dated after the selected day', () => {
+  const past = session('past', '2026-07-08', 'Past workout')
+  const future = session('future', '2026-07-22', 'Future workout')
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [past, future],
+    workout_logs: [log(past.id, 'Pull-up'), log(future.id, 'Leg Press')],
+  }
+
+  assert.deepEqual(rankManualWorkoutPresets(data, '2026-07-15').map((preset) => preset.title), ['Past workout'])
+})
+
+test('quick presets exclude a workout already logged on the selected day', () => {
+  const prior = session('prior', '2026-07-08', 'Prior back day')
+  const today = session('today', '2026-07-15', 'Already logged today')
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [prior, today],
+    workout_logs: [log(prior.id, 'Pull-up'), log(today.id, 'Leg Press')],
+  }
+
+  assert.deepEqual(rankManualWorkoutPresets(data, '2026-07-15').map((preset) => preset.title), ['Prior back day'])
 })

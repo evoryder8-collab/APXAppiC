@@ -45,7 +45,8 @@ import {
 import { normalizeDailyLogIntegers } from '../lib/sync'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset } from '../lib/simpleMode'
-import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockKind } from '../lib/mealBlocks'
+import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
+import { loggedMealEditorState } from '../lib/mealExperience'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -128,8 +129,11 @@ export function Nutrition() {
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [waterDraft, setWaterDraft] = useState('0')
   const [plannedComposer, setPlannedComposer] = useState<{
-    meal: TargetMeal
-    blockId: MealBlockKind
+    plannedMealId: string | null
+    blockId: MealBlockKind | null
+    mealIdentity: MealBlockIdentity | null
+    slot: MealSlot
+    targetTime: string | null
     items: ComposerFoodItem[]
     title: string
     replaceMealId: string | null
@@ -332,12 +336,35 @@ export function Nutrition() {
       items = [await plannedFoodItem(meal)]
     }
     setPlannedComposer({
-      meal,
+      plannedMealId: meal.id,
       blockId,
+      mealIdentity: blockId,
+      slot: mealSlotForBlock(blockId),
+      targetTime: meal.time,
       items,
       title: row.actual?.display_name ?? meal.name,
       replaceMealId: row.actual?.id ?? null,
     })
+  }
+
+  const editLoggedMeal = async (loggedMeal: LoggedMeal, blockId: MealBlockKind | null, targetTime: string | null): Promise<void> => {
+    const items = await loggedMealItems(loggedMeal)
+    if (!items.length) {
+      toast('This saved meal has no recoverable food items', 'error')
+      return
+    }
+    const editor = loggedMealEditorState(loggedMeal, blockId, targetTime)
+    setPlannedComposer({ ...editor, items })
+  }
+
+  const deleteLoggedMeal = async (loggedMeal: LoggedMeal): Promise<void> => {
+    await foodStore.deleteMeal(loggedMeal.id)
+    if (loggedMeal.source_planned_meal_id) {
+      for (const check of data.meal_logs.filter((log) => log.date === loggedMeal.local_date && log.meal_id === loggedMeal.source_planned_meal_id)) {
+        remove('meal_logs', check.id)
+      }
+    }
+    toast(`${loggedMeal.display_name} removed`, 'ok')
   }
 
   const yesterday = useMemo(
@@ -829,6 +856,8 @@ export function Nutrition() {
           activityLabel={activeDayLabel}
           onTogglePlanned={toggleMeal}
           onEditPlanned={editAndLog}
+          onEditLogged={editLoggedMeal}
+          onDeleteLogged={deleteLoggedMeal}
         />
         </div>
 
@@ -1213,19 +1242,25 @@ export function Nutrition() {
         <MealComposer
           date={selectedLogDate}
           planning={selectedIsFuture}
-          slot={mealSlotForBlock(plannedComposer.blockId)}
+          slot={plannedComposer.slot}
           mealBlockId={plannedComposer.blockId}
+          mealIdentity={plannedComposer.mealIdentity}
+          targetTime={plannedComposer.targetTime}
           title={plannedComposer.title}
           initialItems={plannedComposer.items}
-          plannedMealId={plannedComposer.meal.id}
+          plannedMealId={plannedComposer.plannedMealId}
           replaceMealId={plannedComposer.replaceMealId}
           onLogged={() => {
-            const existing = data.meal_logs.find((log) => log.date === selectedLogDate && log.meal_id === plannedComposer.meal.id)
+            if (!plannedComposer.plannedMealId) {
+              toast(`${plannedComposer.title} logged`, 'ok')
+              return
+            }
+            const existing = data.meal_logs.find((log) => log.date === selectedLogDate && log.meal_id === plannedComposer.plannedMealId)
             if (!existing) upsert('meal_logs', {
               id: crypto.randomUUID(),
               user_id: profile.user_id,
               date: selectedLogDate,
-              meal_id: plannedComposer.meal.id,
+              meal_id: plannedComposer.plannedMealId,
               checked_at: new Date().toISOString(),
             })
             toast(`${plannedComposer.title} logged`, 'ok')

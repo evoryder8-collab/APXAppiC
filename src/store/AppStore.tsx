@@ -25,9 +25,10 @@ import { eventContextFor, todayIso } from '../lib/plan'
 import { activityLogId, dailyLogId, rpgSnapshotId } from '../lib/ids'
 import {
   getSelectedPersona,
-  personaBySlug,
+  isPersonaSlug,
   personaFromUserMetadata,
   setSelectedPersona,
+  type PersonaSlug,
 } from '../lib/persona'
 import {
   ACTIVITY_CATALOG,
@@ -96,7 +97,7 @@ interface StoreValue {
   syncStatus: SyncStatus
   snapshots: RpgSnapshot[]
   synergies: SynergyEvent[]
-  signIn: (email: string, password: string) => Promise<string | null>
+  signIn: (email: string, password: string) => Promise<{ error: string | null; persona: PersonaSlug | null }>
   signOut: () => Promise<void>
   upsert: <T extends { id: string }>(table: ListTable, row: T) => void
   bulkUpsert: <T extends { id: string }>(table: ListTable, rows: T[]) => void
@@ -838,24 +839,26 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     }
   }, [snapshots, persist, enqueue, session])
 
-  const signIn = useCallback(async (email: string, password: string): Promise<string | null> => {
-    const selectedPersona = getSelectedPersona() ?? 'constantine'
+  const signIn = useCallback(async (email: string, password: string): Promise<{ error: string | null; persona: PersonaSlug | null }> => {
+    const cachedPersona = isPersonaSlug(dataRef.current.profile?.persona) ? dataRef.current.profile.persona : null
+    const selectedPersona = getSelectedPersona() ?? cachedPersona ?? 'constantine'
     if (!supabase) {
       scopeRef.current = LOCAL_USER
       const { buildSeedData } = await import('../data/seed')
-      persist(buildSeedData(LOCAL_USER, selectedPersona))
-      return null
+      const seeded = buildSeedData(LOCAL_USER, selectedPersona)
+      const current = dataRef.current.profile ? normalizeAppData(dataRef.current) : seeded
+      /* Local/demo mode is still a durable account. Repair definitions around
+         its existing history instead of reseeding the whole cache on login. */
+      persist(normalizeAppData(repairSeedDefinitions(current, seeded).data))
+      setSelectedPersona(selectedPersona)
+      return { error: null, persona: selectedPersona }
     }
     const { data: authData, error } = await supabase.auth.signInWithPassword({ email, password })
-    if (error) return error.message
+    if (error) return { error: error.message, persona: null }
 
     const accountPersona = personaFromUserMetadata(authData.user?.user_metadata)
-    if (selectedPersona !== accountPersona) {
-      await supabase.auth.signOut()
-      return `Those credentials belong to ${personaBySlug(accountPersona).name}. Choose that profile to continue.`
-    }
     setSelectedPersona(accountPersona)
-    return null
+    return { error: null, persona: accountPersona }
   }, [persist])
 
   const signOut = useCallback(async () => {

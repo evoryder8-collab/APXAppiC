@@ -18,11 +18,12 @@ test('Simple Mode is the default while an explicit Advanced choice remains respe
   assert.equal(patch.addons.endurance1, true)
 })
 
-test('new Simple Mode profiles keep optional hydration and workout cards hidden', () => {
+test('new Simple Mode profiles keep optional secondary cards hidden', () => {
   const seeded = seedSettings('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
   assert.equal(seeded.addons.uiMode, 'simple')
   assert.equal(seeded.addons.simple_show_hydration_reminder, false)
   assert.equal(seeded.addons.simple_show_manual_workout, false)
+  assert.equal(seeded.addons.simple_show_next_action, false)
 })
 
 test('Simple Mode surfaces the most recently due action or earliest upcoming action', () => {

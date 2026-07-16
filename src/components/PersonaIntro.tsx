@@ -145,7 +145,7 @@ function IntroLanguageMenu({
   )
 }
 
-export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) => void }) {
+export function PersonaIntro({ onSelect, onBack }: { onSelect: (persona: PersonaSlug) => void; onBack?: () => void }) {
   /* Matthew starts centre; the fourth profile remains one swipe away. */
   const [active, setActive] = useState(() => Math.max(0, PERSONAS.findIndex((persona) => persona.slug === 'matthew')))
   const [confirming, setConfirming] = useState(false)
@@ -195,13 +195,16 @@ export function PersonaIntro({ onSelect }: { onSelect: (persona: PersonaSlug) =>
             </p>
           </div>
         </div>
-        <div className="flex items-center gap-2 font-mono text-[9px] tracking-[0.18em] text-white/45">
-          <span className="relative flex h-2 w-2">
-            <span className="absolute inset-0 animate-ping rounded-full bg-emerald-300 opacity-50" />
-            <span className="relative h-2 w-2 rounded-full bg-emerald-300" />
-          </span>
-          {copy.secure}
-        </div>
+        {onBack ? (
+          <button type="button" onClick={onBack} className="max-w-[52vw] truncate whitespace-nowrap rounded-full border border-white/10 bg-white/5 px-3 py-2 font-mono text-[8px] font-bold tracking-[0.08em] text-white/55 uppercase transition hover:bg-white/10 hover:text-white/80">
+            ← {copy.browseBack}
+          </button>
+        ) : (
+          <div className="flex items-center gap-2 font-mono text-[9px] tracking-[0.18em] text-white/45">
+            <span className="relative flex h-2 w-2"><span className="absolute inset-0 animate-ping rounded-full bg-emerald-300 opacity-50" /><span className="relative h-2 w-2 rounded-full bg-emerald-300" /></span>
+            {copy.secure}
+          </div>
+        )}
       </motion.header>
 
       <main className="relative z-10 flex min-h-dvh flex-col items-center overflow-hidden pt-[5.35rem] pb-[max(1.1rem,env(safe-area-inset-bottom))]">

@@ -12,11 +12,14 @@ import {
 } from '../../data/exerciseCatalog'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import {
-  baseExerciseName,
   encodeTreadmillLog,
   manualExerciseTimelineForDate,
+  manualSessionsForDate,
+  manualWorkoutDeletionPlan,
   manualWorkoutEditorDraft,
+  manualWorkoutHasAutomaticTitle,
   manualWorkoutNotes,
+  manualWorkoutTitle,
   rankManualWorkoutPresets,
   reconcileManualWorkoutLogs,
   resequenceManualWorkoutLogs,
@@ -57,11 +60,11 @@ function draftFromCatalog(item: ExerciseCatalogItem): ManualExerciseDraft {
   }
 }
 
-function clonePreset(exercises: ManualExerciseDraft[]): ManualExerciseDraft[] {
+function clonePreset(exercises: ManualExerciseDraft[], preserveIds = false): ManualExerciseDraft[] {
   return exercises.map((exercise) => ({
     ...exercise,
-    id: uid('exercise'),
-    sets: exercise.sets.map((set) => ({ ...set, id: uid('set') })),
+    id: preserveIds ? exercise.id : uid('exercise'),
+    sets: exercise.sets.map((set) => ({ ...set, id: preserveIds ? set.id : uid('set') })),
     treadmill: exercise.treadmill ? { ...exercise.treadmill } : null,
   }))
 }
@@ -83,7 +86,8 @@ export function ManualWorkoutLogger({
   onSaved,
   date,
   editSessionId = null,
-  focusExerciseName = null,
+  focusExerciseId = null,
+  initialPresetSignature = null,
   accent = ACCENTS.teal,
 }: {
   open: boolean
@@ -91,7 +95,8 @@ export function ManualWorkoutLogger({
   onSaved?: () => void
   date: string
   editSessionId?: string | null
-  focusExerciseName?: string | null
+  focusExerciseId?: string | null
+  initialPresetSignature?: string | null
   accent?: Accent
 }) {
   const { data, upsert, bulkUpsert, remove, toast } = useStore()
@@ -103,9 +108,13 @@ export function ManualWorkoutLogger({
   const [query, setQuery] = useState('')
   const [exercises, setExercises] = useState<ManualExerciseDraft[]>([])
   const [focusedExercise, setFocusedExercise] = useState<string | null>(null)
-  const loadedEditorRef = useRef<string | null | undefined>(undefined)
+  const loadedEditorRef = useRef<string | undefined>(undefined)
   const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
   const editorDraft = useMemo(() => editSessionId ? manualWorkoutEditorDraft(data, editSessionId) : null, [data, editSessionId])
+  const initialPreset = useMemo(
+    () => initialPresetSignature ? presets.find((preset) => preset.signature === initialPresetSignature) ?? null : null,
+    [initialPresetSignature, presets],
+  )
   const results = useMemo(() => {
     const matches = searchExerciseCatalog(query, 'all', language)
     const predicted = new Map<string, number>()
@@ -130,28 +139,33 @@ export function ManualWorkoutLogger({
       loadedEditorRef.current = undefined
       return
     }
-    if (loadedEditorRef.current === editSessionId) return
-    loadedEditorRef.current = editSessionId
+    const loadKey = editSessionId ? `edit:${editSessionId}` : `preset:${initialPresetSignature ?? 'blank'}`
+    if (loadedEditorRef.current === loadKey) return
+    loadedEditorRef.current = loadKey
     setQuery('')
-    setTitle(editorDraft?.title ?? '')
-    setExercises(editorDraft ? clonePreset(editorDraft.exercises) : [])
-  }, [editSessionId, editorDraft, open])
+    setTitle(editorDraft?.title ?? (initialPreset && !initialPreset.automaticTitle ? initialPreset.title : ''))
+    setExercises(editorDraft
+      ? clonePreset(editorDraft.exercises, true)
+      : initialPreset
+        ? clonePreset(initialPreset.exercises)
+        : [])
+  }, [editSessionId, editorDraft, initialPreset, initialPresetSignature, open])
 
   useEffect(() => {
-    if (!open || !editSessionId || !focusExerciseName) {
+    if (!open || !editSessionId || !focusExerciseId) {
       setFocusedExercise(null)
       return
     }
-    setFocusedExercise(focusExerciseName)
+    setFocusedExercise(focusExerciseId)
     const scrollTimer = window.setTimeout(() => {
-      exerciseEditorRefs.current.get(focusExerciseName)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
+      exerciseEditorRefs.current.get(focusExerciseId)?.scrollIntoView({ behavior: 'smooth', block: 'center' })
     }, 220)
     const clearTimer = window.setTimeout(() => setFocusedExercise(null), 1_800)
     return () => {
       window.clearTimeout(scrollTimer)
       window.clearTimeout(clearTimer)
     }
-  }, [editSessionId, focusExerciseName, open])
+  }, [editSessionId, focusExerciseId, open])
 
   const addExercise = (item: ExerciseCatalogItem): void => {
     setExercises((current) => [...current, draftFromCatalog(item)])
@@ -233,17 +247,15 @@ export function ManualWorkoutLogger({
     const existingLogs = existingSession
       ? data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id)
       : []
-    const existingExerciseTimes = new Map<string, number>()
-    for (const log of existingLogs) {
-      const key = baseExerciseName(log.exercise_name)
-      const timestamp = Date.parse(log.created_at)
-      if (!Number.isFinite(timestamp)) continue
-      existingExerciseTimes.set(key, Math.min(existingExerciseTimes.get(key) ?? timestamp, timestamp))
-    }
-    const newExerciseBaseTime = Date.now()
+    /* Chronology is the durable occurrence identity. Give every visible
+       exercise its own minute even when a movement appears twice, so a later
+       finisher never collapses into the earlier occurrence after reload. */
+    const existingTimes = existingLogs
+      .map((log) => Date.parse(log.created_at))
+      .filter(Number.isFinite)
+    const newExerciseBaseTime = existingTimes.length > 0 ? Math.min(...existingTimes) : Date.now()
     const proposedLogs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
-      const exerciseTime = existingExerciseTimes.get(exercise.canonicalName)
-        ?? newExerciseBaseTime + exerciseIndex * 60_000
+      const exerciseTime = newExerciseBaseTime + exerciseIndex * 60_000
       if (exercise.treadmill) {
         return [{
           id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
@@ -326,10 +338,10 @@ export function ManualWorkoutLogger({
             <div
               key={exercise.id}
               ref={(node) => {
-                if (node) exerciseEditorRefs.current.set(exercise.canonicalName, node)
-                else exerciseEditorRefs.current.delete(exercise.canonicalName)
+                if (node) exerciseEditorRefs.current.set(exercise.id, node)
+                else exerciseEditorRefs.current.delete(exercise.id)
               }}
-              className={`rounded-[24px] border bg-white/72 p-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,.7)] transition-[border-color,box-shadow] duration-500 ${focusedExercise === exercise.canonicalName ? 'border-cyan-300 ring-4 ring-cyan-200/35 shadow-[0_20px_54px_-28px_rgba(6,182,212,.9)]' : 'border-white'}`}
+              className={`rounded-[24px] border bg-white/72 p-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,.7)] transition-[border-color,box-shadow] duration-500 ${focusedExercise === exercise.id ? 'border-cyan-300 ring-4 ring-cyan-200/35 shadow-[0_20px_54px_-28px_rgba(6,182,212,.9)]' : 'border-white'}`}
             >
               <div className="flex items-center justify-between gap-3"><p className="min-w-0 truncate text-sm font-black text-ink"><span className="mr-2 font-mono text-[9px] text-cyan-700">{String(exerciseIndex + 1).padStart(2, '0')}</span>{localizedDraftName(exercise, language)}</p><button type="button" onClick={() => setExercises((current) => current.filter((item) => item.id !== exercise.id))} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-black text-rose-600" aria-label={t('Remove exercise')}>×</button></div>
               {exercise.treadmill ? (
@@ -397,7 +409,7 @@ function ManualWorkoutTimelineItem({
 
   useEffect(() => () => clearHold(), [])
 
-  const beginHold = (event: ReactPointerEvent<HTMLDivElement>): void => {
+  const beginHold = (event: ReactPointerEvent<HTMLElement>): void => {
     if (event.pointerType === 'mouse' && event.button !== 0) return
     clearHold()
     pointerStart.current = { x: event.clientX, y: event.clientY }
@@ -412,7 +424,7 @@ function ManualWorkoutTimelineItem({
     }, 1_000)
   }
 
-  const trackPointer = (event: ReactPointerEvent<HTMLDivElement>): void => {
+  const trackPointer = (event: ReactPointerEvent<HTMLElement>): void => {
     if (!pointerStart.current || longPressed.current) return
     const dx = event.clientX - pointerStart.current.x
     const dy = event.clientY - pointerStart.current.y
@@ -464,10 +476,6 @@ function ManualWorkoutTimelineItem({
         role="button"
         tabIndex={0}
         aria-label={`${name}. ${t('Tap to edit')}`}
-        onPointerDown={beginHold}
-        onPointerMove={trackPointer}
-        onPointerUp={finishPointer}
-        onPointerCancel={finishPointer}
         onContextMenu={(event) => event.preventDefault()}
         onDragStart={() => {
           swipeStarted.current = true
@@ -491,7 +499,7 @@ function ManualWorkoutTimelineItem({
           onEdit()
         }}
         className={`relative min-h-[94px] cursor-pointer select-none border bg-white px-3 py-3 transition-[border-color,box-shadow] ${dragging ? 'border-cyan-300 shadow-[0_24px_54px_-24px_rgba(6,182,212,.75)]' : 'border-white/95 shadow-[0_12px_30px_-28px_rgba(15,23,42,.65)]'}`}
-        style={{ touchAction: dragging ? 'none' : 'pan-y' }}
+        style={{ touchAction: 'pan-y pinch-zoom' }}
       >
         <div className="flex items-start gap-3">
           <span className="mt-0.5 grid h-7 w-7 shrink-0 place-items-center rounded-full bg-cyan-50 font-mono text-[9px] font-black text-cyan-800">{String(position).padStart(2, '0')}</span>
@@ -507,7 +515,18 @@ function ManualWorkoutTimelineItem({
               </div>
             )}
           </div>
-          <span aria-hidden className="mt-1 shrink-0 font-mono text-sm tracking-[-.25em] text-ink-faint">⠿</span>
+          <button
+            type="button"
+            aria-label={t('Hold for 1 second to reorder')}
+            onPointerDown={(event) => { event.stopPropagation(); beginHold(event) }}
+            onPointerMove={(event) => { event.stopPropagation(); trackPointer(event) }}
+            onPointerUp={(event) => { event.stopPropagation(); finishPointer() }}
+            onPointerCancel={(event) => { event.stopPropagation(); finishPointer() }}
+            onClick={(event) => event.stopPropagation()}
+            onContextMenu={(event) => event.preventDefault()}
+            className="-mt-1 grid h-10 w-10 shrink-0 touch-none place-items-center rounded-xl font-mono text-base tracking-[-.25em] text-ink-faint active:bg-cyan-50 active:text-cyan-800"
+            style={{ touchAction: 'none' }}
+          >⠿</button>
         </div>
       </motion.div>
     </Reorder.Item>
@@ -523,7 +542,7 @@ export function TodayManualWorkoutCard({
 }: {
   date: string
   onAdd: () => void
-  onEdit?: (sessionId: string, canonicalName: string) => void
+  onEdit?: (sessionId: string, exerciseId: string) => void
   accent?: Accent
   compact?: boolean
 }) {
@@ -531,9 +550,11 @@ export function TodayManualWorkoutCard({
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const timeline = useMemo(() => manualExerciseTimelineForDate(data, date), [data, date])
+  const sessions = useMemo(() => manualSessionsForDate(data, date), [data, date])
   const [orderKeys, setOrderKeys] = useState<string[]>([])
   const orderRef = useRef<string[]>([])
   const [confirmDelete, setConfirmDelete] = useState<ManualExerciseTimelineEntry | null>(null)
+  const [confirmDeleteWorkout, setConfirmDeleteWorkout] = useState(false)
 
   useEffect(() => {
     const available = timeline.map((item) => item.key)
@@ -548,6 +569,15 @@ export function TodayManualWorkoutCard({
   const timelineByKey = new Map(timeline.map((item) => [item.key, item]))
   const activeOrder = orderKeys.length > 0 ? orderKeys : timeline.map((item) => item.key)
   const orderedTimeline = activeOrder.map((key) => timelineByKey.get(key)).filter((item): item is ManualExerciseTimelineEntry => Boolean(item))
+  const primarySession = sessions[0] ?? null
+  const primaryExercises = primarySession
+    ? timeline.filter((item) => item.sessionId === primarySession.id).map((item) => item.exercise)
+    : []
+  const workoutTitle = primarySession
+    ? manualWorkoutHasAutomaticTitle(primarySession.notes)
+      ? automaticWorkoutTitle(primaryExercises, language) || t('Workout')
+      : manualWorkoutTitle(primarySession.notes) ?? t('Workout')
+    : t('Workout')
 
   const commitOrder = (): void => {
     const ordered = orderRef.current.map((key) => timelineByKey.get(key)).filter((item): item is ManualExerciseTimelineEntry => Boolean(item))
@@ -561,11 +591,20 @@ export function TodayManualWorkoutCard({
   const deleteExercise = (): void => {
     if (!confirmDelete) return
     const sessionLogs = data.workout_logs.filter((log) => log.session_id === confirmDelete.sessionId)
-    const exerciseLogs = sessionLogs.filter((log) => baseExerciseName(log.exercise_name) === confirmDelete.canonicalName)
+    const selectedLogIds = new Set(confirmDelete.logIds)
+    const exerciseLogs = sessionLogs.filter((log) => selectedLogIds.has(log.id))
     for (const log of exerciseLogs) remove('workout_logs', log.id)
     if (exerciseLogs.length === sessionLogs.length) remove('workout_sessions', confirmDelete.sessionId)
     setConfirmDelete(null)
     toast(t('Exercise removed'), 'ok')
+  }
+
+  const deleteWholeWorkout = (): void => {
+    const plan = manualWorkoutDeletionPlan(data, date)
+    for (const logId of plan.logIds) remove('workout_logs', logId)
+    for (const sessionId of plan.sessionIds) remove('workout_sessions', sessionId)
+    setConfirmDeleteWorkout(false)
+    toast(t('Workout removed'), 'ok')
   }
 
   if (timeline.length === 0) {
@@ -587,7 +626,19 @@ export function TodayManualWorkoutCard({
 
   return (
     <div className="rounded-[26px] border border-cyan-100 bg-white/68 p-4" style={{ boxShadow: `0 20px 48px -36px ${accent.glowStrong}` }}>
-      <div className="flex items-center justify-between gap-3"><p className="font-mono text-[9px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT LOGGED')}</p><button type="button" onClick={onAdd} className="rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800">+ {t('Add another')}</button></div>
+      <div className="flex items-start justify-between gap-3">
+        <button
+          type="button"
+          disabled={!onEdit || !primarySession}
+          onClick={() => primarySession && onEdit?.(primarySession.id, timeline.find((item) => item.sessionId === primarySession.id)?.exercise.id ?? '')}
+          className="min-w-0 text-left disabled:cursor-default"
+          aria-label={`${t('Edit Workout')}: ${workoutTitle}`}
+        >
+          <span className="block font-mono text-[9px] font-black tracking-[.16em] text-cyan-700 uppercase">{t('WORKOUT LOGGED')}</span>
+          <span className="mt-1 block truncate text-sm font-black text-ink">{workoutTitle}{sessions.length > 1 ? ` +${sessions.length - 1}` : ''}</span>
+        </button>
+        <button type="button" onClick={onAdd} className="shrink-0 rounded-xl bg-cyan-50 px-3 py-2 text-[10px] font-black text-cyan-800">+ {t('Add another')}</button>
+      </div>
       <Reorder.Group
         as="div"
         axis="y"
@@ -605,14 +656,22 @@ export function TodayManualWorkoutCard({
             item={item}
             position={index + 1}
             language={language}
-            onEdit={() => onEdit?.(item.sessionId, item.canonicalName)}
+            onEdit={() => onEdit?.(item.sessionId, item.exercise.id)}
             onRequestDelete={() => setConfirmDelete(item)}
             onReorderCommit={commitOrder}
           />
         ))}
       </Reorder.Group>
-      <p className="mt-3 text-center text-[9px] font-semibold text-ink-faint">{t('Tap to edit · Hold for 1 second to reorder · Swipe left to remove')}</p>
-      <p className="mt-2 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Saved as a smart preset')} · {format(parseISO(date), 'dd MMM')}</p>
+      <p className="mt-3 text-center text-[9px] font-semibold text-ink-faint">{t('Tap to edit · Hold the handle to reorder · Swipe left to remove')}</p>
+      <div className="mt-2 flex items-center justify-between gap-3">
+        <p className="font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Saved as a smart preset')} · {format(parseISO(date), 'dd MMM')}</p>
+        <button
+          type="button"
+          onClick={() => setConfirmDeleteWorkout(true)}
+          aria-label={t('Delete whole workout')}
+          className="grid h-8 w-8 shrink-0 place-items-center rounded-full border border-rose-100 bg-rose-50/70 text-sm font-black text-rose-500 transition active:scale-90"
+        >×</button>
+      </div>
 
       <Sheet open={Boolean(confirmDelete)} onClose={() => setConfirmDelete(null)}>
         <div role="alertdialog" aria-modal="true" aria-labelledby="delete-workout-exercise-title">
@@ -623,6 +682,18 @@ export function TodayManualWorkoutCard({
           <div className="mt-5 grid grid-cols-2 gap-2">
             <button type="button" onClick={() => setConfirmDelete(null)} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-ink">{t('Keep exercise')}</button>
             <button type="button" onClick={deleteExercise} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-rose-600/20">{t('Delete')}</button>
+          </div>
+        </div>
+      </Sheet>
+
+      <Sheet open={confirmDeleteWorkout} onClose={() => setConfirmDeleteWorkout(false)}>
+        <div role="alertdialog" aria-modal="true" aria-labelledby="delete-whole-workout-title">
+          <div className="mx-auto grid h-12 w-12 place-items-center rounded-full bg-rose-100 text-2xl font-black text-rose-600">×</div>
+          <h2 id="delete-whole-workout-title" className="mt-3 text-center font-display text-xl font-bold text-ink">{t('Delete whole workout?')}</h2>
+          <p className="mt-2 text-center text-xs leading-relaxed text-ink-faint">{t('This removes every exercise and set logged for this workout day.')}</p>
+          <div className="mt-5 grid grid-cols-2 gap-2">
+            <button type="button" onClick={() => setConfirmDeleteWorkout(false)} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-black text-ink">{t('Cancel')}</button>
+            <button type="button" onClick={deleteWholeWorkout} className="rounded-2xl bg-rose-600 px-4 py-3 text-sm font-black text-white shadow-lg shadow-rose-600/20">{t('Yes')}</button>
           </div>
         </div>
       </Sheet>

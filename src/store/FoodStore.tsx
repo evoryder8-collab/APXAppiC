@@ -227,6 +227,14 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const hydrationGeneration = useRef(0)
   const mutationRevision = useRef(0)
 
+  useEffect(() => () => {
+    /* Async IndexedDB/Supabase work may outlive this owner-scoped provider.
+       Invalidate its guard before the next account mounts so no completion
+       callback can enqueue the previous owner's plan check in the new scope. */
+    userIdRef.current = null
+    hydrationGeneration.current += 1
+  }, [])
+
   const hydrate = useCallback(async () => {
     const expectedUserId = userId
     const generation = ++hydrationGeneration.current
@@ -640,7 +648,9 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     /* The account may have changed while IndexedDB was committing. The A
        intent remains durable, but it must never be merged into B's refs or
        forwarded into B's AppStore daily-log queue. */
-    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return meal
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) {
+      throw new Error('The active account changed. The meal was kept for its original account.')
+    }
     if (!isLocalMode) setQueued(true)
     const nextMeals = addLoggedMealToHistory(mealsRef.current, meal, input.replaceMealId ?? null)
     mealsRef.current = nextMeals

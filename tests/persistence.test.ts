@@ -75,7 +75,8 @@ test('food async commits cannot merge an old account into the active account sta
   const logMealStart = foodStore.indexOf('const logMeal =')
   const logMealBlock = foodStore.slice(logMealStart, foodStore.indexOf('const deleteMeal =', logMealStart))
   assert.match(logMealBlock, /await saveMealAtomically/)
-  assert.match(logMealBlock, /if \(!foodMutationBelongsToActiveUser\(userId, userIdRef\.current\)\) return meal/)
+  assert.match(logMealBlock, /if \(!foodMutationBelongsToActiveUser\(userId, userIdRef\.current\)\) \{[\s\S]*The meal was kept for its original account/)
+  assert.match(foodStore, /userIdRef\.current = null/)
 
   const deleteMealStart = foodStore.indexOf('const deleteMeal =')
   const deleteMealBlock = foodStore.slice(deleteMealStart, foodStore.indexOf('const savePreset =', deleteMealStart))

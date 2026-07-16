@@ -83,7 +83,7 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
 test('login errors are localized without translating June as a month', () => {
   assert.equal(localizedLoginError('Invalid login credentials', 'ro'), 'Adresa de e-mail sau parola sunt incorecte.')
   assert.equal(localizedLoginError('Invalid login credentials', 'th'), 'อีเมลหรือรหัสผ่านไม่ถูกต้อง')
-  assert.match(localizedLoginError('Those credentials belong to June. Choose that profile to continue.', 'ro'), /June/)
+  assert.equal(localizedLoginError('Those credentials belong to June. Choose that profile to continue.', 'ro'), 'Adresa de e-mail sau parola sunt incorecte.')
 })
 
 test('shared activity catalog names, categories and guidance are translated without per-user copies', () => {

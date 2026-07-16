@@ -53,7 +53,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
-  const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
+  const [editingManualExerciseId, setEditingManualExerciseId] = useState<string | null>(null)
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
@@ -188,12 +188,12 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           date={today}
           onAdd={() => {
             setEditingManualSessionId(null)
-            setEditingManualExerciseName(null)
+            setEditingManualExerciseId(null)
             setShowManualWorkout(true)
           }}
-          onEdit={(sessionId, canonicalName) => {
+          onEdit={(sessionId, exerciseId) => {
             setEditingManualSessionId(sessionId)
-            setEditingManualExerciseName(canonicalName)
+            setEditingManualExerciseId(exerciseId)
             setShowManualWorkout(true)
           }}
           accent={accent}
@@ -321,11 +321,11 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         onClose={() => {
           setShowManualWorkout(false)
           setEditingManualSessionId(null)
-          setEditingManualExerciseName(null)
+          setEditingManualExerciseId(null)
         }}
         date={today}
         editSessionId={editingManualSessionId}
-        focusExerciseName={editingManualExerciseName}
+        focusExerciseId={editingManualExerciseId}
         accent={accent}
       />
 
