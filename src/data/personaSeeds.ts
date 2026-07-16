@@ -519,18 +519,18 @@ function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'p
   const programs: Program[] = [
     {
       id: uuidFor(userId, 'program:transition'), user_id: userId, slug: 'transition',
-      name: persona === 'june' ? 'Growth Minimum' : persona === 'iulian' ? 'Gym Re-Entry' : 'Morning Base',
+      name: persona === 'june' ? 'Growth Minimum' : persona === 'iulian' ? 'Transitional Training' : 'Morning Base',
       description: persona === 'june'
         ? 'Busy-day programme that protects glute growth without demanding the full session.'
-        : persona === 'iulian' ? 'A reduced-volume gym block that restores tolerance without treating an experienced bodybuilder like a beginner.'
+        : persona === 'iulian' ? 'For beginners'
         : 'Fast, repeatable morning sessions that establish the cut without draining the day.',
     },
     {
       id: uuidFor(userId, 'program:main'), user_id: userId, slug: 'main',
-      name: persona === 'june' ? 'Glute Architecture' : persona === 'iulian' ? 'Natural Bodybuilding' : 'Lean & Ripped 8AM',
+      name: persona === 'june' ? 'Glute Architecture' : persona === 'iulian' ? 'Main Training' : 'Lean & Ripped 8AM',
       description: persona === 'june'
         ? 'Seven-day home programme with two non-negotiable glute exposures and occupational recovery.'
-        : persona === 'iulian' ? 'Experienced gym-only bodybuilding with simple progression, balanced volume and two recovery exposures.'
+        : persona === 'iulian' ? 'Bodybuilding'
         : 'Age-aware calisthenics, strength, SkiErg and recovery structured around 07:30 mornings.',
     },
   ]

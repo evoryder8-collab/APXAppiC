@@ -57,6 +57,13 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
+  const isIulianPhase = data.profile?.persona === 'iulian' && (slug === 'transition' || slug === 'main')
+  const sectionTitle = isIulianPhase
+    ? slug === 'transition' ? 'Transitional Training' : 'Main Training'
+    : program?.name ?? title
+  const sectionSubtitle = isIulianPhase
+    ? slug === 'transition' ? 'For beginners' : 'Bodybuilding'
+    : program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')
   const streak = useMemo(() => currentStreak(data, today), [data, today])
   const todayPlan = useMemo(() => planForDate(data, slug, today, false), [data, slug, today])
   const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
@@ -135,8 +142,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
     <div className="mx-auto w-full max-w-3xl">
       <SectionHeader
         accent={accent}
-        title={planText(program?.name ?? title)}
-        subtitle={planText(program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme'))}
+        title={planText(sectionTitle)}
+        subtitle={planText(sectionSubtitle)}
         right={
           <div className="flex items-center gap-2">
             <div className="relative overflow-hidden rounded-2xl border border-white/85 bg-white/72 px-3 py-2 text-right shadow-[0_12px_30px_-20px_rgba(109,40,217,.8)] backdrop-blur-xl">

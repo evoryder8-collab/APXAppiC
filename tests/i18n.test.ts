@@ -73,11 +73,22 @@ test('critical app surfaces have complete Romanian and Thai copy', () => {
     'This result is incomplete. Review all per-100 g values before saving it privately.',
     'Name and all four per-100 g nutrition values are required.',
     'Planned meal',
+    'Transitional Training',
+    'For beginners',
+    'Main Training',
+    'Bodybuilding',
   ]
   for (const english of critical) {
     assert.ok(UI_TRANSLATIONS[english]?.ro, `missing Romanian: ${english}`)
     assert.ok(UI_TRANSLATIONS[english]?.th, `missing Thai: ${english}`)
   }
+})
+
+test('Iulian phase labels use the concise requested Romanian wording', () => {
+  assert.equal(UI_TRANSLATIONS['Transitional Training']?.ro, 'Antrenament Transitional')
+  assert.equal(UI_TRANSLATIONS['For beginners']?.ro, 'Pentru începători')
+  assert.equal(UI_TRANSLATIONS['Main Training']?.ro, 'Antrenament principal')
+  assert.equal(UI_TRANSLATIONS.Bodybuilding?.ro, 'Bodybuilding')
 })
 
 test('login errors are localized without translating June as a month', () => {

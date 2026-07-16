@@ -71,9 +71,12 @@ test('generated foundation occupies 12 dated weeks before its main phase takes o
   assert.ok(planForDate(data, 'main', '2026-07-20', false).exercises.length === 0)
 })
 
-test('Iulian-Andrei receives gym-only bodybuilding definitions and versioned upgrades rewrite inherited rows', () => {
+test('Iulian-Andrei receives concise gym bodybuilding definitions and versioned upgrades rewrite inherited rows', () => {
   const seeded = buildSeedData(userId, 'iulian')
-  assert.equal(seeded.programs.find((program) => program.slug === 'main')?.name, 'Natural Bodybuilding')
+  assert.equal(seeded.programs.find((program) => program.slug === 'main')?.name, 'Main Training')
+  assert.equal(seeded.programs.find((program) => program.slug === 'main')?.description, 'Bodybuilding')
+  assert.equal(seeded.programs.find((program) => program.slug === 'transition')?.name, 'Transitional Training')
+  assert.equal(seeded.programs.find((program) => program.slug === 'transition')?.description, 'For beginners')
   const names = seeded.exercises.map((exercise) => exercise.name).join('|')
   assert.match(names, /Smith Machine|Cable|Hack Squat/)
   assert.doesNotMatch(names, /SkiErg|Team Calisthenics|Big Hammer Loop/)
@@ -85,7 +88,7 @@ test('Iulian-Andrei receives gym-only bodybuilding definitions and versioned upg
     exercises: seeded.exercises.map((exercise, index) => index === 0 ? { ...exercise, name: 'Push-Up' } : exercise),
   }
   const repaired = repairSeedDefinitions(legacy, seeded)
-  assert.equal(repaired.data.programs.find((program) => program.slug === 'main')?.name, 'Natural Bodybuilding')
+  assert.equal(repaired.data.programs.find((program) => program.slug === 'main')?.name, 'Main Training')
   assert.equal(repaired.data.exercises.find((exercise) => exercise.id === seeded.exercises[0].id)?.name, seeded.exercises[0].name)
   assert.ok(repaired.missing.programs.length > 0)
 })

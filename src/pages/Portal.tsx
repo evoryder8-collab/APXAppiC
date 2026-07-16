@@ -31,6 +31,7 @@ export function Portal() {
   const firstName = profile?.display_name?.split(' ')[0] || persona.firstName
   const transition = data.programs.find((program) => program.slug === 'transition')
   const main = data.programs.find((program) => program.slug === 'main')
+  const isIulian = profile?.persona === 'iulian'
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col sm:min-h-[calc(100dvh-13rem)] sm:justify-center">
@@ -61,13 +62,13 @@ export function Portal() {
         <PortalCard
           to="/transition"
           accent={ACCENTS.teal}
-          title={portalText(transition?.name ?? 'Transition phase').toUpperCase()}
+          title={portalText(isIulian ? 'Transitional Training' : transition?.name ?? 'Transition phase').toUpperCase()}
           subtitle={portalText(profile?.persona === 'june'
             ? 'Busy-day glute growth fallback'
             : profile?.persona === 'matthew'
               ? 'Fast, repeatable morning training'
-              : profile?.persona === 'iulian'
-                ? 'Reduced-volume gym re-entry'
+              : isIulian
+                ? 'For beginners'
                 : 'Current program, home training')}
           icon={<TransitionIcon className="h-7 w-7" />}
           index={1}
@@ -75,13 +76,13 @@ export function Portal() {
         <PortalCard
           to="/main-phase"
           accent={ACCENTS.violet}
-          title={portalText(main?.name ?? 'Main phase').toUpperCase()}
+          title={portalText(isIulian ? 'Main Training' : main?.name ?? 'Main phase').toUpperCase()}
           subtitle={portalText(profile?.persona === 'june'
             ? 'Full glute-focused home programme'
             : profile?.persona === 'matthew'
               ? 'Lean power, abs and conditioning'
-              : profile?.persona === 'iulian'
-                ? 'Experienced bodybuilding, gym only'
+              : isIulian
+                ? 'Bodybuilding'
                 : 'Elite V6, ready when you are')}
           icon={<BoltIcon className="h-7 w-7" />}
           index={2}
