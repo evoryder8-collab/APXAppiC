@@ -8,6 +8,7 @@ import {
 } from './introLanguage'
 import { ACTIVITY_TRANSLATIONS, DATE_WORDS, UI_TRANSLATIONS } from './translations'
 import { translateAvatarAssessmentSummary } from './avatarLocalization'
+import { replaceInterfaceSegment } from './translationSegments'
 
 interface LanguageContextValue {
   language: IntroLanguage
@@ -488,7 +489,7 @@ export function translateInterfaceText(value: string, language: IntroLanguage): 
   let translated = translateDates(protectedJune, language)
   for (const [english, romanian, thai] of segments.sort(([a], [b]) => b.length - a.length)) {
     if (!translated.includes(english)) continue
-    translated = translated.split(english).join(language === 'ro' ? romanian : thai)
+    translated = replaceInterfaceSegment(translated, english, language === 'ro' ? romanian : thai)
   }
   translated = translated.replaceAll('\uE000APEX_PERSON_JUNE\uE001', 'June')
   return `${leading}${translated}${trailing}`

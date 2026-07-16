@@ -3,6 +3,7 @@ import test from 'node:test'
 import { isSelectableIntroLanguage, LANGUAGE_OPTIONS, localizedLoginError } from '../src/lib/introLanguage.ts'
 import { ACTIVITY_TRANSLATIONS, UI_TRANSLATIONS } from '../src/lib/translations.ts'
 import { translateAvatarAssessmentSummary } from '../src/lib/avatarLocalization.ts'
+import { replaceInterfaceSegment } from '../src/lib/translationSegments.ts'
 
 test('language selector always exposes English, Thai, and Romanian', () => {
   assert.deepEqual(LANGUAGE_OPTIONS.map((option) => option.value), ['en', 'th', 'ro'])
@@ -100,6 +101,38 @@ test('shared activity catalog names, categories and guidance are translated with
   for (const category of ['Hands-on therapy', 'Camera work', 'General work', 'Errands and life']) {
     assert.ok(UI_TRANSLATIONS[category]?.ro, `missing Romanian activity category: ${category}`)
     assert.ok(UI_TRANSLATIONS[category]?.th, `missing Thai activity category: ${category}`)
+  }
+})
+
+test('camera framing and quick activity presets use exact native-language labels', () => {
+  assert.equal(UI_TRANSLATIONS['Torso only']?.ro, 'Doar trunchi')
+  assert.equal(replaceInterfaceSegment('Doar trunchi', 'run', 'alergare'), 'Doar trunchi')
+  assert.equal(replaceInterfaceSegment('Morning run', 'run', 'alergare'), 'Morning alergare')
+  const byName = new Map(ACTIVITY_TRANSLATIONS.map(([english, ro, th]) => [english, { ro, th }]))
+  assert.deepEqual(byName.get('4h standing'), { ro: '4 h în picioare', th: 'ยืน 4 ชม.' })
+  assert.deepEqual(byName.get('1h childcare'), { ro: '1 h îngrijire copii', th: 'ดูแลเด็ก 1 ชม.' })
+})
+
+test('advanced nutrition calendar copy and clear actions are fully localized', () => {
+  for (const label of [
+    'Previous month',
+    'Next month',
+    'Choose where to paste',
+    'Calendar day actions',
+    'Copy or clear this day’s meals and snacks.',
+    'Paste copied day',
+    'Select meals or snacks',
+    'Choose individual meals or snacks',
+    'All selected meals and snacks',
+    'Clearing…',
+    'Pasting…',
+    'Paste selected',
+    'Meal and snack selections cleared',
+    'Could not clear this day.',
+    'Could not paste this day.',
+  ]) {
+    assert.ok(UI_TRANSLATIONS[label]?.ro, `missing Romanian calendar action: ${label}`)
+    assert.ok(UI_TRANSLATIONS[label]?.th, `missing Thai calendar action: ${label}`)
   }
 })
 

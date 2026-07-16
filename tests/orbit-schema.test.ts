@@ -30,8 +30,10 @@ test('all new rows are owner scoped and anonymous access is explicitly revoked',
   assert.match(migration, /foreign key \(campaign_id, user_id\)/)
   assert.match(migration, /foreign key \(run_id, user_id\)/)
   assert.match(migration, /unique \(user_id, client_idempotency_key\)/)
-  assert.match(store, /select\('\*'\)\.eq\('user_id', userId\)/)
+  assert.match(store, /select\('\*'\)\s*\.eq\('user_id', userId\)\s*\.order\('id', \{ ascending: true \}\)\s*\.range\(from, to\)/)
   assert.match(store, /filter\(\(row\) => row\.user_id === userId\)/)
+  assert.match(store, /createSessionBoundSupabase\(session\.access_token\)/)
+  assert.match(store, /mutationRevision\.current !== revision/)
 })
 
 test('geographic proxy validates the caller and keeps provider requests server-side', () => {

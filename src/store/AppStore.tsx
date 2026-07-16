@@ -15,8 +15,8 @@ import {
   useState,
   type ReactNode,
 } from 'react'
-import type { Session } from '@supabase/supabase-js'
-import { isLocalMode, supabase } from '../lib/supabase'
+import type { Session, SupabaseClient } from '@supabase/supabase-js'
+import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
 import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
 import { EMPTY_DATA } from '../lib/types'
@@ -40,14 +40,16 @@ import {
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
 import {
+  enqueuePendingSyncOperation,
   hasPendingSyncForRecord,
+  mergePendingSyncOperations,
   normalizeDailyLogIntegers,
   normalizeSyncPayload,
   normalizeSyncRecord,
   replayPendingList,
   replayPendingSingleton,
+  syncFailureBlockKeys,
   syncOperationConflicts,
-  syncOperationKeys,
   upsertConflictTarget,
 } from '../lib/sync'
 import {
@@ -139,6 +141,8 @@ function normalizeAppData(value: AppData): AppData {
           simple_show_orbit: value.settings.addons?.simple_show_orbit ?? true,
           simple_show_body_index: value.settings.addons?.simple_show_body_index ?? true,
           simple_show_guided_plan: value.settings.addons?.simple_show_guided_plan ?? true,
+          simple_show_hydration_reminder: value.settings.addons?.simple_show_hydration_reminder ?? false,
+          simple_show_manual_workout: value.settings.addons?.simple_show_manual_workout ?? false,
           adhd_mode: value.settings.addons?.adhd_mode ?? false,
         },
       }
@@ -191,6 +195,26 @@ function recordsEqual(a: object, b: object): boolean {
   })
 }
 
+async function fetchAllOwnedRows(
+  client: SupabaseClient,
+  table: ListTable,
+  userId: string,
+): Promise<Array<{ id: string; user_id: string }>> {
+  const pageSize = 500
+  const rows: Array<{ id: string; user_id: string }> = []
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error } = await client
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (error) throw error
+    rows.push(...((page ?? []).filter((row) => row.user_id === userId) as Array<{ id: string; user_id: string }>))
+    if ((page?.length ?? 0) < pageSize) return rows
+  }
+}
+
 export function AppStoreProvider({ children }: { children: ReactNode }) {
   const scopeRef = useRef(isLocalMode ? LOCAL_USER : 'pending')
   const [data, setData] = useState<AppData>(() =>
@@ -198,14 +222,21 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   )
   const [ready, setReady] = useState(isLocalMode)
   const [session, setSession] = useState<Session | null>(null)
+  const sessionRef = useRef(session)
+  sessionRef.current = session
   const [queueLen, setQueueLen] = useState(() =>
     isLocalMode ? loadQueue(LOCAL_USER).length : 0,
   )
   const [online, setOnline] = useState(navigator.onLine)
+  const [hydrationRetry, setHydrationRetry] = useState(0)
   const [toasts, setToasts] = useState<Array<{ id: number; message: string; kind: 'error' | 'ok' }>>([])
   const dataRef = useRef(data)
   dataRef.current = data
   const flushing = useRef(false)
+  const flushRequested = useRef(false)
+  const inFlightOperationId = useRef<string | null>(null)
+  const mutationRevision = useRef(0)
+  const fetchGeneration = useRef(0)
   const lastSchemaToastAt = useRef(0)
   const lastSyncErrorToastAt = useRef(0)
   const pendingCache = useRef<{ data: AppData; scope: string } | null>(null)
@@ -259,10 +290,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   /* ---------- queue flush ---------- */
   const flush = useCallback(async () => {
-    if (!supabase || flushing.current || !navigator.onLine) return
+    if (!supabase || !navigator.onLine) return
+    if (flushing.current) {
+      flushRequested.current = true
+      return
+    }
     flushing.current = true
     const scope = scopeRef.current
     try {
+      const syncSession = sessionRef.current
+      const syncClient = syncSession?.user.id === scope
+        ? createSessionBoundSupabase(syncSession.access_token)
+        : null
+      if (!syncClient) return
       let queue = loadQueue(scope)
       const attemptedIds = new Set<string>()
       const blockedKeys = new Set<string>()
@@ -279,21 +319,25 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           : op.payload
         let error: { code?: string; message: string } | null = null
         let requestThrew = false
+        inFlightOperationId.current = op.id
         try {
           const result = op.type === 'upsert'
             ? conflictTarget
-              ? await supabase.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
-              : await supabase.from(op.table).upsert(syncPayload)
-            : await supabase
+              ? await syncClient.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
+              : await syncClient.from(op.table).upsert(syncPayload)
+            : await syncClient
                 .from(op.table)
                 .delete()
                 .eq('id', (op.payload as Record<string, unknown>).id as string)
+                .eq('user_id', scope)
           error = result.error
         } catch (requestError) {
           requestThrew = true
           error = {
             message: requestError instanceof Error ? requestError.message : 'The network request failed',
           }
+        } finally {
+          if (inFlightOperationId.current === op.id) inFlightOperationId.current = null
         }
         if (scopeRef.current !== scope) break
         if (error) {
@@ -315,7 +359,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
             toast(`Sync paused on ${op.table}. Your change remains queued: ${error.message}`)
           }
           if (requestThrew || error.message.toLowerCase().includes('fetch')) break
-          for (const key of syncOperationKeys(op)) blockedKeys.add(key)
+          for (const key of syncFailureBlockKeys(op)) blockedKeys.add(key)
           continue
         }
         queue = loadQueue(scope).filter((queued) => queued.id !== op.id)
@@ -324,6 +368,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       if (scopeRef.current === scope) setQueueLen(loadQueue(scope).length)
     } finally {
       flushing.current = false
+      inFlightOperationId.current = null
+      if (flushRequested.current) {
+        flushRequested.current = false
+        /* The request may have belonged to an account that just signed out.
+           Resume against whichever scoped account is active now. */
+        if (navigator.onLine) window.setTimeout(() => void flush(), 0)
+      }
     }
   }, [toast])
 
@@ -335,40 +386,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const payload = op.type === 'upsert'
         ? normalizeSyncPayload(op.table, rawPayload)
         : rawPayload
-      const row = Array.isArray(payload) ? null : payload
-      const rowKey = typeof row?.id === 'string'
-        ? `id:${row.id}`
-        : typeof row?.user_id === 'string'
-          ? `user:${row.user_id}`
-          : null
-      /* A held stepper can produce many writes for one row. Keep only the
-         latest queued version, while never replacing queue[0] if it may
-         already be in flight. */
-      const replaceFrom = flushing.current ? 1 : 0
-      const replaceIndex = op.type === 'upsert' && rowKey
-        ? queue.findIndex((queued, index) => {
-            if (index < replaceFrom || queued.table !== op.table || queued.type !== 'upsert') return false
-            if (Array.isArray(queued.payload)) return false
-            const queuedKey = typeof queued.payload.id === 'string'
-              ? `id:${queued.payload.id}`
-              : typeof queued.payload.user_id === 'string'
-                ? `user:${queued.payload.user_id}`
-                : null
-            return queuedKey === rowKey
-          })
-        : -1
-      if (replaceIndex >= 0) {
-        queue[replaceIndex] = { ...queue[replaceIndex], payload, ts: Date.now() }
-      } else {
-        queue.push({
-          ...op,
-          payload,
-          id: crypto.randomUUID(),
-          ts: Date.now(),
-        } satisfies SyncOp)
-      }
-      saveQueue(queue, scopeRef.current)
-      setQueueLen(queue.length)
+      const nextQueue = enqueuePendingSyncOperation(queue, { ...op, payload }, {
+        id: crypto.randomUUID(),
+        ts: Date.now(),
+        inFlightId: inFlightOperationId.current,
+      }) as SyncOp[]
+      saveQueue(nextQueue, scopeRef.current)
+      setQueueLen(nextQueue.length)
       void flush()
     },
     [flush],
@@ -378,6 +402,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const upsert = useCallback(
     <T extends { id: string }>(table: ListTable, row: T) => {
       const normalizedRow = normalizeSyncRecord(table, row)
+      mutationRevision.current += 1
       const cur = dataRef.current
       const list = cur[table] as unknown as T[]
       const i = list.findIndex((r) => r.id === normalizedRow.id)
@@ -395,6 +420,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     <T extends { id: string }>(table: ListTable, rows: T[]) => {
       if (rows.length === 0) return
       const normalizedRows = rows.map((row) => normalizeSyncRecord(table, row))
+      mutationRevision.current += 1
       const cur = dataRef.current
       const list = cur[table] as unknown as T[]
       const map = new Map(list.map((r) => [r.id, r]))
@@ -413,6 +439,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const remove = useCallback(
     (table: ListTable, id: string) => {
+      mutationRevision.current += 1
       const cur = dataRef.current
       const list = cur[table] as Array<{ id: string }>
       persist({ ...cur, [table]: list.filter((r) => r.id !== id) })
@@ -425,6 +452,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     (patch: object) => {
       const cur = dataRef.current
       if (!cur.profile) return
+      mutationRevision.current += 1
       const profile = { ...cur.profile, ...patch, updated_at: new Date().toISOString() }
       persist({ ...cur, profile })
       enqueue({ table: 'profile', type: 'upsert', payload: profile })
@@ -436,6 +464,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     (patch: Partial<Settings>) => {
       const cur = dataRef.current
       if (!cur.settings) return
+      mutationRevision.current += 1
       const settings = { ...cur.settings, ...patch }
       const hasCustomBmr = Boolean(patch.addons && Object.prototype.hasOwnProperty.call(patch.addons, 'custom_bmr'))
       const profile = hasCustomBmr && cur.profile
@@ -451,6 +480,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const adoptSession = useCallback((nextSession: Session | null) => {
     /* Finish the previous account's cache write before changing the scope. */
     flushPendingCache()
+    fetchGeneration.current += 1
     if (nextSession) {
       const scope = nextSession.user.id
       let cached = loadCache(scope)
@@ -534,22 +564,31 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [adoptSession, persist])
 
   const fetchAll = useCallback(async () => {
-    const sb = supabase
-    if (!sb || !session) return
+    if (!session) return
     const sessionUserId = session.user.id
+    const sb = createSessionBoundSupabase(session.access_token)
+    if (!sb || scopeRef.current !== sessionUserId) return
     const accountPersona = personaFromUserMetadata(session.user.user_metadata)
+    const generation = ++fetchGeneration.current
+    const revision = mutationRevision.current
+    const pendingBefore = loadQueue(sessionUserId)
     try {
-      const results = await Promise.all([
+      const [profileRes, settingsRes, catalogRes, listRows] = await Promise.all([
         sb.from('profile').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('settings').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('activity_types').select('*'),
-        ...LIST_TABLES.map((table) => sb.from(table).select('*').eq('user_id', sessionUserId)),
+        Promise.all(LIST_TABLES.map((table) => fetchAllOwnedRows(sb, table, sessionUserId))),
       ])
-      if (scopeRef.current !== sessionUserId) return
-      const [profileRes, settingsRes, catalogRes, ...listRes] = results
-      const failed = results.find((result) => result.error)?.error
+      if (scopeRef.current !== sessionUserId || fetchGeneration.current !== generation) return
+      const failed = [profileRes, settingsRes, catalogRes].find((result) => result.error)?.error
       if (failed) throw failed
-      const pending = loadQueue(sessionUserId)
+      const pending = mergePendingSyncOperations(pendingBefore, loadQueue(sessionUserId))
+      /* Never let a SELECT that began before a local edit replace that edit.
+         Retry from the durable cache/outbox once this render settles. */
+      if (mutationRevision.current !== revision) {
+        setHydrationRetry((value) => value + 1)
+        return
+      }
       const next: AppData = {
         ...EMPTY_DATA,
         profile: replayPendingSingleton(
@@ -568,7 +607,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         rpg_snapshots: dataRef.current.rpg_snapshots,
       }
       LIST_TABLES.forEach((table, index) => {
-        const remoteRows = (listRes[index].data ?? [])
+        const remoteRows = (listRows[index] ?? [])
           .filter((row) => row.user_id === sessionUserId) as Array<{ id: string }>
         ;(next as unknown as Record<string, unknown>)[table] = replayPendingList(table, remoteRows, pending)
       })
@@ -577,7 +616,14 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       const needsSeedRepair = !next.profile || Number(next.profile.seed_version ?? 0) < CURRENT_SEED_VERSION
       if (needsSeedRepair) {
         const { buildSeedData } = await import('../data/seed')
-        if (scopeRef.current !== sessionUserId) return
+        if (
+          scopeRef.current !== sessionUserId ||
+          fetchGeneration.current !== generation ||
+          mutationRevision.current !== revision
+        ) {
+          setHydrationRetry((value) => value + 1)
+          return
+        }
         const seeded = buildSeedData(sessionUserId, accountPersona)
         const repair = repairSeedDefinitions(next, seeded)
         persist(normalizeAppData(repair.data))
@@ -608,7 +654,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   useEffect(() => {
     if (session) void fetchAll()
-  }, [session, fetchAll])
+  }, [session, fetchAll, hydrationRetry])
 
   /* A profile switch can interrupt an in-flight write after Supabase has
      received it but before the local queue is acknowledged. Resume every
@@ -734,6 +780,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       })
       .subscribe()
     const persistSilent = (next: AppData): void => {
+      mutationRevision.current += 1
       dataRef.current = next
       setData(next)
       scheduleCacheSave(next)

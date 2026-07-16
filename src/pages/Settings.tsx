@@ -157,6 +157,14 @@ export function Settings() {
                 <div><p className={label}>{t('Show guided workout card')}</p><p className={sub}>{t('Hide the transition plan card when you prefer your own training.')}</p></div>
                 <Toggle accent={ACCENTS.teal} label={t('Show guided workout card')} on={settings.addons.simple_show_guided_plan ?? true} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: value } })} />
               </div>
+              <div className={row}>
+                <div><p className={label}>{t('Show hydration reminder card')}</p><p className={sub}>{t('Water remains available from the quick action even when this reminder is hidden.')}</p></div>
+                <Toggle accent={ACCENTS.ice} label={t('Show hydration reminder card')} on={settings.addons.simple_show_hydration_reminder ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_hydration_reminder: value } })} />
+              </div>
+              <div className={row}>
+                <div><p className={label}>{t('Show workout summary card')}</p><p className={sub}>{t('Show the editable workout list and Add Workout card below the four quick actions.')}</p></div>
+                <Toggle accent={ACCENTS.teal} label={t('Show workout summary card')} on={settings.addons.simple_show_manual_workout ?? false} onChange={(value) => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: value } })} />
+              </div>
             </div>
 
             <div className="mt-3 rounded-[22px] border border-violet-200/70 bg-[linear-gradient(135deg,rgba(237,233,254,.8),rgba(236,254,255,.78))] p-4">

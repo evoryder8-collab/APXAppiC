@@ -53,6 +53,28 @@ test('selecting a search result creates a draft and does not insert until explic
   assert.equal(confirmed[0].id, 'confirmed-food')
 })
 
+test('scanner foods default to weight units unless the record is genuinely portioned', () => {
+  const weighedAldiFood = {
+    ...COMMON_FOODS[1],
+    source: 'open_food_facts' as const,
+    brand: 'Aldi Suisse',
+    serving_amount: 75,
+    serving_unit: 'g' as const,
+    serving_grams_or_ml: 75,
+  }
+  assert.deepEqual(
+    { quantity: beginFoodSelection(weighedAldiFood).quantity, unit: beginFoodSelection(weighedAldiFood).unit },
+    { quantity: 100, unit: 'g' },
+  )
+
+  const portionedFood = { ...weighedAldiFood, serving_unit: 'serving' as const }
+  assert.deepEqual(
+    { quantity: beginFoodSelection(portionedFood).quantity, unit: beginFoodSelection(portionedFood).unit },
+    { quantity: 1, unit: 'serving' },
+  )
+  assert.equal(beginFoodSelection(COMMON_FOODS[6]).unit, 'piece')
+})
+
 test('configured quantities use the selected amount for every displayed macro', () => {
   const nixe = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:lidl-nixe-tuna-own-juice-label')!
   const draft = { ...beginFoodSelection(nixe), quantity: 200 }

@@ -191,6 +191,35 @@ export function resequenceManualWorkoutLogs(
   })
 }
 
+/**
+ * Reuse stable row ids while editing a manual workout and identify only the
+ * sets that truly disappeared. The caller can upsert replacements before
+ * deleting stale rows, so a network interruption never leaves the server with
+ * an empty workout merely because an edit was in progress.
+ */
+export function reconcileManualWorkoutLogs(
+  existingLogs: readonly WorkoutLog[],
+  nextLogs: readonly WorkoutLog[],
+): { logs: WorkoutLog[]; staleIds: string[] } {
+  const available = new Map<string, WorkoutLog[]>()
+  for (const log of existingLogs) {
+    const key = `${baseExerciseName(log.exercise_name)}\u0000${log.set_no}`
+    available.set(key, [...(available.get(key) ?? []), log])
+  }
+  const reused = new Set<string>()
+  const logs = nextLogs.map((log) => {
+    const key = `${baseExerciseName(log.exercise_name)}\u0000${log.set_no}`
+    const match = available.get(key)?.find((candidate) => !reused.has(candidate.id))
+    if (!match) return log
+    reused.add(match.id)
+    return { ...log, id: match.id }
+  })
+  return {
+    logs,
+    staleIds: existingLogs.filter((log) => !reused.has(log.id)).map((log) => log.id),
+  }
+}
+
 export function manualWorkoutEditorDraft(data: AppData, sessionId: string): ManualWorkoutEditorDraft | null {
   const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
   if (!session || manualWorkoutTitle(session.notes) == null) return null

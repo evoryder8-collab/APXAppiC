@@ -18,6 +18,7 @@ import {
   manualWorkoutEditorDraft,
   manualWorkoutNotes,
   rankManualWorkoutPresets,
+  reconcileManualWorkoutLogs,
   resequenceManualWorkoutLogs,
   type ManualExerciseDraft,
   type ManualExerciseTimelineEntry,
@@ -240,7 +241,7 @@ export function ManualWorkoutLogger({
       existingExerciseTimes.set(key, Math.min(existingExerciseTimes.get(key) ?? timestamp, timestamp))
     }
     const newExerciseBaseTime = Date.now()
-    const logs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
+    const proposedLogs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
       const exerciseTime = existingExerciseTimes.get(exercise.canonicalName)
         ?? newExerciseBaseTime + exerciseIndex * 60_000
       if (exercise.treadmill) {
@@ -260,15 +261,14 @@ export function ManualWorkoutLogger({
       }))
     })
 
+    const reconciled = reconcileManualWorkoutLogs(existingLogs, proposedLogs)
     if (!existingSession && !existingProgram) upsert('programs', program)
     if (!existingSession && !existingDay) upsert('program_days', day)
-    if (existingSession) {
-      for (const log of data.workout_logs.filter((candidate) => candidate.session_id === existingSession.id)) {
-        remove('workout_logs', log.id)
-      }
-    }
+    /* Parents and replacements reach Supabase before stale rows are removed.
+       Stable ids make retries idempotent and avoid an empty-workout window. */
     upsert('workout_sessions', session)
-    bulkUpsert('workout_logs', logs)
+    bulkUpsert('workout_logs', reconciled.logs)
+    for (const staleId of reconciled.staleIds) remove('workout_logs', staleId)
     toast(t(existingSession ? 'Workout updated' : 'Workout saved for reuse'), 'ok')
     reset()
     onClose()

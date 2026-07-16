@@ -300,6 +300,8 @@ export interface Settings {
     simple_show_orbit?: boolean
     simple_show_body_index?: boolean
     simple_show_guided_plan?: boolean
+    simple_show_hydration_reminder?: boolean
+    simple_show_manual_workout?: boolean
     adhd_mode?: boolean
   }
 }

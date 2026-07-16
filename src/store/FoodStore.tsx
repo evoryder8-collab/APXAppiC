@@ -8,6 +8,7 @@ import {
   useState,
   type ReactNode,
 } from 'react'
+import type { SupabaseClient } from '@supabase/supabase-js'
 import { COMMON_FOODS } from '../data/foodSeeds'
 import {
   addLoggedMealToHistory,
@@ -26,21 +27,27 @@ import {
   type MealSlot,
 } from '../lib/food'
 import type { IntroLanguage } from '../lib/introLanguage'
-import { replayFoodOutbox } from '../lib/foodSync'
+import {
+  foodMutationBelongsToActiveUser,
+  foodOperationBelongsToUser,
+  replayFoodOutbox,
+  foodSessionBelongsToExpectedUser,
+} from '../lib/foodSync'
+import { mergePendingSyncOperations } from '../lib/sync'
 import {
   cacheVisibleFoods,
   deleteMealLocally,
   deletePresetLocally,
   loadVisibleFoods,
-  privateDelete,
+  privateDeleteForUser,
   privateGetAllForUser,
   privatePut,
-  privatePutMany,
+  replaceFoodUserCacheAtomically,
   saveMealAtomically,
   savePresetAtomically,
   type PrivateOutboxOp,
 } from '../lib/privateDb'
-import { isLocalMode, supabase } from '../lib/supabase'
+import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import { useStore } from './AppStore'
@@ -106,8 +113,10 @@ interface FoodStoreValue {
 }
 
 const Ctx = createContext<FoodStoreValue | null>(null)
+let lastFoodOutboxMs = 0
 
 function outbox(userId: string, operation: string, entityId: string, payload: unknown): PrivateOutboxOp {
+  lastFoodOutboxMs = Math.max(Date.now(), lastFoodOutboxMs + 1)
   return {
     id: crypto.randomUUID(),
     user_id: userId,
@@ -115,7 +124,7 @@ function outbox(userId: string, operation: string, entityId: string, payload: un
     operation,
     entity_id: entityId,
     payload,
-    created_at: new Date().toISOString(),
+    created_at: new Date(lastFoodOutboxMs).toISOString(),
     attempts: 0,
   }
 }
@@ -175,12 +184,34 @@ function mergeFoodCatalog(incoming: FoodRecord[]): FoodRecord[] {
   return [...merged.values()]
 }
 
+async function fetchAllOwnedFoodRows(
+  client: SupabaseClient,
+  table: string,
+  userId: string,
+): Promise<Record<string, unknown>[]> {
+  const pageSize = 500
+  const rows: Record<string, unknown>[] = []
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error } = await client
+      .from(table)
+      .select('*')
+      .eq('user_id', userId)
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (error) throw error
+    const owned = (page ?? []).filter((row) => row.user_id === userId) as Record<string, unknown>[]
+    rows.push(...owned)
+    if ((page?.length ?? 0) < pageSize) return rows
+  }
+}
+
 export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const { data, upsert } = useStore()
   const userId = data.profile?.user_id ?? null
   const userIdRef = useRef(userId)
   userIdRef.current = userId
   const [ready, setReady] = useState(false)
+  const [hydrationRetry, setHydrationRetry] = useState(0)
   const [syncing, setSyncing] = useState(false)
   const [queued, setQueued] = useState(false)
   const [foods, setFoods] = useState<FoodRecord[]>(COMMON_FOODS)
@@ -194,10 +225,12 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const flushingUsers = useRef(new Set<string>())
   const requestedFlushUsers = useRef(new Set<string>())
   const hydrationGeneration = useRef(0)
+  const mutationRevision = useRef(0)
 
   const hydrate = useCallback(async () => {
     const expectedUserId = userId
     const generation = ++hydrationGeneration.current
+    const revision = mutationRevision.current
     const current = (): boolean =>
       hydrationGeneration.current === generation && userIdRef.current === expectedUserId
     if (!expectedUserId) {
@@ -225,6 +258,10 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         privateGetAllForUser<LoggedFoodEntry>('logged_food_entries', expectedUserId),
       ])
       if (!current()) return
+      if (mutationRevision.current !== revision) {
+        setHydrationRetry((value) => value + 1)
+        return
+      }
       setFoods(mergeFoodCatalog(localFoods))
       preferencesRef.current = localPreferences
       setPreferences(localPreferences)
@@ -238,32 +275,48 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       setQueued(pending.some((operation) => operation.domain === 'food'))
 
       if (supabase) {
+        const { data: { session: hydrationSession }, error: sessionError } = await supabase.auth.getSession()
+        if (!current()) return
+        if (sessionError) throw sessionError
+        if (
+          !hydrationSession ||
+          !foodSessionBelongsToExpectedUser(hydrationSession.user.id, expectedUserId)
+        ) return
+        const hydrationClient = createSessionBoundSupabase(hydrationSession.access_token)
+        if (!hydrationClient || !current()) return
         setSyncing(true)
-        const [foodRes, preferenceRes, presetRes, presetItemRes, mealRes, entryRes] = await Promise.all([
-          supabase.from('foods').select('*').or(`owner_user_id.is.null,owner_user_id.eq.${expectedUserId}`),
-          supabase.from('food_preferences').select('*').eq('user_id', expectedUserId),
-          supabase.from('meal_presets').select('*').eq('user_id', expectedUserId),
-          supabase.from('meal_preset_items').select('*').eq('user_id', expectedUserId),
-          supabase.from('logged_meals').select('*').eq('user_id', expectedUserId).order('logged_at', { ascending: false }).limit(500),
-          supabase.from('logged_food_entries').select('*').eq('user_id', expectedUserId).limit(2000),
+        const [foodRes, remotePreferences, remotePresets, remotePresetItems, remoteMeals, remoteEntries] = await Promise.all([
+          hydrationClient.from('foods').select('*').or(`owner_user_id.is.null,owner_user_id.eq.${expectedUserId}`),
+          fetchAllOwnedFoodRows(hydrationClient, 'food_preferences', expectedUserId),
+          fetchAllOwnedFoodRows(hydrationClient, 'meal_presets', expectedUserId),
+          fetchAllOwnedFoodRows(hydrationClient, 'meal_preset_items', expectedUserId),
+          fetchAllOwnedFoodRows(hydrationClient, 'logged_meals', expectedUserId),
+          fetchAllOwnedFoodRows(hydrationClient, 'logged_food_entries', expectedUserId),
         ])
         if (!current()) return
-        const firstError = [foodRes, preferenceRes, presetRes, presetItemRes, mealRes, entryRes].find((result) => result.error)?.error
-        if (firstError) throw firstError
+        if (foodRes.error) throw foodRes.error
         const latestPending = (await privateGetAllForUser<PrivateOutboxOp>('private_outbox', expectedUserId))
           .filter((operation) => operation.domain === 'food')
         if (!current()) return
+        if (mutationRevision.current !== revision) {
+          setHydrationRetry((value) => value + 1)
+          return
+        }
+        const pendingDuringRead = mergePendingSyncOperations(
+          pending.filter((operation) => operation.domain === 'food'),
+          latestPending,
+        )
         const remoteFoods = (foodRes.data ?? [])
           .map((row) => normalizeRemoteFood(row as Record<string, unknown>))
           .filter((food) => food.owner_user_id == null || food.owner_user_id === expectedUserId)
         const replayed = replayFoodOutbox({
           foods: remoteFoods,
-          preferences: (preferenceRes.data ?? []).filter((row) => row.user_id === expectedUserId) as FoodPreference[],
-          presets: (presetRes.data ?? []).filter((row) => row.user_id === expectedUserId) as MealPreset[],
-          presetItems: (presetItemRes.data ?? []).filter((row) => row.user_id === expectedUserId) as MealPresetItem[],
-          meals: (mealRes.data ?? []).filter((row) => row.user_id === expectedUserId) as LoggedMeal[],
-          entries: (entryRes.data ?? []).filter((row) => row.user_id === expectedUserId) as LoggedFoodEntry[],
-        }, latestPending)
+          preferences: remotePreferences as unknown as FoodPreference[],
+          presets: remotePresets as unknown as MealPreset[],
+          presetItems: remotePresetItems as unknown as MealPresetItem[],
+          meals: remoteMeals as unknown as LoggedMeal[],
+          entries: remoteEntries as unknown as LoggedFoodEntry[],
+        }, pendingDuringRead)
         setFoods(mergeFoodCatalog(replayed.foods))
         preferencesRef.current = replayed.preferences
         setPreferences(replayed.preferences)
@@ -274,12 +327,10 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         setEntries(replayed.entries)
         await Promise.all([
           cacheVisibleFoods(expectedUserId, replayed.foods),
-          privatePutMany('food_preferences', replayed.preferences),
-          privatePutMany('meal_presets', replayed.presets),
-          privatePutMany('meal_preset_items', replayed.presetItems),
-          privatePutMany('logged_meals', replayed.meals),
-          privatePutMany('logged_food_entries', replayed.entries),
+          replaceFoodUserCacheAtomically(expectedUserId, replayed),
         ])
+        if (!current()) return
+        if (mutationRevision.current !== revision) setHydrationRetry((value) => value + 1)
       }
     } catch (error) {
       if (current()) console.warn('Food history refresh failed; using private offline cache', error)
@@ -289,12 +340,40 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         setReady(true)
       }
     }
-  }, [userId])
+  }, [hydrationRetry, userId])
 
   useEffect(() => { void hydrate() }, [hydrate])
 
+  /* Food history lives in its own transactional store. Re-hydrate it when a
+     second device changes a meal or preset, and whenever iOS foregrounds the
+     app after potentially suspending its realtime socket. A short debounce
+     collapses the meal + entry + total events emitted by one RPC. */
+  useEffect(() => {
+    if (!supabase || !userId) return
+    const sb = supabase
+    let timer: number | null = null
+    const refresh = (): void => {
+      if (timer !== null) window.clearTimeout(timer)
+      timer = window.setTimeout(() => setHydrationRetry((value) => value + 1), 240)
+    }
+    const channel = sb.channel(`apex-food-sync-${userId}`)
+    for (const table of ['logged_meals', 'logged_food_entries', 'meal_presets', 'meal_preset_items', 'food_preferences']) {
+      channel.on('postgres_changes', { event: '*', schema: 'public', table }, refresh)
+    }
+    channel.subscribe()
+    const onVisibility = (): void => {
+      if (document.visibilityState === 'visible') refresh()
+    }
+    document.addEventListener('visibilitychange', onVisibility)
+    return () => {
+      if (timer !== null) window.clearTimeout(timer)
+      document.removeEventListener('visibilitychange', onVisibility)
+      void sb.removeChannel(channel)
+    }
+  }, [userId])
+
   const applyDayAggregate = useCallback((date: string, nextMeals: LoggedMeal[]) => {
-    if (!userId) return
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     const totals = aggregateLoggedMeals(nextMeals.filter((meal) => meal.local_date === date))
     const existing = data.daily_logs.find((log) => log.date === date)
     const hasStructured = nextMeals.some((meal) => meal.local_date === date)
@@ -321,32 +400,31 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     })
   }, [data.daily_logs, upsert, userId])
 
-  const sendOutbox = useCallback(async (op: PrivateOutboxOp): Promise<boolean> => {
-    if (!supabase || isLocalMode) return true
+  const sendOutbox = useCallback(async (client: SupabaseClient, op: PrivateOutboxOp): Promise<boolean> => {
     if (op.operation === 'log_meal') {
       const payload = op.payload as { meal: LoggedMeal & { replace_meal_id?: string | null }; entries: LoggedFoodEntry[] }
-      const { error } = await supabase.rpc('log_structured_meal', { p_meal: payload.meal, p_entries: payload.entries })
+      const { error } = await client.rpc('log_structured_meal', { p_meal: payload.meal, p_entries: payload.entries })
       if (error) throw error
       return true
     }
     if (op.operation === 'save_food') {
-      const { error } = await supabase.from('foods').upsert(op.payload as FoodRecord, { onConflict: 'id' })
+      const { error } = await client.from('foods').upsert(op.payload as FoodRecord, { onConflict: 'id' })
       if (error) throw error
       return true
     }
     if (op.operation === 'save_preference') {
-      const { error } = await supabase.from('food_preferences').upsert(op.payload as FoodPreference, { onConflict: 'user_id,food_id' })
+      const { error } = await client.from('food_preferences').upsert(op.payload as FoodPreference, { onConflict: 'user_id,food_id' })
       if (error) throw error
       return true
     }
     if (op.operation === 'delete_meal') {
-      const { error } = await supabase.rpc('delete_structured_meal', { p_meal_id: op.entity_id })
+      const { error } = await client.rpc('delete_structured_meal', { p_meal_id: op.entity_id })
       if (error) throw error
       return true
     }
     if (op.operation === 'save_preset') {
       const payload = op.payload as { preset: MealPreset; items: MealPresetItem[]; expectedVersion: number }
-      const { error } = await supabase.rpc('save_meal_preset', {
+      const { error } = await client.rpc('save_meal_preset', {
         p_preset: payload.preset,
         p_items: payload.items,
         p_expected_version: payload.expectedVersion,
@@ -355,7 +433,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       return true
     }
     if (op.operation === 'delete_preset') {
-      const { error } = await supabase.rpc('delete_meal_preset', { p_preset_id: op.entity_id })
+      const { error } = await client.rpc('delete_meal_preset', { p_preset_id: op.entity_id })
       if (error) throw error
       return true
     }
@@ -371,6 +449,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     }
     flushingUsers.current.add(syncUserId)
     try {
+      const { data: { session: syncSession }, error: sessionError } = await supabase.auth.getSession()
+      if (sessionError) throw sessionError
+      if (!syncSession || syncSession.user.id !== syncUserId) return
+      const syncClient = createSessionBoundSupabase(syncSession.access_token)
+      if (!syncClient) return
       const operations = (await privateGetAllForUser<PrivateOutboxOp>('private_outbox', syncUserId))
         .filter((operation) => operation.domain === 'food')
         .sort((a, b) => {
@@ -380,9 +463,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
           return (priority[a.operation] ?? 9) - (priority[b.operation] ?? 9)
         })
       for (const operation of operations) {
+        if (userIdRef.current !== syncUserId || !foodOperationBelongsToUser(operation, syncUserId)) break
         try {
-          await sendOutbox(operation)
-          await privateDelete('private_outbox', operation.id)
+          await sendOutbox(syncClient, operation)
+          if (!foodOperationBelongsToUser(operation, syncUserId)) break
+          await privateDeleteForUser('private_outbox', operation.id, syncUserId)
         } catch (error) {
           await privatePut('private_outbox', {
             ...operation,
@@ -460,19 +545,24 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const savePrivateFood = useCallback(async (
     input: Omit<FoodRecord, 'id' | 'owner_user_id' | 'source' | 'created_at' | 'updated_at'>,
   ): Promise<FoodRecord> => {
-    if (!userId) throw new Error('Sign in before creating a food')
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) {
+      throw new Error('The active account changed. Please retry creating this food.')
+    }
+    mutationRevision.current += 1
     const now = new Date().toISOString()
     const food: FoodRecord = { ...input, id: crypto.randomUUID(), owner_user_id: userId, source: 'private', created_at: now, updated_at: now }
     setFoods((current) => [food, ...current])
     await privatePut('foods', food)
     if (!isLocalMode) await privatePut('private_outbox', outbox(userId, 'save_food', food.id, food))
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return food
     if (!isLocalMode) setQueued(true)
     if (!isLocalMode && navigator.onLine) await flush()
     return food
   }, [flush, userId])
 
   const setPreference = useCallback(async (foodId: string, patch: Partial<FoodPreference>) => {
-    if (!userId) return
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
+    mutationRevision.current += 1
     const current = preferencesRef.current.find((preference) => preference.food_id === foodId)
     const next: FoodPreference = {
       id: current?.id ?? crypto.randomUUID(),
@@ -497,18 +587,22 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     setPreferences(nextPreferences)
     await privatePut('food_preferences', next)
     if (!isLocalMode) await privatePut('private_outbox', outbox(userId, 'save_preference', next.id, next))
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     if (!isLocalMode) setQueued(true)
     if (!isLocalMode && navigator.onLine) await flush()
   }, [flush, userId])
 
   const logMeal = useCallback(async (input: LogMealInput): Promise<LoggedMeal> => {
-    if (!userId) throw new Error('Sign in before logging food')
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) {
+      throw new Error('The active account changed. Please retry logging this meal.')
+    }
     if (input.idempotencyKey) {
       const existing = mealsRef.current.find((meal) => (
         meal.user_id === userId && meal.client_idempotency_key === input.idempotencyKey
       ))
       if (existing) return existing
     }
+    mutationRevision.current += 1
     const date = input.date ?? todayIso()
     const now = new Date().toISOString()
     const id = crypto.randomUUID()
@@ -536,7 +630,17 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     const preferenceUpdates = foodPreferenceUsageUpdates(preferencesRef.current, input.items, userId, input.slot, now)
     const payloadMeal = { ...meal, replace_meal_id: input.replaceMealId ?? null }
     const operation = outbox(userId, 'log_meal', id, { meal: payloadMeal, entries: snapshots })
-    await saveMealAtomically(meal, snapshots, preferenceUpdates, isLocalMode ? null : operation)
+    await saveMealAtomically(
+      meal,
+      snapshots,
+      preferenceUpdates,
+      isLocalMode ? null : operation,
+      input.replaceMealId ?? null,
+    )
+    /* The account may have changed while IndexedDB was committing. The A
+       intent remains durable, but it must never be merged into B's refs or
+       forwarded into B's AppStore daily-log queue. */
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return meal
     if (!isLocalMode) setQueued(true)
     const nextMeals = addLoggedMealToHistory(mealsRef.current, meal, input.replaceMealId ?? null)
     mealsRef.current = nextMeals
@@ -552,12 +656,13 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   }, [applyDayAggregate, flush, userId])
 
   const deleteMeal = useCallback(async (mealId: string) => {
-    if (!userId) return
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     const removed = mealsRef.current.find((meal) => meal.id === mealId)
     if (!removed) return
-    await deleteMealLocally(mealId)
+    mutationRevision.current += 1
     const operation = outbox(userId, 'delete_meal', mealId, null)
-    if (!isLocalMode) await privatePut('private_outbox', operation)
+    await deleteMealLocally(mealId, isLocalMode ? null : operation)
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     if (!isLocalMode) setQueued(true)
     const nextMeals = mealsRef.current.filter((meal) => meal.id !== mealId)
     mealsRef.current = nextMeals
@@ -568,7 +673,10 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   }, [applyDayAggregate, flush, userId])
 
   const savePreset = useCallback(async (input: SavePresetInput): Promise<MealPreset> => {
-    if (!userId) throw new Error('Sign in before saving a preset')
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) {
+      throw new Error('The active account changed. Please retry saving this preset.')
+    }
+    mutationRevision.current += 1
     const existing = input.id ? presets.find((preset) => preset.id === input.id) : undefined
     const now = new Date().toISOString()
     const preset: MealPreset = {
@@ -585,6 +693,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     }))
     const operation = outbox(userId, 'save_preset', preset.id, { preset, items, expectedVersion: input.expectedVersion ?? existing?.version ?? 0 })
     await savePresetAtomically(preset, items, isLocalMode ? null : operation)
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return preset
     if (!isLocalMode) setQueued(true)
     setPresets((current) => [preset, ...current.filter((value) => value.id !== preset.id)])
     setPresetItems((current) => [...items, ...current.filter((value) => value.preset_id !== preset.id)])
@@ -593,11 +702,12 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   }, [flush, presets, userId])
 
   const deletePreset = useCallback(async (presetId: string) => {
-    if (!userId) return
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
+    mutationRevision.current += 1
     const operation = outbox(userId, 'delete_preset', presetId, null)
-    if (!isLocalMode) await privatePut('private_outbox', operation)
+    await deletePresetLocally(presetId, isLocalMode ? null : operation)
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     if (!isLocalMode) setQueued(true)
-    await deletePresetLocally(presetId)
     setPresets((current) => current.filter((preset) => preset.id !== presetId))
     setPresetItems((current) => current.filter((item) => item.preset_id !== presetId))
     if (!isLocalMode && navigator.onLine) await flush()

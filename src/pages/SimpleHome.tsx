@@ -26,12 +26,13 @@ import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type C
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { canPasteSimpleDay, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
+import { canPasteSimpleDay, dayMealCopyIdempotencyKey, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
 import { NutritionGlance } from '../components/food/NutritionGlance'
 import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
+import { WeightTrend } from '../components/WeightTrend'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -73,7 +74,7 @@ export function SimpleHome() {
   const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
-  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | null>(null)
+  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | 'weight' | null>(null)
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealSlot, setQuickMealSlot] = useState<MealSlot | null>(null)
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
@@ -101,6 +102,8 @@ export function SimpleHome() {
   const showOrbitShortcut = settings?.addons.simple_show_orbit ?? true
   const showBodyIndexShortcut = settings?.addons.simple_show_body_index ?? true
   const showGuidedPlan = settings?.addons.simple_show_guided_plan ?? true
+  const showHydrationReminder = settings?.addons.simple_show_hydration_reminder ?? false
+  const showManualWorkoutCard = settings?.addons.simple_show_manual_workout ?? false
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
   const mealPlan = useMemo(
     () => profile && targets
@@ -460,7 +463,7 @@ export function SimpleHome() {
           sourcePlannedMealId: sourceMeal.source_planned_meal_id,
           replaceMealId: replaceMeal?.id,
           loggedAs: sourceMeal.logged_as,
-          idempotencyKey: `simple-day-copy:${profile.user_id}:${copiedDay}:${targetDate}:${sourceMeal.id}`,
+          idempotencyKey: dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id),
         })
         targetMeals = [copiedMeal, ...targetMeals.filter((meal) => meal.id !== replaceMeal?.id)]
         if (sourceMeal.source_planned_meal_id && !targetPlannedChecks.has(sourceMeal.source_planned_meal_id)) {
@@ -570,7 +573,7 @@ export function SimpleHome() {
       meta: t(`~${plan.programDay?.est_minutes ?? 15} min · ${plan.exercises.length} exercises`), action: 'Start session',
       run: () => navigate(`/player/transition/${selectedDate}`), accent: ACCENTS.teal,
     }] : []),
-    ...(!waterDone ? [{
+    ...(showHydrationReminder && !waterDone ? [{
       time: 21 * 60, eyebrow: 'Hydration', title: t(`${water.toFixed(2)} of ${targets.water_l.toFixed(2)} L`),
       meta: 'One glass takes one tap', action: '+ 250 ml', run: addWater, accent: ACCENTS.ice,
     }] : []),
@@ -685,23 +688,26 @@ export function SimpleHome() {
             onRingClick={() => setQuickPanel('targets')}
             onMacroClick={(macro) => { setSelectedMacro(macro); setQuickPanel('macro') }}
             cornerControl={selectedDate <= today ? (
-              <label data-simple-local-gesture className="flex items-center rounded-lg border border-amber-200/65 bg-white/82 px-2 py-1 shadow-sm" title={t('Morning weight')}>
-                <input
-                  type="text"
-                  inputMode="decimal"
-                  value={weightDraft}
-                  placeholder={String(Number(weightFromKg(profile.weight_kg, weightUnit).toFixed(1)))}
-                  onChange={(event) => {
-                    if (/^\d*(?:[.,]\d{0,1})?$/.test(event.target.value)) setWeightDraft(event.target.value)
-                  }}
-                  onClick={(event) => event.stopPropagation()}
-                  onBlur={commitMorningWeight}
-                  onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                  className="w-11 bg-transparent text-right font-mono text-[11px] font-black text-ink outline-none"
-                  aria-label={t(weightUnit === 'lb' ? 'Morning weight in pounds' : 'Morning weight in kilograms')}
-                />
-                <span className="ml-1 font-mono text-[8px] font-black text-ink-faint uppercase">{weightUnit}</span>
-              </label>
+              <div data-simple-local-gesture className="flex items-center gap-1">
+                <label className="flex items-center rounded-lg border border-amber-200/65 bg-white/82 px-2 py-1 shadow-sm" title={t('Morning weight')}>
+                  <input
+                    type="text"
+                    inputMode="decimal"
+                    value={weightDraft}
+                    placeholder={String(Number(weightFromKg(profile.weight_kg, weightUnit).toFixed(1)))}
+                    onChange={(event) => {
+                      if (/^\d*(?:[.,]\d{0,1})?$/.test(event.target.value)) setWeightDraft(event.target.value)
+                    }}
+                    onClick={(event) => event.stopPropagation()}
+                    onBlur={commitMorningWeight}
+                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                    className="w-11 bg-transparent text-right font-mono text-[11px] font-black text-ink outline-none"
+                    aria-label={t(weightUnit === 'lb' ? 'Morning weight in pounds' : 'Morning weight in kilograms')}
+                  />
+                  <span className="ml-1 font-mono text-[8px] font-black text-ink-faint uppercase">{weightUnit}</span>
+                </label>
+                <button type="button" onClick={(event) => { event.stopPropagation(); setQuickPanel('weight') }} aria-label={t('Open weight trend')} className="grid h-7 w-7 place-items-center rounded-lg border border-violet-100 bg-white/82 text-[12px] font-black text-violet-700 shadow-sm transition active:scale-90">⌁</button>
+              </div>
             ) : undefined}
           />
         </GlassCard>
@@ -713,7 +719,7 @@ export function SimpleHome() {
           <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
         </div>
 
-        <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />
+        {showManualWorkoutCard && <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />}
 
         {!adhdMode && <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
           <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
@@ -871,13 +877,13 @@ export function SimpleHome() {
               initial={{ opacity: 0, scale: 0.93, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : 'max-w-[330px]'}`}
+              className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : quickPanel === 'weight' ? 'max-w-[390px]' : 'max-w-[330px]'}`}
               role="dialog"
               aria-modal="true"
-              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : 'Quick meals')}
+              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
@@ -951,6 +957,10 @@ export function SimpleHome() {
                     })}
                   </div>
                   <p className="mt-3 text-center font-mono text-[9px] font-black text-ink-soft">{t('Updated target')}: {targets.kcal} kcal</p>
+                </div>
+              ) : quickPanel === 'weight' ? (
+                <div className="mt-4">
+                  <WeightTrend logs={data.daily_logs} anchorDate={selectedDate <= today ? selectedDate : today} unit={weightUnit} />
                 </div>
               ) : quickPanel === 'macro' ? (
                 <div className="mt-4">

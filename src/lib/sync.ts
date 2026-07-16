@@ -20,6 +20,11 @@ export interface PendingSyncOperation {
   payload: Record<string, unknown> | Array<Record<string, unknown>>
 }
 
+export interface DurableSyncOperation extends PendingSyncOperation {
+  id: string
+  ts: number
+}
+
 function databaseInteger(value: unknown): unknown {
   if (value == null) return value
   const numeric = typeof value === 'number'
@@ -73,6 +78,56 @@ function operationRows(operation: PendingSyncOperation): Record<string, unknown>
   return Array.isArray(operation.payload) ? operation.payload : [operation.payload]
 }
 
+function singleRowKey(operation: PendingSyncOperation): string | null {
+  if (Array.isArray(operation.payload)) return null
+  const row = operation.payload
+  if (typeof row.id === 'string') return `${operation.table}:id:${row.id}`
+  if (typeof row.user_id === 'string') return `${operation.table}:user:${row.user_id}`
+  return null
+}
+
+/**
+ * Adds a durable write without ever mutating the operation currently being
+ * sent to Supabase. Updating an in-flight operation in place and then deleting
+ * its id after the older request succeeds loses the newer edit. Only the most
+ * recent, not-in-flight upsert for the same row is safe to coalesce.
+ */
+export function enqueuePendingSyncOperation(
+  queue: readonly DurableSyncOperation[],
+  operation: PendingSyncOperation,
+  options: { id: string; ts: number; inFlightId?: string | null },
+): DurableSyncOperation[] {
+  const next = [...queue]
+  const key = operation.type === 'upsert' ? singleRowKey(operation) : null
+  if (key) {
+    let latestMatchingIndex = -1
+    for (let index = next.length - 1; index >= 0; index -= 1) {
+      if (singleRowKey(next[index]) === key) {
+        latestMatchingIndex = index
+        break
+      }
+    }
+    const latest = latestMatchingIndex >= 0 ? next[latestMatchingIndex] : null
+    if (latest?.type === 'upsert' && latest.id !== options.inFlightId) {
+      next[latestMatchingIndex] = { ...latest, payload: operation.payload, ts: options.ts }
+      return next
+    }
+  }
+  next.push({ ...operation, id: options.id, ts: options.ts })
+  return next
+}
+
+/** Preserve queue order while joining snapshots taken on either side of an
+ * async server read. This closes the acknowledgement race where a write was
+ * pending when SELECT began but had left the queue before SELECT returned. */
+export function mergePendingSyncOperations<T extends { id: string }>(
+  ...groups: readonly (readonly T[])[]
+): T[] {
+  const merged = new Map<string, T>()
+  for (const group of groups) for (const operation of group) merged.set(operation.id, operation)
+  return [...merged.values()]
+}
+
 export function syncOperationKeys(operation: PendingSyncOperation): string[] {
   const keys = operationRows(operation).flatMap((row) => {
     if (typeof row.id === 'string') return [`${operation.table}:id:${row.id}`]
@@ -80,6 +135,12 @@ export function syncOperationKeys(operation: PendingSyncOperation): string[] {
     return []
   })
   return keys.length > 0 ? [...new Set(keys)] : [`${operation.table}:*`]
+}
+
+/** A failed batch is an ordered transaction boundary. Later deletes from the
+ * same table must wait, even when their ids were not present in the batch. */
+export function syncFailureBlockKeys(operation: PendingSyncOperation): string[] {
+  return Array.isArray(operation.payload) ? [`${operation.table}:*`] : syncOperationKeys(operation)
 }
 
 export function syncOperationConflicts(operation: PendingSyncOperation, blockedKeys: ReadonlySet<string>): boolean {

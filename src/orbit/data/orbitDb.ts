@@ -9,6 +9,7 @@ import type {
   RoutePoster,
   RunningShoe,
 } from '../domain/types.ts'
+import { orbitAcknowledgementDisposition } from '../domain/sync.ts'
 
 const DB_NAME = 'apex-orbit-v1'
 const DB_VERSION = 1
@@ -233,16 +234,14 @@ export async function acknowledgeOrbitOutbox(op: OrbitOutboxOp): Promise<boolean
   const outboxStore = transaction.objectStore('outbox')
   outboxStore.delete(op.id)
   let markedSynced = false
-  const cursorRequest = outboxStore.index('user_id').openCursor(IDBKeyRange.only(op.user_id))
-  cursorRequest.onsuccess = () => {
-    const cursor = cursorRequest.result
-    if (cursor) {
-      const pending = cursor.value as OrbitOutboxOp
-      if (pending.store === op.store && pending.entity_id === op.entity_id) return
-      cursor.continue()
+  const settleEntity = (hasNewerPendingOperation: boolean): void => {
+    const disposition = orbitAcknowledgementDisposition(op, hasNewerPendingOperation)
+    if (disposition === 'retain') return
+    const entityStore = transaction.objectStore(op.store)
+    if (disposition === 'delete') {
+      entityStore.delete(op.entity_id)
       return
     }
-    const entityStore = transaction.objectStore(op.store)
     const entityRequest = entityStore.get(op.entity_id)
     entityRequest.onsuccess = () => {
       const entity = entityRequest.result as { user_id?: string; sync_state?: string } | undefined
@@ -250,6 +249,20 @@ export async function acknowledgeOrbitOutbox(op: OrbitOutboxOp): Promise<boolean
       markedSynced = true
       entityStore.put({ ...entity, sync_state: 'synced' })
     }
+  }
+  const cursorRequest = outboxStore.index('user_id').openCursor(IDBKeyRange.only(op.user_id))
+  cursorRequest.onsuccess = () => {
+    const cursor = cursorRequest.result
+    if (cursor) {
+      const pending = cursor.value as OrbitOutboxOp
+      if (pending.store === op.store && pending.entity_id === op.entity_id) {
+        settleEntity(true)
+        return
+      }
+      cursor.continue()
+      return
+    }
+    settleEntity(false)
   }
   await complete(transaction)
   return markedSynced

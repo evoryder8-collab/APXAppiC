@@ -6,6 +6,7 @@ import {
   displayExerciseName,
   searchExerciseCatalog,
 } from '../src/data/exerciseCatalog.ts'
+import { UI_TRANSLATIONS } from '../src/lib/translations.ts'
 
 test('every exercise has Romanian and Thai display names', () => {
   assert.ok(EXERCISE_CATALOG.length >= 80)
@@ -13,6 +14,17 @@ test('every exercise has Romanian and Thai display names', () => {
     assert.ok(displayExerciseName(exercise, 'ro').trim(), `${exercise.id} Romanian name`)
     assert.ok(displayExerciseName(exercise, 'th').trim(), `${exercise.id} Thai name`)
   }
+})
+
+test('every exercise result subtitle has Romanian and Thai equipment metadata', () => {
+  for (const exercise of EXERCISE_CATALOG) {
+    assert.ok(UI_TRANSLATIONS[exercise.equipment]?.ro, `${exercise.id} Romanian equipment`)
+    assert.ok(UI_TRANSLATIONS[exercise.equipment]?.th, `${exercise.id} Thai equipment`)
+  }
+  assert.equal(UI_TRANSLATIONS['Leg press']?.ro, 'Presă pentru picioare')
+  assert.equal(UI_TRANSLATIONS['Step and dumbbells']?.ro, 'Treaptă și gantere')
+  assert.equal(UI_TRANSLATIONS['Leg press']?.th, 'เครื่องเลกเพรส')
+  assert.equal(UI_TRANSLATIONS.machine?.ro, 'aparat')
 })
 
 test('Romanian partial searches resolve common gym vocabulary', () => {

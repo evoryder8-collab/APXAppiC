@@ -445,7 +445,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
 function settingsFor(userId: string): Settings {
   return {
     user_id: userId, voice_on: true, ticks_on: true, notifications_on: false,
-    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'advanced', newbie_mode: false, training_induction: null, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, adhd_mode: false },
+    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, adhd_mode: false },
   }
 }
 

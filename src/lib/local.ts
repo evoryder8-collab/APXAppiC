@@ -59,11 +59,21 @@ export function loadQueue(scope = 'local'): SyncOp[] {
 }
 
 export function saveQueue(queue: SyncOp[], scope = 'local'): void {
+  const serialized = JSON.stringify(queue)
   try {
-    localStorage.setItem(scopedKey(QUEUE_KEY, scope), JSON.stringify(queue))
+    localStorage.setItem(scopedKey(QUEUE_KEY, scope), serialized)
     volatileQueues.delete(scope)
   } catch {
-    volatileQueues.set(scope, [...queue])
+    /* The outbox is the only copy that can reconstruct an offline edit after
+       reload. If the full cache consumed the localStorage quota, sacrifice
+       that reproducible cache and retry the much smaller write-intent queue. */
+    try {
+      localStorage.removeItem(scopedKey(CACHE_KEY, scope))
+      localStorage.setItem(scopedKey(QUEUE_KEY, scope), serialized)
+      volatileQueues.delete(scope)
+    } catch {
+      volatileQueues.set(scope, [...queue])
+    }
   }
 }
 

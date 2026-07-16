@@ -6,7 +6,6 @@ import {
   ACTIVITY_CATEGORIES,
   PAL_LABELS,
   PAL_TONES,
-  blockSummary,
   activityCatalogMap,
   emptyActivityBlock,
   netKcalForBlock,
@@ -19,6 +18,7 @@ import {
 import { ACCENTS } from '../lib/theme'
 import { GlassCard, GradientButton, Sheet, Stepper } from './ui'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import type { IntroLanguage } from '../lib/introLanguage'
 
 const amber = ACCENTS.amber
 
@@ -125,6 +125,28 @@ function presetBlock(preset: ActivityPreset, catalog: Map<string, ActivityType>)
   const type = catalog.get(preset.typeId)
   if (!type) throw new Error(`Unknown activity type ${preset.typeId}`)
   return { ...emptyActivityBlock(type), ...preset.patch }
+}
+
+function localizedBlockAmount(block: ActivityBlock, type: ActivityType, language: IntroLanguage): string {
+  if (type.inputStyle === 'count') {
+    return `${block.quantity} × ${block.durationMin ?? 0} ${language === 'th' ? 'นาที' : 'min'}`
+  }
+  if (type.inputStyle === 'duration') {
+    const minutes = block.durationMin ?? 0
+    if (minutes >= 60 && minutes % 60 === 0) {
+      const hours = minutes / 60
+      return language === 'th' ? `${hours} ชม.` : language === 'ro' ? `${hours} h` : `${hours}h`
+    }
+    return language === 'th' ? `${minutes} นาที` : `${minutes} min`
+  }
+  if (type.inputStyle === 'distance') {
+    return language === 'th' ? `${block.distanceKm ?? 0} กม.` : `${block.distanceKm ?? 0} km`
+  }
+  if (type.inputStyle === 'steps') {
+    const thousands = Math.round((block.steps ?? 0) / 100) / 10
+    return `${thousands}k ${language === 'ro' ? 'pași' : language === 'th' ? 'ก้าว' : 'steps'}`
+  }
+  return `${block.watchKcal ?? 0} ${language === 'ro' ? 'kcal ceas' : language === 'th' ? 'แคลอรีจากนาฬิกา' : 'watch kcal'}`
 }
 
 function changeAmount(block: ActivityBlock, direction: -1 | 1, catalog: Map<string, ActivityType>): ActivityBlock {
@@ -395,6 +417,7 @@ export function TodaysActivities({
             <div className="flex w-max gap-2">
               {presets.map((preset) => {
                 const preview = presetBlock(preset, catalog)
+                const localizedPresetLabel = t(preset.label)
                 const kcal = Math.round(netKcalForBlock(preview, profile.weight_kg, catalog))
                 return (
                   <button
@@ -402,14 +425,14 @@ export function TodaysActivities({
                     type="button"
                     onClick={() => addBlock(preview)}
                     className="group flex items-center gap-2 rounded-2xl border border-amber-500/15 bg-white/70 px-3 py-2 text-left shadow-sm transition active:scale-[0.97]"
-                    aria-label={`Add frequent activity ${preset.label}`}
+                    aria-label={`${t('Add frequent activity')} ${localizedPresetLabel}`}
                   >
                     <span className="flex h-7 w-7 items-center justify-center rounded-xl text-amber-700" style={{ background: amber.wash }}>
                       <ActivityGlyph name={catalog.get(preset.typeId)?.icon ?? 'walk'} className="h-4 w-4" />
                     </span>
                     <span>
-                      <span className="block text-[11px] font-bold text-ink">{preset.label}</span>
-                      <span className="block font-mono text-[8px] font-semibold text-ink-faint">+{kcal} net kcal</span>
+                      <span className="block text-[11px] font-bold text-ink">{localizedPresetLabel}</span>
+                      <span className="block font-mono text-[8px] font-semibold text-ink-faint">+{kcal} {t('net kcal')}</span>
                     </span>
                   </button>
                 )
@@ -456,8 +479,8 @@ export function TodaysActivities({
                           <ActivityGlyph name={type.icon} />
                         </span>
                         <div className="min-w-0 flex-1">
-                          <p className="truncate text-[12px] font-bold text-ink">{type.shortName}</p>
-                          <p className="font-mono text-[9px] font-semibold text-ink-faint">{blockSummary(block, catalog)} · {block.reconciled ? 'final' : 'planned'}</p>
+                          <p className="truncate text-[12px] font-bold text-ink">{t(type.shortName)}</p>
+                          <p className="font-mono text-[9px] font-semibold text-ink-faint">{localizedBlockAmount(block, type, language)} · {t(block.reconciled ? 'final' : 'planned')}</p>
                         </div>
                         <div className="flex shrink-0 items-center gap-1.5">
                           <button type="button" onClick={() => updateBlock(changeAmount(block, -1, catalog))} aria-label={`Decrease ${type.name}`} className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink/5 font-mono text-sm font-bold text-ink-soft">−</button>

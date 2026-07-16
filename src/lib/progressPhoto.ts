@@ -307,6 +307,51 @@ export interface ProgressPhotoSyncFailure<T> {
   cause: unknown
 }
 
+export interface PendingProgressPhotoOperation {
+  id: string
+  user_id: string
+  domain: string
+  operation: string
+  entity_id: string
+  created_at: string
+}
+
+export function mergeProgressPhotoPendingOperations<T extends { id: string }>(
+  ...groups: readonly (readonly T[])[]
+): T[] {
+  const merged = new Map<string, T>()
+  for (const group of groups) for (const operation of group) merged.set(operation.id, operation)
+  return [...merged.values()].sort((left, right) => {
+    const leftTime = 'created_at' in left ? String(left.created_at) : ''
+    const rightTime = 'created_at' in right ? String(right.created_at) : ''
+    return leftTime.localeCompare(rightTime)
+  })
+}
+
+/** Replay durable local photo intents over an authoritative server snapshot.
+ * Synced local-only rows are intentionally omitted so a deletion from another
+ * device cannot return on the next offline launch. */
+export function replayProgressPhotoOutbox(
+  remotePhotos: ProgressPhoto[],
+  localPhotos: ProgressPhoto[],
+  operations: PendingProgressPhotoOperation[],
+): ProgressPhoto[] {
+  const photos = new Map(remotePhotos.map((photo) => [photo.id, photo]))
+  const local = new Map(localPhotos.map((photo) => [photo.id, photo]))
+  for (const operation of operations) {
+    if (operation.domain !== 'photo') continue
+    if (operation.operation === 'delete_photo') {
+      photos.delete(operation.entity_id)
+      continue
+    }
+    if (operation.operation === 'upload_photo' || operation.operation === 'update_photo') {
+      const pending = local.get(operation.entity_id)
+      if (pending && pending.user_id === operation.user_id) photos.set(pending.id, pending)
+    }
+  }
+  return [...photos.values()].sort((left, right) => right.captured_at.localeCompare(left.captured_at))
+}
+
 /* A damaged or permanently rejected photo must not block later captures in
    the offline outbox. Every operation is attempted independently; failed
    work remains queued for an explicit or lifecycle retry. */

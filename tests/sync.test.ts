@@ -1,16 +1,67 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  enqueuePendingSyncOperation,
   hasPendingSyncForRecord,
+  mergePendingSyncOperations,
   normalizeDailyLogIntegers,
   normalizeSyncPayload,
   normalizeSyncRecord,
   replayPendingList,
   replayPendingSingleton,
+  syncFailureBlockKeys,
   syncOperationConflicts,
   syncOperationKeys,
   upsertConflictTarget,
 } from '../src/lib/sync.ts'
+
+test('a newer edit never replaces the operation currently in flight', () => {
+  const queued = [
+    { id: 'blocked', ts: 1, table: 'programs', type: 'upsert' as const, payload: { id: 'program' } },
+    { id: 'sending', ts: 2, table: 'workout_sessions', type: 'upsert' as const, payload: { id: 'session', notes: 'old' } },
+  ]
+  const next = enqueuePendingSyncOperation(
+    queued,
+    { table: 'workout_sessions', type: 'upsert', payload: { id: 'session', notes: 'new' } },
+    { id: 'new-intent', ts: 3, inFlightId: 'sending' },
+  )
+
+  assert.deepEqual(next.map((operation) => operation.id), ['blocked', 'sending', 'new-intent'])
+  assert.deepEqual(next.at(-1)?.payload, { id: 'session', notes: 'new' })
+  assert.equal(next.filter((operation) => operation.id !== 'sending').some((operation) => (
+    !Array.isArray(operation.payload) && operation.payload.notes === 'new'
+  )), true)
+})
+
+test('queue compaction respects a later delete instead of reviving stale order', () => {
+  const next = enqueuePendingSyncOperation([
+    { id: 'upsert', ts: 1, table: 'workout_logs', type: 'upsert', payload: { id: 'set' } },
+    { id: 'delete', ts: 2, table: 'workout_logs', type: 'delete', payload: { id: 'set' } },
+  ], {
+    table: 'workout_logs', type: 'upsert', payload: { id: 'set', reps: 12 },
+  }, { id: 'restore', ts: 3 })
+
+  assert.deepEqual(next.map((operation) => operation.id), ['upsert', 'delete', 'restore'])
+})
+
+test('a failed workout set batch blocks later deletes until the replacement retries', () => {
+  const failedBatch = {
+    table: 'workout_logs',
+    type: 'upsert' as const,
+    payload: [{ id: 'replacement-1' }, { id: 'replacement-2' }],
+  }
+  const blocked = new Set(syncFailureBlockKeys(failedBatch))
+  assert.equal(syncOperationConflicts({
+    table: 'workout_logs', type: 'delete', payload: { id: 'old-set' },
+  }, blocked), true)
+})
+
+test('hydration retains operations acknowledged while a server snapshot was in flight', () => {
+  const before = [
+    { id: 'meal-write', ts: 1, table: 'workout_sessions', type: 'upsert' as const, payload: { id: 'future-session' } },
+  ]
+  assert.deepEqual(mergePendingSyncOperations(before, []), before)
+})
 
 test('RPG snapshots reconcile legacy ids through their per-user date key', () => {
   assert.equal(upsertConflictTarget('rpg_snapshots'), 'user_id,date')

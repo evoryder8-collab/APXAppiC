@@ -1,7 +1,8 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canPasteSimpleDay, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canPasteSimpleDay, dayMealCopyIdempotencyKey, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
+import { seedSettings } from '../src/data/seed.ts'
 
 const settings: Settings = {
   user_id: 'aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa', voice_on: true, ticks_on: true,
@@ -9,11 +10,19 @@ const settings: Settings = {
   addons: { endurance1: true, endurance2: false, endurance3: false },
 }
 
-test('existing users stay in Advanced Mode until they explicitly switch', () => {
-  assert.equal(uiModeFromSettings(settings), 'advanced')
-  const patch = settingsForUiMode(settings, 'simple')
-  assert.equal(patch.addons.uiMode, 'simple')
+test('Simple Mode is the default while an explicit Advanced choice remains respected', () => {
+  assert.equal(uiModeFromSettings(settings), 'simple')
+  assert.equal(uiModeFromSettings({ ...settings, addons: { ...settings.addons, uiMode: 'advanced' } }), 'advanced')
+  const patch = settingsForUiMode(settings, 'advanced')
+  assert.equal(patch.addons.uiMode, 'advanced')
   assert.equal(patch.addons.endurance1, true)
+})
+
+test('new Simple Mode profiles keep optional hydration and workout cards hidden', () => {
+  const seeded = seedSettings('aaaaaaaa-aaaa-4aaa-8aaa-aaaaaaaaaaaa')
+  assert.equal(seeded.addons.uiMode, 'simple')
+  assert.equal(seeded.addons.simple_show_hydration_reminder, false)
+  assert.equal(seeded.addons.simple_show_manual_workout, false)
 })
 
 test('Simple Mode surfaces the most recently due action or earliest upcoming action', () => {
@@ -67,6 +76,13 @@ test('copied calendar days highlight only genuinely valid paste targets', () => 
   assert.equal(canPasteSimpleDay('2026-07-15', '2026-07-15'), false)
   assert.equal(canPasteSimpleDay(null, '2026-07-16'), false)
   assert.equal(canPasteSimpleDay('not-a-date', '2026-07-16'), false)
+})
+
+test('Simple and Advanced calendars share one meal-copy idempotency key', () => {
+  assert.equal(
+    dayMealCopyIdempotencyKey('user', '2026-07-15', '2026-07-16', 'meal'),
+    'simple-day-copy:user:2026-07-15:2026-07-16:meal',
+  )
 })
 
 test('macro details combine duplicate foods and rank their daily contribution', () => {

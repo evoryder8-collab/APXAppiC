@@ -10,6 +10,7 @@ import {
   manualSessionsForDate,
   parseTreadmillLog,
   rankManualWorkoutPresets,
+  reconcileManualWorkoutLogs,
   resequenceManualWorkoutLogs,
 } from '../src/lib/manualWorkout.ts'
 
@@ -54,6 +55,28 @@ test('a saved manual workout reopens with its title, exercises, sets and weights
   assert.equal(draft?.title, 'Back day')
   assert.equal(draft?.exercises[0]?.canonicalName, 'Seated Cable Row')
   assert.deepEqual(draft?.exercises[0]?.sets.map((set) => [set.reps, set.weightKg]), [[10, 80], [8, 86]])
+})
+
+test('editing a workout preserves matching set ids and deletes only removed sets', () => {
+  const existing = [
+    log('editable', 'Seated Cable Row', 1),
+    log('editable', 'Seated Cable Row', 2),
+    log('editable', 'Hammer Curl', 1),
+  ]
+  const proposed = [
+    { ...log('editable', 'Seated Cable Row', 1), id: 'temporary-1', reps: 12 },
+    { ...log('editable', 'Seated Cable Row', 2), id: 'temporary-2', weight_kg: 90 },
+    { ...log('editable', 'Seated Cable Row', 3), id: 'temporary-3' },
+  ]
+
+  const result = reconcileManualWorkoutLogs(existing, proposed)
+  assert.deepEqual(result.logs.map((row) => row.id), [
+    existing[0].id,
+    existing[1].id,
+    'temporary-3',
+  ])
+  assert.deepEqual(result.staleIds, [existing[2].id])
+  assert.equal(result.logs[0].reps, 12)
 })
 
 test('manual workout exercises read from first performed at the top to last performed at the bottom', () => {

@@ -18,6 +18,8 @@ import {
   progressPhotoSaveError,
   progressStoragePaths,
   isProgressCameraShutterKey,
+  mergeProgressPhotoPendingOperations,
+  replayProgressPhotoOutbox,
   runProgressPhotoSyncBatch,
   snapshotForProgressDate,
   updateComparisonViews,
@@ -170,6 +172,24 @@ test('one rejected photo sync does not block later queued captures', async () =>
   assert.deepEqual(result.succeeded, [{ id: 'healthy' }])
   assert.equal(result.failed.length, 1)
   assert.equal(result.failed[0].operation.id, 'broken')
+})
+
+test('photo hydration replays concurrent edits and delete tombstones over stale remote rows', () => {
+  const remoteEdited = photo('edited', '2026-06-01', 'front')
+  const localEdited = { ...remoteEdited, note: 'newer local note', updated_at: '2026-07-01T12:00:00Z', sync_status: 'queued' as const }
+  const remoteDeleted = photo('deleted', '2026-06-02', 'side')
+  const before = [{ id: 'photo:update:edited', user_id: remoteEdited.user_id, domain: 'photo', operation: 'update_photo', entity_id: 'edited', created_at: '2026-07-01T12:00:00.001Z' }]
+  const after = [{ id: 'photo:delete:deleted', user_id: remoteEdited.user_id, domain: 'photo', operation: 'delete_photo', entity_id: 'deleted', created_at: '2026-07-01T12:00:00.002Z' }]
+  const pending = mergeProgressPhotoPendingOperations(before, after)
+  const replayed = replayProgressPhotoOutbox([remoteEdited, remoteDeleted], [localEdited], pending)
+
+  assert.deepEqual(replayed.map((value) => value.id), ['edited'])
+  assert.equal(replayed[0].note, 'newer local note')
+})
+
+test('photo hydration treats the server as authoritative for synced local-only metadata', () => {
+  const deletedOnAnotherDevice = photo('ghost', '2026-06-01', 'front')
+  assert.deepEqual(replayProgressPhotoOutbox([], [deletedOnAnotherDevice], []), [])
 })
 
 test('photo storage errors are recoverable and user-facing', () => {

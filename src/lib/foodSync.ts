@@ -11,6 +11,7 @@ export interface FoodPendingOperation {
   operation: string
   entity_id: string
   payload: unknown
+  created_at?: string
 }
 
 export interface FoodSyncSnapshot {
@@ -20,6 +21,32 @@ export interface FoodSyncSnapshot {
   presetItems: MealPresetItem[]
   meals: LoggedMeal[]
   entries: LoggedFoodEntry[]
+}
+
+/** Keep a queued intent and its acknowledgement inside its captured account. */
+export function foodOperationBelongsToUser(
+  operation: { user_id: string },
+  userId: string,
+): boolean {
+  return operation.user_id === userId
+}
+
+/** Async UI work may finish after the user changes profiles. Only the account
+ * that started the mutation may update the currently visible food state. */
+export function foodMutationBelongsToActiveUser(
+  mutationUserId: string,
+  activeUserId: string | null,
+): boolean {
+  return mutationUserId === activeUserId
+}
+
+/** Remote hydration must use credentials owned by the same account whose
+ * private cache is about to be reconciled. */
+export function foodSessionBelongsToExpectedUser(
+  sessionUserId: string | null | undefined,
+  expectedUserId: string,
+): boolean {
+  return sessionUserId === expectedUserId
 }
 
 function values<T extends { id: string }>(rows: Map<string, T>): T[] {
@@ -38,7 +65,10 @@ export function replayFoodOutbox(
   const meals = new Map(snapshot.meals.map((row) => [row.id, row]))
   const entries = new Map(snapshot.entries.map((row) => [row.id, row]))
 
-  for (const operation of operations) {
+  const orderedOperations = [...operations].sort((left, right) =>
+    (left.created_at ?? '').localeCompare(right.created_at ?? ''),
+  )
+  for (const operation of orderedOperations) {
     if (operation.operation === 'save_food') {
       const food = operation.payload as FoodRecord
       if (food?.id) foods.set(food.id, food)

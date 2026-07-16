@@ -223,20 +223,31 @@ function Shell() {
   )
 }
 
+function PrivateStoreScope({ children }: { children: ReactNode }) {
+  const { data } = useStore()
+  const ownerKey = data.profile?.user_id ?? 'signed-out'
+  /* Food, photo and Orbit stores contain private owner-scoped state. Remount
+     the complete subtree at the account boundary so React can never render a
+     previous owner's rows while the next owner's IndexedDB hydration begins. */
+  return (
+    <FoodStoreProvider key={ownerKey}>
+      <ProgressPhotoStoreProvider>
+        <OrbitStoreProvider>{children}</OrbitStoreProvider>
+      </ProgressPhotoStoreProvider>
+    </FoodStoreProvider>
+  )
+}
+
 export default function App() {
   return (
     <LanguageProvider>
       <AppStoreProvider>
-        <FoodStoreProvider>
-          <ProgressPhotoStoreProvider>
-            <OrbitStoreProvider>
-              <HashRouter>
-                <AmbientBackground />
-                <Shell />
-              </HashRouter>
-            </OrbitStoreProvider>
-          </ProgressPhotoStoreProvider>
-        </FoodStoreProvider>
+        <PrivateStoreScope>
+          <HashRouter>
+            <AmbientBackground />
+            <Shell />
+          </HashRouter>
+        </PrivateStoreScope>
       </AppStoreProvider>
     </LanguageProvider>
   )

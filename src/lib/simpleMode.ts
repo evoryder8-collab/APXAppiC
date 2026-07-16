@@ -17,7 +17,7 @@ export interface SimpleMacroContributor {
 }
 
 export function uiModeFromSettings(settings: Settings | null): UiMode {
-  return settings?.addons.uiMode === 'simple' ? 'simple' : 'advanced'
+  return settings?.addons.uiMode === 'advanced' ? 'advanced' : 'simple'
 }
 
 export function settingsForUiMode(settings: Settings, uiMode: UiMode): Pick<Settings, 'addons'> {
@@ -104,6 +104,20 @@ export function toggleSimpleWaterTarget(waterLitres: number, targetLitres: numbe
    exactly the same condition. */
 export function canPasteSimpleDay(sourceDate: string | null, targetDate: string): boolean {
   return Boolean(sourceDate && /^\d{4}-\d{2}-\d{2}$/.test(sourceDate) && /^\d{4}-\d{2}-\d{2}$/.test(targetDate) && sourceDate !== targetDate)
+}
+
+/**
+ * Both calendar surfaces copy the same structured meal history. A shared,
+ * stable namespace keeps the operation idempotent when it is repeated from
+ * the other interface.
+ */
+export function dayMealCopyIdempotencyKey(
+  userId: string,
+  sourceDate: string,
+  targetDate: string,
+  sourceMealId: string,
+): string {
+  return `simple-day-copy:${userId}:${sourceDate}:${targetDate}:${sourceMealId}`
 }
 
 /* Food rows are snapshots, so repeated foods can be safely combined without
