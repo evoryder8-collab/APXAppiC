@@ -2,6 +2,7 @@ import type { RpgSnapshot } from './types'
 import type { IntroLanguage } from './introLanguage'
 
 export type ProgressPose = 'front' | 'side' | 'back'
+export type ProgressFramingMode = 'full' | 'torso' | 'free'
 export type PhotoSyncStatus = 'local' | 'queued' | 'syncing' | 'synced' | 'failed'
 
 export interface ProgressPhoto {
@@ -10,6 +11,7 @@ export interface ProgressPhoto {
   local_date: string
   captured_at: string
   pose: ProgressPose
+  framing_mode?: ProgressFramingMode
   storage_path: string
   thumbnail_path: string
   width: number
@@ -150,6 +152,30 @@ export function coverCrop(width: number, height: number, targetAspectRatio: numb
 export function comparisonAspectRatio(a: ProgressPhoto, b: ProgressPhoto): number {
   const ratios = [a.aspect_ratio, b.aspect_ratio].filter((value) => Number.isFinite(value) && value > 0)
   return ratios.length === 0 ? 2 / 3 : Math.min(...ratios)
+}
+
+export function progressFramingMode(photo: Pick<ProgressPhoto, 'framing_mode' | 'client_idempotency_key'>): ProgressFramingMode {
+  if (photo.framing_mode === 'torso' || photo.framing_mode === 'free') return photo.framing_mode
+  const encoded = typeof photo.client_idempotency_key === 'string'
+    ? photo.client_idempotency_key.match(/^framing:(full|torso|free):/i)?.[1]
+    : undefined
+  return encoded === 'torso' || encoded === 'free' ? encoded : 'full'
+}
+
+export function progressPhotoIdempotencyKey(mode: ProgressFramingMode, id = crypto.randomUUID()): string {
+  return `framing:${mode}:${id}`
+}
+
+/* Full-body and Free retain the camera preview crop used before framing modes
+   existed. Torso deliberately saves a wider 4:5 source for room around the
+   shoulders and arms in side-by-side comparisons. */
+export function progressCaptureAspectRatio(mode: ProgressFramingMode, previewAspectRatio: number): number {
+  return mode === 'torso' ? 4 / 5 : previewAspectRatio
+}
+
+export function isProgressCameraShutterKey(key: string, code = ''): boolean {
+  return ['AudioVolumeUp', 'AudioVolumeDown', 'VolumeUp', 'VolumeDown'].includes(key)
+    || ['AudioVolumeUp', 'AudioVolumeDown', 'VolumeUp', 'VolumeDown'].includes(code)
 }
 
 export function daysBetweenPhotos(a: ProgressPhoto, b: ProgressPhoto): number {

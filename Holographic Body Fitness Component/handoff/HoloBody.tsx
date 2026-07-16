@@ -17,7 +17,7 @@ import { UnrealBloomPass } from 'three/examples/jsm/postprocessing/UnrealBloomPa
 export const MUSCLE_GROUPS = [
   'chest', 'frontDelts', 'sideDelts', 'rearDelts', 'biceps', 'triceps', 'forearms',
   'upperBack', 'lats', 'lowerBack', 'abs', 'obliques', 'glutes', 'quads',
-  'hamstrings', 'calves', 'neckTraps',
+  'hamstrings', 'adductors', 'calves', 'neckTraps',
 ] as const;
 
 export type MuscleGroup = (typeof MUSCLE_GROUPS)[number];
@@ -272,6 +272,8 @@ function createHolo(container: HTMLElement, opts: HoloOptions): HoloApi {
       [tMid.x, tMid.y, tMid.z + 0.052], { quat: tq, scale: [1.05, 1, 0.75], wire: true });
     addPart(new THREE.CapsuleGeometry(0.058, 0.22, 6, 14), 'hamstrings',
       [tMid.x, tMid.y - 0.01, tMid.z - 0.052], { quat: tq, scale: [1.0, 1, 0.75], wire: true });
+    addPart(new THREE.CapsuleGeometry(0.043, 0.18, 6, 12), 'adductors',
+      [tMid.x - s * 0.046, tMid.y + 0.025, tMid.z + 0.005], { quat: tq, scale: [0.82, 1, 0.72], wire: true });
     addPart(sphere(0.055, 14), 'calves', [s * 0.135, 0.335, -0.045], { scale: [0.9, 2.1, 0.85] });
   }
   addPart(sphere(0.10, 18), 'upperBack', [0, 1.415, -0.072], { scale: [1.55, 0.95, 0.40], wire: true });

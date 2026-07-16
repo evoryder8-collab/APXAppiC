@@ -4,11 +4,11 @@ import { catalogExerciseByName } from '../../data/exerciseCatalog.ts'
 export type HoloMuscleGroup =
   | 'chest' | 'frontDelts' | 'sideDelts' | 'rearDelts' | 'biceps' | 'triceps'
   | 'forearms' | 'upperBack' | 'lats' | 'lowerBack' | 'abs' | 'obliques'
-  | 'glutes' | 'quads' | 'hamstrings' | 'calves' | 'neckTraps'
+  | 'glutes' | 'quads' | 'hamstrings' | 'adductors' | 'calves' | 'neckTraps'
 
 export const DAY_MUSCLES: Record<DayType, HoloMuscleGroup[]> = {
-  legs_a: ['glutes', 'hamstrings', 'calves', 'lowerBack', 'abs'],
-  legs_b: ['quads', 'glutes', 'hamstrings', 'calves', 'abs'],
+  legs_a: ['glutes', 'hamstrings', 'adductors', 'calves', 'lowerBack', 'abs'],
+  legs_b: ['quads', 'glutes', 'adductors', 'hamstrings', 'calves', 'abs'],
   push: ['chest', 'frontDelts', 'sideDelts', 'triceps'],
   pull: ['lats', 'upperBack', 'rearDelts', 'biceps', 'forearms', 'neckTraps'],
   upper: ['chest', 'frontDelts', 'sideDelts', 'rearDelts', 'lats', 'upperBack', 'biceps', 'triceps', 'forearms'],
@@ -31,6 +31,7 @@ const EXERCISE_MUSCLES: Array<[RegExp, HoloMuscleGroup[]]> = [
   [/pec deck|cable fly|dumbbell fly/i, ['chest', 'frontDelts']],
   [/leg press|hack squat|leg extension/i, ['quads', 'glutes']],
   [/hip abduction/i, ['glutes']],
+  [/hip adduction|adductor|adductori/i, ['adductors']],
   [/farmer carry|suitcase carry/i, ['forearms', 'neckTraps', 'abs', 'obliques']],
   [/kettlebell swing/i, ['glutes', 'hamstrings', 'lowerBack', 'abs', 'forearms']],
   [/burpee/i, ['chest', 'triceps', 'abs', 'glutes', 'quads', 'calves']],

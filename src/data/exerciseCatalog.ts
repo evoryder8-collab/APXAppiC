@@ -50,6 +50,12 @@ const rows: Row[] = [
   ['triceps-pushdown', 'Triceps Pushdown', 'machine', 'Rope cable', ['triceps'], 'push', 3, 12, 60],
   ['cable-curl', 'Cable Biceps Curl', 'machine', 'Cable stack', ['biceps', 'forearms'], 'pull', 3, 12, 60],
   ['standing-calf-machine', 'Standing Calf Machine', 'machine', 'Calf machine', ['calves'], 'legs_b', 4, 15, 60],
+  ['seated-calf-raise', 'Seated Calf Raise', 'machine', 'Seated calf machine', ['calves'], 'legs_b', 4, 15, 60],
+  ['calf-press-leg-press', 'Calf Press on Leg Press', 'machine', 'Leg press', ['calves'], 'legs_b', 4, 15, 60],
+  ['hip-adduction', 'Hip Adduction Machine', 'machine', 'Hip adduction machine', ['adductors'], 'legs_a', 3, 15, 60],
+  ['cable-hip-adduction', 'Cable Hip Adduction', 'machine', 'Cable stack and ankle strap', ['adductors'], 'legs_a', 3, 15, 45, 'reps', true],
+  ['ab-crunch-machine', 'Ab Crunch Machine', 'machine', 'Abdominal machine', ['abs'], 'upper', 3, 12, 60],
+  ['cable-crunch', 'Cable Crunch', 'machine', 'Rope cable', ['abs', 'obliques'], 'upper', 3, 12, 60],
   ['glute-kickback-machine', 'Glute Kickback Machine', 'machine', 'Glute machine', ['glutes', 'hamstrings'], 'legs_a', 3, 15, 60, 'reps', true],
   ['hip-abduction', 'Hip Abduction Machine', 'machine', 'Hip machine', ['glutes'], 'legs_a', 3, 15, 60],
   ['back-squat', 'Barbell Back Squat', 'weights', 'Barbell', ['quads', 'glutes', 'hamstrings', 'abs', 'lowerBack'], 'legs_b', 4, 8, 150],
@@ -77,6 +83,7 @@ const rows: Row[] = [
   ['skull-crusher', 'Dumbbell Skull Crusher', 'weights', 'Dumbbells and bench', ['triceps'], 'push', 3, 12, 60],
   ['farmer-carry', 'Farmer Carry', 'weights', 'Dumbbells or trap bar', ['forearms', 'neckTraps', 'abs', 'obliques'], 'upper', 4, 40, 60, 'seconds'],
   ['kettlebell-swing', 'Kettlebell Swing', 'weights', 'Kettlebell', ['glutes', 'hamstrings', 'lowerBack', 'abs', 'forearms'], 't25', 4, 15, 60],
+  ['elevated-calf-raise', 'Elevated Calf Raise', 'weights', 'Step and dumbbells', ['calves'], 'legs_b', 4, 15, 60],
   ['push-up', 'Push-Up', 'calisthenics', 'Bodyweight', ['chest', 'frontDelts', 'triceps', 'abs'], 'push', 4, 15, 60],
   ['diamond-push-up', 'Diamond Push-Up', 'calisthenics', 'Bodyweight', ['chest', 'frontDelts', 'triceps'], 'push', 3, 12, 60],
   ['decline-push-up', 'Decline Push-Up', 'calisthenics', 'Bench', ['chest', 'frontDelts', 'triceps'], 'push', 3, 12, 75],
@@ -91,6 +98,10 @@ const rows: Row[] = [
   ['hanging-leg-raise', 'Hanging Leg Raise', 'calisthenics', 'Pull-up bar', ['abs', 'obliques', 'forearms'], 'upper', 3, 12, 60],
   ['hollow-hold', 'Hollow Body Hold', 'calisthenics', 'Floor', ['abs', 'obliques'], 'upper', 3, 30, 45, 'seconds'],
   ['side-plank', 'Side Plank', 'calisthenics', 'Floor', ['obliques', 'abs', 'glutes'], 'upper', 3, 35, 30, 'seconds', true],
+  ['decline-sit-up', 'Decline Sit-Up', 'calisthenics', 'Decline bench', ['abs', 'obliques'], 'upper', 3, 12, 60],
+  ['reverse-crunch', 'Reverse Crunch', 'calisthenics', 'Floor or bench', ['abs'], 'upper', 3, 15, 45],
+  ['ab-wheel-rollout', 'Ab-Wheel Rollout', 'calisthenics', 'Ab wheel', ['abs', 'obliques', 'lowerBack'], 'upper', 3, 10, 60],
+  ['copenhagen-plank', 'Copenhagen Plank', 'calisthenics', 'Bench', ['adductors', 'abs', 'obliques'], 'legs_a', 3, 30, 45, 'seconds', true],
   ['muscle-up', 'Bar Muscle-Up', 'street', 'High bar', ['lats', 'upperBack', 'biceps', 'forearms', 'chest', 'triceps'], 'upper', 5, 3, 150],
   ['front-lever-row', 'Front Lever Row', 'street', 'High bar or rings', ['lats', 'upperBack', 'rearDelts', 'biceps', 'abs'], 'pull', 4, 6, 120],
   ['human-flag', 'Human Flag Progression', 'street', 'Vertical bars', ['lats', 'sideDelts', 'obliques', 'abs', 'forearms'], 'upper', 4, 15, 90, 'seconds', true],
@@ -147,7 +158,13 @@ const LOCALIZED_EXERCISES: Record<string, ExerciseLocalization> = {
   'face-pull-cable': { ro: 'Trageri la față la cablu', th: 'เฟซพูลด้วยเคเบิล', roAliases: ['trapez cablu', 'umeri posteriori'] },
   'triceps-pushdown': { ro: 'Extensii triceps la scripete', th: 'กดไตรเซ็ปส์ด้วยเคเบิล' },
   'cable-curl': { ro: 'Flexii biceps la cablu', th: 'เคเบิลเคิร์ล' },
-  'standing-calf-machine': { ro: 'Ridicări pe vârfuri la aparat', th: 'เครื่องยืนเขย่งน่อง' },
+  'standing-calf-machine': { ro: 'Gambe la aparat din picioare', th: 'เครื่องยืนเขย่งน่อง', enAliases: ['calves', 'calf raise'], roAliases: ['gambe', 'ridicari pe varfuri', 'gamba'] },
+  'seated-calf-raise': { ro: 'Gambe din șezut la aparat', th: 'นั่งเขย่งน่องด้วยเครื่อง', enAliases: ['calves', 'seated calves'], roAliases: ['gambe', 'gambe sezut', 'gambe la aparat'] },
+  'calf-press-leg-press': { ro: 'Gambe la presă', th: 'เขย่งน่องบนเลกเพรส', enAliases: ['calves', 'leg press calf raise'], roAliases: ['gambe', 'gambe presa', 'gambe la presa'] },
+  'hip-adduction': { ro: 'Aductori la aparat', th: 'เครื่องหุบสะโพก', enAliases: ['adductors', 'inner thigh'], roAliases: ['aductori', 'adductori', 'interior coapse'] },
+  'cable-hip-adduction': { ro: 'Aductori la cablu', th: 'หุบขาด้วยเคเบิล', enAliases: ['adductors', 'inner thigh cable'], roAliases: ['aductori', 'adductori', 'aductori cablu'] },
+  'ab-crunch-machine': { ro: 'Abdomene la aparat', th: 'ครันช์หน้าท้องด้วยเครื่อง', enAliases: ['abs', 'abdominals'], roAliases: ['abdomene', 'abdomen', 'abdominali'] },
+  'cable-crunch': { ro: 'Abdomene la cablu', th: 'ครันช์หน้าท้องด้วยเคเบิล', enAliases: ['abs', 'abdominals'], roAliases: ['abdomene', 'abdomen', 'abdominali', 'abdomene cablu'] },
   'glute-kickback-machine': { ro: 'Extensii pentru fesieri la aparat', th: 'เครื่องเตะขาไปด้านหลัง' },
   'hip-abduction': { ro: 'Abducții de șold la aparat', th: 'เครื่องกางสะโพก' },
   'back-squat': { ro: 'Genuflexiuni cu bara la spate', th: 'แบ็กสควอตด้วยบาร์เบล' },
@@ -175,6 +192,7 @@ const LOCALIZED_EXERCISES: Record<string, ExerciseLocalization> = {
   'skull-crusher': { ro: 'Extensii triceps culcat cu gantere', th: 'ดัมเบลสกัลครัชเชอร์' },
   'farmer-carry': { ro: 'Mersul fermierului', th: 'ฟาร์เมอร์แคร์รี', roAliases: ['trapez', 'mers fermier'] },
   'kettlebell-swing': { ro: 'Balans cu kettlebell', th: 'เคตเทิลเบลสวิง' },
+  'elevated-calf-raise': { ro: 'Gambe cu elevație', th: 'ยืนเขย่งน่องบนแท่น', enAliases: ['calves', 'calf raise on step'], roAliases: ['gambe', 'gambe elevatie', 'ridicari pe varfuri cu elevatie'] },
   'push-up': { ro: 'Flotări', th: 'วิดพื้น' },
   'diamond-push-up': { ro: 'Flotări diamant', th: 'วิดพื้นไดมอนด์' },
   'decline-push-up': { ro: 'Flotări declinate', th: 'วิดพื้นยกเท้า' },
@@ -189,6 +207,10 @@ const LOCALIZED_EXERCISES: Record<string, ExerciseLocalization> = {
   'hanging-leg-raise': { ro: 'Ridicări de picioare la bară', th: 'ยกขาห้อยบาร์' },
   'hollow-hold': { ro: 'Menținere hollow body', th: 'ฮอลโลว์บอดี้โฮลด์' },
   'side-plank': { ro: 'Planșă laterală', th: 'แพลงก์ด้านข้าง' },
+  'decline-sit-up': { ro: 'Abdomene pe bancă declinată', th: 'ซิตอัพบนม้านั่งลาด', enAliases: ['abs', 'abdominals'], roAliases: ['abdomene', 'abdomen', 'abdomene banca'] },
+  'reverse-crunch': { ro: 'Abdomene inverse', th: 'รีเวิร์สครันช์', enAliases: ['abs', 'abdominals'], roAliases: ['abdomene', 'abdomen', 'abdomene inverse'] },
+  'ab-wheel-rollout': { ro: 'Abdomene cu roata abdominală', th: 'ลูกกลิ้งหน้าท้อง', enAliases: ['abs', 'abdominals'], roAliases: ['abdomene', 'abdomen', 'roata abdominala'] },
+  'copenhagen-plank': { ro: 'Planșă Copenhagen pentru aductori', th: 'โคเปนเฮเกนแพลงก์', enAliases: ['adductors', 'inner thigh'], roAliases: ['aductori', 'adductori', 'plansa aductori'] },
   'muscle-up': { ro: 'Muscle-up la bară', th: 'บาร์มัสเซิลอัพ' },
   'front-lever-row': { ro: 'Ramat în front lever', th: 'ฟรอนต์ลีเวอร์โรว์', roAliases: ['ramat front lever'] },
   'human-flag': { ro: 'Progresie steagul uman', th: 'ฝึกฮิวแมนแฟลก' },
@@ -251,6 +273,69 @@ function searchable(value: string): string {
     .trim()
 }
 
+const MUSCLE_SEARCH_TERMS: Record<IntroLanguage, Partial<Record<HoloMuscleGroup, string[]>>> = {
+  en: {
+    chest: ['chest', 'pecs'], frontDelts: ['shoulders', 'front delts'], sideDelts: ['shoulders', 'side delts'], rearDelts: ['shoulders', 'rear delts'],
+    biceps: ['biceps'], triceps: ['triceps'], forearms: ['forearms'], upperBack: ['upper back'], lats: ['back', 'lats'], lowerBack: ['lower back'],
+    abs: ['abs', 'abdominals', 'core'], obliques: ['obliques', 'core'], glutes: ['glutes'], quads: ['quads'], hamstrings: ['hamstrings'],
+    adductors: ['adductors', 'inner thigh'], calves: ['calves', 'calf'], neckTraps: ['traps', 'trapezius'],
+  },
+  ro: {
+    chest: ['piept', 'pectorali'], frontDelts: ['umeri', 'deltoid anterior'], sideDelts: ['umeri', 'deltoid lateral'], rearDelts: ['umeri', 'deltoid posterior'],
+    biceps: ['biceps'], triceps: ['triceps'], forearms: ['antebrate'], upperBack: ['spate superior'], lats: ['spate', 'dorsali'], lowerBack: ['lombari', 'spate inferior'],
+    abs: ['abdomene', 'abdomen', 'abdominali'], obliques: ['oblici', 'abdomen'], glutes: ['fesieri'], quads: ['cvadricepsi', 'coapse'], hamstrings: ['femurali', 'coapse'],
+    adductors: ['aductori', 'adductori', 'interior coapse'], calves: ['gambe', 'gamba'], neckTraps: ['trapez'],
+  },
+  th: {
+    chest: ['อก', 'หน้าอก'], frontDelts: ['ไหล่'], sideDelts: ['ไหล่'], rearDelts: ['หัวไหล่หลัง'], biceps: ['ไบเซปส์'], triceps: ['ไตรเซปส์'],
+    forearms: ['ปลายแขน'], upperBack: ['หลังส่วนบน'], lats: ['หลัง', 'ปีก'], lowerBack: ['หลังส่วนล่าง'], abs: ['หน้าท้อง', 'กล้ามท้อง'], obliques: ['หน้าท้องด้านข้าง'],
+    glutes: ['ก้น', 'สะโพก'], quads: ['ต้นขาหน้า'], hamstrings: ['ต้นขาหลัง'], adductors: ['ต้นขาด้านใน', 'กล้ามเนื้อหุบขา'], calves: ['น่อง'], neckTraps: ['บ่า', 'ทราพีเซียส'],
+  },
+}
+
+function editDistance(left: string, right: string): number {
+  if (left === right) return 0
+  let beforePrevious: number[] | null = null
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index)
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex++) {
+    const current = [leftIndex]
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex++) {
+      current[rightIndex] = Math.min(
+        current[rightIndex - 1] + 1,
+        previous[rightIndex] + 1,
+        previous[rightIndex - 1] + Number(left[leftIndex - 1] !== right[rightIndex - 1]),
+      )
+      if (
+        beforePrevious &&
+        leftIndex > 1 &&
+        rightIndex > 1 &&
+        left[leftIndex - 1] === right[rightIndex - 2] &&
+        left[leftIndex - 2] === right[rightIndex - 1]
+      ) {
+        current[rightIndex] = Math.min(current[rightIndex], beforePrevious[rightIndex - 2] + 1)
+      }
+    }
+    beforePrevious = previous
+    previous = current
+  }
+  return previous[right.length]
+}
+
+function termScore(term: string, tokens: string[], joined: string): number | null {
+  let best: number | null = null
+  for (const token of tokens) {
+    if (token === term) return 90
+    if (token.startsWith(term)) best = Math.max(best ?? 0, 70)
+    else if (token.includes(term)) best = Math.max(best ?? 0, 55)
+    if (term.length < 4) continue
+    const allowed = term.length >= 7 ? 2 : 1
+    if (Math.abs(token.length - term.length) > allowed) continue
+    const distance = editDistance(term, token)
+    if (distance <= allowed) best = Math.max(best ?? 0, 38 - distance * 8)
+  }
+  return best ?? (joined.includes(term) ? 45 : null)
+}
+
 export function catalogExerciseByName(name: string): ExerciseCatalogItem | null {
   const normalized = searchable(name.split(' · ')[0])
   return EXERCISE_CATALOG.find((item) =>
@@ -272,13 +357,23 @@ export function searchExerciseCatalog(
       const nativeAliases = item.aliases[language].map(searchable)
       const allNames = Object.values(item.names).map(searchable)
       const allAliases = Object.values(item.aliases).flat().map(searchable)
-      const haystack = searchable(`${allNames.join(' ')} ${allAliases.join(' ')} ${item.equipment} ${item.muscles.join(' ')}`)
-      if (!terms.every((term) => haystack.includes(term))) return null
+      const muscleTerms = item.muscles.flatMap((muscle) => MUSCLE_SEARCH_TERMS[language][muscle] ?? []).map(searchable)
+      const haystack = searchable(`${allNames.join(' ')} ${allAliases.join(' ')} ${muscleTerms.join(' ')} ${item.equipment} ${item.muscles.join(' ')}`)
+      const tokens = haystack.split(/\s+/).filter(Boolean)
+      const scores = terms.map((term) => termScore(term, tokens, haystack))
+      if (scores.some((score) => score == null)) return null
+      const directHaystack = searchable(`${nativeName} ${nativeAliases.join(' ')}`)
+      const directTokens = directHaystack.split(/\s+/).filter(Boolean)
+      const directScores = terms.map((term) => termScore(term, directTokens, directHaystack))
+      const directMatchBonus = directScores.every((score) => score != null)
+        ? 120 + directScores.reduce<number>((sum, score) => sum + (score ?? 0), 0)
+        : 0
       const joined = terms.join(' ')
       const nativeStart = terms.length > 0 && nativeName.startsWith(joined)
       const aliasStart = nativeAliases.some((alias) => alias.startsWith(joined))
       const nativeHits = terms.filter((term) => nativeName.includes(term)).length
-      return { item, score: (nativeStart ? 200 : 0) + (aliasStart ? 150 : 0) + nativeHits * 20 - nativeName.length / 100 }
+      const fuzzyScore = scores.reduce<number>((sum, score) => sum + (score ?? 0), 0)
+      return { item, score: directMatchBonus + (nativeStart ? 200 : 0) + (aliasStart ? 150 : 0) + nativeHits * 20 + fuzzyScore - nativeName.length / 100 }
     })
     .filter((value): value is { item: ExerciseCatalogItem; score: number } => value != null)
     .sort((a, b) => b.score - a.score || a.item.names[language].localeCompare(b.item.names[language], language))

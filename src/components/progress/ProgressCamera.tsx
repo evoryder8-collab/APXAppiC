@@ -1,9 +1,12 @@
 import { useCallback, useEffect, useRef, useState } from 'react'
 import {
   coverCrop,
+  isProgressCameraShutterKey,
   processProgressPhoto,
+  progressCaptureAspectRatio,
   progressPhotoSaveError,
   type ProcessedProgressPhoto,
+  type ProgressFramingMode,
   type ProgressPose,
 } from '../../lib/progressPhoto'
 import { useLanguage } from '../../lib/i18n'
@@ -12,13 +15,15 @@ type CameraFacing = 'user' | 'environment'
 
 export function ProgressCamera({
   initialPose,
+  initialFramingMode,
   referenceUrl,
   onSave,
   onClose,
 }: {
   initialPose: ProgressPose
+  initialFramingMode: ProgressFramingMode
   referenceUrl?: string | null
-  onSave: (blob: Blob, pose: ProgressPose, processed?: ProcessedProgressPhoto) => Promise<void>
+  onSave: (blob: Blob, pose: ProgressPose, framingMode: ProgressFramingMode, processed?: ProcessedProgressPhoto) => Promise<void>
   onClose: () => void
 }) {
   const { language } = useLanguage()
@@ -30,6 +35,7 @@ export function ProgressCamera({
   const processedCaptureRef = useRef<ProcessedProgressPhoto | null>(null)
   const libraryCaptureRef = useRef(false)
   const [pose, setPose] = useState<ProgressPose>(initialPose)
+  const [framingMode, setFramingMode] = useState<ProgressFramingMode>(initialFramingMode)
   const [facing, setFacing] = useState<CameraFacing>('user')
   const [restartKey, setRestartKey] = useState(0)
   const [ready, setReady] = useState(false)
@@ -42,9 +48,14 @@ export function ProgressCamera({
   const [saving, setSaving] = useState(false)
   const [importing, setImporting] = useState(false)
   const poseLabel = (value: ProgressPose): string => ({
-    en: { front: 'Front', side: 'Profile', back: 'Back' },
+    en: { front: 'Front', side: 'Side', back: 'Back' },
     ro: { front: 'Față', side: 'Profil', back: 'Spate' },
     th: { front: 'ด้านหน้า', side: 'ด้านข้าง', back: 'ด้านหลัง' },
+  })[language][value]
+  const framingLabel = (value: ProgressFramingMode): string => ({
+    en: { full: 'Full body', torso: 'Torso', free: 'Free' },
+    ro: { full: 'Corp întreg', torso: 'Trunchi', free: 'Liber' },
+    th: { full: 'เต็มตัว', torso: 'ช่วงลำตัว', free: 'อิสระ' },
   })[language][value]
 
   const stop = useCallback(() => {
@@ -119,10 +130,11 @@ export function ProgressCamera({
     const previewRatio = video.clientWidth > 0 && video.clientHeight > 0
       ? video.clientWidth / video.clientHeight
       : 2 / 3
-    const crop = coverCrop(video.videoWidth, video.videoHeight, previewRatio)
+    const captureRatio = progressCaptureAspectRatio(framingMode, previewRatio)
+    const crop = coverCrop(video.videoWidth, video.videoHeight, captureRatio)
     const canvas = document.createElement('canvas')
     canvas.width = Math.max(1, Math.min(1440, Math.round(crop.width)))
-    canvas.height = Math.max(1, Math.round(canvas.width / previewRatio))
+    canvas.height = Math.max(1, Math.round(canvas.width / captureRatio))
     const context = canvas.getContext('2d', { alpha: false })
     if (!context) return
     if (facing === 'user') {
@@ -139,9 +151,9 @@ export function ProgressCamera({
     setCaptured(blob)
     setPreview(url)
     navigator.vibrate?.(40)
-  }, [facing, preview])
+  }, [facing, framingMode, preview])
 
-  const beginCountdown = () => {
+  const beginCountdown = useCallback(() => {
     if (countdown != null || !ready || importing) return
     setCountdown(timer)
     let current = timer
@@ -154,7 +166,17 @@ export function ProgressCamera({
         void captureFrame()
       } else setCountdown(current)
     }, 1000)
-  }
+  }, [captureFrame, countdown, importing, ready, timer])
+
+  useEffect(() => {
+    const volumeShutter = (event: KeyboardEvent) => {
+      if (preview || !isProgressCameraShutterKey(event.key, event.code)) return
+      event.preventDefault()
+      beginCountdown()
+    }
+    window.addEventListener('keydown', volumeShutter)
+    return () => window.removeEventListener('keydown', volumeShutter)
+  }, [beginCountdown, preview])
 
   const acceptLibrary = async (file: File | undefined) => {
     if (!file) return
@@ -207,7 +229,7 @@ export function ProgressCamera({
     setSaving(true)
     setError(null)
     try {
-      await onSave(captured, pose, processedCaptureRef.current ?? undefined)
+      await onSave(captured, pose, framingMode, processedCaptureRef.current ?? undefined)
     } catch (cause) {
       setError(cause instanceof Error ? cause.message : 'The photo could not be saved. It remains on this review screen so you can retry.')
     } finally {
@@ -227,9 +249,9 @@ export function ProgressCamera({
       {preview && <img src={preview} alt="Captured progress review" className="absolute inset-0 h-full w-full object-cover" />}
       {!preview && referenceUrl && ghostOpacity > 0 && <img src={referenceUrl} alt="Previous pose alignment guide" className="pointer-events-none absolute inset-0 h-full w-full object-cover" style={{ opacity: ghostOpacity }} />}
 
-      {!preview && (
-        <div className="pointer-events-none absolute inset-x-0 top-[calc(max(0.75rem,env(safe-area-inset-top))+4.25rem)] bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+9.25rem)] flex items-center justify-center" aria-hidden>
-          <svg viewBox="0 0 240 560" fill="none" className="h-full max-h-[68dvh] w-auto max-w-[70vw] overflow-visible drop-shadow-[0_0_16px_rgba(0,0,0,0.45)]">
+      {!preview && framingMode === 'full' && (
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(max(0.75rem,env(safe-area-inset-top))+6.75rem)] bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+9.25rem)] flex items-center justify-center" aria-hidden>
+          <svg viewBox="0 0 240 560" fill="none" className="h-full max-h-[64dvh] w-auto max-w-[70vw] overflow-visible drop-shadow-[0_0_16px_rgba(0,0,0,0.45)]">
             <circle cx="120" cy="48" r="28" stroke="rgba(255,255,255,.9)" strokeWidth="2" />
             <path d="M91 92c-27 8-44 26-47 57l-8 109M149 92c27 8 44 26 47 57l8 109M91 92c5 38 2 94-11 151l-10 71M149 92c-5 38-2 94 11 151l10 71M80 243c10 10 25 15 40 15s30-5 40-15M80 314l-16 187M160 314l16 187M64 501l-18 24M176 501l18 24" stroke="rgba(255,255,255,.88)" strokeWidth="2" strokeLinecap="round" strokeLinejoin="round" />
             <path d="M120 84v423" stroke="rgba(196,181,253,.42)" strokeWidth="1" strokeDasharray="5 8" />
@@ -239,12 +261,31 @@ export function ProgressCamera({
         </div>
       )}
 
+      {!preview && framingMode === 'torso' && (
+        <div className="pointer-events-none absolute inset-x-0 top-[calc(max(0.75rem,env(safe-area-inset-top))+8rem)] bottom-[calc(max(0.75rem,env(safe-area-inset-bottom))+10rem)] flex items-center justify-center" aria-hidden>
+          <svg viewBox="0 0 340 430" fill="none" className="h-auto max-h-[56dvh] w-[82vw] max-w-[390px] overflow-visible drop-shadow-[0_0_18px_rgba(0,0,0,0.5)]">
+            <circle cx="170" cy="58" r="42" stroke="rgba(255,255,255,.92)" strokeWidth="2.5" />
+            <path d="M122 126c-45 9-76 34-89 75L18 292M218 126c45 9 76 34 89 75l15 91M122 126c7 52 2 116-18 188M218 126c-7 52-2 116 18 188M104 314c21 14 43 20 66 20s45-6 66-20" stroke="rgba(255,255,255,.9)" strokeWidth="2.5" strokeLinecap="round" strokeLinejoin="round" />
+            <path d="M170 102v244" stroke="rgba(196,181,253,.48)" strokeWidth="1.5" strokeDasharray="6 9" />
+            <rect x="20" y="12" width="300" height="370" rx="54" stroke="rgba(253,230,138,.78)" strokeWidth="1.5" strokeDasharray="8 10" />
+          </svg>
+          <p className="absolute bottom-0 left-1/2 -translate-x-1/2 whitespace-nowrap rounded-full bg-black/35 px-3 py-1.5 font-mono text-[8px] font-bold tracking-[0.12em] text-amber-100 uppercase backdrop-blur">Head, shoulders and waist inside the guide</p>
+        </div>
+      )}
+
       <div className="absolute inset-x-0 top-0 flex items-center justify-between bg-gradient-to-b from-black/70 to-transparent px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-12">
         <button type="button" onClick={onClose} className="rounded-full bg-black/40 px-4 py-2 text-sm font-bold backdrop-blur">Close</button>
         <div className="flex rounded-full bg-black/40 p-1 backdrop-blur">
           {(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`rounded-full px-3 py-1.5 text-[10px] font-bold uppercase ${pose === value ? 'bg-white text-black' : 'text-white/70'}`}>{poseLabel(value)}</button>)}
         </div>
       </div>
+      {!preview && (
+        <div className="absolute inset-x-0 top-[calc(4.25rem+env(safe-area-inset-top))] flex justify-center px-4">
+          <div className="flex rounded-full bg-black/45 p-1 backdrop-blur-xl" aria-label="Progress photo framing">
+            {(['full', 'torso', 'free'] as const).map((value) => <button key={value} type="button" onClick={() => setFramingMode(value)} aria-pressed={framingMode === value} className={`rounded-full px-3 py-1.5 text-[9px] font-bold uppercase ${framingMode === value ? 'bg-violet-200 text-[#11121a]' : 'text-white/70'}`}>{framingLabel(value)}</button>)}
+          </div>
+        </div>
+      )}
 
       {!preview && !ready && !error && <div className="pointer-events-none absolute inset-0 grid place-items-center bg-black/30"><span className="rounded-full bg-black/45 px-4 py-2 text-xs font-bold backdrop-blur">Starting camera…</span></div>}
       {countdown != null && <div className="absolute inset-0 grid place-items-center bg-black/15 font-mono text-9xl font-bold drop-shadow-2xl">{countdown}</div>}

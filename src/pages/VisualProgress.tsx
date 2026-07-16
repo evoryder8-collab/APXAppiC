@@ -1,7 +1,14 @@
 import { lazy, Suspense, useEffect, useMemo, useState } from 'react'
 import { useLocation } from 'react-router-dom'
 import { ACCENTS } from '../lib/theme'
-import { formatProgressPhotoMoment, type ProcessedProgressPhoto, type ProgressPhoto, type ProgressPose } from '../lib/progressPhoto'
+import {
+  formatProgressPhotoMoment,
+  progressFramingMode,
+  type ProcessedProgressPhoto,
+  type ProgressFramingMode,
+  type ProgressPhoto,
+  type ProgressPose,
+} from '../lib/progressPhoto'
 import { parseDecimalInput } from '../lib/food'
 import { useProgressPhotoStore } from '../store/ProgressPhotoStore'
 import { useStore } from '../store/AppStore'
@@ -33,6 +40,7 @@ export function VisualProgress() {
   const [guide, setGuide] = useState(false)
   const [camera, setCamera] = useState(false)
   const [pose, setPose] = useState<ProgressPose>('front')
+  const [framingMode, setFramingMode] = useState<ProgressFramingMode>('full')
   const [weight, setWeight] = useState(data.profile?.weight_kg ? String(data.profile.weight_kg) : '')
   const [note, setNote] = useState('')
   const [selected, setSelected] = useState<ProgressPhoto | null>(null)
@@ -40,13 +48,17 @@ export function VisualProgress() {
   const [compareIds, setCompareIds] = useState<string[]>([])
   const [compareOpen, setCompareOpen] = useState(false)
   const [deleteConfirm, setDeleteConfirm] = useState<string | null>(null)
+  const [deleteSelectionConfirm, setDeleteSelectionConfirm] = useState(false)
   const poseLabel = (value: ProgressPose): string => ({
     en: { front: 'Front', side: 'Side', back: 'Back' },
     ro: { front: 'Față', side: 'Profil', back: 'Spate' },
     th: { front: 'ด้านหน้า', side: 'ด้านข้าง', back: 'ด้านหลัง' },
   })[language][value]
 
-  const reference = useMemo(() => store.photos.find((photo) => photo.pose === pose) ?? store.photos[0] ?? null, [pose, store.photos])
+  const reference = useMemo(() => store.photos.find((photo) => photo.pose === pose && progressFramingMode(photo) === framingMode)
+    ?? store.photos.find((photo) => photo.pose === pose)
+    ?? store.photos[0]
+    ?? null, [framingMode, pose, store.photos])
   const comparisonPhotos = compareIds
     .map((id) => store.photos.find((photo) => photo.id === id))
     .filter((photo): photo is ProgressPhoto => photo != null)
@@ -57,7 +69,7 @@ export function VisualProgress() {
   useEffect(() => { if (reference && !referenceUrl) void store.ensurePhotoUrl(reference) }, [reference, referenceUrl, store])
 
   useEffect(() => {
-    setCompareIds((current) => current.filter((id) => store.photos.some((photo) => photo.id === id)).slice(0, 2))
+    setCompareIds((current) => current.filter((id) => store.photos.some((photo) => photo.id === id)))
   }, [store.photos])
 
   const workoutCount = useMemo(() => {
@@ -75,7 +87,7 @@ export function VisualProgress() {
   const toggleComparePhoto = (photoId: string) => {
     setCompareIds((current) => current.includes(photoId)
       ? current.filter((id) => id !== photoId)
-      : current.length < 2 ? [...current, photoId] : current)
+      : [...current, photoId])
   }
   const cancelCompareSelection = () => {
     setSelecting(false)
@@ -85,11 +97,19 @@ export function VisualProgress() {
     if (comparisonPhotos.length !== 2) return
     setCompareOpen(true)
   }
-  const saveCapture = async (blob: Blob, capturedPose: ProgressPose, processed?: ProcessedProgressPhoto) => {
+  const deleteSelectedPhotos = async () => {
+    const ids = [...compareIds]
+    await Promise.all(ids.map((id) => store.deletePhoto(id)))
+    setCompareIds([])
+    setDeleteSelectionConfirm(false)
+    setSelecting(false)
+  }
+  const saveCapture = async (blob: Blob, capturedPose: ProgressPose, capturedFramingMode: ProgressFramingMode, processed?: ProcessedProgressPhoto) => {
     await store.savePhoto({
       raw: blob,
       processed,
       pose: capturedPose,
+      framingMode: capturedFramingMode,
       weightKg: parseDecimalInput(weight),
       note,
       // The alignment guide can remain local, but server metadata may only
@@ -112,7 +132,6 @@ export function VisualProgress() {
             <div>
               <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-violet-700 uppercase">Evidence, not judgement</p>
               <h2 className="mt-2 font-display text-2xl font-bold text-ink">Make subtle progress visible.</h2>
-              <p className="mt-2 max-w-xl text-sm leading-relaxed font-medium text-ink-soft">APEX guides pose, distance and framing so comparisons become meaningful. Photos are re-encoded on your device to strip EXIF and GPS data, then stored in your private Supabase folder.</p>
               <div className="mt-4 flex flex-wrap gap-2 text-[10px] font-bold text-ink-soft"><span className="rounded-full bg-white/70 px-3 py-1.5">🔒 Per-user storage</span><span className="rounded-full bg-white/70 px-3 py-1.5">⌖ GPS stripped</span><span className="rounded-full bg-white/70 px-3 py-1.5">↔ Pose matching</span></div>
             </div>
             <GradientButton accent={violet} breathe onClick={begin} className="sm:min-w-44">Take progress photo</GradientButton>
@@ -130,16 +149,19 @@ export function VisualProgress() {
             <div>
               <div className="mb-3 flex items-end justify-between gap-3">
                 <div><h2 className="font-display text-lg font-bold text-ink">Private timeline</h2><p className="text-xs font-medium text-ink-soft">{store.photos.length} photo{store.photos.length === 1 ? '' : 's'} · newest first</p></div>
-                {store.photos.length > 1 && (
+                {store.photos.length > 0 && (
                   <button type="button" onClick={() => selecting ? cancelCompareSelection() : setSelecting(true)} className={`shrink-0 rounded-full px-3 py-2 text-[10px] font-bold ${selecting ? 'bg-ink/8 text-ink-soft' : 'bg-violet-500 text-white shadow-sm'}`}>
-                    {selecting ? 'Cancel' : 'Select 2 · Compare'}
+                    {selecting ? t('Cancel') : t('Select photos')}
                   </button>
                 )}
               </div>
               {selecting && (
                 <GlassCard accent={violet} className="mb-3 flex items-center justify-between gap-3 p-3">
-                  <div><p className="text-xs font-bold text-ink">Choose any two photos</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{compareIds.length}/2 selected · matching poses work best</p></div>
-                  <button type="button" disabled={comparisonPhotos.length !== 2} onClick={openComparison} className="rounded-xl bg-violet-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm disabled:opacity-35">Compare</button>
+                  <div className="min-w-0 flex-1"><p className="text-xs font-bold text-ink">{t('Choose photos')}</p><p className="mt-0.5 truncate text-[10px] font-medium text-ink-soft">{compareIds.length} {t('selected · choose exactly 2 to compare')}</p></div>
+                  <div className="flex shrink-0 items-center gap-2">
+                    {compareIds.length > 0 && <button type="button" onClick={() => setDeleteSelectionConfirm(true)} className="rounded-xl border border-rose-200 bg-rose-50/70 px-3 py-2 text-[10px] font-bold text-rose-600">{t('Delete')}</button>}
+                    <button type="button" disabled={comparisonPhotos.length !== 2 || compareIds.length !== 2} onClick={openComparison} className="rounded-xl bg-violet-500 px-4 py-2.5 text-xs font-bold text-white shadow-sm disabled:opacity-35">{t('Compare')}</button>
+                  </div>
                 </GlassCard>
               )}
               <div className="grid grid-cols-2 gap-3 sm:grid-cols-3 md:grid-cols-4">
@@ -171,7 +193,6 @@ export function VisualProgress() {
           <GlassCard accent={violet} className="flex min-h-[78dvh] max-h-[94dvh] w-full max-w-lg flex-col overflow-y-auto p-5 sm:min-h-0 sm:p-6" style={{ background: 'linear-gradient(155deg, rgba(253,253,255,.985), rgba(246,245,252,.97))', WebkitBackdropFilter: 'blur(30px) saturate(120%)', backdropFilter: 'blur(30px) saturate(120%)' }}>
             <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-violet-700 uppercase">{t('Before the camera opens')}</p>
             <h2 className="mt-2 font-display text-2xl font-bold text-ink">{t('Build a repeatable image')}</h2>
-            <p className="mt-2 text-xs leading-relaxed font-medium text-ink-soft">{t('Four calm checks make every future comparison more meaningful.')}</p>
             <ol className="mt-6 space-y-4 text-sm font-semibold text-ink-soft">
               {[
                 'Same room and similar light',
@@ -186,6 +207,9 @@ export function VisualProgress() {
               ))}
             </ol>
             <div className="mt-6 flex gap-2">{(['front', 'side', 'back'] as const).map((value) => <button key={value} type="button" onClick={() => setPose(value)} className={`flex-1 rounded-xl px-3 py-2.5 text-xs font-bold uppercase ${pose === value ? 'bg-violet-500 text-white' : 'bg-white/70 text-ink-soft'}`}>{poseLabel(value)}</button>)}</div>
+            <div className="mt-3 grid grid-cols-3 gap-2" aria-label={t('Photo framing')}>
+              {(['full', 'torso', 'free'] as const).map((value) => <button key={value} type="button" onClick={() => setFramingMode(value)} aria-pressed={framingMode === value} className={`rounded-xl px-2 py-2.5 text-[10px] font-bold uppercase ${framingMode === value ? 'bg-ink text-white' : 'bg-white/70 text-ink-soft'}`}>{t(value === 'full' ? 'Full body' : value === 'torso' ? 'Torso only' : 'Free')}</button>)}
+            </div>
             <div className="mt-3 grid gap-2 sm:grid-cols-2"><input inputMode="decimal" value={weight} onChange={(event) => setWeight(event.target.value)} placeholder={t('Weight kg (optional)')} className="rounded-xl bg-white/70 px-3 py-2.5 text-sm outline-none" /><input value={note} onChange={(event) => setNote(event.target.value)} placeholder={t('Short note (optional)')} className="rounded-xl bg-white/70 px-3 py-2.5 text-sm outline-none" /></div>
             <p className="mt-4 text-[10px] leading-relaxed font-medium text-ink-faint">{t('Camera access begins only after you confirm below. Nothing is uploaded until you review and save.')}</p>
             <div className="mt-auto flex gap-2 pt-5"><button type="button" onClick={() => setGuide(false)} className="rounded-2xl bg-white/75 px-4 py-3 text-sm font-bold text-ink">{t('Cancel')}</button><GradientButton accent={violet} onClick={openCamera} className="flex-1">{t('Got it, open camera')}</GradientButton></div>
@@ -193,7 +217,7 @@ export function VisualProgress() {
         </div>
       )}
 
-      {camera && <Suspense fallback={null}><ProgressCamera initialPose={pose} referenceUrl={referenceUrl} onSave={saveCapture} onClose={() => setCamera(false)} /></Suspense>}
+      {camera && <Suspense fallback={null}><ProgressCamera initialPose={pose} initialFramingMode={framingMode} referenceUrl={referenceUrl} onSave={saveCapture} onClose={() => setCamera(false)} /></Suspense>}
 
       {compareOpen && left && right && (
         <PhotoComparison
@@ -215,6 +239,16 @@ export function VisualProgress() {
           <div className="flex items-center justify-between px-4 pt-[calc(1rem+env(safe-area-inset-top))] pb-3"><div><p className="font-mono text-xs font-bold">{formatProgressPhotoMoment(selected, language)} · {poseLabel(selected.pose)}</p><p className="text-[10px] text-white/55">{selected.weight_kg ? `${selected.weight_kg} kg · ` : ''}{selected.sync_status}</p></div><button type="button" onClick={() => setSelected(null)} className="rounded-full bg-white/12 px-4 py-2 text-sm font-bold">Close</button></div>
           <div className="min-h-0 flex-1 overflow-hidden"><PhotoImage photo={selected} className="h-full w-full object-contain" /></div>
           <div className="px-4 pt-3 pb-[calc(1rem+env(safe-area-inset-bottom))]"><p className="text-xs text-white/70">{selected.note || 'No note'}</p>{deleteConfirm === selected.id ? <div className="mt-3 flex gap-2"><button type="button" onClick={() => { void store.deletePhoto(selected.id); setSelected(null); setDeleteConfirm(null) }} className="rounded-xl bg-red-600 px-4 py-2 text-xs font-bold">Delete forever</button><button type="button" onClick={() => setDeleteConfirm(null)} className="rounded-xl bg-white/12 px-4 py-2 text-xs font-bold">Cancel</button></div> : <button type="button" onClick={() => setDeleteConfirm(selected.id)} className="mt-3 text-xs font-bold text-red-300">Delete private photo</button>}</div>
+        </div>
+      )}
+
+      {deleteSelectionConfirm && (
+        <div className="fixed inset-0 z-[110] grid place-items-center bg-black/45 p-5 backdrop-blur-md" role="alertdialog" aria-modal="true" aria-label={t('Delete selected photos?')}>
+          <div className="w-full max-w-xs rounded-[26px] border border-white/90 bg-white p-5 text-ink shadow-2xl">
+            <h2 className="font-display text-lg font-black">{t('Delete selected photos?')}</h2>
+            <p className="mt-2 text-xs leading-relaxed font-medium text-ink-soft">{compareIds.length} {t('private photos will be permanently removed.')}</p>
+            <div className="mt-5 flex gap-2"><button type="button" onClick={() => setDeleteSelectionConfirm(false)} className="flex-1 rounded-2xl bg-ink/5 px-4 py-3 text-xs font-bold">{t('Cancel')}</button><button type="button" onClick={() => void deleteSelectedPhotos()} className="flex-1 rounded-2xl bg-rose-600 px-4 py-3 text-xs font-bold text-white">{t('Delete')}</button></div>
+          </div>
         </div>
       )}
     </div>

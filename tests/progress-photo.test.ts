@@ -11,8 +11,12 @@ import {
   normalizeComparisonView,
   preferSamePose,
   processProgressPhoto,
+  progressCaptureAspectRatio,
+  progressFramingMode,
+  progressPhotoIdempotencyKey,
   progressPhotoSaveError,
   progressStoragePaths,
+  isProgressCameraShutterKey,
   runProgressPhotoSyncBatch,
   snapshotForProgressDate,
   updateComparisonViews,
@@ -79,6 +83,24 @@ test('photo moments retain the capture time for timeline and export labels', () 
   assert.match(formatProgressPhotoMoment(captured, 'en', 'UTC'), /08:00/)
   assert.match(formatProgressPhotoMoment(captured, 'ro', 'UTC'), /08:00/)
   assert.match(formatProgressPhotoMoment(captured, 'th', 'UTC'), /08:00/)
+})
+
+test('progress framing stays backward compatible and supports torso and free capture', () => {
+  const legacy = photo('legacy', '2026-06-01', 'front')
+  const torso = { ...legacy, client_idempotency_key: progressPhotoIdempotencyKey('torso', 'torso-id') }
+  const free = { ...legacy, framing_mode: 'free' as const }
+  assert.equal(progressFramingMode(legacy), 'full')
+  assert.equal(progressFramingMode(torso), 'torso')
+  assert.equal(progressFramingMode(free), 'free')
+  assert.equal(progressCaptureAspectRatio('full', 3 / 4), 3 / 4)
+  assert.equal(progressCaptureAspectRatio('free', 3 / 4), 3 / 4)
+  assert.equal(progressCaptureAspectRatio('torso', 3 / 4), 4 / 5)
+})
+
+test('camera shutter key helper recognises exposed volume controls only', () => {
+  assert.equal(isProgressCameraShutterKey('AudioVolumeUp'), true)
+  assert.equal(isProgressCameraShutterKey('', 'VolumeDown'), true)
+  assert.equal(isProgressCameraShutterKey('Enter'), false)
 })
 
 test('comparison export mode defaults safely and keeps minimal cards free of stats', () => {

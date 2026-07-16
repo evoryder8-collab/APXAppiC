@@ -4,6 +4,7 @@ import {
   daysBetweenPhotos,
   formatProgressPhotoMoment,
   normalizeComparisonView,
+  progressFramingMode,
   updateComparisonViews,
   zoomComparisonView,
   type ComparisonSide,
@@ -21,6 +22,7 @@ const COPY = {
     synced: 'Synced', unlocked: 'Unlocked', drag: 'Drag to inspect. Synced moves both photos together; Unlocked edits the side you touch.',
     share: 'Shareable progress card', preserve: 'Your current zoom and positioning are preserved in the high-resolution PNG.', creating: 'Creating PNG…', export: 'Export PNG',
     mismatch: 'Different poses are selected. Matching poses produce a fairer comparison.', zoomOut: 'Zoom out', zoomIn: 'Zoom in', movement: 'Comparison movement mode',
+    framingMismatch: 'Different framing modes are selected. Matching Full body, Torso or Free photos gives the cleanest comparison.',
     days: (value: number) => `${value} days apart`, workouts: (value: number) => `${value} completed workouts between`,
     loading: 'Photos are still loading.', failure: 'The image could not be exported. Let both photos finish loading and try again.',
   },
@@ -29,6 +31,7 @@ const COPY = {
     synced: 'Sincronizat', unlocked: 'Independent', drag: 'Trage pentru detalii. Sincronizat mută ambele fotografii; Independent controlează separat partea atinsă.',
     share: 'Card de progres pentru distribuire', preserve: 'Zoomul și poziționarea actuală sunt păstrate în imaginea PNG de înaltă rezoluție.', creating: 'Se creează imaginea PNG…', export: 'Exportă PNG',
     mismatch: 'Ai selectat poziții diferite. Pozițiile identice oferă o comparație mai corectă.', zoomOut: 'Micșorează', zoomIn: 'Mărește', movement: 'Mod de deplasare a comparației',
+    framingMismatch: 'Ai selectat încadrări diferite. Pentru cea mai clară comparație, combină două fotografii Corp întreg, Trunchi sau Liber.',
     days: (value: number) => `${value} zile între fotografii`, workouts: (value: number) => `${value} antrenamente finalizate între date`,
     loading: 'Fotografiile încă se încarcă.', failure: 'Imaginea nu a putut fi exportată. Așteaptă încărcarea fotografiilor și încearcă din nou.',
   },
@@ -37,6 +40,7 @@ const COPY = {
     synced: 'ซิงก์', unlocked: 'แยกอิสระ', drag: 'ลากเพื่อดูรายละเอียด ซิงก์จะขยับทั้งสองภาพพร้อมกัน ส่วนแยกอิสระจะควบคุมเฉพาะด้านที่แตะ',
     share: 'การ์ดความก้าวหน้าสำหรับแชร์', preserve: 'ระดับซูมและตำแหน่งปัจจุบันจะถูกเก็บไว้ในไฟล์ PNG ความละเอียดสูง', creating: 'กำลังสร้าง PNG…', export: 'ส่งออก PNG',
     mismatch: 'เลือกท่าต่างกัน การใช้ท่าเดียวกันจะเปรียบเทียบได้แม่นยำกว่า', zoomOut: 'ซูมออก', zoomIn: 'ซูมเข้า', movement: 'โหมดเลื่อนภาพเปรียบเทียบ',
+    framingMismatch: 'เลือกกรอบภาพต่างกัน ควรใช้ภาพเต็มตัว ช่วงลำตัว หรืออิสระแบบเดียวกันเพื่อการเปรียบเทียบที่ชัดที่สุด',
     days: (value: number) => `ห่างกัน ${value} วัน`, workouts: (value: number) => `ฝึกเสร็จแล้ว ${value} ครั้งในช่วงนี้`,
     loading: 'รูปภาพกำลังโหลดอยู่', failure: 'ไม่สามารถส่งออกภาพได้ โปรดรอให้รูปโหลดเสร็จแล้วลองอีกครั้ง',
   },
@@ -190,7 +194,11 @@ export function PhotoComparison({
     if (dragRef.current?.pointerId === event.pointerId) dragRef.current = null
   }
 
-  const combinedRatio = Math.max(0.8, Math.min(1.55, comparisonAspectRatio(left, right) * 2))
+  const baseCombinedRatio = Math.max(0.8, Math.min(1.55, comparisonAspectRatio(left, right) * 2))
+  const leftFraming = progressFramingMode(left)
+  const rightFraming = progressFramingMode(right)
+  const torsoComparison = leftFraming === 'torso' && rightFraming === 'torso'
+  const combinedRatio = torsoComparison ? Math.min(1.55, baseCombinedRatio * 1.18) : baseCombinedRatio
   const loadSignal = strengthComparison.averageLoadDeltaKg
   const loadSummary = loadSignal == null
     ? null
@@ -244,6 +252,7 @@ export function PhotoComparison({
       </header>
 
       {left.pose !== right.pose && <p className="mx-4 mb-3 rounded-xl bg-amber-300/10 px-3 py-2 text-[10px] font-semibold text-amber-100">{copy.mismatch}</p>}
+      {leftFraming !== rightFraming && <p className="mx-4 mb-3 rounded-xl bg-violet-300/10 px-3 py-2 text-[10px] font-semibold text-violet-100">{copy.framingMismatch}</p>}
 
       <div className="flex min-h-0 flex-1 items-center justify-center px-2 sm:px-4">
         <div className="relative w-full max-w-3xl overflow-hidden rounded-[1.75rem] border border-white/10 bg-[#11131a] shadow-2xl" style={{ aspectRatio: combinedRatio }}>

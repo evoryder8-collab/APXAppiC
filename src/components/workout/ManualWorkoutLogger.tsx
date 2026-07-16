@@ -105,10 +105,24 @@ export function ManualWorkoutLogger({
   const loadedEditorRef = useRef<string | null | undefined>(undefined)
   const presets = useMemo(() => rankManualWorkoutPresets(data, date), [data, date])
   const editorDraft = useMemo(() => editSessionId ? manualWorkoutEditorDraft(data, editSessionId) : null, [data, editSessionId])
-  const results = useMemo(
-    () => searchExerciseCatalog(query, 'all', language).slice(0, query.trim() ? 10 : 8),
-    [language, query],
-  )
+  const results = useMemo(() => {
+    const matches = searchExerciseCatalog(query, 'all', language)
+    const predicted = new Map<string, number>()
+    for (const preset of presets) {
+      for (const exercise of preset.exercises) {
+        if (exercise.catalogId && !predicted.has(exercise.catalogId)) predicted.set(exercise.catalogId, predicted.size)
+      }
+    }
+    return matches
+      .map((item, searchIndex) => ({ item, searchIndex, predictedIndex: predicted.get(item.id) }))
+      .sort((left, right) => {
+        const leftPrediction = left.predictedIndex == null ? Number.MAX_SAFE_INTEGER : left.predictedIndex
+        const rightPrediction = right.predictedIndex == null ? Number.MAX_SAFE_INTEGER : right.predictedIndex
+        return leftPrediction - rightPrediction || left.searchIndex - right.searchIndex
+      })
+      .slice(0, query.trim() ? 10 : 8)
+      .map(({ item }) => item)
+  }, [language, presets, query])
 
   useEffect(() => {
     if (!open) {

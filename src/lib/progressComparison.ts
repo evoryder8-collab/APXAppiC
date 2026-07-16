@@ -1,5 +1,5 @@
 import type { IntroLanguage } from './introLanguage'
-import { formatProgressPhotoMoment, type ComparisonView, type ComparisonViews, type ProgressPhoto } from './progressPhoto.ts'
+import { formatProgressPhotoMoment, progressFramingMode, type ComparisonView, type ComparisonViews, type ProgressPhoto } from './progressPhoto.ts'
 import type { AppData, Settings, WorkoutLog } from './types'
 
 export interface ProgressStrengthComparison {
@@ -214,10 +214,11 @@ export async function createProgressComparisonPoster(input: {
     context.fillStyle = '#080a12'
     context.fillRect(outer.x, outer.y, outer.width, outer.height)
 
+    const torsoLayout = progressFramingMode(input.left) === 'torso' && progressFramingMode(input.right) === 'torso'
     const photoX = 36
-    const photoY = 36
+    const photoY = torsoLayout ? 92 : 36
     const photoWidth = 1008
-    const photoHeight = 1278
+    const photoHeight = torsoLayout ? 1120 : 1278
     const paneWidth = photoWidth / 2
     context.save()
     roundedPath(context, photoX, photoY, photoWidth, photoHeight, 48)

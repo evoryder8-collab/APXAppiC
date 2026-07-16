@@ -10,12 +10,15 @@ import {
 } from 'react'
 import {
   processProgressPhoto,
+  progressFramingMode,
+  progressPhotoIdempotencyKey,
   progressPhotoSaveError,
   progressStoragePaths,
   runProgressPhotoSyncBatch,
   type NormalizedCrop,
   type ProcessedProgressPhoto,
   type ProgressPhoto,
+  type ProgressFramingMode,
   type ProgressPose,
 } from '../lib/progressPhoto'
 import {
@@ -36,6 +39,7 @@ interface SavePhotoInput {
   raw: Blob
   processed?: ProcessedProgressPhoto
   pose: ProgressPose
+  framingMode?: ProgressFramingMode
   localDate?: string
   weightKg?: number | null
   note?: string
@@ -65,9 +69,13 @@ function photoOutbox(userId: string, operation: 'upload_photo' | 'delete_photo' 
   }
 }
 
-function remotePhoto(photo: ProgressPhoto): Omit<ProgressPhoto, 'sync_status'> {
-  const { sync_status: _syncStatus, ...row } = photo
+function remotePhoto(photo: ProgressPhoto): Omit<ProgressPhoto, 'sync_status' | 'framing_mode'> {
+  const { sync_status: _syncStatus, framing_mode: _framingMode, ...row } = photo
   return row
+}
+
+function normalizedPhoto(photo: ProgressPhoto): ProgressPhoto {
+  return { ...photo, framing_mode: progressFramingMode(photo) }
 }
 
 function syncErrorSummary(cause: unknown): string {
@@ -136,9 +144,10 @@ export function ProgressPhotoStoreProvider({ children }: { children: ReactNode }
     const hydrationUserId = userId
     setReady(false)
     try {
-      const local = (await privateGetAllForUser<ProgressPhoto>('progress_photos', userId)).map((photo) => (
-        photo.sync_status === 'syncing' ? { ...photo, sync_status: 'queued' as const } : photo
-      ))
+      const local = (await privateGetAllForUser<ProgressPhoto>('progress_photos', userId)).map((value) => {
+        const photo = normalizedPhoto(value)
+        return photo.sync_status === 'syncing' ? { ...photo, sync_status: 'queued' as const } : photo
+      })
       if (activeUserId.current !== hydrationUserId) return
       setPhotos(local.sort((a, b) => b.captured_at.localeCompare(a.captured_at)))
       for (const photo of local.slice(0, 24)) void installLocalUrl(photo.id, true)
@@ -147,7 +156,7 @@ export function ProgressPhotoStoreProvider({ children }: { children: ReactNode }
         const { data: rows, error } = await supabase.from('progress_photos').select('*').eq('user_id', userId).order('captured_at', { ascending: false })
         if (error) throw error
         if (activeUserId.current !== hydrationUserId) return
-        const remote = (rows ?? []).map((row) => ({ ...row, sync_status: 'synced' } as ProgressPhoto))
+        const remote = (rows ?? []).map((row) => normalizedPhoto({ ...row, sync_status: 'synced' } as ProgressPhoto))
         const merged = new Map(remote.map((photo) => [photo.id, photo]))
         for (const photo of local) if (photo.sync_status !== 'synced') merged.set(photo.id, photo)
         const values = [...merged.values()].sort((a, b) => b.captured_at.localeCompare(a.captured_at))
@@ -296,10 +305,10 @@ export function ProgressPhotoStoreProvider({ children }: { children: ReactNode }
     const now = new Date().toISOString()
     const photo: ProgressPhoto = {
       id, user_id: userId, local_date: input.localDate ?? todayIso(), captured_at: now,
-      pose: input.pose, storage_path: paths.full, thumbnail_path: paths.thumbnail,
+      pose: input.pose, framing_mode: input.framingMode ?? 'full', storage_path: paths.full, thumbnail_path: paths.thumbnail,
       width: processed.width, height: processed.height, aspect_ratio: processed.aspect_ratio,
       crop_x: 0.5, crop_y: 0.5, crop_scale: 1, reference_photo_id: input.referencePhotoId ?? null,
-      weight_kg: input.weightKg ?? null, note: input.note ?? '', client_idempotency_key: crypto.randomUUID(),
+      weight_kg: input.weightKg ?? null, note: input.note ?? '', client_idempotency_key: progressPhotoIdempotencyKey(input.framingMode ?? 'full'),
       created_at: now, updated_at: now, sync_status: isLocalMode ? 'local' : 'queued',
     }
     const operation = isLocalMode ? null : photoOutbox(userId, 'upload_photo', id)

@@ -31,4 +31,5 @@ test('catalog exercises use exact muscle metadata before fuzzy name matching', (
   assert.ok(flag.includes('lats'))
   assert.ok(flag.includes('obliques'))
   assert.ok(flag.includes('forearms'))
+  assert.deepEqual(musclesForWorkout('custom', ['Hip Adduction Machine']), ['adductors'])
 })

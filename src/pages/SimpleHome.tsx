@@ -1,6 +1,18 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { ReactNode } from 'react'
-import { addDays, format, parseISO } from 'date-fns'
+import {
+  addDays,
+  addMonths,
+  eachDayOfInterval,
+  endOfMonth,
+  endOfWeek,
+  format,
+  isSameDay,
+  isSameMonth,
+  parseISO,
+  startOfMonth,
+  startOfWeek,
+} from 'date-fns'
 import { Link, useNavigate } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { useStore } from '../store/AppStore'
@@ -10,7 +22,7 @@ import { ACTIVITY_MULTIPLIERS, buildTargetMealPlan, computeTargets, type TargetM
 import { planForDate, todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { DailyLog, Supplement } from '../lib/types'
-import { aggregateConsumedMeals, reconcileConsumedMeals, type ComposerFoodItem, type MealSlot } from '../lib/food'
+import { aggregateConsumedMeals, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
@@ -60,12 +72,15 @@ export function SimpleHome() {
   const [editingManualExerciseName, setEditingManualExerciseName] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
-  const [quickPanel, setQuickPanel] = useState<'meals' | 'water' | null>(null)
+  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | null>(null)
   const [quickMealSlot, setQuickMealSlot] = useState<MealSlot | null>(null)
+  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
   const [customWaterDraft, setCustomWaterDraft] = useState('')
   const today = todayIso()
   const [selectedDate, setSelectedDate] = useState(today)
+  const [showCalendar, setShowCalendar] = useState(false)
+  const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseISO(today)))
   const swipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
   const summaryActionsRef = useRef<HTMLDivElement>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedDate), [selectedDate])
@@ -135,6 +150,18 @@ export function SimpleHome() {
   const groupIsDone = (group: { items: Supplement[] }): boolean =>
     group.items.length > 0 && group.items.every((item) => supplementDoneIds.has(item.id))
 
+  const toggleSupplement = (item: Supplement): void => {
+    const existing = dateSupplementLogs.find((log) => log.supplement_id === item.id)
+    if (existing) {
+      remove('supplement_logs', existing.id)
+      return
+    }
+    upsert('supplement_logs', {
+      id: crypto.randomUUID(), user_id: profile.user_id, date: selectedDate, supplement_id: item.id,
+      checked_at: new Date().toISOString(),
+    })
+  }
+
   const completedMeals = mealPlan.filter(mealIsDone).length
   const completedGroups = supplementGroups.filter(groupIsDone).length
   const hasWorkout = plan.exercises.length > 0
@@ -161,6 +188,52 @@ export function SimpleHome() {
       optional: false, locked: true, adjustable: false, minimum_amount: 1, maximum_amount: 1,
       step_amount: 1, adjustment_role: 'none',
     }
+  }
+
+  const snapshotFood = async (entry: (typeof foodStore.entries)[number]): Promise<FoodRecord> => {
+    const existing = entry.food_id ? foodStore.foods.find((food) => food.id === entry.food_id) : null
+    if (existing) return existing
+    return foodStore.savePrivateFood({
+      name: entry.snapshot_name, names_i18n: { en: entry.snapshot_name }, brand: entry.snapshot_brand,
+      barcode: null, provider_product_id: null, external_image_url: null, package_quantity: null,
+      nutrition_basis: entry.snapshot_nutrition_basis, preparation_state: entry.snapshot_preparation_state,
+      kcal_100: entry.snapshot_kcal_100, protein_100: entry.snapshot_protein_100,
+      carbs_100: entry.snapshot_carbs_100, fat_100: entry.snapshot_fat_100,
+      fibre_100: entry.snapshot_fibre_100, sugar_100: entry.snapshot_sugar_100,
+      saturated_fat_100: entry.snapshot_saturated_fat_100, salt_100: entry.snapshot_salt_100,
+      serving_amount: null, serving_unit: null, serving_grams_or_ml: null, piece_grams_or_ml: null,
+      provider_updated_at: null, confidence: 'user_entered',
+    })
+  }
+
+  const loggedMealItems = async (loggedMeal: LoggedMeal): Promise<ComposerFoodItem[]> => Promise.all(
+    foodStore.entries
+      .filter((entry) => entry.meal_id === loggedMeal.id)
+      .sort((left, right) => left.sort_order - right.sort_order)
+      .map(async (entry, index) => ({
+        id: crypto.randomUUID(), food: await snapshotFood(entry), quantity: entry.quantity, unit: entry.unit,
+        sort_order: index, optional: false, locked: true, adjustable: false,
+        minimum_amount: null, maximum_amount: null, step_amount: entry.unit === 'piece' ? 1 : 5,
+        adjustment_role: 'none' as const,
+      })),
+  )
+
+  const editQuickPlannedMeal = async (meal: TargetMeal): Promise<void> => {
+    const actual = dateFoodMeals.find((logged) => logged.source_planned_meal_id === meal.id)
+    const items = actual ? await loggedMealItems(actual) : [await plannedFoodItem(meal)]
+    setQuickPanel(null)
+    setQuickMealEditor({
+      slot: mealSlotFor(meal), title: actual?.display_name ?? meal.name, items,
+      plannedMealId: meal.id, replaceMealId: actual?.id ?? null,
+    })
+  }
+
+  const editQuickCustomMeal = async (meal: LoggedMeal): Promise<void> => {
+    setQuickPanel(null)
+    setQuickMealEditor({
+      slot: meal.meal_slot, title: meal.display_name, items: await loggedMealItems(meal),
+      plannedMealId: meal.source_planned_meal_id, replaceMealId: meal.id,
+    })
   }
 
   const toggleMeal = async (meal: TargetMeal): Promise<void> => {
@@ -290,6 +363,15 @@ export function SimpleHome() {
     setSelectedDate(format(addDays(selectedDateObject, offset), 'yyyy-MM-dd'))
     setShowChecklist(false)
     setQuickPanel(null)
+    setShowCalendar(false)
+  }
+
+  const chooseDate = (date: Date): void => {
+    setSelectedDate(format(date, 'yyyy-MM-dd'))
+    setCalendarMonth(startOfMonth(date))
+    setShowChecklist(false)
+    setQuickPanel(null)
+    setShowCalendar(false)
   }
 
   const finishSwipe = (x: number, y: number): void => {
@@ -333,6 +415,22 @@ export function SimpleHome() {
   const momentum = current && previous ? current.overall - previous.overall : 0
   const firstName = profile?.display_name.split(' ')[0] ?? 'You'
   const orbitSession = orbit.state.sessions.find((session) => session.date === selectedDate && session.status === 'planned')
+  const dateLocale = language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB'
+  const selectedDateLabel = new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDateObject)
+  const calendarMonthLabel = new Intl.DateTimeFormat(dateLocale, { month: 'long', year: 'numeric' }).format(calendarMonth)
+  const calendarDays = eachDayOfInterval({
+    start: startOfWeek(startOfMonth(calendarMonth), { weekStartsOn: 1 }),
+    end: endOfWeek(endOfMonth(calendarMonth), { weekStartsOn: 1 }),
+  })
+  const weekdayLabels = Array.from({ length: 7 }, (_, index) => new Intl.DateTimeFormat(dateLocale, { weekday: 'narrow' }).format(addDays(new Date(2026, 0, 5), index)))
+  const hasDayData = (date: Date): boolean => {
+    const iso = format(date, 'yyyy-MM-dd')
+    return data.daily_logs.some((log) => log.date === iso)
+      || data.meal_logs.some((log) => log.date === iso)
+      || data.supplement_logs.some((log) => log.date === iso)
+      || data.workout_sessions.some((session) => session.date === iso)
+      || foodStore.mealsForDate(iso).length > 0
+  }
 
   return (
     <div
@@ -354,9 +452,15 @@ export function SimpleHome() {
       <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={() => moveDay(-1)} aria-label={t('Previous day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">‹</button>
-          <button type="button" onClick={() => setSelectedDate(today)} className="min-w-0 rounded-full bg-white/55 px-4 py-2 text-center shadow-sm">
-            <span className="block truncate font-mono text-[10px] font-bold tracking-[0.14em] text-ink-faint uppercase">{format(selectedDateObject, 'EEEE, d MMMM')}</span>
-            <span className="mt-0.5 block text-[9px] font-black tracking-wide text-violet-700 uppercase">{selectedDate === today ? t('Today') : t('Tap to return to today')}</span>
+          <button
+            type="button"
+            onClick={() => { setCalendarMonth(startOfMonth(selectedDateObject)); setShowCalendar(true) }}
+            aria-haspopup="dialog"
+            aria-expanded={showCalendar}
+            className="min-w-0 rounded-full bg-white/55 px-4 py-2 text-center shadow-sm transition active:scale-[.98]"
+          >
+            <span className="block truncate font-mono text-[10px] font-bold tracking-[0.14em] text-ink-faint uppercase">{selectedDateLabel}</span>
+            <span className="mt-0.5 block text-[9px] font-black tracking-wide text-violet-700 uppercase">{selectedDate === today ? t('Today') : t('Open calendar')}</span>
           </button>
           <button type="button" onClick={() => moveDay(1)} aria-label={t('Next day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">›</button>
         </div>
@@ -401,7 +505,7 @@ export function SimpleHome() {
 
         <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
           <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${mealPlan.length}`} label={t('Meals')} done={mealPlan.length > 0 && completedMeals === mealPlan.length} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
-          <SimpleMetric icon="✦" value={`${completedGroups}/${supplementGroups.length}`} label={t('Supps')} done={completedGroups === supplementGroups.length} onClick={() => openNutritionSection('supplements')} ariaLabel={t('Open supplements')} />
+          <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
           <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
           <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
         </div>
@@ -451,6 +555,56 @@ export function SimpleHome() {
         {!adhdMode && <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to="/transition" className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>}
       </div>
       <AnimatePresence>
+        {showCalendar && (
+          <motion.div
+            className="fixed inset-0 z-[79] flex items-center justify-center p-4"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            data-simple-local-gesture
+          >
+            <button type="button" onClick={() => setShowCalendar(false)} aria-label={t('Close calendar')} className="absolute inset-0 bg-ink/20 backdrop-blur-md" />
+            <motion.div
+              initial={{ opacity: 0, scale: 0.93, y: 10 }}
+              animate={{ opacity: 1, scale: 1, y: 0 }}
+              exit={{ opacity: 0, scale: 0.96, y: 8 }}
+              className="relative flex h-[min(35dvh,330px)] min-h-[286px] w-[min(88vw,344px)] flex-col overflow-hidden rounded-[26px] border border-white/95 bg-white/96 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.72)]"
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('Choose a day')}
+            >
+              <div className="flex items-center justify-between gap-2">
+                <button type="button" onClick={() => setCalendarMonth((value) => addMonths(value, -1))} aria-label={t('Previous month')} className="grid h-8 w-8 place-items-center rounded-full bg-ink/5 font-black text-ink-soft">‹</button>
+                <div className="text-center"><p className="font-display text-sm font-black text-ink capitalize">{calendarMonthLabel}</p><button type="button" onClick={() => chooseDate(parseISO(today))} className="mt-0.5 font-mono text-[8px] font-black tracking-wide text-violet-700 uppercase">{t('Jump to today')}</button></div>
+                <button type="button" onClick={() => setCalendarMonth((value) => addMonths(value, 1))} aria-label={t('Next month')} className="grid h-8 w-8 place-items-center rounded-full bg-ink/5 font-black text-ink-soft">›</button>
+              </div>
+              <div className="mt-2 grid grid-cols-7 text-center font-mono text-[8px] font-black text-ink-faint uppercase">
+                {weekdayLabels.map((label, index) => <span key={`${label}-${index}`}>{label}</span>)}
+              </div>
+              <div className="mt-1 grid min-h-0 flex-1 grid-cols-7 gap-0.5" style={{ gridTemplateRows: `repeat(${Math.ceil(calendarDays.length / 7)}, minmax(0, 1fr))` }}>
+                {calendarDays.map((date) => {
+                  const active = isSameDay(date, selectedDateObject)
+                  const todayDate = isSameDay(date, parseISO(today))
+                  const inMonth = isSameMonth(date, calendarMonth)
+                  const populated = hasDayData(date)
+                  return (
+                    <button
+                      key={format(date, 'yyyy-MM-dd')}
+                      type="button"
+                      onClick={() => chooseDate(date)}
+                      aria-pressed={active}
+                      aria-label={new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)}
+                      className={`relative grid min-h-0 place-items-center rounded-xl font-mono text-[10px] font-black transition active:scale-90 ${active ? 'bg-violet-500 text-white shadow-sm' : todayDate ? 'bg-violet-100 text-violet-800' : inMonth ? 'text-ink' : 'text-ink-faint/45'}`}
+                    >
+                      {format(date, 'd')}
+                      {populated && !active && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-emerald" />}
+                    </button>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
         {quickPanel && (
           <motion.div
             className="fixed inset-0 z-[78] flex items-center justify-center p-5"
@@ -464,43 +618,68 @@ export function SimpleHome() {
               initial={{ opacity: 0, scale: 0.93, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : 'max-w-sm'}`}
+              className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : 'max-w-[330px]'}`}
               role="dialog"
               aria-modal="true"
-              aria-label={t(quickPanel === 'water' ? 'Water quick add' : 'Quick meals')}
+              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : t('Tap a meal to add or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
               {quickPanel === 'meals' ? (
                 <div className="mt-3">
-                  <div className="max-h-[50dvh] space-y-1.5 overflow-y-auto pr-0.5">
+                  <div className="max-h-[16dvh] space-y-1.5 overflow-y-auto pr-0.5">
                     {mealPlan.map((meal) => {
                       const done = mealIsDone(meal)
                       return (
-                        <button key={meal.id} type="button" disabled={busyMeal === meal.id} onClick={() => void toggleMeal(meal)} className="flex w-full items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2.5 text-left disabled:opacity-50">
-                          <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${done ? 'bg-emerald text-white' : 'border border-amber-300 bg-white text-amber-700'}`}>{done ? '✓' : '+'}</span>
-                          <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{t(meal.name)}</span><span className="block font-mono text-[9px] font-semibold text-ink-faint">{meal.time} · {meal.kcal} kcal</span></span>
-                        </button>
+                        <div key={meal.id} className="flex items-center gap-1 rounded-2xl bg-slate-50/90 pr-1.5">
+                          <button type="button" disabled={busyMeal === meal.id} onClick={() => void toggleMeal(meal)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left disabled:opacity-50">
+                            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${done ? 'bg-emerald text-white' : 'border border-amber-300 bg-white text-amber-700'}`}>{done ? '✓' : '+'}</span>
+                            <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{t(meal.name)}</span><span className="block font-mono text-[9px] font-semibold text-ink-faint">{meal.time} · {meal.kcal} kcal</span></span>
+                          </button>
+                          <button type="button" onClick={() => void editQuickPlannedMeal(meal)} aria-label={`${t('Edit')} ${t(meal.name)}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-[11px] font-black text-violet-700 shadow-sm">✎</button>
+                        </div>
                       )
                     })}
                     {dateFoodMeals.filter((meal) => !meal.source_planned_meal_id).map((meal) => (
-                      <div key={meal.id} className="flex items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50/55 px-3 py-2.5">
-                        <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{meal.display_name}</span><span className="block font-mono text-[9px] font-semibold text-ink-faint">{Math.round(meal.total_kcal)} kcal · {t('Custom')}</span></span>
+                      <div key={meal.id} className="flex items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50/55 px-2 py-1.5">
+                        <button type="button" onClick={() => void editQuickCustomMeal(meal)} className="min-w-0 flex-1 rounded-xl px-1 py-1 text-left"><span className="block truncate text-xs font-black text-ink">{meal.display_name}</span><span className="block font-mono text-[9px] font-semibold text-ink-faint">{Math.round(meal.total_kcal)} kcal · {t('Custom')} · {t('Tap to edit')}</span></button>
                         <button type="button" onClick={() => void foodStore.deleteMeal(meal.id)} aria-label={`${t('Remove')} ${meal.display_name}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rose-50 font-black text-rose-600">×</button>
                       </div>
                     ))}
                   </div>
                   <div className="mt-3 grid grid-cols-2 gap-2" aria-label={t('Add food')}>
                     {(['breakfast', 'lunch', 'dinner', 'snack'] as MealSlot[]).map((slot) => (
-                      <button key={slot} type="button" onClick={() => setQuickMealSlot(slot)} className="rounded-2xl border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-left text-[11px] font-black text-amber-900 active:scale-[.98]">
+                      <button key={slot} type="button" onClick={() => { setQuickPanel(null); setQuickMealSlot(slot) }} className="rounded-2xl border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-left text-[11px] font-black text-amber-900 active:scale-[.98]">
                         <span className="mr-1 text-amber-600">+</span>{t(`${slot[0].toUpperCase()}${slot.slice(1)}`)}
                       </button>
                     ))}
                   </div>
                   <button type="button" onClick={() => openNutritionSection('meals')} className="mt-3 w-full rounded-2xl bg-amber-100/75 px-3 py-2.5 text-xs font-black text-amber-900">+ {t('Open full meal editor')}</button>
+                </div>
+              ) : quickPanel === 'supplements' ? (
+                <div className="mt-3 flex min-h-0 flex-1 flex-col">
+                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
+                    {supplementGroups.map((group) => (
+                      <section key={group.label}>
+                        <div className="mb-1 flex items-center justify-between gap-2 px-1"><p className="truncate text-[9px] font-black tracking-wide text-ink-faint uppercase">{t(group.label)}</p><span className="font-mono text-[8px] font-bold text-ink-faint">{clockOf(group.time)}</span></div>
+                        <div className="space-y-1">
+                          {group.items.map((item) => {
+                            const done = supplementDoneIds.has(item.id)
+                            return (
+                              <button key={item.id} type="button" onClick={() => toggleSupplement(item)} aria-pressed={done} className="flex w-full items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2 text-left transition active:scale-[.985]">
+                                <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black ${done ? 'bg-emerald text-white' : 'border border-violet-200 bg-white text-transparent'}`}>✓</span>
+                                <span className="min-w-0 flex-1"><span className={`block truncate text-[11px] font-black ${done ? 'text-ink-soft' : 'text-ink'}`}>{t(item.name)}</span><span className="block truncate font-mono text-[8px] font-semibold text-ink-faint">{item.dose}</span></span>
+                              </button>
+                            )
+                          })}
+                        </div>
+                      </section>
+                    ))}
+                  </div>
+                  <button type="button" onClick={() => openNutritionSection('supplements')} className="mt-3 w-full rounded-2xl bg-violet-100/80 px-3 py-2.5 text-xs font-black text-violet-900">{t('Open full supplement stack')}</button>
                 </div>
               ) : (
                 <div className="mt-4">
@@ -531,6 +710,20 @@ export function SimpleHome() {
             date={selectedDate}
             onClose={() => setQuickMealSlot(null)}
             onLogged={() => setQuickMealSlot(null)}
+          />
+        </Suspense>
+      )}
+      {quickMealEditor && (
+        <Suspense fallback={null}>
+          <QuickMealComposer
+            slot={quickMealEditor.slot}
+            date={selectedDate}
+            title={quickMealEditor.title}
+            initialItems={quickMealEditor.items}
+            plannedMealId={quickMealEditor.plannedMealId}
+            replaceMealId={quickMealEditor.replaceMealId}
+            onClose={() => setQuickMealEditor(null)}
+            onLogged={() => setQuickMealEditor(null)}
           />
         </Suspense>
       )}
