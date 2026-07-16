@@ -17,6 +17,7 @@ import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
 import { TodaysActivities } from '../components/TodaysActivities'
+import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import {
   activityCatalogMap,
   activityLogFromBlock,
@@ -43,7 +44,8 @@ import {
 } from '../lib/food'
 import { normalizeDailyLogIntegers } from '../lib/sync'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
-import { canPasteSimpleDay, dayMealCopyIdempotencyKey, simpleDaySwipeOffset } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset } from '../lib/simpleMode'
+import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockKind } from '../lib/mealBlocks'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -94,7 +96,7 @@ export function Nutrition() {
   const today = todayIso()
   const [selectedLogDate, setSelectedLogDate] = useState(() => requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
-  const nutritionSwipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
+  const nutritionSwipeStart = useRef<{ x: number; y: number; touchId: number; blockedByLocalGesture: boolean } | null>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedLogDate), [selectedLogDate])
   const profile = data.profile
   const catalog = useMemo(() => activityCatalogMap(data.activity_types), [data.activity_types])
@@ -127,7 +129,7 @@ export function Nutrition() {
   const [waterDraft, setWaterDraft] = useState('0')
   const [plannedComposer, setPlannedComposer] = useState<{
     meal: TargetMeal
-    slot: MealSlot
+    blockId: MealBlockKind
     items: ComposerFoodItem[]
     title: string
     replaceMealId: string | null
@@ -317,6 +319,12 @@ export function Nutrition() {
   const editAndLog = async (row: PlannedMealTrackerRow): Promise<void> => {
     const meal = mealPlan.find((candidate) => candidate.id === row.id)
     if (!meal) return
+    const blockId = resolveMealBlockStatuses({
+      settings: normalizeMealBlockSettings(data.settings?.addons.meal_blocks),
+      loggedMeals: dayLoggedMeals,
+      plannedMeals: mealPlan,
+      checkedPlannedMealIds: dayMealIds,
+    }).find((status) => status.plannedMeal?.id === meal.id)?.block.id ?? mealSlotFor(meal)
     let items: ComposerFoodItem[] = []
     if (row.actual && row.entries.length > 0) {
       items = await loggedMealItems(row.actual)
@@ -325,7 +333,7 @@ export function Nutrition() {
     }
     setPlannedComposer({
       meal,
-      slot: mealSlotFor(meal),
+      blockId,
       items,
       title: row.actual?.display_name ?? meal.name,
       replaceMealId: row.actual?.id ?? null,
@@ -598,10 +606,17 @@ export function Nutrition() {
       const sourceMeals = foodStore.mealsForDate(copiedDay)
         .filter((meal) => selectedMealIds == null || selectedMealIds.has(meal.id))
         .sort((left, right) => left.logged_at.localeCompare(right.logged_at))
+      const sourceBlockStatuses = resolveMealBlockStatuses({
+        settings: normalizeMealBlockSettings(data.settings?.addons.meal_blocks),
+        loggedMeals: foodStore.mealsForDate(copiedDay),
+        plannedMeals: mealPlan,
+        checkedPlannedMealIds: new Set(data.meal_logs.filter((log) => log.date === copiedDay).map((log) => log.meal_id)),
+      })
       let targetMeals = foodStore.mealsForDate(targetDate)
       const targetPlannedChecks = new Set(data.meal_logs.filter((log) => log.date === targetDate).map((log) => log.meal_id))
 
       for (const sourceMeal of sourceMeals) {
+        const sourceBlockId = sourceBlockStatuses.find((status) => status.loggedMeal?.id === sourceMeal.id)?.block.id
         const replaceMeal = sourceMeal.source_planned_meal_id
           ? targetMeals.find((meal) => meal.source_planned_meal_id === sourceMeal.source_planned_meal_id)
           : undefined
@@ -614,7 +629,7 @@ export function Nutrition() {
           sourcePlannedMealId: sourceMeal.source_planned_meal_id,
           replaceMealId: replaceMeal?.id,
           loggedAs: sourceMeal.logged_as,
-          idempotencyKey: dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id),
+          idempotencyKey: mealBlockIdempotencyKey(dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id), sourceBlockId),
         })
         targetMeals = [copiedMeal, ...targetMeals.filter((meal) => meal.id !== replaceMeal?.id)]
         if (sourceMeal.source_planned_meal_id && !targetPlannedChecks.has(sourceMeal.source_planned_meal_id)) {
@@ -712,6 +727,7 @@ export function Nutrition() {
   const num = 'font-mono font-bold text-ink'
   const selectedIsFuture = selectedLogDate > today
   const dateLocale = language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB'
+  const selectedDateLabel = new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDateObject)
 
   const moveNutritionDay = (offset: number): void => {
     const nextDate = addDays(selectedDateObject, offset)
@@ -730,21 +746,37 @@ export function Nutrition() {
 
   return (
     <div
-      className="mx-auto w-full max-w-3xl touch-pan-y"
+      className="ios-focus-safe mx-auto w-full max-w-3xl touch-pan-y touch-pinch-zoom"
       onTouchStart={(event) => {
-        const touch = event.changedTouches[0]
-        const target = event.target
-        const blockedByLocalGesture = target instanceof Element && Boolean(target.closest('button, a, input, textarea, select, [role="button"], [data-nutrition-local-gesture]'))
-        if (touch) nutritionSwipeStart.current = { x: touch.clientX, y: touch.clientY, blockedByLocalGesture }
+        const blockedByLocalGesture = isDaySwipeInteractiveTarget(event.target)
+        if (!canStartDaySwipe(event.touches.length, blockedByLocalGesture)) {
+          nutritionSwipeStart.current = null
+          return
+        }
+        const touch = event.touches[0]
+        if (touch) nutritionSwipeStart.current = { x: touch.clientX, y: touch.clientY, touchId: touch.identifier, blockedByLocalGesture }
+      }}
+      onTouchMove={(event) => {
+        const start = nutritionSwipeStart.current
+        if (start && !daySwipeHasSingleTrackedTouch(Array.from(event.touches, (touch) => touch.identifier), start.touchId)) {
+          nutritionSwipeStart.current = null
+        }
       }}
       onTouchEnd={(event) => {
-        const touch = event.changedTouches[0]
-        if (touch) finishNutritionSwipe(touch.clientX, touch.clientY)
+        const start = nutritionSwipeStart.current
+        const changedTouches = Array.from(event.changedTouches)
+        if (!start || !canFinishDaySwipe(event.touches.length, changedTouches.map((touch) => touch.identifier), start.touchId)) {
+          nutritionSwipeStart.current = null
+          return
+        }
+        const touch = changedTouches[0]
+        finishNutritionSwipe(touch.clientX, touch.clientY)
       }}
       onTouchCancel={() => {
         nutritionSwipeStart.current = null
       }}
     >
+      <FloatingActiveDate label={selectedDateLabel} tone="amber" />
       <SectionHeader
         accent={amber}
         title="Nutrition"
@@ -976,7 +1008,7 @@ export function Nutrition() {
                 type="time"
                 value={trainingTime}
                 onChange={(e) => setProfile({ training_time: e.target.value })}
-                className="glass rounded-lg px-2 py-1 font-mono text-xs font-bold text-ink"
+                className="glass rounded-lg px-2 py-1 font-mono text-base font-bold text-ink"
               />
             </div>
           </div>
@@ -1181,7 +1213,8 @@ export function Nutrition() {
         <MealComposer
           date={selectedLogDate}
           planning={selectedIsFuture}
-          slot={plannedComposer.slot}
+          slot={mealSlotForBlock(plannedComposer.blockId)}
+          mealBlockId={plannedComposer.blockId}
           title={plannedComposer.title}
           initialItems={plannedComposer.items}
           plannedMealId={plannedComposer.meal.id}

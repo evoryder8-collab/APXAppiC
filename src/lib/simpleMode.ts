@@ -59,6 +59,48 @@ export interface SimpleSwipePoint {
   y: number
 }
 
+const DAY_SWIPE_INTERACTIVE_SELECTOR = [
+  'button',
+  'a',
+  'input',
+  'textarea',
+  'select',
+  'option',
+  'label',
+  'summary',
+  '[role="button"]',
+  '[role="slider"]',
+  '[contenteditable]:not([contenteditable="false"])',
+  '[data-day-swipe-ignore]',
+  '[data-simple-local-gesture]',
+  '[data-nutrition-local-gesture]',
+].join(', ')
+
+export function isDaySwipeInteractiveTarget(target: EventTarget | null): boolean {
+  if (typeof Element === 'undefined' || !(target instanceof Element)) return false
+  return Boolean(target.closest(DAY_SWIPE_INTERACTIVE_SELECTOR))
+}
+
+export function canStartDaySwipe(activeTouchCount: number, interactiveTarget: boolean): boolean {
+  return activeTouchCount === 1 && !interactiveTarget
+}
+
+export function daySwipeHasSingleTrackedTouch(activeTouchIds: readonly number[], trackedTouchId: number): boolean {
+  return activeTouchIds.length === 1 && activeTouchIds[0] === trackedTouchId
+}
+
+export function canFinishDaySwipe(
+  remainingTouchCount: number,
+  changedTouchIds: readonly number[],
+  trackedTouchId: number,
+): boolean {
+  return remainingTouchCount === 0 && changedTouchIds.length === 1 && changedTouchIds[0] === trackedTouchId
+}
+
+export function floatingActiveDateVisible(scrollY: number, revealAfter = 220): boolean {
+  return Number.isFinite(scrollY) && scrollY > Math.max(0, revealAfter)
+}
+
 /* Horizontal gestures that begin inside a component-owned gesture zone must
    never escape into Simple Mode's day navigation. */
 export function simpleDaySwipeOffset(

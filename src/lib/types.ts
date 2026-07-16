@@ -2,6 +2,7 @@
 
 import type { PersonaSlug } from './persona'
 import type { ActivityType } from './activity'
+import type { MealBlockSettings } from './mealBlocks'
 
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very' | 'extra'
 export type Goal = 'recomp' | 'maintain' | 'bulk'
@@ -303,6 +304,10 @@ export interface Settings {
     simple_show_hydration_reminder?: boolean
     simple_show_manual_workout?: boolean
     adhd_mode?: boolean
+    /* Account-scoped meal moments and preset associations. This stays inside
+       the existing synced JSON settings record, so no schema rollout is
+       required for reliable cross-device behavior. */
+    meal_blocks?: MealBlockSettings
   }
 }
 

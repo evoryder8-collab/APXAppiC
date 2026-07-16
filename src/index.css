@@ -45,6 +45,17 @@ body {
   overflow-x: hidden;
 }
 
+/* iOS Safari zooms the viewport when an editable control focuses below 16px.
+   Keep the compact visual shells, but make every control inside the two
+   swipeable day surfaces focus-safe so zooming never mutates a date gesture. */
+@media (max-width: 639px) {
+  .ios-focus-safe input:not([type="checkbox"]):not([type="radio"]):not([type="range"]):not([type="button"]):not([type="submit"]):not([type="reset"]),
+  .ios-focus-safe textarea,
+  .ios-focus-safe select {
+    font-size: 16px !important;
+  }
+}
+
 /* ---------------------------------------------------------------- */
 /* Frosted glass on light. Translucent white over the color blobs,  */
 /* 1px inner top-edge white highlight, soft colored shadow below.   */

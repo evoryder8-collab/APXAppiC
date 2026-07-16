@@ -328,6 +328,9 @@ export function normalizeFoodSearch(value: string): string {
     .toLocaleLowerCase()
     .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
     .replace(/\b(?:airfryer|airfried)\b/g, 'air fryer')
+    .replace(/\bulei(?: de)? masine\b/g, 'ulei de masline')
+    .replace(/\bextra vergin\b/g, 'extra virgin')
+    .replace(/\boliv oil\b/g, 'olive oil')
     .trim()
 }
 
@@ -370,6 +373,15 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'spanac congelat': 'frozen spinach',
     'mazare congelata': 'frozen green peas',
     'ton in suc propriu': 'tuna in own juice',
+    'ulei': 'oil',
+    'ulei de masline': 'olive oil',
+    'ulei masline': 'olive oil',
+    'ulei de maslina': 'olive oil',
+    'ulei virgin': 'virgin olive oil',
+    'ulei extra virgin': 'extra virgin olive oil',
+    'ulei extravirgin': 'extra virgin olive oil',
+    'ulei de masline extra virgin': 'extra virgin olive oil',
+    'ulei de masline extravirgin': 'extra virgin olive oil',
   },
   th: {
     'อกไก่': 'chicken breast',
@@ -405,6 +417,11 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'ผักโขมแช่แข็ง': 'frozen spinach',
     'ถั่วลันเตาแช่แข็ง': 'frozen green peas',
     'ทูน่าในน้ำแร่': 'tuna in own juice',
+    'น้ำมัน': 'oil',
+    'น้ำมันมะกอก': 'olive oil',
+    'น้ำมันมะกอกบริสุทธิ์พิเศษ': 'extra virgin olive oil',
+    'น้ำมันมะกอกเอ็กซ์ตร้าเวอร์จิ้น': 'extra virgin olive oil',
+    'อีวีโอโอ': 'evoo',
   },
 }
 
@@ -421,6 +438,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     afine: 'blueberries', zmeura: 'raspberries', fructe: 'fruit', padure: 'berries',
     spanac: 'spinach', mazare: 'peas', proaspat: 'fresh', proaspata: 'fresh', proaspete: 'fresh',
     congelat: 'frozen', congelata: 'frozen', congelate: 'frozen', suc: 'juice', propriu: 'own',
+    ulei: 'oil', masline: 'olive', virgin: 'virgin', extravirgin: 'extra virgin',
     de: '', din: '', la: '',
   },
   th: {
@@ -433,6 +451,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     ส้มตำ: 'som tam', น้ำปลา: 'fish sauce', อะโวคาโด: 'avocado', ไข่ดิบ: 'egg raw', ไข่ต้ม: 'egg boiled',
     บลูเบอร์รี: 'blueberries', บลูเบอร์รี่: 'blueberries', ราสป์เบอร์รี: 'raspberries', ราสเบอร์รี: 'raspberries',
     เบอร์รี: 'berries', ผักโขม: 'spinach', ถั่วลันเตา: 'green peas', สด: 'fresh', แช่แข็ง: 'frozen',
+    น้ำมัน: 'oil', น้ำมันมะกอก: 'olive oil', อีวีโอโอ: 'evoo',
   },
 }
 
@@ -606,6 +625,32 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
     'green peas', 'frozen peas', 'mazare congelata', 'mazăre congelată', 'ถั่วลันเตาแช่แข็ง',
     'aldi frozen peas', 'lidl frozen peas',
   ],
+  'apex-curated:extra-virgin-olive-oil-reference': [
+    'oil', 'olive oil', 'extra virgin olive oil', 'extra-virgin olive oil', 'evoo',
+    'ulei', 'ulei de masline', 'ulei de măsline', 'ulei masline', 'ulei măsline',
+    'ulei de maslina', 'ulei de măslină', 'ulei virgin', 'ulei extra virgin',
+    'ulei extravirgin', 'ulei de masline extravirgin', 'ulei de măsline extravirgin',
+    'น้ำมัน', 'น้ำมันมะกอก', 'น้ำมันมะกอกบริสุทธิ์พิเศษ', 'น้ำมันมะกอกเอ็กซ์ตร้าเวอร์จิ้น', 'อีวีโอโอ',
+  ],
+  'apex-curated:aldi-suisse-bellasan-extra-virgin-olive-oil-reference': [
+    'aldi olive oil', 'aldi suisse olive oil', 'aldi evoo', 'bellasan olive oil',
+    'aldi ulei', 'ulei aldi', 'ulei de masline aldi', 'ulei de măsline aldi', 'น้ำมันมะกอก aldi',
+  ],
+  'apex-curated:migros-m-classic-cold-pressed-extra-virgin-olive-oil-label': [
+    'm classic olive oil', 'm-classic olive oil', 'migros m classic evoo', 'migros m-classic evoo',
+    'migros olive oil', 'migros evoo', 'migros ulei', 'ulei migros',
+    'ulei m classic', 'ulei m-classic', 'ulei de masline m-classic', 'ulei de măsline m-classic',
+    'น้ำมันมะกอก m-classic',
+  ],
+  'apex-curated:aldi-suisse-lyttos-greek-extra-virgin-olive-oil-reference': [
+    'lyttos olive oil', 'lyttos greek olive oil', 'aldi lyttos', 'aldi olive oil', 'aldi evoo',
+    'ulei lyttos', 'ulei de masline lyttos', 'ulei de măsline lyttos', 'น้ำมันมะกอก lyttos',
+  ],
+  'apex-curated:swiss-retail-sabo-extra-virgin-olive-oil-reference': [
+    'sabo olive oil', 'sabo evoo', 'aldi sabo', 'lidl sabo', 'aldi olive oil', 'lidl olive oil',
+    'aldi ulei', 'lidl ulei', 'ulei aldi', 'ulei lidl', 'ulei sabo',
+    'ulei de masline sabo', 'ulei de măsline sabo', 'น้ำมันมะกอก sabo',
+  ],
 }
 
 function catalogAliases(food: FoodRecord): string[] {
@@ -622,9 +667,32 @@ function includesAny(value: string, terms: string[]): boolean {
   return terms.some((term) => value.includes(term))
 }
 
+function hasSearchWord(value: string, word: string): boolean {
+  return value.split(' ').includes(word)
+}
+
 function categorySearchBoost(query: string, food: FoodRecord): number {
   const text = foodSearchText(food)
   const curated = food.provider_product_id?.startsWith('apex-curated:') ? 220 : 0
+  const oliveOilQuery = hasSearchWord(query, 'oil')
+    || hasSearchWord(query, 'ulei')
+    || query.includes('olive oil')
+    || query.includes('evoo')
+    || query.includes('น้ำมัน')
+  if (oliveOilQuery) {
+    const oliveOilFood = (food.fat_100 ?? 0) >= 80 && includesAny(text, [
+      'olive oil', 'olivenol', 'huile d olive', 'olio extravergine', 'olio d oliva',
+      'ulei de masline', 'น้ำมันมะกอก',
+    ])
+    /* A broad query such as `oil`/`ulei` should rank olive-oil staples first,
+       but it must not hide sunflower, rapeseed or another legitimate oil that
+       may arrive from the provider catalog. Non-olive records simply receive
+       no category bonus. */
+    if (!oliveOilFood) return 0
+    if (food.provider_product_id === 'apex-curated:extra-virgin-olive-oil-reference') return curated + 980
+    if (food.confidence === 'provider_verified') return curated + 680
+    return curated + 560
+  }
   const chickenQuery = includesAny(query, ['chicken breast', 'piept de pui', 'อกไก่'])
   if (chickenQuery) {
     if (includesAny(text, [' raw', ' crud', ' ดิบ'])) return curated + 840

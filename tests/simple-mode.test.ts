@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canPasteSimpleDay, dayMealCopyIdempotencyKey, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 import { seedSettings } from '../src/data/seed.ts'
 
@@ -54,6 +54,26 @@ test('Simple Mode changes days only for a deliberate horizontal swipe', () => {
 
 test('workout-owned gestures never become Simple Mode day swipes', () => {
   assert.equal(simpleDaySwipeOffset({ x: 200, y: 100 }, { x: 80, y: 100 }, true), 0)
+})
+
+test('day swipe tracking rejects interactive starts and cancels every multi-touch phase', () => {
+  assert.equal(canStartDaySwipe(1, false), true)
+  assert.equal(canStartDaySwipe(1, true), false)
+  assert.equal(canStartDaySwipe(2, false), false)
+  assert.equal(daySwipeHasSingleTrackedTouch([7], 7), true)
+  assert.equal(daySwipeHasSingleTrackedTouch([7, 8], 7), false)
+  assert.equal(daySwipeHasSingleTrackedTouch([8], 7), false)
+  assert.equal(canFinishDaySwipe(0, [7], 7), true)
+  assert.equal(canFinishDaySwipe(1, [7], 7), false)
+  assert.equal(canFinishDaySwipe(0, [7, 8], 7), false)
+  assert.equal(canFinishDaySwipe(0, [8], 7), false)
+})
+
+test('floating date stays hidden at the top and appears only after scrolling down', () => {
+  assert.equal(floatingActiveDateVisible(0), false)
+  assert.equal(floatingActiveDateVisible(220), false)
+  assert.equal(floatingActiveDateVisible(221), true)
+  assert.equal(floatingActiveDateVisible(Number.NaN), false)
 })
 
 test('Simple Mode weight preference defaults to metric and converts without changing stored kilograms', () => {

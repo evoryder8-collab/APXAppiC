@@ -57,6 +57,7 @@ import {
   repairSeedDefinitions,
   type SeedDefinitionTable,
 } from '../lib/seedRepair'
+import { normalizeMealBlockSettings } from '../lib/mealBlocks'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -144,6 +145,7 @@ function normalizeAppData(value: AppData): AppData {
           simple_show_hydration_reminder: value.settings.addons?.simple_show_hydration_reminder ?? false,
           simple_show_manual_workout: value.settings.addons?.simple_show_manual_workout ?? false,
           adhd_mode: value.settings.addons?.adhd_mode ?? false,
+          meal_blocks: normalizeMealBlockSettings(value.settings.addons?.meal_blocks),
         },
       }
     : null

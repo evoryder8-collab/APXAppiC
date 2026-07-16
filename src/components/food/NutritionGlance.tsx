@@ -42,7 +42,7 @@ export function NutritionGlance({
   ] as const
 
   return (
-    <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/95 via-white/80 to-cyan-50/80 p-5 sm:p-6">
+    <div className="relative overflow-hidden bg-gradient-to-br from-amber-50/95 via-white/80 to-cyan-50/80 p-4 sm:p-6">
       <div className="pointer-events-none absolute -top-20 -right-14 h-52 w-52 rounded-full bg-amber-300/20 blur-3xl" />
       <div className="relative flex items-start justify-between gap-3">
         <div>{eyebrow && <p key={eyebrow} className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t(eyebrow)}</p>}{onOpen ? <button type="button" onClick={onOpen} className={`${eyebrow ? 'mt-1 ' : ''}flex items-center gap-1.5 text-left font-display text-xl font-bold text-ink active:opacity-65`}>{t('Nutrition at a glance')}<span className="text-sm text-amber-700" aria-hidden>↗</span></button> : <h2 className={eyebrow ? 'mt-1 font-display text-xl font-bold text-ink' : 'font-display text-xl font-bold text-ink'}>{t('Nutrition at a glance')}</h2>}</div>
@@ -52,15 +52,18 @@ export function NutritionGlance({
         </div>
       </div>
 
-      <div className="relative mt-5 grid grid-cols-[1fr_1.45fr_1fr] items-center gap-2 text-center">
-        <div><p className="font-mono text-2xl font-bold text-ink">{Math.round(consumed.kcal)}</p><p className="mt-1 text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Eaten')}</p></div>
+      <div className="relative mt-5 grid grid-cols-[minmax(0,.9fr)_minmax(7rem,1.25fr)_minmax(0,.9fr)] items-center gap-1.5 text-center sm:gap-2">
+        <div className="min-w-0">
+          <p className="max-w-full whitespace-nowrap font-mono text-[clamp(1.15rem,5.8vw,1.5rem)] leading-none font-bold tracking-[-0.055em] text-ink tabular-nums">{Math.round(consumed.kcal)}</p>
+          <p className="mt-1 truncate text-[9px] font-bold tracking-wide text-ink-faint uppercase sm:text-[10px]">{t('Eaten')}</p>
+        </div>
         <motion.button
           type="button"
           onClick={onRingClick}
           disabled={!onRingClick}
           whileTap={onRingClick ? { scale: 0.96 } : undefined}
           aria-label={onRingClick ? t('Change calorie goal and activity level') : undefined}
-          className="relative mx-auto aspect-square w-full max-w-40 rounded-full text-center disabled:cursor-default"
+          className="relative mx-auto aspect-square w-full min-w-0 max-w-40 rounded-full text-center disabled:cursor-default"
         >
           <motion.div
             className="absolute -inset-3 rounded-full blur-xl"
@@ -81,16 +84,16 @@ export function NutritionGlance({
                 transition={{ duration: 8, repeat: Infinity, ease: 'linear' }}
                 aria-hidden
               />
-              <motion.div className="relative" animate={reduceMotion ? undefined : { scale: [1, 1.025, 1] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
+              <motion.div className="relative min-w-0 max-w-full px-1" animate={reduceMotion ? undefined : { scale: [1, 1.025, 1] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
                 <p className="text-[10px] font-semibold text-ink-soft">{t(remaining >= 0 ? 'Remaining' : 'Over by')}</p>
-                <p className="font-mono text-3xl leading-tight font-bold text-ink">{Math.abs(Math.round(remaining))}</p>
-                <p className="font-mono text-[9px] font-semibold text-ink-faint">{t('of')} {Math.round(target.kcal)} kcal</p>
+                <p className="whitespace-nowrap font-mono text-[clamp(1.35rem,7vw,1.875rem)] leading-tight font-bold tracking-[-0.06em] text-ink tabular-nums">{Math.abs(Math.round(remaining))}</p>
+                <p className="whitespace-nowrap font-mono text-[clamp(7px,2vw,9px)] font-semibold tracking-[-0.035em] text-ink-faint">{t('of')} {Math.round(target.kcal)} kcal</p>
               </motion.div>
             </div>
           </div>
           {onRingClick && <span className="pointer-events-none absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full border border-white bg-white/90 text-[10px] font-black text-amber-700 shadow-sm" aria-hidden>✦</span>}
         </motion.button>
-        <div><p className="font-mono text-lg font-bold text-ink">{mealsDone}/{mealsTotal}</p><p className="mt-1 text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Meals')}</p></div>
+        <div className="min-w-0"><p className="whitespace-nowrap font-mono text-[clamp(1rem,4.8vw,1.125rem)] leading-none font-bold text-ink tabular-nums">{mealsDone}/{mealsTotal}</p><p className="mt-1 truncate text-[9px] font-bold tracking-wide text-ink-faint uppercase sm:text-[10px]">{t('Meals')}</p></div>
       </div>
 
       <div className="relative mt-5 grid grid-cols-3 gap-2">

@@ -23,6 +23,8 @@ import { useFoodStore } from '../../store/FoodStore'
 import { GlassCard } from '../ui'
 import { BarcodeIcon } from '../Icons'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import { mealBlockIdempotencyKey, normalizeMealBlockSettings, type MealBlockKind } from '../../lib/mealBlocks'
+import { useStore } from '../../store/AppStore'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -34,6 +36,7 @@ interface MealComposerProps {
   title?: string
   initialItems?: ComposerFoodItem[]
   plannedMealId?: string | null
+  mealBlockId?: MealBlockKind | null
   replaceMealId?: string | null
   onClose: () => void
   onLogged?: () => void
@@ -53,11 +56,13 @@ export function MealComposer({
   title,
   initialItems = [],
   plannedMealId = null,
+  mealBlockId = null,
   replaceMealId = null,
   onClose,
   onLogged,
 }: MealComposerProps) {
   const store = useFoodStore()
+  const { data, setSettings } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const slotLabel = translateInterfaceText(`${slot[0].toUpperCase()}${slot.slice(1)}`, language)
@@ -85,7 +90,13 @@ export function MealComposer({
     [selection],
   )
   const selectionReady = Boolean(selection && selection.quantity > 0 && selectionPortion)
-  const slotPresets = useMemo(() => store.presets.filter((preset) => !preset.archived && preset.meal_slot === slot), [slot, store.presets])
+  const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(data.settings?.addons.meal_blocks), [data.settings?.addons.meal_blocks])
+  const slotPresets = useMemo(() => store.presets.filter((preset) => {
+    if (preset.archived || preset.meal_slot !== slot) return false
+    if (!mealBlockId) return true
+    const assigned = mealBlockSettings.preset_assignments[preset.id]
+    return assigned == null || assigned === mealBlockId
+  }), [mealBlockId, mealBlockSettings.preset_assignments, slot, store.presets])
   const recentMeals = useMemo(() => store.meals.filter((meal) => meal.meal_slot === slot).slice(0, 4), [slot, store.meals])
 
   const materializeFood = async (food: FoodRecord): Promise<FoodRecord> => {
@@ -269,6 +280,17 @@ export function MealComposer({
       items,
       sourcePlannedMealId: plannedMealId,
     })
+    if (mealBlockId && data.settings) {
+      setSettings({
+        addons: {
+          ...data.settings.addons,
+          meal_blocks: {
+            ...mealBlockSettings,
+            preset_assignments: { ...mealBlockSettings.preset_assignments, [saved.id]: mealBlockId },
+          },
+        },
+      })
+    }
     setLoadedPresetId(saved.id)
     setPresetName('')
     setMessage('Reusable preset saved. Adjustable amounts can adapt without rewriting your template.')
@@ -281,9 +303,12 @@ export function MealComposer({
     }
     setSaving(true)
     try {
+      const assignedBlock = mealBlockId ?? (loadedPresetId ? mealBlockSettings.preset_assignments[loadedPresetId] : null)
       await store.logMeal({
-        date, slot, name: name.trim() || 'Meal', items, sourcePlannedMealId: plannedMealId,
+        date, slot, name: name.trim() || 'Meal', items, sourcePresetId: loadedPresetId,
+        sourcePlannedMealId: plannedMealId,
         replaceMealId, loggedAs: planning ? 'planned' : plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
+        idempotencyKey: mealBlockIdempotencyKey(crypto.randomUUID(), assignedBlock),
       })
       onLogged?.()
       onClose()

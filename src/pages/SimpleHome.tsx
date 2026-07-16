@@ -26,13 +26,15 @@ import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type C
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { canPasteSimpleDay, dayMealCopyIdempotencyKey, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
 import { NutritionGlance } from '../components/food/NutritionGlance'
 import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
 import { WeightTrend } from '../components/WeightTrend'
+import { FloatingActiveDate } from '../components/FloatingActiveDate'
+import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockKind } from '../lib/mealBlocks'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -76,8 +78,8 @@ export function SimpleHome() {
   const [weightDraft, setWeightDraft] = useState('')
   const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | 'weight' | null>(null)
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
-  const [quickMealSlot, setQuickMealSlot] = useState<MealSlot | null>(null)
-  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
+  const [quickMealBlockId, setQuickMealBlockId] = useState<MealBlockKind | null>(null)
+  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
   const [customWaterDraft, setCustomWaterDraft] = useState('')
   const today = todayIso()
@@ -92,7 +94,7 @@ export function SimpleHome() {
   const [calendarBusy, setCalendarBusy] = useState(false)
   const calendarPressTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
   const calendarLongPressFired = useRef(false)
-  const swipeStart = useRef<{ x: number; y: number; blockedByLocalGesture: boolean } | null>(null)
+  const swipeStart = useRef<{ x: number; y: number; touchId: number; blockedByLocalGesture: boolean } | null>(null)
   const summaryActionsRef = useRef<HTMLDivElement>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedDate), [selectedDate])
   const profile = data.profile
@@ -104,6 +106,7 @@ export function SimpleHome() {
   const showGuidedPlan = settings?.addons.simple_show_guided_plan ?? true
   const showHydrationReminder = settings?.addons.simple_show_hydration_reminder ?? false
   const showManualWorkoutCard = settings?.addons.simple_show_manual_workout ?? false
+  const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(settings?.addons.meal_blocks), [settings?.addons.meal_blocks])
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
   const mealPlan = useMemo(
     () => profile && targets
@@ -121,6 +124,12 @@ export function SimpleHome() {
     [dateFoodMeals, dateMealIds, mealPlan],
   )
   const consumed = useMemo(() => aggregateConsumedMeals(consumedMeals), [consumedMeals])
+  const mealBlockStatuses = useMemo(() => resolveMealBlockStatuses({
+    settings: mealBlockSettings,
+    loggedMeals: dateFoodMeals,
+    plannedMeals: mealPlan,
+    checkedPlannedMealIds: dateMealIds,
+  }), [dateFoodMeals, dateMealIds, mealBlockSettings, mealPlan])
   const macroContributors = useMemo(() => {
     const mealIds = new Set(dateFoodMeals.map((meal) => meal.id))
     const localizedEntries = foodStore.entries
@@ -193,9 +202,6 @@ export function SimpleHome() {
 
   if (!profile || !targets || !settings) return null
 
-  const mealIsDone = (meal: TargetMeal): boolean =>
-    dateFoodMeals.some((logged) => logged.source_planned_meal_id === meal.id) ||
-    data.meal_logs.some((logged) => logged.date === selectedDate && logged.meal_id === meal.id)
   const groupIsDone = (group: { items: Supplement[] }): boolean =>
     group.items.length > 0 && group.items.every((item) => supplementDoneIds.has(item.id))
 
@@ -211,10 +217,11 @@ export function SimpleHome() {
     })
   }
 
-  const completedMeals = mealPlan.filter(mealIsDone).length
+  const completedMeals = mealBlockStatuses.filter((status) => status.completed).length
+  const totalMealBlocks = mealBlockStatuses.length
   const completedGroups = supplementGroups.filter(groupIsDone).length
   const hasWorkout = plan.exercises.length > 0
-  const totalTasks = mealPlan.length + supplementGroups.length + 1 + Number(hasWorkout)
+  const totalTasks = totalMealBlocks + supplementGroups.length + 1 + Number(hasWorkout)
   const completedTasks = completedMeals + completedGroups + Number(waterDone) + Number(hasWorkout && workoutDone)
   const completion = simpleCompletion(completedTasks, totalTasks)
 
@@ -289,20 +296,25 @@ export function SimpleHome() {
       })),
   )
 
-  const editQuickPlannedMeal = async (meal: TargetMeal): Promise<void> => {
+  const editQuickPlannedMeal = async (meal: TargetMeal, blockId: MealBlockKind): Promise<void> => {
     const actual = dateFoodMeals.find((logged) => logged.source_planned_meal_id === meal.id)
     const items = actual ? await loggedMealItems(actual) : [await plannedFoodItem(meal)]
     setQuickPanel(null)
     setQuickMealEditor({
-      slot: mealSlotFor(meal), title: actual?.display_name ?? meal.name, items,
+      slot: mealSlotForBlock(blockId), blockId, title: actual?.display_name ?? meal.name, items,
       plannedMealId: meal.id, replaceMealId: actual?.id ?? null,
     })
   }
 
-  const editQuickCustomMeal = async (meal: LoggedMeal): Promise<void> => {
+  const editQuickCustomMeal = async (meal: LoggedMeal, blockId?: MealBlockKind): Promise<void> => {
+    const assignedBlock = blockId
+      ?? mealBlockIdFromIdempotencyKey(meal.client_idempotency_key)
+      ?? (meal.source_preset_id ? mealBlockSettings.preset_assignments[meal.source_preset_id] : undefined)
+      ?? mealBlockStatuses.find((status) => status.loggedMeal?.id === meal.id)?.block.id
+      ?? (meal.meal_slot as MealBlockKind)
     setQuickPanel(null)
     setQuickMealEditor({
-      slot: meal.meal_slot, title: meal.display_name, items: await loggedMealItems(meal),
+      slot: meal.meal_slot, blockId: assignedBlock, title: meal.display_name, items: await loggedMealItems(meal),
       plannedMealId: meal.source_planned_meal_id, replaceMealId: meal.id,
     })
   }
@@ -319,9 +331,10 @@ export function SimpleHome() {
         toast(`${meal.name} reopened`, 'ok')
       } else {
         const item = await plannedFoodItem(meal)
+        const blockId = mealBlockStatuses.find((status) => status.plannedMeal?.id === meal.id)?.block.id
         await foodStore.logMeal({
           date: selectedDate, slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
-          loggedAs: 'planned', idempotencyKey: `simple-planned:${profile.user_id}:${selectedDate}:${meal.id}`,
+          loggedAs: 'planned', idempotencyKey: mealBlockIdempotencyKey(`simple-planned:${profile.user_id}:${selectedDate}:${meal.id}`, blockId),
         })
         upsert('meal_logs', {
           id: crypto.randomUUID(), user_id: profile.user_id, date: selectedDate, meal_id: meal.id,
@@ -331,6 +344,28 @@ export function SimpleHome() {
       }
     } finally {
       setBusyMeal(null)
+    }
+  }
+
+  const openMealBlock = async (status: (typeof mealBlockStatuses)[number]): Promise<void> => {
+    if (status.loggedMeal) {
+      await editQuickCustomMeal(status.loggedMeal, status.block.id)
+      return
+    }
+    if (status.plannedMeal) {
+      if (status.completed) await toggleMeal(status.plannedMeal)
+      else await editQuickPlannedMeal(status.plannedMeal, status.block.id)
+      return
+    }
+    setQuickPanel(null)
+    setQuickMealBlockId(status.block.id)
+  }
+
+  const removeMealBlockEntry = async (status: (typeof mealBlockStatuses)[number]): Promise<void> => {
+    if (status.loggedMeal) await foodStore.deleteMeal(status.loggedMeal.id)
+    if (status.plannedMeal) {
+      const check = data.meal_logs.find((log) => log.date === selectedDate && log.meal_id === status.plannedMeal?.id)
+      if (check) remove('meal_logs', check.id)
     }
   }
 
@@ -447,10 +482,17 @@ export function SimpleHome() {
       const sourceMeals = foodStore.mealsForDate(copiedDay)
         .filter((meal) => selectedMealIds == null || selectedMealIds.has(meal.id))
         .sort((left, right) => left.logged_at.localeCompare(right.logged_at))
+      const sourceBlockStatuses = resolveMealBlockStatuses({
+        settings: mealBlockSettings,
+        loggedMeals: foodStore.mealsForDate(copiedDay),
+        plannedMeals: mealPlan,
+        checkedPlannedMealIds: new Set(data.meal_logs.filter((log) => log.date === copiedDay).map((log) => log.meal_id)),
+      })
       let targetMeals = foodStore.mealsForDate(targetDate)
       const targetPlannedChecks = new Set(data.meal_logs.filter((log) => log.date === targetDate).map((log) => log.meal_id))
 
       for (const sourceMeal of sourceMeals) {
+        const sourceBlockId = sourceBlockStatuses.find((status) => status.loggedMeal?.id === sourceMeal.id)?.block.id
         const replaceMeal = sourceMeal.source_planned_meal_id
           ? targetMeals.find((meal) => meal.source_planned_meal_id === sourceMeal.source_planned_meal_id)
           : undefined
@@ -463,7 +505,7 @@ export function SimpleHome() {
           sourcePlannedMealId: sourceMeal.source_planned_meal_id,
           replaceMealId: replaceMeal?.id,
           loggedAs: sourceMeal.logged_as,
-          idempotencyKey: dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id),
+          idempotencyKey: mealBlockIdempotencyKey(dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id), sourceBlockId),
         })
         targetMeals = [copiedMeal, ...targetMeals.filter((meal) => meal.id !== replaceMeal?.id)]
         if (sourceMeal.source_planned_meal_id && !targetPlannedChecks.has(sourceMeal.source_planned_meal_id)) {
@@ -558,10 +600,11 @@ export function SimpleHome() {
 
   const nowMinutes = selectedDate === today ? new Date().getHours() * 60 + new Date().getMinutes() : 0
   const actionCandidates = [
-    ...mealPlan.filter((meal) => !mealIsDone(meal)).map((meal) => ({
-      time: minuteOf(meal.time), eyebrow: 'Next meal', title: meal.name,
-      meta: `${meal.time} · ${meal.kcal} kcal`, action: 'Log as planned',
-      run: () => void toggleMeal(meal), accent: ACCENTS.amber,
+    ...mealBlockStatuses.filter((status) => !status.completed).map((status) => ({
+      time: minuteOf(status.block.time), eyebrow: 'Next meal', title: status.plannedMeal?.name ?? mealBlockLabel(status.block.kind),
+      meta: status.plannedMeal ? `${status.block.time} · ${status.plannedMeal.kcal} kcal` : status.block.time,
+      action: status.plannedMeal ? 'Log as planned' : 'Add food',
+      run: () => void openMealBlock(status), accent: ACCENTS.amber,
     })),
     ...supplementGroups.filter((group) => !groupIsDone(group)).map((group) => ({
       time: group.time, eyebrow: 'Next supplements', title: group.label,
@@ -638,21 +681,37 @@ export function SimpleHome() {
 
   return (
     <div
-      className="mx-auto w-full max-w-3xl touch-pan-y"
+      className="ios-focus-safe mx-auto w-full max-w-3xl touch-pan-y touch-pinch-zoom"
       onTouchStart={(event) => {
-        const touch = event.changedTouches[0]
-        const target = event.target
-        const blockedByLocalGesture = target instanceof Element && Boolean(target.closest('[data-simple-local-gesture]'))
-        if (touch) swipeStart.current = { x: touch.clientX, y: touch.clientY, blockedByLocalGesture }
+        const blockedByLocalGesture = isDaySwipeInteractiveTarget(event.target)
+        if (!canStartDaySwipe(event.touches.length, blockedByLocalGesture)) {
+          swipeStart.current = null
+          return
+        }
+        const touch = event.touches[0]
+        if (touch) swipeStart.current = { x: touch.clientX, y: touch.clientY, touchId: touch.identifier, blockedByLocalGesture }
+      }}
+      onTouchMove={(event) => {
+        const start = swipeStart.current
+        if (start && !daySwipeHasSingleTrackedTouch(Array.from(event.touches, (touch) => touch.identifier), start.touchId)) {
+          swipeStart.current = null
+        }
       }}
       onTouchEnd={(event) => {
-        const touch = event.changedTouches[0]
-        if (touch) finishSwipe(touch.clientX, touch.clientY)
+        const start = swipeStart.current
+        const changedTouches = Array.from(event.changedTouches)
+        if (!start || !canFinishDaySwipe(event.touches.length, changedTouches.map((touch) => touch.identifier), start.touchId)) {
+          swipeStart.current = null
+          return
+        }
+        const touch = changedTouches[0]
+        finishSwipe(touch.clientX, touch.clientY)
       }}
       onTouchCancel={() => {
         swipeStart.current = null
       }}
     >
+      <FloatingActiveDate label={selectedDateLabel} />
       <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={() => moveDay(-1)} aria-label={t('Previous day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">‹</button>
@@ -682,7 +741,7 @@ export function SimpleHome() {
             target={targets}
             consumed={consumed}
             mealsDone={completedMeals}
-            mealsTotal={mealPlan.length}
+            mealsTotal={totalMealBlocks}
             status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
             onOpen={() => openNutritionSection('meals')}
             onRingClick={() => setQuickPanel('targets')}
@@ -701,7 +760,7 @@ export function SimpleHome() {
                     onClick={(event) => event.stopPropagation()}
                     onBlur={commitMorningWeight}
                     onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                    className="w-11 bg-transparent text-right font-mono text-[11px] font-black text-ink outline-none"
+                    className="w-11 bg-transparent text-right font-mono text-base font-black text-ink outline-none"
                     aria-label={t(weightUnit === 'lb' ? 'Morning weight in pounds' : 'Morning weight in kilograms')}
                   />
                   <span className="ml-1 font-mono text-[8px] font-black text-ink-faint uppercase">{weightUnit}</span>
@@ -713,7 +772,7 @@ export function SimpleHome() {
         </GlassCard>
 
         <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
-          <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${mealPlan.length}`} label={t('Meals')} done={mealPlan.length > 0 && completedMeals === mealPlan.length} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
+          <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${totalMealBlocks}`} label={t('Meals')} done={totalMealBlocks > 0 && completedMeals === totalMealBlocks} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
           <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
           <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
           <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
@@ -890,30 +949,24 @@ export function SimpleHome() {
               {quickPanel === 'meals' ? (
                 <div className="mt-3">
                   <div className="max-h-[16dvh] space-y-1.5 overflow-y-auto pr-0.5">
-                    {mealPlan.map((meal) => {
-                      const done = mealIsDone(meal)
+                    {mealBlockStatuses.map((status) => {
+                      const title = mealBlockLabel(status.block.kind)
+                      const detail = status.loggedMeal?.display_name ?? status.plannedMeal?.name
                       return (
-                        <div key={meal.id} className="flex items-center gap-1 rounded-2xl bg-slate-50/90 pr-1.5">
-                          <button type="button" disabled={busyMeal === meal.id} onClick={() => void toggleMeal(meal)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left disabled:opacity-50">
-                            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${done ? 'bg-emerald text-white' : 'border border-amber-300 bg-white text-amber-700'}`}>{done ? '✓' : '+'}</span>
-                            <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{t(meal.name)}</span><span className="block font-mono text-[9px] font-semibold text-ink-faint">{meal.time} · {meal.kcal} kcal</span></span>
+                        <div key={status.block.id} className="flex items-center gap-1 rounded-2xl bg-slate-50/90 pr-1.5">
+                          <button type="button" disabled={busyMeal === status.plannedMeal?.id} onClick={() => void openMealBlock(status)} className="flex min-w-0 flex-1 items-center gap-2 px-3 py-2.5 text-left disabled:opacity-50">
+                            <span className={`grid h-7 w-7 shrink-0 place-items-center rounded-full text-xs font-black ${status.completed ? 'bg-emerald text-white' : 'border border-amber-300 bg-white text-amber-700'}`}>{status.completed ? '✓' : '+'}</span>
+                            <span className="min-w-0 flex-1"><span className="block truncate text-xs font-black text-ink">{t(title)}</span><span className="block truncate font-mono text-[9px] font-semibold text-ink-faint">{status.block.time}{detail ? ` · ${t(detail)}` : ''}</span></span>
                           </button>
-                          <button type="button" onClick={() => void editQuickPlannedMeal(meal)} aria-label={`${t('Edit')} ${t(meal.name)}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-white text-[11px] font-black text-violet-700 shadow-sm">✎</button>
+                          {status.completed && <button type="button" onClick={() => void removeMealBlockEntry(status)} aria-label={`${t('Remove')} ${t(title)}`} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 text-[11px] font-black text-rose-600 shadow-sm">×</button>}
                         </div>
                       )
                     })}
-                    {dateFoodMeals.filter((meal) => !meal.source_planned_meal_id).map((meal) => (
+                    {dateFoodMeals.filter((meal) => !mealBlockStatuses.some((status) => status.loggedMeal?.id === meal.id)).map((meal) => (
                       <div key={meal.id} className="flex items-center gap-2 rounded-2xl border border-violet-100 bg-violet-50/55 px-2 py-1.5">
                         <button type="button" onClick={() => void editQuickCustomMeal(meal)} className="min-w-0 flex-1 rounded-xl px-1 py-1 text-left"><span className="block truncate text-xs font-black text-ink">{meal.display_name}</span><span className="block font-mono text-[9px] font-semibold text-ink-faint">{Math.round(meal.total_kcal)} kcal · {t('Custom')} · {t('Tap to edit')}</span></button>
                         <button type="button" onClick={() => void foodStore.deleteMeal(meal.id)} aria-label={`${t('Remove')} ${meal.display_name}`} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-rose-50 font-black text-rose-600">×</button>
                       </div>
-                    ))}
-                  </div>
-                  <div className="mt-3 grid grid-cols-2 gap-2" aria-label={t('Add food')}>
-                    {(['breakfast', 'lunch', 'dinner', 'snack'] as MealSlot[]).map((slot) => (
-                      <button key={slot} type="button" onClick={() => { setQuickPanel(null); setQuickMealSlot(slot) }} className="rounded-2xl border border-amber-100 bg-amber-50/70 px-3 py-2.5 text-left text-[11px] font-black text-amber-900 active:scale-[.98]">
-                        <span className="mr-1 text-amber-600">+</span>{t(`${slot[0].toUpperCase()}${slot.slice(1)}`)}
-                      </button>
                     ))}
                   </div>
                   <button type="button" onClick={() => openNutritionSection('meals')} className="mt-3 w-full rounded-2xl bg-amber-100/75 px-3 py-2.5 text-xs font-black text-amber-900">+ {t('Open full meal editor')}</button>
@@ -987,7 +1040,7 @@ export function SimpleHome() {
                     <div>
                       <label className="block text-[10px] font-black tracking-wide text-ink-faint uppercase">{t('Enter ml or litres')}</label>
                       <div className="mt-2 flex gap-2">
-                        <input autoFocus type="text" inputMode="decimal" value={customWaterDraft} onChange={(event) => setCustomWaterDraft(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submitCustomWater()} placeholder={t('e.g. 750 ml or 0.75 L')} className="min-w-0 flex-1 rounded-xl border border-cyan-100 bg-cyan-50/50 px-3 py-2 font-mono text-xs font-bold text-ink outline-none focus:border-cyan-400" />
+                        <input autoFocus type="text" inputMode="decimal" value={customWaterDraft} onChange={(event) => setCustomWaterDraft(event.target.value)} onKeyDown={(event) => event.key === 'Enter' && submitCustomWater()} placeholder={t('e.g. 750 ml or 0.75 L')} className="min-w-0 flex-1 rounded-xl border border-cyan-100 bg-cyan-50/50 px-3 py-2 font-mono text-base font-bold text-ink outline-none focus:border-cyan-400" />
                         <button type="button" onClick={submitCustomWater} className="rounded-xl bg-cyan-600 px-3 py-2 text-xs font-black text-white">{t('Add')}</button>
                       </div>
                     </div>
@@ -998,13 +1051,15 @@ export function SimpleHome() {
           </motion.div>
         )}
       </AnimatePresence>
-      {quickMealSlot && (
+      {quickMealBlockId && (
         <Suspense fallback={null}>
           <QuickMealComposer
-            slot={quickMealSlot}
+            slot={mealSlotForBlock(quickMealBlockId)}
+            mealBlockId={quickMealBlockId}
             date={selectedDate}
-            onClose={() => setQuickMealSlot(null)}
-            onLogged={() => setQuickMealSlot(null)}
+            title={t(mealBlockLabel(quickMealBlockId))}
+            onClose={() => setQuickMealBlockId(null)}
+            onLogged={() => setQuickMealBlockId(null)}
           />
         </Suspense>
       )}
@@ -1012,6 +1067,7 @@ export function SimpleHome() {
         <Suspense fallback={null}>
           <QuickMealComposer
             slot={quickMealEditor.slot}
+            mealBlockId={quickMealEditor.blockId}
             date={selectedDate}
             title={quickMealEditor.title}
             initialItems={quickMealEditor.items}

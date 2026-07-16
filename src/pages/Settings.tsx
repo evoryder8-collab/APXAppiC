@@ -9,6 +9,7 @@ import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/heal
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { isTrainingInductionEligible } from '../lib/trainingInduction'
+import { mealBlockLabel, normalizeMealBlockSettings, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -67,6 +68,7 @@ export function Settings() {
   }, [profile?.custom_bmr])
   if (!profile || !settings) return null
   const targets = computeTargets(profile)
+  const mealBlockSettings = normalizeMealBlockSettings(settings.addons.meal_blocks)
   const starterCopy = language === 'ro'
     ? {
         title: 'Sunt începător',
@@ -90,6 +92,15 @@ export function Settings() {
     const next = parsed == null || !Number.isFinite(parsed) ? null : Math.min(4000, Math.max(800, Math.round(parsed)))
     setCustomBmrDraft(next == null ? '' : String(next))
     setSettings({ addons: { ...settings.addons, custom_bmr: next } })
+  }
+
+  const updateMealBlock = (kind: MealBlockKind, patch: Partial<MealBlock>): void => {
+    const nextBlocks = mealBlockSettings.blocks.map((block) => block.id === kind ? { ...block, ...patch } : block)
+    if (!nextBlocks.some((block) => block.enabled)) {
+      toast(t('Keep at least one meal block active.'), 'error')
+      return
+    }
+    setSettings({ addons: { ...settings.addons, meal_blocks: { ...mealBlockSettings, blocks: nextBlocks } } })
   }
 
   const row = 'flex items-center justify-between gap-3 py-3'
@@ -141,6 +152,29 @@ export function Settings() {
                   const active = (settings.addons.weight_unit ?? 'kg') === unit
                   return <button key={unit} type="button" aria-pressed={active} onClick={() => setSettings({ addons: { ...settings.addons, weight_unit: unit } })} className={`rounded-lg px-3 py-2 text-[11px] font-black transition ${active ? 'bg-white text-cyan-800 shadow-sm' : 'text-ink-soft'}`}>{unit === 'kg' ? t('Kilograms (kg)') : t('Pounds (lb)')}</button>
                 })}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-[22px] border border-amber-100/90 bg-[linear-gradient(135deg,rgba(255,251,235,.88),rgba(255,255,255,.68))] p-3.5">
+              <p className={label}>{t('Meal blocks')}</p>
+              <p className={`${sub} mt-1 leading-relaxed`}>{t('Choose the meals that define your daily completion score and set their usual times. Saved presets logged into a block count automatically.')}</p>
+              <div className="mt-3 space-y-1.5">
+                {mealBlockSettings.blocks.map((block) => (
+                  <div key={block.id} className={`flex items-center gap-3 rounded-2xl border px-3 py-2.5 transition ${block.enabled ? 'border-amber-200/70 bg-white/82' : 'border-transparent bg-white/38 opacity-65'}`}>
+                    <label className="flex min-w-0 flex-1 cursor-pointer items-center gap-2.5">
+                      <input type="checkbox" checked={block.enabled} onChange={(event) => updateMealBlock(block.id, { enabled: event.target.checked })} className="h-4 w-4 shrink-0 accent-amber-500" />
+                      <span className="truncate text-xs font-black text-ink">{t(mealBlockLabel(block.kind))}</span>
+                    </label>
+                    <input
+                      type="time"
+                      value={block.time}
+                      disabled={!block.enabled}
+                      onChange={(event) => updateMealBlock(block.id, { time: event.target.value })}
+                      aria-label={`${t(mealBlockLabel(block.kind))} ${t('time')}`}
+                      className="w-[6.4rem] rounded-xl border border-amber-100 bg-white/88 px-2 py-1.5 text-center font-mono text-[11px] font-black text-ink outline-none focus:border-amber-400 disabled:opacity-50"
+                    />
+                  </div>
+                ))}
               </div>
             </div>
 

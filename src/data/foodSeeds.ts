@@ -43,13 +43,21 @@ const LOCALIZED_NAMES: Record<string, { ro: string; th: string }> = {
   '10000000-0000-4000-8000-000000000038': { ro: 'Spanac proaspăt, profil de referință elvețian', th: 'ผักโขมสด ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
   '10000000-0000-4000-8000-000000000039': { ro: 'Spanac congelat, profil de referință elvețian', th: 'ผักโขมแช่แข็ง ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
   '10000000-0000-4000-8000-000000000040': { ro: 'Mazăre verde congelată, profil de referință elvețian', th: 'ถั่วลันเตาแช่แข็ง ข้อมูลอ้างอิงสำหรับสวิตเซอร์แลนด์' },
+  '10000000-0000-4000-8000-000000000041': { ro: 'Ulei de măsline extravirgin', th: 'น้ำมันมะกอกบริสุทธิ์พิเศษ' },
+  '10000000-0000-4000-8000-000000000042': { ro: 'Ulei de măsline extravirgin M-Classic, presat la rece', th: 'น้ำมันมะกอกบริสุทธิ์พิเศษสกัดเย็น M-Classic' },
+  '10000000-0000-4000-8000-000000000043': { ro: 'Ulei de măsline extravirgin grecesc LYTTOS, profil de referință', th: 'น้ำมันมะกอกบริสุทธิ์พิเศษกรีก LYTTOS ข้อมูลอ้างอิง' },
+  '10000000-0000-4000-8000-000000000044': { ro: 'Ulei de măsline extravirgin Bellasan, profil de referință', th: 'น้ำมันมะกอกบริสุทธิ์พิเศษ Bellasan ข้อมูลอ้างอิง' },
+  '10000000-0000-4000-8000-000000000045': { ro: 'Ulei de măsline extravirgin SABO, profil de referință', th: 'น้ำมันมะกอกบริสุทธิ์พิเศษ SABO ข้อมูลอ้างอิง' },
 }
 
 interface FoodOptions {
   brand?: string
   providerId?: string
   servingGrams?: number
+  servingAmount?: number
+  servingUnit?: FoodRecord['serving_unit']
   packageQuantity?: string
+  nutritionBasis?: FoodRecord['nutrition_basis']
   fibre?: number
   sugar?: number
   saturatedFat?: number
@@ -81,7 +89,7 @@ function food(
     provider_product_id: options.providerId ?? `apex-common:${id}`,
     external_image_url: null,
     package_quantity: options.packageQuantity ?? null,
-    nutrition_basis: 'per_100g',
+    nutrition_basis: options.nutritionBasis ?? 'per_100g',
     preparation_state: preparation,
     kcal_100: kcal,
     protein_100: protein,
@@ -91,9 +99,9 @@ function food(
     sugar_100: options.sugar ?? null,
     saturated_fat_100: options.saturatedFat ?? null,
     salt_100: options.salt ?? null,
-    serving_amount: options.servingGrams ?? null,
-    serving_unit: options.servingGrams ? 'g' : null,
-    serving_grams_or_ml: options.servingGrams ?? null,
+    serving_amount: options.servingAmount ?? options.servingGrams ?? null,
+    serving_unit: options.servingUnit ?? (options.servingGrams ? 'g' : null),
+    serving_grams_or_ml: options.servingAmount ?? options.servingGrams ?? null,
     piece_grams_or_ml: null,
     provider_updated_at: null,
     confidence: options.confidence ?? 'complete',
@@ -143,4 +151,9 @@ export const COMMON_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000038', 'Spinach, fresh, Swiss retail reference', 'Spinat, frisch, Schweizer Handelsreferenz', 'Épinards, frais, référence commerce suisse', 'Spinaci, freschi, riferimento retail svizzero', 23, 2.86, 3.63, 0.39, 'as_sold', { providerId: 'apex-curated:swiss-retail-spinach-fresh-reference' }),
   food('10000000-0000-4000-8000-000000000039', 'Spinach, frozen, Swiss retail reference', 'Spinat, tiefgekühlt, Schweizer Handelsreferenz', 'Épinards, surgelés, référence commerce suisse', 'Spinaci, surgelati, riferimento retail svizzero', 29, 3.63, 4.21, 0.57, 'as_sold', { providerId: 'apex-curated:swiss-retail-spinach-frozen-reference' }),
   food('10000000-0000-4000-8000-000000000040', 'Green peas, frozen, Swiss retail reference', 'Erbsen, tiefgekühlt, Schweizer Handelsreferenz', 'Petits pois, surgelés, référence commerce suisse', 'Piselli, surgelati, riferimento retail svizzero', 77, 5.22, 13.62, 0.4, 'as_sold', { providerId: 'apex-curated:swiss-retail-green-peas-frozen-reference' }),
+  food('10000000-0000-4000-8000-000000000041', 'Extra virgin olive oil', 'Olivenöl, nativ extra', 'Huile d’olive vierge extra', 'Olio extravergine di oliva', 828, 0, 0, 92, 'as_sold', { providerId: 'apex-curated:extra-virgin-olive-oil-reference', nutritionBasis: 'per_100ml', servingAmount: 15, servingUnit: 'ml', fibre: 0, sugar: 0, saturatedFat: 14, salt: 0 }),
+  food('10000000-0000-4000-8000-000000000042', 'M-Classic cold-pressed extra virgin olive oil', 'M-Classic Olivenöl, nativ extra, kaltgepresst', 'Huile d’olive vierge extra pressée à froid M-Classic', 'Olio extravergine di oliva spremuto a freddo M-Classic', 819, 0, 0, 91, 'as_sold', { brand: 'M-Classic', providerId: 'apex-curated:migros-m-classic-cold-pressed-extra-virgin-olive-oil-label', nutritionBasis: 'per_100ml', servingAmount: 15, servingUnit: 'ml', fibre: 0, sugar: 0, saturatedFat: 13, salt: 0, confidence: 'provider_verified' }),
+  food('10000000-0000-4000-8000-000000000043', 'LYTTOS Greek extra virgin olive oil, reference profile', 'LYTTOS Griechisches Olivenöl, extra nativ, Referenzprofil', 'Huile d’olive grecque vierge extra LYTTOS, profil de référence', 'Olio d’oliva greco extra vergine LYTTOS, profilo di riferimento', 828, 0, 0, 92, 'as_sold', { brand: 'LYTTOS', providerId: 'apex-curated:aldi-suisse-lyttos-greek-extra-virgin-olive-oil-reference', nutritionBasis: 'per_100ml', servingAmount: 15, servingUnit: 'ml', fibre: 0, sugar: 0, saturatedFat: 14, salt: 0 }),
+  food('10000000-0000-4000-8000-000000000044', 'Bellasan extra virgin olive oil, reference profile', 'Bellasan Olivenöl, nativ extra, Referenzprofil', 'Huile d’olive vierge extra Bellasan, profil de référence', 'Olio extravergine di oliva Bellasan, profilo di riferimento', 828, 0, 0, 92, 'as_sold', { brand: 'Bellasan', providerId: 'apex-curated:aldi-suisse-bellasan-extra-virgin-olive-oil-reference', nutritionBasis: 'per_100ml', servingAmount: 15, servingUnit: 'ml', fibre: 0, sugar: 0, saturatedFat: 14, salt: 0 }),
+  food('10000000-0000-4000-8000-000000000045', 'SABO extra virgin olive oil, reference profile', 'SABO Olivenöl, extra vergine, Referenzprofil', 'Huile d’olive vierge extra SABO, profil de référence', 'Olio d’oliva extra vergine SABO, profilo di riferimento', 828, 0, 0, 92, 'as_sold', { brand: 'SABO', providerId: 'apex-curated:swiss-retail-sabo-extra-virgin-olive-oil-reference', nutritionBasis: 'per_100ml', servingAmount: 15, servingUnit: 'ml', fibre: 0, sugar: 0, saturatedFat: 14, salt: 0 }),
 ]

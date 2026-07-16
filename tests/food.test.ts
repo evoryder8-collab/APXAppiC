@@ -139,6 +139,66 @@ test('Romanian and Thai berry searches prioritize fresh and frozen Swiss retail 
   assert.ok(rankFoods('lidl frozen peas', COMMON_FOODS, [], 'lunch').length > 0)
 })
 
+test('olive oil searches prioritize generic EVOO and cover Romanian, English and Thai', () => {
+  const generic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:extra-virgin-olive-oil-reference')!
+  const migrosClassic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:migros-m-classic-cold-pressed-extra-virgin-olive-oil-label')!
+  const aldi = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:aldi-suisse-bellasan-extra-virgin-olive-oil-reference')!
+  const lidl = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:swiss-retail-sabo-extra-virgin-olive-oil-reference')!
+
+  for (const query of [
+    'ulei', 'ulei virgin', 'ulei de măsline', 'ulei masline', 'ulei de masline extravirgin',
+    'ulei de masine', 'olive oil', 'extra virgin olive oil', 'EVOO',
+    'น้ำมันมะกอก', 'น้ำมันมะกอกบริสุทธิ์พิเศษ',
+  ]) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'lunch')[0]?.id, generic.id, query)
+  }
+  assert.ok(
+    rankFoods('ulei', COMMON_FOODS, [], 'lunch').slice(0, 5).every((food) => (food.fat_100 ?? 0) >= 90),
+    'olive oils should rank ahead of foods whose preparation name only mentions added oil',
+  )
+
+  assert.equal(rankFoods('migros ulei', COMMON_FOODS, [], 'lunch')[0]?.id, migrosClassic.id)
+  assert.equal(rankFoods('ulei m-classic', COMMON_FOODS, [], 'lunch')[0]?.id, migrosClassic.id)
+  assert.equal(rankFoods('aldi ulei', COMMON_FOODS, [], 'lunch')[0]?.id, aldi.id)
+  assert.equal(rankFoods('lidl ulei', COMMON_FOODS, [], 'lunch')[0]?.id, lidl.id)
+  assert.equal(displayFoodName(generic, 'ro'), 'Ulei de măsline extravirgin')
+  assert.equal(displayFoodName(generic, 'th'), 'น้ำมันมะกอกบริสุทธิ์พิเศษ')
+  assert.deepEqual(
+    { basis: migrosClassic.nutrition_basis, kcal: migrosClassic.kcal_100, fat: migrosClassic.fat_100, saturatedFat: migrosClassic.saturated_fat_100 },
+    { basis: 'per_100ml', kcal: 819, fat: 91, saturatedFat: 13 },
+  )
+  assert.equal(generic.confidence, 'complete')
+  assert.equal(migrosClassic.confidence, 'provider_verified')
+  assert.ok(
+    COMMON_FOODS
+      .filter((food) => food.provider_product_id?.includes('olive-oil-reference'))
+      .every((food) => food.confidence !== 'provider_verified'),
+    'retailer reference profiles must never be presented as exact verified labels',
+  )
+})
+
+test('olive oil seed facts use a liquid basis and sensible label portions', () => {
+  const generic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:extra-virgin-olive-oil-reference')!
+  assert.deepEqual(
+    {
+      basis: generic.nutrition_basis,
+      kcal: generic.kcal_100,
+      fat: generic.fat_100,
+      saturatedFat: generic.saturated_fat_100,
+      protein: generic.protein_100,
+      carbs: generic.carbs_100,
+    },
+    { basis: 'per_100ml', kcal: 828, fat: 92, saturatedFat: 14, protein: 0, carbs: 0 },
+  )
+  assert.deepEqual(beginFoodSelection(generic), { food: generic, quantity: 100, unit: 'ml' })
+  assert.deepEqual(
+    calculatePortion(generic, 15, 'ml'),
+    { equivalent_amount: 15, kcal: 124, protein_g: 0, carbs_g: 0, fat_g: 13.8, fibre_g: 0, sugar_g: 0, saturated_fat_g: 2.1, salt_g: 0 },
+  )
+  assert.ok(expandFoodSearchQueries('ulei de măsline extravirgin', 'ro').includes('extra virgin olive oil'))
+  assert.ok(expandFoodSearchQueries('น้ำมันมะกอกบริสุทธิ์พิเศษ', 'th').includes('extra virgin olive oil'))
+})
+
 test('Nixe tuna label facts and localized names match the supplied per-100 g label', () => {
   const nixe = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:lidl-nixe-tuna-own-juice-label')!
   assert.equal(nixe.kcal_100, 111)
