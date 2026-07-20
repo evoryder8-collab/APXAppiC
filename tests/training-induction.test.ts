@@ -33,9 +33,9 @@ test('predictive equipment search finds both dumbbell formats from dum', () => {
   assert.ok(ids.includes('fixed_dumbbells'))
 })
 
-test('bespoke profiles keep their programmes while future profiles can enable induction', () => {
+test('June and future profiles can enable induction while Constantine keeps his bespoke programme', () => {
   assert.equal(isTrainingInductionEligible('constantine'), false)
-  assert.equal(isTrainingInductionEligible('june'), false)
+  assert.equal(isTrainingInductionEligible('june'), true)
   assert.equal(isTrainingInductionEligible('matthew'), true)
   assert.equal(isTrainingInductionEligible('iulian'), true)
 })

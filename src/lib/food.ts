@@ -364,6 +364,12 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'afine': 'blueberries',
     'afine proaspete': 'fresh blueberries',
     'afine congelate': 'frozen blueberries',
+    'capsuna': 'strawberry',
+    'capsuni': 'strawberries',
+    'capsuni proaspete': 'fresh strawberries',
+    'capsuni congelate': 'frozen strawberries',
+    'mure': 'blackberries',
+    'mure proaspete': 'fresh blackberries',
     'zmeura': 'raspberries',
     'zmeura proaspata': 'fresh raspberries',
     'zmeura congelata': 'frozen raspberries',
@@ -372,6 +378,19 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'spanac proaspat': 'fresh spinach',
     'spanac congelat': 'frozen spinach',
     'mazare congelata': 'frozen green peas',
+    'seminte de canepa': 'hemp seeds',
+    'seminte de canepa decorticate': 'hulled hemp seeds',
+    'seminte de in': 'flaxseed',
+    'seminte de susan negru': 'black sesame seeds',
+    'seminte de dovleac': 'pumpkin seeds',
+    'seminte de chia': 'chia seeds',
+    'bucati de cacao': 'cacao nibs',
+    'fulgi de cocos': 'coconut flakes',
+    'somon afumat la cald': 'hot smoked salmon',
+    'inimi de pui': 'chicken hearts',
+    'lapte proteic': 'high protein milk',
+    'lapte bogat in proteine': 'high protein milk',
+    'cluster dextrin': 'cluster dextrin',
     'ton in suc propriu': 'tuna in own juice',
     'ulei': 'oil',
     'ulei de masline': 'olive oil',
@@ -410,12 +429,32 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'บลูเบอร์รี่สด': 'fresh blueberries',
     'บลูเบอร์รีแช่แข็ง': 'frozen blueberries',
     'บลูเบอร์รี่แช่แข็ง': 'frozen blueberries',
+    'สตรอว์เบอร์รี': 'strawberries',
+    'สตรอว์เบอร์รี่': 'strawberries',
+    'สตรอเบอร์รี': 'strawberries',
+    'สตรอเบอร์รี่': 'strawberries',
+    'สตรอว์เบอร์รีสด': 'fresh strawberries',
+    'สตรอว์เบอร์รีแช่แข็ง': 'frozen strawberries',
+    'แบล็กเบอร์รี': 'blackberries',
+    'แบล็กเบอร์รี่': 'blackberries',
     'ราสป์เบอร์รี': 'raspberries',
     'ราสเบอร์รี': 'raspberries',
     'เบอร์รีรวมแช่แข็ง': 'frozen mixed berries',
     'ผักโขมสด': 'fresh spinach',
     'ผักโขมแช่แข็ง': 'frozen spinach',
     'ถั่วลันเตาแช่แข็ง': 'frozen green peas',
+    'เมล็ดกัญชง': 'hemp seeds',
+    'เมล็ดแฟลกซ์': 'flaxseed',
+    'เมล็ดลินิน': 'flaxseed',
+    'งาดำ': 'black sesame seeds',
+    'เมล็ดฟักทอง': 'pumpkin seeds',
+    'เมล็ดเจีย': 'chia seeds',
+    'คาเคานิบส์': 'cacao nibs',
+    'เกล็ดมะพร้าว': 'coconut flakes',
+    'แซลมอนรมควันร้อน': 'hot smoked salmon',
+    'หัวใจไก่': 'chicken hearts',
+    'นมโปรตีนสูง': 'high protein milk',
+    'คลัสเตอร์เดกซ์ทริน': 'cluster dextrin',
     'ทูน่าในน้ำแร่': 'tuna in own juice',
     'น้ำมัน': 'oil',
     'น้ำมันมะกอก': 'olive oil',
@@ -435,9 +474,18 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
     proteina: 'protein', proteic: 'protein', zer: 'whey', cazeina: 'casein', izolat: 'isolate',
     integral: 'whole grain', organic: 'organic', sos: 'sauce', avocado: 'avocado',
-    afine: 'blueberries', zmeura: 'raspberries', fructe: 'fruit', padure: 'berries',
+    afine: 'blueberries', capsuna: 'strawberry', capsuni: 'strawberries', mure: 'blackberries',
+    zmeura: 'raspberries', fructe: 'fruit', padure: 'berries', kiwi: 'kiwi',
+    portocala: 'orange', mango: 'mango', ananas: 'pineapple', papaya: 'papaya',
+    struguri: 'grapes', pepene: 'watermelon', para: 'pear',
     spanac: 'spinach', mazare: 'peas', proaspat: 'fresh', proaspata: 'fresh', proaspete: 'fresh',
     congelat: 'frozen', congelata: 'frozen', congelate: 'frozen', suc: 'juice', propriu: 'own',
+    seminte: 'seeds', canepa: 'hemp', susan: 'sesame', negru: 'black', dovleac: 'pumpkin',
+    chia: 'chia', cacao: 'cacao', cocos: 'coconut', rosii: 'tomatoes', rosie: 'tomato', ceapa: 'onion',
+    afumat: 'smoked', pangasius: 'pangasius', inimi: 'hearts',
+    castravete: 'cucumber', morcov: 'carrot', ardei: 'pepper', dovlecel: 'zucchini',
+    conopida: 'cauliflower', fasole: 'beans', migdale: 'almonds',
+    cluster: 'cluster', dextrin: 'dextrin',
     ulei: 'oil', masline: 'olive', virgin: 'virgin', extravirgin: 'extra virgin',
     de: '', din: '', la: '',
   },
@@ -449,8 +497,18 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
     เวย์: 'whey', โปรตีน: 'protein', เคซีน: 'casein', ไอโซเลต: 'isolate',
     ส้มตำ: 'som tam', น้ำปลา: 'fish sauce', อะโวคาโด: 'avocado', ไข่ดิบ: 'egg raw', ไข่ต้ม: 'egg boiled',
-    บลูเบอร์รี: 'blueberries', บลูเบอร์รี่: 'blueberries', ราสป์เบอร์รี: 'raspberries', ราสเบอร์รี: 'raspberries',
+    บลูเบอร์รี: 'blueberries', บลูเบอร์รี่: 'blueberries', สตรอว์เบอร์รี: 'strawberries',
+    สตรอว์เบอร์รี่: 'strawberries', สตรอเบอร์รี: 'strawberries', สตรอเบอร์รี่: 'strawberries',
+    แบล็กเบอร์รี: 'blackberries', แบล็กเบอร์รี่: 'blackberries', ราสป์เบอร์รี: 'raspberries', ราสเบอร์รี: 'raspberries',
     เบอร์รี: 'berries', ผักโขม: 'spinach', ถั่วลันเตา: 'green peas', สด: 'fresh', แช่แข็ง: 'frozen',
+    กีวี: 'kiwi', กล้วย: 'banana', แอปเปิล: 'apple', ส้ม: 'orange', มะม่วง: 'mango', สับปะรด: 'pineapple',
+    มะละกอ: 'papaya', องุ่น: 'grapes', แตงโม: 'watermelon', ลูกแพร์: 'pear', เมล็ด: 'seeds',
+    เมล็ดกัญชง: 'hemp seeds', เมล็ดแฟลกซ์: 'flaxseed', เมล็ดลินิน: 'flaxseed', งาดำ: 'black sesame',
+    เมล็ดฟักทอง: 'pumpkin seeds', เมล็ดเจีย: 'chia seeds', คาเคานิบส์: 'cacao nibs',
+    มะพร้าว: 'coconut', มะเขือเทศ: 'tomato', ต้นหอม: 'green onion', หัวใจไก่: 'chicken hearts',
+    แตงกวา: 'cucumber', แครอท: 'carrot', พริกหวาน: 'bell pepper', ซูกินี: 'zucchini',
+    ดอกกะหล่ำ: 'cauliflower', ถั่วแขก: 'green beans', อัลมอนด์: 'almonds',
+    คลัสเตอร์เดกซ์ทริน: 'cluster dextrin',
     น้ำมัน: 'oil', น้ำมันมะกอก: 'olive oil', อีวีโอโอ: 'evoo',
   },
 }
@@ -578,6 +636,21 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
 }
 
 const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-curated:lee-sport-cfm-whey-neutral': [
+    'lee sport cfm whey', 'leesport cfm whey', 'lee-sport cfm whey', 'unflavoured cfm whey',
+    'proteina lee sport', 'โปรตีน lee sport',
+  ],
+  'apex-curated:lee-sport-whey-isolate-neutral': [
+    'lee sport whey isolate', 'leesport whey isolate', 'lee-sport whey isolate',
+    'lee sport unflavoured whey isolate', 'whey isolate neutral', 'whey isolate unflavored',
+    'izolat proteic lee sport fara aroma', 'izolat proteic lee sport fără aromă',
+    'เวย์ไอโซเลต lee sport รสธรรมชาติ',
+  ],
+  'apex-curated:lee-sport-casein-isolate-neutral': [
+    'lee sport casein isolate', 'leesport casein isolate', 'lee-sport casein isolate',
+    'casein isolate neutral', 'casein isolate unflavoured', 'cazeina izolata lee sport',
+    'เคซีนไอโซเลต lee sport รสธรรมชาติ',
+  ],
   'apex-curated:usda-fdc-173904': [
     'oats', 'organic oats', 'whole grain oats', 'organic whole grain oats',
     'ovaz', 'ovăz', 'ovaz integral', 'ovăz integral', 'ovaz integral organic', 'ovăz integral organic',
@@ -613,6 +686,49 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
   'apex-curated:swiss-retail-mixed-berries-frozen-reference': [
     'mixed berries', 'frozen mixed berries', 'fructe de padure', 'fructe de pădure congelate',
     'เบอร์รีรวมแช่แข็ง', 'aldi frozen berries', 'lidl frozen berries',
+  ],
+  'apex-curated:swiss-retail-strawberries-fresh-reference': [
+    'strawberry', 'strawberries', 'fresh strawberry', 'fresh strawberries',
+    'capsuna', 'căpșună', 'capsuni', 'căpșuni', 'capsuni proaspete', 'căpșuni proaspete',
+    'erdbeere', 'erdbeeren', 'fraise', 'fraises', 'fragola', 'fragole',
+    'สตรอว์เบอร์รี', 'สตรอว์เบอร์รี่', 'สตรอเบอร์รี', 'สตรอเบอร์รี่', 'สตรอว์เบอร์รีสด',
+  ],
+  'apex-curated:swiss-retail-strawberries-frozen-reference': [
+    'frozen strawberry', 'frozen strawberries', 'capsuni congelate', 'căpșuni congelate',
+    'tiefgekühlte erdbeeren', 'fraises surgelees', 'fragole surgelate',
+    'สตรอว์เบอร์รีแช่แข็ง', 'สตรอว์เบอร์รี่แช่แข็ง', 'สตรอเบอร์รี่แช่แข็ง',
+  ],
+  'apex-curated:swiss-retail-blackberries-fresh-reference': [
+    'blackberry', 'blackberries', 'fresh blackberries', 'mure', 'mure proaspete',
+    'brombeeren', 'mures', 'more', 'แบล็กเบอร์รี', 'แบล็กเบอร์รี่',
+  ],
+  'apex-curated:swiss-retail-hemp-seeds-reference': [
+    'hemp seed', 'hemp seeds', 'hulled hemp seeds', 'seminte de canepa', 'semințe de cânepă',
+    'hanfsamen', 'graines de chanvre', 'semi di canapa', 'เมล็ดกัญชง',
+  ],
+  'apex-curated:swiss-retail-flaxseed-reference': [
+    'flax', 'flaxseed', 'flax seeds', 'linseed', 'seminte de in', 'semințe de in',
+    'leinsamen', 'graines de lin', 'semi di lino', 'เมล็ดแฟลกซ์', 'เมล็ดลินิน',
+  ],
+  'apex-curated:swiss-retail-black-sesame-reference': [
+    'black sesame', 'black sesame seeds', 'seminte de susan negru', 'semințe de susan negru',
+    'schwarzer sesam', 'sesame noir', 'sesamo nero', 'งาดำ',
+  ],
+  'apex-curated:swiss-retail-pumpkin-seeds-reference': [
+    'pumpkin seed', 'pumpkin seeds', 'pepitas', 'seminte de dovleac', 'semințe de dovleac',
+    'kurbiskerne', 'kürbiskerne', 'graines de courge', 'semi di zucca', 'เมล็ดฟักทอง',
+  ],
+  'apex-curated:swiss-retail-chia-seeds-reference': [
+    'chia', 'chia seed', 'chia seeds', 'seminte de chia', 'semințe de chia', 'chiasamen', 'เมล็ดเจีย',
+  ],
+  'apex-curated:bodylab-cluster-dextrin-label': [
+    'bodylab cluster dextrin', 'cluster dextrin', 'highly branched cyclic dextrin', 'hbcd',
+    'dextrina ciclica', 'dextrină ciclică', 'คลัสเตอร์เดกซ์ทริน', 'ไซคลิกเดกซ์ทริน',
+  ],
+  'apex-curated:migros-oh-high-protein-milk-label': [
+    'oh high protein milk', 'oh! high protein milk', 'migros protein milk', 'migros high protein milk',
+    'lapte proteic migros', 'lapte bogat in proteine', 'lapte bogat în proteine',
+    'นมโปรตีนสูง', 'นมโปรตีน migros',
   ],
   'apex-curated:swiss-retail-spinach-fresh-reference': [
     'spinach', 'fresh spinach', 'spanac', 'spanac proaspat', 'spanac proaspăt', 'ผักโขมสด',
@@ -653,8 +769,17 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
   ],
 }
 
+const REFERENCE_RETAILERS = ['aldi', 'aldi suisse', 'lidl', 'migros', 'rewe'] as const
+
+function retailerReferenceAliases(food: FoodRecord): string[] {
+  if (!food.provider_product_id?.startsWith('apex-curated:swiss-retail-')) return []
+  const names = [food.name, ...Object.values(food.names_i18n)].filter(Boolean)
+  return REFERENCE_RETAILERS.flatMap((retailer) => names.map((name) => `${retailer} ${name}`))
+}
+
 function catalogAliases(food: FoodRecord): string[] {
-  return food.provider_product_id ? FOOD_CATALOG_ALIASES[food.provider_product_id] ?? [] : []
+  const aliases = food.provider_product_id ? FOOD_CATALOG_ALIASES[food.provider_product_id] ?? [] : []
+  return [...new Set([...aliases, ...retailerReferenceAliases(food)])]
 }
 
 function foodSearchText(food: FoodRecord): string {
@@ -669,6 +794,46 @@ function includesAny(value: string, terms: string[]): boolean {
 
 function hasSearchWord(value: string, word: string): boolean {
   return value.split(' ').includes(word)
+}
+
+function editDistanceWithin(left: string, right: string, limit: number): boolean {
+  if (Math.abs(left.length - right.length) > limit) return false
+  let previous = Array.from({ length: right.length + 1 }, (_, index) => index)
+  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
+    const current = [leftIndex]
+    let rowMinimum = current[0]
+    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
+      const cost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1
+      current[rightIndex] = Math.min(
+        current[rightIndex - 1] + 1,
+        previous[rightIndex] + 1,
+        previous[rightIndex - 1] + cost,
+      )
+      rowMinimum = Math.min(rowMinimum, current[rightIndex])
+    }
+    if (rowMinimum > limit) return false
+    previous = current
+  }
+  return previous[right.length] <= limit
+}
+
+function fuzzyFoodSearchMatch(query: string, candidate: string): boolean {
+  const queryTokens = query.split(' ').filter(Boolean)
+  const candidateTokens = candidate.split(' ').filter(Boolean)
+  if (!queryTokens.length || !candidateTokens.length) return false
+  const forms = (token: string): string[] => [
+    token,
+    ...(token.endsWith('ies') && token.length > 4 ? [`${token.slice(0, -3)}y`] : []),
+    ...(token.endsWith('s') && !token.endsWith('ss') && token.length > 4 ? [token.slice(0, -1)] : []),
+  ]
+  return queryTokens.every((queryToken) => candidateTokens.some((candidateToken) =>
+    forms(queryToken).some((queryForm) => forms(candidateToken).some((candidateForm) => {
+      if (queryForm === candidateForm) return true
+      if (queryForm.length >= 3 && (candidateForm.startsWith(queryForm) || queryForm.startsWith(candidateForm))) return true
+      const limit = queryForm.length >= 9 ? 2 : queryForm.length >= 5 ? 1 : 0
+      return limit > 0 && editDistanceWithin(queryForm, candidateForm, limit)
+    })),
+  ))
 }
 
 function categorySearchBoost(query: string, food: FoodRecord): number {
@@ -746,7 +911,11 @@ export function rankFoods(
       const aliases = (preference?.aliases ?? []).map(normalizeFoodSearch)
       const curatedAliases = catalogAliases(food).map(normalizeFoodSearch)
       const searchable = [...names, personal, ...aliases, ...curatedAliases].filter(Boolean)
-      if (needle && !searchable.some((value) => value.includes(needle))) return { food, score: -Infinity }
+      const exactSubstringMatch = needle ? searchable.some((value) => value.includes(needle)) : false
+      const fuzzyMatch = needle && !exactSubstringMatch
+        ? searchable.some((value) => fuzzyFoodSearchMatch(needle, value))
+        : false
+      if (needle && !exactSubstringMatch && !fuzzyMatch) return { food, score: -Infinity }
 
       let score = 0
       if (needle) {
@@ -756,7 +925,8 @@ export function rankFoods(
         if (names[0] === needle) score += 1040
         if (`${names[1]} ${names[0]}`.trim() === needle) score += 1000
         if (searchable.some((value) => value.startsWith(needle))) score += 500
-        if (searchable.some((value) => value.includes(needle))) score += 220
+        if (exactSubstringMatch) score += 220
+        if (fuzzyMatch) score += 120
       }
       if (preference?.favourite) score += 360
       score += Math.min(240, (preference?.usage_count ?? 0) * 12)

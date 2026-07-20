@@ -139,6 +139,65 @@ test('Romanian and Thai berry searches prioritize fresh and frozen Swiss retail 
   assert.ok(rankFoods('lidl frozen peas', COMMON_FOODS, [], 'lunch').length > 0)
 })
 
+test('strawberries resolve across every supported language, retailer prefixes and common typos', () => {
+  const fresh = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:swiss-retail-strawberries-fresh-reference')!
+  const frozen = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:swiss-retail-strawberries-frozen-reference')!
+
+  for (const query of [
+    'strawberry', 'strawbery', 'căpșuni', 'capsuni', 'Erdbeeren', 'fraises', 'fragole',
+    'สตรอว์เบอร์รี', 'สตรอว์เบอร์รี่', 'สตรอเบอร์รี่',
+    'aldi capsuni', 'lidl strawberry', 'migros สตรอว์เบอร์รี', 'rewe erdbeere',
+  ]) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'snack')[0]?.id, fresh.id, query)
+  }
+  assert.equal(rankFoods('capsuni congelate', COMMON_FOODS, [], 'snack')[0]?.id, frozen.id)
+  assert.equal(rankFoods('สตรอว์เบอร์รีแช่แข็ง', COMMON_FOODS, [], 'snack')[0]?.id, frozen.id)
+  assert.ok(expandFoodSearchQueries('căpșuni', 'ro').includes('strawberries'))
+  assert.ok(expandFoodSearchQueries('สตรอว์เบอร์รี', 'th').includes('strawberries'))
+})
+
+test('protocol fruits, seeds and vegetables are local, multilingual and available offline', () => {
+  const expectations = [
+    ['kiwi', 'Kiwi fruit, fresh'],
+    ['กล้วย', 'Banana, fresh'],
+    ['mure', 'Blackberries, fresh'],
+    ['semințe de cânepă', 'Hemp seeds, hulled'],
+    ['เมล็ดแฟลกซ์', 'Flaxseed'],
+    ['งาดำ', 'Black sesame seeds'],
+    ['seminte de dovleac', 'Pumpkin seeds, hulled'],
+    ['เมล็ดเจีย', 'Chia seeds'],
+    ['roșii cherry', 'Cherry tomatoes, fresh'],
+    ['ต้นหอม', 'Green onion, raw'],
+    ['หัวใจไก่', 'Chicken hearts, cooked'],
+    ['แซลมอนรมควันร้อน', 'Salmon, hot-smoked'],
+  ] as const
+
+  for (const [query, expectedName] of expectations) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'snack')[0]?.name, expectedName, query)
+  }
+  assert.ok(COMMON_FOODS.every((food) => Boolean(food.names_i18n.ro && food.names_i18n.th)))
+})
+
+test('Bodylab Cluster Dextrin, Migros protein milk and Lee-Sport isolate use verified labels', () => {
+  const cluster = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:bodylab-cluster-dextrin-label')!
+  const milk = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:migros-oh-high-protein-milk-label')!
+  const isolate = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:lee-sport-whey-isolate-neutral')!
+
+  assert.equal(rankFoods('Bodylab cluster dextrin', COMMON_FOODS, [], 'snack')[0]?.id, cluster.id)
+  assert.equal(rankFoods('คลัสเตอร์เดกซ์ทริน', COMMON_FOODS, [], 'snack')[0]?.id, cluster.id)
+  assert.deepEqual(
+    { kcal: cluster.kcal_100, protein: cluster.protein_100, carbs: cluster.carbs_100, fat: cluster.fat_100 },
+    { kcal: 381, protein: 0.5, carbs: 97, fat: 0.1 },
+  )
+  assert.deepEqual(
+    { basis: milk.nutrition_basis, kcal: milk.kcal_100, protein: milk.protein_100, carbs: milk.carbs_100 },
+    { basis: 'per_100ml', kcal: 47, protein: 7, carbs: 4.5 },
+  )
+  assert.equal(rankFoods('lapte proteic migros', COMMON_FOODS, [], 'breakfast')[0]?.id, milk.id)
+  assert.equal(rankFoods('leesport whey isolte', COMMON_FOODS, [], 'snack')[0]?.id, isolate.id)
+  assert.ok([cluster, milk, isolate].every((food) => food.confidence === 'provider_verified'))
+})
+
 test('olive oil searches prioritize generic EVOO and cover Romanian, English and Thai', () => {
   const generic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:extra-virgin-olive-oil-reference')!
   const migrosClassic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:migros-m-classic-cold-pressed-extra-virgin-olive-oil-label')!

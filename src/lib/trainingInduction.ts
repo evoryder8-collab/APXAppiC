@@ -57,7 +57,7 @@ export function searchEquipment(query: string, language: 'en' | 'ro' | 'th' = 'e
 }
 
 export function isTrainingInductionEligible(persona: PersonaSlug): boolean {
-  return persona !== 'constantine' && persona !== 'june'
+  return persona !== 'constantine'
 }
 
 export interface TrainingInductionInput {
