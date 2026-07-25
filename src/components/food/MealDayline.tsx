@@ -10,14 +10,19 @@ import {
   daylineRatio,
   fallbackMealTime,
   isQuietClock,
+  mealStartStorageKey,
   minuteToClock,
+  normalizeMealTimelineSnap,
   resolvePostWorkoutNutrition,
+  snapDaylineMinute,
   timedMeal,
   timedWorkout,
   zonedClock,
   zonedDateTimeToIso,
   type MealComfortWindow,
   type MealComfortZone,
+  type MealStartLog,
+  type MealTimelineSnapMinutes,
   type RecoveryNutritionLog,
 } from '../../lib/mealTiming'
 import type { WorkoutSession } from '../../lib/types'
@@ -40,6 +45,9 @@ interface DaylineMealItem {
   minute: number
   lineMinute: number
   recorded: boolean
+  timingSource: 'recorded_start' | 'recorded_finish' | 'scheduled'
+  startedAt: string | null
+  comfortMinute: number
   meal: LoggedMeal | null
   slot: MealDaylineSlot | null
   window: MealComfortWindow | null
@@ -51,6 +59,13 @@ const COPY = {
     title: 'Eat. Settle. Move. Recover.',
     subtitle: 'Meals, training and recovery timing in one place.',
     finished: 'Meal finished',
+    started: 'Eating started',
+    setStart: 'Set start',
+    editStart: 'Edit start time',
+    saveMealStart: 'Save start',
+    dragHint: 'Hold and move',
+    snap: 'snap',
+    finishOnly: 'finish recorded',
     recorded: 'recorded',
     estimated: 'scheduled',
     save: 'Save time',
@@ -91,6 +106,13 @@ const COPY = {
     title: 'Mănâncă. Așteaptă. Mișcă-te. Recuperează.',
     subtitle: 'Mesele, antrenamentul și recuperarea într-un singur loc.',
     finished: 'Masa s-a încheiat',
+    started: 'Ai început să mănânci',
+    setStart: 'Începe masa',
+    editStart: 'Editează ora de început',
+    saveMealStart: 'Salvează începutul',
+    dragHint: 'Ține apăsat și mută',
+    snap: 'pas',
+    finishOnly: 'final înregistrat',
     recorded: 'înregistrată',
     estimated: 'programată',
     save: 'Salvează ora',
@@ -131,6 +153,13 @@ const COPY = {
     title: 'กิน พักย่อย ฝึก และฟื้นตัว',
     subtitle: 'มื้ออาหาร การฝึก และเวลาฟื้นตัวอยู่ในที่เดียว',
     finished: 'กินมื้อเสร็จ',
+    started: 'เริ่มกิน',
+    setStart: 'ตั้งเวลาเริ่ม',
+    editStart: 'แก้ไขเวลาเริ่มกิน',
+    saveMealStart: 'บันทึกเวลาเริ่ม',
+    dragHint: 'แตะค้างแล้วเลื่อน',
+    snap: 'ช่วง',
+    finishOnly: 'บันทึกเวลาจบแล้ว',
     recorded: 'บันทึกแล้ว',
     estimated: 'ตามกำหนด',
     save: 'บันทึกเวลา',
@@ -189,6 +218,12 @@ const ZONE_COLOR: Record<MealComfortZone, string> = {
   ready: '#10b981',
 }
 
+const EMPTY_FALLBACK_TIMES: Record<string, string> = {}
+const EMPTY_DAYLINE_SLOTS: MealDaylineSlot[] = []
+const EMPTY_WORKOUT_SESSIONS: WorkoutSession[] = []
+const EMPTY_RECOVERY_NUTRITION: Record<string, RecoveryNutritionLog> = {}
+const EMPTY_MEAL_START_TIMES: Record<string, MealStartLog> = {}
+
 function labelLayout(items: DaylineMealItem[], height: number, compact: boolean): Map<string, number> {
   const pad = compact ? 30 : 34
   const gap = compact ? 64 : 70
@@ -229,6 +264,9 @@ function TimelineSwipeCard({
   onOpenChange,
   onActivate,
   onDelete,
+  onLongPressMove,
+  onLongPressEnd,
+  onLongPressCancel,
   deleteLabel,
   children,
 }: {
@@ -237,13 +275,26 @@ function TimelineSwipeCard({
   onOpenChange: (id: string | null) => void
   onActivate: () => void
   onDelete: () => Promise<void>
+  onLongPressMove?: (clientY: number) => void
+  onLongPressEnd?: (clientY: number) => void
+  onLongPressCancel?: () => void
   deleteLabel: string
   children: ReactNode
 }) {
   const start = useRef<{ x: number; y: number } | null>(null)
+  const latestTouch = useRef<{ x: number; y: number } | null>(null)
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const repositioning = useRef(false)
   const [drag, setDrag] = useState<number | null>(null)
   const suppressClick = useRef(false)
   const settled = open ? -MEAL_ROW_REVEAL_PX : 0
+
+  const clearHold = () => {
+    if (holdTimer.current) clearTimeout(holdTimer.current)
+    holdTimer.current = null
+  }
+
+  useEffect(() => () => clearHold(), [])
 
   return (
     <div
@@ -255,14 +306,35 @@ function TimelineSwipeCard({
         event.stopPropagation()
         const touch = event.touches[0]
         start.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+        latestTouch.current = start.current
+        repositioning.current = false
         setDrag(null)
+        clearHold()
+        if (touch && onLongPressMove && onLongPressEnd) {
+          holdTimer.current = setTimeout(() => {
+            const point = latestTouch.current
+            if (!point) return
+            repositioning.current = true
+            suppressClick.current = true
+            onOpenChange(null)
+            onLongPressMove(point.y)
+            navigator.vibrate?.(12)
+          }, 460)
+        }
       }}
       onTouchMove={(event) => {
         event.stopPropagation()
         const touch = event.touches[0]
         if (!touch || !start.current) return
+        latestTouch.current = { x: touch.clientX, y: touch.clientY }
+        if (repositioning.current) {
+          event.preventDefault()
+          onLongPressMove?.(touch.clientY)
+          return
+        }
         const dx = touch.clientX - start.current.x
         const dy = touch.clientY - start.current.y
+        if (Math.hypot(dx, dy) > 9) clearHold()
         if (Math.abs(dx) <= Math.abs(dy) * 1.15) return
         suppressClick.current = true
         event.preventDefault()
@@ -272,15 +344,27 @@ function TimelineSwipeCard({
         event.stopPropagation()
         const tracked = start.current
         const touch = event.changedTouches[0]
+        const wasRepositioning = repositioning.current
+        clearHold()
         start.current = null
+        latestTouch.current = null
+        repositioning.current = false
         setDrag(null)
         if (!tracked || !touch) return
+        if (wasRepositioning) {
+          onLongPressEnd?.(touch.clientY)
+          return
+        }
         const next = mealRowSwipeOffset(tracked, { x: touch.clientX, y: touch.clientY }, open)
         onOpenChange(next < 0 ? id : null)
       }}
       onTouchCancel={(event) => {
         event.stopPropagation()
+        clearHold()
+        if (repositioning.current) onLongPressCancel?.()
         start.current = null
+        latestTouch.current = null
+        repositioning.current = false
         setDrag(null)
       }}
     >
@@ -293,13 +377,15 @@ function TimelineSwipeCard({
           event.stopPropagation()
           void onDelete().finally(() => onOpenChange(null))
         }}
-        className="absolute inset-y-0 right-0 flex w-[104px] flex-col items-center justify-center bg-rose-600 text-white"
+        className="absolute inset-y-0 right-0 flex w-[104px] flex-col items-center justify-center bg-rose-600 text-white transition-opacity"
+        style={{ opacity: open || (drag ?? 0) < -1 ? 1 : 0 }}
       >
         <span className="grid h-8 w-8 place-items-center rounded-full bg-white/15 text-lg font-black">×</span>
         <span className="mt-1 text-[8px] font-black tracking-wide uppercase">{deleteLabel}</span>
       </button>
-      <button
-        type="button"
+      <div
+        role="button"
+        tabIndex={0}
         onClick={(event) => {
           event.stopPropagation()
           if (suppressClick.current) {
@@ -309,11 +395,17 @@ function TimelineSwipeCard({
           if (open) onOpenChange(null)
           else onActivate()
         }}
+        onKeyDown={(event) => {
+          if (event.key !== 'Enter' && event.key !== ' ') return
+          event.preventDefault()
+          if (open) onOpenChange(null)
+          else onActivate()
+        }}
         className="relative w-full text-left transition-transform duration-200 ease-out"
         style={{ transform: `translate3d(${drag ?? settled}px,0,0)` }}
       >
         {children}
-      </button>
+      </div>
     </div>
   )
 }
@@ -323,12 +415,16 @@ export function MealDayline({
   meals,
   entries,
   timeZone,
-  fallbackTimes = {},
+  fallbackTimes = EMPTY_FALLBACK_TIMES,
   compact = false,
-  slots = [],
-  sessions = [],
-  recoveryNutrition = {},
+  slots = EMPTY_DAYLINE_SLOTS,
+  sessions = EMPTY_WORKOUT_SESSIONS,
+  recoveryNutrition = EMPTY_RECOVERY_NUTRITION,
+  mealStartTimes = EMPTY_MEAL_START_TIMES,
+  snapMinutes = 30,
   onMealFinishedAt,
+  onMealStartedAt,
+  onSlotTimeChanged,
   onOpenMeal,
   onOpenSlot,
   onAddAtTime,
@@ -345,7 +441,11 @@ export function MealDayline({
   slots?: MealDaylineSlot[]
   sessions?: WorkoutSession[]
   recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
+  mealStartTimes?: Readonly<Record<string, MealStartLog>>
+  snapMinutes?: MealTimelineSnapMinutes
   onMealFinishedAt?: (mealId: string, finishedAt: string) => Promise<unknown>
+  onMealStartedAt?: (meal: LoggedMeal, startedAt: string) => Promise<void> | void
+  onSlotTimeChanged?: (slotId: string, time: string) => Promise<void> | void
   onOpenMeal?: (meal: LoggedMeal) => void
   onOpenSlot?: (slot: MealDaylineSlot) => void
   onAddAtTime?: (time: string) => void
@@ -357,7 +457,9 @@ export function MealDayline({
   const copy = COPY[language]
   const [now, setNow] = useState(() => new Date())
   const [editing, setEditing] = useState<string | null>(null)
+  const [editingStart, setEditingStart] = useState<string | null>(null)
   const [timeDraft, setTimeDraft] = useState('12:00')
+  const [startDraft, setStartDraft] = useState('12:00')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [revealedMeal, setRevealedMeal] = useState<string | null>(null)
@@ -365,7 +467,10 @@ export function MealDayline({
   const [addPinned, setAddPinned] = useState(false)
   const [recoveryDraft, setRecoveryDraft] = useState('')
   const [recoveryError, setRecoveryError] = useState('')
+  const [dragPreview, setDragPreview] = useState<{ id: string; minute: number; time: string } | null>(null)
+  const timelineRef = useRef<HTMLDivElement>(null)
   const timeInputRef = useRef<HTMLInputElement>(null)
+  const startInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const update = () => setNow(new Date())
@@ -390,7 +495,13 @@ export function MealDayline({
       const meal = slot.mealId ? byId.get(slot.mealId) ?? null : null
       if (meal) used.add(meal.id)
       if (meal) {
-        const event = timedMeal(meal, entries, timeZone, slot.time)
+        const event = timedMeal(
+          meal,
+          entries,
+          timeZone,
+          slot.time,
+          mealStartTimes[mealStartStorageKey(meal)] ?? mealStartTimes[meal.id],
+        )
         return {
           key: `slot:${slot.id}`,
           label: slot.label,
@@ -398,6 +509,9 @@ export function MealDayline({
           minute: event.minute,
           lineMinute: event.lineMinute,
           recorded: event.recorded,
+          timingSource: event.timingSource,
+          startedAt: event.startedAt,
+          comfortMinute: event.comfortMinute,
           meal,
           slot,
           window: event.window,
@@ -411,13 +525,22 @@ export function MealDayline({
         minute,
         lineMinute: minute < DAYLINE_START_MINUTE ? minute + 1440 : minute,
         recorded: false,
+        timingSource: 'scheduled' as const,
+        startedAt: null,
+        comfortMinute: minute,
         meal: null,
         slot,
         window: null,
       }
     })
     const extras: DaylineMealItem[] = meals.filter((meal) => !used.has(meal.id)).map((meal) => {
-      const event = timedMeal(meal, entries, timeZone, fallbackTimes[meal.id] ?? fallbackMealTime(meal))
+      const event = timedMeal(
+        meal,
+        entries,
+        timeZone,
+        fallbackTimes[meal.id] ?? fallbackMealTime(meal),
+        mealStartTimes[mealStartStorageKey(meal)] ?? mealStartTimes[meal.id],
+      )
       return {
         key: `meal:${meal.id}`,
         label: meal.display_name,
@@ -425,18 +548,33 @@ export function MealDayline({
         minute: event.minute,
         lineMinute: event.lineMinute,
         recorded: event.recorded,
+        timingSource: event.timingSource,
+        startedAt: event.startedAt,
+        comfortMinute: event.comfortMinute,
         meal,
         slot: null,
         window: event.window,
       }
     })
     return [...configured, ...extras].sort((left, right) => left.lineMinute - right.lineMinute)
-  }, [entries, fallbackTimes, meals, slots, timeZone])
+  }, [entries, fallbackTimes, mealStartTimes, meals, slots, timeZone])
 
-  const height = Math.max(compact ? 440 : 560, items.length * (compact ? 68 : 74))
-  const labels = useMemo(() => labelLayout(items, height, compact), [compact, height, items])
+  const displayItems = useMemo(() => items.map((item) => {
+    if (!dragPreview || dragPreview.id !== item.key) return item
+    return {
+      ...item,
+      time: dragPreview.time,
+      minute: ((dragPreview.minute % 1440) + 1440) % 1440,
+      lineMinute: dragPreview.minute,
+      recorded: Boolean(item.meal),
+      timingSource: item.meal ? 'recorded_start' as const : 'scheduled' as const,
+    }
+  }), [dragPreview, items])
+
+  const height = Math.max(compact ? 440 : 560, displayItems.length * (compact ? 68 : 74))
+  const labels = useMemo(() => labelLayout(displayItems, height, compact), [compact, displayItems, height])
   const nowY = daylineRatio(currentClock.minute) * height
-  const recordedEvents = items.filter((item) => item.meal && item.recorded && Date.parse(item.meal.logged_at) <= now.getTime())
+  const recordedEvents = displayItems.filter((item) => item.meal && item.recorded && Date.parse(item.meal.logged_at) <= now.getTime())
   const latest = isLiveDate
     ? recordedEvents.slice().sort((left, right) => Date.parse(left.meal!.logged_at) - Date.parse(right.meal!.logged_at)).at(-1) ?? null
     : null
@@ -457,7 +595,8 @@ export function MealDayline({
     meals,
     timeZone,
     recoveryNutrition,
-  }), [date, meals, recoveryNutrition, sessions, timeZone])
+    mealStartTimes,
+  }), [date, mealStartTimes, meals, recoveryNutrition, sessions, timeZone])
   const latestWorkout = workouts.at(-1) ?? null
   const latestRecovery = latestWorkout
     ? recoveryRelations.find((relation) => relation.sessionId === latestWorkout.session.id) ?? null
@@ -479,7 +618,16 @@ export function MealDayline({
   const beginEdit = (item: DaylineMealItem) => {
     if (!item.meal || !onMealFinishedAt) return
     setEditing(item.meal.id)
-    setTimeDraft(item.time)
+    setEditingStart(null)
+    setTimeDraft(zonedClock(item.meal.logged_at, timeZone).time)
+    setSaveError('')
+  }
+
+  const beginStartEdit = (item: DaylineMealItem) => {
+    if (!item.meal || !onMealStartedAt) return
+    setEditingStart(item.meal.id)
+    setEditing(null)
+    setStartDraft(item.startedAt ? zonedClock(item.startedAt, timeZone).time : currentClock.time)
     setSaveError('')
   }
 
@@ -491,6 +639,23 @@ export function MealDayline({
       const visibleTime = timeInputRef.current?.value || timeDraft
       await onMealFinishedAt(editing, zonedDateTimeToIso(date, visibleTime, timeZone))
       setEditing(null)
+    } catch {
+      setSaveError(copy.saveFailed)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const saveStartTime = async () => {
+    if (!editingStart || saving || !onMealStartedAt) return
+    setSaving(true)
+    setSaveError('')
+    try {
+      const meal = items.find((item) => item.meal?.id === editingStart)?.meal
+      if (!meal) throw new Error('Meal unavailable')
+      const visibleTime = startInputRef.current?.value || startDraft
+      await onMealStartedAt(meal, zonedDateTimeToIso(date, visibleTime, timeZone))
+      setEditingStart(null)
     } catch {
       setSaveError(copy.saveFailed)
     } finally {
@@ -517,12 +682,48 @@ export function MealDayline({
   }
 
   const activeEvent = items.find((item) => item.meal?.id === editing) ?? null
+  const activeStartEvent = items.find((item) => item.meal?.id === editingStart) ?? null
   const railX = compact ? 52 : 58
   const addMinute = addTime ? clockMinute(addTime) : null
+  const resolvedSnap = normalizeMealTimelineSnap(snapMinutes)
 
   const positionFromPointer = (clientY: number, bounds: DOMRect): string => {
     const ratio = Math.max(0, Math.min(1, (clientY - bounds.top) / Math.max(1, bounds.height)))
     return minuteToClock(DAYLINE_START_MINUTE + ratio * DAYLINE_DURATION_MINUTES)
+  }
+
+  const snappedPositionFromPointer = (clientY: number): { minute: number; time: string } | null => {
+    const bounds = timelineRef.current?.getBoundingClientRect()
+    if (!bounds) return null
+    const ratio = Math.max(0, Math.min(1, (clientY - bounds.top) / Math.max(1, bounds.height)))
+    const minute = snapDaylineMinute(
+      DAYLINE_START_MINUTE + ratio * DAYLINE_DURATION_MINUTES,
+      resolvedSnap,
+    )
+    return { minute, time: minuteToClock(minute) }
+  }
+
+  const previewReposition = (item: DaylineMealItem, clientY: number) => {
+    const next = snappedPositionFromPointer(clientY)
+    if (!next) return
+    setDragPreview({ id: item.key, ...next })
+  }
+
+  const commitReposition = async (item: DaylineMealItem, clientY: number) => {
+    const next = snappedPositionFromPointer(clientY)
+    setDragPreview(next ? { id: item.key, ...next } : null)
+    try {
+      if (!next) return
+      if (item.meal && onMealStartedAt) {
+        await onMealStartedAt(item.meal, zonedDateTimeToIso(date, next.time, timeZone))
+      } else if (item.slot && onSlotTimeChanged) {
+        await onSlotTimeChanged(item.slot.id, next.time)
+      }
+    } catch {
+      setSaveError(copy.saveFailed)
+    } finally {
+      setDragPreview(null)
+    }
   }
 
   return (
@@ -542,6 +743,7 @@ export function MealDayline({
         </div>
 
         <div
+          ref={timelineRef}
           className="relative mt-3"
           style={{ height }}
           onPointerMove={(event) => {
@@ -578,9 +780,9 @@ export function MealDayline({
           ))}
 
           {latest?.window && (() => {
-            const start = daylineRatio(latest.minute) * height
-            const transition = daylineRatio(latest.minute + latest.window.transitionAfterMinutes) * height
-            const ready = daylineRatio(latest.minute + latest.window.readyAfterMinutes) * height
+            const start = daylineRatio(latest.comfortMinute) * height
+            const transition = daylineRatio(latest.comfortMinute + latest.window.transitionAfterMinutes) * height
+            const ready = daylineRatio(latest.comfortMinute + latest.window.readyAfterMinutes) * height
             const boundedStart = Math.max(0, Math.min(height, start))
             const boundedTransition = Math.max(boundedStart, Math.min(height, transition))
             const boundedReady = Math.max(boundedTransition, Math.min(height, ready))
@@ -606,15 +808,16 @@ export function MealDayline({
           })}
 
           <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible" aria-hidden>
-            {items.map((item) => {
+            {displayItems.map((item) => {
               const actual = daylineRatio(item.minute) * height
               const label = labels.get(item.key) ?? actual
               return <path key={item.key} d={`M ${railX} ${actual} C ${railX + 11} ${actual}, ${railX + 12} ${label}, ${railX + 25} ${label}`} fill="none" stroke={item.recorded ? 'rgba(103,232,249,.48)' : 'rgba(255,255,255,.18)'} strokeWidth="1.5" strokeDasharray={item.recorded ? undefined : '3 4'} />
             })}
           </svg>
 
-          {items.map((item) => {
+          {displayItems.map((item) => {
             const actual = daylineRatio(item.minute) * height
+            const finishActual = daylineRatio(item.comfortMinute) * height
             const label = labels.get(item.key) ?? actual
             const card = (
               <div
@@ -627,12 +830,38 @@ export function MealDayline({
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="min-w-0 truncate text-[11px] font-black text-white">{item.meal?.display_name ?? item.label}</p>
-                  <span className="shrink-0 font-mono text-[10px] font-black text-cyan-100">{item.time}</span>
+                  {item.meal && onMealStartedAt ? (
+                    <button
+                      type="button"
+                      data-dayline-time-control
+                      onTouchStart={(event) => event.stopPropagation()}
+                      onTouchMove={(event) => event.stopPropagation()}
+                      onTouchEnd={(event) => event.stopPropagation()}
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        beginStartEdit(item)
+                      }}
+                      aria-label={`${copy.editStart} ${item.meal.display_name}`}
+                      className={`shrink-0 rounded-lg border px-2 py-1 font-mono text-[8px] font-black transition active:scale-95 ${item.startedAt ? 'border-emerald-200/20 bg-emerald-300/12 text-emerald-100' : 'border-cyan-200/18 bg-cyan-300/10 text-cyan-100'}`}
+                    >
+                      {item.startedAt ? `▶ ${item.time}` : `▶ ${copy.setStart}`}
+                    </button>
+                  ) : (
+                    <span className="shrink-0 font-mono text-[10px] font-black text-cyan-100">{item.time}</span>
+                  )}
                 </div>
                 <div className="mt-0.5 flex items-center justify-between gap-2">
                   <span className="truncate text-[8px] font-semibold text-white/36">{item.meal && item.window ? `${Math.round(item.meal.total_kcal)} kcal · ${copy[item.window.load]}` : copy.addMeal}</span>
-                  <span className={`shrink-0 font-mono text-[7px] font-black uppercase ${item.recorded ? 'text-emerald-200/70' : 'text-white/28'}`}>{item.recorded ? copy.recorded : copy.estimated}</span>
+                  <span className={`shrink-0 font-mono text-[7px] font-black uppercase ${item.timingSource === 'recorded_start' ? 'text-emerald-200/70' : 'text-white/28'}`}>
+                    {item.timingSource === 'recorded_start' ? copy.started : item.timingSource === 'recorded_finish' ? copy.finishOnly : copy.estimated}
+                  </span>
                 </div>
+                {(item.meal ? onMealStartedAt : onSlotTimeChanged) && (
+                  <div className="mt-1 flex items-center justify-end gap-1 font-mono text-[6.5px] font-black tracking-wide text-white/25 uppercase">
+                    <span aria-hidden>⋮⋮</span>
+                    <span>{copy.dragHint} · {resolvedSnap} min {copy.snap}</span>
+                  </div>
+                )}
               </div>
             )
             return (
@@ -646,9 +875,9 @@ export function MealDayline({
                       event.stopPropagation()
                       beginEdit(item)
                     }}
-                    aria-label={`${copy.finished} ${item.meal.display_name} ${item.time}`}
+                    aria-label={`${copy.finished} ${item.meal.display_name} ${zonedClock(item.meal.logged_at, timeZone).time}`}
                     className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#07151c] bg-cyan-200 shadow-[0_0_15px_rgba(103,232,249,.75)]"
-                    style={{ left: railX, top: actual }}
+                    style={{ left: railX, top: finishActual }}
                   />
                 ) : (
                   <span className="absolute z-20 grid h-4 w-4 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-[#07151c] bg-white/20 text-[8px] font-black text-white/55" style={{ left: railX, top: actual }}>+</span>
@@ -662,6 +891,9 @@ export function MealDayline({
                       deleteLabel={copy.delete}
                       onActivate={() => onOpenMeal ? onOpenMeal(item.meal!) : beginEdit(item)}
                       onDelete={() => onDeleteMeal(item.meal!)}
+                      onLongPressMove={onMealStartedAt ? (clientY) => previewReposition(item, clientY) : undefined}
+                      onLongPressEnd={onMealStartedAt ? (clientY) => void commitReposition(item, clientY) : undefined}
+                      onLongPressCancel={() => setDragPreview(null)}
                     >
                       {card}
                     </TimelineSwipeCard>
@@ -716,7 +948,7 @@ export function MealDayline({
             </motion.button>
           )}
 
-          {items.length === 0 && (
+          {displayItems.length === 0 && (
             <div className="pointer-events-none absolute inset-0 grid place-items-center pl-20 pr-5 text-center">
               <p className="max-w-xs text-[11px] leading-relaxed font-semibold text-white/42">{copy.noMeals}</p>
             </div>
@@ -769,10 +1001,10 @@ export function MealDayline({
                 <p className="truncate text-[10px] font-black text-white">{copy[currentZone]} · {latest.meal?.display_name}</p>
                 <p className="mt-0.5 text-[8px] font-semibold text-white/38">
                   {currentZone === 'ready'
-                    ? `${copy.ready} ${minuteToClock(latest.minute + latest.window.readyAfterMinutes)}`
+                    ? `${copy.ready} ${minuteToClock(latest.comfortMinute + latest.window.readyAfterMinutes)}`
                     : currentZone === 'transition'
                       ? `${copy.ready} ${copy.in} ${minutesLabel(readyIn ?? 0)}`
-                      : `${copy.transition} ${copy.in} ${minutesLabel(transitionIn ?? 0)} · ${copy.ready} ${minuteToClock(latest.minute + latest.window.readyAfterMinutes)}`}
+                      : `${copy.transition} ${copy.in} ${minutesLabel(transitionIn ?? 0)} · ${copy.ready} ${minuteToClock(latest.comfortMinute + latest.window.readyAfterMinutes)}`}
                 </p>
               </div>
             </div>
@@ -780,6 +1012,28 @@ export function MealDayline({
             <p className="text-[9px] leading-relaxed font-semibold text-white/38">{copy.note}</p>
           )}
         </div>
+
+        <AnimatePresence>
+          {activeStartEvent?.meal && (
+            <motion.div initial={{ opacity: 0, y: 8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 6, height: 0 }} className="relative mt-2 overflow-hidden rounded-2xl border border-emerald-200/15 bg-emerald-100/[.075]">
+              <div className="flex items-end gap-2 p-3">
+                <label className="min-w-0 flex-1">
+                  <span className="block truncate text-[9px] font-black text-emerald-100">{copy.started} · {activeStartEvent.meal.display_name}</span>
+                  <input
+                    type="time"
+                    ref={startInputRef}
+                    value={startDraft}
+                    onChange={(event) => setStartDraft(event.target.value)}
+                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-emerald-300/50"
+                  />
+                </label>
+                <button type="button" disabled={saving} onClick={() => void saveStartTime()} className="min-h-10 shrink-0 rounded-xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-3 text-[10px] font-black text-[#051019] disabled:opacity-50">{saving ? copy.saving : copy.saveMealStart}</button>
+                <button type="button" onClick={() => setEditingStart(null)} aria-label={copy.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/8 font-black text-white/55">×</button>
+              </div>
+              {saveError && <p className="px-3 pb-3 text-[9px] font-semibold text-rose-300">{saveError}</p>}
+            </motion.div>
+          )}
+        </AnimatePresence>
 
         <AnimatePresence>
           {activeEvent?.meal && (

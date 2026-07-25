@@ -326,6 +326,15 @@ export interface Settings {
       started_at: string
       updated_at: string
     }>
+    /* Actual eating starts are separate from LoggedMeal.logged_at, which is
+       the meal finish. Keeping both timestamps prevents the dayline from
+       treating the first bite as the end of digestion. */
+    meal_start_times?: Record<string, {
+      started_at: string
+      updated_at: string
+    }>
+    /* Long-press movement on the meal dayline snaps to this persistent step. */
+    meal_timeline_snap_minutes?: 5 | 15 | 30 | 60
   }
 }
 

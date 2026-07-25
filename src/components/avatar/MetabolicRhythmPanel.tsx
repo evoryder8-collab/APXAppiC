@@ -100,7 +100,8 @@ export function MetabolicRhythmPanel() {
     sessions,
     timeZone,
     recoveryNutrition: data.settings?.addons.recovery_nutrition,
-  }), [data.settings?.addons.recovery_nutrition, entries, meals, sessions, timeZone])
+    mealStartTimes: data.settings?.addons.meal_start_times,
+  }), [data.settings?.addons.meal_start_times, data.settings?.addons.recovery_nutrition, entries, meals, sessions, timeZone])
   const score = analysis.rhythmScore
   const readyShare = analysis.workoutsWithContext
     ? Math.round((analysis.readyStarts / analysis.workoutsWithContext) * 100)

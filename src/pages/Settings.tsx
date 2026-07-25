@@ -10,7 +10,7 @@ import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { isTrainingInductionEligible } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
-import { supportedTimeZones, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
+import { MEAL_TIMELINE_SNAP_OPTIONS, normalizeMealTimelineSnap, supportedTimeZones, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -90,6 +90,26 @@ export function Settings() {
           title: 'Meal dayline timezone',
           body: 'Controls the live clock, meal positions and pre-workout timing analysis.',
           invalid: 'Choose a valid timezone from the list.',
+        }
+  const mealSnapCopy = language === 'ro'
+    ? {
+        title: 'Pasul de mutare a meselor',
+        body: 'Ține apăsată o masă pe cronologie, apoi mut-o. Ora reală de început se aliniază la pasul ales și se sincronizează în cont.',
+        minute: 'min',
+        hour: '1 oră',
+      }
+    : language === 'th'
+      ? {
+          title: 'ช่วงเวลาสำหรับเลื่อนมื้ออาหาร',
+          body: 'แตะมื้ออาหารบนไทม์ไลน์ค้างไว้แล้วเลื่อน เวลาเริ่มกินจริงจะยึดตามช่วงที่เลือกและซิงก์กับบัญชี',
+          minute: 'นาที',
+          hour: '1 ชั่วโมง',
+        }
+      : {
+          title: 'Meal movement step',
+          body: 'Hold a meal on the dayline, then move it. The actual eating start snaps to this step and syncs to your account.',
+          minute: 'min',
+          hour: '1 hour',
         }
   const starterCopy = language === 'ro'
     ? {
@@ -213,6 +233,27 @@ export function Settings() {
               />
               <datalist id="apex-time-zones">{timeZones.map((zone) => <option key={zone} value={zone} />)}</datalist>
               <p className="mt-2 truncate font-mono text-[8px] font-bold text-emerald-800/65">{resolvedTimeZone.replace(/_/g, ' ')} · {zonedClock(new Date(), resolvedTimeZone).date}</p>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-cyan-100/90 bg-[linear-gradient(135deg,rgba(236,254,255,.78),rgba(255,255,255,.68))] p-3">
+              <p className={label}>{mealSnapCopy.title}</p>
+              <p className={`${sub} mt-1 leading-relaxed`}>{mealSnapCopy.body}</p>
+              <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-cyan-950/6 p-1" role="group" aria-label={mealSnapCopy.title}>
+                {MEAL_TIMELINE_SNAP_OPTIONS.map((minutes) => {
+                  const active = normalizeMealTimelineSnap(settings.addons.meal_timeline_snap_minutes) === minutes
+                  return (
+                    <button
+                      key={minutes}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setSettings({ addons: { ...settings.addons, meal_timeline_snap_minutes: minutes } })}
+                      className={`rounded-lg px-1 py-2 font-mono text-[10px] font-black transition ${active ? 'bg-white text-cyan-800 shadow-sm' : 'text-ink-soft'}`}
+                    >
+                      {minutes === 60 ? mealSnapCopy.hour : `${minutes} ${mealSnapCopy.minute}`}
+                    </button>
+                  )
+                })}
+              </div>
             </div>
 
             <div className="mt-3 rounded-[22px] border border-amber-100/90 bg-[linear-gradient(135deg,rgba(255,251,235,.88),rgba(255,255,255,.68))] p-3.5">

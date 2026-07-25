@@ -37,7 +37,7 @@ import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
-import { timeZoneFromSettings } from '../lib/mealTiming'
+import { mealStartStorageKey, normalizeMealTimelineSnap, timeZoneFromSettings } from '../lib/mealTiming'
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
 
 const emerald = ACCENTS.emerald
@@ -418,6 +418,19 @@ export function SimpleHome() {
       .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
       .slice(0, 365)
     setSettings({ addons: { ...settings.addons, recovery_nutrition: Object.fromEntries(recentEntries) } })
+  }
+
+  const saveMealStart = async (meal: LoggedMeal, startedAt: string): Promise<void> => {
+    if (!settings) return
+    const key = mealStartStorageKey(meal)
+    const next = {
+      ...(settings.addons.meal_start_times ?? {}),
+      [key]: { started_at: startedAt, updated_at: new Date().toISOString() },
+    }
+    const recentEntries = Object.entries(next)
+      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
+      .slice(0, 730)
+    setSettings({ addons: { ...settings.addons, meal_start_times: Object.fromEntries(recentEntries) } })
   }
 
   const openRecoveryMeal = (): void => {
@@ -891,7 +904,10 @@ export function SimpleHome() {
           slots={timelineSlots}
           sessions={data.workout_sessions}
           recoveryNutrition={settings.addons.recovery_nutrition}
+          mealStartTimes={settings.addons.meal_start_times}
+          snapMinutes={normalizeMealTimelineSnap(settings.addons.meal_timeline_snap_minutes)}
           onMealFinishedAt={foodStore.setMealFinishedAt}
+          onMealStartedAt={saveMealStart}
           onOpenMeal={(meal) => void editQuickCustomMeal(meal)}
           onOpenSlot={(slot) => void openTimelineSlot(slot)}
           onAddAtTime={openMealAtTime}

@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import type { AppData, ProgramSlug } from './types'
 import { approachRamp } from './plan'
 import type { LoggedFoodEntry, LoggedMeal } from './food'
-import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming'
+import { analyzeMealTiming, fallbackMealTime, mealStartStorageKey, timedMeal, zonedClock } from './mealTiming'
 
 export interface MealTimingReportContext {
   meals: LoggedMeal[]
@@ -109,6 +109,8 @@ export function buildReport(
       entries,
       mealTiming.timeZone,
       mealTiming.fallbackTimes?.[meal.id] ?? fallbackMealTime(meal),
+      data.settings?.addons.meal_start_times?.[mealStartStorageKey(meal)]
+        ?? data.settings?.addons.meal_start_times?.[meal.id],
     ))
     const analysis = analyzeMealTiming({
       meals,
@@ -117,11 +119,13 @@ export function buildReport(
       timeZone: mealTiming.timeZone,
       fallbackTimes: mealTiming.fallbackTimes,
       recoveryNutrition: data.settings?.addons.recovery_nutrition,
+      mealStartTimes: data.settings?.addons.meal_start_times,
     })
 
     lines.push('## Meal timing and pre-workout context')
     lines.push(`Timezone: ${mealTiming.timeZone}.`)
-    lines.push(`Recorded meal finish times: ${analysis.recordedMeals}. Estimated times: ${analysis.estimatedMeals}.`)
+    const exactStarts = timed.filter((item) => item.timingSource === 'recorded_start').length
+    lines.push(`Exact meal starts: ${exactStarts}. Meals with a recorded start or finish: ${analysis.recordedMeals}. Estimated times: ${analysis.estimatedMeals}.`)
     if (analysis.typicalVariationMinutes != null) {
       lines.push(`Typical within-slot timing variation: ${analysis.typicalVariationMinutes} minutes. Rhythm score: ${analysis.rhythmScore ?? '?'} / 100.`)
     }
@@ -133,7 +137,7 @@ export function buildReport(
     lines.push('### Meals')
     for (const item of timed) {
       lines.push(
-        `- ${item.meal.local_date} ${item.time}: ${item.meal.display_name}, ${Math.round(item.meal.total_kcal)} kcal, P ${Math.round(item.meal.total_protein_g)} g, C ${Math.round(item.meal.total_carbs_g)} g, F ${Math.round(item.meal.total_fat_g)} g. Time ${item.recorded ? 'recorded' : 'estimated'}. Comfort estimate ${item.window.transitionAfterMinutes} to ${item.window.readyAfterMinutes} minutes.`,
+        `- ${item.meal.local_date} ${item.time}: ${item.meal.display_name}, ${Math.round(item.meal.total_kcal)} kcal, P ${Math.round(item.meal.total_protein_g)} g, C ${Math.round(item.meal.total_carbs_g)} g, F ${Math.round(item.meal.total_fat_g)} g. Timing source ${item.timingSource.replaceAll('_', ' ')}. Finished ${item.finishedAt ? zonedClock(item.finishedAt, mealTiming.timeZone).time : 'not recorded'}. Comfort estimate ${item.window.transitionAfterMinutes} to ${item.window.readyAfterMinutes} minutes.`,
       )
     }
     if (timed.length === 0) lines.push('- No structured meal timing was recorded in this range.')

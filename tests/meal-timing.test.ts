@@ -7,9 +7,13 @@ import {
   daylineRatio,
   isQuietClock,
   mealComfortWindow,
+  mealStartStorageKey,
+  normalizeMealStartTimes,
+  normalizeMealTimelineSnap,
   normalizeRecoveryNutrition,
   recoveryTimingScore,
   resolvePostWorkoutNutrition,
+  snapDaylineMinute,
   timedMeal,
   timedWorkout,
   zonedClock,
@@ -132,6 +136,43 @@ test('meal timestamps are recorded only when they belong to the selected nutriti
   assert.equal(estimated.time, '12:45')
 })
 
+test('an exact eating start is separate from meal finish and survives durable meal replacements', () => {
+  const original = meal({
+    client_idempotency_key: 'write-1|apex-meal-block=lunch',
+    logged_at: '2026-07-25T13:25:00.000Z',
+  })
+  const replacement = meal({
+    id: 'meal-2',
+    client_idempotency_key: 'write-2|apex-meal-block=lunch',
+    logged_at: '2026-07-25T13:25:00.000Z',
+  })
+  assert.equal(mealStartStorageKey(original), mealStartStorageKey(replacement))
+  const event = timedMeal(original, [], 'UTC', '13:00', {
+    started_at: '2026-07-25T13:05:00.000Z',
+    updated_at: '2026-07-25T13:05:00.000Z',
+  })
+  assert.equal(event.time, '13:05')
+  assert.equal(event.timingSource, 'recorded_start')
+  assert.equal(event.comfortMinute, 13 * 60 + 25)
+  assert.equal(event.finishedAt, '2026-07-25T13:25:00.000Z')
+})
+
+test('meal movement steps normalize and snap across the full 03:00 to 02:59 dayline', () => {
+  assert.equal(normalizeMealTimelineSnap(15), 15)
+  assert.equal(normalizeMealTimelineSnap(17), 30)
+  assert.equal(snapDaylineMinute(13 * 60 + 8, 15), 13 * 60 + 15)
+  assert.equal(snapDaylineMinute(2 * 60 + 58 + 1440, 60), 26 * 60)
+})
+
+test('meal start records reject invalid timestamps and remain bounded sync data', () => {
+  assert.deepEqual(normalizeMealStartTimes({
+    valid: { started_at: '2026-07-25T12:00:00.000Z', updated_at: '2026-07-25T12:05:00.000Z' },
+    invalid: { started_at: 'not-a-date', updated_at: 'not-a-date' },
+  }), {
+    valid: { started_at: '2026-07-25T12:00:00.000Z', updated_at: '2026-07-25T12:05:00.000Z' },
+  })
+})
+
 test('Avatar and AI timing analysis joins workout starts to the latest completed meal', () => {
   const lunch = meal()
   const analysis = analyzeMealTiming({
@@ -180,6 +221,28 @@ test('explicit post-workout eating starts override inferred meal finish timing',
   assert.equal(recovery[0].source, 'recorded_start')
   assert.equal(recovery[0].gapMinutes, 45)
   assert.equal(recovery[0].timingScore, 100)
+  assert.equal(recovery[0].mealName, 'Lunch')
+})
+
+test('a normal meal start automatically feeds post-workout recovery timing', () => {
+  const recoveryMeal = meal({
+    id: 'recovery-meal',
+    client_idempotency_key: 'write|apex-meal-block=post_workout',
+    logged_at: '2026-07-25T17:45:00.000Z',
+  })
+  const recovery = resolvePostWorkoutNutrition({
+    sessions: [session()],
+    meals: [recoveryMeal],
+    timeZone: 'UTC',
+    mealStartTimes: {
+      [mealStartStorageKey(recoveryMeal)]: {
+        started_at: '2026-07-25T17:10:00.000Z',
+        updated_at: '2026-07-25T17:10:00.000Z',
+      },
+    },
+  })
+  assert.equal(recovery[0].source, 'recorded_start')
+  assert.equal(recovery[0].gapMinutes, 40)
   assert.equal(recovery[0].mealName, 'Lunch')
 })
 

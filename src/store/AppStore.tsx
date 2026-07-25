@@ -59,7 +59,7 @@ import {
   type SeedDefinitionTable,
 } from '../lib/seedRepair'
 import { normalizeMealBlockSettings } from '../lib/mealBlocks'
-import { normalizeRecoveryNutrition } from '../lib/mealTiming'
+import { normalizeMealStartTimes, normalizeMealTimelineSnap, normalizeRecoveryNutrition } from '../lib/mealTiming'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -150,6 +150,8 @@ function normalizeAppData(value: AppData): AppData {
           time_zone: value.settings.addons?.time_zone,
           meal_blocks: normalizeMealBlockSettings(value.settings.addons?.meal_blocks),
           recovery_nutrition: normalizeRecoveryNutrition(value.settings.addons?.recovery_nutrition),
+          meal_start_times: normalizeMealStartTimes(value.settings.addons?.meal_start_times),
+          meal_timeline_snap_minutes: normalizeMealTimelineSnap(value.settings.addons?.meal_timeline_snap_minutes),
         },
       }
     : null
