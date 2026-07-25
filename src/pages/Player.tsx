@@ -268,7 +268,7 @@ export function Player() {
   /* -------- finish -------- */
   const finished = block?.kind === 'done'
   const savedRef = useRef(false)
-  const [summary, setSummary] = useState<{ quality: number; streak: number; deltas: string[]; sessionId: string } | null>(null)
+  const [summary, setSummary] = useState<{ quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string } | null>(null)
   const [showStats, setShowStats] = useState(false)
 
   useEffect(() => {
@@ -285,6 +285,7 @@ export function Player() {
     const quality = planned > 0 ? Math.min(1, completed / planned) : 1
 
     const sessionId = crypto.randomUUID()
+    const completedAt = new Date().toISOString()
     upsert('workout_sessions', {
       id: sessionId,
       user_id: data.profile?.user_id ?? '',
@@ -296,7 +297,7 @@ export function Player() {
       completed: true,
       quality_score: Math.round(quality * 100) / 100,
       started_at: state.startedAt,
-      completed_at: new Date().toISOString(),
+      completed_at: completedAt,
       notes: '',
     })
     plan.exercises.forEach((e, exIdx) => {
@@ -379,7 +380,7 @@ export function Player() {
     if (plan.isDeload) deltas.unshift('+Joint Health (deload honored)')
     if (completedFocusT25 && dayType !== 't25') deltas.push('+Endurance & HIIT')
 
-    setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas, sessionId })
+    setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas, sessionId, completedAt })
     toast('Session saved', 'ok')
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished])
@@ -543,7 +544,7 @@ function BlockView(props: {
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
-  summary: { quality: number; streak: number; deltas: string[]; sessionId: string } | null
+  summary: { quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string } | null
   onShowStats: () => void
   onFinishExit: () => void
 }) {
@@ -718,6 +719,7 @@ function BlockView(props: {
               </AccentChip>
             ))}
           </div>
+          <PostWorkoutRecoveryPrompt completedAt={props.summary.completedAt} />
         </>
       )}
       <div className="mt-6">
@@ -727,6 +729,66 @@ function BlockView(props: {
         </GradientButton>
       </div>
     </CenterCard>
+  )
+}
+
+function PostWorkoutRecoveryPrompt({ completedAt }: { completedAt: string }) {
+  const { language } = useLanguage()
+  const [now, setNow] = useState(() => Date.now())
+  useEffect(() => {
+    const timer = window.setInterval(() => setNow(Date.now()), 30_000)
+    return () => window.clearInterval(timer)
+  }, [])
+  const text = language === 'ro'
+    ? {
+        eyebrow: 'RECUPERAREA A ÎNCEPUT',
+        title: 'Reîncarcă fără grabă',
+        body: 'Țintește 20 până la 40 g de proteine de calitate în următoarele două ore. Adaugă carbohidrați după volumul antrenamentului și obiectivul zilei.',
+        fast: 'Rapid: whey isolate cu un carbohidrat ușor de digerat, precum cluster dextrin. Masă: carne, ouă, iaurt grecesc sau brânză cottage plus o sursă de carbohidrați.',
+        context: 'Dacă urmează alt antrenament greu în mai puțin de patru ore, prioritizează carbohidrații și hidratarea.',
+        remaining: 'minute rămase în fereastra principală',
+        passed: 'Fereastra de două ore a trecut. Totalul zilei rămâne cel mai important.',
+        note: 'Nu este un prag anabolic de la minut la minut.',
+      }
+    : language === 'th'
+      ? {
+          eyebrow: 'เริ่มการฟื้นตัวแล้ว',
+          title: 'เติมพลังโดยไม่ต้องรีบ',
+          body: 'รับโปรตีนคุณภาพ 20 ถึง 40 กรัมภายในสองชั่วโมง และเติมคาร์โบไฮเดรตตามปริมาณการฝึกและเป้าหมายวันนี้',
+          fast: 'แบบเร็ว: เวย์ไอโซเลตกับคาร์โบไฮเดรตที่ย่อยง่าย เช่น คลัสเตอร์เดกซ์ทริน แบบมื้อ: เนื้อ ไข่ กรีกโยเกิร์ต หรือคอตเทจชีส พร้อมแหล่งคาร์โบไฮเดรต',
+          context: 'หากมีการฝึกหนักอีกครั้งภายในสี่ชั่วโมง ให้เน้นคาร์โบไฮเดรตและน้ำ',
+          remaining: 'นาทีที่เหลือในช่วงสำคัญ',
+          passed: 'ช่วงสองชั่วโมงผ่านไปแล้ว ปริมาณอาหารตลอดวันยังสำคัญที่สุด',
+          note: 'นี่ไม่ใช่เส้นตายรายนาที',
+        }
+      : {
+          eyebrow: 'RECOVERY STARTED',
+          title: 'Refuel without rushing',
+          body: 'Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on training volume and today’s target.',
+          fast: 'Fast option: whey isolate with a familiar easy-to-digest carbohydrate such as cluster dextrin. Meal option: meat, eggs, Greek yoghurt or cottage cheese plus a carbohydrate source.',
+          context: 'If another hard session starts within four hours, prioritize carbohydrate and hydration.',
+          remaining: 'minutes left in the high-value window',
+          passed: 'The two-hour window has passed. The full day still matters most.',
+          note: 'This is not a minute-by-minute anabolic cliff.',
+        }
+  const remaining = Math.max(0, Math.ceil((Date.parse(completedAt) + 120 * 60_000 - now) / 60_000))
+  return (
+    <div className="mt-5 rounded-2xl border border-emerald-200/70 bg-gradient-to-br from-emerald-50/95 to-cyan-50/90 p-4 text-left shadow-[0_18px_42px_-30px_rgba(16,185,129,.75)]">
+      <div className="flex items-start justify-between gap-3">
+        <div>
+          <p className="font-mono text-[8px] font-black tracking-[.16em] text-emerald-700">{text.eyebrow}</p>
+          <h3 className="mt-1 font-display text-lg font-black text-ink">{text.title}</h3>
+        </div>
+        <div className="shrink-0 rounded-xl bg-white/75 px-2.5 py-2 text-center shadow-sm">
+          <p className="font-mono text-xl font-black text-emerald-700">{remaining || '✓'}</p>
+          <p className="max-w-16 text-[6px] leading-tight font-black text-ink-faint uppercase">{remaining ? text.remaining : text.passed}</p>
+        </div>
+      </div>
+      <p className="mt-2 text-[11px] leading-relaxed font-bold text-ink">{text.body}</p>
+      <p className="mt-2 text-[10px] leading-relaxed font-semibold text-ink-soft">{text.fast}</p>
+      <p className="mt-2 text-[9px] leading-relaxed font-semibold text-cyan-800">{text.context}</p>
+      <p className="mt-2 text-[8px] font-semibold text-ink-faint">{text.note}</p>
+    </div>
   )
 }
 

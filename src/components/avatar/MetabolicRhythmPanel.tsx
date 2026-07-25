@@ -18,6 +18,9 @@ const COPY = {
     context: 'Timed workouts',
     comfortable: 'Comfort-window starts',
     average: 'Average meal-to-training gap',
+    recovery: 'Post-workout timing',
+    recoveryAverage: 'Average workout-to-food gap',
+    exactStarts: 'Exact recovery starts',
     meals: 'recorded meals',
     meal: 'recorded meal',
     dayUnit: 'D',
@@ -37,6 +40,9 @@ const COPY = {
     context: 'Antrenamente corelate',
     comfortable: 'Porniri în fereastra confortabilă',
     average: 'Interval mediu masă-antrenament',
+    recovery: 'Timing după antrenament',
+    recoveryAverage: 'Interval mediu antrenament-masă',
+    exactStarts: 'Începuturi exacte',
     meals: 'mese înregistrate',
     meal: 'masă înregistrată',
     dayUnit: 'Z',
@@ -56,6 +62,9 @@ const COPY = {
     context: 'การฝึกที่มีข้อมูลเวลา',
     comfortable: 'เริ่มฝึกในช่วงที่สบายขึ้น',
     average: 'ช่วงเฉลี่ยจากมื้ออาหารถึงการฝึก',
+    recovery: 'เวลาหลังฝึก',
+    recoveryAverage: 'ช่วงเฉลี่ยจากฝึกถึงกิน',
+    exactStarts: 'เวลาเริ่มกินที่บันทึกจริง',
     meals: 'มื้อที่บันทึกเวลา',
     meal: 'มื้อที่บันทึกเวลา',
     dayUnit: 'วัน',
@@ -85,7 +94,13 @@ export function MetabolicRhythmPanel() {
   const mealIds = useMemo(() => new Set(meals.map((meal) => meal.id)), [meals])
   const entries = useMemo(() => food.entries.filter((entry) => mealIds.has(entry.meal_id)), [food.entries, mealIds])
   const sessions = useMemo(() => data.workout_sessions.filter((session) => session.date >= cutoff && session.started_at), [cutoff, data.workout_sessions])
-  const analysis = useMemo(() => analyzeMealTiming({ meals, entries, sessions, timeZone }), [entries, meals, sessions, timeZone])
+  const analysis = useMemo(() => analyzeMealTiming({
+    meals,
+    entries,
+    sessions,
+    timeZone,
+    recoveryNutrition: data.settings?.addons.recovery_nutrition,
+  }), [data.settings?.addons.recovery_nutrition, entries, meals, sessions, timeZone])
   const score = analysis.rhythmScore
   const readyShare = analysis.workoutsWithContext
     ? Math.round((analysis.readyStarts / analysis.workoutsWithContext) * 100)
@@ -124,6 +139,9 @@ export function MetabolicRhythmPanel() {
               <Metric label={copy.context} value={String(analysis.workoutsWithContext)} />
               <Metric label={copy.comfortable} value={readyShare == null ? '·' : `${readyShare}%`} positive={readyShare != null && readyShare >= 70} />
               <Metric label={copy.average} value={analysis.averageWaitMinutes == null ? '·' : `${analysis.averageWaitMinutes} ${copy.minutes}`} />
+              <Metric label={copy.recovery} value={analysis.recoveryTimingScore == null ? '·' : `${analysis.recoveryTimingScore}/100`} positive={analysis.recoveryTimingScore != null && analysis.recoveryTimingScore >= 85} />
+              <Metric label={copy.recoveryAverage} value={analysis.averageRecoveryGapMinutes == null ? '·' : `${analysis.averageRecoveryGapMinutes} ${copy.minutes}`} />
+              <Metric label={copy.exactStarts} value={`${analysis.recoveryMealsRecorded}/${analysis.completedWorkouts}`} />
             </div>
           </div>
 

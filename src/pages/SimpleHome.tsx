@@ -35,10 +35,10 @@ import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/worko
 import { QuickWorkoutLauncher } from '../components/workout/QuickWorkoutLauncher'
 import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
-import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
+import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
 import { timeZoneFromSettings } from '../lib/mealTiming'
-import { MealDayline } from '../components/food/MealDayline'
+import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -83,7 +83,7 @@ export function SimpleHome() {
   const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | 'weight' | null>(null)
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealBlockId, setQuickMealBlockId] = useState<MealBlockKind | null>(null)
-  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
+  const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; targetTime: string | null; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
   const [customWaterDraft, setCustomWaterDraft] = useState('')
   const today = todayIso()
@@ -147,6 +147,26 @@ export function SimpleHome() {
     }
     return Object.fromEntries(pairs)
   }, [dateFoodMeals, mealBlockSettings.custom_blocks, mealBlockStatuses])
+  const customMealByBlock = useMemo(() => new Map(mealBlockSettings.custom_blocks.flatMap((block) => {
+    const meal = dateFoodMeals.find((candidate) => mealMomentIdFromIdempotencyKey(candidate.client_idempotency_key) === block.id)
+    return meal ? [[block.id, meal] as const] : []
+  })), [dateFoodMeals, mealBlockSettings.custom_blocks])
+  const timelineSlots = useMemo<MealDaylineSlot[]>(() => [
+    ...mealBlockStatuses.map((status) => ({
+      id: status.block.id,
+      label: t(mealBlockLabel(status.block.kind)),
+      time: status.block.time,
+      slot: mealSlotForBlock(status.block.kind),
+      mealId: status.loggedMeal?.id ?? null,
+    })),
+    ...mealBlockSettings.custom_blocks.filter((block) => block.enabled).map((block) => ({
+      id: block.id,
+      label: block.label,
+      time: block.time,
+      slot: block.slot,
+      mealId: customMealByBlock.get(block.id)?.id ?? null,
+    })),
+  ], [customMealByBlock, language, mealBlockSettings.custom_blocks, mealBlockStatuses])
   const macroContributors = useMemo(() => {
     const mealIds = new Set(dateFoodMeals.map((meal) => meal.id))
     const localizedEntries = foodStore.entries
@@ -326,6 +346,7 @@ export function SimpleHome() {
     setQuickPanel(null)
     setQuickMealEditor({
       slot: mealSlotForBlock(blockId), blockId, mealIdentity: blockId, title: actual?.display_name ?? meal.name, items,
+      targetTime: mealBlockStatuses.find((status) => status.block.id === blockId)?.block.time ?? meal.time,
       plannedMealId: meal.id, replaceMealId: actual?.id ?? null,
     })
   }
@@ -340,8 +361,72 @@ export function SimpleHome() {
     setQuickPanel(null)
     setQuickMealEditor({
       slot: meal.meal_slot, blockId: durableIdentity?.startsWith('custom:') ? null : assignedBlock, mealIdentity: durableIdentity ?? assignedBlock, title: meal.display_name, items: await loggedMealItems(meal),
+      targetTime: mealBlockStatuses.find((status) => status.block.id === assignedBlock)?.block.time
+        ?? mealBlockSettings.custom_blocks.find((block) => block.id === durableIdentity)?.time
+        ?? null,
       plannedMealId: meal.source_planned_meal_id, replaceMealId: meal.id,
     })
+  }
+
+  const openTimelineSlot = async (slot: MealDaylineSlot): Promise<void> => {
+    const configured = mealBlockStatuses.find((status) => status.block.id === slot.id)
+    if (configured) {
+      await openMealBlock(configured)
+      return
+    }
+    const custom = mealBlockSettings.custom_blocks.find((block) => block.id === slot.id && block.enabled)
+    if (!custom) return
+    const existing = customMealByBlock.get(custom.id)
+    if (existing) {
+      await editQuickCustomMeal(existing)
+      return
+    }
+    setQuickMealEditor({
+      slot: custom.slot,
+      blockId: null,
+      mealIdentity: custom.id,
+      title: custom.label,
+      targetTime: custom.time,
+      items: [],
+      plannedMealId: null,
+      replaceMealId: null,
+    })
+  }
+
+  const openMealAtTime = (time: string): void => {
+    setQuickPanel(null)
+    setQuickMealEditor({
+      slot: mealSlotForClock(time),
+      blockId: null,
+      mealIdentity: null,
+      title: t('Meal'),
+      targetTime: time,
+      items: [],
+      plannedMealId: null,
+      replaceMealId: null,
+    })
+  }
+
+  const saveRecoveryMealStart = async (sessionId: string, startedAt: string, mealId: string | null): Promise<void> => {
+    if (!settings) return
+    const current = settings.addons.recovery_nutrition ?? {}
+    const next = {
+      ...current,
+      [sessionId]: { meal_id: mealId, started_at: startedAt, updated_at: new Date().toISOString() },
+    }
+    const recentEntries = Object.entries(next)
+      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
+      .slice(0, 365)
+    setSettings({ addons: { ...settings.addons, recovery_nutrition: Object.fromEntries(recentEntries) } })
+  }
+
+  const openRecoveryMeal = (): void => {
+    const recovery = mealBlockStatuses.find((status) => status.block.kind === 'post_workout')
+    if (recovery) {
+      void openMealBlock(recovery)
+      return
+    }
+    openMealAtTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: timeZoneFromSettings(settings) }))
   }
 
   const toggleMeal = async (meal: TargetMeal): Promise<void> => {
@@ -803,7 +888,16 @@ export function SimpleHome() {
           entries={foodStore.entries}
           timeZone={timeZoneFromSettings(settings)}
           fallbackTimes={timelineFallbackTimes}
+          slots={timelineSlots}
+          sessions={data.workout_sessions}
+          recoveryNutrition={settings.addons.recovery_nutrition}
           onMealFinishedAt={foodStore.setMealFinishedAt}
+          onOpenMeal={(meal) => void editQuickCustomMeal(meal)}
+          onOpenSlot={(slot) => void openTimelineSlot(slot)}
+          onAddAtTime={openMealAtTime}
+          onDeleteMeal={(meal) => foodStore.deleteMeal(meal.id)}
+          onRecoveryMealStarted={saveRecoveryMealStart}
+          onOpenRecoveryMeal={openRecoveryMeal}
         />
 
         <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
@@ -1114,6 +1208,7 @@ export function SimpleHome() {
             mealIdentity={quickMealEditor.mealIdentity}
             date={selectedDate}
             title={quickMealEditor.title}
+            targetTime={quickMealEditor.targetTime}
             initialItems={quickMealEditor.items}
             plannedMealId={quickMealEditor.plannedMealId}
             replaceMealId={quickMealEditor.replaceMealId}

@@ -116,6 +116,7 @@ export function buildReport(
       sessions: data.workout_sessions.filter((session) => session.date >= fromIso && session.date <= toIso),
       timeZone: mealTiming.timeZone,
       fallbackTimes: mealTiming.fallbackTimes,
+      recoveryNutrition: data.settings?.addons.recovery_nutrition,
     })
 
     lines.push('## Meal timing and pre-workout context')
@@ -145,6 +146,24 @@ export function buildReport(
         : `- ${relation.date} ${start}: no reliably recorded earlier meal on this day.`)
     }
     if (analysis.workoutRelations.length === 0) lines.push('- No workout start timestamps were available in this range.')
+    lines.push('')
+    lines.push('### Post-workout nutrition timing')
+    lines.push(`Completed workouts with timestamps: ${analysis.completedWorkouts}. Exact eating starts recorded: ${analysis.recoveryMealsRecorded}.`)
+    if (analysis.recoveryTimingScore != null) {
+      lines.push(`Average post-workout timing signal: ${analysis.recoveryTimingScore} / 100. Average workout-to-eating-start gap: ${analysis.averageRecoveryGapMinutes ?? '?'} minutes.`)
+    }
+    for (const relation of analysis.postWorkoutRelations) {
+      const completed = zonedClock(relation.completedAt, mealTiming.timeZone).time
+      if (relation.source === 'recorded_start' && relation.mealStartedAt) {
+        const started = zonedClock(relation.mealStartedAt, mealTiming.timeZone).time
+        lines.push(`- ${relation.date}: workout ended ${completed}; eating started ${started}, ${relation.gapMinutes} minutes later; timing signal ${relation.timingScore} / 100${relation.mealName ? `; meal ${relation.mealName}` : ''}.`)
+      } else if (relation.source === 'inferred_finish') {
+        lines.push(`- ${relation.date}: workout ended ${completed}; ${relation.mealName ?? 'next meal'} finished ${relation.gapMinutes} minutes later. Eating start was not explicitly recorded.`)
+      } else {
+        lines.push(`- ${relation.date}: workout ended ${completed}; no post-workout eating start was recorded.`)
+      }
+    }
+    if (analysis.postWorkoutRelations.length === 0) lines.push('- No completed workout timestamps were available in this range.')
     lines.push('')
   }
 

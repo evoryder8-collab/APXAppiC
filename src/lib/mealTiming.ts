@@ -42,6 +42,28 @@ export interface WorkoutMealTiming {
   zone: MealComfortZone | null
 }
 
+export type RecoveryNutritionLog = NonNullable<Settings['addons']['recovery_nutrition']>[string]
+
+export interface TimedWorkout {
+  session: WorkoutSession
+  startedTime: string | null
+  completedTime: string
+  completedMinute: number
+  completedLineMinute: number
+}
+
+export interface PostWorkoutNutritionTiming {
+  sessionId: string
+  date: string
+  completedAt: string
+  mealId: string | null
+  mealName: string | null
+  mealStartedAt: string | null
+  gapMinutes: number | null
+  timingScore: number | null
+  source: 'recorded_start' | 'inferred_finish' | 'missing'
+}
+
 export interface MealTimingAnalysis {
   recordedMeals: number
   estimatedMeals: number
@@ -53,6 +75,32 @@ export interface MealTimingAnalysis {
   rhythmScore: number | null
   typicalVariationMinutes: number | null
   workoutRelations: WorkoutMealTiming[]
+  completedWorkouts: number
+  recoveryMealsRecorded: number
+  averageRecoveryGapMinutes: number | null
+  recoveryTimingScore: number | null
+  postWorkoutRelations: PostWorkoutNutritionTiming[]
+}
+
+export function normalizeRecoveryNutrition(value: unknown): Record<string, RecoveryNutritionLog> {
+  if (!value || typeof value !== 'object') return {}
+  const normalized: Record<string, RecoveryNutritionLog> = {}
+  for (const [sessionId, candidate] of Object.entries(value)) {
+    if (!sessionId || !candidate || typeof candidate !== 'object') continue
+    const record = candidate as Partial<RecoveryNutritionLog>
+    if (typeof record.started_at !== 'string' || !Number.isFinite(Date.parse(record.started_at))) continue
+    const updatedAt = typeof record.updated_at === 'string' && Number.isFinite(Date.parse(record.updated_at))
+      ? record.updated_at
+      : record.started_at
+    normalized[sessionId] = {
+      meal_id: typeof record.meal_id === 'string' && record.meal_id ? record.meal_id : null,
+      started_at: new Date(record.started_at).toISOString(),
+      updated_at: new Date(updatedAt).toISOString(),
+    }
+  }
+  return Object.fromEntries(Object.entries(normalized)
+    .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
+    .slice(0, 365))
 }
 
 const DEFAULT_SLOT_CLOCK: Record<MealSlot, string> = {
@@ -246,6 +294,119 @@ export function timedMeal(
   }
 }
 
+export function timedWorkout(session: WorkoutSession, timeZone: string): TimedWorkout | null {
+  if (!session.completed || !session.completed_at) return null
+  const completed = zonedClock(session.completed_at, timeZone)
+  if (completed.date !== session.date) return null
+  const started = session.started_at ? zonedClock(session.started_at, timeZone) : null
+  return {
+    session,
+    startedTime: started?.date === session.date ? started.time : null,
+    completedTime: completed.time,
+    completedMinute: completed.minute,
+    completedLineMinute: toDaylineMinute(completed.minute),
+  }
+}
+
+/**
+ * There is no minute-by-minute anabolic cliff. The first two hours are one
+ * broad, high-value band; the score tapers only after that. This keeps the
+ * signal useful without rewarding anxiety or claiming that eating at minute
+ * five is superior to eating at minute sixty.
+ */
+export function recoveryTimingScore(gapMinutes: number | null): number | null {
+  if (gapMinutes == null || !Number.isFinite(gapMinutes) || gapMinutes < 0) return null
+  if (gapMinutes <= 120) return 100
+  if (gapMinutes <= 180) return Math.round(100 - (gapMinutes - 120) * 0.25)
+  if (gapMinutes <= 240) return Math.round(85 - (gapMinutes - 180) * 0.25)
+  return Math.max(0, Math.round(70 - (gapMinutes - 240) * 0.2))
+}
+
+export function resolvePostWorkoutNutrition({
+  sessions,
+  meals,
+  timeZone,
+  recoveryNutrition = {},
+}: {
+  sessions: readonly WorkoutSession[]
+  meals: readonly LoggedMeal[]
+  timeZone: string
+  recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
+}): PostWorkoutNutritionTiming[] {
+  const completed = sessions
+    .flatMap((session) => timedWorkout(session, timeZone) ? [session] : [])
+    .sort((left, right) => Date.parse(left.completed_at ?? '') - Date.parse(right.completed_at ?? ''))
+
+  return completed.map((session) => {
+    const completedAt = session.completed_at!
+    const explicit = recoveryNutrition[session.id]
+    const explicitStarted = explicit && Number.isFinite(Date.parse(explicit.started_at))
+      ? explicit.started_at
+      : null
+    const explicitMeal = explicit?.meal_id
+      ? meals.find((meal) => meal.id === explicit.meal_id) ?? null
+      : null
+    if (explicitStarted) {
+      const gapMinutes = Math.max(0, Math.round((Date.parse(explicitStarted) - Date.parse(completedAt)) / 60_000))
+      const linkedMeal = explicitMeal ?? meals
+        .filter((meal) => meal.local_date === session.date)
+        .filter((meal) => {
+          const gap = Date.parse(meal.logged_at) - Date.parse(explicitStarted)
+          return gap >= 0 && gap <= 6 * 60 * 60 * 1_000
+        })
+        .sort((left, right) => Date.parse(left.logged_at) - Date.parse(right.logged_at))[0] ?? null
+      return {
+        sessionId: session.id,
+        date: session.date,
+        completedAt,
+        mealId: linkedMeal?.id ?? explicit?.meal_id ?? null,
+        mealName: linkedMeal?.display_name ?? null,
+        mealStartedAt: explicitStarted,
+        gapMinutes,
+        timingScore: recoveryTimingScore(gapMinutes),
+        source: 'recorded_start' as const,
+      }
+    }
+
+    /* A meal finish is a useful fallback for historical sessions, but it is
+       deliberately labelled as inferred and never presented as a recorded
+       eating start. Keep the horizon short enough to avoid linking breakfast
+       the next morning to the previous evening's session. */
+    const inferred = meals
+      .filter((meal) => meal.local_date === session.date)
+      .filter((meal) => {
+        const gap = Date.parse(meal.logged_at) - Date.parse(completedAt)
+        return gap >= 0 && gap <= 6 * 60 * 60 * 1_000
+      })
+      .sort((left, right) => Date.parse(left.logged_at) - Date.parse(right.logged_at))[0] ?? null
+    if (inferred) {
+      const gapMinutes = Math.max(0, Math.round((Date.parse(inferred.logged_at) - Date.parse(completedAt)) / 60_000))
+      return {
+        sessionId: session.id,
+        date: session.date,
+        completedAt,
+        mealId: inferred.id,
+        mealName: inferred.display_name,
+        mealStartedAt: inferred.logged_at,
+        gapMinutes,
+        timingScore: recoveryTimingScore(gapMinutes),
+        source: 'inferred_finish' as const,
+      }
+    }
+    return {
+      sessionId: session.id,
+      date: session.date,
+      completedAt,
+      mealId: null,
+      mealName: null,
+      mealStartedAt: null,
+      gapMinutes: null,
+      timingScore: null,
+      source: 'missing' as const,
+    }
+  })
+}
+
 function standardDeviation(values: number[]): number | null {
   if (values.length < 2) return null
   const mean = values.reduce((sum, value) => sum + value, 0) / values.length
@@ -263,12 +424,14 @@ export function analyzeMealTiming({
   sessions,
   timeZone,
   fallbackTimes = {},
+  recoveryNutrition = {},
 }: {
   meals: readonly LoggedMeal[]
   entries: readonly LoggedFoodEntry[]
   sessions: readonly WorkoutSession[]
   timeZone: string
   fallbackTimes?: Readonly<Record<string, string>>
+  recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
 }): MealTimingAnalysis {
   const timed = meals.map((meal) => timedMeal(meal, entries, timeZone, fallbackTimes[meal.id] ?? fallbackMealTime(meal)))
   const recorded = timed.filter((item) => item.recorded)
@@ -323,6 +486,15 @@ export function analyzeMealTiming({
     ? null
     : Math.round(Math.max(0, Math.min(100, 100 - typicalVariationMinutes * 0.9)))
   const waits = contextual.flatMap((relation) => relation.waitedMinutes == null ? [] : [relation.waitedMinutes])
+  const postWorkoutRelations = resolvePostWorkoutNutrition({
+    sessions,
+    meals,
+    timeZone,
+    recoveryNutrition,
+  })
+  const recordedRecovery = postWorkoutRelations.filter((relation) => relation.source === 'recorded_start')
+  const recoveryGaps = recordedRecovery.flatMap((relation) => relation.gapMinutes == null ? [] : [relation.gapMinutes])
+  const recoveryScores = recordedRecovery.flatMap((relation) => relation.timingScore == null ? [] : [relation.timingScore])
 
   return {
     recordedMeals: recorded.length,
@@ -335,5 +507,14 @@ export function analyzeMealTiming({
     rhythmScore,
     typicalVariationMinutes,
     workoutRelations,
+    completedWorkouts: postWorkoutRelations.length,
+    recoveryMealsRecorded: recordedRecovery.length,
+    averageRecoveryGapMinutes: recoveryGaps.length
+      ? Math.round(recoveryGaps.reduce((sum, value) => sum + value, 0) / recoveryGaps.length)
+      : null,
+    recoveryTimingScore: recoveryScores.length
+      ? Math.round(recoveryScores.reduce((sum, value) => sum + value, 0) / recoveryScores.length)
+      : null,
+    postWorkoutRelations,
   }
 }

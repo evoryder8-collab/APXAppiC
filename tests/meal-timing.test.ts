@@ -7,7 +7,11 @@ import {
   daylineRatio,
   isQuietClock,
   mealComfortWindow,
+  normalizeRecoveryNutrition,
+  recoveryTimingScore,
+  resolvePostWorkoutNutrition,
   timedMeal,
+  timedWorkout,
   zonedClock,
   zonedDateTimeToIso,
 } from '../src/lib/mealTiming.ts'
@@ -143,3 +147,83 @@ test('Avatar and AI timing analysis joins workout starts to the latest completed
   assert.equal(analysis.workoutRelations[0].mealName, 'Lunch')
 })
 
+test('completed workouts become exact dayline events in the selected timezone', () => {
+  const event = timedWorkout(session(), 'UTC')
+  assert.ok(event)
+  assert.equal(event.completedTime, '16:30')
+  assert.equal(event.completedMinute, 16 * 60 + 30)
+  assert.equal(timedWorkout(session({ completed: false }), 'UTC'), null)
+})
+
+test('post-workout scoring uses a broad two-hour plateau rather than an artificial minute cliff', () => {
+  assert.equal(recoveryTimingScore(5), 100)
+  assert.equal(recoveryTimingScore(60), 100)
+  assert.equal(recoveryTimingScore(120), 100)
+  assert.equal(recoveryTimingScore(180), 85)
+  assert.equal(recoveryTimingScore(240), 70)
+  assert.equal(recoveryTimingScore(-1), null)
+})
+
+test('explicit post-workout eating starts override inferred meal finish timing', () => {
+  const recovery = resolvePostWorkoutNutrition({
+    sessions: [session()],
+    meals: [meal({ id: 'recovery-meal', logged_at: '2026-07-25T18:00:00.000Z' })],
+    timeZone: 'UTC',
+    recoveryNutrition: {
+      'session-1': {
+        meal_id: 'recovery-meal',
+        started_at: '2026-07-25T17:15:00.000Z',
+        updated_at: '2026-07-25T17:15:00.000Z',
+      },
+    },
+  })
+  assert.equal(recovery[0].source, 'recorded_start')
+  assert.equal(recovery[0].gapMinutes, 45)
+  assert.equal(recovery[0].timingScore, 100)
+  assert.equal(recovery[0].mealName, 'Lunch')
+})
+
+test('a recorded recovery start links to the next meal added shortly afterwards', () => {
+  const recovery = resolvePostWorkoutNutrition({
+    sessions: [session()],
+    meals: [meal({
+      id: 'meal-added-after-start',
+      display_name: 'Recovery shake',
+      logged_at: '2026-07-25T17:20:00.000Z',
+    })],
+    timeZone: 'UTC',
+    recoveryNutrition: {
+      'session-1': {
+        meal_id: null,
+        started_at: '2026-07-25T17:15:00.000Z',
+        updated_at: '2026-07-25T17:15:00.000Z',
+      },
+    },
+  })
+  assert.equal(recovery[0].source, 'recorded_start')
+  assert.equal(recovery[0].gapMinutes, 45)
+  assert.equal(recovery[0].mealId, 'meal-added-after-start')
+  assert.equal(recovery[0].mealName, 'Recovery shake')
+})
+
+test('recovery timing settings discard malformed records and cap persisted history', () => {
+  const normalized = normalizeRecoveryNutrition({
+    valid: {
+      meal_id: '',
+      started_at: '2026-07-25T17:15:00.000Z',
+      updated_at: 'bad',
+    },
+    invalid: {
+      meal_id: null,
+      started_at: 'not-a-date',
+      updated_at: 'not-a-date',
+    },
+  })
+  assert.deepEqual(normalized, {
+    valid: {
+      meal_id: null,
+      started_at: '2026-07-25T17:15:00.000Z',
+      updated_at: '2026-07-25T17:15:00.000Z',
+    },
+  })
+})

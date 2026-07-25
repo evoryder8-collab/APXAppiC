@@ -9,6 +9,7 @@ import { NutritionGlance } from './NutritionGlance'
 import {
   createCustomMealBlock,
   mealBlockLabel,
+  mealSlotForClock,
   mealMomentIdFromIdempotencyKey,
   mealSlotForBlock,
   normalizeMealBlockSettings,
@@ -19,7 +20,7 @@ import {
 import { useStore } from '../../store/AppStore'
 import { MEAL_ROW_REVEAL_PX, mealRowSwipeOffset } from '../../lib/mealExperience'
 import { timeZoneFromSettings } from '../../lib/mealTiming'
-import { MealDayline } from './MealDayline'
+import { MealDayline, type MealDaylineSlot } from './MealDayline'
 
 const amber = ACCENTS.amber
 
@@ -238,6 +239,22 @@ export function ActualFoodTracker({
     }
     return Object.fromEntries(pairs)
   }, [customLoggedById, enabledCustomBlocks, mealBlockStatuses])
+  const timelineSlots = useMemo<MealDaylineSlot[]>(() => [
+    ...mealBlockStatuses.map((status) => ({
+      id: status.block.id,
+      label: t(mealBlockLabel(status.block.kind)),
+      time: status.block.time,
+      slot: mealSlotForBlock(status.block.kind),
+      mealId: status.loggedMeal?.id ?? null,
+    })),
+    ...enabledCustomBlocks.map((block) => ({
+      id: block.id,
+      label: block.label,
+      time: block.time,
+      slot: block.slot,
+      mealId: customLoggedById.get(block.id)?.id ?? null,
+    })),
+  ], [customLoggedById, enabledCustomBlocks, language, mealBlockStatuses])
 
   const runBusy = async (id: string, action: () => Promise<void>) => {
     if (busyMeal) return
@@ -288,6 +305,70 @@ export function ActualFoodTracker({
     setAddMealOpen(false)
   }
 
+  const openTimelineSlot = (slot: MealDaylineSlot) => {
+    const configured = mealBlockStatuses.find((status) => status.block.id === slot.id)
+    if (configured) {
+      openConfiguredBlock(configured.block)
+      return
+    }
+    const custom = enabledCustomBlocks.find((block) => block.id === slot.id)
+    if (!custom) return
+    const existing = customLoggedById.get(custom.id)
+    if (existing) {
+      void runBusy(existing.id, () => onEditLogged(existing, null, custom.time))
+      return
+    }
+    setComposer({
+      slot: custom.slot,
+      blockId: null,
+      mealIdentity: custom.id,
+      title: custom.label,
+      time: custom.time,
+    })
+  }
+
+  const openTimelineMeal = (meal: LoggedMeal) => {
+    const configured = mealBlockStatuses.find((status) => status.loggedMeal?.id === meal.id)
+    const custom = enabledCustomBlocks.find((block) => customLoggedById.get(block.id)?.id === meal.id)
+    void runBusy(meal.id, () => onEditLogged(
+      meal,
+      configured?.block.kind ?? null,
+      configured?.block.time ?? custom?.time ?? null,
+    ))
+  }
+
+  const openMealAtTime = (time: string) => {
+    setComposer({
+      slot: mealSlotForClock(time),
+      blockId: null,
+      mealIdentity: null,
+      title: t('Meal'),
+      time,
+    })
+  }
+
+  const saveRecoveryMealStart = async (sessionId: string, startedAt: string, mealId: string | null) => {
+    if (!data.settings) return
+    const current = data.settings.addons.recovery_nutrition ?? {}
+    const next = {
+      ...current,
+      [sessionId]: { meal_id: mealId, started_at: startedAt, updated_at: new Date().toISOString() },
+    }
+    const recentEntries = Object.entries(next)
+      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
+      .slice(0, 365)
+    setSettings({ addons: { ...data.settings.addons, recovery_nutrition: Object.fromEntries(recentEntries) } })
+  }
+
+  const openRecoveryMeal = () => {
+    const recovery = mealBlockStatuses.find((status) => status.block.kind === 'post_workout')
+    if (recovery) {
+      openConfiguredBlock(recovery.block)
+      return
+    }
+    openMealAtTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: timeZoneFromSettings(data.settings) }))
+  }
+
   return (
     <>
       <GlassCard accent={amber} className="overflow-hidden p-0">
@@ -300,7 +381,16 @@ export function ActualFoodTracker({
             entries={store.entries}
             timeZone={timeZoneFromSettings(data.settings)}
             fallbackTimes={timelineFallbackTimes}
+            slots={timelineSlots}
+            sessions={data.workout_sessions}
+            recoveryNutrition={data.settings?.addons.recovery_nutrition}
             onMealFinishedAt={store.setMealFinishedAt}
+            onOpenMeal={openTimelineMeal}
+            onOpenSlot={openTimelineSlot}
+            onAddAtTime={openMealAtTime}
+            onDeleteMeal={onDeleteLogged}
+            onRecoveryMealStarted={saveRecoveryMealStart}
+            onOpenRecoveryMeal={openRecoveryMeal}
           />
         </div>
 

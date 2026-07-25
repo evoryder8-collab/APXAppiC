@@ -318,6 +318,14 @@ export interface Settings {
        the existing synced JSON settings record, so no schema rollout is
        required for reliable cross-device behavior. */
     meal_blocks?: MealBlockSettings
+    /* Explicit post-workout eating starts, keyed by workout-session id. The
+       existing synced JSON settings record keeps this deploy-safe and private
+       while still making the timing signal available across devices. */
+    recovery_nutrition?: Record<string, {
+      meal_id: string | null
+      started_at: string
+      updated_at: string
+    }>
   }
 }
 

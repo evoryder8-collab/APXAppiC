@@ -1,95 +1,170 @@
-import { useEffect, useMemo, useRef, useState } from 'react'
+import { useEffect, useMemo, useRef, useState, type ReactNode } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
-import type { LoggedFoodEntry, LoggedMeal } from '../../lib/food'
+import type { LoggedFoodEntry, LoggedMeal, MealSlot } from '../../lib/food'
 import type { IntroLanguage } from '../../lib/introLanguage'
+import { mealRowSwipeOffset, MEAL_ROW_REVEAL_PX } from '../../lib/mealExperience'
 import {
+  DAYLINE_DURATION_MINUTES,
+  DAYLINE_START_MINUTE,
   comfortZone,
   daylineRatio,
   fallbackMealTime,
   isQuietClock,
   minuteToClock,
+  resolvePostWorkoutNutrition,
   timedMeal,
+  timedWorkout,
   zonedClock,
   zonedDateTimeToIso,
+  type MealComfortWindow,
   type MealComfortZone,
-  type TimedMeal,
+  type RecoveryNutritionLog,
 } from '../../lib/mealTiming'
+import type { WorkoutSession } from '../../lib/types'
 import { useLanguage } from '../../lib/i18n'
 import { ACCENTS } from '../../lib/theme'
 import { GlassCard } from '../ui'
 
+export interface MealDaylineSlot {
+  id: string
+  label: string
+  time: string
+  slot: MealSlot
+  mealId: string | null
+}
+
+interface DaylineMealItem {
+  key: string
+  label: string
+  time: string
+  minute: number
+  lineMinute: number
+  recorded: boolean
+  meal: LoggedMeal | null
+  slot: MealDaylineSlot | null
+  window: MealComfortWindow | null
+}
+
 const COPY = {
   en: {
     eyebrow: 'LIVE METABOLIC DAYLINE',
-    title: 'Eat. Settle. Move.',
-    subtitle: 'Your meals and a calm estimate of when training may feel more comfortable.',
-    local: 'local time',
+    title: 'Eat. Settle. Move. Recover.',
+    subtitle: 'Meals, training and recovery timing in one place.',
     finished: 'Meal finished',
     recorded: 'recorded',
-    estimated: 'estimated',
+    estimated: 'scheduled',
     save: 'Save time',
     saving: 'Saving',
-    saveFailed: 'This finish time could not be saved. Please try again.',
+    saveFailed: 'This time could not be saved. Please try again.',
     close: 'Close',
     settling: 'Settling',
     transition: 'Tradeoff window',
     ready: 'Comfort window',
     in: 'in',
     now: 'NOW',
-    noMeals: 'Log a meal or snack and its comfort window will appear here.',
+    noMeals: 'Tap the dayline to add a meal at any time.',
     note: 'Comfort estimate only. Workout intensity, meal composition and personal tolerance still matter.',
     light: 'light',
     standard: 'standard',
     substantial: 'substantial',
     large: 'large',
+    addMeal: 'Add meal',
+    delete: 'Delete',
+    workoutDone: 'Workout completed',
+    recoveryWindow: 'RECOVERY NUTRITION',
+    recoveryOpen: 'Protein opportunity is open',
+    recoveryBody: 'Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on session load and today’s target.',
+    recoveryFast: 'If another hard session starts within four hours, prioritize faster carbohydrate replacement.',
+    recoveryNoCliff: 'This is a broad recovery window, not a minute-by-minute anabolic cliff.',
+    recordStart: 'Eating started',
+    saveStart: 'Save start',
+    startError: 'Choose a time at or after the workout finished.',
+    loggedGap: 'after training',
+    score: 'timing signal',
+    inferred: 'Estimated from meal finish. Record the eating start for an exact signal.',
+    logRecoveryMeal: 'Add post-workout meal',
+    remaining: 'left in the high-value window',
+    complete: 'The broad two-hour window has passed. Recovery still depends most on the full day.',
   },
   ro: {
     eyebrow: 'CRONOLOGIE METABOLICĂ LIVE',
-    title: 'Mănâncă. Așteaptă. Mișcă-te.',
-    subtitle: 'Mesele tale și o estimare calmă a momentului în care antrenamentul poate fi mai confortabil.',
-    local: 'ora locală',
+    title: 'Mănâncă. Așteaptă. Mișcă-te. Recuperează.',
+    subtitle: 'Mesele, antrenamentul și recuperarea într-un singur loc.',
     finished: 'Masa s-a încheiat',
     recorded: 'înregistrată',
-    estimated: 'estimată',
+    estimated: 'programată',
     save: 'Salvează ora',
     saving: 'Se salvează',
-    saveFailed: 'Ora de final nu a putut fi salvată. Încearcă din nou.',
+    saveFailed: 'Ora nu a putut fi salvată. Încearcă din nou.',
     close: 'Închide',
     settling: 'Digestie în curs',
     transition: 'Fereastră de compromis',
     ready: 'Fereastră confortabilă',
     in: 'în',
     now: 'ACUM',
-    noMeals: 'Înregistrează o masă sau o gustare, iar fereastra de confort va apărea aici.',
+    noMeals: 'Atinge cronologia pentru a adăuga o masă la orice oră.',
     note: 'Doar estimare de confort. Intensitatea, compoziția mesei și toleranța personală contează.',
     light: 'ușoară',
     standard: 'standard',
     substantial: 'consistentă',
     large: 'mare',
+    addMeal: 'Adaugă o masă',
+    delete: 'Șterge',
+    workoutDone: 'Antrenament finalizat',
+    recoveryWindow: 'NUTRIȚIE PENTRU RECUPERARE',
+    recoveryOpen: 'Fereastra pentru proteine este deschisă',
+    recoveryBody: 'Țintește 20 până la 40 g de proteine de calitate în două ore. Adaugă carbohidrați după efort și obiectivul zilei.',
+    recoveryFast: 'Dacă urmează alt antrenament greu în mai puțin de patru ore, prioritizează refacerea rapidă a carbohidraților.',
+    recoveryNoCliff: 'Este o fereastră largă de recuperare, nu un prag anabolic de la minut la minut.',
+    recordStart: 'Ai început să mănânci',
+    saveStart: 'Salvează începutul',
+    startError: 'Alege o oră egală sau ulterioară finalului antrenamentului.',
+    loggedGap: 'după antrenament',
+    score: 'semnal temporal',
+    inferred: 'Estimat din ora de final a mesei. Înregistrează începutul pentru un semnal exact.',
+    logRecoveryMeal: 'Adaugă masa de după antrenament',
+    remaining: 'rămase în fereastra principală',
+    complete: 'Fereastra largă de două ore a trecut. Recuperarea depinde în continuare mai ales de întreaga zi.',
   },
   th: {
     eyebrow: 'ไทม์ไลน์เมตาบอลิซึมแบบสด',
-    title: 'กิน พักย่อย แล้วขยับ',
-    subtitle: 'มื้ออาหารของคุณพร้อมเวลาประมาณที่การฝึกอาจรู้สึกสบายขึ้น',
-    local: 'เวลาท้องถิ่น',
+    title: 'กิน พักย่อย ฝึก และฟื้นตัว',
+    subtitle: 'มื้ออาหาร การฝึก และเวลาฟื้นตัวอยู่ในที่เดียว',
     finished: 'กินมื้อเสร็จ',
     recorded: 'บันทึกแล้ว',
-    estimated: 'โดยประมาณ',
+    estimated: 'ตามกำหนด',
     save: 'บันทึกเวลา',
     saving: 'กำลังบันทึก',
-    saveFailed: 'บันทึกเวลาที่กินเสร็จไม่ได้ โปรดลองอีกครั้ง',
+    saveFailed: 'บันทึกเวลาไม่ได้ โปรดลองอีกครั้ง',
     close: 'ปิด',
     settling: 'กำลังย่อย',
     transition: 'ช่วงประนีประนอม',
     ready: 'ช่วงที่สบายขึ้น',
     in: 'ในอีก',
     now: 'ตอนนี้',
-    noMeals: 'บันทึกมื้ออาหารหรือของว่าง แล้วช่วงเวลาที่สบายขึ้นจะแสดงที่นี่',
+    noMeals: 'แตะไทม์ไลน์เพื่อเพิ่มมื้ออาหารในเวลาที่ต้องการ',
     note: 'เป็นเพียงการประเมินความสบาย ความหนักของการฝึก องค์ประกอบอาหาร และความทนของแต่ละคนยังมีผล',
     light: 'เบา',
     standard: 'ปกติ',
     substantial: 'มื้อหนัก',
     large: 'มื้อใหญ่มาก',
+    addMeal: 'เพิ่มมื้ออาหาร',
+    delete: 'ลบ',
+    workoutDone: 'ฝึกเสร็จแล้ว',
+    recoveryWindow: 'โภชนาการเพื่อการฟื้นตัว',
+    recoveryOpen: 'ช่วงรับโปรตีนกำลังเปิดอยู่',
+    recoveryBody: 'รับโปรตีนคุณภาพ 20 ถึง 40 กรัมภายในสองชั่วโมง และเติมคาร์โบไฮเดรตตามความหนักของการฝึกและเป้าหมายวันนี้',
+    recoveryFast: 'หากมีการฝึกหนักอีกครั้งภายในสี่ชั่วโมง ให้เน้นเติมคาร์โบไฮเดรตเร็วขึ้น',
+    recoveryNoCliff: 'นี่เป็นช่วงฟื้นตัวที่กว้าง ไม่ใช่เส้นตายรายนาที',
+    recordStart: 'เริ่มกินเวลา',
+    saveStart: 'บันทึกเวลาเริ่ม',
+    startError: 'เลือกเวลาที่ตรงกับหรือหลังจากการฝึกเสร็จ',
+    loggedGap: 'หลังฝึก',
+    score: 'สัญญาณเวลา',
+    inferred: 'ประเมินจากเวลาที่กินเสร็จ บันทึกเวลาเริ่มกินเพื่อให้แม่นยำ',
+    logRecoveryMeal: 'เพิ่มมื้อหลังฝึก',
+    remaining: 'ที่เหลือในช่วงสำคัญ',
+    complete: 'ช่วงกว้างสองชั่วโมงผ่านไปแล้ว การฟื้นตัวยังขึ้นกับอาหารตลอดทั้งวันเป็นหลัก',
   },
 } satisfies Record<IntroLanguage, Record<string, string>>
 
@@ -114,12 +189,13 @@ const ZONE_COLOR: Record<MealComfortZone, string> = {
   ready: '#10b981',
 }
 
-function labelLayout(events: TimedMeal[], height: number, compact: boolean): Map<string, number> {
-  const pad = compact ? 24 : 28
-  const gap = compact ? 53 : 59
-  const ordered = events
-    .map((event) => ({ id: event.meal.id, actual: daylineRatio(event.minute) * height }))
+function labelLayout(items: DaylineMealItem[], height: number, compact: boolean): Map<string, number> {
+  const pad = compact ? 30 : 34
+  const gap = compact ? 64 : 70
+  const ordered = items
+    .map((item) => ({ key: item.key, actual: daylineRatio(item.minute) * height }))
     .sort((left, right) => left.actual - right.actual)
+  if (!ordered.length) return new Map()
   const positions = ordered.map((event, index) =>
     Math.max(pad, Math.min(height - pad, index === 0 ? event.actual : Math.max(event.actual, 0))),
   )
@@ -132,7 +208,7 @@ function labelLayout(events: TimedMeal[], height: number, compact: boolean): Map
       positions[index] = Math.min(positions[index], positions[index + 1] - gap)
     }
   }
-  return new Map(ordered.map((event, index) => [event.id, Math.max(pad, positions[index])]))
+  return new Map(ordered.map((event, index) => [event.key, Math.max(pad, positions[index])]))
 }
 
 function minutesLabel(minutes: number): string {
@@ -142,6 +218,106 @@ function minutesLabel(minutes: number): string {
   return remainder ? `${hours} h ${remainder} min` : `${hours} h`
 }
 
+function clockMinute(value: string): number {
+  const [hours, minutes] = value.split(':').map(Number)
+  return Math.max(0, Math.min(1439, hours * 60 + minutes))
+}
+
+function TimelineSwipeCard({
+  id,
+  open,
+  onOpenChange,
+  onActivate,
+  onDelete,
+  deleteLabel,
+  children,
+}: {
+  id: string
+  open: boolean
+  onOpenChange: (id: string | null) => void
+  onActivate: () => void
+  onDelete: () => Promise<void>
+  deleteLabel: string
+  children: ReactNode
+}) {
+  const start = useRef<{ x: number; y: number } | null>(null)
+  const [drag, setDrag] = useState<number | null>(null)
+  const suppressClick = useRef(false)
+  const settled = open ? -MEAL_ROW_REVEAL_PX : 0
+
+  return (
+    <div
+      data-dayline-card
+      data-simple-local-gesture
+      data-nutrition-local-gesture
+      className="relative overflow-hidden rounded-2xl [touch-action:pan-y]"
+      onTouchStart={(event) => {
+        event.stopPropagation()
+        const touch = event.touches[0]
+        start.current = touch ? { x: touch.clientX, y: touch.clientY } : null
+        setDrag(null)
+      }}
+      onTouchMove={(event) => {
+        event.stopPropagation()
+        const touch = event.touches[0]
+        if (!touch || !start.current) return
+        const dx = touch.clientX - start.current.x
+        const dy = touch.clientY - start.current.y
+        if (Math.abs(dx) <= Math.abs(dy) * 1.15) return
+        suppressClick.current = true
+        event.preventDefault()
+        setDrag(Math.max(-MEAL_ROW_REVEAL_PX, Math.min(0, settled + dx)))
+      }}
+      onTouchEnd={(event) => {
+        event.stopPropagation()
+        const tracked = start.current
+        const touch = event.changedTouches[0]
+        start.current = null
+        setDrag(null)
+        if (!tracked || !touch) return
+        const next = mealRowSwipeOffset(tracked, { x: touch.clientX, y: touch.clientY }, open)
+        onOpenChange(next < 0 ? id : null)
+      }}
+      onTouchCancel={(event) => {
+        event.stopPropagation()
+        start.current = null
+        setDrag(null)
+      }}
+    >
+      <button
+        type="button"
+        tabIndex={open ? 0 : -1}
+        aria-hidden={!open}
+        aria-label={deleteLabel}
+        onClick={(event) => {
+          event.stopPropagation()
+          void onDelete().finally(() => onOpenChange(null))
+        }}
+        className="absolute inset-y-0 right-0 flex w-[104px] flex-col items-center justify-center bg-rose-600 text-white"
+      >
+        <span className="grid h-8 w-8 place-items-center rounded-full bg-white/15 text-lg font-black">×</span>
+        <span className="mt-1 text-[8px] font-black tracking-wide uppercase">{deleteLabel}</span>
+      </button>
+      <button
+        type="button"
+        onClick={(event) => {
+          event.stopPropagation()
+          if (suppressClick.current) {
+            suppressClick.current = false
+            return
+          }
+          if (open) onOpenChange(null)
+          else onActivate()
+        }}
+        className="relative w-full text-left transition-transform duration-200 ease-out"
+        style={{ transform: `translate3d(${drag ?? settled}px,0,0)` }}
+      >
+        {children}
+      </button>
+    </div>
+  )
+}
+
 export function MealDayline({
   date,
   meals,
@@ -149,8 +325,16 @@ export function MealDayline({
   timeZone,
   fallbackTimes = {},
   compact = false,
+  slots = [],
+  sessions = [],
+  recoveryNutrition = {},
   onMealFinishedAt,
   onOpenMeal,
+  onOpenSlot,
+  onAddAtTime,
+  onDeleteMeal,
+  onRecoveryMealStarted,
+  onOpenRecoveryMeal,
 }: {
   date: string
   meals: LoggedMeal[]
@@ -158,8 +342,16 @@ export function MealDayline({
   timeZone: string
   fallbackTimes?: Record<string, string>
   compact?: boolean
-  onMealFinishedAt: (mealId: string, finishedAt: string) => Promise<unknown>
+  slots?: MealDaylineSlot[]
+  sessions?: WorkoutSession[]
+  recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
+  onMealFinishedAt?: (mealId: string, finishedAt: string) => Promise<unknown>
   onOpenMeal?: (meal: LoggedMeal) => void
+  onOpenSlot?: (slot: MealDaylineSlot) => void
+  onAddAtTime?: (time: string) => void
+  onDeleteMeal?: (meal: LoggedMeal) => Promise<void>
+  onRecoveryMealStarted?: (sessionId: string, startedAt: string, mealId: string | null) => Promise<void> | void
+  onOpenRecoveryMeal?: () => void
 }) {
   const { language } = useLanguage()
   const copy = COPY[language]
@@ -168,6 +360,11 @@ export function MealDayline({
   const [timeDraft, setTimeDraft] = useState('12:00')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
+  const [revealedMeal, setRevealedMeal] = useState<string | null>(null)
+  const [addTime, setAddTime] = useState<string | null>(null)
+  const [addPinned, setAddPinned] = useState(false)
+  const [recoveryDraft, setRecoveryDraft] = useState('')
+  const [recoveryError, setRecoveryError] = useState('')
   const timeInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
@@ -182,37 +379,112 @@ export function MealDayline({
 
   useEffect(() => {
     setNow(new Date())
-  }, [meals])
+  }, [meals, sessions])
 
   const currentClock = zonedClock(now, timeZone)
   const isLiveDate = currentClock.date === date
-  const events = useMemo(() => meals
-    .map((meal) => timedMeal(meal, entries, timeZone, fallbackTimes[meal.id] ?? fallbackMealTime(meal)))
-    .sort((left, right) => left.lineMinute - right.lineMinute), [entries, fallbackTimes, meals, timeZone])
-  const height = Math.max(compact ? 390 : 520, events.length * (compact ? 58 : 64))
-  const labels = useMemo(() => labelLayout(events, height, compact), [compact, events, height])
-  const nowY = daylineRatio(currentClock.minute) * height
-  const liveEvents = isLiveDate
-    ? events.filter((event) => event.recorded && Date.parse(event.meal.logged_at) <= now.getTime())
-    : []
-  const latest = liveEvents
-    .slice()
-    .sort((left, right) => Date.parse(left.meal.logged_at) - Date.parse(right.meal.logged_at))
-    .at(-1) ?? null
-  const elapsed = latest ? Math.max(0, (now.getTime() - Date.parse(latest.meal.logged_at)) / 60_000) : null
-  const currentZone = latest && elapsed != null ? comfortZone(elapsed, latest.window) : null
-  const readyIn = latest && elapsed != null ? Math.max(0, latest.window.readyAfterMinutes - elapsed) : null
-  const transitionIn = latest && elapsed != null ? Math.max(0, latest.window.transitionAfterMinutes - elapsed) : null
-  const quiet = isQuietClock(currentClock.minute)
+  const items = useMemo(() => {
+    const byId = new Map(meals.map((meal) => [meal.id, meal]))
+    const used = new Set<string>()
+    const configured: DaylineMealItem[] = slots.map((slot) => {
+      const meal = slot.mealId ? byId.get(slot.mealId) ?? null : null
+      if (meal) used.add(meal.id)
+      if (meal) {
+        const event = timedMeal(meal, entries, timeZone, slot.time)
+        return {
+          key: `slot:${slot.id}`,
+          label: slot.label,
+          time: event.time,
+          minute: event.minute,
+          lineMinute: event.lineMinute,
+          recorded: event.recorded,
+          meal,
+          slot,
+          window: event.window,
+        }
+      }
+      const minute = clockMinute(slot.time)
+      return {
+        key: `slot:${slot.id}`,
+        label: slot.label,
+        time: slot.time,
+        minute,
+        lineMinute: minute < DAYLINE_START_MINUTE ? minute + 1440 : minute,
+        recorded: false,
+        meal: null,
+        slot,
+        window: null,
+      }
+    })
+    const extras: DaylineMealItem[] = meals.filter((meal) => !used.has(meal.id)).map((meal) => {
+      const event = timedMeal(meal, entries, timeZone, fallbackTimes[meal.id] ?? fallbackMealTime(meal))
+      return {
+        key: `meal:${meal.id}`,
+        label: meal.display_name,
+        time: event.time,
+        minute: event.minute,
+        lineMinute: event.lineMinute,
+        recorded: event.recorded,
+        meal,
+        slot: null,
+        window: event.window,
+      }
+    })
+    return [...configured, ...extras].sort((left, right) => left.lineMinute - right.lineMinute)
+  }, [entries, fallbackTimes, meals, slots, timeZone])
 
-  const beginEdit = (event: TimedMeal) => {
-    setEditing(event.meal.id)
-    setTimeDraft(event.time)
+  const height = Math.max(compact ? 440 : 560, items.length * (compact ? 68 : 74))
+  const labels = useMemo(() => labelLayout(items, height, compact), [compact, height, items])
+  const nowY = daylineRatio(currentClock.minute) * height
+  const recordedEvents = items.filter((item) => item.meal && item.recorded && Date.parse(item.meal.logged_at) <= now.getTime())
+  const latest = isLiveDate
+    ? recordedEvents.slice().sort((left, right) => Date.parse(left.meal!.logged_at) - Date.parse(right.meal!.logged_at)).at(-1) ?? null
+    : null
+  const elapsed = latest ? Math.max(0, (now.getTime() - Date.parse(latest.meal!.logged_at)) / 60_000) : null
+  const currentZone = latest?.window && elapsed != null ? comfortZone(elapsed, latest.window) : null
+  const readyIn = latest?.window && elapsed != null ? Math.max(0, latest.window.readyAfterMinutes - elapsed) : null
+  const transitionIn = latest?.window && elapsed != null ? Math.max(0, latest.window.transitionAfterMinutes - elapsed) : null
+  const quiet = isQuietClock(currentClock.minute)
+  const workouts = useMemo(() => sessions
+    .filter((session) => session.date === date)
+    .flatMap((session) => {
+      const timed = timedWorkout(session, timeZone)
+      return timed ? [timed] : []
+    })
+    .sort((left, right) => left.completedLineMinute - right.completedLineMinute), [date, sessions, timeZone])
+  const recoveryRelations = useMemo(() => resolvePostWorkoutNutrition({
+    sessions: sessions.filter((session) => session.date === date),
+    meals,
+    timeZone,
+    recoveryNutrition,
+  }), [date, meals, recoveryNutrition, sessions, timeZone])
+  const latestWorkout = workouts.at(-1) ?? null
+  const latestRecovery = latestWorkout
+    ? recoveryRelations.find((relation) => relation.sessionId === latestWorkout.session.id) ?? null
+    : null
+  const recoveryElapsed = latestWorkout && isLiveDate
+    ? Math.max(0, (now.getTime() - Date.parse(latestWorkout.session.completed_at!)) / 60_000)
+    : null
+  const recoveryRemaining = recoveryElapsed == null ? null : Math.max(0, 120 - recoveryElapsed)
+
+  useEffect(() => {
+    if (!latestWorkout) {
+      setRecoveryDraft('')
+      return
+    }
+    const explicit = recoveryNutrition[latestWorkout.session.id]
+    setRecoveryDraft(explicit ? zonedClock(explicit.started_at, timeZone).time : currentClock.time)
+  }, [latestWorkout?.session.id, recoveryNutrition, timeZone])
+
+  const beginEdit = (item: DaylineMealItem) => {
+    if (!item.meal || !onMealFinishedAt) return
+    setEditing(item.meal.id)
+    setTimeDraft(item.time)
     setSaveError('')
   }
 
   const saveTime = async () => {
-    if (!editing || saving) return
+    if (!editing || saving || !onMealFinishedAt) return
     setSaving(true)
     setSaveError('')
     try {
@@ -226,8 +498,32 @@ export function MealDayline({
     }
   }
 
-  const activeEvent = events.find((event) => event.meal.id === editing) ?? null
+  const saveRecoveryStart = async () => {
+    if (!latestWorkout || !recoveryDraft || !onRecoveryMealStarted) return
+    const startedAt = zonedDateTimeToIso(date, recoveryDraft, timeZone)
+    if (Date.parse(startedAt) < Date.parse(latestWorkout.session.completed_at!) - 60_000) {
+      setRecoveryError(copy.startError)
+      return
+    }
+    setRecoveryError('')
+    setSaving(true)
+    try {
+      await onRecoveryMealStarted(latestWorkout.session.id, startedAt, latestRecovery?.mealId ?? null)
+    } catch {
+      setRecoveryError(copy.saveFailed)
+    } finally {
+      setSaving(false)
+    }
+  }
+
+  const activeEvent = items.find((item) => item.meal?.id === editing) ?? null
   const railX = compact ? 52 : 58
+  const addMinute = addTime ? clockMinute(addTime) : null
+
+  const positionFromPointer = (clientY: number, bounds: DOMRect): string => {
+    const ratio = Math.max(0, Math.min(1, (clientY - bounds.top) / Math.max(1, bounds.height)))
+    return minuteToClock(DAYLINE_START_MINUTE + ratio * DAYLINE_DURATION_MINUTES)
+  }
 
   return (
     <GlassCard accent={ACCENTS.emerald} className="overflow-hidden p-0" data-no-translate>
@@ -245,11 +541,26 @@ export function MealDayline({
           </div>
         </div>
 
-        <div className="relative mt-3" style={{ height }}>
-          <div
-            className="absolute top-0 bottom-0 w-[18px] -translate-x-1/2 rounded-full border border-white/[.055] bg-slate-400/10"
-            style={{ left: railX }}
-          />
+        <div
+          className="relative mt-3"
+          style={{ height }}
+          onPointerMove={(event) => {
+            if (!onAddAtTime || event.pointerType !== 'mouse') return
+            if ((event.target as HTMLElement).closest('[data-dayline-card]')) return
+            setAddPinned(false)
+            setAddTime(positionFromPointer(event.clientY, event.currentTarget.getBoundingClientRect()))
+          }}
+          onPointerLeave={() => {
+            if (!addPinned) setAddTime(null)
+          }}
+          onPointerUp={(event) => {
+            if (!onAddAtTime || event.pointerType === 'mouse') return
+            if ((event.target as HTMLElement).closest('[data-dayline-card]')) return
+            setAddPinned(true)
+            setAddTime(positionFromPointer(event.clientY, event.currentTarget.getBoundingClientRect()))
+          }}
+        >
+          <div className="absolute top-0 bottom-0 w-[18px] -translate-x-1/2 rounded-full border border-white/[.055] bg-slate-400/10" style={{ left: railX }} />
           <div
             className="absolute top-0 bottom-0 w-[5px] -translate-x-1/2 rounded-full"
             style={{
@@ -260,17 +571,13 @@ export function MealDayline({
           />
 
           {TICKS.map((tick) => (
-            <div
-              key={tick.minute}
-              className="pointer-events-none absolute left-0 right-0 -translate-y-1/2"
-              style={{ top: `${daylineRatio(tick.minute) * 100}%`, opacity: tick.opacity }}
-            >
+            <div key={tick.minute} className="pointer-events-none absolute left-0 right-0 -translate-y-1/2" style={{ top: `${daylineRatio(tick.minute) * 100}%`, opacity: tick.opacity }}>
               <span className="absolute left-0 w-8 text-right font-mono text-[8px] font-black text-white">{tick.label}</span>
               <span className="absolute h-px w-2 bg-white" style={{ left: railX - 4 }} />
             </div>
           ))}
 
-          {latest && (() => {
+          {latest?.window && (() => {
             const start = daylineRatio(latest.minute) * height
             const transition = daylineRatio(latest.minute + latest.window.transitionAfterMinutes) * height
             const ready = daylineRatio(latest.minute + latest.window.readyAfterMinutes) * height
@@ -279,94 +586,187 @@ export function MealDayline({
             const boundedReady = Math.max(boundedTransition, Math.min(height, ready))
             return (
               <>
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.55 }} className="absolute z-10 w-[9px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-rose-400 to-amber-400" style={{ left: railX, top: boundedStart, height: boundedTransition - boundedStart, boxShadow: '0 0 18px rgba(251,113,133,.58)' }} />
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} transition={{ duration: 0.55, delay: 0.08 }} className="absolute z-10 w-[9px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-400 to-emerald-400" style={{ left: railX, top: boundedTransition, height: boundedReady - boundedTransition, boxShadow: '0 0 18px rgba(245,158,11,.42)' }} />
+                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[9px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-rose-400 to-amber-400" style={{ left: railX, top: boundedStart, height: boundedTransition - boundedStart, boxShadow: '0 0 18px rgba(251,113,133,.58)' }} />
+                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[9px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-400 to-emerald-400" style={{ left: railX, top: boundedTransition, height: boundedReady - boundedTransition, boxShadow: '0 0 18px rgba(245,158,11,.42)' }} />
               </>
             )
           })()}
 
+          {workouts.map((workout) => {
+            const start = daylineRatio(workout.completedMinute) * height
+            const end = daylineRatio(workout.completedMinute + 120) * height
+            return (
+              <div key={workout.session.id}>
+                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-[11] w-[11px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-emerald-300 via-cyan-300 to-cyan-300/15" style={{ left: railX, top: start, height: Math.max(8, Math.min(height, end) - start), boxShadow: '0 0 20px rgba(52,211,153,.72)' }} />
+                <div className="pointer-events-none absolute right-1 z-[16] -translate-y-full rounded-full border border-emerald-200/15 bg-[#07151c]/85 px-2 py-1 font-mono text-[7px] font-black text-emerald-200/75 backdrop-blur" style={{ top: start - 4 }}>
+                  ✓ {copy.workoutDone} · {workout.completedTime}
+                </div>
+              </div>
+            )
+          })}
+
           <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible" aria-hidden>
-            {events.map((event) => {
-              const actual = daylineRatio(event.minute) * height
-              const label = labels.get(event.meal.id) ?? actual
-              return <path key={event.meal.id} d={`M ${railX} ${actual} C ${railX + 11} ${actual}, ${railX + 12} ${label}, ${railX + 25} ${label}`} fill="none" stroke={event.recorded ? 'rgba(103,232,249,.48)' : 'rgba(255,255,255,.18)'} strokeWidth="1.5" strokeDasharray={event.recorded ? undefined : '3 4'} />
+            {items.map((item) => {
+              const actual = daylineRatio(item.minute) * height
+              const label = labels.get(item.key) ?? actual
+              return <path key={item.key} d={`M ${railX} ${actual} C ${railX + 11} ${actual}, ${railX + 12} ${label}, ${railX + 25} ${label}`} fill="none" stroke={item.recorded ? 'rgba(103,232,249,.48)' : 'rgba(255,255,255,.18)'} strokeWidth="1.5" strokeDasharray={item.recorded ? undefined : '3 4'} />
             })}
           </svg>
 
-          {events.map((event) => {
-            const actual = daylineRatio(event.minute) * height
-            const label = labels.get(event.meal.id) ?? actual
+          {items.map((item) => {
+            const actual = daylineRatio(item.minute) * height
+            const label = labels.get(item.key) ?? actual
+            const card = (
+              <div
+                className={`border px-2.5 py-2 ${item.meal ? 'border-white/8' : 'border-dashed border-white/12'}`}
+                style={{
+                  background: item.meal
+                    ? 'linear-gradient(145deg,#183038 0%,#10232a 100%)'
+                    : 'linear-gradient(145deg,#10252a 0%,#0c1d23 100%)',
+                }}
+              >
+                <div className="flex items-center justify-between gap-2">
+                  <p className="min-w-0 truncate text-[11px] font-black text-white">{item.meal?.display_name ?? item.label}</p>
+                  <span className="shrink-0 font-mono text-[10px] font-black text-cyan-100">{item.time}</span>
+                </div>
+                <div className="mt-0.5 flex items-center justify-between gap-2">
+                  <span className="truncate text-[8px] font-semibold text-white/36">{item.meal && item.window ? `${Math.round(item.meal.total_kcal)} kcal · ${copy[item.window.load]}` : copy.addMeal}</span>
+                  <span className={`shrink-0 font-mono text-[7px] font-black uppercase ${item.recorded ? 'text-emerald-200/70' : 'text-white/28'}`}>{item.recorded ? copy.recorded : copy.estimated}</span>
+                </div>
+              </div>
+            )
             return (
-              <div key={event.meal.id}>
-                <motion.button
-                  type="button"
-                  initial={{ scale: 0, opacity: 0 }}
-                  animate={{ scale: 1, opacity: 1 }}
-                  transition={{ duration: 0.36 }}
-                  onClick={() => beginEdit(event)}
-                  aria-label={`${copy.finished} ${event.meal.display_name} ${event.time}`}
-                  className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#07151c] bg-cyan-200 shadow-[0_0_15px_rgba(103,232,249,.75)]"
-                  style={{ left: railX, top: actual }}
-                />
-                <motion.button
-                  type="button"
-                  initial={{ opacity: 0, x: 8 }}
-                  animate={{ opacity: 1, x: 0 }}
-                  onClick={() => beginEdit(event)}
-                  onDoubleClick={() => onOpenMeal?.(event.meal)}
-                  className="absolute right-0 z-20 -translate-y-1/2 rounded-2xl border border-white/8 bg-white/[.075] px-2.5 py-2 text-left shadow-[0_12px_34px_-22px_rgba(34,211,238,.8)] backdrop-blur-md transition active:scale-[.985]"
-                  style={{ left: railX + 27, top: label }}
-                >
-                  <div className="flex items-center justify-between gap-2">
-                    <p className="min-w-0 truncate text-[11px] font-black text-white">{event.meal.display_name}</p>
-                    <span className="shrink-0 font-mono text-[10px] font-black text-cyan-100">{event.time}</span>
-                  </div>
-                  <div className="mt-0.5 flex items-center justify-between gap-2">
-                    <span className="truncate text-[8px] font-semibold text-white/36">{Math.round(event.meal.total_kcal)} kcal · {copy[event.window.load]}</span>
-                    <span className={`shrink-0 font-mono text-[7px] font-black uppercase ${event.recorded ? 'text-emerald-200/70' : 'text-white/28'}`}>{event.recorded ? copy.recorded : copy.estimated}</span>
-                  </div>
-                </motion.button>
+              <div key={item.key}>
+                {item.meal && onMealFinishedAt ? (
+                  <motion.button
+                    type="button"
+                    initial={{ scale: 0, opacity: 0 }}
+                    animate={{ scale: 1, opacity: 1 }}
+                    onClick={(event) => {
+                      event.stopPropagation()
+                      beginEdit(item)
+                    }}
+                    aria-label={`${copy.finished} ${item.meal.display_name} ${item.time}`}
+                    className="absolute z-20 h-4 w-4 -translate-x-1/2 -translate-y-1/2 rounded-full border-[3px] border-[#07151c] bg-cyan-200 shadow-[0_0_15px_rgba(103,232,249,.75)]"
+                    style={{ left: railX, top: actual }}
+                  />
+                ) : (
+                  <span className="absolute z-20 grid h-4 w-4 -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-2 border-[#07151c] bg-white/20 text-[8px] font-black text-white/55" style={{ left: railX, top: actual }}>+</span>
+                )}
+                <motion.div initial={{ opacity: 0, x: 8 }} animate={{ opacity: 1, x: 0 }} className="absolute right-0 z-20 -translate-y-1/2" style={{ left: railX + 27, top: label }}>
+                  {item.meal && onDeleteMeal ? (
+                    <TimelineSwipeCard
+                      id={item.meal.id}
+                      open={revealedMeal === item.meal.id}
+                      onOpenChange={setRevealedMeal}
+                      deleteLabel={copy.delete}
+                      onActivate={() => onOpenMeal ? onOpenMeal(item.meal!) : beginEdit(item)}
+                      onDelete={() => onDeleteMeal(item.meal!)}
+                    >
+                      {card}
+                    </TimelineSwipeCard>
+                  ) : (
+                    <button
+                      data-dayline-card
+                      data-simple-local-gesture
+                      data-nutrition-local-gesture
+                      type="button"
+                      onClick={(event) => {
+                        event.stopPropagation()
+                        if (item.meal) {
+                          if (onOpenMeal) onOpenMeal(item.meal)
+                          else beginEdit(item)
+                        } else if (item.slot) onOpenSlot?.(item.slot)
+                      }}
+                      className="w-full overflow-hidden rounded-2xl text-left shadow-[0_12px_34px_-22px_rgba(34,211,238,.8)] transition active:scale-[.985]"
+                    >
+                      {card}
+                    </button>
+                  )}
+                </motion.div>
               </div>
             )
           })}
 
           {isLiveDate && (
-            <motion.div
-              className="pointer-events-none absolute right-0 left-0 z-30 -translate-y-1/2"
-              animate={{ top: nowY }}
-              transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}
-            >
+            <motion.div className="pointer-events-none absolute right-0 left-0 z-30 -translate-y-1/2" animate={{ top: nowY }} transition={{ duration: 0.7, ease: [0.16, 1, 0.3, 1] }}>
               <div className="absolute right-0 left-0 top-0 h-px bg-gradient-to-r from-transparent via-white/20 to-transparent" />
-              <div
-                className="absolute grid h-[22px] w-[22px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[5px] border-[#08161d]"
-                style={{
-                  left: railX,
-                  background: quiet ? '#94a3b8' : currentZone ? ZONE_COLOR[currentZone] : '#67e8f9',
-                  boxShadow: `0 0 24px ${quiet ? 'rgba(148,163,184,.6)' : currentZone ? ZONE_COLOR[currentZone] : 'rgba(103,232,249,.75)'}`,
-                }}
-              />
-              <span
-                className="absolute -translate-x-full -translate-y-1/2 rounded-full bg-white/10 px-1.5 py-1 font-mono text-[7px] font-black tracking-wider whitespace-nowrap text-white/75 backdrop-blur"
-                style={{ left: railX - 9 }}
-              >
-                {copy.now}
-              </span>
+              <div className="absolute grid h-[22px] w-[22px] -translate-x-1/2 -translate-y-1/2 place-items-center rounded-full border-[5px] border-[#08161d]" style={{ left: railX, background: quiet ? '#94a3b8' : currentZone ? ZONE_COLOR[currentZone] : '#67e8f9', boxShadow: `0 0 24px ${quiet ? 'rgba(148,163,184,.6)' : currentZone ? ZONE_COLOR[currentZone] : 'rgba(103,232,249,.75)'}` }} />
+              <span className="absolute -translate-x-full -translate-y-1/2 rounded-full bg-white/10 px-1.5 py-1 font-mono text-[7px] font-black tracking-wider whitespace-nowrap text-white/75 backdrop-blur" style={{ left: railX - 9 }}>{copy.now}</span>
             </motion.div>
           )}
 
-          {events.length === 0 && (
-            <div className="absolute inset-0 grid place-items-center pl-20 pr-5 text-center">
+          {addTime && addMinute != null && onAddAtTime && (
+            <motion.button
+              type="button"
+              initial={{ scale: 0, opacity: 0 }}
+              animate={{ scale: 1, opacity: 1 }}
+              onPointerDown={(event) => event.stopPropagation()}
+              onPointerUp={(event) => event.stopPropagation()}
+              onClick={(event) => {
+                event.stopPropagation()
+                onAddAtTime(addTime)
+                setAddTime(null)
+                setAddPinned(false)
+              }}
+              className="absolute z-40 flex -translate-y-1/2 items-center gap-1.5 rounded-full border border-cyan-100/25 bg-cyan-300 px-2.5 py-1.5 font-mono text-[8px] font-black text-cyan-950 shadow-[0_0_24px_rgba(103,232,249,.75)]"
+              style={{ left: railX + 13, top: daylineRatio(addMinute) * height }}
+            >
+              <span className="text-sm leading-none">+</span>{addTime}
+            </motion.button>
+          )}
+
+          {items.length === 0 && (
+            <div className="pointer-events-none absolute inset-0 grid place-items-center pl-20 pr-5 text-center">
               <p className="max-w-xs text-[11px] leading-relaxed font-semibold text-white/42">{copy.noMeals}</p>
             </div>
           )}
         </div>
 
+        {latestWorkout && (
+          <div className="relative mt-2 overflow-hidden rounded-2xl border border-emerald-200/12 bg-emerald-100/[.075] p-3">
+            <div className="pointer-events-none absolute inset-0 bg-[radial-gradient(circle_at_90%_0%,rgba(52,211,153,.16),transparent_46%)]" />
+            <div className="relative flex items-start justify-between gap-3">
+              <div>
+                <p className="font-mono text-[8px] font-black tracking-[.16em] text-emerald-200/65">{copy.recoveryWindow}</p>
+                <p className="mt-1 text-[11px] font-black text-white">{copy.recoveryOpen}</p>
+                <p className="mt-1 text-[8px] leading-relaxed font-semibold text-white/42">{copy.recoveryBody}</p>
+                {recoveryRemaining != null && <p className="mt-1 font-mono text-[8px] font-black text-cyan-200/65">{recoveryRemaining > 0 ? `${minutesLabel(recoveryRemaining)} ${copy.remaining}` : copy.complete}</p>}
+              </div>
+              {latestRecovery?.timingScore != null && (
+                <div className="shrink-0 rounded-xl border border-white/8 bg-white/[.06] px-2.5 py-2 text-center">
+                  <p className="font-mono text-xl font-black text-emerald-200">{latestRecovery.timingScore}</p>
+                  <p className="font-mono text-[6px] font-black tracking-wide text-white/35 uppercase">{copy.score}</p>
+                </div>
+              )}
+            </div>
+            {latestRecovery?.source === 'inferred_finish' && <p className="relative mt-2 text-[8px] font-semibold text-amber-200/55">{copy.inferred}</p>}
+            {onRecoveryMealStarted && (
+              <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
+                <label>
+                  <span className="block text-[8px] font-black text-white/45">{copy.recordStart}</span>
+                  <input type="time" value={recoveryDraft} onChange={(event) => setRecoveryDraft(event.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-emerald-300/50" />
+                </label>
+                <button type="button" disabled={saving} onClick={() => void saveRecoveryStart()} className="mt-[18px] min-h-10 rounded-xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-3 text-[9px] font-black text-[#051019] disabled:opacity-50">{copy.saveStart}</button>
+              </div>
+            )}
+            {latestRecovery?.source === 'recorded_start' && latestRecovery.gapMinutes != null && (
+              <p className="relative mt-2 font-mono text-[8px] font-black text-emerald-200/65">{latestRecovery.gapMinutes} min {copy.loggedGap}</p>
+            )}
+            {recoveryError && <p className="relative mt-2 text-[8px] font-semibold text-rose-300">{recoveryError}</p>}
+            <div className="relative mt-2 flex flex-wrap gap-2">
+              {onOpenRecoveryMeal && <button type="button" onClick={onOpenRecoveryMeal} className="rounded-xl bg-white/8 px-3 py-2 text-[9px] font-black text-cyan-100">{copy.logRecoveryMeal}</button>}
+            </div>
+            <p className="relative mt-2 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.recoveryNoCliff} {copy.recoveryFast}</p>
+          </div>
+        )}
+
         <div className="relative mt-2 rounded-2xl border border-white/8 bg-white/[.055] px-3 py-2.5">
-          {latest && currentZone ? (
+          {latest && currentZone && latest.window ? (
             <div className="flex items-center gap-2.5">
               <span className="h-2.5 w-2.5 shrink-0 rounded-full" style={{ background: ZONE_COLOR[currentZone], boxShadow: `0 0 14px ${ZONE_COLOR[currentZone]}` }} />
               <div className="min-w-0 flex-1">
-                <p className="truncate text-[10px] font-black text-white">{copy[currentZone]} · {latest.meal.display_name}</p>
+                <p className="truncate text-[10px] font-black text-white">{copy[currentZone]} · {latest.meal?.display_name}</p>
                 <p className="mt-0.5 text-[8px] font-semibold text-white/38">
                   {currentZone === 'ready'
                     ? `${copy.ready} ${minuteToClock(latest.minute + latest.window.readyAfterMinutes)}`
@@ -382,25 +782,12 @@ export function MealDayline({
         </div>
 
         <AnimatePresence>
-          {activeEvent && (
-            <motion.div
-              initial={{ opacity: 0, y: 8, height: 0 }}
-              animate={{ opacity: 1, y: 0, height: 'auto' }}
-              exit={{ opacity: 0, y: 6, height: 0 }}
-              className="relative mt-2 overflow-hidden rounded-2xl border border-cyan-200/15 bg-cyan-100/[.075]"
-            >
+          {activeEvent?.meal && (
+            <motion.div initial={{ opacity: 0, y: 8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 6, height: 0 }} className="relative mt-2 overflow-hidden rounded-2xl border border-cyan-200/15 bg-cyan-100/[.075]">
               <div className="flex items-end gap-2 p-3">
                 <label className="min-w-0 flex-1">
                   <span className="block truncate text-[9px] font-black text-cyan-100">{copy.finished} · {activeEvent.meal.display_name}</span>
-                  <input
-                    type="time"
-                    ref={timeInputRef}
-                    defaultValue={timeDraft}
-                    onInput={(event) => setTimeDraft(event.currentTarget.value)}
-                    onChange={(event) => setTimeDraft(event.currentTarget.value)}
-                    onBlur={(event) => setTimeDraft(event.currentTarget.value)}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-cyan-300/50"
-                  />
+                  <input type="time" ref={timeInputRef} defaultValue={timeDraft} onInput={(event) => setTimeDraft(event.currentTarget.value)} onChange={(event) => setTimeDraft(event.currentTarget.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-cyan-300/50" />
                 </label>
                 <button type="button" disabled={saving} onClick={() => void saveTime()} className="min-h-10 shrink-0 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 px-3 text-[10px] font-black text-[#051019] disabled:opacity-50">{saving ? copy.saving : copy.save}</button>
                 <button type="button" onClick={() => setEditing(null)} aria-label={copy.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/8 font-black text-white/55">×</button>
@@ -409,9 +796,7 @@ export function MealDayline({
             </motion.div>
           )}
         </AnimatePresence>
-        {latest && currentZone && (
-          <p className="relative mt-2 px-1 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.note}</p>
-        )}
+        {latest && currentZone && <p className="relative mt-2 px-1 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.note}</p>}
       </div>
     </GlassCard>
   )

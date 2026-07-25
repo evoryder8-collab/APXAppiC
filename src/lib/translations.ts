@@ -514,6 +514,7 @@ const rows: Array<[string, string, string]> = [
   ['Lunch', 'Prânz', 'อาหารกลางวัน'],
   ['Dinner', 'Cină', 'อาหารเย็น'],
   ['Snack', 'Gustare', 'ของว่าง'],
+  ['Meal', 'Masă', 'มื้ออาหาร'],
   ['Plan meals in advance. Saved presets can be added to this date in one tap.', 'Planifică mesele în avans. Presetările salvate pot fi adăugate acestei zile cu o singură atingere.', 'วางแผนมื้อล่วงหน้าและเพิ่มพรีเซ็ตที่บันทึกไว้ในวันนี้ได้ด้วยการแตะครั้งเดียว'],
   ['Your consumed nutrition is calculated from the meals you log. Only water and morning weight are entered here.', 'Nutriția consumată este calculată din mesele înregistrate. Aici introduci doar apa și greutatea de dimineață.', 'สารอาหารที่บริโภคคำนวณจากมื้อที่บันทึก ที่นี่กรอกเฉพาะน้ำและน้ำหนักตอนเช้า'],
   ['Review this day. Nutrition comes from its logged meals, while water and morning weight remain editable.', 'Revizuiește această zi. Nutriția provine din mesele înregistrate, iar apa și greutatea de dimineață rămân editabile.', 'ทบทวนวันนี้ สารอาหารมาจากมื้อที่บันทึก ส่วนน้ำและน้ำหนักตอนเช้ายังแก้ไขได้'],
