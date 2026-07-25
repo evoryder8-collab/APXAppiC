@@ -178,6 +178,56 @@ test('protocol fruits, seeds and vegetables are local, multilingual and availabl
   assert.ok(COMMON_FOODS.every((food) => Boolean(food.names_i18n.ro && food.names_i18n.th)))
 })
 
+test('Nutrition V3 ships a broad multilingual offline catalog with retailer-reference variants', () => {
+  assert.ok(COMMON_FOODS.length >= 300, `expected at least 300 local foods, received ${COMMON_FOODS.length}`)
+  assert.equal(new Set(COMMON_FOODS.map((food) => food.id)).size, COMMON_FOODS.length)
+  assert.equal(new Set(COMMON_FOODS.map((food) => food.provider_product_id)).size, COMMON_FOODS.length)
+  assert.ok(COMMON_FOODS.every((food) =>
+    ['en', 'de', 'fr', 'it', 'ro', 'th'].every((language) =>
+      Boolean(food.names_i18n[language as keyof typeof food.names_i18n]),
+    ),
+  ))
+  assert.ok(COMMON_FOODS.every((food) =>
+    [food.kcal_100, food.protein_100, food.carbs_100, food.fat_100]
+      .every((value) => value != null && Number.isFinite(value) && value >= 0),
+  ))
+
+  for (const retailer of ['Migros', 'Lidl Suisse', 'ALDI Suisse', 'REWE']) {
+    assert.ok(COMMON_FOODS.filter((food) => food.brand === retailer).length >= 40, retailer)
+  }
+  assert.ok(COMMON_FOODS
+    .filter((food) => food.provider_product_id?.startsWith('apex-protocol:') && food.brand)
+    .every((food) => food.confidence === 'complete'))
+})
+
+test('Nutrition V3 staples resolve across English, Romanian, Thai and retailer-qualified searches', () => {
+  const expectations = [
+    ['cherries', 'Cherries, fresh'],
+    ['cirese', 'Cherries, fresh'],
+    ['เชอร์รีสด', 'Cherries, fresh'],
+    ['visine congelate', 'Sour cherries, frozen, unsweetened'],
+    ['มะม่วงแช่แข็ง', 'Mango chunks, frozen, unsweetened'],
+    ['quark degresat', 'Low-fat quark, plain'],
+    ['น้ำผึ้ง', 'Honey'],
+    ['amestec de seminte', 'Mixed seed blend'],
+    ['piept de curcan crud', 'Turkey breast, raw'],
+    ['ปลาแซลมอน', 'Salmon fillet, cooked'],
+    ['orez basmati', 'Basmati rice, dry'],
+    ['linte fiarta', 'Lentils, cooked'],
+    ['legume congelate', 'Mixed vegetables, frozen'],
+    ['ถั่วแระญี่ปุ่นแช่แข็ง', 'Edamame, frozen'],
+  ] as const
+
+  for (const [query, expectedName] of expectations) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'snack')[0]?.name, expectedName, query)
+  }
+
+  assert.equal(rankFoods('migros cirese congelate', COMMON_FOODS, [], 'snack')[0]?.brand, 'Migros')
+  assert.equal(rankFoods('lidl legume congelate', COMMON_FOODS, [], 'lunch')[0]?.brand, 'Lidl Suisse')
+  assert.equal(rankFoods('aldi mango congelat', COMMON_FOODS, [], 'snack')[0]?.brand, 'ALDI Suisse')
+  assert.equal(rankFoods('rewe brokkoli tiefgekühlt', COMMON_FOODS, [], 'lunch')[0]?.brand, 'REWE')
+})
+
 test('Bodylab Cluster Dextrin, Migros protein milk and Lee-Sport isolate use verified labels', () => {
   const cluster = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:bodylab-cluster-dextrin-label')!
   const milk = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:migros-oh-high-protein-milk-label')!

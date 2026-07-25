@@ -395,8 +395,8 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
       id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'June', sex: 'female',
       weight_kg: 41.5, body_fat_pct: 18, height_cm: 153, birthdate: '1983-06-19',
       custom_bmr: null,
-      activity_level: 'extra', goal: 'bulk', target_kcal: 2500, target_protein_g: 110,
-      target_fat_g: 130, target_carbs_g: 220, training_time: '19:00', baseline_date: today(),
+      activity_level: 'extra', goal: 'bulk', target_kcal: 2400, target_protein_g: 85,
+      target_fat_g: 95, target_carbs_g: 301, training_time: '19:00', baseline_date: today(),
       profile_note: 'Petite, highly muscular massage therapist. Body-fat percentage is a working estimate; protect energy availability and occupational recovery.',
       seed_version: CURRENT_SEED_VERSION,
       calibration_k: 1, calibration_history: [],
@@ -435,20 +435,13 @@ function settingsFor(userId: string, persona: FriendPersona): Settings {
 }
 
 function mealsFor(userId: string, persona: FriendPersona): Meal[] {
-  if (persona === 'iulian') return []
-  const rows = persona === 'june'
-    ? [
-        ['07:00', 'Breakfast', '4 eggs + 40 g walnuts. High-fat, protein-first morning.', 425, 20, 36, 3],
-        ['12:30', 'Heart Bowl', '150–200 g air-fried chicken hearts + bulgur for ~55 g carbohydrate + banana + seeds + 30 ml EVOO.', 950, 40, 45, 90],
-        ['16:00', 'Flexible snack', 'Flexible 15% calorie allocation: fruit, dairy or a compact protein-and-carbohydrate snack according to hunger.', 375, 15, 11, 47],
-        ['19:30', 'Cement Block', 'Sweet potato for ~65 g carbohydrate + 100 g cottage cheese + 30 g casein + 1.5 avocados. If genuinely hungry, add 1 tbsp peanut butter.', 750, 35, 38, 80],
-      ]
-    : [
-        ['07:45', 'Power breakfast', '3 eggs + 60 g oats + 30 g whey isolate + berries. Western-style, fast after morning training.', 520, 40, 18, 50],
-        ['12:30', 'Chicken performance bowl', '180–200 g chicken + bulgur or rice + banana + seeds + EVOO + vegetables.', 760, 50, 24, 80],
-        ['18:30', 'Lean dinner', '250 g sweet potato + lean chicken or fish + cottage cheese + avocado + vegetables.', 700, 45, 26, 70],
-        ['21:15', 'Recovery allocation', '30 g casein isolate + fruit + 20 g walnuts; move earlier when sleep feels heavy.', 370, 20, 12, 53],
-      ]
+  if (persona === 'iulian' || persona === 'june') return []
+  const rows = [
+    ['07:45', 'Power breakfast', '3 eggs + 60 g oats + 30 g whey isolate + berries. Western-style, fast after morning training.', 520, 40, 18, 50],
+    ['12:30', 'Chicken performance bowl', '180–200 g chicken + bulgur or rice + banana + seeds + EVOO + vegetables.', 760, 50, 24, 80],
+    ['18:30', 'Lean dinner', '250 g sweet potato + lean chicken or fish + cottage cheese + avocado + vegetables.', 700, 45, 26, 70],
+    ['21:15', 'Recovery allocation', '30 g casein isolate + fruit + 20 g walnuts; move earlier when sleep feels heavy.', 370, 20, 12, 53],
+  ]
   return rows.map(([time, name, foods, kcal, protein, fat, carbs], index) => ({
     id: uuidFor(userId, `meal:${index}`), user_id: userId, time: String(time), name: String(name),
     foods: String(foods), kcal: Number(kcal), protein_g: Number(protein), fat_g: Number(fat),
@@ -475,15 +468,11 @@ function supplementsFor(userId: string, persona: FriendPersona): Supplement[] {
       ]
     : persona === 'june'
     ? [
-        ['Rhodiola Rosea', '', 'Wake', '05:30', null], ['L-Tyrosine', '', 'Wake', '05:30', null], ['Taurine', '', 'Wake', '05:30', null],
-        ['Fish oil', '', 'Breakfast', '07:00', null], ['Vitamin D3 + K2 (MK-7)', 'confirm label dose', 'Breakfast', '07:00', null],
-        ['Collagen', '15 g', 'T-60', null, -60, true], ['Vitamin C', '', 'T-60', null, -60, true], ['Magnesium citrate', '300 mg elemental', 'T-60', null, -60, true],
-        ['Alpha-GPC', '300 mg', 'T-45', null, -45, true],
-        ['Cluster Dextrin', '25 g', 'T-15 training drink', null, -15, true], ['EAA', '12 g', 'T-15 training drink', null, -15, true],
-        ['Glycerol', '15 ml', 'T-15 training drink', null, -15, true], ['Citrulline', '5 g', 'T-15 training drink', null, -15, true], ['Iodised salt', 'tolerance-based', 'T-15 training drink', null, -15, true],
-        ['Sunflower phosphatidylserine', '200 mg', 'Sleep stack', '22:00', null], ['L-Theanine', '', 'Sleep stack', '22:00', null],
-        ['Zinc', '15 mg', 'Sleep stack', '22:00', null], ['Casein isolate', '30 g', 'Sleep stack', '22:00', null],
-        ['Magnesium bisglycinate', '', 'Sleep stack', '22:00', null], ['Glycine', '3–5 g', 'Sleep stack', '22:00', null],
+        ['Creatine monohydrate', '3 g', 'Daily core', '07:00', null],
+        ['Iodised salt', 'Use across meals to taste', 'Daily core', '13:00', null],
+        ['Whey isolate', 'Only as needed to close the daily protein gap', 'As needed', '15:30', null],
+        ['Cluster Dextrin', 'Only when food timing or session demand requires it', 'Optional training support', null, -15, true],
+        ['Electrolytes', 'Only for heat, high sweat or unusually long sessions', 'Optional training support', null, -15, true],
       ]
     : [
         ['Rhodiola', '', 'Wake', '06:30', null], ['Creatine', '5 g', 'Wake', '06:30', null], ['Taurine', '', 'Wake', '06:30', null],

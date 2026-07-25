@@ -1003,7 +1003,7 @@ export function SimpleHome() {
                             return (
                               <button key={item.id} type="button" onClick={() => toggleSupplement(item)} aria-pressed={done} className="flex w-full items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2 text-left transition active:scale-[.985]">
                                 <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black ${done ? 'bg-emerald text-white' : 'border border-violet-200 bg-white text-transparent'}`}>✓</span>
-                                <span className="min-w-0 flex-1"><span className={`block truncate text-[11px] font-black ${done ? 'text-ink-soft' : 'text-ink'}`}>{t(item.name)}</span><span className="block truncate font-mono text-[8px] font-semibold text-ink-faint">{item.dose}</span></span>
+                                <span className="min-w-0 flex-1"><span className={`block truncate text-[11px] font-black ${done ? 'text-ink-soft' : 'text-ink'}`}>{t(item.name)}</span><span className="block truncate font-mono text-[8px] font-semibold text-ink-faint">{t(item.dose)}</span></span>
                               </button>
                             )
                           })}

@@ -108,3 +108,35 @@ test('blank composer history prioritizes same block, weekday, hour and sequence'
   assert.equal(ranked.foods[0]?.id, chicken.id)
   assert.equal(ranked.presets[0]?.id, preset.id)
 })
+
+test('blank composer history learns frequency before recency while retaining weekday relevance', () => {
+  const thursdays = ['2026-06-04', '2026-06-11', '2026-06-18', '2026-06-25', '2026-07-02', '2026-07-09']
+  const repeated = thursdays.map((date, index) => meal({
+    id: `repeated-${index}`,
+    local_date: date,
+    display_name: 'Thursday oats',
+    source_preset_id: 'repeated-preset',
+    logged_at: `${date}T07:30:00.000Z`,
+    client_idempotency_key: 'breakfast|apex-meal-block=breakfast',
+    meal_slot: 'breakfast',
+  }))
+  const oneOff = meal({
+    id: 'one-off',
+    local_date: '2026-07-15',
+    display_name: 'One-off breakfast',
+    source_preset_id: null,
+    logged_at: '2026-07-15T07:30:00.000Z',
+    client_idempotency_key: 'breakfast|apex-meal-block=breakfast',
+    meal_slot: 'breakfast',
+  })
+
+  const ranked = rankMealHistoryRecommendations({
+    context: { date: '2026-07-16', slot: 'breakfast', blockId: 'breakfast', targetTime: '07:30', sequenceIndex: 0 },
+    meals: [...repeated, oneOff],
+    entries: [],
+    foods: COMMON_FOODS,
+    presets: [],
+  })
+
+  assert.equal(ranked.meals[0]?.display_name, 'Thursday oats')
+})

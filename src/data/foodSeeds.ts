@@ -145,7 +145,7 @@ function food(
   }
 }
 
-export const COMMON_FOODS: FoodRecord[] = [
+const CORE_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000001', 'Rolled oats', 'Haferflocken', "Flocons d’avoine", "Fiocchi d’avena", 372, 13.5, 58.7, 7),
   food('10000000-0000-4000-8000-000000000002', 'White rice, dry', 'Weisser Reis, trocken', 'Riz blanc, sec', 'Riso bianco, secco', 360, 7, 79, 0.7, 'dry'),
   food('10000000-0000-4000-8000-000000000003', 'White rice, cooked', 'Weisser Reis, gekocht', 'Riz blanc, cuit', 'Riso bianco, cotto', 130, 2.7, 28, 0.3, 'cooked'),
@@ -226,4 +226,332 @@ export const COMMON_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000078', 'Green beans, raw', 'Grüne Bohnen, roh', 'Haricots verts, crus', 'Fagiolini, crudi', 31, 1.83, 6.97, 0.22, 'as_sold', { providerId: 'apex-curated:swiss-retail-green-beans-reference', fibre: 2.7, sugar: 3.26 }),
   food('10000000-0000-4000-8000-000000000079', 'Almonds', 'Mandeln', 'Amandes', 'Mandorle', 579, 21.15, 21.55, 49.93, 'as_sold', { providerId: 'apex-curated:swiss-retail-almonds-reference', fibre: 12.5, sugar: 4.35 }),
   food('10000000-0000-4000-8000-000000000080', 'Chia seeds', 'Chiasamen', 'Graines de chia', 'Semi di chia', 486, 16.54, 42.12, 30.74, 'as_sold', { providerId: 'apex-curated:swiss-retail-chia-seeds-reference', fibre: 34.4, sugar: 0 }),
+]
+
+interface ProtocolFoodSpec {
+  slug: string
+  names: {
+    en: string
+    de: string
+    fr: string
+    it: string
+    ro: string
+    th: string
+  }
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  preparation?: FoodRecord['preparation_state']
+  fibre?: number
+  sugar?: number
+  pieceGrams?: number
+}
+
+/* Nutrition V3 uses a broad offline foundation instead of a tiny list of
+   hand-picked products. These values describe the named food per 100 g and
+   deliberately remain generic references. Exact packaged labels still win
+   when a barcode or provider result is available. */
+const PROTOCOL_FOOD_SPECS: ProtocolFoodSpec[] = [
+  {
+    slug: 'cherries-fresh',
+    names: { en: 'Cherries, fresh', de: 'Kirschen, frisch', fr: 'Cerises, fraîches', it: 'Ciliegie, fresche', ro: 'Cireșe proaspete', th: 'เชอร์รีสด' },
+    kcal: 63, protein: 1.06, carbs: 16.01, fat: 0.2, fibre: 2.1, sugar: 12.82,
+  },
+  {
+    slug: 'cherries-frozen',
+    names: { en: 'Cherries, frozen, unsweetened', de: 'Kirschen, tiefgekühlt, ungezuckert', fr: 'Cerises, surgelées, sans sucre', it: 'Ciliegie, surgelate, senza zucchero', ro: 'Cireșe congelate, fără zahăr', th: 'เชอร์รีแช่แข็ง ไม่เติมน้ำตาล' },
+    kcal: 46, protein: 0.92, carbs: 11.02, fat: 0.44, fibre: 1.6, sugar: 9.42,
+  },
+  {
+    slug: 'sour-cherries-frozen',
+    names: { en: 'Sour cherries, frozen, unsweetened', de: 'Sauerkirschen, tiefgekühlt, ungezuckert', fr: 'Griottes, surgelées, sans sucre', it: 'Amarene, surgelate, senza zucchero', ro: 'Vișine congelate, fără zahăr', th: 'เชอร์รีเปรี้ยวแช่แข็ง ไม่เติมน้ำตาล' },
+    kcal: 46, protein: 0.92, carbs: 11.02, fat: 0.44, fibre: 1.6, sugar: 9.42,
+  },
+  {
+    slug: 'mango-frozen',
+    names: { en: 'Mango chunks, frozen, unsweetened', de: 'Mangowürfel, tiefgekühlt, ungezuckert', fr: 'Morceaux de mangue, surgelés, sans sucre', it: 'Cubetti di mango, surgelati, senza zucchero', ro: 'Bucăți de mango congelate, fără zahăr', th: 'มะม่วงแช่แข็ง ไม่เติมน้ำตาล' },
+    kcal: 60, protein: 0.82, carbs: 14.98, fat: 0.38, fibre: 1.6, sugar: 13.66,
+  },
+  {
+    slug: 'pineapple-frozen',
+    names: { en: 'Pineapple chunks, frozen, unsweetened', de: 'Ananasstücke, tiefgekühlt, ungezuckert', fr: 'Morceaux d’ananas, surgelés, sans sucre', it: 'Pezzi di ananas, surgelati, senza zucchero', ro: 'Bucăți de ananas congelate, fără zahăr', th: 'สับปะรดหั่นชิ้นแช่แข็ง ไม่เติมน้ำตาล' },
+    kcal: 50, protein: 0.54, carbs: 13.12, fat: 0.12, fibre: 1.4, sugar: 9.85,
+  },
+  {
+    slug: 'summer-fruit-frozen',
+    names: { en: 'Summer fruit mix, frozen, unsweetened', de: 'Sommerfrüchte-Mix, tiefgekühlt, ungezuckert', fr: 'Mélange de fruits d’été, surgelé, sans sucre', it: 'Mix di frutta estiva, surgelato, senza zucchero', ro: 'Amestec de fructe de vară congelate, fără zahăr', th: 'ผลไม้ฤดูร้อนรวมแช่แข็ง ไม่เติมน้ำตาล' },
+    kcal: 49, protein: 0.8, carbs: 11.4, fat: 0.35, fibre: 2.4, sugar: 8.8,
+  },
+  {
+    slug: 'banana-frozen',
+    names: { en: 'Banana slices, frozen', de: 'Bananenscheiben, tiefgekühlt', fr: 'Rondelles de banane, surgelées', it: 'Fette di banana, surgelate', ro: 'Felii de banană congelate', th: 'กล้วยหั่นแว่นแช่แข็ง' },
+    kcal: 89, protein: 1.09, carbs: 22.84, fat: 0.33, fibre: 2.6, sugar: 12.23,
+  },
+  {
+    slug: 'low-fat-quark',
+    names: { en: 'Low-fat quark, plain', de: 'Magerquark, nature', fr: 'Séré maigre, nature', it: 'Quark magro, naturale', ro: 'Quark degresat, simplu', th: 'ควาร์กไขมันต่ำ รสธรรมชาติ' },
+    kcal: 67, protein: 12, carbs: 4, fat: 0.3, sugar: 4,
+  },
+  {
+    slug: 'skyr-plain',
+    names: { en: 'Skyr, plain', de: 'Skyr, nature', fr: 'Skyr, nature', it: 'Skyr, naturale', ro: 'Skyr simplu', th: 'สกีร์รสธรรมชาติ' },
+    kcal: 63, protein: 11, carbs: 4, fat: 0.2, sugar: 4,
+  },
+  {
+    slug: 'yoghurt-plain-two-percent',
+    names: { en: 'Yoghurt, plain, 2% fat', de: 'Joghurt, nature, 2% Fett', fr: 'Yaourt nature, 2% de matière grasse', it: 'Yogurt naturale, 2% di grassi', ro: 'Iaurt simplu, 2% grăsime', th: 'โยเกิร์ตรสธรรมชาติ ไขมัน 2%' },
+    kcal: 61, protein: 4.3, carbs: 4.7, fat: 2, sugar: 4.7,
+  },
+  {
+    slug: 'protein-yoghurt-plain',
+    names: { en: 'High-protein yoghurt, plain', de: 'High-Protein-Joghurt, nature', fr: 'Yaourt riche en protéines, nature', it: 'Yogurt ad alto contenuto proteico, naturale', ro: 'Iaurt bogat în proteine, simplu', th: 'โยเกิร์ตโปรตีนสูง รสธรรมชาติ' },
+    kcal: 68, protein: 10, carbs: 5, fat: 0.9, sugar: 4.5,
+  },
+  {
+    slug: 'honey',
+    names: { en: 'Honey', de: 'Honig', fr: 'Miel', it: 'Miele', ro: 'Miere', th: 'น้ำผึ้ง' },
+    kcal: 304, protein: 0.3, carbs: 82.4, fat: 0, sugar: 82.1,
+  },
+  {
+    slug: 'wholegrain-toast',
+    names: { en: 'Wholegrain toast', de: 'Vollkorntoast', fr: 'Pain de mie complet', it: 'Pane tostato integrale', ro: 'Pâine prăjită integrală', th: 'ขนมปังโฮลเกรนปิ้ง' },
+    kcal: 247, protein: 12.5, carbs: 41.3, fat: 4.2, fibre: 6.8, sugar: 4.4, pieceGrams: 35,
+  },
+  {
+    slug: 'wholegrain-bread',
+    names: { en: 'Wholegrain bread', de: 'Vollkornbrot', fr: 'Pain complet', it: 'Pane integrale', ro: 'Pâine integrală', th: 'ขนมปังโฮลเกรน' },
+    kcal: 247, protein: 12.5, carbs: 41.3, fat: 4.2, fibre: 6.8, sugar: 4.4, pieceGrams: 40,
+  },
+  {
+    slug: 'peanut-butter',
+    names: { en: 'Peanut butter, 100% peanuts', de: 'Erdnussmus, 100% Erdnüsse', fr: 'Beurre de cacahuète, 100% cacahuètes', it: 'Burro di arachidi, 100% arachidi', ro: 'Unt de arahide, 100% arahide', th: 'เนยถั่วลิสง 100%' },
+    kcal: 588, protein: 25.1, carbs: 20, fat: 50.4, fibre: 6, sugar: 9.2,
+  },
+  {
+    slug: 'almond-butter',
+    names: { en: 'Almond butter, 100% almonds', de: 'Mandelmus, 100% Mandeln', fr: 'Purée d’amandes, 100% amandes', it: 'Crema di mandorle, 100% mandorle', ro: 'Unt de migdale, 100% migdale', th: 'เนยอัลมอนด์ 100%' },
+    kcal: 614, protein: 21.1, carbs: 18.8, fat: 55.5, fibre: 10.3, sugar: 4.4,
+  },
+  {
+    slug: 'mixed-seeds',
+    names: { en: 'Mixed seed blend', de: 'Samenmischung', fr: 'Mélange de graines', it: 'Mix di semi', ro: 'Amestec de semințe', th: 'เมล็ดรวม' },
+    kcal: 560, protein: 23, carbs: 16, fat: 45, fibre: 14, sugar: 2,
+  },
+  {
+    slug: 'turkey-breast-raw',
+    names: { en: 'Turkey breast, raw', de: 'Putenbrust, roh', fr: 'Blanc de dinde, cru', it: 'Petto di tacchino, crudo', ro: 'Piept de curcan, crud', th: 'อกไก่งวง ดิบ' },
+    kcal: 114, protein: 23.7, carbs: 0, fat: 1.5,
+  },
+  {
+    slug: 'turkey-breast-cooked',
+    names: { en: 'Turkey breast, cooked', de: 'Putenbrust, gegart', fr: 'Blanc de dinde, cuit', it: 'Petto di tacchino, cotto', ro: 'Piept de curcan, gătit', th: 'อกไก่งวง สุก' },
+    kcal: 147, protein: 30.1, carbs: 0, fat: 2.1, preparation: 'cooked',
+  },
+  {
+    slug: 'lean-beef-cooked',
+    names: { en: 'Lean beef, cooked', de: 'Mageres Rindfleisch, gegart', fr: 'Bœuf maigre, cuit', it: 'Manzo magro, cotto', ro: 'Carne slabă de vită, gătită', th: 'เนื้อวัวไม่ติดมัน สุก' },
+    kcal: 206, protein: 29, carbs: 0, fat: 9.2, preparation: 'cooked',
+  },
+  {
+    slug: 'cod-cooked',
+    names: { en: 'Cod fillet, cooked', de: 'Kabeljaufilet, gegart', fr: 'Filet de cabillaud, cuit', it: 'Filetto di merluzzo, cotto', ro: 'File de cod, gătit', th: 'เนื้อปลาค็อด สุก' },
+    kcal: 89, protein: 19.9, carbs: 0, fat: 0.7, preparation: 'cooked',
+  },
+  {
+    slug: 'tuna-drained',
+    names: { en: 'Tuna in water, drained', de: 'Thunfisch in Wasser, abgetropft', fr: 'Thon au naturel, égoutté', it: 'Tonno al naturale, sgocciolato', ro: 'Ton în apă, scurs', th: 'ทูน่าในน้ำ สะเด็ดน้ำ' },
+    kcal: 116, protein: 25.5, carbs: 0, fat: 0.8, preparation: 'drained',
+  },
+  {
+    slug: 'salmon-cooked',
+    names: { en: 'Salmon fillet, cooked', de: 'Lachsfilet, gegart', fr: 'Filet de saumon, cuit', it: 'Filetto di salmone, cotto', ro: 'File de somon, gătit', th: 'เนื้อปลาแซลมอน สุก' },
+    kcal: 206, protein: 22.1, carbs: 0, fat: 12.4, preparation: 'cooked',
+  },
+  {
+    slug: 'shrimp-cooked',
+    names: { en: 'Shrimp, cooked', de: 'Garnelen, gegart', fr: 'Crevettes, cuites', it: 'Gamberi, cotti', ro: 'Creveți gătiți', th: 'กุ้ง สุก' },
+    kcal: 99, protein: 24, carbs: 0.2, fat: 0.3, preparation: 'cooked',
+  },
+  {
+    slug: 'sweet-potato-baked',
+    names: { en: 'Sweet potato, baked', de: 'Süsskartoffel, gebacken', fr: 'Patate douce, cuite au four', it: 'Patata dolce, al forno', ro: 'Cartof dulce, copt', th: 'มันหวาน อบ' },
+    kcal: 90, protein: 2, carbs: 20.7, fat: 0.2, fibre: 3.3, sugar: 6.5, preparation: 'cooked',
+  },
+  {
+    slug: 'basmati-rice-dry',
+    names: { en: 'Basmati rice, dry', de: 'Basmatireis, trocken', fr: 'Riz basmati, sec', it: 'Riso basmati, secco', ro: 'Orez basmati, uscat', th: 'ข้าวบาสมาติ ดิบ' },
+    kcal: 356, protein: 8.9, carbs: 77.8, fat: 0.9, fibre: 1, preparation: 'dry',
+  },
+  {
+    slug: 'jasmine-rice-dry',
+    names: { en: 'Jasmine rice, dry', de: 'Jasminreis, trocken', fr: 'Riz jasmin, sec', it: 'Riso jasmine, secco', ro: 'Orez jasmine, uscat', th: 'ข้าวหอมมะลิ ดิบ' },
+    kcal: 356, protein: 7.1, carbs: 79.2, fat: 0.7, fibre: 0.9, preparation: 'dry',
+  },
+  {
+    slug: 'brown-rice-dry',
+    names: { en: 'Brown rice, dry', de: 'Vollkornreis, trocken', fr: 'Riz complet, sec', it: 'Riso integrale, secco', ro: 'Orez brun, uscat', th: 'ข้าวกล้อง ดิบ' },
+    kcal: 370, protein: 7.9, carbs: 77.2, fat: 2.9, fibre: 3.5, preparation: 'dry',
+  },
+  {
+    slug: 'quinoa-dry',
+    names: { en: 'Quinoa, dry', de: 'Quinoa, trocken', fr: 'Quinoa, sec', it: 'Quinoa, secca', ro: 'Quinoa, uscată', th: 'ควินัว ดิบ' },
+    kcal: 368, protein: 14.1, carbs: 64.2, fat: 6.1, fibre: 7, preparation: 'dry',
+  },
+  {
+    slug: 'couscous-dry',
+    names: { en: 'Couscous, dry', de: 'Couscous, trocken', fr: 'Couscous, sec', it: 'Couscous, secco', ro: 'Cuscus, uscat', th: 'คูสคูส ดิบ' },
+    kcal: 376, protein: 12.8, carbs: 77.4, fat: 0.6, fibre: 5, preparation: 'dry',
+  },
+  {
+    slug: 'wholegrain-pasta-dry',
+    names: { en: 'Wholegrain pasta, dry', de: 'Vollkornpasta, trocken', fr: 'Pâtes complètes, sèches', it: 'Pasta integrale, secca', ro: 'Paste integrale, uscate', th: 'พาสต้าโฮลเกรน แห้ง' },
+    kcal: 348, protein: 14.6, carbs: 64.8, fat: 2.5, fibre: 8, preparation: 'dry',
+  },
+  {
+    slug: 'lentils-cooked',
+    names: { en: 'Lentils, cooked', de: 'Linsen, gekocht', fr: 'Lentilles, cuites', it: 'Lenticchie, cotte', ro: 'Linte fiartă', th: 'ถั่วเลนทิล สุก' },
+    kcal: 116, protein: 9, carbs: 20.1, fat: 0.4, fibre: 7.9, preparation: 'cooked',
+  },
+  {
+    slug: 'chickpeas-cooked',
+    names: { en: 'Chickpeas, cooked', de: 'Kichererbsen, gekocht', fr: 'Pois chiches, cuits', it: 'Ceci, cotti', ro: 'Năut fiert', th: 'ถั่วลูกไก่ สุก' },
+    kcal: 164, protein: 8.9, carbs: 27.4, fat: 2.6, fibre: 7.6, preparation: 'cooked',
+  },
+  {
+    slug: 'kidney-beans-cooked',
+    names: { en: 'Kidney beans, cooked', de: 'Kidneybohnen, gekocht', fr: 'Haricots rouges, cuits', it: 'Fagioli rossi, cotti', ro: 'Fasole roșie fiartă', th: 'ถั่วแดง สุก' },
+    kcal: 127, protein: 8.7, carbs: 22.8, fat: 0.5, fibre: 6.4, preparation: 'cooked',
+  },
+  {
+    slug: 'broccoli-frozen',
+    names: { en: 'Broccoli florets, frozen', de: 'Brokkoliröschen, tiefgekühlt', fr: 'Fleurettes de brocoli, surgelées', it: 'Cimette di broccoli, surgelate', ro: 'Buchețele de broccoli congelate', th: 'บรอกโคลีแช่แข็ง' },
+    kcal: 34, protein: 2.8, carbs: 6.6, fat: 0.4, fibre: 2.6,
+  },
+  {
+    slug: 'cauliflower-frozen',
+    names: { en: 'Cauliflower florets, frozen', de: 'Blumenkohlröschen, tiefgekühlt', fr: 'Fleurettes de chou-fleur, surgelées', it: 'Cimette di cavolfiore, surgelate', ro: 'Buchețele de conopidă congelate', th: 'ดอกกะหล่ำแช่แข็ง' },
+    kcal: 24, protein: 2, carbs: 4.7, fat: 0.3, fibre: 2.3,
+  },
+  {
+    slug: 'green-beans-frozen',
+    names: { en: 'Green beans, frozen', de: 'Grüne Bohnen, tiefgekühlt', fr: 'Haricots verts, surgelés', it: 'Fagiolini, surgelati', ro: 'Fasole verde congelată', th: 'ถั่วแขกแช่แข็ง' },
+    kcal: 31, protein: 1.8, carbs: 7, fat: 0.2, fibre: 2.7,
+  },
+  {
+    slug: 'peas-carrots-frozen',
+    names: { en: 'Peas and carrots, frozen', de: 'Erbsen und Karotten, tiefgekühlt', fr: 'Petits pois et carottes, surgelés', it: 'Piselli e carote, surgelati', ro: 'Mazăre și morcovi congelați', th: 'ถั่วลันเตาและแครอทแช่แข็ง' },
+    kcal: 64, protein: 3.5, carbs: 11.5, fat: 0.4, fibre: 4,
+  },
+  {
+    slug: 'mixed-vegetables-frozen',
+    names: { en: 'Mixed vegetables, frozen', de: 'Gemüsemischung, tiefgekühlt', fr: 'Mélange de légumes, surgelé', it: 'Verdure miste, surgelate', ro: 'Amestec de legume congelate', th: 'ผักรวมแช่แข็ง' },
+    kcal: 54, protein: 3, carbs: 9, fat: 0.5, fibre: 3.5,
+  },
+  {
+    slug: 'wok-vegetables-frozen',
+    names: { en: 'Wok vegetable mix, frozen', de: 'Wok-Gemüsemischung, tiefgekühlt', fr: 'Mélange de légumes pour wok, surgelé', it: 'Mix di verdure per wok, surgelato', ro: 'Amestec de legume pentru wok, congelat', th: 'ผักรวมสำหรับผัด แช่แข็ง' },
+    kcal: 42, protein: 2.2, carbs: 6.8, fat: 0.7, fibre: 3,
+  },
+  {
+    slug: 'spinach-leaf-frozen',
+    names: { en: 'Leaf spinach, frozen', de: 'Blattspinat, tiefgekühlt', fr: 'Épinards en feuilles, surgelés', it: 'Spinaci in foglia, surgelati', ro: 'Spanac frunze congelat', th: 'ผักโขมใบแช่แข็ง' },
+    kcal: 29, protein: 3.6, carbs: 4.2, fat: 0.6, fibre: 3.2,
+  },
+  {
+    slug: 'edamame-frozen',
+    names: { en: 'Edamame, frozen', de: 'Edamame, tiefgekühlt', fr: 'Edamame, surgelé', it: 'Edamame, surgelato', ro: 'Edamame congelat', th: 'ถั่วแระญี่ปุ่นแช่แข็ง' },
+    kcal: 121, protein: 11.9, carbs: 8.9, fat: 5.2, fibre: 5.2,
+  },
+  {
+    slug: 'sweetcorn-frozen',
+    names: { en: 'Sweetcorn, frozen', de: 'Zuckermais, tiefgekühlt', fr: 'Maïs doux, surgelé', it: 'Mais dolce, surgelato', ro: 'Porumb dulce congelat', th: 'ข้าวโพดหวานแช่แข็ง' },
+    kcal: 86, protein: 3.2, carbs: 19, fat: 1.2, fibre: 2.7,
+  },
+  {
+    slug: 'kale-frozen',
+    names: { en: 'Kale, frozen', de: 'Grünkohl, tiefgekühlt', fr: 'Chou kale, surgelé', it: 'Cavolo riccio, surgelato', ro: 'Kale congelat', th: 'เคลแช่แข็ง' },
+    kcal: 35, protein: 2.9, carbs: 4.4, fat: 1.5, fibre: 4.1,
+  },
+  {
+    slug: 'mushrooms-frozen',
+    names: { en: 'Mushrooms, frozen', de: 'Pilze, tiefgekühlt', fr: 'Champignons, surgelés', it: 'Funghi, surgelati', ro: 'Ciuperci congelate', th: 'เห็ดแช่แข็ง' },
+    kcal: 22, protein: 3.1, carbs: 3.3, fat: 0.3, fibre: 1,
+  },
+  {
+    slug: 'ratatouille-vegetables-frozen',
+    names: { en: 'Ratatouille vegetables, frozen', de: 'Ratatouille-Gemüse, tiefgekühlt', fr: 'Légumes pour ratatouille, surgelés', it: 'Verdure per ratatouille, surgelate', ro: 'Legume pentru ratatouille, congelate', th: 'ผักราตาตูยแช่แข็ง' },
+    kcal: 39, protein: 1.5, carbs: 6.3, fat: 0.7, fibre: 2.6,
+  },
+  {
+    slug: 'summer-vegetables-frozen',
+    names: { en: 'Summer vegetable mix, frozen', de: 'Sommergemüse-Mix, tiefgekühlt', fr: 'Mélange de légumes d’été, surgelé', it: 'Mix di verdure estive, surgelato', ro: 'Amestec de legume de vară congelate', th: 'ผักฤดูร้อนรวมแช่แข็ง' },
+    kcal: 40, protein: 2, carbs: 6.8, fat: 0.5, fibre: 3,
+  },
+  {
+    slug: 'zucchini-frozen',
+    names: { en: 'Zucchini slices, frozen', de: 'Zucchinischeiben, tiefgekühlt', fr: 'Rondelles de courgette, surgelées', it: 'Fette di zucchina, surgelate', ro: 'Felii de dovlecel congelate', th: 'ซูกินีหั่นแว่นแช่แข็ง' },
+    kcal: 17, protein: 1.2, carbs: 3.1, fat: 0.3, fibre: 1,
+  },
+  {
+    slug: 'bell-peppers-frozen',
+    names: { en: 'Bell pepper strips, frozen', de: 'Paprikastreifen, tiefgekühlt', fr: 'Lanières de poivrons, surgelées', it: 'Strisce di peperoni, surgelate', ro: 'Fâșii de ardei gras congelate', th: 'พริกหวานหั่นเส้นแช่แข็ง' },
+    kcal: 29, protein: 1, carbs: 6, fat: 0.3, fibre: 2.1,
+  },
+]
+
+const RETAILER_REFERENCES = [
+  { slug: 'migros', brand: 'Migros' },
+  { slug: 'lidl-suisse', brand: 'Lidl Suisse' },
+  { slug: 'aldi-suisse', brand: 'ALDI Suisse' },
+  { slug: 'rewe', brand: 'REWE' },
+] as const
+
+function protocolFoodId(namespace: number, index: number): string {
+  return `${namespace.toString().padStart(8, '0')}-0000-4000-8000-${(index + 1).toString().padStart(12, '0')}`
+}
+
+function protocolFood(
+  spec: ProtocolFoodSpec,
+  index: number,
+  retailer?: (typeof RETAILER_REFERENCES)[number],
+  retailerIndex = 0,
+): FoodRecord {
+  const namespace = retailer ? 30_000_000 + retailerIndex : 20_000_000
+  const id = protocolFoodId(namespace, index)
+  const base = food(
+    id,
+    spec.names.en,
+    spec.names.de,
+    spec.names.fr,
+    spec.names.it,
+    spec.kcal,
+    spec.protein,
+    spec.carbs,
+    spec.fat,
+    spec.preparation ?? 'as_sold',
+    {
+      brand: retailer?.brand,
+      providerId: `apex-protocol:${retailer?.slug ?? 'generic'}:${spec.slug}`,
+      fibre: spec.fibre,
+      sugar: spec.sugar,
+      confidence: 'complete',
+    },
+  )
+  return {
+    ...base,
+    names_i18n: { ...spec.names },
+    piece_grams_or_ml: spec.pieceGrams ?? null,
+  }
+}
+
+const PROTOCOL_FOODS = PROTOCOL_FOOD_SPECS.map((spec, index) => protocolFood(spec, index))
+const RETAILER_REFERENCE_FOODS = RETAILER_REFERENCES.flatMap((retailer, retailerIndex) =>
+  PROTOCOL_FOOD_SPECS.map((spec, index) => protocolFood(spec, index, retailer, retailerIndex)),
+)
+
+export const COMMON_FOODS: FoodRecord[] = [
+  ...CORE_FOODS,
+  ...PROTOCOL_FOODS,
+  ...RETAILER_REFERENCE_FOODS,
 ]

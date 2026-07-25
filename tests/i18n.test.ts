@@ -147,6 +147,31 @@ test('advanced nutrition calendar copy and clear actions are fully localized', (
   }
 })
 
+test('Nutrition V3 supplement names, groups and guidance are localized', () => {
+  for (const label of [
+    'Training at',
+    'now',
+    'training days',
+    'Daily core',
+    'As needed',
+    'Optional training support',
+    'Creatine monohydrate',
+    'Iodised salt',
+    'Whey isolate',
+    'Casein',
+    'Citrulline malate',
+    'Cluster Dextrin',
+    'Collagen + Vitamin C',
+    'Electrolytes',
+    'Only as needed to close the daily protein gap',
+    'Workload module only when food timing or session demand requires it',
+    'Only for heat, high sweat or unusually long sessions',
+  ]) {
+    assert.ok(UI_TRANSLATIONS[label]?.ro, `missing Romanian supplement copy: ${label}`)
+    assert.ok(UI_TRANSLATIONS[label]?.th, `missing Thai supplement copy: ${label}`)
+  }
+})
+
 test('Avatar runtime titles and recommendation copy are available in both localized languages', () => {
   const avatarCopy = [
     'Endurance & VO2max',

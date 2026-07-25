@@ -1026,13 +1026,13 @@ export function Nutrition() {
         {/* -------- Supplement timeline -------- */}
         <details id="nutrition-supplements" className="glass group scroll-mt-28 rounded-3xl p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <div><p className="font-display text-sm font-bold text-ink">Supplement stack</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{data.supplements.length} · {format(selectedDateObject, 'd MMM')}</p></div>
+            <div><p className="font-display text-sm font-bold text-ink">{tx('Supplement stack')}</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{data.supplements.length} · {format(selectedDateObject, 'd MMM')}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
           </summary>
           <div className="mt-4 border-t border-ink/7 pt-4">
           <div className="mb-3 flex items-center justify-end">
             <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
-              Training at
+              {tx('Training at')}
               <input
                 type="time"
                 value={trainingTime}
@@ -1059,10 +1059,10 @@ export function Nutrition() {
                   />
                   <GlassCard accent={amber} breathe={active} className="defer-paint p-4">
                     <div className="flex items-center justify-between">
-                      <p className="font-display text-sm font-bold text-ink">{group.label}</p>
+                      <p className="font-display text-sm font-bold text-ink">{tx(group.label)}</p>
                       <span className="font-mono text-xs font-bold" style={{ color: amber.deep }}>
                         {hmOf(group.time)}
-                        {active && ' · now'}
+                        {active && ` · ${tx('now')}`}
                       </span>
                     </div>
                     <div className="mt-2.5 flex flex-wrap gap-2">
@@ -1084,9 +1084,9 @@ export function Nutrition() {
                                   }
                             }
                           >
-                            {s.name}
-                            {s.dose ? ` ${s.dose}` : ''}
-                            {s.training_days_only ? ' (training days)' : ''}
+                            {tx(s.name)}
+                            {s.dose ? ` ${tx(s.dose)}` : ''}
+                            {s.training_days_only ? ` (${tx('training days')})` : ''}
                           </button>
                         )
                       })}

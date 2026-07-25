@@ -45,10 +45,10 @@ export function seedProfile(userId: string): Profile {
     birthdate: '1992-07-25',
     activity_level: 'moderate',
     goal: 'recomp',
-    target_kcal: null,
-    target_protein_g: null,
-    target_fat_g: null,
-    target_carbs_g: null,
+    target_kcal: 2450,
+    target_protein_g: 148,
+    target_fat_g: 82,
+    target_carbs_g: 280,
     training_time: '19:00',
     baseline_date: today(),
     profile_note: 'Personal recomposition system with balanced strength, mobility and endurance development.',
@@ -73,48 +73,8 @@ export function seedSettings(userId: string): Settings {
 /* ---------------- Meals (section 4b) ---------------- */
 
 export function seedMeals(userId: string): Meal[] {
-  const rows: Array<
-    [string, string, string, number, number, number, number, boolean]
-  > = [
-    [
-      '07:00',
-      'Breakfast',
-      '4 eggs + 35 g nut mix. Zero carbs, dopamine-protected morning.',
-      510, 31, 39, 8, false,
-    ],
-    [
-      '13:00',
-      'Oat Jar',
-      'Oats + milk + berries + banana + kiwi + magerquark or chicken hearts + seed mix + EVOO.',
-      900, 48, 26, 105, false,
-    ],
-    [
-      '15:30',
-      'Bulgur Snack',
-      'Bulgur + cottage cheese + veggies. Full days only.',
-      440, 30, 10, 52, true,
-    ],
-    [
-      '18:30',
-      'Dinner',
-      'Sweet potato + protein (pollock airfryer / chicken) + avocado + veggies.',
-      650, 45, 17, 65, false,
-    ],
-    ['21:45', 'Casein shake', 'Casein isolate 45 g in water.', 170, 38, 1, 3, false],
-  ]
-  return rows.map(([time, name, foods, kcal, p, f, c, fullOnly], i) => ({
-    id: sid(),
-    user_id: userId,
-    time,
-    name,
-    foods,
-    kcal,
-    protein_g: p,
-    fat_g: f,
-    carbs_g: c,
-    full_days_only: fullOnly,
-    sort_order: i,
-  }))
+  void userId
+  return []
 }
 
 /* ---------------- Supplements (section 4c) ---------------- */
@@ -129,41 +89,13 @@ export function seedSupplements(userId: string): Supplement[] {
     trainingOnly?: boolean
   }
   const rows: Row[] = [
-    { name: 'Taurine', dose: '3 g', group: 'Wake', clock: '05:30' },
-    { name: 'Tyrosine', dose: '', group: 'Wake', clock: '05:30' },
-    { name: 'Rhodiola', dose: '500 mg', group: 'Wake', clock: '05:30' },
-    { name: 'Fish oil, high concentration', dose: '', group: 'Breakfast', clock: '07:00' },
-    { name: 'Tongkat Ali', dose: '', group: 'Breakfast', clock: '07:00' },
-    { name: 'Vitamin D3 + MK-7', dose: '', group: 'Breakfast', clock: '07:00' },
-    { name: 'Boron', dose: '', group: 'Breakfast', clock: '07:00' },
-    { name: 'Vitamin C, low dose', dose: '', group: 'T-60', offset: -60 },
-    { name: 'Pure bovine collagen', dose: '15 g', group: 'T-60', offset: -60 },
-    { name: 'Alpha-GPC', dose: '600 mg', group: 'T-45', offset: -45 },
-    { name: 'EAA', dose: '10 g', group: 'T-15 training drink', offset: -15 },
-    { name: 'Glycerol', dose: '25 g', group: 'T-15 training drink', offset: -15 },
-    { name: 'L-Citrulline Malate', dose: '6-8 g', group: 'T-15 training drink', offset: -15 },
-    { name: 'Iodised sodium', dose: 'pinch', group: 'T-15 training drink', offset: -15 },
-    { name: 'Cluster Dextrin', dose: '40 g', group: 'T-15 training drink', offset: -15 },
-    { name: 'L-Theanine', dose: '200 mg', group: 'Post-workout', offset: 75 },
-    { name: 'Whey isolate shake', dose: '~30 g', group: 'Post-workout', offset: 75 },
-    { name: 'Casein isolate', dose: '45 g', group: 'Evening', clock: '21:45' },
-    {
-      name: 'Collagen + Vitamin C',
-      dose: '',
-      group: 'Evening',
-      clock: '21:45',
-      trainingOnly: true,
-    },
-    { name: 'Zinc bisglycinate', dose: '15 mg', group: 'Sleep stack', clock: '22:30' },
-    { name: 'Magnesium bisglycinate', dose: '200 mg', group: 'Sleep stack', clock: '22:30' },
-    { name: 'L-Theanine', dose: '', group: 'Sleep stack', clock: '22:30' },
-    {
-      name: 'Sunflower Phosphatidylserine',
-      dose: '300 mg',
-      group: 'Sleep stack',
-      clock: '22:30',
-    },
-    { name: 'Glycine', dose: '3-5 g', group: 'Sleep stack', clock: '22:30' },
+    { name: 'Creatine monohydrate', dose: '3–5 g', group: 'Daily core', clock: '07:00' },
+    { name: 'Iodised salt', dose: 'Use across meals to taste', group: 'Daily core', clock: '13:00' },
+    { name: 'Whey isolate', dose: 'Only as needed to close the daily protein gap', group: 'As needed', clock: '15:30' },
+    { name: 'Casein', dose: '25–30 g only as needed to close the daily protein gap', group: 'As needed', clock: '21:30' },
+    { name: 'Citrulline malate', dose: '6–8 g', group: 'Optional training support', offset: -45, trainingOnly: true },
+    { name: 'Cluster Dextrin', dose: 'Workload module only when food timing or session demand requires it', group: 'Optional training support', offset: -15, trainingOnly: true },
+    { name: 'Collagen + Vitamin C', dose: '10–15 g collagen before tendon-focused work', group: 'Optional training support', offset: -45, trainingOnly: true },
   ]
   return rows.map((r, i) => ({
     id: sid(),

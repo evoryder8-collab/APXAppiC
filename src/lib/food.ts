@@ -907,10 +907,14 @@ export function rankFoods(
         food.brand ?? '',
         ...Object.values(food.names_i18n),
       ].map(normalizeFoodSearch)
+      const brandedNames = food.brand
+        ? [food.name, ...Object.values(food.names_i18n)]
+            .map((name) => normalizeFoodSearch(`${food.brand} ${name}`))
+        : []
       const personal = normalizeFoodSearch(preference?.personal_name ?? '')
       const aliases = (preference?.aliases ?? []).map(normalizeFoodSearch)
       const curatedAliases = catalogAliases(food).map(normalizeFoodSearch)
-      const searchable = [...names, personal, ...aliases, ...curatedAliases].filter(Boolean)
+      const searchable = [...names, ...brandedNames, personal, ...aliases, ...curatedAliases].filter(Boolean)
       const exactSubstringMatch = needle ? searchable.some((value) => value.includes(needle)) : false
       const fuzzyMatch = needle && !exactSubstringMatch
         ? searchable.some((value) => fuzzyFoodSearchMatch(needle, value))

@@ -1,6 +1,6 @@
 import type { AppData } from './types'
 
-export const CURRENT_SEED_VERSION = 3
+export const CURRENT_SEED_VERSION = 4
 
 export type SeedDefinitionTable =
   | 'meals'
@@ -16,6 +16,8 @@ export interface SeedRepairResult {
   settingsChanged: boolean
   missing: Pick<AppData, SeedDefinitionTable>
   removed: {
+    meals: string[]
+    supplements: string[]
     exercises: string[]
   }
 }
@@ -157,6 +159,36 @@ function upgradeBespokeMainProgramme(
   }
 }
 
+function upgradeV3Nutrition(
+  current: AppData,
+  seeded: AppData,
+): {
+  data: AppData
+  rows: Pick<AppData, 'meals' | 'supplements'>
+  removedMeals: string[]
+  removedSupplements: string[]
+} {
+  const removedMeals = current.meals.map((row) => row.id)
+  const removedSupplements = current.supplements.map((row) => row.id)
+  const removedMealIds = new Set(removedMeals)
+  const removedSupplementIds = new Set(removedSupplements)
+  return {
+    data: {
+      ...current,
+      meals: [...seeded.meals],
+      meal_logs: current.meal_logs.filter((row) => !removedMealIds.has(row.meal_id)),
+      supplements: [...seeded.supplements],
+      supplement_logs: current.supplement_logs.filter((row) => !removedSupplementIds.has(row.supplement_id)),
+    },
+    rows: {
+      meals: seeded.meals,
+      supplements: seeded.supplements,
+    },
+    removedMeals,
+    removedSupplements,
+  }
+}
+
 /* Seed completion is deliberately versioned. It repairs interrupted first
    syncs once, while preserving every row that already exists and avoiding
    the permanent re-creation of definitions a user may later remove. */
@@ -170,7 +202,7 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
       profileChanged: false,
       settingsChanged: false,
       missing: emptyMissing(),
-      removed: { exercises: [] },
+      removed: { meals: [], supplements: [], exercises: [] },
     }
   }
 
@@ -191,7 +223,13 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
     (current.profile?.persona === 'constantine' || current.profile?.persona === 'june')
       ? upgradeBespokeMainProgramme(iulianWorking, seeded)
       : null
-  const working = upgradesV81Programme?.data ?? iulianWorking
+  const programmeWorking = upgradesV81Programme?.data ?? iulianWorking
+  const upgradesNutrition =
+    currentVersion < 4 &&
+    (current.profile?.persona === 'constantine' || current.profile?.persona === 'june')
+      ? upgradeV3Nutrition(programmeWorking, seeded)
+      : null
+  const working = upgradesNutrition?.data ?? programmeWorking
 
   const mealRepair = reconcileRows(working.meals, seeded.meals, (row) => `${row.time}|${row.name}`)
   const supplementRepair = reconcileRows(
@@ -228,24 +266,42 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
     program_days: dayRepair.missing,
     exercises: exerciseRepair.missing,
   }
-  const missing: Pick<AppData, SeedDefinitionTable> = upgradesV81Programme
-    ? {
-        ...genuinelyMissing,
-        programs: upgradesV81Programme.rows.programs,
-        program_days: upgradesV81Programme.rows.program_days,
-        exercises: upgradesV81Programme.rows.exercises,
-      }
-    : upgradesIulianProgramme
-    ? {
-        ...genuinelyMissing,
-        programs: seeded.programs,
-        program_days: remappedDays,
-        exercises: remappedExercises,
-      }
-    : genuinelyMissing
+  const missing: Pick<AppData, SeedDefinitionTable> = {
+    ...genuinelyMissing,
+    ...(upgradesNutrition
+      ? {
+          meals: upgradesNutrition.rows.meals,
+          supplements: upgradesNutrition.rows.supplements,
+        }
+      : {}),
+    ...(upgradesV81Programme
+      ? {
+          programs: upgradesV81Programme.rows.programs,
+          program_days: upgradesV81Programme.rows.program_days,
+          exercises: upgradesV81Programme.rows.exercises,
+        }
+      : upgradesIulianProgramme
+        ? {
+            programs: seeded.programs,
+            program_days: remappedDays,
+            exercises: remappedExercises,
+          }
+        : {}),
+  }
 
   const profile = current.profile
-    ? { ...current.profile, seed_version: CURRENT_SEED_VERSION }
+    ? {
+        ...current.profile,
+        ...(upgradesNutrition && seeded.profile
+          ? {
+              target_kcal: seeded.profile.target_kcal,
+              target_protein_g: seeded.profile.target_protein_g,
+              target_fat_g: seeded.profile.target_fat_g,
+              target_carbs_g: seeded.profile.target_carbs_g,
+            }
+          : {}),
+        seed_version: CURRENT_SEED_VERSION,
+      }
     : seeded.profile
       ? { ...seeded.profile, seed_version: CURRENT_SEED_VERSION }
       : null
@@ -276,6 +332,10 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
     profileChanged: !current.profile || currentVersion !== CURRENT_SEED_VERSION,
     settingsChanged: (!current.settings && !!settings) || protocolWasAdded,
     missing,
-    removed: { exercises: upgradesV81Programme?.removedExercises ?? [] },
+    removed: {
+      meals: upgradesNutrition?.removedMeals ?? [],
+      supplements: upgradesNutrition?.removedSupplements ?? [],
+      exercises: upgradesV81Programme?.removedExercises ?? [],
+    },
   }
 }

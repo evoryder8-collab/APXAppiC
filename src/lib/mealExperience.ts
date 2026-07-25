@@ -111,6 +111,12 @@ function sequenceIndexes(meals: LoggedMeal[]): Map<string, number> {
   return result
 }
 
+function recommendationIdentity(meal: LoggedMeal): string {
+  return meal.source_preset_id
+    ? `preset:${meal.source_preset_id}`
+    : `meal:${meal.meal_slot}:${meal.display_name.trim().toLocaleLowerCase()}`
+}
+
 /** Rank repeatable starts from immutable history. No source record is mutated
  * or reconstructed, and foods are returned only when their current catalogue
  * identity still exists. */
@@ -130,6 +136,18 @@ export function rankMealHistoryRecommendations(input: {
   const targetMinutes = clockMinutes(context.targetTime)
   const indexes = sequenceIndexes(input.meals)
   const scoreByMeal = new Map<string, number>()
+  const frequencyByIdentity = new Map<string, number>()
+  const weekdayFrequencyByIdentity = new Map<string, number>()
+
+  for (const meal of input.meals) {
+    if (meal.id === context.excludeMealId || meal.local_date > context.date) continue
+    if (meal.meal_slot !== context.slot) continue
+    const identity = recommendationIdentity(meal)
+    frequencyByIdentity.set(identity, (frequencyByIdentity.get(identity) ?? 0) + 1)
+    if (weekday(meal.local_date) === targetWeekday) {
+      weekdayFrequencyByIdentity.set(identity, (weekdayFrequencyByIdentity.get(identity) ?? 0) + 1)
+    }
+  }
 
   for (const meal of input.meals) {
     if (meal.id === context.excludeMealId || meal.local_date > context.date) continue
@@ -146,6 +164,9 @@ export function rankMealHistoryRecommendations(input: {
       score += Math.max(0, 130 - delta / 2)
     }
     if (meal.source_preset_id) score += 35
+    const identity = recommendationIdentity(meal)
+    score += Math.min(560, Math.max(0, (frequencyByIdentity.get(identity) ?? 1) - 1) * 80)
+    score += Math.min(180, Math.max(0, (weekdayFrequencyByIdentity.get(identity) ?? 0) - 1) * 45)
     scoreByMeal.set(meal.id, score)
   }
 
@@ -175,9 +196,7 @@ export function rankMealHistoryRecommendations(input: {
   const uniqueMeals: LoggedMeal[] = []
   const seenMealStarts = new Set<string>()
   for (const meal of rankedMeals) {
-    const identity = meal.source_preset_id
-      ? `preset:${meal.source_preset_id}`
-      : `meal:${meal.meal_slot}:${meal.display_name.trim().toLocaleLowerCase()}`
+    const identity = recommendationIdentity(meal)
     if (seenMealStarts.has(identity)) continue
     seenMealStarts.add(identity)
     uniqueMeals.push(meal)
