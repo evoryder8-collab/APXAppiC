@@ -52,6 +52,14 @@ export function resetPrivateDbConnection(): void {
   if (current) void current.then((database) => database.close()).catch(() => undefined)
 }
 
+/* iOS can keep a page's IndexedDB connection alive briefly while replacing
+   the document. Close it deliberately so the next app instance can hydrate
+   immediately instead of waiting behind its own stale connection. */
+if (typeof window !== 'undefined') {
+  window.addEventListener('pagehide', resetPrivateDbConnection)
+  window.addEventListener('beforeunload', resetPrivateDbConnection)
+}
+
 function requestResult<T>(request: IDBRequest<T>): Promise<T> {
   return new Promise((resolve, reject) => {
     request.onsuccess = () => resolve(request.result)

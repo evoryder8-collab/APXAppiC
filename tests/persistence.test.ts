@@ -16,6 +16,22 @@ test('meal replacement commits the replacement tombstone, snapshots and outbox a
   assert.match(foodStore, /saveMealAtomically\([\s\S]*input\.replaceMealId \?\? null/)
 })
 
+test('meal finish-time edits reuse the atomic immutable replacement queue', () => {
+  const start = foodStore.indexOf('const setMealFinishedAt =')
+  const block = foodStore.slice(start, foodStore.indexOf('const deleteMeal =', start))
+  assert.match(block, /logged_at: parsedFinishedAt\.toISOString\(\)/)
+  assert.match(block, /mealMomentIdFromIdempotencyKey\(previous\.client_idempotency_key\)/)
+  assert.match(block, /client_idempotency_key: mealBlockIdempotencyKey\(crypto\.randomUUID\(\), mealMomentId\)/)
+  assert.match(block, /outbox\(userId, 'log_meal'/)
+  assert.match(block, /await saveMealAtomically\(meal, snapshots, \[\], isLocalMode \? null : operation, previous\.id\)/)
+  assert.match(block, /foodMutationBelongsToActiveUser\(userId, userIdRef\.current\)/)
+})
+
+test('private IndexedDB connections close when iOS replaces the app page', () => {
+  assert.match(privateDb, /addEventListener\('pagehide', resetPrivateDbConnection\)/)
+  assert.match(privateDb, /addEventListener\('beforeunload', resetPrivateDbConnection\)/)
+})
+
 test('remote food hydration paginates fully before pruning one user cache', () => {
   assert.match(foodStore, /fetchAllOwnedFoodRows/)
   assert.match(foodStore, /\.range\(offset, offset \+ pageSize - 1\)/)

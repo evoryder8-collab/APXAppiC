@@ -18,6 +18,7 @@ import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { CameraIcon } from '../components/Icons'
 import { AvatarPortraitHero } from '../components/avatar/AvatarPortraitHero'
 import { StrengthProgressPanel } from '../components/avatar/StrengthProgressPanel'
+import { MetabolicRhythmPanel } from '../components/avatar/MetabolicRhythmPanel'
 
 const emerald = ACCENTS.emerald
 
@@ -161,6 +162,8 @@ export function AvatarPage() {
 
         {/* The engine: how nutrition, training and recovery talk */}
         <EngineCard synergies={synergies} />
+
+        <MetabolicRhythmPanel />
 
         {/* What your body needs */}
         {advice.length > 0 && (

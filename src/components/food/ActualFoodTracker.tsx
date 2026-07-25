@@ -1,4 +1,4 @@
-import { useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
+import { useMemo, useRef, useState, type ReactNode, type TouchEvent as ReactTouchEvent } from 'react'
 import { ACCENTS } from '../../lib/theme'
 import type { ConsumedMeal, LoggedFoodEntry, LoggedMeal, MealSlot, MealTotals } from '../../lib/food'
 import { useFoodStore } from '../../store/FoodStore'
@@ -18,6 +18,8 @@ import {
 } from '../../lib/mealBlocks'
 import { useStore } from '../../store/AppStore'
 import { MEAL_ROW_REVEAL_PX, mealRowSwipeOffset } from '../../lib/mealExperience'
+import { timeZoneFromSettings } from '../../lib/mealTiming'
+import { MealDayline } from './MealDayline'
 
 const amber = ACCENTS.amber
 
@@ -225,6 +227,17 @@ export function ActualFoodTracker({
   const customMeals = consumedMeals
     .filter((meal) => meal.source === 'logged' && !meal.planned_meal_id && meal.logged_meal && !assignedBlockMealIds.has(meal.logged_meal.id))
     .map((meal) => meal.logged_meal as LoggedMeal)
+  const timelineFallbackTimes = useMemo(() => {
+    const pairs: Array<[string, string]> = []
+    for (const status of mealBlockStatuses) {
+      if (status.loggedMeal) pairs.push([status.loggedMeal.id, status.block.time])
+    }
+    for (const block of enabledCustomBlocks) {
+      const meal = customLoggedById.get(block.id)
+      if (meal) pairs.push([meal.id, block.time])
+    }
+    return Object.fromEntries(pairs)
+  }, [customLoggedById, enabledCustomBlocks, mealBlockStatuses])
 
   const runBusy = async (id: string, action: () => Promise<void>) => {
     if (busyMeal) return
@@ -279,6 +292,17 @@ export function ActualFoodTracker({
     <>
       <GlassCard accent={amber} className="overflow-hidden p-0">
         <NutritionGlance key={date} eyebrow={dateLabel} target={target} consumed={consumed} mealsDone={mealBlockStatuses.filter((status) => status.completed).length + customLoggedById.size} mealsTotal={mealBlockStatuses.length + enabledCustomBlocks.length} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
+
+        <div className="border-t border-ink/6 bg-white/24 p-2.5 sm:p-4">
+          <MealDayline
+            date={date}
+            meals={store.mealsForDate(date)}
+            entries={store.entries}
+            timeZone={timeZoneFromSettings(data.settings)}
+            fallbackTimes={timelineFallbackTimes}
+            onMealFinishedAt={store.setMealFinishedAt}
+          />
+        </div>
 
         <div className="border-t border-ink/6 bg-white/35 p-4 sm:p-5">
           <div className="flex items-end justify-between gap-3"><div><h3 className="font-display text-lg font-bold text-ink">{t('Meals')}</h3><p className="text-[11px] font-medium text-ink-soft">{t('Tap a logged meal to see or change what you ate.')}</p></div><span className="font-mono text-[9px] font-bold text-ink-faint">{activityLabel.toUpperCase()}</span></div>

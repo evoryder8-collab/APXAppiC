@@ -29,6 +29,8 @@ import { TrainingInductionPanel } from '../components/workout/TrainingInductionP
 import { useLanguage } from '../lib/i18n'
 import { UI_TRANSLATIONS } from '../lib/translations'
 import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
+import { useFoodStore } from '../store/FoodStore'
+import { timeZoneFromSettings } from '../lib/mealTiming'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -42,6 +44,7 @@ const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
 
 export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; accent: Accent; title: string }) {
   const { data, upsert, remove, toast } = useStore()
+  const foodStore = useFoodStore()
   const orbit = useOrbitStore()
   const navigate = useNavigate()
   const t = useOrbitText()
@@ -396,7 +399,11 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             accent={accent}
             className="flex-1"
             onClick={() => {
-              downloadReport(buildReport(data, slug, exFrom, exTo), `apex-${slug}-${exFrom}-${exTo}.md`)
+              downloadReport(buildReport(data, slug, exFrom, exTo, {
+                meals: foodStore.meals,
+                entries: foodStore.entries,
+                timeZone: timeZoneFromSettings(data.settings),
+              }), `apex-${slug}-${exFrom}-${exTo}.md`)
               toast('Report downloaded', 'ok')
             }}
           >
@@ -405,7 +412,11 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           <GhostButton
             className="flex-1"
             onClick={() => {
-              void copyReport(buildReport(data, slug, exFrom, exTo)).then((ok) =>
+              void copyReport(buildReport(data, slug, exFrom, exTo, {
+                meals: foodStore.meals,
+                entries: foodStore.entries,
+                timeZone: timeZoneFromSettings(data.settings),
+              })).then((ok) =>
                 toast(ok ? 'Copied to clipboard' : 'Clipboard blocked', ok ? 'ok' : 'error'),
               )
             }}

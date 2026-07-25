@@ -50,6 +50,7 @@ import {
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
+import { mealBlockIdempotencyKey, mealMomentIdFromIdempotencyKey } from '../lib/mealBlocks'
 import { useStore } from './AppStore'
 import {
   OPEN_FOOD_FACTS_FIELDS,
@@ -105,6 +106,7 @@ interface FoodStoreValue {
   savePrivateFood: (food: Omit<FoodRecord, 'id' | 'owner_user_id' | 'source' | 'created_at' | 'updated_at'>) => Promise<FoodRecord>
   setPreference: (foodId: string, patch: Partial<FoodPreference>) => Promise<void>
   logMeal: (input: LogMealInput) => Promise<LoggedMeal>
+  setMealFinishedAt: (mealId: string, finishedAt: string) => Promise<LoggedMeal>
   deleteMeal: (mealId: string) => Promise<void>
   savePreset: (input: SavePresetInput) => Promise<MealPreset>
   deletePreset: (presetId: string) => Promise<void>
@@ -665,6 +667,61 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     return meal
   }, [applyDayAggregate, flush, userId])
 
+  /**
+   * Logged meals are immutable server snapshots, so editing the finish time
+   * uses the same atomic replacement path as editing meal contents. This
+   * preserves offline durability, idempotency and cross-device history while
+   * keeping `logged_at` as the recorded end of the meal.
+   */
+  const setMealFinishedAt = useCallback(async (mealId: string, finishedAt: string): Promise<LoggedMeal> => {
+    if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) {
+      throw new Error('The active account changed. Please retry saving the meal time.')
+    }
+    const previous = mealsRef.current.find((meal) => meal.id === mealId)
+    if (!previous) throw new Error('This meal is no longer available.')
+    const parsedFinishedAt = new Date(finishedAt)
+    if (!Number.isFinite(parsedFinishedAt.getTime())) throw new Error('Choose a valid meal finish time.')
+
+    mutationRevision.current += 1
+    const now = new Date().toISOString()
+    const id = crypto.randomUUID()
+    const mealMomentId = mealMomentIdFromIdempotencyKey(previous.client_idempotency_key)
+    const meal: LoggedMeal = {
+      ...previous,
+      id,
+      logged_at: parsedFinishedAt.toISOString(),
+      client_idempotency_key: mealBlockIdempotencyKey(crypto.randomUUID(), mealMomentId),
+      updated_at: now,
+    }
+    const snapshots = entries
+      .filter((entry) => entry.meal_id === previous.id)
+      .map((entry) => ({
+        ...entry,
+        id: crypto.randomUUID(),
+        meal_id: id,
+        created_at: now,
+      }))
+    if (snapshots.length === 0) throw new Error('The meal snapshot is incomplete. Open the meal and save it again.')
+    const payloadMeal = { ...meal, replace_meal_id: previous.id }
+    const operation = outbox(userId, 'log_meal', id, { meal: payloadMeal, entries: snapshots })
+    await saveMealAtomically(meal, snapshots, [], isLocalMode ? null : operation, previous.id)
+
+    if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) {
+      throw new Error('The active account changed. The time was kept for its original account.')
+    }
+    if (!isLocalMode) setQueued(true)
+    const nextMeals = addLoggedMealToHistory(mealsRef.current, meal, previous.id)
+    mealsRef.current = nextMeals
+    setMeals(nextMeals)
+    setEntries((current) => [
+      ...snapshots,
+      ...current.filter((entry) => entry.meal_id !== previous.id),
+    ])
+    applyDayAggregate(previous.local_date, nextMeals)
+    if (!isLocalMode && navigator.onLine) await flush()
+    return meal
+  }, [applyDayAggregate, entries, flush, userId])
+
   const deleteMeal = useCallback(async (mealId: string) => {
     if (!userId || !foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
     const removed = mealsRef.current.find((meal) => meal.id === mealId)
@@ -734,9 +791,9 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<FoodStoreValue>(() => ({
     ready, syncing, queued, foods, preferences, presets, presetItems, meals, entries,
-    lookupBarcode, widerSearch, savePrivateFood, setPreference, logMeal, deleteMeal,
+    lookupBarcode, widerSearch, savePrivateFood, setPreference, logMeal, setMealFinishedAt, deleteMeal,
     savePreset, deletePreset, mealsForDate, itemsForPreset,
-  }), [deleteMeal, deletePreset, entries, foods, itemsForPreset, logMeal, lookupBarcode, meals, mealsForDate, preferences, presetItems, presets, queued, ready, savePreset, savePrivateFood, setPreference, syncing, widerSearch])
+  }), [deleteMeal, deletePreset, entries, foods, itemsForPreset, logMeal, lookupBarcode, meals, mealsForDate, preferences, presetItems, presets, queued, ready, savePreset, savePrivateFood, setMealFinishedAt, setPreference, syncing, widerSearch])
 
   return <Ctx.Provider value={value}>{children}</Ctx.Provider>
 }

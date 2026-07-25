@@ -311,6 +311,9 @@ export interface Settings {
     simple_show_manual_workout?: boolean
     simple_show_next_action?: boolean
     adhd_mode?: boolean
+    /* IANA zone used by the live nutrition dayline and all timing exports.
+       When absent, the browser's current zone is used. */
+    time_zone?: string
     /* Account-scoped meal moments and preset associations. This stays inside
        the existing synced JSON settings record, so no schema rollout is
        required for reliable cross-device behavior. */

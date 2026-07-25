@@ -2,12 +2,22 @@
 import { format } from 'date-fns'
 import type { AppData, ProgramSlug } from './types'
 import { approachRamp } from './plan'
+import type { LoggedFoodEntry, LoggedMeal } from './food'
+import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming'
+
+export interface MealTimingReportContext {
+  meals: LoggedMeal[]
+  entries: LoggedFoodEntry[]
+  timeZone: string
+  fallbackTimes?: Record<string, string>
+}
 
 export function buildReport(
   data: AppData,
   slug: ProgramSlug,
   fromIso: string,
   toIso: string,
+  mealTiming?: MealTimingReportContext,
 ): string {
   const program = data.programs.find((p) => p.slug === slug)
   const dayById = new Map(data.program_days.map((d) => [d.id, d]))
@@ -87,6 +97,56 @@ export function buildReport(
     )
   }
   lines.push('')
+
+  if (mealTiming) {
+    const meals = mealTiming.meals
+      .filter((meal) => meal.local_date >= fromIso && meal.local_date <= toIso)
+      .sort((left, right) => left.local_date.localeCompare(right.local_date) || left.logged_at.localeCompare(right.logged_at))
+    const mealIds = new Set(meals.map((meal) => meal.id))
+    const entries = mealTiming.entries.filter((entry) => mealIds.has(entry.meal_id))
+    const timed = meals.map((meal) => timedMeal(
+      meal,
+      entries,
+      mealTiming.timeZone,
+      mealTiming.fallbackTimes?.[meal.id] ?? fallbackMealTime(meal),
+    ))
+    const analysis = analyzeMealTiming({
+      meals,
+      entries,
+      sessions: data.workout_sessions.filter((session) => session.date >= fromIso && session.date <= toIso),
+      timeZone: mealTiming.timeZone,
+      fallbackTimes: mealTiming.fallbackTimes,
+    })
+
+    lines.push('## Meal timing and pre-workout context')
+    lines.push(`Timezone: ${mealTiming.timeZone}.`)
+    lines.push(`Recorded meal finish times: ${analysis.recordedMeals}. Estimated times: ${analysis.estimatedMeals}.`)
+    if (analysis.typicalVariationMinutes != null) {
+      lines.push(`Typical within-slot timing variation: ${analysis.typicalVariationMinutes} minutes. Rhythm score: ${analysis.rhythmScore ?? '?'} / 100.`)
+    }
+    if (analysis.workoutsWithContext > 0) {
+      lines.push(`Workout starts with meal context: ${analysis.workoutsWithContext}. Comfort window ${analysis.readyStarts}, tradeoff window ${analysis.transitionStarts}, settling window ${analysis.settlingStarts}.`)
+      lines.push(`Average interval from the latest completed meal to training: ${analysis.averageWaitMinutes ?? '?'} minutes.`)
+    }
+    lines.push('')
+    lines.push('### Meals')
+    for (const item of timed) {
+      lines.push(
+        `- ${item.meal.local_date} ${item.time}: ${item.meal.display_name}, ${Math.round(item.meal.total_kcal)} kcal, P ${Math.round(item.meal.total_protein_g)} g, C ${Math.round(item.meal.total_carbs_g)} g, F ${Math.round(item.meal.total_fat_g)} g. Time ${item.recorded ? 'recorded' : 'estimated'}. Comfort estimate ${item.window.transitionAfterMinutes} to ${item.window.readyAfterMinutes} minutes.`,
+      )
+    }
+    if (timed.length === 0) lines.push('- No structured meal timing was recorded in this range.')
+    lines.push('')
+    lines.push('### Workout timing relative to meals')
+    for (const relation of analysis.workoutRelations) {
+      const start = zonedClock(relation.startedAt, mealTiming.timeZone).time
+      lines.push(relation.mealId
+        ? `- ${relation.date} ${start}: started ${relation.waitedMinutes} minutes after ${relation.mealName}. Zone: ${relation.zone}.`
+        : `- ${relation.date} ${start}: no reliably recorded earlier meal on this day.`)
+    }
+    if (analysis.workoutRelations.length === 0) lines.push('- No workout start timestamps were available in this range.')
+    lines.push('')
+  }
 
   /* RPG snapshot */
   const snap = data.rpg_snapshots[data.rpg_snapshots.length - 1]

@@ -146,6 +146,7 @@ function normalizeAppData(value: AppData): AppData {
           simple_show_hydration_reminder: value.settings.addons?.simple_show_hydration_reminder ?? false,
           simple_show_manual_workout: value.settings.addons?.simple_show_manual_workout ?? false,
           adhd_mode: value.settings.addons?.adhd_mode ?? false,
+          time_zone: value.settings.addons?.time_zone,
           meal_blocks: normalizeMealBlockSettings(value.settings.addons?.meal_blocks),
         },
       }

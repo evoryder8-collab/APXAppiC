@@ -10,6 +10,7 @@ import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { isTrainingInductionEligible } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
+import { supportedTimeZones, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -63,12 +64,33 @@ export function Settings() {
   const settings = data.settings
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
   const [customBmrDraft, setCustomBmrDraft] = useState(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
+  const resolvedTimeZone = timeZoneFromSettings(settings)
+  const [timeZoneDraft, setTimeZoneDraft] = useState(resolvedTimeZone)
   useEffect(() => {
     setCustomBmrDraft(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
   }, [profile?.custom_bmr])
+  useEffect(() => setTimeZoneDraft(resolvedTimeZone), [resolvedTimeZone])
   if (!profile || !settings) return null
   const targets = computeTargets(profile)
   const mealBlockSettings = normalizeMealBlockSettings(settings.addons.meal_blocks)
+  const timeZones = supportedTimeZones()
+  const timeZoneCopy = language === 'ro'
+    ? {
+        title: 'Fus orar pentru cronologia meselor',
+        body: 'Controlează ora live, poziția meselor și analiza intervalului până la antrenament.',
+        invalid: 'Alege un fus orar valid din listă.',
+      }
+    : language === 'th'
+      ? {
+          title: 'เขตเวลาสำหรับไทม์ไลน์มื้ออาหาร',
+          body: 'ใช้กับเวลาสด ตำแหน่งมื้ออาหาร และการวิเคราะห์ช่วงเวลาก่อนฝึก',
+          invalid: 'เลือกเขตเวลาที่ถูกต้องจากรายการ',
+        }
+      : {
+          title: 'Meal dayline timezone',
+          body: 'Controls the live clock, meal positions and pre-workout timing analysis.',
+          invalid: 'Choose a valid timezone from the list.',
+        }
   const starterCopy = language === 'ro'
     ? {
         title: 'Sunt începător',
@@ -162,6 +184,35 @@ export function Settings() {
                   return <button key={unit} type="button" aria-pressed={active} onClick={() => setSettings({ addons: { ...settings.addons, weight_unit: unit } })} className={`rounded-lg px-3 py-2 text-[11px] font-black transition ${active ? 'bg-white text-cyan-800 shadow-sm' : 'text-ink-soft'}`}>{unit === 'kg' ? t('Kilograms (kg)') : t('Pounds (lb)')}</button>
                 })}
               </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-emerald-100/90 bg-[linear-gradient(135deg,rgba(236,253,245,.78),rgba(236,254,255,.7))] p-3">
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className={label}>{timeZoneCopy.title}</p>
+                  <p className={`${sub} mt-1 leading-relaxed`}>{timeZoneCopy.body}</p>
+                </div>
+                <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 font-mono text-[9px] font-black text-emerald-800">{zonedClock(new Date(), resolvedTimeZone).time}</span>
+              </div>
+              <input
+                list="apex-time-zones"
+                value={timeZoneDraft}
+                onChange={(event) => setTimeZoneDraft(event.target.value)}
+                onBlur={() => {
+                  const next = timeZoneDraft.trim()
+                  if (!validTimeZone(next)) {
+                    setTimeZoneDraft(resolvedTimeZone)
+                    toast(timeZoneCopy.invalid, 'error')
+                    return
+                  }
+                  setSettings({ addons: { ...settings.addons, time_zone: next } })
+                }}
+                onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                aria-label={timeZoneCopy.title}
+                className="mt-3 w-full rounded-xl border border-emerald-100 bg-white/88 px-3 py-2.5 font-mono text-[11px] font-black text-ink outline-none focus:border-emerald-400"
+              />
+              <datalist id="apex-time-zones">{timeZones.map((zone) => <option key={zone} value={zone} />)}</datalist>
+              <p className="mt-2 truncate font-mono text-[8px] font-bold text-emerald-800/65">{resolvedTimeZone.replace(/_/g, ' ')} · {zonedClock(new Date(), resolvedTimeZone).date}</p>
             </div>
 
             <div className="mt-3 rounded-[22px] border border-amber-100/90 bg-[linear-gradient(135deg,rgba(255,251,235,.88),rgba(255,255,255,.68))] p-3.5">

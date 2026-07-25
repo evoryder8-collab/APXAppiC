@@ -37,6 +37,8 @@ import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
+import { timeZoneFromSettings } from '../lib/mealTiming'
+import { MealDayline } from '../components/food/MealDayline'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -134,6 +136,17 @@ export function SimpleHome() {
     plannedMeals: mealPlan,
     checkedPlannedMealIds: dateMealIds,
   }), [dateFoodMeals, dateMealIds, mealBlockSettings, mealPlan])
+  const timelineFallbackTimes = useMemo(() => {
+    const pairs: Array<[string, string]> = []
+    for (const status of mealBlockStatuses) {
+      if (status.loggedMeal) pairs.push([status.loggedMeal.id, status.block.time])
+    }
+    for (const block of mealBlockSettings.custom_blocks.filter((candidate) => candidate.enabled)) {
+      const meal = dateFoodMeals.find((candidate) => mealMomentIdFromIdempotencyKey(candidate.client_idempotency_key) === block.id)
+      if (meal) pairs.push([meal.id, block.time])
+    }
+    return Object.fromEntries(pairs)
+  }, [dateFoodMeals, mealBlockSettings.custom_blocks, mealBlockStatuses])
   const macroContributors = useMemo(() => {
     const mealIds = new Set(dateFoodMeals.map((meal) => meal.id))
     const localizedEntries = foodStore.entries
@@ -782,6 +795,16 @@ export function SimpleHome() {
             ) : undefined}
           />
         </GlassCard>
+
+        <MealDayline
+          compact
+          date={selectedDate}
+          meals={dateFoodMeals}
+          entries={foodStore.entries}
+          timeZone={timeZoneFromSettings(settings)}
+          fallbackTimes={timelineFallbackTimes}
+          onMealFinishedAt={foodStore.setMealFinishedAt}
+        />
 
         <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
           <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${totalMealBlocks}`} label={t('Meals')} done={totalMealBlocks > 0 && completedMeals === totalMealBlocks} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
