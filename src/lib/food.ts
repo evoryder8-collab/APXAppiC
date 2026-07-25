@@ -387,6 +387,8 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'bucati de cacao': 'cacao nibs',
     'fulgi de cocos': 'coconut flakes',
     'somon afumat la cald': 'hot smoked salmon',
+    'somon crud': 'raw salmon',
+    'file de somon crud': 'raw salmon fillet',
     'inimi de pui': 'chicken hearts',
     'lapte proteic': 'high protein milk',
     'lapte bogat in proteine': 'high protein milk',
@@ -401,6 +403,18 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'ulei extravirgin': 'extra virgin olive oil',
     'ulei de masline extra virgin': 'extra virgin olive oil',
     'ulei de masline extravirgin': 'extra virgin olive oil',
+    'ulei de rapita': 'canola oil',
+    'ulei de rapita presat la rece': 'cold pressed rapeseed oil',
+    'ulei de floarea soarelui': 'sunflower oil',
+    'ulei de nuca': 'walnut oil',
+    'ulei de seminte de in': 'flaxseed oil',
+    'ulei de susan': 'sesame oil',
+    'ulei de cocos': 'coconut oil',
+    'ulei de avocado': 'avocado oil',
+    'ulei din samburi de struguri': 'grapeseed oil',
+    'seu de vita': 'beef tallow',
+    'untura de porc': 'pork lard',
+    'unt clarificat': 'ghee clarified butter',
   },
   th: {
     'อกไก่': 'chicken breast',
@@ -452,6 +466,8 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'คาเคานิบส์': 'cacao nibs',
     'เกล็ดมะพร้าว': 'coconut flakes',
     'แซลมอนรมควันร้อน': 'hot smoked salmon',
+    'ปลาแซลมอนดิบ': 'raw salmon',
+    'แซลมอนดิบ': 'raw salmon',
     'หัวใจไก่': 'chicken hearts',
     'นมโปรตีนสูง': 'high protein milk',
     'คลัสเตอร์เดกซ์ทริน': 'cluster dextrin',
@@ -461,6 +477,17 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'น้ำมันมะกอกบริสุทธิ์พิเศษ': 'extra virgin olive oil',
     'น้ำมันมะกอกเอ็กซ์ตร้าเวอร์จิ้น': 'extra virgin olive oil',
     'อีวีโอโอ': 'evoo',
+    'น้ำมันคาโนลา': 'canola oil',
+    'น้ำมันดอกทานตะวัน': 'sunflower oil',
+    'น้ำมันวอลนัต': 'walnut oil',
+    'น้ำมันเมล็ดแฟลกซ์': 'flaxseed oil',
+    'น้ำมันงา': 'sesame oil',
+    'น้ำมันมะพร้าว': 'coconut oil',
+    'น้ำมันอะโวคาโด': 'avocado oil',
+    'น้ำมันเมล็ดองุ่น': 'grapeseed oil',
+    'ไขมันวัวเจียว': 'beef tallow',
+    'มันหมู': 'pork lard',
+    'กี': 'ghee clarified butter',
   },
 }
 
@@ -487,6 +514,8 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     conopida: 'cauliflower', fasole: 'beans', migdale: 'almonds',
     cluster: 'cluster', dextrin: 'dextrin',
     ulei: 'oil', masline: 'olive', virgin: 'virgin', extravirgin: 'extra virgin',
+    rapita: 'canola', floarea: 'sunflower', soarelui: 'sunflower', nuca: 'walnut',
+    samburi: 'seeds', seu: 'tallow', untura: 'lard', clarificat: 'clarified',
     de: '', din: '', la: '',
   },
   th: {
@@ -510,6 +539,10 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
     ดอกกะหล่ำ: 'cauliflower', ถั่วแขก: 'green beans', อัลมอนด์: 'almonds',
     คลัสเตอร์เดกซ์ทริน: 'cluster dextrin',
     น้ำมัน: 'oil', น้ำมันมะกอก: 'olive oil', อีวีโอโอ: 'evoo',
+    น้ำมันคาโนลา: 'canola oil', น้ำมันดอกทานตะวัน: 'sunflower oil', น้ำมันวอลนัต: 'walnut oil',
+    น้ำมันเมล็ดแฟลกซ์: 'flaxseed oil', น้ำมันงา: 'sesame oil', น้ำมันมะพร้าว: 'coconut oil',
+    น้ำมันอะโวคาโด: 'avocado oil', น้ำมันเมล็ดองุ่น: 'grapeseed oil',
+    ไขมันวัวเจียว: 'beef tallow', มันหมู: 'pork lard', กี: 'ghee',
   },
 }
 
@@ -772,20 +805,75 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
 const REFERENCE_RETAILERS = ['aldi', 'aldi suisse', 'lidl', 'migros', 'rewe'] as const
 
 function retailerReferenceAliases(food: FoodRecord): string[] {
-  if (!food.provider_product_id?.startsWith('apex-curated:swiss-retail-')) return []
+  const providerId = food.provider_product_id ?? ''
+  if (
+    !providerId.startsWith('apex-curated:swiss-retail-')
+    && !providerId.startsWith('apex-protocol:generic:')
+  ) return []
   const names = [food.name, ...Object.values(food.names_i18n)].filter(Boolean)
   return REFERENCE_RETAILERS.flatMap((retailer) => names.map((name) => `${retailer} ${name}`))
 }
 
+function simplifiedCatalogAliases(food: FoodRecord): string[] {
+  const simplified = Object.values(food.names_i18n).map((name) => name
+    .replace(/\b(?:skinless|lean|no added oil|generic reference)\b/gi, '')
+    .replace(/\b(?:ohne Haut|mager|ohne Ölzugabe|allgemeiner Referenzwert)\b/gi, '')
+    .replace(/\b(?:sans peau|maigre|sans huile ajoutée|valeur de référence générique)\b/gi, '')
+    .replace(/\b(?:senza pelle|magro|magra|senza olio aggiunto|valore di riferimento generico)\b/gi, '')
+    .replace(/\b(?:fără piele|slab|slabă|fără ulei adăugat|profil generic de referință)\b/gi, '')
+    .replace(/(?:ลอกหนัง|ไม่ติดมัน|ไม่เติมน้ำมัน|ข้อมูลอ้างอิงทั่วไป)/g, '')
+    .replace(/\bîn stare crudă\b/gi, 'crud')
+    .replace(/\bpreparare prin fierbere\b/gi, 'fiert')
+    .replace(/\bpreparare prin poșare\b/gi, 'poșat')
+    .replace(/\bpreparare la abur\b/gi, 'la abur')
+    .replace(/\bpreparare la grătar\b/gi, 'la grătar')
+    .replace(/\bpreparare la cuptor\b/gi, 'la cuptor')
+    .replace(/\bpreparare prin rumenire la cuptor\b/gi, 'rumenit la cuptor')
+    .replace(/\bpreparare la air fryer\b/gi, 'la air fryer')
+    .replace(/\bpreparare în tigaie\b/gi, 'la tigaie')
+    .replace(/\bpreparare prin prăjire\b/gi, 'prăjit')
+    .replace(/\b5 g ulei absorbit la 100 g\b/gi, '')
+    .replace(/\b5 g absorbed oil per 100 g\b/gi, '')
+    .replace(/\b5 g aufgenommenes Öl pro 100 g\b/gi, '')
+    .replace(/\b5 g d’huile absorbée pour 100 g\b/gi, '')
+    .replace(/\b5 g di olio assorbito per 100 g\b/gi, '')
+    .replace(/ดูดซึมน้ำมัน 5 กรัมต่อ 100 กรัม/g, '')
+    .replace(/\s*,\s*,+/g, ', ')
+    .replace(/\s{2,}/g, ' ')
+    .replace(/^[,\s]+|[,\s]+$/g, ''))
+  return simplified.flatMap((name) => {
+    const branded = food.brand ? `${food.brand} ${name}` : ''
+    const compact = name.replace(/\s+/g, '')
+    return [name, branded, compact]
+  }).filter(Boolean)
+}
+
+const catalogAliasCache = new WeakMap<FoodRecord, string[]>()
+const foodSearchTextCache = new WeakMap<FoodRecord, string>()
+
 function catalogAliases(food: FoodRecord): string[] {
+  const cached = catalogAliasCache.get(food)
+  if (cached) return cached
   const aliases = food.provider_product_id ? FOOD_CATALOG_ALIASES[food.provider_product_id] ?? [] : []
-  return [...new Set([...aliases, ...retailerReferenceAliases(food)])]
+  const compactThai = food.names_i18n.th?.replace(/\s+/g, '')
+  const result = [...new Set([
+    ...aliases,
+    ...retailerReferenceAliases(food),
+    ...simplifiedCatalogAliases(food),
+    ...(compactThai ? [compactThai] : []),
+  ])]
+  catalogAliasCache.set(food, result)
+  return result
 }
 
 function foodSearchText(food: FoodRecord): string {
-  return [food.name, food.brand ?? '', ...Object.values(food.names_i18n), ...catalogAliases(food)]
+  const cached = foodSearchTextCache.get(food)
+  if (cached) return cached
+  const result = [food.name, food.brand ?? '', ...Object.values(food.names_i18n), ...catalogAliases(food)]
     .map(normalizeFoodSearch)
     .join(' ')
+  foodSearchTextCache.set(food, result)
+  return result
 }
 
 function includesAny(value: string, terms: string[]): boolean {
@@ -839,11 +927,15 @@ function fuzzyFoodSearchMatch(query: string, candidate: string): boolean {
 function categorySearchBoost(query: string, food: FoodRecord): number {
   const text = foodSearchText(food)
   const curated = food.provider_product_id?.startsWith('apex-curated:') ? 220 : 0
-  const oliveOilQuery = hasSearchWord(query, 'oil')
-    || hasSearchWord(query, 'ulei')
+  const queryWithoutRetailer = query
+    .split(' ')
+    .filter((token) => !['aldi', 'suisse', 'lidl', 'migros', 'rewe'].includes(token))
+    .join(' ')
+  const oliveOilQuery = ['oil', 'ulei', 'น้ำมัน'].includes(queryWithoutRetailer)
     || query.includes('olive oil')
+    || query.includes('ulei de masline')
     || query.includes('evoo')
-    || query.includes('น้ำมัน')
+    || query.includes('น้ำมันมะกอก')
   if (oliveOilQuery) {
     const oliveOilFood = (food.fat_100 ?? 0) >= 80 && includesAny(text, [
       'olive oil', 'olivenol', 'huile d olive', 'olio extravergine', 'olio d oliva',
@@ -862,6 +954,15 @@ function categorySearchBoost(query: string, food: FoodRecord): number {
   if (chickenQuery) {
     if (includesAny(text, [' raw', ' crud', ' ดิบ'])) return curated + 840
     if (includesAny(text, ['boiled', 'fiert', 'bouilli', 'bollito', ' ต้ม'])) return curated + 760
+    if (includesAny(text, ['air fryer', 'heissluftfritteuse', 'heißluftfritteuse', 'หม้อทอดไร้น้ำมัน'])) return curated + 680
+    if (includesAny(text, ['cooked', 'gatit', 'gegart', 'cuit', 'cotto', ' สุก'])) return curated + 520
+  }
+
+  const salmonQuery = includesAny(query, ['salmon', 'somon', 'lachs', 'saumon', 'salmone', 'แซลมอน'])
+  if (salmonQuery) {
+    if (includesAny(text, [' raw', ' crud', ' roh', ' etat cru', ' stato crudo', ' ดิบ'])) return curated + 900
+    if (includesAny(text, ['grilled', 'gratar', 'gegrillt', 'grille', 'griglia', ' ย่าง'])) return curated + 760
+    if (includesAny(text, ['baked', 'cuptor', 'gebacken', 'four', 'forno', ' อบ'])) return curated + 700
     if (includesAny(text, ['air fryer', 'heissluftfritteuse', 'heißluftfritteuse', 'หม้อทอดไร้น้ำมัน'])) return curated + 680
     if (includesAny(text, ['cooked', 'gatit', 'gegart', 'cuit', 'cotto', ' สุก'])) return curated + 520
   }
@@ -938,6 +1039,10 @@ export function rankFoods(
       if (preference?.last_used_at) {
         const ageDays = Math.max(0, (now - new Date(preference.last_used_at).getTime()) / 86_400_000)
         score += Math.max(0, 160 - ageDays * 4)
+      }
+      if (food.brand) {
+        const brandTokens = normalizeFoodSearch(food.brand).split(' ').filter((token) => token.length >= 4)
+        if (brandTokens.some((token) => hasSearchWord(needle, token))) score += 280
       }
       score += categorySearchBoost(needle, food)
       if (food.owner_user_id) score += 70

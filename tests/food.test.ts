@@ -179,7 +179,7 @@ test('protocol fruits, seeds and vegetables are local, multilingual and availabl
 })
 
 test('Nutrition V3 ships a broad multilingual offline catalog with retailer-reference variants', () => {
-  assert.ok(COMMON_FOODS.length >= 300, `expected at least 300 local foods, received ${COMMON_FOODS.length}`)
+  assert.ok(COMMON_FOODS.length >= 1_300, `expected at least 1,300 local foods, received ${COMMON_FOODS.length}`)
   assert.equal(new Set(COMMON_FOODS.map((food) => food.id)).size, COMMON_FOODS.length)
   assert.equal(new Set(COMMON_FOODS.map((food) => food.provider_product_id)).size, COMMON_FOODS.length)
   assert.ok(COMMON_FOODS.every((food) =>
@@ -211,7 +211,7 @@ test('Nutrition V3 staples resolve across English, Romanian, Thai and retailer-q
     ['น้ำผึ้ง', 'Honey'],
     ['amestec de seminte', 'Mixed seed blend'],
     ['piept de curcan crud', 'Turkey breast, raw'],
-    ['ปลาแซลมอน', 'Salmon fillet, cooked'],
+    ['ปลาแซลมอน', 'Salmon fillet, raw'],
     ['orez basmati', 'Basmati rice, dry'],
     ['linte fiarta', 'Lentils, cooked'],
     ['legume congelate', 'Mixed vegetables, frozen'],
@@ -226,6 +226,72 @@ test('Nutrition V3 staples resolve across English, Romanian, Thai and retailer-q
   assert.equal(rankFoods('lidl legume congelate', COMMON_FOODS, [], 'lunch')[0]?.brand, 'Lidl Suisse')
   assert.equal(rankFoods('aldi mango congelat', COMMON_FOODS, [], 'snack')[0]?.brand, 'ALDI Suisse')
   assert.equal(rankFoods('rewe brokkoli tiefgekühlt', COMMON_FOODS, [], 'lunch')[0]?.brand, 'REWE')
+})
+
+test('raw salmon is immediately searchable with official reference macros in every primary language', () => {
+  const rawSalmon = COMMON_FOODS.find(
+    (food) => food.provider_product_id === 'apex-protocol:generic:salmon-fillet-raw',
+  )!
+  assert.deepEqual(
+    {
+      kcal: rawSalmon.kcal_100,
+      protein: rawSalmon.protein_100,
+      carbs: rawSalmon.carbs_100,
+      fat: rawSalmon.fat_100,
+    },
+    { kcal: 203, protein: 20.3, carbs: 0, fat: 13.1 },
+  )
+
+  for (const query of ['raw salmon', 'somon crud', 'ปลาแซลมอนดิบ']) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'lunch')[0]?.id, rawSalmon.id, query)
+  }
+  assert.equal(rankFoods('migros somon crud', COMMON_FOODS, [], 'lunch')[0]?.brand, 'Migros')
+})
+
+test('fish, meat and vegetables expose preparation-specific multilingual references', () => {
+  const expected = [
+    ['somon la gratar', 'salmon-fillet-grilled'],
+    ['somon la air fryer', 'salmon-fillet-air-fryer'],
+    ['somon prajit', 'salmon-fillet-fried-with-oil'],
+    ['piept de pui la gratar', 'chicken-breast-grilled'],
+    ['อกไก่ย่าง', 'chicken-breast-grilled'],
+    ['broccoli la air fryer', 'broccoli-air-fryer'],
+  ] as const
+
+  for (const [query, providerSuffix] of expected) {
+    assert.equal(
+      rankFoods(query, COMMON_FOODS, [], 'lunch')[0]?.provider_product_id,
+      `apex-protocol:generic:${providerSuffix}`,
+      query,
+    )
+  }
+
+  const friedSalmon = COMMON_FOODS.find(
+    (food) => food.provider_product_id === 'apex-protocol:generic:salmon-fillet-fried-with-oil',
+  )!
+  assert.equal(friedSalmon.kcal_100, 251)
+  assert.equal(friedSalmon.fat_100, 17.4)
+  assert.match(friedSalmon.name, /5 g absorbed oil per 100 g/)
+  assert.equal(rankFoods('lidl somon la gratar', COMMON_FOODS, [], 'lunch')[0]?.brand, null)
+})
+
+test('the multilingual pantry includes broad cooking oils, butters and rendered fats', () => {
+  const expected = [
+    ['ulei de rapita presat la rece', 'rapeseed-oil-cold-pressed'],
+    ['ulei de nuca', 'walnut-oil-cold-pressed'],
+    ['น้ำมันเมล็ดแฟลกซ์', 'flaxseed-oil-cold-pressed'],
+    ['ghee', 'ghee-clarified-butter'],
+    ['seu de vita', 'beef-tallow'],
+    ['untura de porc', 'pork-lard'],
+  ] as const
+
+  for (const [query, providerSuffix] of expected) {
+    assert.equal(
+      rankFoods(query, COMMON_FOODS, [], 'lunch')[0]?.provider_product_id,
+      `apex-protocol:generic:${providerSuffix}`,
+      query,
+    )
+  }
 })
 
 test('Bodylab Cluster Dextrin, Migros protein milk and Lee-Sport isolate use verified labels', () => {

@@ -1,4 +1,5 @@
 import type { FoodRecord } from '../lib/food'
+import { EXPANDED_FOOD_SPECS, type CatalogFoodSpec } from './foodCatalogExpansion.ts'
 
 const created = '2026-07-12T00:00:00.000Z'
 
@@ -228,31 +229,11 @@ const CORE_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000080', 'Chia seeds', 'Chiasamen', 'Graines de chia', 'Semi di chia', 486, 16.54, 42.12, 30.74, 'as_sold', { providerId: 'apex-curated:swiss-retail-chia-seeds-reference', fibre: 34.4, sugar: 0 }),
 ]
 
-interface ProtocolFoodSpec {
-  slug: string
-  names: {
-    en: string
-    de: string
-    fr: string
-    it: string
-    ro: string
-    th: string
-  }
-  kcal: number
-  protein: number
-  carbs: number
-  fat: number
-  preparation?: FoodRecord['preparation_state']
-  fibre?: number
-  sugar?: number
-  pieceGrams?: number
-}
-
 /* Nutrition V3 uses a broad offline foundation instead of a tiny list of
    hand-picked products. These values describe the named food per 100 g and
    deliberately remain generic references. Exact packaged labels still win
    when a barcode or provider result is available. */
-const PROTOCOL_FOOD_SPECS: ProtocolFoodSpec[] = [
+const BASE_PROTOCOL_FOOD_SPECS: CatalogFoodSpec[] = [
   {
     slug: 'cherries-fresh',
     names: { en: 'Cherries, fresh', de: 'Kirschen, frisch', fr: 'Cerises, fraîches', it: 'Ciliegie, fresche', ro: 'Cireșe proaspete', th: 'เชอร์รีสด' },
@@ -500,6 +481,11 @@ const PROTOCOL_FOOD_SPECS: ProtocolFoodSpec[] = [
   },
 ]
 
+const PROTOCOL_FOOD_SPECS: CatalogFoodSpec[] = [
+  ...BASE_PROTOCOL_FOOD_SPECS,
+  ...EXPANDED_FOOD_SPECS,
+]
+
 const RETAILER_REFERENCES = [
   { slug: 'migros', brand: 'Migros' },
   { slug: 'lidl-suisse', brand: 'Lidl Suisse' },
@@ -512,7 +498,7 @@ function protocolFoodId(namespace: number, index: number): string {
 }
 
 function protocolFood(
-  spec: ProtocolFoodSpec,
+  spec: CatalogFoodSpec,
   index: number,
   retailer?: (typeof RETAILER_REFERENCES)[number],
   retailerIndex = 0,
@@ -535,6 +521,11 @@ function protocolFood(
       providerId: `apex-protocol:${retailer?.slug ?? 'generic'}:${spec.slug}`,
       fibre: spec.fibre,
       sugar: spec.sugar,
+      saturatedFat: spec.saturatedFat,
+      salt: spec.salt,
+      nutritionBasis: spec.nutritionBasis,
+      servingAmount: spec.servingAmount,
+      servingUnit: spec.servingUnit,
       confidence: 'complete',
     },
   )
@@ -547,7 +538,9 @@ function protocolFood(
 
 const PROTOCOL_FOODS = PROTOCOL_FOOD_SPECS.map((spec, index) => protocolFood(spec, index))
 const RETAILER_REFERENCE_FOODS = RETAILER_REFERENCES.flatMap((retailer, retailerIndex) =>
-  PROTOCOL_FOOD_SPECS.map((spec, index) => protocolFood(spec, index, retailer, retailerIndex)),
+  PROTOCOL_FOOD_SPECS.flatMap((spec, index) =>
+    spec.retailerReference === false ? [] : [protocolFood(spec, index, retailer, retailerIndex)],
+  ),
 )
 
 export const COMMON_FOODS: FoodRecord[] = [
