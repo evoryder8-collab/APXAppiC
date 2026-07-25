@@ -16,7 +16,7 @@ test('weighted sets request per-set load during rests but not between exercises'
   const plan: PlannedDay = {
     programDay: null,
     exercises: [exercise(), exercise({ id: 'row', name: 'Row' })],
-    warmup: 'Warm up', badges: [], isDeload: false, isEventDay: false, isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+    warmup: 'Warm up', warmupDuration: 180, badges: [], isDeload: false, isEventDay: false, isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
   }
   const rests = buildTimeline(plan).filter((block) => block.kind === 'rest')
   assert.deepEqual(rests.filter((block) => block.captureLoad).map((block) => [block.exIdx, block.afterSet]), [[0, 1], [0, 2], [1, 1], [1, 2]])
@@ -27,7 +27,7 @@ test('bodyweight exercises do not ask for a meaningless kilogram entry', () => {
   const plan: PlannedDay = {
     programDay: null,
     exercises: [exercise({ increment_kg: 0, name: 'Push-ups' })],
-    warmup: 'Warm up', badges: [], isDeload: false, isEventDay: false, isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+    warmup: 'Warm up', warmupDuration: 180, badges: [], isDeload: false, isEventDay: false, isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
   }
   const rests = buildTimeline(plan).filter((block) => block.kind === 'rest')
   assert.ok(rests.every((block) => !block.captureLoad))

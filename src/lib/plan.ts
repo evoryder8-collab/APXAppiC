@@ -11,6 +11,13 @@ import type {
   ProgramDay,
   ProgramSlug,
 } from './types'
+import {
+  isFocusT25Name,
+  isProtocolDeloadWeek,
+  isProtocolPushupTestWeek,
+  resolveFocusT25,
+  trainingProtocolWeek,
+} from './focusT25.ts'
 import { activeInductionDayIds, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
 
 export interface PlannedExercise extends Exercise {
@@ -22,6 +29,7 @@ export interface PlannedDay {
   programDay: ProgramDay | null
   exercises: PlannedExercise[]
   warmup: string
+  warmupDuration: number
   badges: string[]
   isDeload: boolean
   isEventDay: boolean
@@ -177,6 +185,7 @@ export function planForDate(
     programDay,
     exercises: [],
     warmup: '',
+    warmupDuration: 0,
     badges: [],
     isDeload: false,
     isEventDay: false,
@@ -218,11 +227,91 @@ export function planForDate(
   }
   if (induction && slug === 'main') badges.push('Personal main phase: progress only from clean logged sets')
 
-  const constantineProtocol = (data.profile?.persona ?? 'constantine') === 'constantine'
-  let warmup = constantineProtocol
-    ? 'Band Pull-Aparts 3x20 (mid-back activation)'
-    : (programDay.warmup_note || 'Five minutes of pain-free joint preparation')
-  if (constantineProtocol && programDay.warmup_note) warmup += `. ${programDay.warmup_note}`
+  const persona = data.profile?.persona ?? 'constantine'
+  const protocolStart = data.settings?.addons.training_protocol?.start_date ?? date
+  const protocolWeek = trainingProtocolWeek(protocolStart, date)
+  const bespokeV81 = slug === 'main' && (persona === 'constantine' || persona === 'june')
+  const scheduledDeload = bespokeV81 && isProtocolDeloadWeek(protocolWeek)
+  const scheduledTest = bespokeV81 && weekday === 2 && isProtocolPushupTestWeek(protocolWeek)
+  let warmup = programDay.warmup_note || ''
+  let warmupDuration = warmup && !/^no loaded warm-up/i.test(warmup) ? 180 : 0
+
+  if (bespokeV81) {
+    exercises = exercises.flatMap((exercise) => {
+      if (!isFocusT25Name(exercise.name)) return [exercise]
+      const prescription = resolveFocusT25(persona, weekday, protocolWeek)
+      if (!prescription) return []
+      return [{
+        ...exercise,
+        name: `Focus T25 · ${prescription.episode}`,
+        notes: `Focus T25 confirmation | ${prescription.minutes} min | ${prescription.rpe} | ${prescription.note}`,
+        optional: scheduledTest,
+      }]
+    })
+    badges.push(`V8.1 · week ${protocolWeek}`)
+    if (scheduledDeload) badges.push(`Scheduled deload week ${protocolWeek}: two controlled sets and about 3 RIR`)
+    if (scheduledTest) badges.push(`Push-up benchmark week ${protocolWeek}: one fresh strict max set`)
+
+    if (scheduledTest) {
+      const t25 = exercises.filter((exercise) => isFocusT25Name(exercise.name))
+      const firstStrength = exercises.find((exercise) => !isFocusT25Name(exercise.name))
+      if (firstStrength) {
+        const test: PlannedExercise = {
+          ...firstStrength,
+          id: `v81-pushup-test-${persona}-${protocolWeek}`,
+          name: 'Strict Push-Up Max Test',
+          sets: 1,
+          planned_sets: 1,
+          rep_min: 0,
+          rep_max: 0,
+          rep_unit: 'max',
+          rest_sec: 180,
+          increment_kg: 0,
+          notes: 'Fresh strict maximum. Stop when clean form ends, then rest three full minutes.',
+          sort_order: 0,
+          swapped: true,
+        }
+        const backoff: PlannedExercise = persona === 'constantine'
+          ? {
+              ...firstStrength,
+              id: `v81-pushup-backoff-${persona}-${protocolWeek}`,
+              name: 'Weighted Push-Up Back-Off',
+              sets: 2,
+              planned_sets: 2,
+              rep_min: 12,
+              rep_max: 12,
+              rest_sec: 120,
+              notes: 'Two sets of 12 at about 3 RIR. Skip feet-elevated and close-grip work today.',
+              sort_order: 1,
+              swapped: true,
+            }
+          : {
+              ...firstStrength,
+              id: `v81-pushup-backoff-${persona}-${protocolWeek}`,
+              name: 'Strict Push-Up Back-Off at 60–70%',
+              sets: 2,
+              planned_sets: 2,
+              rep_min: 0,
+              rep_max: 0,
+              rep_unit: 'max',
+              rest_sec: 90,
+              notes: 'End each set at 60–70% of today’s strict maximum. Skip close-grip work today.',
+              sort_order: 1,
+              swapped: true,
+            }
+        exercises = [test, backoff, ...t25.map((exercise, index) => ({ ...exercise, sort_order: index + 2 }))]
+      }
+    } else if (protocolWeek === 1) {
+      exercises = exercises.map((exercise, index) => {
+        if (exercise.rep_unit === 'check') return exercise
+        if (persona === 'june' && (weekday === 1 || weekday === 5)) {
+          return index < 3 ? { ...exercise, planned_sets: Math.min(2, exercise.planned_sets) } : exercise
+        }
+        return { ...exercise, planned_sets: Math.max(1, exercise.planned_sets - 1) }
+      })
+      badges.push('Opening week: reduced work sets while technique and recovery establish the baseline')
+    }
+  }
 
   const ctx = eventContextFor(date, data.events)
   let taperFactor = 1
@@ -238,6 +327,7 @@ export function planForDate(
       isRecoveryMicro = true
       exercises = recoveryMicro(userId, programDay.id)
       warmup = 'Event day. 5-10 minutes keeps the streak and your back alive.'
+      warmupDuration = 60
       badges.push(`${ctx.event.name}: recovery micro-session`)
     } else if (ctx.daysUntilStart >= 1 && ctx.daysUntilStart <= 7) {
       if (
@@ -272,7 +362,7 @@ export function planForDate(
     }
   }
 
-  const isDeload = data.deload_marks.some((m) => m.date === date)
+  const isDeload = data.deload_marks.some((m) => m.date === date) || scheduledDeload
   const layoffDeload = !isEventDay && layoffActive(data, date)
   if (layoffDeload) {
     badges.push('Return from layoff: deload week. Minus 1 set, 3-4 RIR, lighter loads')
@@ -280,12 +370,14 @@ export function planForDate(
       badges.push('T25 holds until week 2. Swap in mobility instead')
     }
   }
-  if (isDeload) badges.push('Deload day: minus 1 set per exercise, 3-4 RIR, lighter')
+  if (isDeload && !scheduledDeload) badges.push('Deload day: two controlled sets per exercise, 3-4 RIR, lighter')
 
   exercises = exercises.map((e) => {
     let sets = e.planned_sets
     if (taperFactor < 1) sets = Math.max(1, Math.round(sets * taperFactor))
-    if ((isDeload || layoffDeload) && !isRecoveryMicro) sets = Math.max(1, sets - 1)
+    if ((isDeload || layoffDeload) && !isRecoveryMicro && e.rep_unit !== 'check') {
+      sets = scheduledDeload ? Math.min(2, sets) : Math.max(1, sets - 1)
+    }
     return { ...e, planned_sets: sets }
   })
 
@@ -335,6 +427,7 @@ export function planForDate(
     programDay,
     exercises,
     warmup,
+    warmupDuration,
     badges,
     isDeload: isDeload || layoffDeload,
     isEventDay,

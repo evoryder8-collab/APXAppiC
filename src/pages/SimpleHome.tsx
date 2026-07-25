@@ -21,7 +21,7 @@ import { ACCENTS } from '../lib/theme'
 import { ACTIVITY_MULTIPLIERS, GOALS, buildTargetMealPlan, computeTargets, type TargetMeal } from '../lib/nutrition'
 import { planForDate, todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
+import type { ActivityLevel, DailyLog, Goal, ProgramSlug, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
@@ -183,7 +183,12 @@ export function SimpleHome() {
     [data.supplement_logs, selectedDate],
   )
   const supplementDoneIds = useMemo(() => new Set(dateSupplementLogs.map((log) => log.supplement_id)), [dateSupplementLogs])
-  const plan = useMemo(() => planForDate(data, 'transition', selectedDate, false), [data, selectedDate])
+  const guidedProgramSlug: ProgramSlug =
+    profile?.persona === 'constantine' || profile?.persona === 'june' ? 'main' : 'transition'
+  const plan = useMemo(
+    () => planForDate(data, guidedProgramSlug, selectedDate, false),
+    [data, guidedProgramSlug, selectedDate],
+  )
   const workoutDone = data.workout_sessions.some((session) => session.date === selectedDate && session.completed)
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
@@ -449,7 +454,7 @@ export function SimpleHome() {
     setEditingManualExerciseId(null)
   }
   const openTraining = (): void => {
-    navigate(hasWorkout && !workoutDone ? `/player/transition/${selectedDate}` : '/transition')
+    navigate(hasWorkout && !workoutDone ? `/player/${guidedProgramSlug}/${selectedDate}` : `/${guidedProgramSlug}`)
   }
 
   const openNutritionSection = (section: 'meals' | 'supplements'): void => {
@@ -621,7 +626,7 @@ export function SimpleHome() {
     ...(showGuidedPlan && hasWorkout && !workoutDone ? [{
       time: minuteOf(trainingTime), eyebrow: 'Today’s movement', title: plan.programDay?.name ?? 'Training',
       meta: t(`~${plan.programDay?.est_minutes ?? 15} min · ${plan.exercises.length} exercises`), action: 'Start session',
-      run: () => navigate(`/player/transition/${selectedDate}`), accent: ACCENTS.teal,
+      run: () => navigate(`/player/${guidedProgramSlug}/${selectedDate}`), accent: ACCENTS.teal,
     }] : []),
     ...(showHydrationReminder && !waterDone ? [{
       time: 21 * 60, eyebrow: 'Hydration', title: t(`${water.toFixed(2)} of ${targets.water_l.toFixed(2)} L`),
@@ -809,7 +814,7 @@ export function SimpleHome() {
               <div className="min-w-0"><p className="truncate font-display text-base font-bold text-ink">{t(plan.programDay?.name ?? 'Guided workout')}</p><p className="text-[11px] font-medium text-ink-soft">{t('Start directly. Skip calendar and setup.')}</p></div>
               <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>
             </div>
-            <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/transition/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/transition/${selectedDate}`)}>{t('Start')}</GradientButton></div>
+            <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}`)}>{t('Start')}</GradientButton></div>
           </GlassCard>
         )}
 
@@ -825,7 +830,7 @@ export function SimpleHome() {
           </GlassCard>
         </Link>}
 
-        {!adhdMode && <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to="/transition" className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>}
+        {!adhdMode && <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to={`/${guidedProgramSlug}`} className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>}
       </div>
       <AnimatePresence>
         {showCalendar && (

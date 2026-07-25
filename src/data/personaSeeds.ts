@@ -72,113 +72,98 @@ function today(): string {
 
 const JUNE_DAYS: DaySpec[] = [
   {
-    weekday: 1, name: 'Legs A · Glute + Hamstring', type: 'legs_a', minutes: 48,
-    warmup: 'Glute bridges, hip airplanes and two ramp-up split-squat sets',
+    weekday: 1, name: 'Glutes A', type: 'legs_a', minutes: 50,
+    warmup: '8 bodyweight glute bridges, 6 reverse lunges per side and 10 slow hinges',
     full: [
-      { name: 'Bulgarian Split Squat', sets: 4, reps: [8, 12], perSide: true, rest: 120, increment: 2, note: 'Long stride, forward torso, 1-2 RIR' },
-      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [6, 10], rest: 120, increment: 2, note: 'Controlled stretch, neutral spine' },
-      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 12], rest: 60, down: 3 },
-      { name: 'Single-Leg Standing Calf Raise', sets: 3, reps: [15, 25], perSide: true, rest: 45 },
-      { name: 'Abs', sets: 3, reps: [10, 15], rest: 45 },
-      { name: 'Hip Thrust', sets: 3, reps: [10, 15], rest: 90, pause: 2, increment: 2, tempo: '2s squeeze at the top', note: 'Non-negotiable; final set may approach failure' },
+      { name: 'Dumbbell Hip Thrust', sets: 4, reps: [8, 12], rest: 120, pause: 2, increment: 2, tempo: 'Hold the top for 2 seconds' },
+      { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
     ],
     lite: [
-      { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 90, increment: 2 },
-      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [6, 10], rest: 90, increment: 2 },
-      { name: 'Hip Thrust', sets: 3, reps: [10, 15], rest: 75, pause: 2, increment: 2, note: 'Growth Minimum priority' },
+      { name: 'Dumbbell Hip Thrust', sets: 3, reps: [8, 12], rest: 120, pause: 2, increment: 2 },
+      { name: 'Bulgarian Split Squat', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
     ],
   },
   {
-    weekday: 2, name: 'Push A · Calisthenics', type: 'push', minutes: 35,
-    warmup: 'Band pull-aparts 3x20 and scapular push-ups',
+    weekday: 2, name: 'Push A + Focus T25 Core', type: 'push', minutes: 45,
+    warmup: '15 band pull-aparts and 2 sets of 8 scapular push-ups',
     full: [
-      { name: 'Push-Ups', sets: 4, reps: [15, 15], rest: 75 },
-      { name: 'Feet-Elevated Push-Ups', sets: 3, reps: [12, 12], rest: 90 },
-      { name: 'Diamond Push-Ups', sets: 3, reps: 'max', rest: 60, note: 'Knee variation is valid' },
-      { name: 'Band Face Pull', sets: 3, reps: [15, 20], rest: 45, pause: 2 },
+      { name: 'Strict Push-Up', sets: 3, reps: [10, 15], rest: 90 },
+      { name: 'Diamond or Close-Grip Push-Up', sets: 2, reps: [8, 15], rest: 90 },
+      { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
     lite: [
-      { name: 'Push-Ups', sets: 3, reps: [10, 15], rest: 60 },
-      { name: 'Feet-Elevated Push-Ups', sets: 2, reps: [8, 12], rest: 75 },
-      { name: 'Band Face Pull', sets: 3, reps: [15, 20], rest: 30 },
+      { name: 'Strict Push-Up', sets: 2, reps: [10, 15], rest: 90 },
+      { name: 'Diamond or Close-Grip Push-Up', sets: 1, reps: [8, 15], rest: 90 },
+      { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
   },
   {
-    weekday: 3, name: 'Pull A · Heavy Pull', type: 'pull', minutes: 38,
+    weekday: 3, name: 'Pull A + Focus T25', type: 'pull', minutes: 48,
     warmup: 'Scapular pull-ups, band rows and one easy assisted set',
     full: [
-      { name: 'Band-Assisted Pull-Up', sets: 4, reps: [4, 8], rest: 120, note: 'Stop with 1-2 reps in reserve' },
+      { name: 'Band-Assisted Pull-Up', sets: 3, reps: [4, 8], rest: 120 },
       { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 90, increment: 2 },
-      { name: 'Incline Dumbbell Curl', sets: 3, reps: [8, 12], rest: 60, increment: 1 },
-      { name: 'Dead Hang', sets: 3, reps: [20, 40], unit: 'seconds', rest: 45 },
+      { name: 'Band Face Pull', sets: 2, reps: [15, 20], rest: 60, pause: 2 },
+      { name: 'Focus T25 · Wednesday lower and speed', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
     lite: [
-      { name: 'Band-Assisted Pull-Up', sets: 3, reps: [4, 8], rest: 90 },
-      { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 75, increment: 2 },
-      { name: 'Dead Hang', sets: 2, reps: [20, 40], unit: 'seconds', rest: 30 },
+      { name: 'Band-Assisted Pull-Up', sets: 2, reps: [4, 8], rest: 120 },
+      { name: 'Chest-Supported Dumbbell Row', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
+      { name: 'Focus T25 · Wednesday lower and speed', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
   },
   {
-    weekday: 4, name: 'Fix · Occupational Reset', type: 'fix', minutes: 22,
-    warmup: 'Pain-free range only; corrective work never goes to failure',
+    weekday: 4, name: 'Recovery + Focus T25 Stretch', type: 'mobility', minutes: 34,
+    warmup: 'No loaded warm-up. Keep the entire session easy and pain-free.',
     full: [
-      { name: 'Band Face Pull', sets: 3, reps: [15, 20], rest: 30, pause: 5, tempo: '5s hold' },
-      { name: 'Prone Y-Raise', sets: 3, reps: [10, 15], rest: 30, increment: 0.5 },
-      { name: 'Bird-Dog', sets: 3, reps: [6, 8], perSide: true, rest: 30, pause: 2 },
-      { name: 'Dead Hang', sets: 3, reps: [20, 40], unit: 'seconds', rest: 45 },
+      { name: 'Focus T25 · Stretch', sets: 1, reps: [1, 1], unit: 'check', rest: 0 },
+      { name: 'Bird-Dog', sets: 2, reps: [6, 6], perSide: true, rest: 0, pause: 3, note: 'Two circuit rounds. Pause three seconds.' },
+      { name: 'Wall Slide', sets: 2, reps: [10, 10], rest: 0, note: 'Two circuit rounds.' },
+      { name: 'Band Pull-Apart', sets: 2, reps: [15, 15], rest: 0, note: 'Two circuit rounds.' },
+      { name: 'Wrist Extensor Isometric', sets: 2, reps: [20, 20], unit: 'seconds', perSide: true, rest: 0, note: 'Two circuit rounds.' },
     ],
     lite: [
-      { name: 'Band Face Pull', sets: 2, reps: [15, 20], rest: 30, pause: 5 },
-      { name: 'Bird-Dog', sets: 2, reps: [6, 8], perSide: true, rest: 20, pause: 2 },
-      { name: 'Breathing + Thoracic Reset', sets: 1, reps: [5, 8], unit: 'minutes', rest: 0 },
+      { name: 'Focus T25 · Stretch', sets: 1, reps: [1, 1], unit: 'check', rest: 0 },
+      { name: 'Bird-Dog', sets: 2, reps: [6, 6], perSide: true, rest: 0, pause: 3 },
+      { name: 'Wall Slide', sets: 2, reps: [10, 10], rest: 0 },
     ],
   },
   {
-    weekday: 5, name: 'Legs B · Quad + Glute', type: 'legs_b', minutes: 48,
-    warmup: 'Bodyweight squats, reverse lunges and glute bridges',
+    weekday: 5, name: 'Glutes B', type: 'legs_b', minutes: 48,
+    warmup: '8 bodyweight glute bridges, 6 reverse lunges per side and 8 hamstring walkouts',
     full: [
-      { name: 'Heel-Elevated Goblet Squat', sets: 3, reps: [8, 15], rest: 120, increment: 2 },
-      { name: 'Walking Front Lunge', sets: 3, reps: [8, 12], perSide: true, rest: 90, increment: 2 },
-      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 12], rest: 60, down: 3 },
-      { name: 'Abs', sets: 3, reps: [10, 15], rest: 45 },
-      { name: 'Bent-Knee Calf Raise', sets: 3, reps: [25, 30], rest: 45 },
-      { name: 'Hip Thrust', sets: 3, reps: [10, 15], rest: 90, pause: 2, increment: 2, note: 'Non-negotiable glute closer' },
+      { name: 'Reverse Lunge', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'B-Stance or Single-Leg Hip Thrust', sets: 3, reps: [8, 12], perSide: true, rest: 90, pause: 2, increment: 2 },
+      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 15], rest: 90, down: 3 },
+      { name: 'Frog Pump', sets: 1, reps: [25, 35], rest: 60 },
     ],
     lite: [
-      { name: 'Heel-Elevated Goblet Squat', sets: 3, reps: [8, 15], rest: 90, increment: 2 },
-      { name: 'Walking Front Lunge', sets: 3, reps: [8, 12], perSide: true, rest: 75, increment: 2 },
-      { name: 'Hip Thrust', sets: 3, reps: [10, 15], rest: 75, pause: 2, increment: 2, note: 'Growth Minimum priority' },
+      { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'B-Stance or Single-Leg Hip Thrust', sets: 2, reps: [8, 12], perSide: true, rest: 90, pause: 2, increment: 2 },
+      { name: 'Frog Pump', sets: 1, reps: [25, 35], rest: 60 },
     ],
   },
   {
-    weekday: 6, name: 'Push B · Strength', type: 'push', minutes: 36,
+    weekday: 6, name: 'Push B', type: 'push', minutes: 31,
     warmup: 'Band pull-aparts and two progressive push-up sets',
     full: [
-      { name: 'Tempo Push-Up', sets: 3, reps: [6, 10], rest: 90, down: 3 },
-      { name: 'Dumbbell Overhead Press', sets: 3, reps: [6, 10], rest: 120, increment: 2 },
-      { name: 'Lateral Raise', sets: 3, reps: [15, 20], rest: 45, increment: 0.5 },
-      { name: 'Dumbbell Tricep Kickback', sets: 3, reps: [10, 12], rest: 45, increment: 0.5 },
+      { name: 'Weighted or Feet-Elevated Push-Up', sets: 3, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Dumbbell Overhead Press', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
+      { name: 'Band Row', sets: 2, reps: [12, 15], rest: 60 },
     ],
     lite: [
-      { name: 'Tempo Push-Up', sets: 3, reps: [6, 10], rest: 75, down: 3 },
-      { name: 'Dumbbell Overhead Press', sets: 3, reps: [6, 10], rest: 90, increment: 2 },
-      { name: 'Lateral Raise', sets: 2, reps: [15, 20], rest: 30, increment: 0.5 },
+      { name: 'Weighted or Feet-Elevated Push-Up', sets: 2, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Dumbbell Overhead Press', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
     ],
   },
   {
-    weekday: 7, name: 'Pull B · Heavy Pull 2', type: 'pull', minutes: 38,
-    warmup: 'Change grip from Wednesday and prepare elbows gradually',
-    full: [
-      { name: 'Band-Assisted Pull-Up · Alternate Grip', sets: 4, reps: [4, 8], rest: 120 },
-      { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 90, increment: 2 },
-      { name: 'Preacher Curl Over Knee', sets: 3, reps: [10, 15], rest: 60, increment: 0.5 },
-      { name: 'Hammer Curl', sets: 3, reps: [10, 15], rest: 60, increment: 0.5 },
-    ],
-    lite: [
-      { name: 'Band-Assisted Pull-Up · Alternate Grip', sets: 3, reps: [4, 8], rest: 90 },
-      { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 75, increment: 2 },
-      { name: 'Hammer Curl', sets: 2, reps: [10, 15], rest: 45, increment: 0.5 },
-    ],
+    weekday: 7, name: 'Full Rest', type: 'mobility', minutes: 0,
+    warmup: '',
+    full: [],
+    lite: [],
   },
 ]
 
@@ -442,10 +427,10 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
   }
 }
 
-function settingsFor(userId: string): Settings {
+function settingsFor(userId: string, persona: FriendPersona): Settings {
   return {
     user_id: userId, voice_on: true, ticks_on: true, notifications_on: false,
-    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false },
+    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: persona === 'june' ? { version: 81, start_date: today() } : undefined, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false },
   }
 }
 
@@ -575,7 +560,7 @@ function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'p
 export function buildFriendSeedData(userId: string, persona: FriendPersona): AppData {
   const programme = buildPrograms(userId, persona)
   return {
-    profile: profileFor(userId, persona), settings: settingsFor(userId), meals: mealsFor(userId, persona),
+    profile: profileFor(userId, persona), settings: settingsFor(userId, persona), meals: mealsFor(userId, persona),
     meal_logs: [], supplements: supplementsFor(userId, persona), supplement_logs: [],
     ...programme, workout_sessions: [], workout_logs: [], activity_types: ACTIVITY_CATALOG,
     activity_logs: [], daily_logs: [], events: [],

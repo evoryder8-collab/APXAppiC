@@ -123,7 +123,7 @@ export interface ProgramDay {
   sort_order: number
 }
 
-export type RepUnit = 'reps' | 'seconds' | 'minutes' | 'max'
+export type RepUnit = 'reps' | 'seconds' | 'minutes' | 'max' | 'check'
 
 export interface Exercise {
   id: string
@@ -292,6 +292,12 @@ export interface Settings {
        training. Constantine and June retain their bespoke programmes. */
     newbie_mode?: boolean
     training_induction?: TrainingInductionProfile | null
+    /* Start of the current bespoke 12-week prescription. It is independent
+       from the RPG baseline so a programme refresh never erases history. */
+    training_protocol?: {
+      version: 81
+      start_date: string
+    }
     /* Controls only the shareable progress-photo PNG. Minimal keeps the two
        timestamps and before/after labels; Detailed adds training statistics. */
     comparison_export_mode?: 'minimal' | 'detailed'

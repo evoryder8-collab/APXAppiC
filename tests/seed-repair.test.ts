@@ -65,3 +65,62 @@ test('completed seed versions do not recreate intentionally removed definitions'
   assert.equal(repair.data.meals.length, seeded.meals.length - 1)
   assert.equal(repair.missing.meals.length, 0)
 })
+
+test('V8.1 repair replaces the bespoke main plan while preserving historical day ids', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  assert.ok(seeded.profile)
+  const main = seeded.programs.find((row) => row.slug === 'main')
+  assert.ok(main)
+  const tuesday = seeded.program_days.find((row) => row.program_id === main.id && row.weekday === 2)
+  assert.ok(tuesday)
+  const obsoleteExercise = {
+    ...seeded.exercises.find((row) => row.program_day_id === tuesday.id)!,
+    id: 'dddddddd-dddd-4ddd-8ddd-dddddddddddd',
+    name: 'Obsolete programme exercise',
+    sort_order: 99,
+  }
+  const current = {
+    ...seeded,
+    profile: { ...seeded.profile, seed_version: 2 },
+    settings: seeded.settings ? {
+      ...seeded.settings,
+      addons: { ...seeded.settings.addons, training_protocol: undefined },
+    } : null,
+    program_days: seeded.program_days.map((row) =>
+      row.id === tuesday.id ? { ...row, name: 'Legacy Push Day' } : row,
+    ),
+    exercises: [
+      ...seeded.exercises.map((row) =>
+        row.program_day_id === tuesday.id && row.sort_order === 0
+          ? { ...row, name: 'Legacy Weighted Pushups' }
+          : row,
+      ),
+      obsoleteExercise,
+    ],
+    workout_sessions: [{
+      id: 'eeeeeeee-eeee-4eee-8eee-eeeeeeeeeeee',
+      user_id: userId,
+      date: '2026-07-21',
+      program_day_id: tuesday.id,
+      is_lite: false,
+      is_deload: false,
+      is_event_recovery: false,
+      completed: true,
+      quality_score: 1,
+      started_at: null,
+      completed_at: null,
+      notes: '',
+    }],
+  }
+
+  const repair = repairSeedDefinitions(current, seeded)
+  const repairedTuesday = repair.data.program_days.find((row) => row.program_id === main.id && row.weekday === 2)
+  assert.equal(repairedTuesday?.id, tuesday.id)
+  assert.equal(repairedTuesday?.name, 'Push A + Focus T25 Core')
+  assert.equal(repair.data.workout_sessions[0].program_day_id, tuesday.id)
+  assert.ok(repair.data.exercises.some((row) => row.program_day_id === tuesday.id && row.rep_unit === 'check'))
+  assert.ok(!repair.data.exercises.some((row) => row.name === 'Obsolete programme exercise'))
+  assert.deepEqual(repair.removed.exercises, [obsoleteExercise.id])
+  assert.equal(repair.data.settings?.addons.training_protocol?.version, 81)
+  assert.equal(repair.missing.program_days.length, 7)
+})

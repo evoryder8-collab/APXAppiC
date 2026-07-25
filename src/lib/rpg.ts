@@ -17,7 +17,8 @@
  */
 import { differenceInCalendarDays } from 'date-fns'
 import type { AppData, DayType, Profile, RpgSnapshot } from './types'
-import { computeTargets } from './nutrition'
+import { computeTargets } from './nutrition.ts'
+import { isConditioningFocusT25 } from './focusT25.ts'
 
 export interface StatBlock {
   health: number
@@ -196,6 +197,19 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
       deload: s.is_deload,
       recovery: s.is_event_recovery,
     })
+  }
+  for (const log of data.workout_logs) {
+    const session = sessionById.get(log.session_id)
+    if (!session?.completed || log.skipped || !isConditioningFocusT25(log.exercise_name)) continue
+    const day = getDay(session.date)
+    if (!day.types.some((entry) => entry.type === 't25')) {
+      day.types.push({
+        type: 't25',
+        quality: 1,
+        deload: session.is_deload,
+        recovery: false,
+      })
+    }
   }
   for (const log of data.workout_logs) {
     const s = sessionById.get(log.session_id)

@@ -637,6 +637,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           if (repair.settingsChanged && repair.data.settings) {
             enqueue({ table: 'settings', type: 'upsert', payload: repair.data.settings })
           }
+          for (const id of repair.removed.exercises) {
+            enqueue({ table: 'exercises', type: 'delete', payload: { id } })
+          }
           const seedTables: SeedDefinitionTable[] = ['meals', 'supplements', 'programs', 'program_days', 'exercises']
           for (const table of seedTables) {
             if (repair.missing[table].length > 0) {

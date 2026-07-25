@@ -10,7 +10,7 @@ import { ACCENTS, type Accent } from '../lib/theme'
 import type { ProgramSlug } from '../lib/types'
 import { useStore } from '../store/AppStore'
 import { planForDate, type PlannedExercise } from '../lib/plan'
-import { buildTimeline, plannedSetCount, type Block } from '../lib/playerTimeline'
+import { buildTimeline, countedRepsForSet, plannedSetCount, type Block } from '../lib/playerTimeline'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
 import { speak, stopSpeech, tick } from '../lib/audio'
 import { currentStreak } from '../lib/streak'
@@ -20,6 +20,7 @@ import { activityLogId } from '../lib/ids'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
+import { isConditioningFocusT25 } from '../lib/focusT25'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -171,7 +172,8 @@ export function Player() {
     announcedBlock.current = state.idx
     lastRep.current = 0
     if (block.kind === 'set' && voice) {
-      speak(`${voiceText(block.exercise.name)}. ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`, language)
+      const side = block.side ? ` ${voiceText(block.side === 'left' ? 'Left side' : 'Right side')}.` : ''
+      speak(`${voiceText(block.exercise.name)}.${side} ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`, language)
     } else if (block.kind === 'warmup' && voice) {
       speak(voiceText('Warm up. Get ready for the first exercise.'), language)
     } else if (block.kind === 'rest' && voice) {
@@ -209,7 +211,7 @@ export function Player() {
     if (block.kind === 'set') {
       if (block.timed != null) {
         if (state.elapsed >= block.timed) {
-          dispatch({ type: 'endSet', key: `${block.exIdx}-${block.setNo}`, reps: block.timed })
+          dispatch({ type: 'endSet', key: block.resultKey, reps: block.timed })
           advance()
         }
         return
@@ -224,7 +226,7 @@ export function Player() {
         }
       }
       if (target != null && state.elapsed >= target * block.repDuration + 0.3) {
-        dispatch({ type: 'endSet', key: `${block.exIdx}-${block.setNo}`, reps: target })
+        dispatch({ type: 'endSet', key: block.resultKey, reps: target })
         advance()
       }
     }
@@ -311,7 +313,7 @@ export function Player() {
           exercise_name: e.name,
           set_no: setNo,
           weight_kg: r?.skippedAll ? null : (sr?.weight ?? r?.weight ?? null),
-          reps: r?.skippedAll ? null : (sr?.reps ?? state.countedReps[`${exIdx}-${setNo}`] ?? null),
+          reps: r?.skippedAll ? null : (sr?.reps ?? countedRepsForSet(state.countedReps, exIdx, setNo, e.per_side) ?? null),
           rir: r?.skippedAll ? null : (sr?.rir ?? null),
           skipped: r?.skippedAll ?? !r,
           override_flag: r?.override ?? false,
@@ -320,6 +322,9 @@ export function Player() {
       }
     })
 
+    const completedFocusT25 = plan.exercises.some((exercise, index) =>
+      isConditioningFocusT25(exercise.name) && state.results[index] && !state.results[index].skippedAll,
+    )
     const dayType = plan.programDay.day_type
     const activityTypeId = dayType === 't25'
       ? 'focus-hiit'
@@ -343,6 +348,21 @@ export function Player() {
         activityLogFromBlock(activityBlock, data.profile, date, activityCatalog),
       )
     }
+    if (completedFocusT25 && dayType !== 't25' && data.profile) {
+      const focusType = activityCatalog.get('focus-hiit')
+      if (focusType) {
+        const focusBlock = {
+          ...emptyActivityBlock(
+            focusType,
+            activityLogId(date, data.profile.user_id, `workout:${sessionId}:focus-t25`),
+          ),
+          durationMin: 25,
+          source: 'workout_module' as const,
+          reconciled: true,
+        }
+        upsert('activity_logs', activityLogFromBlock(focusBlock, data.profile, date, activityCatalog))
+      }
+    }
     localStorage.removeItem(PERSIST_KEY)
 
     const t = plan.programDay.day_type
@@ -357,6 +377,7 @@ export function Player() {
               ? ['+Strength (legs, 1.25x boost)', '+Consistency']
               : ['+Strength (upper)', '+Consistency']
     if (plan.isDeload) deltas.unshift('+Joint Health (deload honored)')
+    if (completedFocusT25 && dayType !== 't25') deltas.push('+Endurance & HIIT')
 
     setSummary({ quality, streak: currentStreak({ ...data }, date) + 1, deltas, sessionId })
     toast('Session saved', 'ok')
@@ -439,9 +460,10 @@ export function Player() {
                 onSkipRest={advance}
                 onExtendRest={() => dispatch({ type: 'extend', seconds: 30 })}
                 onEndMaxSet={(reps) => {
-                  dispatch({ type: 'endSet', key: `${block.kind === 'set' ? `${block.exIdx}-${block.setNo}` : ''}`, reps })
+                  dispatch({ type: 'endSet', key: block.kind === 'set' ? block.resultKey : '', reps })
                   advance()
                 }}
+                onConfirmCheck={(exIdx, completed) => saveExerciseLog(exIdx, [null], null, [completed ? 1 : null], !completed, false)}
                 recFor={recFor}
                 onSaveLog={saveExerciseLog}
                 results={state.results}
@@ -467,7 +489,8 @@ export function Player() {
             const past = i < state.idx
             let label = ''
             if (b.kind === 'warmup') label = 'W'
-            else if (b.kind === 'set') label = String(b.setNo)
+            else if (b.kind === 'set') label = `${b.setNo}${b.side ? (b.side === 'left' ? 'L' : 'R') : ''}`
+            else if (b.kind === 'check') label = '✓'
             else if (b.kind === 'log') label = '✓'
             else if (b.kind === 'done') label = '🏁'
             if (b.kind === 'rest') {
@@ -511,6 +534,7 @@ function BlockView(props: {
   onSkipRest: () => void
   onExtendRest: () => void
   onEndMaxSet: (reps: number) => void
+  onConfirmCheck: (exIdx: number, completed: boolean) => void
   recFor: (exIdx: number) => Recommendation | null
   onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
   results: Record<number, ExerciseResult>
@@ -551,6 +575,26 @@ function BlockView(props: {
     )
   }
 
+  if (block.kind === 'check') {
+    const parts = block.exercise.notes.split('|').map((part) => part.trim()).filter(Boolean)
+    return (
+      <CenterCard accent={accent}>
+        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Secondary session')}</p>
+        <div className="mx-auto mt-4 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-[0_20px_45px_-20px_rgba(13,148,136,.9)]" style={{ background: accent.gradient }}>✓</div>
+        <h2 className="mt-4 font-display text-2xl font-bold text-ink">{t(block.exercise.name)}</h2>
+        {parts.slice(1).map((part) => <p key={part} className="mt-2 text-sm font-semibold leading-relaxed text-ink-soft">{t(part)}</p>)}
+        <div className="mt-6 grid gap-2 sm:grid-cols-2">
+          <GradientButton accent={accent} onClick={() => props.onConfirmCheck(block.exIdx, true)}>
+            {t('Mark complete')}
+          </GradientButton>
+          <GhostButton onClick={() => props.onConfirmCheck(block.exIdx, false)}>
+            {t('Skip today')}
+          </GhostButton>
+        </div>
+      </CenterCard>
+    )
+  }
+
   if (block.kind === 'set') {
     const e = block.exercise
     if (block.timed != null) {
@@ -559,6 +603,7 @@ function BlockView(props: {
         <CenterCard accent={accent}>
           <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
             {t(e.name)} · {block.setNo}/{block.totalSets}
+            {block.side ? ` · ${t(block.side === 'left' ? 'Left side' : 'Right side')}` : ''}
           </p>
           <RestRing accent={accent} remaining={remaining} total={block.timed} label="hold" />
           <div className="mt-4 flex justify-center gap-2">
@@ -576,7 +621,7 @@ function BlockView(props: {
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
           {t('Set')} {block.setNo} {t('of')} {block.totalSets}
-          {e.per_side ? ` · ${t('per side')}` : ''}
+          {block.side ? ` · ${t(block.side === 'left' ? 'Left side' : 'Right side')}` : ''}
         </p>
         <h2 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{t(e.name)}</h2>
         {e.tempo_note && <p className="mt-1 text-xs font-semibold text-ink-soft">{e.tempo_note}</p>}
@@ -616,7 +661,7 @@ function BlockView(props: {
     const existing = props.results[block.exIdx]
     const recommendation = props.recFor(block.exIdx)
     const captured = existing?.sets[block.afterSet - 1]?.weight ?? existing?.weight ?? recommendation?.weight ?? null
-    const countedReps = props.counted[`${block.exIdx}-${block.afterSet}`]
+    const countedReps = countedRepsForSet(props.counted, block.exIdx, block.afterSet, block.exercise.per_side)
       ?? Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)
     const captureReps = block.exercise.rep_unit === 'reps'
     return (
@@ -812,7 +857,7 @@ function LogCard(props: {
   )
   const [rir, setRir] = useState<number | null>(1)
   const [reps, setReps] = useState<Array<number | null>>(() =>
-    [...Array(e.planned_sets)].map((_, i) => props.counted[`${exIdx}-${i + 1}`] ?? (e.rep_unit === 'reps' ? Math.round((e.rep_min + e.rep_max) / 2) : null)),
+    [...Array(e.planned_sets)].map((_, i) => countedRepsForSet(props.counted, exIdx, i + 1, e.per_side) ?? (e.rep_unit === 'reps' ? Math.round((e.rep_min + e.rep_max) / 2) : null)),
   )
   const [overridden, setOverridden] = useState(false)
 

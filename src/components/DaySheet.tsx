@@ -169,13 +169,15 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
       {/* Warmup + exercises */}
       {plan.exercises.length > 0 && (
         <div className="mt-4 space-y-2">
-          <div className="rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold" style={{ background: accent.wash, color: accent.deep }}>
-            Warm-up: {plan.warmup}
-          </div>
+          {plan.warmup && <div className="rounded-2xl px-3.5 py-2.5 text-[13px] font-semibold" style={{ background: accent.wash, color: accent.deep }}>
+            {t('Warm-up')}: {t(plan.warmup)}
+          </div>}
           {plan.exercises.map((e) => {
             const rec = e.increment_kg > 0 ? recommendLoad(data, e) : null
             const reps =
-              e.rep_unit === 'max'
+              e.rep_unit === 'check'
+                ? t('Check')
+                : e.rep_unit === 'max'
                 ? 'max'
                 : e.rep_unit === 'seconds'
                   ? `${e.rep_min}-${e.rep_max}s`
@@ -193,7 +195,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
                     {e.swapped && <span className="ml-1.5 text-[10px] font-semibold" style={{ color: ACCENTS.amber.deep }}>SWAP</span>}
                   </p>
                   <p className="shrink-0 font-mono text-sm font-bold" style={{ color: accent.deep }}>
-                    {e.planned_sets}x{reps}
+                    {e.rep_unit === 'check' ? reps : `${e.planned_sets}x${reps}`}
                     {e.per_side ? '/side' : ''}
                   </p>
                 </div>
