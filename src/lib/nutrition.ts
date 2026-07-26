@@ -1,5 +1,6 @@
 import { differenceInYears } from 'date-fns'
 import type { ActivityLevel, Goal, Meal, Profile } from './types'
+import { personalTargetFor } from './personalProtocol.ts'
 
 export function ageFrom(birthdate: string, at: Date = new Date()): number {
   return differenceInYears(at, new Date(birthdate + 'T00:00:00'))
@@ -118,6 +119,21 @@ export function computeTargets(p: Profile): Targets {
   const hasBodyFat = Number.isFinite(p.body_fat_pct) && p.body_fat_pct > 0 && p.body_fat_pct < 75
   const hasCustomBmr = p.custom_bmr != null && Number.isFinite(p.custom_bmr) && p.custom_bmr >= 800 && p.custom_bmr <= 4000
   const activeBmr = hasCustomBmr ? Math.round(p.custom_bmr!) : hasBodyFat ? katch : mifflin
+  const personal = personalTargetFor(p)
+  if (personal) {
+    return {
+      bmrMifflin: mifflin,
+      bmrKatch: katch,
+      tdee: personal.tdee,
+      kcal: personal.kcal,
+      protein_g: personal.proteinG,
+      fat_g: personal.fatG,
+      carbs_g: personal.carbsG,
+      water_l: p.persona === 'june' ? 2.2 : 2.75,
+      bmrSource: hasCustomBmr ? 'custom' : hasBodyFat ? 'katch' : 'mifflin',
+      activeBmr,
+    }
+  }
   const tdee = Math.round(activeBmr * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
   const formulaTarget = Math.max(activeBmr * 1.05, tdee * GOALS[p.goal].factor)
   const kcal = Math.round(formulaTarget)

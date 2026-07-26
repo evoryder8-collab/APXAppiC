@@ -59,7 +59,8 @@ import {
   type SeedDefinitionTable,
 } from '../lib/seedRepair'
 import { normalizeMealBlockSettings } from '../lib/mealBlocks'
-import { normalizeMealStartTimes, normalizeMealTimelineSnap, normalizeRecoveryNutrition } from '../lib/mealTiming'
+import { normalizeMealDaylineDensity, normalizeMealStartTimes, normalizeMealTimelineSnap, normalizeRecoveryNutrition } from '../lib/mealTiming'
+import { normalizeRecoveryHistory, normalizeRecoverySource, normalizeWatchActivityHistory, personalTargetFor } from '../lib/personalProtocol'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -152,6 +153,10 @@ function normalizeAppData(value: AppData): AppData {
           recovery_nutrition: normalizeRecoveryNutrition(value.settings.addons?.recovery_nutrition),
           meal_start_times: normalizeMealStartTimes(value.settings.addons?.meal_start_times),
           meal_timeline_snap_minutes: normalizeMealTimelineSnap(value.settings.addons?.meal_timeline_snap_minutes),
+          meal_dayline_density: normalizeMealDaylineDensity(value.settings.addons?.meal_dayline_density),
+          recovery_data_source: normalizeRecoverySource(value.settings.addons?.recovery_data_source),
+          recovery_history: normalizeRecoveryHistory(value.settings.addons?.recovery_history),
+          watch_activity_history: normalizeWatchActivityHistory(value.settings.addons?.watch_activity_history),
         },
       }
     : null
@@ -709,7 +714,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const blocks = activityLogs.map((log) => blockFromActivityLog(log, catalog))
     const estimate = estimateActivityDay(profile, blocks, catalog)
     const quickTargets = computeTargets(profile)
-    const mode = blocks.length > 0 ? 'precise' : 'quick'
+    const usesWholeDayProtocol = Boolean(personalTargetFor(profile))
+    const mode = blocks.length > 0 && !usesWholeDayProtocol ? 'precise' : 'quick'
     const estimatedTdee = mode === 'precise' ? estimate.tdee : quickTargets.tdee
     const computedPal = Math.round((estimatedTdee / estimate.bmr) * 100) / 100
     const existing = data.daily_logs.find((log) => log.date === date)

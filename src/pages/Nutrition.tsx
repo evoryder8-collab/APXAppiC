@@ -47,6 +47,7 @@ import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset } from '../lib/simpleMode'
 import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { loggedMealEditorState } from '../lib/mealExperience'
+import { personalTargetFor } from '../lib/personalProtocol'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -115,8 +116,9 @@ export function Nutrition() {
     [profile, activityBlocks, catalog],
   )
   const preciseMode = activityBlocks.length > 0
+  const usesWholeDayProtocol = Boolean(profile && personalTargetFor(profile))
   const targets = useMemo(() => {
-    if (!quickTargets || !activityEstimate || !preciseMode) return quickTargets
+    if (!quickTargets || !activityEstimate || !preciseMode || usesWholeDayProtocol) return quickTargets
     return {
       ...quickTargets,
       tdee: activityEstimate.tdee,
@@ -125,7 +127,7 @@ export function Nutrition() {
       fat_g: activityEstimate.fatG,
       carbs_g: activityEstimate.carbsG,
     }
-  }, [activityEstimate, preciseMode, quickTargets])
+  }, [activityEstimate, preciseMode, quickTargets, usesWholeDayProtocol])
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [waterDraft, setWaterDraft] = useState('0')
   const [plannedComposer, setPlannedComposer] = useState<{
@@ -183,7 +185,7 @@ export function Nutrition() {
     setWater(parsed)
   }
 
-  const activeDayLabel = preciseMode && activityEstimate
+  const activeDayLabel = preciseMode && activityEstimate && !usesWholeDayProtocol
     ? PAL_LABELS[activityEstimate.level]
     : profile ? ACTIVITY_MULTIPLIERS[profile.activity_level].label : 'Adaptive'
   const mealPlan = useMemo(
@@ -432,7 +434,10 @@ export function Nutrition() {
   )
 
   useEffect(() => {
-    if (!profile || !calibration?.eligible || calibration.observedTdee == null || calibration.predictedTdee == null) return
+    /* Constantin and June use explicit whole-day mode tables and
+       confirmation-only trend calibration. Never silently mutate their
+       calorie engine from the generic additive activity calibration. */
+    if (usesWholeDayProtocol || !profile || !calibration?.eligible || calibration.observedTdee == null || calibration.predictedTdee == null) return
     if (Math.abs(calibration.nextK - profile.calibration_k) < 0.0005) return
     const last = profile.calibration_history.at(-1)
     if (last) {
@@ -457,7 +462,7 @@ export function Nutrition() {
       ].slice(-52),
     })
     toast('Activity engine calibrated from your last two weeks', 'ok')
-  }, [calibration, profile, setProfile, toast, today])
+  }, [calibration, profile, setProfile, toast, today, usesWholeDayProtocol])
 
   /* Index the selected day's check-offs once. A toggle updates the Set on the next data
      render without rescanning the full history for every visible pill. */
@@ -877,6 +882,7 @@ export function Nutrition() {
           frequentPresets={frequentPresets}
           yesterdayBlocks={yesterdayBlocks}
           onChange={persistActivityBlocks}
+          onUseRecommendedLevel={(level) => setProfile({ activity_level: level })}
         />
 
         {/* -------- Targets -------- */}
@@ -884,7 +890,7 @@ export function Nutrition() {
           <div className="flex items-start justify-between">
             <h2 className="font-display text-lg font-bold text-ink">Daily targets</h2>
             <AccentChip accent={amber}>
-              {preciseMode ? `PRECISE · ${GOALS[profile.goal].label.toUpperCase()}` : GOALS[profile.goal].label.toUpperCase()}
+              {preciseMode && !usesWholeDayProtocol ? `PRECISE · ${GOALS[profile.goal].label.toUpperCase()}` : GOALS[profile.goal].label.toUpperCase()}
             </AccentChip>
           </div>
 
@@ -956,7 +962,7 @@ export function Nutrition() {
                 <button
                   key={key}
                   type="button"
-                  disabled={preciseMode}
+                  disabled={preciseMode && !usesWholeDayProtocol}
                   onClick={() => setProfile({ activity_level: key as ActivityLevel })}
                   className="rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:grayscale disabled:opacity-35"
                   style={
@@ -972,7 +978,9 @@ export function Nutrition() {
           </div>
           {preciseMode && (
             <p className="mt-2 text-[11px] font-semibold text-ink-faint">
-              Computed from your day. Clear every activity block to return to Quick Mode.
+              {usesWholeDayProtocol
+                ? tx('Activities and Watch values recommend one whole-day mode. They never add the guided workout twice.')
+                : tx('Computed from your day. Clear every activity block to return to Quick Mode.')}
             </p>
           )}
           <div className="mt-3 rounded-2xl border border-amber-300/15 bg-amber-50/48 p-3.5">
@@ -996,7 +1004,7 @@ export function Nutrition() {
             </div>
           </div>
         </GlassCard>
-        {preciseMode && selectedLogDate === today && (
+        {preciseMode && !usesWholeDayProtocol && selectedLogDate === today && (
           <div className="rounded-2xl border border-amber-500/15 p-4" style={{ background: amber.wash }}>
             <div className="flex flex-wrap items-center justify-between gap-3">
               <div>

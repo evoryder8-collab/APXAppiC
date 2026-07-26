@@ -58,6 +58,17 @@ test('meal completion callbacks are invalidated at the account boundary', () => 
   assert.match(source, /The meal was kept for its original account/)
 })
 
+test('meal food picker keeps configure and exact-amount quick add as separate actions', () => {
+  const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
+  assert.match(source, /const quickAddFood = async \(food: FoodRecord\)/)
+  assert.match(source, /const draft = beginFoodSelection\(food, preference\)/)
+  assert.match(source, /commitFoodSelection\(current, \{ \.\.\.draft, food: trackableFood \}\)/)
+  assert.match(source, /onClick=\{\(\) => void selectFood\(food\)\}/)
+  assert.match(source, /onClick=\{\(\) => void quickAddFood\(food\)\}/)
+  assert.match(source, /hasSavedAmount \? 'Last used' : 'Suggested portion'/)
+  assert.match(source, /Tap a food to change its amount/)
+})
+
 test('logged meal editor state always replaces the selected snapshot meal', () => {
   const saved = meal({ id: 'meal-to-replace', source_planned_meal_id: 'planned-1', display_name: 'Renamed meal' })
   assert.deepEqual(loggedMealEditorState(saved, 'lunch', '13:00'), {

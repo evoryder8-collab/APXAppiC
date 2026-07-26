@@ -10,8 +10,9 @@ import {
   daylineRatio,
   fallbackMealTime,
   isQuietClock,
-  mealStartStorageKey,
+  mealDaylineHeight,
   minuteToClock,
+  normalizeMealDaylineDensity,
   normalizeMealTimelineSnap,
   resolvePostWorkoutNutrition,
   snapDaylineMinute,
@@ -19,11 +20,10 @@ import {
   timedWorkout,
   zonedClock,
   zonedDateTimeToIso,
+  type MealDaylineDensity,
   type MealComfortWindow,
   type MealComfortZone,
-  type MealStartLog,
   type MealTimelineSnapMinutes,
-  type RecoveryNutritionLog,
 } from '../../lib/mealTiming'
 import type { WorkoutSession } from '../../lib/types'
 import { useLanguage } from '../../lib/i18n'
@@ -45,8 +45,7 @@ interface DaylineMealItem {
   minute: number
   lineMinute: number
   recorded: boolean
-  timingSource: 'recorded_start' | 'recorded_finish' | 'scheduled'
-  startedAt: string | null
+  timingSource: 'recorded_finish' | 'scheduled'
   comfortMinute: number
   meal: LoggedMeal | null
   slot: MealDaylineSlot | null
@@ -59,11 +58,8 @@ const COPY = {
     title: 'Eat. Settle. Move. Recover.',
     subtitle: 'Meals, training and recovery timing in one place.',
     finished: 'Meal finished',
-    started: 'Eating started',
-    setStart: 'Set start',
-    editStart: 'Edit start time',
-    saveMealStart: 'Save start',
-    dragHint: 'Hold and move',
+    editFinish: 'Edit meal-finished time',
+    dragHint: 'Hold and move finish',
     snap: 'snap',
     finishOnly: 'finish recorded',
     recorded: 'recorded',
@@ -91,12 +87,8 @@ const COPY = {
     recoveryBody: 'Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on session load and today’s target.',
     recoveryFast: 'If another hard session starts within four hours, prioritize faster carbohydrate replacement.',
     recoveryNoCliff: 'This is a broad recovery window, not a minute-by-minute anabolic cliff.',
-    recordStart: 'Eating started',
-    saveStart: 'Save start',
-    startError: 'Choose a time at or after the workout finished.',
-    loggedGap: 'after training',
-    score: 'timing signal',
-    inferred: 'Estimated from meal finish. Record the eating start for an exact signal.',
+    loggedGap: 'meal finished after training',
+    score: 'timing context',
     logRecoveryMeal: 'Add post-workout meal',
     remaining: 'left in the high-value window',
     complete: 'The broad two-hour window has passed. Recovery still depends most on the full day.',
@@ -106,11 +98,8 @@ const COPY = {
     title: 'Mănâncă. Așteaptă. Mișcă-te. Recuperează.',
     subtitle: 'Mesele, antrenamentul și recuperarea într-un singur loc.',
     finished: 'Masa s-a încheiat',
-    started: 'Ai început să mănânci',
-    setStart: 'Începe masa',
-    editStart: 'Editează ora de început',
-    saveMealStart: 'Salvează începutul',
-    dragHint: 'Ține apăsat și mută',
+    editFinish: 'Editează ora la care ai terminat masa',
+    dragHint: 'Ține apăsat și mută finalul',
     snap: 'pas',
     finishOnly: 'final înregistrat',
     recorded: 'înregistrată',
@@ -138,12 +127,8 @@ const COPY = {
     recoveryBody: 'Țintește 20 până la 40 g de proteine de calitate în două ore. Adaugă carbohidrați după efort și obiectivul zilei.',
     recoveryFast: 'Dacă urmează alt antrenament greu în mai puțin de patru ore, prioritizează refacerea rapidă a carbohidraților.',
     recoveryNoCliff: 'Este o fereastră largă de recuperare, nu un prag anabolic de la minut la minut.',
-    recordStart: 'Ai început să mănânci',
-    saveStart: 'Salvează începutul',
-    startError: 'Alege o oră egală sau ulterioară finalului antrenamentului.',
-    loggedGap: 'după antrenament',
-    score: 'semnal temporal',
-    inferred: 'Estimat din ora de final a mesei. Înregistrează începutul pentru un semnal exact.',
+    loggedGap: 'masa s-a încheiat după antrenament',
+    score: 'context temporal',
     logRecoveryMeal: 'Adaugă masa de după antrenament',
     remaining: 'rămase în fereastra principală',
     complete: 'Fereastra largă de două ore a trecut. Recuperarea depinde în continuare mai ales de întreaga zi.',
@@ -153,11 +138,8 @@ const COPY = {
     title: 'กิน พักย่อย ฝึก และฟื้นตัว',
     subtitle: 'มื้ออาหาร การฝึก และเวลาฟื้นตัวอยู่ในที่เดียว',
     finished: 'กินมื้อเสร็จ',
-    started: 'เริ่มกิน',
-    setStart: 'ตั้งเวลาเริ่ม',
-    editStart: 'แก้ไขเวลาเริ่มกิน',
-    saveMealStart: 'บันทึกเวลาเริ่ม',
-    dragHint: 'แตะค้างแล้วเลื่อน',
+    editFinish: 'แก้ไขเวลากินมื้อเสร็จ',
+    dragHint: 'แตะค้างแล้วเลื่อนเวลาจบ',
     snap: 'ช่วง',
     finishOnly: 'บันทึกเวลาจบแล้ว',
     recorded: 'บันทึกแล้ว',
@@ -185,12 +167,8 @@ const COPY = {
     recoveryBody: 'รับโปรตีนคุณภาพ 20 ถึง 40 กรัมภายในสองชั่วโมง และเติมคาร์โบไฮเดรตตามความหนักของการฝึกและเป้าหมายวันนี้',
     recoveryFast: 'หากมีการฝึกหนักอีกครั้งภายในสี่ชั่วโมง ให้เน้นเติมคาร์โบไฮเดรตเร็วขึ้น',
     recoveryNoCliff: 'นี่เป็นช่วงฟื้นตัวที่กว้าง ไม่ใช่เส้นตายรายนาที',
-    recordStart: 'เริ่มกินเวลา',
-    saveStart: 'บันทึกเวลาเริ่ม',
-    startError: 'เลือกเวลาที่ตรงกับหรือหลังจากการฝึกเสร็จ',
-    loggedGap: 'หลังฝึก',
-    score: 'สัญญาณเวลา',
-    inferred: 'ประเมินจากเวลาที่กินเสร็จ บันทึกเวลาเริ่มกินเพื่อให้แม่นยำ',
+    loggedGap: 'กินมื้อเสร็จหลังฝึก',
+    score: 'บริบทเวลา',
     logRecoveryMeal: 'เพิ่มมื้อหลังฝึก',
     remaining: 'ที่เหลือในช่วงสำคัญ',
     complete: 'ช่วงกว้างสองชั่วโมงผ่านไปแล้ว การฟื้นตัวยังขึ้นกับอาหารตลอดทั้งวันเป็นหลัก',
@@ -221,9 +199,6 @@ const ZONE_COLOR: Record<MealComfortZone, string> = {
 const EMPTY_FALLBACK_TIMES: Record<string, string> = {}
 const EMPTY_DAYLINE_SLOTS: MealDaylineSlot[] = []
 const EMPTY_WORKOUT_SESSIONS: WorkoutSession[] = []
-const EMPTY_RECOVERY_NUTRITION: Record<string, RecoveryNutritionLog> = {}
-const EMPTY_MEAL_START_TIMES: Record<string, MealStartLog> = {}
-
 function labelLayout(items: DaylineMealItem[], height: number, compact: boolean): Map<string, number> {
   const pad = compact ? 30 : 34
   const gap = compact ? 64 : 70
@@ -417,19 +392,16 @@ export function MealDayline({
   timeZone,
   fallbackTimes = EMPTY_FALLBACK_TIMES,
   compact = false,
+  density = 'medium',
   slots = EMPTY_DAYLINE_SLOTS,
   sessions = EMPTY_WORKOUT_SESSIONS,
-  recoveryNutrition = EMPTY_RECOVERY_NUTRITION,
-  mealStartTimes = EMPTY_MEAL_START_TIMES,
   snapMinutes = 30,
   onMealFinishedAt,
-  onMealStartedAt,
   onSlotTimeChanged,
   onOpenMeal,
   onOpenSlot,
   onAddAtTime,
   onDeleteMeal,
-  onRecoveryMealStarted,
   onOpenRecoveryMeal,
 }: {
   date: string
@@ -438,39 +410,31 @@ export function MealDayline({
   timeZone: string
   fallbackTimes?: Record<string, string>
   compact?: boolean
+  density?: MealDaylineDensity
   slots?: MealDaylineSlot[]
   sessions?: WorkoutSession[]
-  recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
-  mealStartTimes?: Readonly<Record<string, MealStartLog>>
   snapMinutes?: MealTimelineSnapMinutes
   onMealFinishedAt?: (mealId: string, finishedAt: string) => Promise<unknown>
-  onMealStartedAt?: (meal: LoggedMeal, startedAt: string) => Promise<void> | void
   onSlotTimeChanged?: (slotId: string, time: string) => Promise<void> | void
   onOpenMeal?: (meal: LoggedMeal) => void
   onOpenSlot?: (slot: MealDaylineSlot) => void
   onAddAtTime?: (time: string) => void
   onDeleteMeal?: (meal: LoggedMeal) => Promise<void>
-  onRecoveryMealStarted?: (sessionId: string, startedAt: string, mealId: string | null) => Promise<void> | void
   onOpenRecoveryMeal?: () => void
 }) {
   const { language } = useLanguage()
   const copy = COPY[language]
   const [now, setNow] = useState(() => new Date())
   const [editing, setEditing] = useState<string | null>(null)
-  const [editingStart, setEditingStart] = useState<string | null>(null)
   const [timeDraft, setTimeDraft] = useState('12:00')
-  const [startDraft, setStartDraft] = useState('12:00')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [revealedMeal, setRevealedMeal] = useState<string | null>(null)
   const [addTime, setAddTime] = useState<string | null>(null)
   const [addPinned, setAddPinned] = useState(false)
-  const [recoveryDraft, setRecoveryDraft] = useState('')
-  const [recoveryError, setRecoveryError] = useState('')
   const [dragPreview, setDragPreview] = useState<{ id: string; minute: number; time: string } | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const timeInputRef = useRef<HTMLInputElement>(null)
-  const startInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const update = () => setNow(new Date())
@@ -500,7 +464,6 @@ export function MealDayline({
           entries,
           timeZone,
           slot.time,
-          mealStartTimes[mealStartStorageKey(meal)] ?? mealStartTimes[meal.id],
         )
         return {
           key: `slot:${slot.id}`,
@@ -510,7 +473,6 @@ export function MealDayline({
           lineMinute: event.lineMinute,
           recorded: event.recorded,
           timingSource: event.timingSource,
-          startedAt: event.startedAt,
           comfortMinute: event.comfortMinute,
           meal,
           slot,
@@ -526,7 +488,6 @@ export function MealDayline({
         lineMinute: minute < DAYLINE_START_MINUTE ? minute + 1440 : minute,
         recorded: false,
         timingSource: 'scheduled' as const,
-        startedAt: null,
         comfortMinute: minute,
         meal: null,
         slot,
@@ -539,7 +500,6 @@ export function MealDayline({
         entries,
         timeZone,
         fallbackTimes[meal.id] ?? fallbackMealTime(meal),
-        mealStartTimes[mealStartStorageKey(meal)] ?? mealStartTimes[meal.id],
       )
       return {
         key: `meal:${meal.id}`,
@@ -549,7 +509,6 @@ export function MealDayline({
         lineMinute: event.lineMinute,
         recorded: event.recorded,
         timingSource: event.timingSource,
-        startedAt: event.startedAt,
         comfortMinute: event.comfortMinute,
         meal,
         slot: null,
@@ -557,7 +516,7 @@ export function MealDayline({
       }
     })
     return [...configured, ...extras].sort((left, right) => left.lineMinute - right.lineMinute)
-  }, [entries, fallbackTimes, mealStartTimes, meals, slots, timeZone])
+  }, [entries, fallbackTimes, meals, slots, timeZone])
 
   const displayItems = useMemo(() => items.map((item) => {
     if (!dragPreview || dragPreview.id !== item.key) return item
@@ -567,11 +526,12 @@ export function MealDayline({
       minute: ((dragPreview.minute % 1440) + 1440) % 1440,
       lineMinute: dragPreview.minute,
       recorded: Boolean(item.meal),
-      timingSource: item.meal ? 'recorded_start' as const : 'scheduled' as const,
+      timingSource: item.meal ? 'recorded_finish' as const : 'scheduled' as const,
     }
   }), [dragPreview, items])
 
-  const height = Math.max(compact ? 440 : 560, displayItems.length * (compact ? 68 : 74))
+  const resolvedDensity = normalizeMealDaylineDensity(density)
+  const height = mealDaylineHeight(resolvedDensity, compact, displayItems.length)
   const labels = useMemo(() => labelLayout(displayItems, height, compact), [compact, displayItems, height])
   const nowY = daylineRatio(currentClock.minute) * height
   const recordedEvents = displayItems.filter((item) => item.meal && item.recorded && Date.parse(item.meal.logged_at) <= now.getTime())
@@ -594,9 +554,7 @@ export function MealDayline({
     sessions: sessions.filter((session) => session.date === date),
     meals,
     timeZone,
-    recoveryNutrition,
-    mealStartTimes,
-  }), [date, mealStartTimes, meals, recoveryNutrition, sessions, timeZone])
+  }), [date, meals, sessions, timeZone])
   const latestWorkout = workouts.at(-1) ?? null
   const latestRecovery = latestWorkout
     ? recoveryRelations.find((relation) => relation.sessionId === latestWorkout.session.id) ?? null
@@ -606,28 +564,10 @@ export function MealDayline({
     : null
   const recoveryRemaining = recoveryElapsed == null ? null : Math.max(0, 120 - recoveryElapsed)
 
-  useEffect(() => {
-    if (!latestWorkout) {
-      setRecoveryDraft('')
-      return
-    }
-    const explicit = recoveryNutrition[latestWorkout.session.id]
-    setRecoveryDraft(explicit ? zonedClock(explicit.started_at, timeZone).time : currentClock.time)
-  }, [latestWorkout?.session.id, recoveryNutrition, timeZone])
-
   const beginEdit = (item: DaylineMealItem) => {
     if (!item.meal || !onMealFinishedAt) return
     setEditing(item.meal.id)
-    setEditingStart(null)
     setTimeDraft(zonedClock(item.meal.logged_at, timeZone).time)
-    setSaveError('')
-  }
-
-  const beginStartEdit = (item: DaylineMealItem) => {
-    if (!item.meal || !onMealStartedAt) return
-    setEditingStart(item.meal.id)
-    setEditing(null)
-    setStartDraft(item.startedAt ? zonedClock(item.startedAt, timeZone).time : currentClock.time)
     setSaveError('')
   }
 
@@ -646,43 +586,7 @@ export function MealDayline({
     }
   }
 
-  const saveStartTime = async () => {
-    if (!editingStart || saving || !onMealStartedAt) return
-    setSaving(true)
-    setSaveError('')
-    try {
-      const meal = items.find((item) => item.meal?.id === editingStart)?.meal
-      if (!meal) throw new Error('Meal unavailable')
-      const visibleTime = startInputRef.current?.value || startDraft
-      await onMealStartedAt(meal, zonedDateTimeToIso(date, visibleTime, timeZone))
-      setEditingStart(null)
-    } catch {
-      setSaveError(copy.saveFailed)
-    } finally {
-      setSaving(false)
-    }
-  }
-
-  const saveRecoveryStart = async () => {
-    if (!latestWorkout || !recoveryDraft || !onRecoveryMealStarted) return
-    const startedAt = zonedDateTimeToIso(date, recoveryDraft, timeZone)
-    if (Date.parse(startedAt) < Date.parse(latestWorkout.session.completed_at!) - 60_000) {
-      setRecoveryError(copy.startError)
-      return
-    }
-    setRecoveryError('')
-    setSaving(true)
-    try {
-      await onRecoveryMealStarted(latestWorkout.session.id, startedAt, latestRecovery?.mealId ?? null)
-    } catch {
-      setRecoveryError(copy.saveFailed)
-    } finally {
-      setSaving(false)
-    }
-  }
-
   const activeEvent = items.find((item) => item.meal?.id === editing) ?? null
-  const activeStartEvent = items.find((item) => item.meal?.id === editingStart) ?? null
   const railX = compact ? 52 : 58
   const addMinute = addTime ? clockMinute(addTime) : null
   const resolvedSnap = normalizeMealTimelineSnap(snapMinutes)
@@ -714,8 +618,8 @@ export function MealDayline({
     setDragPreview(next ? { id: item.key, ...next } : null)
     try {
       if (!next) return
-      if (item.meal && onMealStartedAt) {
-        await onMealStartedAt(item.meal, zonedDateTimeToIso(date, next.time, timeZone))
+      if (item.meal && onMealFinishedAt) {
+        await onMealFinishedAt(item.meal.id, zonedDateTimeToIso(date, next.time, timeZone))
       } else if (item.slot && onSlotTimeChanged) {
         await onSlotTimeChanged(item.slot.id, next.time)
       }
@@ -788,8 +692,32 @@ export function MealDayline({
             const boundedReady = Math.max(boundedTransition, Math.min(height, ready))
             return (
               <>
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[9px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-rose-400 to-amber-400" style={{ left: railX, top: boundedStart, height: boundedTransition - boundedStart, boxShadow: '0 0 18px rgba(251,113,133,.58)' }} />
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[9px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-amber-400 to-emerald-400" style={{ left: railX, top: boundedTransition, height: boundedReady - boundedTransition, boxShadow: '0 0 18px rgba(245,158,11,.42)' }} />
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 1, scaleY: 1 }}
+                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-rose-200/15"
+                  style={{
+                    left: railX - 8,
+                    top: boundedStart,
+                    height: Math.max(10, boundedTransition - boundedStart),
+                    background: 'linear-gradient(90deg,rgba(251,113,133,.34),rgba(245,158,11,.17) 52%,rgba(245,158,11,.025))',
+                    boxShadow: 'inset 12px 0 22px rgba(251,113,133,.16)',
+                  }}
+                />
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 1, scaleY: 1 }}
+                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-amber-200/12"
+                  style={{
+                    left: railX - 8,
+                    top: boundedTransition,
+                    height: Math.max(10, boundedReady - boundedTransition),
+                    background: 'linear-gradient(90deg,rgba(245,158,11,.3),rgba(16,185,129,.18) 58%,rgba(16,185,129,.025))',
+                    boxShadow: 'inset 12px 0 22px rgba(245,158,11,.14)',
+                  }}
+                />
+                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[15px] origin-top -translate-x-1/2 rounded-full border border-rose-100/50 bg-gradient-to-b from-rose-400 to-amber-400" style={{ left: railX, top: boundedStart, height: Math.max(10, boundedTransition - boundedStart), boxShadow: '0 0 26px rgba(251,113,133,.9)' }} />
+                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[15px] origin-top -translate-x-1/2 rounded-full border border-amber-100/40 bg-gradient-to-b from-amber-400 to-emerald-400" style={{ left: railX, top: boundedTransition, height: Math.max(10, boundedReady - boundedTransition), boxShadow: '0 0 26px rgba(245,158,11,.72)' }} />
               </>
             )
           })()}
@@ -797,9 +725,22 @@ export function MealDayline({
           {workouts.map((workout) => {
             const start = daylineRatio(workout.completedMinute) * height
             const end = daylineRatio(workout.completedMinute + 120) * height
+            const bandHeight = Math.max(12, Math.min(height, end) - start)
             return (
               <div key={workout.session.id}>
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-[11] w-[11px] origin-top -translate-x-1/2 rounded-full bg-gradient-to-b from-emerald-300 via-cyan-300 to-cyan-300/15" style={{ left: railX, top: start, height: Math.max(8, Math.min(height, end) - start), boxShadow: '0 0 20px rgba(52,211,153,.72)' }} />
+                <motion.div
+                  initial={{ opacity: 0, scaleY: 0 }}
+                  animate={{ opacity: 1, scaleY: 1 }}
+                  className="pointer-events-none absolute right-1 z-[8] origin-top rounded-r-2xl border-y border-emerald-100/18"
+                  style={{
+                    left: railX - 8,
+                    top: start,
+                    height: bandHeight,
+                    background: 'linear-gradient(90deg,rgba(52,211,153,.36),rgba(34,211,238,.18) 58%,rgba(34,211,238,.025))',
+                    boxShadow: 'inset 12px 0 24px rgba(52,211,153,.18)',
+                  }}
+                />
+                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-[11] w-[17px] origin-top -translate-x-1/2 rounded-full border border-emerald-100/55 bg-gradient-to-b from-emerald-300 via-cyan-300 to-cyan-300/20" style={{ left: railX, top: start, height: bandHeight, boxShadow: '0 0 30px rgba(52,211,153,.95)' }} />
                 <div className="pointer-events-none absolute right-1 z-[16] -translate-y-full rounded-full border border-emerald-200/15 bg-[#07151c]/85 px-2 py-1 font-mono text-[7px] font-black text-emerald-200/75 backdrop-blur" style={{ top: start - 4 }}>
                   ✓ {copy.workoutDone} · {workout.completedTime}
                 </div>
@@ -830,7 +771,7 @@ export function MealDayline({
               >
                 <div className="flex items-center justify-between gap-2">
                   <p className="min-w-0 truncate text-[11px] font-black text-white">{item.meal?.display_name ?? item.label}</p>
-                  {item.meal && onMealStartedAt ? (
+                  {item.meal && onMealFinishedAt ? (
                     <button
                       type="button"
                       data-dayline-time-control
@@ -839,12 +780,12 @@ export function MealDayline({
                       onTouchEnd={(event) => event.stopPropagation()}
                       onClick={(event) => {
                         event.stopPropagation()
-                        beginStartEdit(item)
+                        beginEdit(item)
                       }}
-                      aria-label={`${copy.editStart} ${item.meal.display_name}`}
-                      className={`shrink-0 rounded-lg border px-2 py-1 font-mono text-[8px] font-black transition active:scale-95 ${item.startedAt ? 'border-emerald-200/20 bg-emerald-300/12 text-emerald-100' : 'border-cyan-200/18 bg-cyan-300/10 text-cyan-100'}`}
+                      aria-label={`${copy.editFinish} ${item.meal.display_name}`}
+                      className="shrink-0 rounded-lg border border-cyan-200/20 bg-cyan-300/10 px-2 py-1 font-mono text-[8px] font-black text-cyan-100 transition active:scale-95"
                     >
-                      {item.startedAt ? `▶ ${item.time}` : `▶ ${copy.setStart}`}
+                      ✓ {item.time}
                     </button>
                   ) : (
                     <span className="shrink-0 font-mono text-[10px] font-black text-cyan-100">{item.time}</span>
@@ -852,11 +793,11 @@ export function MealDayline({
                 </div>
                 <div className="mt-0.5 flex items-center justify-between gap-2">
                   <span className="truncate text-[8px] font-semibold text-white/36">{item.meal && item.window ? `${Math.round(item.meal.total_kcal)} kcal · ${copy[item.window.load]}` : copy.addMeal}</span>
-                  <span className={`shrink-0 font-mono text-[7px] font-black uppercase ${item.timingSource === 'recorded_start' ? 'text-emerald-200/70' : 'text-white/28'}`}>
-                    {item.timingSource === 'recorded_start' ? copy.started : item.timingSource === 'recorded_finish' ? copy.finishOnly : copy.estimated}
+                  <span className={`shrink-0 font-mono text-[7px] font-black uppercase ${item.timingSource === 'recorded_finish' ? 'text-cyan-200/70' : 'text-white/28'}`}>
+                    {item.timingSource === 'recorded_finish' ? copy.finishOnly : copy.estimated}
                   </span>
                 </div>
-                {(item.meal ? onMealStartedAt : onSlotTimeChanged) && (
+                {(item.meal ? onMealFinishedAt : onSlotTimeChanged) && (
                   <div className="mt-1 flex items-center justify-end gap-1 font-mono text-[6.5px] font-black tracking-wide text-white/25 uppercase">
                     <span aria-hidden>⋮⋮</span>
                     <span>{copy.dragHint} · {resolvedSnap} min {copy.snap}</span>
@@ -891,8 +832,8 @@ export function MealDayline({
                       deleteLabel={copy.delete}
                       onActivate={() => onOpenMeal ? onOpenMeal(item.meal!) : beginEdit(item)}
                       onDelete={() => onDeleteMeal(item.meal!)}
-                      onLongPressMove={onMealStartedAt ? (clientY) => previewReposition(item, clientY) : undefined}
-                      onLongPressEnd={onMealStartedAt ? (clientY) => void commitReposition(item, clientY) : undefined}
+                      onLongPressMove={onMealFinishedAt ? (clientY) => previewReposition(item, clientY) : undefined}
+                      onLongPressEnd={onMealFinishedAt ? (clientY) => void commitReposition(item, clientY) : undefined}
                       onLongPressCancel={() => setDragPreview(null)}
                     >
                       {card}
@@ -972,20 +913,9 @@ export function MealDayline({
                 </div>
               )}
             </div>
-            {latestRecovery?.source === 'inferred_finish' && <p className="relative mt-2 text-[8px] font-semibold text-amber-200/55">{copy.inferred}</p>}
-            {onRecoveryMealStarted && (
-              <div className="relative mt-2 grid grid-cols-[minmax(0,1fr)_auto] gap-2">
-                <label>
-                  <span className="block text-[8px] font-black text-white/45">{copy.recordStart}</span>
-                  <input type="time" value={recoveryDraft} onChange={(event) => setRecoveryDraft(event.target.value)} className="mt-1 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-emerald-300/50" />
-                </label>
-                <button type="button" disabled={saving} onClick={() => void saveRecoveryStart()} className="mt-[18px] min-h-10 rounded-xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-3 text-[9px] font-black text-[#051019] disabled:opacity-50">{copy.saveStart}</button>
-              </div>
-            )}
-            {latestRecovery?.source === 'recorded_start' && latestRecovery.gapMinutes != null && (
+            {latestRecovery?.source === 'recorded_finish' && latestRecovery.gapMinutes != null && (
               <p className="relative mt-2 font-mono text-[8px] font-black text-emerald-200/65">{latestRecovery.gapMinutes} min {copy.loggedGap}</p>
             )}
-            {recoveryError && <p className="relative mt-2 text-[8px] font-semibold text-rose-300">{recoveryError}</p>}
             <div className="relative mt-2 flex flex-wrap gap-2">
               {onOpenRecoveryMeal && <button type="button" onClick={onOpenRecoveryMeal} className="rounded-xl bg-white/8 px-3 py-2 text-[9px] font-black text-cyan-100">{copy.logRecoveryMeal}</button>}
             </div>
@@ -1012,28 +942,6 @@ export function MealDayline({
             <p className="text-[9px] leading-relaxed font-semibold text-white/38">{copy.note}</p>
           )}
         </div>
-
-        <AnimatePresence>
-          {activeStartEvent?.meal && (
-            <motion.div initial={{ opacity: 0, y: 8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 6, height: 0 }} className="relative mt-2 overflow-hidden rounded-2xl border border-emerald-200/15 bg-emerald-100/[.075]">
-              <div className="flex items-end gap-2 p-3">
-                <label className="min-w-0 flex-1">
-                  <span className="block truncate text-[9px] font-black text-emerald-100">{copy.started} · {activeStartEvent.meal.display_name}</span>
-                  <input
-                    type="time"
-                    ref={startInputRef}
-                    value={startDraft}
-                    onChange={(event) => setStartDraft(event.target.value)}
-                    className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-emerald-300/50"
-                  />
-                </label>
-                <button type="button" disabled={saving} onClick={() => void saveStartTime()} className="min-h-10 shrink-0 rounded-xl bg-gradient-to-r from-emerald-300 to-cyan-300 px-3 text-[10px] font-black text-[#051019] disabled:opacity-50">{saving ? copy.saving : copy.saveMealStart}</button>
-                <button type="button" onClick={() => setEditingStart(null)} aria-label={copy.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/8 font-black text-white/55">×</button>
-              </div>
-              {saveError && <p className="px-3 pb-3 text-[9px] font-semibold text-rose-300">{saveError}</p>}
-            </motion.div>
-          )}
-        </AnimatePresence>
 
         <AnimatePresence>
           {activeEvent?.meal && (

@@ -37,8 +37,10 @@ import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
-import { mealStartStorageKey, normalizeMealTimelineSnap, timeZoneFromSettings } from '../lib/mealTiming'
+import { normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings } from '../lib/mealTiming'
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
+import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
+import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -405,32 +407,6 @@ export function SimpleHome() {
       plannedMealId: null,
       replaceMealId: null,
     })
-  }
-
-  const saveRecoveryMealStart = async (sessionId: string, startedAt: string, mealId: string | null): Promise<void> => {
-    if (!settings) return
-    const current = settings.addons.recovery_nutrition ?? {}
-    const next = {
-      ...current,
-      [sessionId]: { meal_id: mealId, started_at: startedAt, updated_at: new Date().toISOString() },
-    }
-    const recentEntries = Object.entries(next)
-      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
-      .slice(0, 365)
-    setSettings({ addons: { ...settings.addons, recovery_nutrition: Object.fromEntries(recentEntries) } })
-  }
-
-  const saveMealStart = async (meal: LoggedMeal, startedAt: string): Promise<void> => {
-    if (!settings) return
-    const key = mealStartStorageKey(meal)
-    const next = {
-      ...(settings.addons.meal_start_times ?? {}),
-      [key]: { started_at: startedAt, updated_at: new Date().toISOString() },
-    }
-    const recentEntries = Object.entries(next)
-      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
-      .slice(0, 730)
-    setSettings({ addons: { ...settings.addons, meal_start_times: Object.fromEntries(recentEntries) } })
   }
 
   const openRecoveryMeal = (): void => {
@@ -859,6 +835,10 @@ export function SimpleHome() {
       </motion.header>
 
       <div className="space-y-4">
+        {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
+          <RecoveryCheckinCard date={selectedDate} settings={settings} onSettingsChange={setSettings} />
+        )}
+
         <GlassCard accent={ACCENTS.amber} className="overflow-hidden p-0">
           <NutritionGlance
             target={targets}
@@ -900,19 +880,16 @@ export function SimpleHome() {
           meals={dateFoodMeals}
           entries={foodStore.entries}
           timeZone={timeZoneFromSettings(settings)}
+          density={normalizeMealDaylineDensity(settings.addons.meal_dayline_density)}
           fallbackTimes={timelineFallbackTimes}
           slots={timelineSlots}
           sessions={data.workout_sessions}
-          recoveryNutrition={settings.addons.recovery_nutrition}
-          mealStartTimes={settings.addons.meal_start_times}
           snapMinutes={normalizeMealTimelineSnap(settings.addons.meal_timeline_snap_minutes)}
           onMealFinishedAt={foodStore.setMealFinishedAt}
-          onMealStartedAt={saveMealStart}
           onOpenMeal={(meal) => void editQuickCustomMeal(meal)}
           onOpenSlot={(slot) => void openTimelineSlot(slot)}
           onAddAtTime={openMealAtTime}
           onDeleteMeal={(meal) => foodStore.deleteMeal(meal.id)}
-          onRecoveryMealStarted={saveRecoveryMealStart}
           onOpenRecoveryMeal={openRecoveryMeal}
         />
 
@@ -922,6 +899,17 @@ export function SimpleHome() {
           <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
           <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
         </div>
+
+        {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
+          <WatchActivityCheckin
+            date={selectedDate}
+            data={data}
+            profile={profile}
+            settings={settings}
+            onSettingsChange={setSettings}
+            onProfileChange={setProfile}
+          />
+        )}
 
         <div className="flex justify-end" data-simple-local-gesture>
           <QuickWorkoutLauncher

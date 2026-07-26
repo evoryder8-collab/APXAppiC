@@ -6,8 +6,9 @@ import {
   comfortZone,
   daylineRatio,
   isQuietClock,
+  mealDaylineHeight,
   mealComfortWindow,
-  mealStartStorageKey,
+  normalizeMealDaylineDensity,
   normalizeMealStartTimes,
   normalizeMealTimelineSnap,
   normalizeRecoveryNutrition,
@@ -136,32 +137,34 @@ test('meal timestamps are recorded only when they belong to the selected nutriti
   assert.equal(estimated.time, '12:45')
 })
 
-test('an exact eating start is separate from meal finish and survives durable meal replacements', () => {
-  const original = meal({
-    client_idempotency_key: 'write-1|apex-meal-block=lunch',
+test('meal finish is the sole recorded timing signal and anchors the comfort window', () => {
+  const event = timedMeal(meal({
     logged_at: '2026-07-25T13:25:00.000Z',
-  })
-  const replacement = meal({
-    id: 'meal-2',
-    client_idempotency_key: 'write-2|apex-meal-block=lunch',
-    logged_at: '2026-07-25T13:25:00.000Z',
-  })
-  assert.equal(mealStartStorageKey(original), mealStartStorageKey(replacement))
-  const event = timedMeal(original, [], 'UTC', '13:00', {
-    started_at: '2026-07-25T13:05:00.000Z',
-    updated_at: '2026-07-25T13:05:00.000Z',
-  })
-  assert.equal(event.time, '13:05')
-  assert.equal(event.timingSource, 'recorded_start')
+  }), [], 'UTC', '13:00')
+  assert.equal(event.time, '13:25')
+  assert.equal(event.timingSource, 'recorded_finish')
   assert.equal(event.comfortMinute, 13 * 60 + 25)
   assert.equal(event.finishedAt, '2026-07-25T13:25:00.000Z')
 })
 
-test('meal movement steps normalize and snap across the full 03:00 to 02:59 dayline', () => {
+test('meal finish movement snaps across the full 03:00 to 02:59 dayline', () => {
   assert.equal(normalizeMealTimelineSnap(15), 15)
   assert.equal(normalizeMealTimelineSnap(17), 30)
   assert.equal(snapDaylineMinute(13 * 60 + 8, 15), 13 * 60 + 15)
   assert.equal(snapDaylineMinute(2 * 60 + 58 + 1440, 60), 26 * 60)
+})
+
+test('dayline density defaults to spacious medium and grows predictably', () => {
+  assert.equal(normalizeMealDaylineDensity(undefined), 'medium')
+  assert.equal(normalizeMealDaylineDensity('long'), 'long')
+  assert.equal(normalizeMealDaylineDensity('invalid'), 'medium')
+  const compact = mealDaylineHeight('compact', true, 5)
+  const medium = mealDaylineHeight('medium', true, 5)
+  const long = mealDaylineHeight('long', true, 5)
+  assert.ok(compact < medium)
+  assert.ok(medium < long)
+  assert.ok(medium >= 780)
+  assert.ok(long >= 1_040)
 })
 
 test('meal start records reject invalid timestamps and remain bounded sync data', () => {
@@ -205,7 +208,7 @@ test('post-workout scoring uses a broad two-hour plateau rather than an artifici
   assert.equal(recoveryTimingScore(-1), null)
 })
 
-test('explicit post-workout eating starts override inferred meal finish timing', () => {
+test('legacy post-workout start data cannot override the recorded meal finish', () => {
   const recovery = resolvePostWorkoutNutrition({
     sessions: [session()],
     meals: [meal({ id: 'recovery-meal', logged_at: '2026-07-25T18:00:00.000Z' })],
@@ -218,13 +221,13 @@ test('explicit post-workout eating starts override inferred meal finish timing',
       },
     },
   })
-  assert.equal(recovery[0].source, 'recorded_start')
-  assert.equal(recovery[0].gapMinutes, 45)
+  assert.equal(recovery[0].source, 'recorded_finish')
+  assert.equal(recovery[0].gapMinutes, 90)
   assert.equal(recovery[0].timingScore, 100)
   assert.equal(recovery[0].mealName, 'Lunch')
 })
 
-test('a normal meal start automatically feeds post-workout recovery timing', () => {
+test('legacy meal-start records are ignored in post-workout timing', () => {
   const recoveryMeal = meal({
     id: 'recovery-meal',
     client_idempotency_key: 'write|apex-meal-block=post_workout',
@@ -235,18 +238,18 @@ test('a normal meal start automatically feeds post-workout recovery timing', () 
     meals: [recoveryMeal],
     timeZone: 'UTC',
     mealStartTimes: {
-      [mealStartStorageKey(recoveryMeal)]: {
+      legacy: {
         started_at: '2026-07-25T17:10:00.000Z',
         updated_at: '2026-07-25T17:10:00.000Z',
       },
     },
   })
-  assert.equal(recovery[0].source, 'recorded_start')
-  assert.equal(recovery[0].gapMinutes, 40)
+  assert.equal(recovery[0].source, 'recorded_finish')
+  assert.equal(recovery[0].gapMinutes, 75)
   assert.equal(recovery[0].mealName, 'Lunch')
 })
 
-test('a recorded recovery start links to the next meal added shortly afterwards', () => {
+test('legacy recovery-start records are ignored and the next finish is linked', () => {
   const recovery = resolvePostWorkoutNutrition({
     sessions: [session()],
     meals: [meal({
@@ -263,8 +266,8 @@ test('a recorded recovery start links to the next meal added shortly afterwards'
       },
     },
   })
-  assert.equal(recovery[0].source, 'recorded_start')
-  assert.equal(recovery[0].gapMinutes, 45)
+  assert.equal(recovery[0].source, 'recorded_finish')
+  assert.equal(recovery[0].gapMinutes, 50)
   assert.equal(recovery[0].mealId, 'meal-added-after-start')
   assert.equal(recovery[0].mealName, 'Recovery shake')
 })

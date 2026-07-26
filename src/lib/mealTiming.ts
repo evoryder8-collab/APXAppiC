@@ -29,8 +29,7 @@ export interface TimedMeal {
   minute: number
   lineMinute: number
   recorded: boolean
-  timingSource: 'recorded_start' | 'recorded_finish' | 'scheduled'
-  startedAt: string | null
+  timingSource: 'recorded_finish' | 'scheduled'
   finishedAt: string | null
   comfortMinute: number
   comfortLineMinute: number
@@ -50,8 +49,10 @@ export interface WorkoutMealTiming {
 export type RecoveryNutritionLog = NonNullable<Settings['addons']['recovery_nutrition']>[string]
 export type MealStartLog = NonNullable<Settings['addons']['meal_start_times']>[string]
 export type MealTimelineSnapMinutes = NonNullable<Settings['addons']['meal_timeline_snap_minutes']>
+export type MealDaylineDensity = NonNullable<Settings['addons']['meal_dayline_density']>
 
 export const MEAL_TIMELINE_SNAP_OPTIONS = [5, 15, 30, 60] as const
+export const MEAL_DAYLINE_DENSITY_OPTIONS = ['compact', 'medium', 'long'] as const
 
 export interface TimedWorkout {
   session: WorkoutSession
@@ -67,10 +68,10 @@ export interface PostWorkoutNutritionTiming {
   completedAt: string
   mealId: string | null
   mealName: string | null
-  mealStartedAt: string | null
+  mealFinishedAt: string | null
   gapMinutes: number | null
   timingScore: number | null
-  source: 'recorded_start' | 'inferred_finish' | 'missing'
+  source: 'recorded_finish' | 'missing'
 }
 
 export interface MealTimingAnalysis {
@@ -137,6 +138,30 @@ export function normalizeMealTimelineSnap(value: unknown): MealTimelineSnapMinut
   return MEAL_TIMELINE_SNAP_OPTIONS.includes(parsed as MealTimelineSnapMinutes)
     ? parsed as MealTimelineSnapMinutes
     : 30
+}
+
+export function normalizeMealDaylineDensity(value: unknown): MealDaylineDensity {
+  return MEAL_DAYLINE_DENSITY_OPTIONS.includes(value as MealDaylineDensity)
+    ? value as MealDaylineDensity
+    : 'medium'
+}
+
+/**
+ * A full 24-hour line needs enough physical distance for a two-hour guidance
+ * band to remain legible on a phone. `compactPresentation` only trims the
+ * surrounding card chrome; density remains a user preference in both views.
+ */
+export function mealDaylineHeight(
+  density: MealDaylineDensity,
+  compactPresentation: boolean,
+  itemCount: number,
+): number {
+  const resolved = normalizeMealDaylineDensity(density)
+  const base = compactPresentation
+    ? { compact: 560, medium: 780, long: 1_040 }[resolved]
+    : { compact: 640, medium: 860, long: 1_140 }[resolved]
+  const itemGap = { compact: 72, medium: 80, long: 90 }[resolved]
+  return Math.max(base, Math.max(0, itemCount) * itemGap)
 }
 
 export function mealStartStorageKey(meal: Pick<
@@ -340,26 +365,13 @@ export function timedMeal(
   entries: readonly LoggedFoodEntry[],
   timeZone: string,
   fallbackTime = fallbackMealTime(meal),
-  startLog?: MealStartLog | null,
 ): TimedMeal {
   const finishedClock = zonedClock(meal.logged_at, timeZone)
   const finishedAt = finishedClock.date === meal.local_date ? meal.logged_at : null
-  const startedClock = startLog && Number.isFinite(Date.parse(startLog.started_at))
-    ? zonedClock(startLog.started_at, timeZone)
-    : null
-  const startedAt = startedClock?.date === meal.local_date ? startLog!.started_at : null
-  const timingSource = startedAt
-    ? 'recorded_start'
-    : finishedAt
-      ? 'recorded_finish'
-      : 'scheduled'
-  const time = startedAt
-    ? startedClock!.time
-    : finishedAt
-      ? finishedClock.time
-      : fallbackTime
+  const timingSource = finishedAt ? 'recorded_finish' : 'scheduled'
+  const time = finishedAt ? finishedClock.time : fallbackTime
   const minute = clockToMinute(time)
-  const comfortMinute = finishedAt ? finishedClock.minute : minute
+  const comfortMinute = minute
   return {
     meal,
     time,
@@ -367,7 +379,6 @@ export function timedMeal(
     lineMinute: toDaylineMinute(minute),
     recorded: timingSource !== 'scheduled',
     timingSource,
-    startedAt,
     finishedAt,
     comfortMinute,
     comfortLineMinute: toDaylineMinute(comfortMinute),
@@ -403,102 +414,41 @@ export function recoveryTimingScore(gapMinutes: number | null): number | null {
   return Math.max(0, Math.round(70 - (gapMinutes - 240) * 0.2))
 }
 
-export function resolvePostWorkoutNutrition({
-  sessions,
-  meals,
-  timeZone,
-  recoveryNutrition = {},
-  mealStartTimes = {},
-}: {
+export function resolvePostWorkoutNutrition(input: {
   sessions: readonly WorkoutSession[]
   meals: readonly LoggedMeal[]
   timeZone: string
+  /** @deprecated Meal finish is now the only user-recorded timing signal. */
   recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
+  /** @deprecated Meal finish is now the only user-recorded timing signal. */
   mealStartTimes?: Readonly<Record<string, MealStartLog>>
 }): PostWorkoutNutritionTiming[] {
+  const { sessions, meals, timeZone } = input
   const completed = sessions
     .flatMap((session) => timedWorkout(session, timeZone) ? [session] : [])
     .sort((left, right) => Date.parse(left.completed_at ?? '') - Date.parse(right.completed_at ?? ''))
 
   return completed.map((session) => {
     const completedAt = session.completed_at!
-    const explicit = recoveryNutrition[session.id]
-    const explicitStarted = explicit && Number.isFinite(Date.parse(explicit.started_at))
-      ? explicit.started_at
-      : null
-    const explicitMeal = explicit?.meal_id
-      ? meals.find((meal) => meal.id === explicit.meal_id) ?? null
-      : null
-    if (explicitStarted) {
-      const gapMinutes = Math.max(0, Math.round((Date.parse(explicitStarted) - Date.parse(completedAt)) / 60_000))
-      const linkedMeal = explicitMeal ?? meals
-        .filter((meal) => meal.local_date === session.date)
-        .filter((meal) => {
-          const gap = Date.parse(meal.logged_at) - Date.parse(explicitStarted)
-          return gap >= 0 && gap <= 6 * 60 * 60 * 1_000
-        })
-        .sort((left, right) => Date.parse(left.logged_at) - Date.parse(right.logged_at))[0] ?? null
-      return {
-        sessionId: session.id,
-        date: session.date,
-        completedAt,
-        mealId: linkedMeal?.id ?? explicit?.meal_id ?? null,
-        mealName: linkedMeal?.display_name ?? null,
-        mealStartedAt: explicitStarted,
-        gapMinutes,
-        timingScore: recoveryTimingScore(gapMinutes),
-        source: 'recorded_start' as const,
-      }
-    }
-
-    const startedMeal = meals
-      .flatMap((meal) => {
-        const start = mealStartTimes[mealStartStorageKey(meal)] ?? mealStartTimes[meal.id]
-        if (!start || !Number.isFinite(Date.parse(start.started_at))) return []
-        const gap = Date.parse(start.started_at) - Date.parse(completedAt)
-        return meal.local_date === session.date && gap >= 0 && gap <= 6 * 60 * 60 * 1_000
-          ? [{ meal, start, gap }]
-          : []
-      })
-      .sort((left, right) => left.gap - right.gap)[0]
-    if (startedMeal) {
-      const gapMinutes = Math.max(0, Math.round(startedMeal.gap / 60_000))
-      return {
-        sessionId: session.id,
-        date: session.date,
-        completedAt,
-        mealId: startedMeal.meal.id,
-        mealName: startedMeal.meal.display_name,
-        mealStartedAt: startedMeal.start.started_at,
-        gapMinutes,
-        timingScore: recoveryTimingScore(gapMinutes),
-        source: 'recorded_start' as const,
-      }
-    }
-
-    /* A meal finish is a useful fallback for historical sessions, but it is
-       deliberately labelled as inferred and never presented as a recorded
-       eating start. Keep the horizon short enough to avoid linking breakfast
-       the next morning to the previous evening's session. */
-    const inferred = meals
+    const finishedMeal = meals
       .filter((meal) => meal.local_date === session.date)
       .filter((meal) => {
         const gap = Date.parse(meal.logged_at) - Date.parse(completedAt)
         return gap >= 0 && gap <= 6 * 60 * 60 * 1_000
       })
       .sort((left, right) => Date.parse(left.logged_at) - Date.parse(right.logged_at))[0] ?? null
-    if (inferred) {
-      const gapMinutes = Math.max(0, Math.round((Date.parse(inferred.logged_at) - Date.parse(completedAt)) / 60_000))
+    if (finishedMeal) {
+      const gapMinutes = Math.max(0, Math.round((Date.parse(finishedMeal.logged_at) - Date.parse(completedAt)) / 60_000))
       return {
         sessionId: session.id,
         date: session.date,
         completedAt,
-        mealId: inferred.id,
-        mealName: inferred.display_name,
-        mealStartedAt: inferred.logged_at,
+        mealId: finishedMeal.id,
+        mealName: finishedMeal.display_name,
+        mealFinishedAt: finishedMeal.logged_at,
         gapMinutes,
         timingScore: recoveryTimingScore(gapMinutes),
-        source: 'inferred_finish' as const,
+        source: 'recorded_finish' as const,
       }
     }
     return {
@@ -507,7 +457,7 @@ export function resolvePostWorkoutNutrition({
       completedAt,
       mealId: null,
       mealName: null,
-      mealStartedAt: null,
+      mealFinishedAt: null,
       gapMinutes: null,
       timingScore: null,
       source: 'missing' as const,
@@ -526,29 +476,29 @@ function sessionStart(session: WorkoutSession): string | null {
   return session.started_at
 }
 
-export function analyzeMealTiming({
-  meals,
-  entries,
-  sessions,
-  timeZone,
-  fallbackTimes = {},
-  recoveryNutrition = {},
-  mealStartTimes = {},
-}: {
+export function analyzeMealTiming(input: {
   meals: readonly LoggedMeal[]
   entries: readonly LoggedFoodEntry[]
   sessions: readonly WorkoutSession[]
   timeZone: string
   fallbackTimes?: Readonly<Record<string, string>>
+  /** @deprecated Meal finish is now the only user-recorded timing signal. */
   recoveryNutrition?: Readonly<Record<string, RecoveryNutritionLog>>
+  /** @deprecated Meal finish is now the only user-recorded timing signal. */
   mealStartTimes?: Readonly<Record<string, MealStartLog>>
 }): MealTimingAnalysis {
+  const {
+    meals,
+    entries,
+    sessions,
+    timeZone,
+    fallbackTimes = {},
+  } = input
   const timed = meals.map((meal) => timedMeal(
     meal,
     entries,
     timeZone,
     fallbackTimes[meal.id] ?? fallbackMealTime(meal),
-    mealStartTimes[mealStartStorageKey(meal)] ?? mealStartTimes[meal.id],
   ))
   const recorded = timed.filter((item) => item.recorded)
   const byDate = new Map<string, TimedMeal[]>()
@@ -606,10 +556,8 @@ export function analyzeMealTiming({
     sessions,
     meals,
     timeZone,
-    recoveryNutrition,
-    mealStartTimes,
   })
-  const recordedRecovery = postWorkoutRelations.filter((relation) => relation.source === 'recorded_start')
+  const recordedRecovery = postWorkoutRelations.filter((relation) => relation.source === 'recorded_finish')
   const recoveryGaps = recordedRecovery.flatMap((relation) => relation.gapMinutes == null ? [] : [relation.gapMinutes])
   const recoveryScores = recordedRecovery.flatMap((relation) => relation.timingScore == null ? [] : [relation.timingScore])
 

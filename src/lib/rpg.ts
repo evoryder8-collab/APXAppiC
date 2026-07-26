@@ -94,6 +94,7 @@ export type SynergyKind =
   | 'deficit_strength'
   | 'hydration_endurance'
   | 'mobility_after_legs'
+  | 'recovery_signal'
   | 'vo2_anchor'
   | 'import_feed'
   | 'deload_honored'
@@ -150,6 +151,8 @@ interface DayActivity {
   importEnduranceMin: number
   importMobilityMin: number
   vo2: number | null
+  recoveryScore: number | null
+  recoverySource: 'apple' | 'athlytic' | null
   streak: number
 }
 
@@ -179,7 +182,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         types: [], overrides: 0, overloadUpper: 0, overloadLower: 0,
         waterL: null, kcal: null, protein: null,
         importStrengthMin: 0, importEnduranceMin: 0, importMobilityMin: 0,
-        vo2: null, streak: 0,
+        vo2: null, recoveryScore: null, recoverySource: null, streak: 0,
       }
       activity.set(date, a)
     }
@@ -255,6 +258,13 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   }
   for (const m of data.health_metrics) {
     if (m.vo2max != null) getDay(m.date).vo2 = m.vo2max
+  }
+  for (const checkin of data.settings?.addons?.recovery_history ?? []) {
+    const score = checkin.source === 'apple' ? checkin.sleep_score : checkin.recovery_pct
+    if (score == null || !Number.isFinite(score)) continue
+    const day = getDay(checkin.date)
+    day.recoveryScore = Math.max(0, Math.min(100, score))
+    day.recoverySource = checkin.source
   }
 
   /* Streak per date (consecutive days with a completed APEX session) */
@@ -422,6 +432,25 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         ) {
           s.health += 1.4 * streakMult * headroom(s.health)
           healthFed = true
+        }
+        /* Recovery check-ins are a source-aware positive context signal.
+           Strong or normal mornings can feed a small amount of Health XP;
+           low values inform guidance but never punish the Avatar. */
+        if (a.recoveryScore != null && a.recoverySource != null) {
+          const strongThreshold = a.recoverySource === 'apple' ? 81 : 67
+          const normalThreshold = a.recoverySource === 'apple' ? 61 : 34
+          if (a.recoveryScore >= strongThreshold) {
+            s.health += 0.8 * headroom(s.health)
+            healthFed = true
+            synergies.push({
+              date,
+              kind: 'recovery_signal',
+              label: `${a.recoverySource === 'apple' ? 'Apple Sleep Score' : 'Athlytic Recovery'} ${Math.round(a.recoveryScore)} supported the planned training day`,
+            })
+          } else if (a.recoveryScore >= normalThreshold) {
+            s.health += 0.35 * headroom(s.health)
+            healthFed = true
+          }
         }
         fed.health = healthFed
 

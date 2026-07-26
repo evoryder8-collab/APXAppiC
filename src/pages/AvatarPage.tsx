@@ -19,6 +19,7 @@ import { CameraIcon } from '../components/Icons'
 import { AvatarPortraitHero } from '../components/avatar/AvatarPortraitHero'
 import { StrengthProgressPanel } from '../components/avatar/StrengthProgressPanel'
 import { MetabolicRhythmPanel } from '../components/avatar/MetabolicRhythmPanel'
+import { RecoveryTrendPanel } from '../components/avatar/RecoveryTrendPanel'
 
 const emerald = ACCENTS.emerald
 
@@ -164,6 +165,8 @@ export function AvatarPage() {
         <EngineCard synergies={synergies} />
 
         <MetabolicRhythmPanel />
+
+        <RecoveryTrendPanel />
 
         {/* What your body needs */}
         {advice.length > 0 && (
@@ -401,6 +404,7 @@ const SYNERGY_DOT: Record<SynergyKind, string> = {
   deficit_strength: 'linear-gradient(135deg, #dc2626, #f59e0b)',
   hydration_endurance: 'linear-gradient(135deg, #38bdf8, #a78bfa)',
   mobility_after_legs: 'linear-gradient(135deg, #0ea5e9, #34d399)',
+  recovery_signal: 'linear-gradient(135deg, #67e8f9, #c4b5fd)',
   vo2_anchor: 'linear-gradient(135deg, #7c3aed, #22d3ee)',
   import_feed: 'conic-gradient(from 0deg, #f59e0b, #8b5cf6, #10b981, #f59e0b)',
   deload_honored: 'linear-gradient(135deg, #0ea5e9, #7dd3fc)',

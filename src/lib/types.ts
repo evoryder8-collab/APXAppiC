@@ -258,6 +258,32 @@ export interface HealthMetric {
   resting_hr: number | null
 }
 
+export type RecoveryDataSource = 'apple' | 'athlytic'
+
+/* Source-tagged values are retained when the recovery source changes, so
+   trends never reinterpret an old Apple Sleep Score as Athlytic Recovery. */
+export interface RecoveryCheckin {
+  date: string
+  source: RecoveryDataSource
+  sleep_score: number | null
+  sleep_pct: number | null
+  recovery_pct: number | null
+  updated_at: string
+}
+
+/* Watch totals are context for recommending one existing whole-day activity
+   mode. They are not added to the calorie target and therefore cannot double
+   count a guided APEX workout. */
+export interface WatchActivityCheckin {
+  date: string
+  steps: number
+  active_calories: number
+  exercise_minutes: number
+  suggested_level: ActivityLevel
+  selected_level: ActivityLevel
+  updated_at: string
+}
+
 export type ImportedActivityKind = 'strength' | 'endurance' | 'mobility'
 
 export interface ImportedActivity {
@@ -326,15 +352,22 @@ export interface Settings {
       started_at: string
       updated_at: string
     }>
-    /* Actual eating starts are separate from LoggedMeal.logged_at, which is
-       the meal finish. Keeping both timestamps prevents the dayline from
-       treating the first bite as the end of digestion. */
+    /* Legacy eating-start records are retained for backwards-compatible
+       account reads. New timing UX records only LoggedMeal.logged_at, the
+       explicit meal-finished timestamp. */
     meal_start_times?: Record<string, {
       started_at: string
       updated_at: string
     }>
-    /* Long-press movement on the meal dayline snaps to this persistent step. */
+    /* Long-press movement of a meal-finished marker snaps to this step. */
     meal_timeline_snap_minutes?: 5 | 15 | 30 | 60
+    /* Physical spacing of the 24-hour nutrition Dayline. Medium is the
+       spacious default, while Long makes two-hour guidance bands especially
+       easy to inspect on a phone. */
+    meal_dayline_density?: 'compact' | 'medium' | 'long'
+    recovery_data_source?: RecoveryDataSource
+    recovery_history?: RecoveryCheckin[]
+    watch_activity_history?: WatchActivityCheckin[]
   }
 }
 

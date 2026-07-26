@@ -501,10 +501,18 @@ test('repeated foods increment preference history across items and pasted meals'
   assert.equal(first[0].usage_count, 2)
   assert.equal(first[0].slot_usage.breakfast, 2)
 
-  const second = foodPreferenceUsageUpdates(first, [item(0)], userId, 'lunch', '2026-07-17T12:00:00Z', () => 'unused')
+  const latestAmount = item(0, 75)
+  const second = foodPreferenceUsageUpdates(first, [latestAmount], userId, 'lunch', '2026-07-17T12:00:00Z', () => 'unused')
   assert.equal(second[0].usage_count, 3)
   assert.deepEqual(second[0].slot_usage, { breakfast: 2, lunch: 1 })
   assert.equal(second[0].id, 'preference')
+  assert.equal(second[0].usual_amount, 75, 'the visible quick-add amount follows the most recently confirmed amount')
+  assert.equal(second[0].usual_unit, 'g')
+  assert.deepEqual(beginFoodSelection(COMMON_FOODS[0], second[0]), {
+    food: COMMON_FOODS[0],
+    quantity: 75,
+    unit: 'g',
+  })
 })
 
 test('checked planned meals and an edited replacement reconcile into one consumed total', () => {

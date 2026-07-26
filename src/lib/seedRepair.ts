@@ -1,6 +1,6 @@
 import type { AppData } from './types'
 
-export const CURRENT_SEED_VERSION = 4
+export const CURRENT_SEED_VERSION = 5
 
 export type SeedDefinitionTable =
   | 'meals'
@@ -189,6 +189,90 @@ function upgradeV3Nutrition(
   }
 }
 
+function upgradeV5PersonalProtocol(
+  current: AppData,
+  seeded: AppData,
+): {
+  data: AppData
+  profileChanged: boolean
+  settingsChanged: boolean
+  supplementRows: AppData['supplements']
+} {
+  const persona = current.profile?.persona
+  if ((persona !== 'constantine' && persona !== 'june') || !current.profile || !seeded.profile) {
+    return { data: current, profileChanged: false, settingsChanged: false, supplementRows: [] }
+  }
+
+  const profile = persona === 'constantine'
+    ? {
+        ...current.profile,
+        weight_kg: 71,
+        body_fat_pct: 22.5,
+        height_cm: 177,
+        custom_bmr: 1680,
+        target_kcal: 2450,
+        target_protein_g: 150,
+        target_fat_g: 75,
+        target_carbs_g: 294,
+        profile_note: seeded.profile.profile_note,
+      }
+    : {
+        ...current.profile,
+        weight_kg: 41,
+        /* Extra active was June's previous seeded default. Preserve every
+           other explicitly selected mode while correcting that old default. */
+        activity_level: current.profile.activity_level === 'extra'
+          ? seeded.profile.activity_level
+          : current.profile.activity_level,
+        target_kcal: 2400,
+        target_protein_g: 85,
+        target_fat_g: 95,
+        target_carbs_g: 301,
+        profile_note: seeded.profile.profile_note,
+      }
+
+  const currentSettings = current.settings
+  const settings = currentSettings && seeded.settings
+    ? {
+        ...currentSettings,
+        addons: {
+          ...currentSettings.addons,
+          recovery_data_source: currentSettings.addons.recovery_data_source ?? 'apple',
+          recovery_history: currentSettings.addons.recovery_history ?? [],
+          watch_activity_history: currentSettings.addons.watch_activity_history ?? [],
+          meal_blocks: currentSettings.addons.meal_blocks ?? seeded.settings.addons.meal_blocks,
+        },
+      }
+    : currentSettings ?? seeded.settings
+
+  /* Update the requested protocol supplements in place so existing logs keep
+     their foreign keys. Custom supplements remain untouched. */
+  const seededByKey = new Map(
+    seeded.supplements.map((row) => [`${row.group_label}|${row.name}`.toLocaleLowerCase(), row]),
+  )
+  const currentKeys = new Set(
+    current.supplements.map((row) => `${row.group_label}|${row.name}`.toLocaleLowerCase()),
+  )
+  const mappedExisting = current.supplements.map((row) => {
+    const seededRow = seededByKey.get(`${row.group_label}|${row.name}`.toLocaleLowerCase())
+    return seededRow ? { ...seededRow, id: row.id, user_id: row.user_id } : row
+  })
+  const newRows = seeded.supplements.filter(
+    (row) => !currentKeys.has(`${row.group_label}|${row.name}`.toLocaleLowerCase()),
+  )
+  const supplements = [...mappedExisting, ...newRows]
+  const updatedRows = supplements.filter((row) =>
+    seededByKey.has(`${row.group_label}|${row.name}`.toLocaleLowerCase()),
+  )
+
+  return {
+    data: { ...current, profile, settings, supplements },
+    profileChanged: true,
+    settingsChanged: Boolean(settings),
+    supplementRows: updatedRows,
+  }
+}
+
 /* Seed completion is deliberately versioned. It repairs interrupted first
    syncs once, while preserving every row that already exists and avoiding
    the permanent re-creation of definitions a user may later remove. */
@@ -229,7 +313,12 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
     (current.profile?.persona === 'constantine' || current.profile?.persona === 'june')
       ? upgradeV3Nutrition(programmeWorking, seeded)
       : null
-  const working = upgradesNutrition?.data ?? programmeWorking
+  const nutritionWorking = upgradesNutrition?.data ?? programmeWorking
+  const upgradesPersonalProtocol =
+    currentVersion < 5
+      ? upgradeV5PersonalProtocol(nutritionWorking, seeded)
+      : { data: nutritionWorking, profileChanged: false, settingsChanged: false, supplementRows: [] }
+  const working = upgradesPersonalProtocol.data
 
   const mealRepair = reconcileRows(working.meals, seeded.meals, (row) => `${row.time}|${row.name}`)
   const supplementRepair = reconcileRows(
@@ -274,6 +363,9 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
           supplements: upgradesNutrition.rows.supplements,
         }
       : {}),
+    ...(upgradesPersonalProtocol.supplementRows.length > 0
+      ? { supplements: upgradesPersonalProtocol.supplementRows }
+      : {}),
     ...(upgradesV81Programme
       ? {
           programs: upgradesV81Programme.rows.programs,
@@ -300,6 +392,9 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
               target_carbs_g: seeded.profile.target_carbs_g,
             }
           : {}),
+        ...(upgradesPersonalProtocol.profileChanged && working.profile
+          ? working.profile
+          : {}),
         seed_version: CURRENT_SEED_VERSION,
       }
     : seeded.profile
@@ -307,11 +402,12 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
       : null
   const seededProtocol = seeded.settings?.addons.training_protocol
   const protocolWasAdded = !!seededProtocol && !current.settings?.addons.training_protocol
-  const settings = current.settings
+  const settingsBase = upgradesPersonalProtocol.settingsChanged ? working.settings : current.settings
+  const settings = settingsBase
     ? {
-        ...current.settings,
+        ...settingsBase,
         addons: {
-          ...current.settings.addons,
+          ...settingsBase.addons,
           ...(protocolWasAdded ? { training_protocol: seededProtocol } : {}),
         },
       }
@@ -329,8 +425,8 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
       exercises: [...working.exercises, ...genuinelyMissing.exercises],
     },
     needsRepair: true,
-    profileChanged: !current.profile || currentVersion !== CURRENT_SEED_VERSION,
-    settingsChanged: (!current.settings && !!settings) || protocolWasAdded,
+    profileChanged: !current.profile || currentVersion !== CURRENT_SEED_VERSION || upgradesPersonalProtocol.profileChanged,
+    settingsChanged: (!current.settings && !!settings) || protocolWasAdded || upgradesPersonalProtocol.settingsChanged,
     missing,
     removed: {
       meals: upgradesNutrition?.removedMeals ?? [],

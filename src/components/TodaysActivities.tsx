@@ -32,6 +32,7 @@ interface TodaysActivitiesProps {
   frequentPresets: ActivityPreset[]
   yesterdayBlocks: ActivityBlock[]
   onChange: (blocks: ActivityBlock[]) => void
+  onUseRecommendedLevel?: (level: ActivityLevel) => void
 }
 
 const GUIDE_LEVELS: Array<{
@@ -167,6 +168,7 @@ function ActivityEditor({
   block,
   profile,
   catalog,
+  recommendationOnly,
   onChange,
   onAdd,
 }: {
@@ -174,6 +176,7 @@ function ActivityEditor({
   block: ActivityBlock
   profile: Profile
   catalog: Map<string, ActivityType>
+  recommendationOnly: boolean
   onChange: (block: ActivityBlock) => void
   onAdd: () => void
 }) {
@@ -197,9 +200,9 @@ function ActivityEditor({
           </div>
           <div className="shrink-0 text-right">
             <motion.p key={kcal} initial={{ scale: 1.12, opacity: 0.6 }} animate={{ scale: 1, opacity: 1 }} className="font-mono text-xl font-bold" style={{ color: amber.deep }}>
-              +{kcal}
+              {recommendationOnly ? t('Context') : `+${kcal}`}
             </motion.p>
-            <p className="font-mono text-[8px] font-bold tracking-[0.14em] text-ink-faint uppercase">{t('NET KCAL')}</p>
+            <p className="font-mono text-[8px] font-bold tracking-[0.14em] text-ink-faint uppercase">{t(recommendationOnly ? 'WHOLE-DAY MODE' : 'NET KCAL')}</p>
           </div>
         </div>
 
@@ -312,6 +315,7 @@ export function TodaysActivities({
   frequentPresets,
   yesterdayBlocks,
   onChange,
+  onUseRecommendedLevel,
 }: TodaysActivitiesProps) {
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
@@ -325,8 +329,10 @@ export function TodaysActivities({
     [frequentPresets, profile],
   )
   const precise = blocks.length > 0
-  const displayTdee = precise ? estimate.tdee : quickTdee
-  const displayLevel = precise ? estimate.level : quickLevel
+  const recommendationOnly = profile.persona === 'constantine' || profile.persona === 'june'
+  const displayTdee = recommendationOnly ? quickTdee : precise ? estimate.tdee : quickTdee
+  const displayLevel = recommendationOnly ? quickLevel : precise ? estimate.level : quickLevel
+  const recommendedLevel = precise ? estimate.level : quickLevel
   const tone = PAL_TONES[displayLevel]
   const categoryTypes = availableTypes.filter((type) => type.category === category)
   const hasCoveredMovement = blocks.some((item) => {
@@ -389,11 +395,13 @@ export function TodaysActivities({
                   className="rounded-full px-2 py-0.5 font-mono text-[8px] font-bold tracking-[0.16em] uppercase"
                   style={precise ? { background: amber.gradient, color: '#fff' } : { background: 'rgba(26,26,34,.06)', color: '#74747f' }}
                 >
-                  {precise ? 'Precise' : 'Quick'}
+                  {recommendationOnly ? t('Mode guidance') : precise ? 'Precise' : 'Quick'}
                 </span>
               </div>
               <p className="mt-2 max-w-[14rem] text-[12px] leading-relaxed font-medium text-ink-soft">
-                Your baseline plus only the movement you log. No double counting.
+                {recommendationOnly
+                  ? t('Log the whole day as context. APEX recommends one existing activity mode and never adds the same workout twice.')
+                  : t('Your baseline plus only the movement you log. No double counting.')}
               </p>
             </div>
             <div className="shrink-0 text-right">
@@ -408,7 +416,9 @@ export function TodaysActivities({
               </motion.p>
               <p className="mt-1 font-mono text-[8px] font-bold tracking-[0.17em] text-ink-faint uppercase">estimated TDEE</p>
               <p className="mt-1 font-mono text-[10px] font-semibold" style={{ color: tone.deep }}>
-                {precise ? `+${estimate.adjustedBlockKcal} activity` : 'one-tap estimate'}
+                {recommendationOnly
+                  ? t('selected whole-day target')
+                  : precise ? `+${estimate.adjustedBlockKcal} ${t('activity')}` : t('one-tap estimate')}
               </p>
             </div>
           </div>
@@ -432,7 +442,9 @@ export function TodaysActivities({
                     </span>
                     <span>
                       <span className="block text-[11px] font-bold text-ink">{localizedPresetLabel}</span>
-                      <span className="block font-mono text-[8px] font-semibold text-ink-faint">+{kcal} {t('net kcal')}</span>
+                      <span className="block font-mono text-[8px] font-semibold text-ink-faint">
+                        {recommendationOnly ? t('mode context') : `+${kcal} ${t('net kcal')}`}
+                      </span>
                     </span>
                   </button>
                 )
@@ -485,8 +497,8 @@ export function TodaysActivities({
                         <div className="flex shrink-0 items-center gap-1.5">
                           <button type="button" onClick={() => updateBlock(changeAmount(block, -1, catalog))} aria-label={`Decrease ${type.name}`} className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink/5 font-mono text-sm font-bold text-ink-soft">−</button>
                           <div className="min-w-12 text-center">
-                            <p className="font-mono text-xs font-bold" style={{ color: amber.deep }}>+{kcal}</p>
-                            <p className="font-mono text-[7px] font-semibold text-ink-faint">KCAL</p>
+                            <p className="font-mono text-xs font-bold" style={{ color: amber.deep }}>{recommendationOnly ? t('Context') : `+${kcal}`}</p>
+                            <p className="font-mono text-[7px] font-semibold text-ink-faint">{recommendationOnly ? t('MODE') : 'KCAL'}</p>
                           </div>
                           <button type="button" onClick={() => updateBlock(changeAmount(block, 1, catalog))} aria-label={`Increase ${type.name}`} className="flex h-7 w-7 items-center justify-center rounded-lg bg-ink/5 font-mono text-sm font-bold text-ink-soft">+</button>
                           <button type="button" onClick={() => removeBlock(block.id)} aria-label={`Remove ${type.name}`} className="ml-0.5 flex h-7 w-7 items-center justify-center rounded-lg text-sm font-bold text-ink-faint">×</button>
@@ -522,18 +534,18 @@ export function TodaysActivities({
 
           <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-2xl border border-ink/5 bg-white/38 px-3 py-2.5 text-center">
             <div>
-              <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">Floor</p>
-              <p className="font-mono text-sm font-bold text-ink">{estimate.floorKcal}</p>
+              <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">{recommendationOnly ? t('Selected') : 'Floor'}</p>
+              <p className="font-mono text-sm font-bold text-ink">{recommendationOnly ? t(PAL_LABELS[quickLevel]) : estimate.floorKcal}</p>
             </div>
-            <span className="font-mono text-sm text-ink-faint">+</span>
+            <span className="font-mono text-sm text-ink-faint">{recommendationOnly ? '→' : '+'}</span>
             <div>
-              <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">Blocks</p>
-              <p className="font-mono text-sm font-bold text-ink">{precise ? estimate.adjustedBlockKcal : 'Quick'}</p>
+              <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">{recommendationOnly ? t('Context') : 'Blocks'}</p>
+              <p className="font-mono text-sm font-bold text-ink">{recommendationOnly ? blocks.length : precise ? estimate.adjustedBlockKcal : 'Quick'}</p>
             </div>
-            <span className="font-mono text-sm text-ink-faint">=</span>
+            <span className="font-mono text-sm text-ink-faint">{recommendationOnly ? '→' : '='}</span>
             <div>
-              <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">Today</p>
-              <p className="font-mono text-sm font-bold" style={{ color: tone.deep }}>{displayTdee}</p>
+              <p className="font-mono text-[8px] font-bold tracking-wider text-ink-faint uppercase">{recommendationOnly ? t('Suggested') : 'Today'}</p>
+              <p className="font-mono text-sm font-bold" style={{ color: tone.deep }}>{recommendationOnly ? t(PAL_LABELS[recommendedLevel]) : displayTdee}</p>
             </div>
           </div>
 
@@ -544,13 +556,19 @@ export function TodaysActivities({
           >
             <div className="min-w-0">
               <p className="font-mono text-[8px] font-bold tracking-[0.16em] uppercase" style={{ color: tone.deep }}>
-                {precise ? `Computes to PAL ${estimate.pal.toFixed(2)}` : 'Current one-tap selection'}
+                {recommendationOnly
+                  ? t('Whole-day mode, never added calories')
+                  : precise ? `Computes to PAL ${estimate.pal.toFixed(2)}` : 'Current one-tap selection'}
               </p>
               <p className="mt-0.5 truncate text-[13px] font-bold text-ink">
-                {PAL_LABELS[displayLevel].toUpperCase()} <span className="font-medium text-ink-soft">· {displayTdee.toLocaleString()} kcal day</span>
+                {t(PAL_LABELS[recommendationOnly ? recommendedLevel : displayLevel]).toUpperCase()} <span className="font-medium text-ink-soft">· {recommendationOnly ? t('suggestion') : `${displayTdee.toLocaleString()} kcal day`}</span>
               </p>
             </div>
-            {precise && (
+            {recommendationOnly && precise && recommendedLevel !== quickLevel && onUseRecommendedLevel ? (
+              <button type="button" onClick={() => onUseRecommendedLevel(recommendedLevel)} className="shrink-0 rounded-full bg-white/75 px-3 py-1.5 text-[9px] font-bold text-amber-800 shadow-sm">
+                {t('Use this mode')}
+              </button>
+            ) : precise && (
               <button type="button" onClick={() => onChange([])} className="shrink-0 rounded-full bg-white/65 px-3 py-1.5 text-[9px] font-bold text-ink-soft shadow-sm">
                 Clear day
               </button>
@@ -563,7 +581,7 @@ export function TodaysActivities({
             </p>
           )}
 
-          {precise && estimate.safetyClamped && (
+          {precise && !recommendationOnly && estimate.safetyClamped && (
             <p className="mt-2 rounded-xl bg-amber-50/70 px-3 py-2 text-[10px] leading-relaxed font-medium text-amber-800">
               Your goal adjustment reached the recovery floor, so APEX held calories at BMR × 1.05 instead of cutting lower.
             </p>
@@ -627,11 +645,11 @@ export function TodaysActivities({
                     <span className="mt-0.5 block truncate text-[10px] font-medium text-ink-soft">{t(type.notes)}</span>
                   </span>
                   <span className="shrink-0 text-right">
-                    <span className="block font-mono text-xs font-bold" style={{ color: amber.deep }}>{kcal > 0 ? `+${kcal}` : t('FLOOR')}</span>
-                    <span className="block font-mono text-[7px] font-semibold tracking-wide text-ink-faint">{t(kcal > 0 ? 'NET KCAL' : 'COVERED')}</span>
+                    <span className="block font-mono text-xs font-bold" style={{ color: amber.deep }}>{recommendationOnly ? t('Context') : kcal > 0 ? `+${kcal}` : t('FLOOR')}</span>
+                    <span className="block font-mono text-[7px] font-semibold tracking-wide text-ink-faint">{t(recommendationOnly ? 'WHOLE-DAY MODE' : kcal > 0 ? 'NET KCAL' : 'COVERED')}</span>
                   </span>
                 </button>
-                {selected && draft && <ActivityEditor type={type} block={draft} profile={profile} catalog={catalog} onChange={setDraft} onAdd={addDraft} />}
+                {selected && draft && <ActivityEditor type={type} block={draft} profile={profile} catalog={catalog} recommendationOnly={recommendationOnly} onChange={setDraft} onAdd={addDraft} />}
               </div>
             )
           })}

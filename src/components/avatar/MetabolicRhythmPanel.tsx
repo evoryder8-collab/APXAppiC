@@ -20,7 +20,7 @@ const COPY = {
     average: 'Average meal-to-training gap',
     recovery: 'Post-workout timing',
     recoveryAverage: 'Average workout-to-food gap',
-    exactStarts: 'Exact recovery starts',
+    exactStarts: 'Recovery meal finishes',
     meals: 'recorded meals',
     meal: 'recorded meal',
     dayUnit: 'D',
@@ -42,7 +42,7 @@ const COPY = {
     average: 'Interval mediu masă-antrenament',
     recovery: 'Timing după antrenament',
     recoveryAverage: 'Interval mediu antrenament-masă',
-    exactStarts: 'Începuturi exacte',
+    exactStarts: 'Finaluri ale meselor de recuperare',
     meals: 'mese înregistrate',
     meal: 'masă înregistrată',
     dayUnit: 'Z',
@@ -64,7 +64,7 @@ const COPY = {
     average: 'ช่วงเฉลี่ยจากมื้ออาหารถึงการฝึก',
     recovery: 'เวลาหลังฝึก',
     recoveryAverage: 'ช่วงเฉลี่ยจากฝึกถึงกิน',
-    exactStarts: 'เวลาเริ่มกินที่บันทึกจริง',
+    exactStarts: 'เวลากินมื้อฟื้นตัวเสร็จ',
     meals: 'มื้อที่บันทึกเวลา',
     meal: 'มื้อที่บันทึกเวลา',
     dayUnit: 'วัน',
@@ -99,9 +99,7 @@ export function MetabolicRhythmPanel() {
     entries,
     sessions,
     timeZone,
-    recoveryNutrition: data.settings?.addons.recovery_nutrition,
-    mealStartTimes: data.settings?.addons.meal_start_times,
-  }), [data.settings?.addons.meal_start_times, data.settings?.addons.recovery_nutrition, entries, meals, sessions, timeZone])
+  }), [entries, meals, sessions, timeZone])
   const score = analysis.rhythmScore
   const readyShare = analysis.workoutsWithContext
     ? Math.round((analysis.readyStarts / analysis.workoutsWithContext) * 100)

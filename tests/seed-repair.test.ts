@@ -15,7 +15,7 @@ test('Constantine seed ids stay deterministic across repeated builds', () => {
   assert.deepEqual(first.exercises.map((row) => row.id), second.exercises.map((row) => row.id))
 })
 
-test('Nutrition V3 installs the PDF targets, empty meal canvas and evidence-limited supplement modules', () => {
+test('personal protocol seed installs exact defaults, empty meal canvas and evidence-limited supplement modules', () => {
   const constantine = buildSeedData(userId, 'constantine')
   const june = buildSeedData(userId, 'june')
 
@@ -26,7 +26,7 @@ test('Nutrition V3 installs the PDF targets, empty meal canvas and evidence-limi
       fat: constantine.profile?.target_fat_g,
       carbs: constantine.profile?.target_carbs_g,
     },
-    { kcal: 2450, protein: 148, fat: 82, carbs: 280 },
+    { kcal: 2450, protein: 150, fat: 75, carbs: 294 },
   )
   assert.deepEqual(
     {
@@ -52,6 +52,7 @@ test('Nutrition V3 installs the PDF targets, empty meal canvas and evidence-limi
     'Creatine monohydrate',
     'Iodised salt',
     'Whey isolate',
+    'Casein',
     'Cluster Dextrin',
     'Electrolytes',
   ])
@@ -141,6 +142,76 @@ test('V3 nutrition upgrade clears prescriptions and installs only the PDF supple
     assert.equal(repair.data.profile?.target_fat_g, seeded.profile.target_fat_g)
     assert.equal(repair.data.profile?.target_carbs_g, seeded.profile.target_carbs_g)
   }
+})
+
+test('V5 protocol repair corrects defaults without deleting logged meals or custom activity choices', () => {
+  const seededJune = buildSeedData(userId, 'june')
+  assert.ok(seededJune.profile)
+  assert.ok(seededJune.settings)
+  const legacySupplements = seededJune.supplements
+    .filter((row) => row.name !== 'Casein')
+    .map((row, index) => ({
+      ...row,
+      id: `10000000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`,
+      sort_order: index,
+      dose: row.name === 'Cluster Dextrin' ? 'Legacy dose' : row.dose,
+    }))
+  const customMeal = {
+    id: '20000000-0000-4000-8000-000000000001',
+    user_id: userId,
+    time: '10:45',
+    name: 'User meal',
+    foods: 'User food',
+    kcal: 410,
+    protein_g: 25,
+    fat_g: 14,
+    carbs_g: 45,
+    full_days_only: false,
+    sort_order: 0,
+  }
+  const current = {
+    ...seededJune,
+    profile: {
+      ...seededJune.profile,
+      seed_version: 4,
+      weight_kg: 41.5,
+      activity_level: 'very' as const,
+    },
+    settings: {
+      ...seededJune.settings,
+      addons: {
+        ...seededJune.settings.addons,
+        recovery_data_source: undefined,
+        recovery_history: undefined,
+        watch_activity_history: undefined,
+      },
+    },
+    meals: [customMeal],
+    supplements: legacySupplements,
+  }
+
+  const repair = repairSeedDefinitions(current, seededJune)
+  assert.equal(repair.data.profile?.weight_kg, 41)
+  assert.equal(repair.data.profile?.activity_level, 'very')
+  assert.equal(repair.data.profile?.seed_version, CURRENT_SEED_VERSION)
+  assert.deepEqual(repair.data.meals, [customMeal])
+  assert.equal(repair.data.settings?.addons.recovery_data_source, 'apple')
+  assert.deepEqual(repair.data.settings?.addons.recovery_history, [])
+  assert.deepEqual(repair.data.settings?.addons.watch_activity_history, [])
+  assert.equal(repair.data.supplements.filter((row) => row.name === 'Casein').length, 1)
+  assert.equal(
+    repair.data.supplements.find((row) => row.name === 'Cluster Dextrin')?.id,
+    legacySupplements.find((row) => row.name === 'Cluster Dextrin')?.id,
+  )
+  assert.notEqual(repair.data.supplements.find((row) => row.name === 'Cluster Dextrin')?.dose, 'Legacy dose')
+  assert.equal(repair.settingsChanged, true)
+  assert.equal(repair.profileChanged, true)
+
+  const oldSeedDefault = {
+    ...current,
+    profile: { ...current.profile, activity_level: 'extra' as const },
+  }
+  assert.equal(repairSeedDefinitions(oldSeedDefault, seededJune).data.profile?.activity_level, 'moderate')
 })
 
 test('completed seed versions do not recreate intentionally removed definitions', () => {

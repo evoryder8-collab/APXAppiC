@@ -84,6 +84,7 @@ export function MealComposer({
   const [saving, setSaving] = useState(false)
   const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
   const [addingSelection, setAddingSelection] = useState(false)
+  const [quickAddingFoodId, setQuickAddingFoodId] = useState<string | null>(null)
   const [controlHelp, setControlHelp] = useState<{ itemId: string; kind: 'adaptive' | 'lock' | 'role' } | null>(null)
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
 
@@ -125,6 +126,20 @@ export function MealComposer({
     [selection],
   )
   const selectionReady = Boolean(selection && selection.quantity > 0 && selectionPortion)
+  const describeSelectionAmount = (draft: FoodSelectionDraft): string => {
+    const number = new Intl.NumberFormat(language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en', {
+      maximumFractionDigits: 2,
+    }).format(draft.quantity)
+    const translatedUnit = t(draft.unit)
+    if (draft.unit === 'g' || draft.unit === 'ml') return `${number} ${translatedUnit}`
+    const portion = calculatePortion(draft.food, draft.quantity, draft.unit)
+    const basisUnit = draft.food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'
+    if (!portion) return `${number} ${translatedUnit}`
+    const equivalent = new Intl.NumberFormat(language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en', {
+      maximumFractionDigits: 1,
+    }).format(portion.equivalent_amount)
+    return `${number} ${translatedUnit} (${equivalent} ${t(basisUnit)})`
+  }
   const slotPresets = useMemo(() => {
     const historicalOrder = new Map(historyStarts.presets.map((preset, index) => [preset.id, index]))
     return store.presets.filter((preset) => {
@@ -267,6 +282,29 @@ export function MealComposer({
     setMessage('This result is incomplete. Review all per-100 g values before saving it privately.')
   }
 
+  const quickAddFood = async (food: FoodRecord) => {
+    if (!isFoodNutritionComplete(food)) {
+      await selectFood(food)
+      return
+    }
+    const preference = store.preferences.find((value) => value.food_id === food.id)
+    const draft = beginFoodSelection(food, preference)
+    if (!calculatePortion(food, draft.quantity, draft.unit)) {
+      openFoodSelection(food)
+      return
+    }
+    setQuickAddingFoodId(food.id)
+    setMessage(null)
+    try {
+      const trackableFood = await materializeFood(food)
+      setItems((current) => commitFoodSelection(current, { ...draft, food: trackableFood }))
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : 'This food could not be added. Please try again.')
+    } finally {
+      setQuickAddingFoodId((current) => current === food.id ? null : current)
+    }
+  }
+
   const createManual = async () => {
     const values = [manual.kcal, manual.protein, manual.carbs, manual.fat].map(parseDecimalInput)
     if (!manual.name.trim() || values.some((value) => value == null || value < 0)) {
@@ -385,18 +423,19 @@ export function MealComposer({
                 value={query}
                 onChange={(event) => { setQuery(event.target.value); setRemoteResults([]) }}
                 onKeyDown={(event) => event.key === 'Enter' && void searchWider()}
-                placeholder="Search foods, aliases or brands"
-                className="min-w-0 flex-1 rounded-2xl bg-white/70 px-4 py-3 text-sm font-semibold text-ink outline-none"
+                placeholder={t('Search foods, aliases or brands')}
+                aria-label={t('Search foods, aliases or brands')}
+                className="min-w-0 flex-1 rounded-2xl border border-white/90 bg-white/78 px-4 py-3 text-base font-semibold text-ink shadow-[0_10px_28px_-24px_rgba(15,23,42,.55)] outline-none ring-amber-400/35 placeholder:font-medium placeholder:text-ink-faint focus:ring-2"
               />
               <button
                 type="button"
                 onClick={() => setScanner(true)}
                 className="flex h-[3.25rem] w-[4.25rem] shrink-0 flex-col items-center justify-center rounded-2xl text-white shadow-lg transition active:scale-95"
                 style={{ background: amber.gradient, boxShadow: `0 10px 24px -10px ${amber.glowStrong}` }}
-                aria-label="Scan a food barcode"
+                aria-label={t('Scan a food barcode')}
               >
                 <BarcodeIcon className="h-[18px] w-8" />
-                <span className="mt-1 font-mono text-[7px] font-bold tracking-[0.16em] uppercase">Scan</span>
+                <span className="mt-1 font-mono text-[7px] font-bold tracking-[0.16em] uppercase">{t('Scan')}</span>
               </button>
             </div>
             <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
@@ -404,19 +443,64 @@ export function MealComposer({
                 const food = store.foods.find((value) => value.id === preference.food_id)
                 return food ? <button key={food.id} type="button" onClick={() => void selectFood(food)} className="shrink-0 rounded-full bg-amber-500/10 px-3 py-1.5 text-xs font-bold text-amber-700">★ {preference.personal_name || food.name}</button> : null
               })}
-              <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">+ Private food</button>
+              <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">{t('+ Private food')}</button>
             </div>
             {(displayedFoods.length > 0 || remoteResults.length > 0) && (
-              <div className="mt-3 max-h-72 space-y-1 overflow-y-auto">
-                {!query.trim() && <p className="px-3 pb-1 text-[9px] font-black tracking-[0.14em] text-ink-faint uppercase">{t('Recent for this meal')}</p>}
-                {displayedFoods.map((food) => (
-                  <button key={food.id} type="button" onClick={() => void selectFood(food)} className="flex w-full items-center justify-between rounded-xl px-3 py-2 text-left hover:bg-white/75">
-                    <span><span className="block text-sm font-bold text-ink">{displayFoodName(food, language)}</span><span className="text-[10px] font-medium text-ink-faint">{food.brand || translateInterfaceText(food.preparation_state.replace('_', ' '), language)} · {food.kcal_100 ?? '?'} kcal / 100</span></span>
-                    <span className="rounded-full bg-amber-500/10 px-2 py-1 text-[9px] font-black tracking-wide text-amber-700 uppercase">{t('Configure')}</span>
-                  </button>
-                ))}
+              <div className="mt-4 max-h-[min(32rem,52dvh)] space-y-2 overflow-y-auto pr-1">
+                <div className="flex items-center justify-between gap-3 px-1 pb-1">
+                  <p className="text-[10px] font-black tracking-[0.14em] text-ink-faint uppercase">
+                    {t(query.trim() ? 'Food results' : 'Recent & frequent')}
+                  </p>
+                  <p className="text-[10px] font-semibold text-ink-faint">{t('Tap a food to change its amount')}</p>
+                </div>
+                {displayedFoods.map((food) => {
+                  const preference = store.preferences.find((value) => value.food_id === food.id)
+                  const quickSelection = beginFoodSelection(food, preference)
+                  const quickPortion = calculatePortion(food, quickSelection.quantity, quickSelection.unit)
+                  const hasSavedAmount = Boolean(
+                    preference?.usage_count
+                    && preference.usual_amount != null
+                    && preference.usual_unit != null,
+                  )
+                  const quickAdding = quickAddingFoodId === food.id
+                  return (
+                    <div
+                      key={food.id}
+                      className="group flex min-h-[5.5rem] items-stretch overflow-hidden rounded-2xl border border-white/90 bg-white/76 shadow-[0_12px_30px_-25px_rgba(15,23,42,.65)] transition hover:border-amber-300/45 hover:bg-white/90"
+                    >
+                      <button
+                        type="button"
+                        onClick={() => void selectFood(food)}
+                        className="min-w-0 flex-1 px-4 py-3 text-left outline-none ring-inset ring-amber-400/30 focus-visible:ring-2"
+                        aria-label={`${t('Configure amount')} · ${displayFoodName(food, language)}`}
+                      >
+                        <span className="block truncate font-display text-[1.05rem] leading-tight font-bold text-ink">
+                          {displayFoodName(food, language)}
+                        </span>
+                        <span className="mt-1 block text-[13px] leading-snug font-bold text-ink-soft">
+                          {t(hasSavedAmount ? 'Last used' : 'Suggested portion')} · {describeSelectionAmount(quickSelection)}
+                          {quickPortion ? ` · ${quickPortion.kcal} ${t('kcal')}` : ''}
+                        </span>
+                        <span className="mt-1 block truncate text-[11px] leading-snug font-medium text-ink-faint">
+                          {food.brand || t(food.preparation_state.replace('_', ' '))}
+                        </span>
+                      </button>
+                      <div className="grid w-[4.75rem] shrink-0 place-items-center border-l border-ink/6 bg-amber-500/[0.035] px-2">
+                        <button
+                          type="button"
+                          disabled={quickAdding}
+                          onClick={() => void quickAddFood(food)}
+                          className="grid h-12 w-12 place-items-center rounded-full border-2 border-amber-500/45 bg-white font-display text-2xl leading-none font-bold text-amber-700 shadow-[0_8px_18px_-12px_rgba(217,119,6,.8)] transition hover:border-amber-500 hover:bg-amber-50 active:scale-90 disabled:opacity-50"
+                          aria-label={`${t('Quick add')} · ${displayFoodName(food, language)} · ${describeSelectionAmount(quickSelection)}`}
+                        >
+                          {quickAdding ? <span className="font-mono text-xs">•••</span> : '+'}
+                        </button>
+                      </div>
+                    </div>
+                  )
+                })}
                 {query.length >= 2 && (
-                  <button type="button" disabled={searching} onClick={() => void searchWider()} className="w-full rounded-xl border border-amber-500/20 px-3 py-2 text-xs font-bold text-amber-700">
+                  <button type="button" disabled={searching} onClick={() => void searchWider()} className="w-full rounded-2xl border border-amber-500/20 bg-amber-50/45 px-3 py-3 text-sm font-bold text-amber-800">
                     {translateInterfaceText(searching ? 'Searching more foods…' : 'Extend search', language)}
                   </button>
                 )}
@@ -455,14 +539,26 @@ export function MealComposer({
             </GlassCard>
           )}
 
-          <div className="space-y-2">
+          <div className="space-y-3">
+            {items.length > 0 && (
+              <div className="flex items-end justify-between gap-3 px-1">
+                <div>
+                  <p className="font-mono text-[10px] font-black tracking-[0.14em] text-amber-700 uppercase">{t('In this meal')}</p>
+                  <p className="mt-0.5 text-sm font-semibold text-ink-soft">{items.length} {t(items.length === 1 ? 'food' : 'foods')}</p>
+                </div>
+                <p className="font-mono text-xs font-bold text-ink-faint">{totals.kcal} {t('kcal')}</p>
+              </div>
+            )}
             {items.map((item, index) => {
               const portion = calculatePortion(item.food, item.quantity, item.unit)
               const units = availableFoodUnits(item.food)
               return (
                 <GlassCard key={item.id} accent={amber} className="p-4">
                   <div className="flex items-start justify-between gap-2">
-                    <div><h3 className="text-sm font-bold text-ink">{displayFoodName(item.food, language)}</h3><p className="text-[10px] text-ink-faint">{item.food.brand || translateInterfaceText(item.food.preparation_state.replace('_', ' '), language)}</p></div>
+                    <div className="min-w-0">
+                      <h3 className="truncate font-display text-lg leading-tight font-bold text-ink">{displayFoodName(item.food, language)}</h3>
+                      <p className="mt-1 truncate text-xs font-medium text-ink-faint">{item.food.brand || translateInterfaceText(item.food.preparation_state.replace('_', ' '), language)}</p>
+                    </div>
                     <div className="flex gap-1">
                       <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="rounded-lg bg-white/65 px-2 py-1 text-xs disabled:opacity-25">↑</button>
                       <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="rounded-lg bg-white/65 px-2 py-1 text-xs disabled:opacity-25">↓</button>
@@ -470,13 +566,13 @@ export function MealComposer({
                     </div>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
-                    <input aria-label={`Amount for ${item.food.name}`} inputMode="decimal" value={item.quantity} onChange={(event) => patchItem(item.id, { quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) })} className="w-28 rounded-xl bg-white/75 px-3 py-2 font-mono text-sm font-bold outline-none" />
-                    <select value={item.unit} onChange={(event) => patchItem(item.id, { unit: event.target.value as FoodUnit })} className="rounded-xl bg-white/75 px-3 py-2 text-sm font-bold">
+                    <input aria-label={`Amount for ${item.food.name}`} inputMode="decimal" value={item.quantity} onChange={(event) => patchItem(item.id, { quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) })} className="w-28 rounded-xl border border-white/90 bg-white/80 px-3 py-2.5 font-mono text-base font-bold outline-none" />
+                    <select value={item.unit} onChange={(event) => patchItem(item.id, { unit: event.target.value as FoodUnit })} className="rounded-xl border border-white/90 bg-white/80 px-3 py-2.5 text-base font-bold">
                       {units.map((unit) => <option key={unit} value={unit}>{unit}</option>)}
                     </select>
                     <button type="button" onClick={() => void store.setPreference(item.food.id, { favourite: !store.preferences.find((value) => value.food_id === item.food.id)?.favourite })} className="ml-auto text-xl" aria-label="Toggle favourite">{store.preferences.find((value) => value.food_id === item.food.id)?.favourite ? '★' : '☆'}</button>
                   </div>
-                  <div className="mt-2 flex gap-3 font-mono text-[10px] font-semibold text-ink-soft">
+                  <div className="mt-3 flex flex-wrap gap-x-4 gap-y-1 rounded-xl bg-white/45 px-3 py-2 font-mono text-[11px] font-bold text-ink-soft">
                     <span>{portion?.kcal ?? '?'} kcal</span><span>P {portion?.protein_g ?? '?'}</span><span>C {portion?.carbs_g ?? '?'}</span><span>F {portion?.fat_g ?? '?'}</span>
                   </div>
                   <div className="mt-3 flex flex-wrap items-center gap-2 text-[10px] font-semibold text-ink-soft">
@@ -569,19 +665,19 @@ export function MealComposer({
               role="dialog"
               aria-modal="true"
               aria-label={t('Configure food amount')}
-              className="w-full max-w-md rounded-[1.75rem] border border-white/85 bg-canvas/96 p-4 shadow-[0_32px_90px_-32px_rgba(15,23,42,.65)] backdrop-blur-2xl"
+              className="w-full max-w-lg rounded-[1.9rem] border border-white/90 bg-canvas/98 p-5 shadow-[0_32px_90px_-32px_rgba(15,23,42,.65)] backdrop-blur-2xl"
               onPointerDown={(event) => event.stopPropagation()}
             >
               <div className="flex items-start justify-between gap-4">
                 <div className="min-w-0">
-                  <p className="font-mono text-[9px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t('Configure amount')}</p>
-                  <h3 className="mt-1 font-display text-lg leading-tight font-bold text-ink">{displayFoodName(selection.food, language)}</h3>
-                  {selection.food.brand && <p className="mt-0.5 text-xs font-semibold text-ink-soft">{selection.food.brand}</p>}
+                  <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t('Configure amount')}</p>
+                  <h3 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{displayFoodName(selection.food, language)}</h3>
+                  {selection.food.brand && <p className="mt-1 text-sm font-semibold text-ink-soft">{selection.food.brand}</p>}
                 </div>
                 <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/75 text-lg font-bold text-ink-soft disabled:opacity-40" aria-label={t('Close')}>×</button>
               </div>
 
-              <div className="mt-4 rounded-2xl border border-white/80 bg-white/64 p-3">
+              <div className="mt-5 rounded-2xl border border-white/90 bg-white/72 p-3.5 shadow-[0_14px_36px_-30px_rgba(15,23,42,.7)]">
                 <div className="flex items-center justify-between gap-2">
                   <p className="text-[10px] font-black tracking-wide text-ink-faint uppercase">
                     {t('Nutrition per')} 100 {selection.food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'}
@@ -595,36 +691,36 @@ export function MealComposer({
                     [t('Carbs'), selection.food.carbs_100 == null ? t('N/A') : `${selection.food.carbs_100}g`],
                     [t('Fat'), selection.food.fat_100 == null ? t('N/A') : `${selection.food.fat_100}g`],
                   ] as const).map(([label, value]) => (
-                    <div key={label} className="min-w-0">
-                      <p className="truncate font-mono text-sm font-black text-ink">{value}</p>
-                      <p className="mt-0.5 truncate text-[8px] font-bold text-ink-faint uppercase">{label}</p>
+                    <div key={label} className="min-w-0 rounded-xl bg-canvas/72 px-1.5 py-2">
+                      <p className="truncate font-mono text-base font-black text-ink">{value}</p>
+                      <p className="mt-0.5 truncate text-[9px] font-bold text-ink-faint uppercase">{label}</p>
                     </div>
                   ))}
                 </div>
                 {selection.food.salt_100 != null && <p className="mt-2 text-right text-[9px] font-semibold text-ink-faint">{t('Salt')} {selection.food.salt_100}g</p>}
               </div>
 
-              <div className="mt-4 grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-2">
+              <div className="mt-5 grid grid-cols-[minmax(0,1fr)_minmax(0,1.2fr)] gap-3">
                 <label className="min-w-0">
-                  <span className="mb-1 block text-[9px] font-bold tracking-wide text-ink-faint uppercase">{t('Quantity')}</span>
+                  <span className="mb-1.5 block text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Quantity')}</span>
                   <input
                     autoFocus
                     inputMode="decimal"
                     value={selection.quantity}
                     onChange={(event) => setSelection((current) => current ? { ...current, quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) } : current)}
-                    className="w-full rounded-xl bg-white/80 px-3 py-2.5 font-mono text-base font-black text-ink outline-none ring-amber-400/40 focus:ring-2"
+                    className="w-full rounded-xl border border-white/90 bg-white/85 px-3 py-3 font-mono text-lg font-black text-ink outline-none ring-amber-400/40 focus:ring-2"
                     aria-label={t('Food quantity')}
                   />
                 </label>
                 <label className="min-w-0">
-                  <span className="mb-1 block text-[9px] font-bold tracking-wide text-ink-faint uppercase">{t('Serving type')}</span>
+                  <span className="mb-1.5 block text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Serving type')}</span>
                   <select
                     value={selection.unit}
                     onChange={(event) => {
                       const unit = event.target.value as FoodUnit
                       setSelection((current) => current ? { ...current, unit, quantity: unit === 'g' || unit === 'ml' ? 100 : 1 } : current)
                     }}
-                    className="w-full rounded-xl bg-white/80 px-3 py-2.5 text-sm font-bold text-ink outline-none ring-amber-400/40 focus:ring-2"
+                    className="w-full rounded-xl border border-white/90 bg-white/85 px-3 py-3 text-base font-bold text-ink outline-none ring-amber-400/40 focus:ring-2"
                   >
                     {availableFoodUnits(selection.food).map((unit) => {
                       const equivalent = unit === 'serving' ? selection.food.serving_grams_or_ml : unit === 'piece' ? selection.food.piece_grams_or_ml : null
@@ -634,23 +730,23 @@ export function MealComposer({
                 </label>
               </div>
 
-              <div className="mt-3 rounded-xl bg-amber-500/8 px-3 py-2">
-                <div className="flex flex-wrap items-center gap-x-3 gap-y-1 font-mono text-[10px] font-bold text-ink-soft">
+              <div className="mt-4 rounded-2xl border border-amber-400/10 bg-amber-500/8 px-4 py-3">
+                <div className="flex flex-wrap items-center gap-x-4 gap-y-1 font-mono text-xs font-bold text-ink-soft">
                   <span>{selectionPortion?.kcal ?? t('N/A')} kcal</span>
                   <span>P {selectionPortion?.protein_g ?? t('N/A')}g</span>
                   <span>C {selectionPortion?.carbs_g ?? t('N/A')}g</span>
                   <span>F {selectionPortion?.fat_g ?? t('N/A')}g</span>
                 </div>
-                <p className="mt-1 text-[9px] leading-relaxed font-medium text-ink-faint">{t(foodProvenanceLabel(selection.food))}</p>
+                <p className="mt-1.5 text-[10px] leading-relaxed font-medium text-ink-faint">{t(foodProvenanceLabel(selection.food))}</p>
               </div>
 
-              <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
-                <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="rounded-xl bg-white/75 px-4 py-3 text-xs font-bold text-ink-soft disabled:opacity-40">{t('Cancel')}</button>
+              <div className="mt-5 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="rounded-xl bg-white/80 px-4 py-3.5 text-sm font-bold text-ink-soft disabled:opacity-40">{t('Cancel')}</button>
                 <button
                   type="button"
                   disabled={addingSelection || !selectionReady}
                   onClick={() => void confirmFoodSelection()}
-                  className="rounded-xl px-4 py-3 text-sm font-black text-white shadow-[0_12px_28px_-14px_rgba(245,158,11,.95)] disabled:opacity-45"
+                  className="rounded-xl px-4 py-3.5 text-base font-black text-white shadow-[0_12px_28px_-14px_rgba(245,158,11,.95)] disabled:opacity-45"
                   style={{ background: amber.gradient }}
                 >
                   {t(addingSelection ? 'Adding…' : 'Add food')} · {selectionPortion?.kcal ?? 0} kcal

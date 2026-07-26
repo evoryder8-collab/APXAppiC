@@ -19,7 +19,7 @@ import {
 } from '../../lib/mealBlocks'
 import { useStore } from '../../store/AppStore'
 import { MEAL_ROW_REVEAL_PX, mealRowSwipeOffset } from '../../lib/mealExperience'
-import { mealStartStorageKey, normalizeMealTimelineSnap, timeZoneFromSettings } from '../../lib/mealTiming'
+import { normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings } from '../../lib/mealTiming'
 import { MealDayline, type MealDaylineSlot } from './MealDayline'
 
 const amber = ACCENTS.amber
@@ -347,32 +347,6 @@ export function ActualFoodTracker({
     })
   }
 
-  const saveRecoveryMealStart = async (sessionId: string, startedAt: string, mealId: string | null) => {
-    if (!data.settings) return
-    const current = data.settings.addons.recovery_nutrition ?? {}
-    const next = {
-      ...current,
-      [sessionId]: { meal_id: mealId, started_at: startedAt, updated_at: new Date().toISOString() },
-    }
-    const recentEntries = Object.entries(next)
-      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
-      .slice(0, 365)
-    setSettings({ addons: { ...data.settings.addons, recovery_nutrition: Object.fromEntries(recentEntries) } })
-  }
-
-  const saveMealStart = async (meal: LoggedMeal, startedAt: string) => {
-    if (!data.settings) return
-    const key = mealStartStorageKey(meal)
-    const next = {
-      ...(data.settings.addons.meal_start_times ?? {}),
-      [key]: { started_at: startedAt, updated_at: new Date().toISOString() },
-    }
-    const recentEntries = Object.entries(next)
-      .sort((left, right) => right[1].updated_at.localeCompare(left[1].updated_at))
-      .slice(0, 730)
-    setSettings({ addons: { ...data.settings.addons, meal_start_times: Object.fromEntries(recentEntries) } })
-  }
-
   const openRecoveryMeal = () => {
     const recovery = mealBlockStatuses.find((status) => status.block.kind === 'post_workout')
     if (recovery) {
@@ -393,19 +367,16 @@ export function ActualFoodTracker({
             meals={store.mealsForDate(date)}
             entries={store.entries}
             timeZone={timeZoneFromSettings(data.settings)}
+            density={normalizeMealDaylineDensity(data.settings?.addons.meal_dayline_density)}
             fallbackTimes={timelineFallbackTimes}
             slots={timelineSlots}
             sessions={data.workout_sessions}
-            recoveryNutrition={data.settings?.addons.recovery_nutrition}
-            mealStartTimes={data.settings?.addons.meal_start_times}
             snapMinutes={normalizeMealTimelineSnap(data.settings?.addons.meal_timeline_snap_minutes)}
             onMealFinishedAt={store.setMealFinishedAt}
-            onMealStartedAt={saveMealStart}
             onOpenMeal={openTimelineMeal}
             onOpenSlot={openTimelineSlot}
             onAddAtTime={openMealAtTime}
             onDeleteMeal={onDeleteLogged}
-            onRecoveryMealStarted={saveRecoveryMealStart}
             onOpenRecoveryMeal={openRecoveryMeal}
           />
         </div>

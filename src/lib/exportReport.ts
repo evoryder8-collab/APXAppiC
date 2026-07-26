@@ -3,7 +3,7 @@ import { format } from 'date-fns'
 import type { AppData, ProgramSlug } from './types'
 import { approachRamp } from './plan'
 import type { LoggedFoodEntry, LoggedMeal } from './food'
-import { analyzeMealTiming, fallbackMealTime, mealStartStorageKey, timedMeal, zonedClock } from './mealTiming'
+import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming'
 
 export interface MealTimingReportContext {
   meals: LoggedMeal[]
@@ -109,8 +109,6 @@ export function buildReport(
       entries,
       mealTiming.timeZone,
       mealTiming.fallbackTimes?.[meal.id] ?? fallbackMealTime(meal),
-      data.settings?.addons.meal_start_times?.[mealStartStorageKey(meal)]
-        ?? data.settings?.addons.meal_start_times?.[meal.id],
     ))
     const analysis = analyzeMealTiming({
       meals,
@@ -118,14 +116,11 @@ export function buildReport(
       sessions: data.workout_sessions.filter((session) => session.date >= fromIso && session.date <= toIso),
       timeZone: mealTiming.timeZone,
       fallbackTimes: mealTiming.fallbackTimes,
-      recoveryNutrition: data.settings?.addons.recovery_nutrition,
-      mealStartTimes: data.settings?.addons.meal_start_times,
     })
 
     lines.push('## Meal timing and pre-workout context')
     lines.push(`Timezone: ${mealTiming.timeZone}.`)
-    const exactStarts = timed.filter((item) => item.timingSource === 'recorded_start').length
-    lines.push(`Exact meal starts: ${exactStarts}. Meals with a recorded start or finish: ${analysis.recordedMeals}. Estimated times: ${analysis.estimatedMeals}.`)
+    lines.push(`Meal finishes recorded: ${analysis.recordedMeals}. Scheduled times without a recorded finish: ${analysis.estimatedMeals}.`)
     if (analysis.typicalVariationMinutes != null) {
       lines.push(`Typical within-slot timing variation: ${analysis.typicalVariationMinutes} minutes. Rhythm score: ${analysis.rhythmScore ?? '?'} / 100.`)
     }
@@ -152,19 +147,17 @@ export function buildReport(
     if (analysis.workoutRelations.length === 0) lines.push('- No workout start timestamps were available in this range.')
     lines.push('')
     lines.push('### Post-workout nutrition timing')
-    lines.push(`Completed workouts with timestamps: ${analysis.completedWorkouts}. Exact eating starts recorded: ${analysis.recoveryMealsRecorded}.`)
+    lines.push(`Completed workouts with timestamps: ${analysis.completedWorkouts}. Post-workout meal finishes recorded: ${analysis.recoveryMealsRecorded}.`)
     if (analysis.recoveryTimingScore != null) {
-      lines.push(`Average post-workout timing signal: ${analysis.recoveryTimingScore} / 100. Average workout-to-eating-start gap: ${analysis.averageRecoveryGapMinutes ?? '?'} minutes.`)
+      lines.push(`Average post-workout timing context: ${analysis.recoveryTimingScore} / 100. Average workout-to-meal-finish gap: ${analysis.averageRecoveryGapMinutes ?? '?'} minutes.`)
     }
     for (const relation of analysis.postWorkoutRelations) {
       const completed = zonedClock(relation.completedAt, mealTiming.timeZone).time
-      if (relation.source === 'recorded_start' && relation.mealStartedAt) {
-        const started = zonedClock(relation.mealStartedAt, mealTiming.timeZone).time
-        lines.push(`- ${relation.date}: workout ended ${completed}; eating started ${started}, ${relation.gapMinutes} minutes later; timing signal ${relation.timingScore} / 100${relation.mealName ? `; meal ${relation.mealName}` : ''}.`)
-      } else if (relation.source === 'inferred_finish') {
-        lines.push(`- ${relation.date}: workout ended ${completed}; ${relation.mealName ?? 'next meal'} finished ${relation.gapMinutes} minutes later. Eating start was not explicitly recorded.`)
+      if (relation.source === 'recorded_finish' && relation.mealFinishedAt) {
+        const finished = zonedClock(relation.mealFinishedAt, mealTiming.timeZone).time
+        lines.push(`- ${relation.date}: workout ended ${completed}; ${relation.mealName ?? 'next meal'} finished ${finished}, ${relation.gapMinutes} minutes later; timing context ${relation.timingScore} / 100.`)
       } else {
-        lines.push(`- ${relation.date}: workout ended ${completed}; no post-workout eating start was recorded.`)
+        lines.push(`- ${relation.date}: workout ended ${completed}; no post-workout meal finish was recorded.`)
       }
     }
     if (analysis.postWorkoutRelations.length === 0) lines.push('- No completed workout timestamps were available in this range.')

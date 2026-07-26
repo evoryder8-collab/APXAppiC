@@ -101,8 +101,12 @@ export function foodPreferenceUsageUpdates(
       personal_name: previous?.personal_name ?? null,
       aliases: previous?.aliases ?? [],
       favourite: previous?.favourite ?? false,
-      usual_amount: previous?.usual_amount ?? item.quantity,
-      usual_unit: previous?.usual_unit ?? item.unit,
+      /* "Usual" is the most recently confirmed amount, not the first amount
+         ever logged. MealComposer exposes this value beside recent/frequent
+         foods and its quick-add action must reproduce the amount the user
+         actually saw. */
+      usual_amount: item.quantity,
+      usual_unit: item.unit,
       usage_count: (previous?.usage_count ?? 0) + 1,
       last_used_at: now,
       hidden: previous?.hidden ?? false,

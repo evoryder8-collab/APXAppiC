@@ -10,7 +10,7 @@ import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { isTrainingInductionEligible } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
-import { MEAL_TIMELINE_SNAP_OPTIONS, normalizeMealTimelineSnap, supportedTimeZones, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
+import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, normalizeMealDaylineDensity, normalizeMealTimelineSnap, supportedTimeZones, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -94,22 +94,45 @@ export function Settings() {
   const mealSnapCopy = language === 'ro'
     ? {
         title: 'Pasul de mutare a meselor',
-        body: 'Ține apăsată o masă pe cronologie, apoi mut-o. Ora reală de început se aliniază la pasul ales și se sincronizează în cont.',
+        body: 'Ține apăsată o masă pe cronologie, apoi mut-o. Ora la care ai terminat masa se aliniază la pasul ales și se sincronizează în cont.',
         minute: 'min',
         hour: '1 oră',
       }
     : language === 'th'
       ? {
           title: 'ช่วงเวลาสำหรับเลื่อนมื้ออาหาร',
-          body: 'แตะมื้ออาหารบนไทม์ไลน์ค้างไว้แล้วเลื่อน เวลาเริ่มกินจริงจะยึดตามช่วงที่เลือกและซิงก์กับบัญชี',
+          body: 'แตะมื้ออาหารบนไทม์ไลน์ค้างไว้แล้วเลื่อน เวลากินมื้อเสร็จจะยึดตามช่วงที่เลือกและซิงก์กับบัญชี',
           minute: 'นาที',
           hour: '1 ชั่วโมง',
         }
       : {
           title: 'Meal movement step',
-          body: 'Hold a meal on the dayline, then move it. The actual eating start snaps to this step and syncs to your account.',
+          body: 'Hold a meal on the dayline, then move it. The meal-finished time snaps to this step and syncs to your account.',
           minute: 'min',
           hour: '1 hour',
+        }
+  const daylineDensityCopy = language === 'ro'
+    ? {
+        title: 'Spațierea cronologiei zilnice',
+        body: 'Alege cât spațiu vertical există între ore. Mediu este aerisit, iar Lung face ferestrele de două ore foarte ușor de urmărit.',
+        compact: 'Compact',
+        medium: 'Mediu',
+        long: 'Lung',
+      }
+    : language === 'th'
+      ? {
+          title: 'ระยะห่างของไทม์ไลน์รายวัน',
+          body: 'เลือกระยะห่างแนวตั้งระหว่างเวลา แบบกลางอ่านง่ายขึ้น และแบบยาวทำให้ช่วงสองชั่วโมงเห็นชัดมาก',
+          compact: 'กะทัดรัด',
+          medium: 'กลาง',
+          long: 'ยาว',
+        }
+      : {
+          title: 'Dayline spacing',
+          body: 'Choose the vertical space between hours. Medium is spacious, while Long makes two-hour guidance windows especially easy to follow.',
+          compact: 'Compact',
+          medium: 'Medium',
+          long: 'Long',
         }
   const starterCopy = language === 'ro'
     ? {
@@ -126,7 +149,33 @@ export function Settings() {
       : {
           title: 'I’m a newbie',
           body: 'Turn on the short induction in Transition and Main Phase. APEX will build a simple 12-week path around your training gap, pain, location and equipment.',
-          active: 'The induction is visible on your workout pages.',
+        active: 'The induction is visible on your workout pages.',
+      }
+  const recoverySourceCopy = language === 'ro'
+    ? {
+        title: 'Sursa datelor de recuperare',
+        body: 'Alege valorile pe care le copiezi dimineața. Istoricul vechi își păstrează sursa și nu este reinterpretat.',
+        apple: 'Apple',
+        appleBody: 'Un singur Scor de somn, 0-100. Este context de somn, nu HRV.',
+        athlytic: 'Athlytic',
+        athlyticBody: 'Somn și Recuperare, 0-100%. Recuperarea este valoarea principală de pregătire.',
+      }
+    : language === 'th'
+      ? {
+          title: 'แหล่งข้อมูลการฟื้นตัว',
+          body: 'เลือกค่าที่คุณกรอกตอนเช้า ประวัติเก่าจะเก็บแหล่งข้อมูลเดิมไว้และไม่ถูกตีความใหม่',
+          apple: 'Apple',
+          appleBody: 'กรอกคะแนนการนอน 0-100 เพียงค่าเดียว ใช้เป็นบริบทการนอน ไม่ใช่ HRV',
+          athlytic: 'Athlytic',
+          athlyticBody: 'กรอก Sleep และ Recovery 0-100% โดย Recovery เป็นค่าความพร้อมหลัก',
+        }
+      : {
+          title: 'Recovery data source',
+          body: 'Choose the values you copy each morning. Earlier history keeps its source and is never reinterpreted.',
+          apple: 'Apple',
+          appleBody: 'One Sleep Score from 0-100. It is sleep context, not HRV.',
+          athlytic: 'Athlytic',
+          athlyticBody: 'Sleep and Recovery from 0-100%. Recovery is the main readiness value.',
         }
 
   const commitCustomBmr = (): void => {
@@ -236,6 +285,27 @@ export function Settings() {
             </div>
 
             <div className="mt-3 rounded-2xl border border-cyan-100/90 bg-[linear-gradient(135deg,rgba(236,254,255,.78),rgba(255,255,255,.68))] p-3">
+              <p className={label}>{daylineDensityCopy.title}</p>
+              <p className={`${sub} mt-1 leading-relaxed`}>{daylineDensityCopy.body}</p>
+              <div className="mt-3 grid grid-cols-3 gap-1 rounded-xl bg-cyan-950/6 p-1" role="group" aria-label={daylineDensityCopy.title}>
+                {MEAL_DAYLINE_DENSITY_OPTIONS.map((density) => {
+                  const active = normalizeMealDaylineDensity(settings.addons.meal_dayline_density) === density
+                  return (
+                    <button
+                      key={density}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setSettings({ addons: { ...settings.addons, meal_dayline_density: density } })}
+                      className={`rounded-lg px-2 py-2 text-[10px] font-black transition ${active ? 'bg-white text-cyan-800 shadow-sm' : 'text-ink-soft'}`}
+                    >
+                      {daylineDensityCopy[density]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-cyan-100/90 bg-[linear-gradient(135deg,rgba(236,254,255,.78),rgba(255,255,255,.68))] p-3">
               <p className={label}>{mealSnapCopy.title}</p>
               <p className={`${sub} mt-1 leading-relaxed`}>{mealSnapCopy.body}</p>
               <div className="mt-3 grid grid-cols-4 gap-1 rounded-xl bg-cyan-950/6 p-1" role="group" aria-label={mealSnapCopy.title}>
@@ -322,6 +392,30 @@ export function Settings() {
             </div>
           </GlassCard>
         </div>
+
+        {(profile.persona === 'constantine' || profile.persona === 'june') && <div data-no-translate>
+          <GlassCard accent={violet} className="p-5">
+            <h2 className="font-display text-lg font-bold text-ink">{recoverySourceCopy.title}</h2>
+            <p className={`${sub} mt-1 leading-relaxed`}>{recoverySourceCopy.body}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-ink/5 p-1.5">
+              {(['apple', 'athlytic'] as const).map((source) => {
+                const active = (settings.addons.recovery_data_source ?? 'apple') === source
+                return (
+                  <button
+                    key={source}
+                    type="button"
+                    aria-pressed={active}
+                    onClick={() => setSettings({ addons: { ...settings.addons, recovery_data_source: source } })}
+                    className={`rounded-2xl px-3 py-3 text-left transition ${active ? 'bg-white shadow-sm ring-1 ring-violet-200' : 'text-ink-soft'}`}
+                  >
+                    <span className="block text-sm font-black">{source === 'apple' ? recoverySourceCopy.apple : recoverySourceCopy.athlytic}</span>
+                    <span className="mt-1 block text-[9px] font-semibold leading-relaxed">{source === 'apple' ? recoverySourceCopy.appleBody : recoverySourceCopy.athlyticBody}</span>
+                  </button>
+                )
+              })}
+            </div>
+          </GlassCard>
+        </div>}
 
         {isTrainingInductionEligible(profile.persona) && (
           <div data-no-translate>

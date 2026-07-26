@@ -393,9 +393,9 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
   if (persona === 'june') {
     return {
       id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'June', sex: 'female',
-      weight_kg: 41.5, body_fat_pct: 18, height_cm: 153, birthdate: '1983-06-19',
+      weight_kg: 41, body_fat_pct: 18, height_cm: 153, birthdate: '1983-06-19',
       custom_bmr: null,
-      activity_level: 'extra', goal: 'bulk', target_kcal: 2400, target_protein_g: 85,
+      activity_level: 'moderate', goal: 'bulk', target_kcal: 2400, target_protein_g: 85,
       target_fat_g: 95, target_carbs_g: 301, training_time: '19:00', baseline_date: today(),
       profile_note: 'Petite, highly muscular massage therapist. Body-fat percentage is a working estimate; protect energy availability and occupational recovery.',
       seed_version: CURRENT_SEED_VERSION,
@@ -430,7 +430,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
 function settingsFor(userId: string, persona: FriendPersona): Settings {
   return {
     user_id: userId, voice_on: true, ticks_on: true, notifications_on: false,
-    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: persona === 'june' ? { version: 81, start_date: today() } : undefined, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false },
+    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: persona === 'june' ? { version: 81, start_date: today() } : undefined, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false, recovery_data_source: 'apple', recovery_history: [], watch_activity_history: [], ...(persona === 'june' ? { meal_blocks: { blocks: [{ id: 'breakfast' as const, kind: 'breakfast' as const, time: '07:00', enabled: true }, { id: 'lunch' as const, kind: 'lunch' as const, time: '13:00', enabled: true }, { id: 'dinner' as const, kind: 'dinner' as const, time: '19:15', enabled: true }, { id: 'snack' as const, kind: 'snack' as const, time: '15:30', enabled: true }, { id: 'post_workout' as const, kind: 'post_workout' as const, time: '21:00', enabled: true }], custom_blocks: [], preset_assignments: {} } } : {}) },
   }
 }
 
@@ -471,7 +471,8 @@ function supplementsFor(userId: string, persona: FriendPersona): Supplement[] {
         ['Creatine monohydrate', '3 g', 'Daily core', '07:00', null],
         ['Iodised salt', 'Use across meals to taste', 'Daily core', '13:00', null],
         ['Whey isolate', 'Only as needed to close the daily protein gap', 'As needed', '15:30', null],
-        ['Cluster Dextrin', 'Only when food timing or session demand requires it', 'Optional training support', null, -15, true],
+        ['Casein', 'Normal evening: close the remaining protein gap. Heavy resistance evening: enough powder to provide 40–45 g actual protein.', 'As needed', '21:30', null],
+        ['Cluster Dextrin', '20–25 g in 5 g increments when workload or the remaining carbohydrate gap requires it', 'Optional training support', null, -15, true],
         ['Electrolytes', 'Only for heat, high sweat or unusually long sessions', 'Optional training support', null, -15, true],
       ]
     : [

@@ -21,6 +21,12 @@ import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 import { isConditioningFocusT25 } from '../lib/focusT25'
+import { useFoodStore } from '../store/FoodStore'
+import {
+  ATHLETE_SUPPORT_PROTOCOLS,
+  postWorkoutMealTargetFor,
+  powderGramsForProtein,
+} from '../lib/personalProtocol'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -474,6 +480,7 @@ export function Player() {
                 setGuardian={setGuardian}
                 guardianFactor={data.settings?.guardian_factor ?? 1.5}
                 summary={summary}
+                sessionDate={date}
                 onShowStats={() => setShowStats(true)}
                 onFinishExit={() => navigate(-1)}
               />
@@ -545,6 +552,7 @@ function BlockView(props: {
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
   summary: { quality: number; streak: number; deltas: string[]; sessionId: string; completedAt: string } | null
+  sessionDate: string
   onShowStats: () => void
   onFinishExit: () => void
 }) {
@@ -719,7 +727,7 @@ function BlockView(props: {
               </AccentChip>
             ))}
           </div>
-          <PostWorkoutRecoveryPrompt completedAt={props.summary.completedAt} />
+          <PostWorkoutRecoveryPrompt completedAt={props.summary.completedAt} date={props.sessionDate} />
         </>
       )}
       <div className="mt-6">
@@ -732,19 +740,43 @@ function BlockView(props: {
   )
 }
 
-function PostWorkoutRecoveryPrompt({ completedAt }: { completedAt: string }) {
+function PostWorkoutRecoveryPrompt({ completedAt, date }: { completedAt: string; date: string }) {
   const { language } = useLanguage()
+  const { data } = useStore()
+  const foodStore = useFoodStore()
   const [now, setNow] = useState(() => Date.now())
   useEffect(() => {
     const timer = window.setInterval(() => setNow(Date.now()), 30_000)
     return () => window.clearInterval(timer)
   }, [])
+  const persona = data.profile?.persona
+  const day = new Date(`${date}T12:00:00`)
+  const weekday = day.getDay() === 0 ? 7 : day.getDay()
+  const mealTarget = persona ? postWorkoutMealTargetFor(persona, weekday) : null
+  const protocol = persona ? ATHLETE_SUPPORT_PROTOCOLS[persona] : null
+  const whey = [...foodStore.foods]
+    .filter((food) => food.protein_100 != null && food.protein_100 > 0 && /whey|zer|เวย์/i.test(`${food.name} ${food.brand ?? ''} ${Object.values(food.names_i18n).join(' ')}`))
+    .sort((left, right) => Number(/leesport/i.test(`${right.name} ${right.brand ?? ''}`)) - Number(/leesport/i.test(`${left.name} ${left.brand ?? ''}`)))[0]
+  const quickProteinTarget = protocol
+    ? Math.round((protocol.clusterDextrin.proteinAndCarbProteinG[0] + protocol.clusterDextrin.proteinAndCarbProteinG[1]) / 2)
+    : null
+  const wheyPowderG = whey?.protein_100 != null && quickProteinTarget != null
+    ? powderGramsForProtein(whey.protein_100, quickProteinTarget)
+    : null
+  const hasSpecificMealTarget = Boolean(!mealTarget?.normalBalancedMeal && mealTarget?.proteinG && mealTarget.carbsG)
+  const hasProductLabelCorrection = Boolean(wheyPowderG && whey && quickProteinTarget)
   const text = language === 'ro'
     ? {
         eyebrow: 'RECUPERAREA A ÎNCEPUT',
         title: 'Reîncarcă fără grabă',
-        body: 'Țintește 20 până la 40 g de proteine de calitate în următoarele două ore. Adaugă carbohidrați după volumul antrenamentului și obiectivul zilei.',
-        fast: 'Rapid: whey isolate cu un carbohidrat ușor de digerat, precum cluster dextrin. Masă: carne, ouă, iaurt grecesc sau brânză cottage plus o sursă de carbohidrați.',
+        body: mealTarget?.normalBalancedMeal
+          ? 'Sesiunea de azi cere o masă normală și echilibrată. Urmează masa planificată.'
+          : hasSpecificMealTarget && mealTarget?.proteinG && mealTarget.carbsG
+            ? `Ținta mesei după sesiunea de azi: ${mealTarget.proteinG[0]}–${mealTarget.proteinG[1]} g proteine · ${mealTarget.carbsG[0]}–${mealTarget.carbsG[1]} g carbohidrați.`
+            : 'Țintește proteine de calitate și carbohidrați potriviți volumului antrenamentului în următoarele două ore.',
+        fast: hasProductLabelCorrection && wheyPowderG && whey && quickProteinTarget
+          ? `Corecție rapidă după eticheta produsului salvat: ${wheyPowderG} g ${whey.brand || whey.name} oferă aproximativ ${quickProteinTarget} g proteine. Adaugă cluster dextrin doar după deficitul rămas.`
+          : 'Rapid: whey isolate cu cluster dextrin când masa planificată este la peste două ore. Altfel, urmează masa planificată.',
         context: 'Dacă urmează alt antrenament greu în mai puțin de patru ore, prioritizează carbohidrații și hidratarea.',
         remaining: 'minute rămase în fereastra principală',
         passed: 'Fereastra de două ore a trecut. Totalul zilei rămâne cel mai important.',
@@ -754,8 +786,14 @@ function PostWorkoutRecoveryPrompt({ completedAt }: { completedAt: string }) {
       ? {
           eyebrow: 'เริ่มการฟื้นตัวแล้ว',
           title: 'เติมพลังโดยไม่ต้องรีบ',
-          body: 'รับโปรตีนคุณภาพ 20 ถึง 40 กรัมภายในสองชั่วโมง และเติมคาร์โบไฮเดรตตามปริมาณการฝึกและเป้าหมายวันนี้',
-          fast: 'แบบเร็ว: เวย์ไอโซเลตกับคาร์โบไฮเดรตที่ย่อยง่าย เช่น คลัสเตอร์เดกซ์ทริน แบบมื้อ: เนื้อ ไข่ กรีกโยเกิร์ต หรือคอตเทจชีส พร้อมแหล่งคาร์โบไฮเดรต',
+          body: mealTarget?.normalBalancedMeal
+            ? 'วันนี้ให้รับประทานมื้อสมดุลตามแผนตามปกติ'
+            : hasSpecificMealTarget && mealTarget?.proteinG && mealTarget.carbsG
+              ? `เป้าหมายมื้อหลังการฝึกวันนี้: โปรตีน ${mealTarget.proteinG[0]}–${mealTarget.proteinG[1]} กรัม · คาร์โบไฮเดรต ${mealTarget.carbsG[0]}–${mealTarget.carbsG[1]} กรัม`
+              : 'รับโปรตีนคุณภาพและคาร์โบไฮเดรตตามปริมาณการฝึกภายในสองชั่วโมง',
+          fast: hasProductLabelCorrection && wheyPowderG && whey && quickProteinTarget
+            ? `ตัวเลือกเร็วจากฉลากอาหารที่บันทึกไว้: ${wheyPowderG} กรัม ${whey.brand || whey.name} ให้โปรตีนประมาณ ${quickProteinTarget} กรัม เติมคลัสเตอร์เดกซ์ทรินตามส่วนที่ยังขาดเท่านั้น`
+            : 'ถ้ามื้อที่วางแผนไว้อีกเกินสองชั่วโมง ใช้เวย์ไอโซเลตกับคลัสเตอร์เดกซ์ทริน มิฉะนั้นให้กินมื้อที่วางแผนไว้',
           context: 'หากมีการฝึกหนักอีกครั้งภายในสี่ชั่วโมง ให้เน้นคาร์โบไฮเดรตและน้ำ',
           remaining: 'นาทีที่เหลือในช่วงสำคัญ',
           passed: 'ช่วงสองชั่วโมงผ่านไปแล้ว ปริมาณอาหารตลอดวันยังสำคัญที่สุด',
@@ -764,8 +802,14 @@ function PostWorkoutRecoveryPrompt({ completedAt }: { completedAt: string }) {
       : {
           eyebrow: 'RECOVERY STARTED',
           title: 'Refuel without rushing',
-          body: 'Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on training volume and today’s target.',
-          fast: 'Fast option: whey isolate with a familiar easy-to-digest carbohydrate such as cluster dextrin. Meal option: meat, eggs, Greek yoghurt or cottage cheese plus a carbohydrate source.',
+          body: mealTarget?.normalBalancedMeal
+            ? 'Today calls for a normal balanced meal. Follow the planned meal.'
+            : hasSpecificMealTarget && mealTarget?.proteinG && mealTarget.carbsG
+              ? `Today’s post-session meal target: ${mealTarget.proteinG[0]}–${mealTarget.proteinG[1]} g protein · ${mealTarget.carbsG[0]}–${mealTarget.carbsG[1]} g carbohydrate.`
+              : 'Aim for quality protein and carbohydrate matched to the session within two hours.',
+          fast: hasProductLabelCorrection && wheyPowderG && whey && quickProteinTarget
+            ? `Fast correction from the saved product label: ${wheyPowderG} g ${whey.brand || whey.name} provides about ${quickProteinTarget} g protein. Add cluster dextrin only for the remaining gap.`
+            : 'If the planned meal is more than two hours away, use whey isolate with cluster dextrin. Otherwise eat the planned meal.',
           context: 'If another hard session starts within four hours, prioritize carbohydrate and hydration.',
           remaining: 'minutes left in the high-value window',
           passed: 'The two-hour window has passed. The full day still matters most.',
