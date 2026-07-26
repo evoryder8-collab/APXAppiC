@@ -84,6 +84,10 @@ const LOCALIZED_NAMES: Record<string, { ro: string; th: string }> = {
   '10000000-0000-4000-8000-000000000078': { ro: 'Fasole verde crudă', th: 'ถั่วแขกดิบ' },
   '10000000-0000-4000-8000-000000000079': { ro: 'Migdale', th: 'อัลมอนด์' },
   '10000000-0000-4000-8000-000000000080': { ro: 'Semințe de chia', th: 'เมล็ดเจีย' },
+  '10000000-0000-4000-8000-000000000081': { ro: 'Ayran, băutură de iaurt', th: 'ไอรัน เครื่องดื่มโยเกิร์ต' },
+  '10000000-0000-4000-8000-000000000082': { ro: 'Ayran Milbona, pahar', th: 'ไอรัน Milbona แบบถ้วย' },
+  '10000000-0000-4000-8000-000000000083': { ro: 'Ayran Milsani, pahar', th: 'ไอรัน Milsani แบบถ้วย' },
+  '10000000-0000-4000-8000-000000000084': { ro: 'Ayran bio REWE, pahar', th: 'ไอรันออร์แกนิก REWE แบบถ้วย' },
 }
 
 interface FoodOptions {
@@ -227,6 +231,10 @@ const CORE_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000078', 'Green beans, raw', 'Grüne Bohnen, roh', 'Haricots verts, crus', 'Fagiolini, crudi', 31, 1.83, 6.97, 0.22, 'as_sold', { providerId: 'apex-curated:swiss-retail-green-beans-reference', fibre: 2.7, sugar: 3.26 }),
   food('10000000-0000-4000-8000-000000000079', 'Almonds', 'Mandeln', 'Amandes', 'Mandorle', 579, 21.15, 21.55, 49.93, 'as_sold', { providerId: 'apex-curated:swiss-retail-almonds-reference', fibre: 12.5, sugar: 4.35 }),
   food('10000000-0000-4000-8000-000000000080', 'Chia seeds', 'Chiasamen', 'Graines de chia', 'Semi di chia', 486, 16.54, 42.12, 30.74, 'as_sold', { providerId: 'apex-curated:swiss-retail-chia-seeds-reference', fibre: 34.4, sugar: 0 }),
+  food('10000000-0000-4000-8000-000000000081', 'Ayran yoghurt drink', 'Ayran Joghurtgetränk', 'Boisson au yaourt Ayran', 'Bevanda allo yogurt Ayran', 38, 2, 3.5, 1.8, 'as_sold', { providerId: 'apex-curated:ayran-yogurt-drink-reference', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 3.5, saturatedFat: 1.2, salt: 0.8 }),
+  food('10000000-0000-4000-8000-000000000082', 'Milbona Ayran, cup', 'Milbona Ayran, Becher', 'Ayran Milbona, gobelet', 'Ayran Milbona, bicchiere', 38, 2.4, 2.4, 1.9, 'as_sold', { brand: 'Milbona', providerId: 'apex-curated:lidl-milbona-ayran-cup-reference', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 2.4, saturatedFat: 1.2, salt: 0.7 }),
+  food('10000000-0000-4000-8000-000000000083', 'Milsani Ayran, cup', 'Milsani Ayran, Becher', 'Ayran Milsani, gobelet', 'Ayran Milsani, bicchiere', 38, 2, 3.5, 1.8, 'as_sold', { brand: 'Milsani', providerId: 'apex-curated:aldi-milsani-ayran-cup-reference', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 3.5, saturatedFat: 1.2, salt: 0.8 }),
+  food('10000000-0000-4000-8000-000000000084', 'REWE Bio Ayran, cup', 'REWE Bio Ayran, Becher', 'Ayran bio REWE, gobelet', 'Ayran bio REWE, bicchiere', 39, 2.1, 2.6, 2.2, 'as_sold', { brand: 'REWE Bio', providerId: 'apex-curated:rewe-bio-ayran-cup-label', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 2.6, saturatedFat: 1.6, salt: 0.7, confidence: 'provider_verified' }),
 ]
 
 /* Nutrition V3 uses a broad offline foundation instead of a tiny list of

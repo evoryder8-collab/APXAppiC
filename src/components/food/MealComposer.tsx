@@ -1,4 +1,4 @@
-import { lazy, Suspense, useMemo, useState } from 'react'
+import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
 import {
@@ -8,9 +8,11 @@ import {
   commitFoodSelection,
   composerItemFromSelection,
   displayFoodName,
+  expandFoodSearchQueries,
   isFoodNutritionComplete,
   mealTotals,
   mergeExtendedFoodResults,
+  normalizeFoodSearch,
   parseDecimalInput,
   rankFoods,
   type ComposerFoodItem,
@@ -96,6 +98,11 @@ export function MealComposer({
   const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
   const [addingSelection, setAddingSelection] = useState(false)
   const [quickAddingFoodId, setQuickAddingFoodId] = useState<string | null>(null)
+  const [quickAddedFoodId, setQuickAddedFoodId] = useState<string | null>(null)
+  const [quickAddedLabel, setQuickAddedLabel] = useState('')
+  const [completedSearchKey, setCompletedSearchKey] = useState('')
+  const remoteSearchCache = useRef(new Map<string, FoodRecord[]>())
+  const quickAddedTimer = useRef<number | null>(null)
   const [controlHelp, setControlHelp] = useState<{ itemId: string; kind: 'adaptive' | 'lock' | 'role' } | null>(null)
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
 
@@ -130,7 +137,11 @@ export function MealComposer({
       return true
     }).slice(0, 12)
   }, [historyStarts.foods, query, slot, store.foods, store.preferences])
-  const displayedFoods = useMemo(() => mergeExtendedFoodResults(query, ranked, remoteResults).slice(0, 30), [query, ranked, remoteResults])
+  const alternateQueries = useMemo(() => expandFoodSearchQueries(query, language), [language, query])
+  const displayedFoods = useMemo(
+    () => mergeExtendedFoodResults(query, ranked, remoteResults, alternateQueries).slice(0, 30),
+    [alternateQueries, query, ranked, remoteResults],
+  )
   const totals = useMemo(() => mealTotals(items), [items])
   const selectionPortion = useMemo(
     () => selection ? calculatePortion(selection.food, selection.quantity, selection.unit) : null,
@@ -161,6 +172,55 @@ export function MealComposer({
     }).sort((left, right) => (historicalOrder.get(left.id) ?? 999) - (historicalOrder.get(right.id) ?? 999) || right.updated_at.localeCompare(left.updated_at)).slice(0, 6)
   }, [historyStarts.presets, mealBlockId, mealBlockSettings.preset_assignments, slot, store.presets])
   const recentMeals = historyStarts.meals
+
+  useEffect(() => () => {
+    if (quickAddedTimer.current != null) window.clearTimeout(quickAddedTimer.current)
+  }, [])
+
+  useEffect(() => {
+    const trimmed = query.trim()
+    if (trimmed.length < 2) {
+      setRemoteResults([])
+      setSearching(false)
+      setCompletedSearchKey('')
+      return
+    }
+    const key = `${language}:${normalizeFoodSearch(trimmed)}`
+    const cached = remoteSearchCache.current.get(key)
+    if (cached) {
+      setRemoteResults(cached)
+      setSearching(false)
+      setCompletedSearchKey(key)
+      return
+    }
+
+    let active = true
+    setSearching(true)
+    setCompletedSearchKey('')
+    const timer = window.setTimeout(() => {
+      void store.widerSearch(trimmed, language)
+        .then((result) => {
+          if (!active) return
+          remoteSearchCache.current.set(key, result.results)
+          setRemoteResults(result.results)
+          setCompletedSearchKey(key)
+        })
+        .catch(() => {
+          if (!active) return
+          /* Provider failures never replace the useful offline catalog or
+             surface infrastructure errors to the person logging a meal. */
+          setRemoteResults([])
+          setCompletedSearchKey(key)
+        })
+        .finally(() => {
+          if (active) setSearching(false)
+        })
+    }, 420)
+    return () => {
+      active = false
+      window.clearTimeout(timer)
+    }
+  }, [language, query, store.widerSearch])
 
   const materializeFood = async (food: FoodRecord): Promise<FoodRecord> => {
     const needsPrivateCopy = food.id.startsWith('off:') || food.provider_product_id?.startsWith('apex-curated:')
@@ -232,21 +292,6 @@ export function MealComposer({
     })
   }
 
-  const searchWider = async () => {
-    if (query.trim().length < 2) return
-    setSearching(true)
-    setMessage(null)
-    try {
-      const result = await store.widerSearch(query.trim(), language)
-      setRemoteResults(result.results)
-      if (!result.results.length) setMessage(result.message ?? 'No additional matches. Your essential foods are still available above.')
-    } catch {
-      setMessage('Extended search is temporarily unavailable. Your essential foods are still available above.')
-    } finally {
-      setSearching(false)
-    }
-  }
-
   const lookupCode = async (barcode: string) => {
     setScanner(false)
     setSearching(true)
@@ -309,6 +354,13 @@ export function MealComposer({
     try {
       const trackableFood = await materializeFood(food)
       setItems((current) => commitFoodSelection(current, { ...draft, food: trackableFood }))
+      if (quickAddedTimer.current != null) window.clearTimeout(quickAddedTimer.current)
+      setQuickAddedFoodId(food.id)
+      setQuickAddedLabel(`${t('Added')} · ${displayFoodName(food, language)} · ${describeSelectionAmount(draft)}`)
+      quickAddedTimer.current = window.setTimeout(() => {
+        setQuickAddedFoodId((current) => current === food.id ? null : current)
+        setQuickAddedLabel('')
+      }, 1_300)
     } catch (error) {
       setMessage(error instanceof Error ? error.message : 'This food could not be added. Please try again.')
     } finally {
@@ -452,8 +504,11 @@ export function MealComposer({
               <input
                 autoFocus
                 value={query}
-                onChange={(event) => { setQuery(event.target.value); setRemoteResults([]) }}
-                onKeyDown={(event) => event.key === 'Enter' && void searchWider()}
+                onChange={(event) => {
+                  setQuery(event.target.value)
+                  setRemoteResults([])
+                  setCompletedSearchKey('')
+                }}
                 placeholder={t('Search foods, aliases or brands')}
                 aria-label={t('Search foods, aliases or brands')}
                 className="min-w-0 flex-1 rounded-2xl border border-white/90 bg-white/78 px-4 py-3 text-base font-semibold text-ink shadow-[0_10px_28px_-24px_rgba(15,23,42,.55)] outline-none ring-amber-400/35 placeholder:font-medium placeholder:text-ink-faint focus:ring-2"
@@ -476,13 +531,16 @@ export function MealComposer({
               })}
               <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">{t('+ Private food')}</button>
             </div>
-            {(displayedFoods.length > 0 || remoteResults.length > 0) && (
+            <p className="sr-only" aria-live="polite">{quickAddedLabel}</p>
+            {(displayedFoods.length > 0 || query.trim().length >= 2) && (
               <div className="mt-4 max-h-[min(32rem,52dvh)] space-y-2 overflow-y-auto pr-1">
                 <div className="flex items-center justify-between gap-3 px-1 pb-1">
                   <p className="text-[10px] font-black tracking-[0.14em] text-ink-faint uppercase">
                     {t(query.trim() ? 'Food results' : 'Recent & frequent')}
                   </p>
-                  <p className="text-[10px] font-semibold text-ink-faint">{t('Tap a food to change its amount')}</p>
+                  <p className="text-right text-[10px] font-semibold text-ink-faint">
+                    {searching ? t('Searching the full food catalog…') : t('Tap a food to change its amount')}
+                  </p>
                 </div>
                 {displayedFoods.map((food) => {
                   const preference = store.preferences.find((value) => value.food_id === food.id)
@@ -494,10 +552,12 @@ export function MealComposer({
                     && preference.usual_unit != null,
                   )
                   const quickAdding = quickAddingFoodId === food.id
+                  const quickAdded = quickAddedFoodId === food.id
                   return (
-                    <div
+                    <motion.div
                       key={food.id}
-                      className="group flex min-h-[5.5rem] items-stretch overflow-hidden rounded-2xl border border-white/90 bg-white/76 shadow-[0_12px_30px_-25px_rgba(15,23,42,.65)] transition hover:border-amber-300/45 hover:bg-white/90"
+                      animate={quickAdded ? { scale: [1, 0.985, 1.01, 1] } : { scale: 1 }}
+                      className={`group flex min-h-[5.5rem] items-stretch overflow-hidden rounded-2xl border bg-white/76 shadow-[0_12px_30px_-25px_rgba(15,23,42,.65)] transition hover:bg-white/90 ${quickAdded ? 'border-emerald-400/70 ring-2 ring-emerald-300/20' : 'border-white/90 hover:border-amber-300/45'}`}
                     >
                       <button
                         type="button"
@@ -505,8 +565,22 @@ export function MealComposer({
                         className="min-w-0 flex-1 px-4 py-3 text-left outline-none ring-inset ring-amber-400/30 focus-visible:ring-2"
                         aria-label={`${t('Configure amount')} · ${displayFoodName(food, language)}`}
                       >
-                        <span className="block truncate font-display text-[1.05rem] leading-tight font-bold text-ink">
-                          {displayFoodName(food, language)}
+                        <span className="flex min-w-0 items-center gap-2">
+                          <span className="block min-w-0 truncate font-display text-[1.05rem] leading-tight font-bold text-ink">
+                            {displayFoodName(food, language)}
+                          </span>
+                          <AnimatePresence initial={false}>
+                            {quickAdded && (
+                              <motion.span
+                                initial={{ opacity: 0, scale: 0.7, x: -5 }}
+                                animate={{ opacity: 1, scale: 1, x: 0 }}
+                                exit={{ opacity: 0, scale: 0.8 }}
+                                className="shrink-0 rounded-full bg-emerald-500/12 px-2 py-0.5 text-[10px] font-black text-emerald-700"
+                              >
+                                ✓ {t('Added')}
+                              </motion.span>
+                            )}
+                          </AnimatePresence>
                         </span>
                         <span className="mt-1 block text-[13px] leading-snug font-bold text-ink-soft">
                           {t(hasSavedAmount ? 'Last used' : 'Suggested portion')} · {describeSelectionAmount(quickSelection)}
@@ -517,23 +591,28 @@ export function MealComposer({
                         </span>
                       </button>
                       <div className="grid w-[4.75rem] shrink-0 place-items-center border-l border-ink/6 bg-amber-500/[0.035] px-2">
-                        <button
+                        <motion.button
                           type="button"
-                          disabled={quickAdding}
+                          disabled={quickAdding || quickAdded}
                           onClick={() => void quickAddFood(food)}
-                          className="grid h-12 w-12 place-items-center rounded-full border-2 border-amber-500/45 bg-white font-display text-2xl leading-none font-bold text-amber-700 shadow-[0_8px_18px_-12px_rgba(217,119,6,.8)] transition hover:border-amber-500 hover:bg-amber-50 active:scale-90 disabled:opacity-50"
+                          animate={quickAdded ? { rotate: [0, -9, 8, 0], scale: [1, 1.14, 1] } : { rotate: 0, scale: 1 }}
+                          className={`grid h-12 w-12 place-items-center rounded-full border-2 bg-white font-display text-2xl leading-none font-bold shadow-[0_8px_18px_-12px_rgba(217,119,6,.8)] transition active:scale-90 ${quickAdded ? 'border-emerald-500 bg-emerald-50 text-emerald-700' : 'border-amber-500/45 text-amber-700 hover:border-amber-500 hover:bg-amber-50'} disabled:opacity-70`}
                           aria-label={`${t('Quick add')} · ${displayFoodName(food, language)} · ${describeSelectionAmount(quickSelection)}`}
                         >
-                          {quickAdding ? <span className="font-mono text-xs">•••</span> : '+'}
-                        </button>
+                          {quickAdding ? <span className="font-mono text-xs">•••</span> : quickAdded ? '✓' : '+'}
+                        </motion.button>
                       </div>
-                    </div>
+                    </motion.div>
                   )
                 })}
-                {query.length >= 2 && (
-                  <button type="button" disabled={searching} onClick={() => void searchWider()} className="w-full rounded-2xl border border-amber-500/20 bg-amber-50/45 px-3 py-3 text-sm font-bold text-amber-800">
-                    {translateInterfaceText(searching ? 'Searching more foods…' : 'Extend search', language)}
-                  </button>
+                {query.trim().length >= 2
+                  && completedSearchKey === `${language}:${normalizeFoodSearch(query)}`
+                  && !searching
+                  && displayedFoods.length === 0 && (
+                  <div className="rounded-2xl border border-amber-500/15 bg-amber-50/40 px-4 py-4 text-center">
+                    <p className="text-sm font-bold text-ink">{t('No matching foods found')}</p>
+                    <p className="mt-1 text-xs font-medium text-ink-soft">{t('Try a brand, another spelling, or create a private food from the package label.')}</p>
+                  </div>
                 )}
               </div>
             )}

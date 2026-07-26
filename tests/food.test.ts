@@ -106,6 +106,52 @@ test('Romanian and Thai food queries rank localized foods and expand for the rem
   assert.equal(displayFoodName(rawChicken, 'th'), 'อกไก่ ดิบ')
 })
 
+test('Ayran cups are immediately searchable across retailers and primary languages', () => {
+  const generic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:ayran-yogurt-drink-reference')!
+  const milbona = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:lidl-milbona-ayran-cup-reference')!
+  const milsani = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:aldi-milsani-ayran-cup-reference')!
+  const rewe = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:rewe-bio-ayran-cup-label')!
+
+  assert.equal(rankFoods('ayran', COMMON_FOODS, [], 'snack')[0]?.id, generic.id)
+  assert.equal(rankFoods('milbona ayran', COMMON_FOODS, [], 'snack')[0]?.id, milbona.id)
+  assert.equal(rankFoods('lidl ayran', COMMON_FOODS, [], 'snack')[0]?.id, milbona.id)
+  assert.equal(rankFoods('aldi ayran', COMMON_FOODS, [], 'snack')[0]?.id, milsani.id)
+  assert.equal(rankFoods('rewe ayran', COMMON_FOODS, [], 'snack')[0]?.id, rewe.id)
+  assert.equal(rankFoods('băutură de iaurt ayran', COMMON_FOODS, [], 'snack')[0]?.id, generic.id)
+  assert.equal(rankFoods('ไอรัน', COMMON_FOODS, [], 'snack')[0]?.id, generic.id)
+  assert.ok(expandFoodSearchQueries('ไอรัน', 'th').includes('ayran yogurt drink'))
+  assert.deepEqual(
+    { basis: rewe.nutrition_basis, serving: rewe.serving_grams_or_ml, kcal: rewe.kcal_100 },
+    { basis: 'per_100ml', serving: 250, kcal: 39 },
+  )
+})
+
+test('food search tolerates potato typos while rejecting unrelated fruit results', () => {
+  assert.equal(rankFoods('potstoes', COMMON_FOODS, [], 'lunch')[0]?.name, 'Potato, raw')
+  const bananaResults = rankFoods('banana', COMMON_FOODS, [], 'snack')
+  assert.ok(bananaResults.length > 0)
+  assert.ok(bananaResults.every((food) => /banana/i.test(food.name)), bananaResults.map((food) => food.name).join(', '))
+
+  const remoteBanana = {
+    ...COMMON_FOODS.find((food) => food.name === 'Banana, fresh')!,
+    id: 'off:banana',
+    source: 'open_food_facts' as const,
+    provider_product_id: 'off-banana',
+    brand: 'Example Market',
+  }
+  const remotePineapple = {
+    ...COMMON_FOODS.find((food) => food.name === 'Pineapple, fresh')!,
+    id: 'off:pineapple',
+    source: 'open_food_facts' as const,
+    provider_product_id: 'off-pineapple',
+    brand: 'Example Market',
+  }
+  assert.deepEqual(
+    mergeExtendedFoodResults('banana', [], [remotePineapple, remoteBanana]).map((food) => food.id),
+    ['off:banana'],
+  )
+})
+
 test('localized staple search finds oats, som tam, fish sauce, avocado and prepared eggs', () => {
   const organicOats = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-173904')!
   const somTam = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:som-tam-thai-reference')!

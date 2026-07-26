@@ -16,6 +16,7 @@ import {
   expandFoodSearchQueries,
   foodPreferenceUsageUpdates,
   mealTotals,
+  mergeExtendedFoodResults,
   snapshotEntry,
   type ComposerFoodItem,
   type FoodPreference,
@@ -618,10 +619,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       if (response.status !== 'fulfilled') continue
       for (const food of response.value) merged.set(food.provider_product_id ?? food.id, food)
     }
+    const relevant = mergeExtendedFoodResults(query, [], [...merged.values()], queries)
     return {
       state: 'results',
-      results: [...merged.values()],
-      message: merged.size ? undefined : 'No additional matches. Your essential foods are still available above.',
+      results: relevant,
+      message: relevant.length ? undefined : 'No matching products found yet. You can still create a private food from its label.',
     }
   }, [])
 

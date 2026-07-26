@@ -67,6 +67,12 @@ test('meal food picker keeps configure and exact-amount quick add as separate ac
   assert.match(source, /onClick=\{\(\) => void quickAddFood\(food\)\}/)
   assert.match(source, /hasSavedAmount \? 'Last used' : 'Suggested portion'/)
   assert.match(source, /Tap a food to change its amount/)
+  assert.match(source, /window\.setTimeout\(\(\) => \{/)
+  assert.match(source, /store\.widerSearch\(trimmed, language\)/)
+  assert.match(source, /quickAddedFoodId/)
+  assert.match(source, /aria-live="polite"/)
+  assert.match(source, /Searching the full food catalog/)
+  assert.doesNotMatch(source, />\s*\{translateInterfaceText\(searching \? 'Searching more foods…' : 'Extend search'/)
 })
 
 test('logged meal editor state always replaces the selected snapshot meal', () => {

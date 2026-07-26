@@ -396,6 +396,10 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'inimi de pui': 'chicken hearts',
     'lapte proteic': 'high protein milk',
     'lapte bogat in proteine': 'high protein milk',
+    'ayran': 'ayran yogurt drink',
+    'bautura de iaurt ayran': 'ayran yogurt drink',
+    'bautura cu iaurt ayran': 'ayran yogurt drink',
+    'iaurt de baut ayran': 'ayran yogurt drink',
     'cluster dextrin': 'cluster dextrin',
     'ton in suc propriu': 'tuna in own juice',
     'ulei': 'oil',
@@ -474,6 +478,10 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'แซลมอนดิบ': 'raw salmon',
     'หัวใจไก่': 'chicken hearts',
     'นมโปรตีนสูง': 'high protein milk',
+    'ไอรัน': 'ayran yogurt drink',
+    'อัยรัน': 'ayran yogurt drink',
+    'อายรัน': 'ayran yogurt drink',
+    'เครื่องดื่มโยเกิร์ตไอรัน': 'ayran yogurt drink',
     'คลัสเตอร์เดกซ์ทริน': 'cluster dextrin',
     'ทูน่าในน้ำแร่': 'tuna in own juice',
     'น้ำมัน': 'oil',
@@ -499,7 +507,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
   ro: {
     piept: 'breast', pui: 'chicken', curcan: 'turkey', vita: 'beef', porc: 'pork', peste: 'fish',
     somon: 'salmon', ton: 'tuna', ou: 'egg', oua: 'eggs', cartof: 'potato', dulce: 'sweet',
-    orez: 'rice', ovaz: 'oats', iaurt: 'yogurt', branza: 'cheese', lapte: 'milk', mar: 'apple',
+    orez: 'rice', ovaz: 'oats', iaurt: 'yogurt', ayran: 'ayran', bautura: 'drink', branza: 'cheese', lapte: 'milk', mar: 'apple',
     banana: 'banana', broccoli: 'broccoli', crud: 'raw', cruda: 'raw', crude: 'raw', gatit: 'cooked',
     gatita: 'cooked', fiert: 'boiled', fiarta: 'boiled', copt: 'baked', coapta: 'baked',
     microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
@@ -525,7 +533,7 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
   th: {
     อกไก่: 'chicken breast', ไก่: 'chicken', ไก่งวง: 'turkey', เนื้อวัว: 'beef', หมู: 'pork', ปลา: 'fish',
     แซลมอน: 'salmon', ทูน่า: 'tuna', ไข่: 'egg', มันหวาน: 'sweet potato', มันฝรั่ง: 'potato',
-    ข้าว: 'rice', ข้าวโอ๊ต: 'oats', โยเกิร์ต: 'yogurt', ชีส: 'cheese', นม: 'milk',
+    ข้าว: 'rice', ข้าวโอ๊ต: 'oats', โยเกิร์ต: 'yogurt', ไอรัน: 'ayran', อัยรัน: 'ayran', อายรัน: 'ayran', ชีส: 'cheese', นม: 'milk',
     ดิบ: 'raw', สุก: 'cooked', ต้ม: 'boiled', อบ: 'baked', ไมโครเวฟ: 'microwaved',
     ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
     เวย์: 'whey', โปรตีน: 'protein', เคซีน: 'casein', ไอโซเลต: 'isolate',
@@ -673,6 +681,23 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
 }
 
 const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-curated:ayran-yogurt-drink-reference': [
+    'ayran', 'ayran yoghurt drink', 'ayran yogurt drink', 'turkish yoghurt drink', 'turkish yogurt drink',
+    'bautura de iaurt ayran', 'băutură de iaurt ayran', 'iaurt de baut ayran', 'iaurt de băut ayran',
+    'ไอรัน', 'อัยรัน', 'อายรัน', 'เครื่องดื่มโยเกิร์ตไอรัน',
+  ],
+  'apex-curated:lidl-milbona-ayran-cup-reference': [
+    'milbona ayran', 'milbona ayran cup', 'lidl ayran', 'lidl milbona ayran', 'ayran lidl',
+    'ayran milbona pahar', 'ayran milbona', 'ไอรัน milbona', 'ไอรัน lidl',
+  ],
+  'apex-curated:aldi-milsani-ayran-cup-reference': [
+    'milsani ayran', 'milsani ayran cup', 'aldi ayran', 'aldi milsani ayran', 'ayran aldi',
+    'ayran milsani pahar', 'ayran milsani', 'ไอรัน milsani', 'ไอรัน aldi',
+  ],
+  'apex-curated:rewe-bio-ayran-cup-label': [
+    'rewe bio ayran', 'rewe ayran', 'rewe ayran cup', 'ayran rewe', 'bio ayran',
+    'ayran bio rewe pahar', 'ไอรัน rewe', 'ไอรันออร์แกนิก',
+  ],
   'apex-curated:lee-sport-cfm-whey-neutral': [
     'lee sport cfm whey', 'leesport cfm whey', 'lee-sport cfm whey', 'unflavoured cfm whey',
     'proteina lee sport', 'โปรตีน lee sport',
@@ -913,19 +938,83 @@ function fuzzyFoodSearchMatch(query: string, candidate: string): boolean {
   const queryTokens = query.split(' ').filter(Boolean)
   const candidateTokens = candidate.split(' ').filter(Boolean)
   if (!queryTokens.length || !candidateTokens.length) return false
-  const forms = (token: string): string[] => [
+  const forms = (token: string): string[] => [...new Set([
     token,
     ...(token.endsWith('ies') && token.length > 4 ? [`${token.slice(0, -3)}y`] : []),
-    ...(token.endsWith('s') && !token.endsWith('ss') && token.length > 4 ? [token.slice(0, -1)] : []),
-  ]
-  return queryTokens.every((queryToken) => candidateTokens.some((candidateToken) =>
-    forms(queryToken).some((queryForm) => forms(candidateToken).some((candidateForm) => {
+    ...(token.endsWith('oes') && token.length > 4 ? [token.slice(0, -2)] : []),
+    ...(token.endsWith('o') && token.length > 3 ? [`${token}es`] : []),
+  ])]
+  return queryTokens.every((queryToken) => candidateTokens.some((candidateToken) => {
+    const queryForms = forms(queryToken)
+    const candidateForms = forms(candidateToken)
+    if (queryForms.some((queryForm) => candidateForms.some((candidateForm) => {
       if (queryForm === candidateForm) return true
-      if (queryForm.length >= 3 && (candidateForm.startsWith(queryForm) || queryForm.startsWith(candidateForm))) return true
-      const limit = queryForm.length >= 9 ? 2 : queryForm.length >= 5 ? 1 : 0
-      return limit > 0 && editDistanceWithin(queryForm, candidateForm, limit)
-    })),
-  ))
+      return queryForm.length >= 3
+        && candidateForm.length >= 3
+        && (candidateForm.startsWith(queryForm) || queryForm.startsWith(candidateForm))
+    }))) return true
+    const limit = queryToken.length >= 9 ? 2 : queryToken.length >= 5 ? 1 : 0
+    return limit > 0 && candidateForms.some((candidateForm) =>
+      editDistanceWithin(queryToken, candidateForm, limit),
+    )
+  }))
+}
+
+const foodSearchValuesCache = new WeakMap<FoodRecord, {
+  names: string[]
+  brandedNames: string[]
+  curatedAliases: string[]
+}>()
+
+function foodSearchValues(food: FoodRecord, preference?: FoodPreference) {
+  let base = foodSearchValuesCache.get(food)
+  if (!base) {
+    const names = [food.name, ...Object.values(food.names_i18n)].map(normalizeFoodSearch).filter(Boolean)
+    base = {
+      names,
+      brandedNames: food.brand
+        ? names.map((name) => normalizeFoodSearch(`${food.brand} ${name}`))
+        : [],
+      curatedAliases: catalogAliases(food).map(normalizeFoodSearch).filter(Boolean),
+    }
+    foodSearchValuesCache.set(food, base)
+  }
+  const personal = normalizeFoodSearch(preference?.personal_name ?? '')
+  const preferenceAliases = (preference?.aliases ?? []).map(normalizeFoodSearch).filter(Boolean)
+  return {
+    names: base.names,
+    brandedNames: base.brandedNames,
+    personal,
+    preferenceAliases,
+    curatedAliases: base.curatedAliases,
+    searchable: [...base.names, ...base.brandedNames, personal, ...preferenceAliases, ...base.curatedAliases].filter(Boolean),
+  }
+}
+
+/**
+ * Textual relevance owns the large score bands; personal history only orders
+ * foods inside the same relevance band. This prevents a frequently used but
+ * unrelated food from leaking into a precise query such as "banana".
+ */
+export function foodSearchRelevanceScore(
+  query: string,
+  food: FoodRecord,
+  preference?: FoodPreference,
+  allowFuzzy = true,
+): number {
+  const needle = normalizeFoodSearch(query)
+  if (!needle) return 0
+  const { names, brandedNames, personal, preferenceAliases, curatedAliases, searchable } = foodSearchValues(food, preference)
+  if (personal === needle) return 12_000
+  if (preferenceAliases.includes(needle)) return 11_800
+  if (curatedAliases.includes(needle)) return 11_600
+  if (names[0] === needle) return 11_400
+  if (names.slice(1).includes(needle)) return 11_200
+  if (brandedNames.includes(needle)) return 11_000
+  if (searchable.some((value) => value.startsWith(needle))) return 8_500
+  if (searchable.some((value) => value.includes(needle))) return 6_800
+  if (allowFuzzy && searchable.some((value) => fuzzyFoodSearchMatch(needle, value))) return 4_200
+  return -Infinity
 }
 
 function categorySearchBoost(query: string, food: FoodRecord): number {
@@ -971,7 +1060,10 @@ function categorySearchBoost(query: string, food: FoodRecord): number {
     if (includesAny(text, ['cooked', 'gatit', 'gegart', 'cuit', 'cotto', ' สุก'])) return curated + 520
   }
 
-  const plainPotatoQuery = includesAny(query, ['potato', 'cartof', 'มันฝรั่ง'])
+  const plainPotatoQuery = (
+    includesAny(query, ['potato', 'cartof', 'มันฝรั่ง'])
+    || fuzzyFoodSearchMatch(query, 'potato potatoes')
+  )
     && !includesAny(query, ['sweet potato', 'cartof dulce', 'มันหวาน'])
   if (plainPotatoQuery) {
     if (includesAny(text, ['pringles', 'lays', 'chips', 'crisps', 'potato snack', 'cartofi chips'])) return -1200
@@ -1003,40 +1095,28 @@ export function rankFoods(
   now = Date.now(),
 ): FoodRecord[] {
   const needle = normalizeFoodSearch(query)
+  const exactScores = new Map<FoodRecord, number>()
+  let hasExactMatch = false
+  if (needle) {
+    for (const food of foods) {
+      const preference = preferenceFor(food.id, preferences)
+      if (preference?.hidden) continue
+      const score = foodSearchRelevanceScore(needle, food, preference, false)
+      exactScores.set(food, score)
+      if (Number.isFinite(score)) hasExactMatch = true
+    }
+  }
   return foods
     .map((food) => {
       const preference = preferenceFor(food.id, preferences)
       if (preference?.hidden) return { food, score: -Infinity }
-      const names = [
-        food.name,
-        food.brand ?? '',
-        ...Object.values(food.names_i18n),
-      ].map(normalizeFoodSearch)
-      const brandedNames = food.brand
-        ? [food.name, ...Object.values(food.names_i18n)]
-            .map((name) => normalizeFoodSearch(`${food.brand} ${name}`))
-        : []
-      const personal = normalizeFoodSearch(preference?.personal_name ?? '')
-      const aliases = (preference?.aliases ?? []).map(normalizeFoodSearch)
-      const curatedAliases = catalogAliases(food).map(normalizeFoodSearch)
-      const searchable = [...names, ...brandedNames, personal, ...aliases, ...curatedAliases].filter(Boolean)
-      const exactSubstringMatch = needle ? searchable.some((value) => value.includes(needle)) : false
-      const fuzzyMatch = needle && !exactSubstringMatch
-        ? searchable.some((value) => fuzzyFoodSearchMatch(needle, value))
-        : false
-      if (needle && !exactSubstringMatch && !fuzzyMatch) return { food, score: -Infinity }
-
-      let score = 0
-      if (needle) {
-        if (personal === needle) score += 1200
-        if (aliases.includes(needle)) score += 1120
-        if (curatedAliases.includes(needle)) score += 1100
-        if (names[0] === needle) score += 1040
-        if (`${names[1]} ${names[0]}`.trim() === needle) score += 1000
-        if (searchable.some((value) => value.startsWith(needle))) score += 500
-        if (exactSubstringMatch) score += 220
-        if (fuzzyMatch) score += 120
+      let score = needle
+        ? exactScores.get(food) ?? -Infinity
+        : 0
+      if (needle && !hasExactMatch && !Number.isFinite(score)) {
+        score = foodSearchRelevanceScore(needle, food, preference)
       }
+      if (!Number.isFinite(score)) return { food, score }
       if (preference?.favourite) score += 360
       score += Math.min(240, (preference?.usage_count ?? 0) * 12)
       score += Math.min(180, (preference?.slot_usage[slot] ?? 0) * 18)
@@ -1066,16 +1146,32 @@ export function mergeExtendedFoodResults(
   query: string,
   localResults: FoodRecord[],
   providerResults: FoodRecord[],
+  alternateQueries: string[] = [],
 ): FoodRecord[] {
   const seen = new Set(localResults.map(foodIdentity))
-  const provider = providerResults
+  const queries = [...new Set([query, ...alternateQueries].map(normalizeFoodSearch).filter(Boolean))]
+  if (!queries.length) return localResults
+  const candidates = providerResults
     .filter((food) => {
       const identity = foodIdentity(food)
       if (seen.has(identity)) return false
       seen.add(identity)
       return true
     })
-    .map((food, index) => ({ food, index, score: categorySearchBoost(normalizeFoodSearch(query), food) }))
+  const exactScores = candidates.map((food) =>
+    Math.max(...queries.map((candidate) => foodSearchRelevanceScore(candidate, food, undefined, false))),
+  )
+  const hasExactMatch = exactScores.some(Number.isFinite)
+  const provider = candidates
+    .map((food, index) => ({
+      food,
+      index,
+      score: (hasExactMatch
+        ? exactScores[index]
+        : Math.max(...queries.map((candidate) => foodSearchRelevanceScore(candidate, food))))
+        + Math.max(...queries.map((candidate) => categorySearchBoost(candidate, food))),
+    }))
+    .filter(({ score }) => Number.isFinite(score))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ food }) => food)
   return [...localResults, ...provider]
