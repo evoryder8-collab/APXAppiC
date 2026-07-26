@@ -19,6 +19,7 @@ import { differenceInCalendarDays } from 'date-fns'
 import type { AppData, DayType, Profile, RpgSnapshot } from './types'
 import { computeTargets } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
+import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
 
 export interface StatBlock {
   health: number
@@ -95,6 +96,7 @@ export type SynergyKind =
   | 'hydration_endurance'
   | 'mobility_after_legs'
   | 'recovery_signal'
+  | 'meal_rhythm'
   | 'vo2_anchor'
   | 'import_feed'
   | 'deload_honored'
@@ -153,6 +155,9 @@ interface DayActivity {
   vo2: number | null
   recoveryScore: number | null
   recoverySource: 'apple' | 'athlytic' | null
+  mealRhythmScore: number | null
+  mealCompletionScore: number | null
+  mealRhythmVerdict: MealRhythmVerdict | null
   streak: number
 }
 
@@ -183,6 +188,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         waterL: null, kcal: null, protein: null,
         importStrengthMin: 0, importEnduranceMin: 0, importMobilityMin: 0,
         vo2: null, recoveryScore: null, recoverySource: null, streak: 0,
+        mealRhythmScore: null, mealCompletionScore: null, mealRhythmVerdict: null,
       }
       activity.set(date, a)
     }
@@ -265,6 +271,13 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     const day = getDay(checkin.date)
     day.recoveryScore = Math.max(0, Math.min(100, score))
     day.recoverySource = checkin.source
+  }
+  for (const rhythm of Object.values(normalizeMealRhythmHistory(data.settings?.addons?.meal_rhythm_history))) {
+    if (!rhythm.finalized || rhythm.date > throughDate) continue
+    const day = getDay(rhythm.date)
+    day.mealRhythmScore = rhythm.rhythm_score
+    day.mealCompletionScore = rhythm.completion_score
+    day.mealRhythmVerdict = rhythm.verdict
   }
 
   /* Streak per date (consecutive days with a completed APEX session) */
@@ -353,6 +366,14 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         if (hasStrengthSession && deepDeficit) {
           strengthMult *= 0.85
           synergies.push({ date, kind: 'deficit_strength', label: 'Deep calorie deficit under a strength session. XP tempered -15%, recovery costs energy' })
+        }
+        if (hasStrengthSession && a.mealCompletionScore != null && a.mealCompletionScore < 60) {
+          strengthMult *= 0.94
+          synergies.push({
+            date,
+            kind: 'meal_rhythm',
+            label: `Closed-day meal completion was ${a.mealCompletionScore}%. Training adaptation credit was tempered until the missing intake is corrected`,
+          })
         }
 
         for (const t of a.types) {
@@ -450,6 +471,47 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
           } else if (a.recoveryScore >= normalThreshold) {
             s.health += 0.35 * headroom(s.health)
             healthFed = true
+          }
+        }
+        /*
+         * A closed day is explicit evidence, not missing telemetry. It can
+         * therefore influence Health while the still-open current day never
+         * receives a premature penalty. Correcting a past meal rewrites this
+         * source record and deterministic replay removes the old verdict.
+         */
+        if (a.mealRhythmScore != null && a.mealRhythmVerdict != null) {
+          if (a.mealRhythmVerdict === 'complete_on_time') {
+            s.health += 0.7 * headroom(s.health)
+            healthFed = true
+            synergies.push({
+              date,
+              kind: 'meal_rhythm',
+              label: `Meal schedule completed with a ${a.mealRhythmScore}/100 rhythm signal. Health consistency gained context`,
+            })
+          } else if (a.mealRhythmVerdict === 'complete_irregular') {
+            s.health -= 0.15
+            healthFed = true
+            synergies.push({
+              date,
+              kind: 'meal_rhythm',
+              label: `All planned meals were logged, but their timing rhythm was ${a.mealRhythmScore}/100`,
+            })
+          } else if (a.mealRhythmVerdict === 'missed_meals') {
+            s.health -= 0.35
+            healthFed = true
+            synergies.push({
+              date,
+              kind: 'meal_rhythm',
+              label: `The closed day recorded ${a.mealCompletionScore ?? 0}% of configured meals. A later correction will replay this verdict`,
+            })
+          } else if (a.mealRhythmVerdict === 'no_meals') {
+            s.health -= 0.55
+            healthFed = true
+            synergies.push({
+              date,
+              kind: 'meal_rhythm',
+              label: 'The day closed with no configured meal recorded. This can still be corrected from the calendar',
+            })
           }
         }
         fed.health = healthFed

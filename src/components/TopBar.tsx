@@ -15,8 +15,8 @@ export function TopBar() {
   const dot = DOT_COLORS[syncStatus]
   const uiMode = uiModeFromSettings(data.settings)
   const setUiMode = (mode: UiMode): void => {
-    if (!data.settings || mode === uiMode) return
-    setSettings(settingsForUiMode(data.settings, mode))
+    if (!data.settings) return
+    if (mode !== uiMode) setSettings(settingsForUiMode(data.settings, mode))
     navigate('/')
   }
   return (

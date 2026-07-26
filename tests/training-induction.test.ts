@@ -33,8 +33,8 @@ test('predictive equipment search finds both dumbbell formats from dum', () => {
   assert.ok(ids.includes('fixed_dumbbells'))
 })
 
-test('June and future profiles can enable induction while Constantine keeps his bespoke programme', () => {
-  assert.equal(isTrainingInductionEligible('constantine'), false)
+test('every profile can explicitly enable the beginner induction without replacing bespoke plans by default', () => {
+  assert.equal(isTrainingInductionEligible('constantine'), true)
   assert.equal(isTrainingInductionEligible('june'), true)
   assert.equal(isTrainingInductionEligible('matthew'), true)
   assert.equal(isTrainingInductionEligible('iulian'), true)

@@ -7,6 +7,7 @@ import { useLanguage } from '../../lib/i18n'
 import { useStore } from '../../store/AppStore'
 import { useFoodStore } from '../../store/FoodStore'
 import { GlassCard } from '../ui'
+import { averageClosedMealRhythm, normalizeMealRhythmHistory } from '../../lib/mealRhythm'
 
 const COPY = {
   en: {
@@ -23,6 +24,8 @@ const COPY = {
     exactStarts: 'Recovery meal finishes',
     meals: 'recorded meals',
     meal: 'recorded meal',
+    closedDays: 'Closed days',
+    completeDays: 'Complete meal days',
     dayUnit: 'D',
     minutes: 'min',
     noData: 'Record finish times across several meals and start a workout. Your rhythm signal will build without guessing.',
@@ -45,6 +48,8 @@ const COPY = {
     exactStarts: 'Finaluri ale meselor de recuperare',
     meals: 'mese înregistrate',
     meal: 'masă înregistrată',
+    closedDays: 'Zile încheiate',
+    completeDays: 'Zile cu toate mesele',
     dayUnit: 'Z',
     minutes: 'min',
     noData: 'Înregistrează ora de final pentru mai multe mese și pornește un antrenament. Semnalul se va construi fără presupuneri.',
@@ -67,6 +72,8 @@ const COPY = {
     exactStarts: 'เวลากินมื้อฟื้นตัวเสร็จ',
     meals: 'มื้อที่บันทึกเวลา',
     meal: 'มื้อที่บันทึกเวลา',
+    closedDays: 'วันที่ปิดแล้ว',
+    completeDays: 'วันที่บันทึกมื้อครบ',
     dayUnit: 'วัน',
     minutes: 'นาที',
     noData: 'บันทึกเวลาที่กินเสร็จหลายมื้อและเริ่มการฝึก ระบบจะสร้างสัญญาณจากข้อมูลจริง',
@@ -100,7 +107,14 @@ export function MetabolicRhythmPanel() {
     sessions,
     timeZone,
   }), [entries, meals, sessions, timeZone])
-  const score = analysis.rhythmScore
+  const historyDays = useMemo(
+    () => Object.values(normalizeMealRhythmHistory(data.settings?.addons.meal_rhythm_history))
+      .filter((day) => day.finalized && day.date >= cutoff),
+    [cutoff, data.settings?.addons.meal_rhythm_history],
+  )
+  const closedRhythmScore = averageClosedMealRhythm(data.settings?.addons.meal_rhythm_history, cutoff)
+  const score = closedRhythmScore ?? analysis.rhythmScore
+  const completeDays = historyDays.filter((day) => day.verdict === 'complete_on_time' || day.verdict === 'complete_irregular').length
   const readyShare = analysis.workoutsWithContext
     ? Math.round((analysis.readyStarts / analysis.workoutsWithContext) * 100)
     : null
@@ -141,6 +155,8 @@ export function MetabolicRhythmPanel() {
               <Metric label={copy.recovery} value={analysis.recoveryTimingScore == null ? '·' : `${analysis.recoveryTimingScore}/100`} positive={analysis.recoveryTimingScore != null && analysis.recoveryTimingScore >= 85} />
               <Metric label={copy.recoveryAverage} value={analysis.averageRecoveryGapMinutes == null ? '·' : `${analysis.averageRecoveryGapMinutes} ${copy.minutes}`} />
               <Metric label={copy.exactStarts} value={`${analysis.recoveryMealsRecorded}/${analysis.completedWorkouts}`} />
+              <Metric label={copy.closedDays} value={String(historyDays.length)} />
+              <Metric label={copy.completeDays} value={`${completeDays}/${historyDays.length}`} positive={historyDays.length > 0 && completeDays === historyDays.length} />
             </div>
           </div>
 

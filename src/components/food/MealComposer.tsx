@@ -26,6 +26,7 @@ import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { mealBlockIdempotencyKey, normalizeMealBlockSettings, type MealBlockIdentity, type MealBlockKind } from '../../lib/mealBlocks'
 import { useStore } from '../../store/AppStore'
 import { rankMealHistoryRecommendations } from '../../lib/mealExperience'
+import { timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../../lib/mealTiming'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -71,8 +72,18 @@ export function MealComposer({
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const slotLabel = translateInterfaceText(`${slot[0].toUpperCase()}${slot.slice(1)}`, language)
+  const timeZone = timeZoneFromSettings(data.settings)
+  const currentClock = zonedClock(new Date(), timeZone)
+  const mealDate = date ?? currentClock.date
+  const replacedMeal = replaceMealId ? store.meals.find((meal) => meal.id === replaceMealId) : null
+  const defaultFinishedTime = replacedMeal
+    ? zonedClock(replacedMeal.logged_at, timeZone).time
+    : planning || mealDate !== currentClock.date
+      ? targetTime ?? currentClock.time
+      : currentClock.time
   const [items, setItems] = useState<ComposerFoodItem[]>(initialItems)
   const [name, setName] = useState(title ?? slotLabel)
+  const [finishedTime, setFinishedTime] = useState(defaultFinishedTime)
   const [query, setQuery] = useState('')
   const [remoteResults, setRemoteResults] = useState<FoodRecord[]>([])
   const [searching, setSearching] = useState(false)
@@ -380,7 +391,12 @@ export function MealComposer({
     try {
       const assignedBlock = mealIdentity ?? mealBlockId ?? (loadedPresetId ? mealBlockSettings.preset_assignments[loadedPresetId] : null)
       await store.logMeal({
-        date, slot, name: name.trim() || 'Meal', items, sourcePresetId: loadedPresetId,
+        date: mealDate,
+        slot,
+        name: name.trim() || 'Meal',
+        items,
+        finishedAt: zonedDateTimeToIso(mealDate, finishedTime, timeZone),
+        sourcePresetId: loadedPresetId,
         sourcePlannedMealId: plannedMealId,
         replaceMealId, loggedAs: planning ? 'planned' : plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
         idempotencyKey: mealBlockIdempotencyKey(crypto.randomUUID(), assignedBlock),
@@ -407,8 +423,23 @@ export function MealComposer({
 
         <div className="mt-4 space-y-4">
           <GlassCard accent={amber} className="p-4">
-            <label className="text-xs font-bold text-ink-soft">Meal name</label>
-            <input aria-label="Meal name" value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full bg-transparent font-display text-lg font-bold text-ink outline-none" />
+            <div className="flex items-start gap-3">
+              <label className="min-w-0 flex-1">
+                <span className="text-xs font-bold text-ink-soft">{t('Meal name')}</span>
+                <input aria-label={t('Meal name')} value={name} onChange={(event) => setName(event.target.value)} className="mt-1 w-full bg-transparent font-display text-lg font-bold text-ink outline-none" />
+              </label>
+              <label className="shrink-0 rounded-2xl border border-amber-100/90 bg-white/72 px-3 py-2 shadow-sm">
+                <span className="block text-[8px] font-black tracking-wide text-amber-800 uppercase">{t('Meal finished at')}</span>
+                <input
+                  type="time"
+                  value={finishedTime}
+                  onChange={(event) => setFinishedTime(event.target.value)}
+                  aria-label={t('Meal finished at')}
+                  className="mt-0.5 block w-[5.6rem] bg-transparent font-mono text-sm font-black text-ink outline-none"
+                />
+              </label>
+            </div>
+            <p className="mt-2 text-[9px] font-semibold text-ink-faint">{t('This time places the meal on your Dayline and updates timing trends.')}</p>
             <div className="mt-3 grid grid-cols-4 gap-2 border-t border-ink/8 pt-3 text-center">
               {([['kcal', totals.kcal], ['protein', totals.protein_g], ['carbs', totals.carbs_g], ['fat', totals.fat_g]] as const).map(([label, value]) => (
                 <div key={label}><p className="font-mono text-lg font-bold text-ink">{value}</p><p className="text-[9px] font-bold text-ink-faint uppercase">{label}</p></div>

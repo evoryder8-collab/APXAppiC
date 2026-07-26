@@ -402,6 +402,7 @@ function IdentityMetric({ label, value, positive }: { label: string; value: stri
 const SYNERGY_DOT: Record<SynergyKind, string> = {
   protein_strength: 'linear-gradient(135deg, #f59e0b, #fb7185)',
   deficit_strength: 'linear-gradient(135deg, #dc2626, #f59e0b)',
+  meal_rhythm: 'linear-gradient(135deg, #f59e0b, #14b8a6)',
   hydration_endurance: 'linear-gradient(135deg, #38bdf8, #a78bfa)',
   mobility_after_legs: 'linear-gradient(135deg, #0ea5e9, #34d399)',
   recovery_signal: 'linear-gradient(135deg, #67e8f9, #c4b5fd)',

@@ -10,7 +10,7 @@ import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { isTrainingInductionEligible } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
-import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, normalizeMealDaylineDensity, normalizeMealTimelineSnap, supportedTimeZones, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
+import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, detectedTimeZone, normalizeMealDaylineDensity, normalizeMealTimelineSnap, searchTimeZoneOptions, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 
 const violet = ACCENTS.violet
 const emerald = ACCENTS.emerald
@@ -66,6 +66,7 @@ export function Settings() {
   const [customBmrDraft, setCustomBmrDraft] = useState(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
   const resolvedTimeZone = timeZoneFromSettings(settings)
   const [timeZoneDraft, setTimeZoneDraft] = useState(resolvedTimeZone)
+  const [timeZoneSearchOpen, setTimeZoneSearchOpen] = useState(false)
   useEffect(() => {
     setCustomBmrDraft(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
   }, [profile?.custom_bmr])
@@ -73,23 +74,43 @@ export function Settings() {
   if (!profile || !settings) return null
   const targets = computeTargets(profile)
   const mealBlockSettings = normalizeMealBlockSettings(settings.addons.meal_blocks)
-  const timeZones = supportedTimeZones()
+  const timeZoneOptions = searchTimeZoneOptions(
+    timeZoneDraft === resolvedTimeZone ? '' : timeZoneDraft,
+    language,
+    18,
+  )
+  const previewTimeZone = validTimeZone(timeZoneDraft.trim()) ? timeZoneDraft.trim() : resolvedTimeZone
   const timeZoneCopy = language === 'ro'
     ? {
         title: 'Fus orar pentru cronologia meselor',
         body: 'Controlează ora live, poziția meselor și analiza intervalului până la antrenament.',
         invalid: 'Alege un fus orar valid din listă.',
+        search: 'Caută țara, orașul sau fusul orar',
+        set: 'Setează fusul orar',
+        device: 'Folosește fusul dispozitivului',
+        selected: 'Fus orar activ',
+        noResults: 'Nu am găsit o țară, un oraș sau un fus orar compatibil.',
       }
     : language === 'th'
       ? {
           title: 'เขตเวลาสำหรับไทม์ไลน์มื้ออาหาร',
           body: 'ใช้กับเวลาสด ตำแหน่งมื้ออาหาร และการวิเคราะห์ช่วงเวลาก่อนฝึก',
           invalid: 'เลือกเขตเวลาที่ถูกต้องจากรายการ',
+          search: 'ค้นหาประเทศ เมือง หรือเขตเวลา',
+          set: 'ตั้งค่าเขตเวลา',
+          device: 'ใช้เขตเวลาของอุปกรณ์',
+          selected: 'เขตเวลาที่ใช้งาน',
+          noResults: 'ไม่พบประเทศ เมือง หรือเขตเวลาที่ตรงกัน',
         }
       : {
           title: 'Meal dayline timezone',
           body: 'Controls the live clock, meal positions and pre-workout timing analysis.',
           invalid: 'Choose a valid timezone from the list.',
+          search: 'Search country, city, or timezone',
+          set: 'Set timezone',
+          device: 'Use device timezone',
+          selected: 'Active timezone',
+          noResults: 'No matching country, city, or timezone was found.',
         }
   const mealSnapCopy = language === 'ro'
     ? {
@@ -185,6 +206,27 @@ export function Settings() {
     setSettings({ addons: { ...settings.addons, custom_bmr: next } })
   }
 
+  const commitTimeZone = (): void => {
+    const next = timeZoneDraft.trim()
+    if (!validTimeZone(next)) {
+      toast(timeZoneCopy.invalid, 'error')
+      setTimeZoneSearchOpen(true)
+      return
+    }
+    setSettings({ addons: { ...settings.addons, time_zone: next } })
+    setTimeZoneDraft(next)
+    setTimeZoneSearchOpen(false)
+    toast(`${timeZoneCopy.selected}: ${next}`, 'ok')
+  }
+
+  const useDeviceTimeZone = (): void => {
+    const next = detectedTimeZone()
+    setTimeZoneDraft(next)
+    setSettings({ addons: { ...settings.addons, time_zone: next } })
+    setTimeZoneSearchOpen(false)
+    toast(`${timeZoneCopy.selected}: ${next}`, 'ok')
+  }
+
   const updateMealBlock = (kind: MealBlockKind, patch: Partial<MealBlock>): void => {
     const nextBlocks = mealBlockSettings.blocks.map((block) => block.id === kind ? { ...block, ...patch } : block)
     if (!nextBlocks.some((block) => block.enabled)) {
@@ -261,27 +303,82 @@ export function Settings() {
                   <p className={label}>{timeZoneCopy.title}</p>
                   <p className={`${sub} mt-1 leading-relaxed`}>{timeZoneCopy.body}</p>
                 </div>
-                <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 font-mono text-[9px] font-black text-emerald-800">{zonedClock(new Date(), resolvedTimeZone).time}</span>
+                <span className="shrink-0 rounded-full bg-emerald-100 px-2 py-1 font-mono text-[9px] font-black text-emerald-800">{zonedClock(new Date(), previewTimeZone).time}</span>
               </div>
-              <input
-                list="apex-time-zones"
-                value={timeZoneDraft}
-                onChange={(event) => setTimeZoneDraft(event.target.value)}
-                onBlur={() => {
-                  const next = timeZoneDraft.trim()
-                  if (!validTimeZone(next)) {
-                    setTimeZoneDraft(resolvedTimeZone)
-                    toast(timeZoneCopy.invalid, 'error')
-                    return
-                  }
-                  setSettings({ addons: { ...settings.addons, time_zone: next } })
-                }}
-                onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                aria-label={timeZoneCopy.title}
-                className="mt-3 w-full rounded-xl border border-emerald-100 bg-white/88 px-3 py-2.5 font-mono text-[11px] font-black text-ink outline-none focus:border-emerald-400"
-              />
-              <datalist id="apex-time-zones">{timeZones.map((zone) => <option key={zone} value={zone} />)}</datalist>
-              <p className="mt-2 truncate font-mono text-[8px] font-bold text-emerald-800/65">{resolvedTimeZone.replace(/_/g, ' ')} · {zonedClock(new Date(), resolvedTimeZone).date}</p>
+              <div className="relative mt-3">
+                <input
+                  value={timeZoneDraft}
+                  onFocus={(event) => {
+                    event.currentTarget.select()
+                    setTimeZoneSearchOpen(true)
+                  }}
+                  onChange={(event) => {
+                    setTimeZoneDraft(event.target.value)
+                    setTimeZoneSearchOpen(true)
+                  }}
+                  onKeyDown={(event) => {
+                    if (event.key === 'Enter') {
+                      event.preventDefault()
+                      if (!validTimeZone(timeZoneDraft.trim()) && timeZoneOptions[0]) {
+                        setTimeZoneDraft(timeZoneOptions[0].zone)
+                        return
+                      }
+                      commitTimeZone()
+                    }
+                    if (event.key === 'Escape') setTimeZoneSearchOpen(false)
+                  }}
+                  placeholder={timeZoneCopy.search}
+                  aria-label={timeZoneCopy.search}
+                  aria-expanded={timeZoneSearchOpen}
+                  aria-controls="apex-time-zone-results"
+                  autoComplete="off"
+                  className="w-full rounded-xl border border-emerald-100 bg-white/88 px-3 py-2.5 font-mono text-[11px] font-black text-ink outline-none focus:border-emerald-400"
+                />
+                {timeZoneSearchOpen && (
+                  <div id="apex-time-zone-results" role="listbox" className="absolute inset-x-0 top-[calc(100%+.35rem)] z-30 max-h-64 overflow-y-auto rounded-2xl border border-emerald-100 bg-white/98 p-1.5 shadow-[0_24px_60px_-28px_rgba(15,23,42,.7)] backdrop-blur-xl">
+                    {timeZoneOptions.length > 0 ? timeZoneOptions.map((option) => (
+                      <button
+                        key={option.zone}
+                        type="button"
+                        role="option"
+                        aria-selected={option.zone === timeZoneDraft}
+                        onPointerDown={(event) => event.preventDefault()}
+                        onClick={() => {
+                          setTimeZoneDraft(option.zone)
+                          setTimeZoneSearchOpen(false)
+                        }}
+                        className={`flex w-full items-center justify-between gap-3 rounded-xl px-3 py-2.5 text-left transition ${option.zone === timeZoneDraft ? 'bg-emerald-50' : 'hover:bg-emerald-50/70'}`}
+                      >
+                        <span className="min-w-0">
+                          <span className="block truncate text-xs font-black text-ink">{option.label}</span>
+                          <span className="mt-0.5 block truncate font-mono text-[8px] font-bold text-ink-faint">{option.zone}</span>
+                        </span>
+                        <span className="shrink-0 font-mono text-[9px] font-black text-emerald-700">{option.offset}</span>
+                      </button>
+                    )) : (
+                      <p className="px-3 py-4 text-center text-[11px] font-semibold leading-relaxed text-ink-soft">{timeZoneCopy.noResults}</p>
+                    )}
+                  </div>
+                )}
+              </div>
+              <div className="mt-2 grid grid-cols-2 gap-2">
+                <button
+                  type="button"
+                  onClick={useDeviceTimeZone}
+                  className="rounded-xl border border-emerald-100 bg-white/65 px-3 py-2 text-[9px] font-black text-emerald-800"
+                >
+                  {timeZoneCopy.device}
+                </button>
+                <button
+                  type="button"
+                  onClick={commitTimeZone}
+                  disabled={!validTimeZone(timeZoneDraft.trim()) || timeZoneDraft.trim() === resolvedTimeZone}
+                  className="rounded-xl bg-emerald-600 px-3 py-2 text-[9px] font-black text-white shadow-sm disabled:cursor-not-allowed disabled:opacity-40"
+                >
+                  {timeZoneCopy.set}
+                </button>
+              </div>
+              <p className="mt-2 truncate font-mono text-[8px] font-bold text-emerald-800/65">{timeZoneCopy.selected}: {resolvedTimeZone.replace(/_/g, ' ')} · {zonedClock(new Date(), resolvedTimeZone).date}</p>
             </div>
 
             <div className="mt-3 rounded-2xl border border-cyan-100/90 bg-[linear-gradient(135deg,rgba(236,254,255,.78),rgba(255,255,255,.68))] p-3">

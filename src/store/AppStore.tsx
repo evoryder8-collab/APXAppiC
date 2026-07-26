@@ -21,7 +21,7 @@ import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp 
 import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
 import { EMPTY_DATA } from '../lib/types'
 import { computeEngine, type SynergyEvent } from '../lib/rpg'
-import { eventContextFor, todayIso } from '../lib/plan'
+import { eventContextFor } from '../lib/plan'
 import { activityLogId, dailyLogId, rpgSnapshotId } from '../lib/ids'
 import {
   getSelectedPersona,
@@ -59,7 +59,15 @@ import {
   type SeedDefinitionTable,
 } from '../lib/seedRepair'
 import { normalizeMealBlockSettings } from '../lib/mealBlocks'
-import { normalizeMealDaylineDensity, normalizeMealStartTimes, normalizeMealTimelineSnap, normalizeRecoveryNutrition } from '../lib/mealTiming'
+import {
+  normalizeMealDaylineDensity,
+  normalizeMealStartTimes,
+  normalizeMealTimelineSnap,
+  normalizeRecoveryNutrition,
+  timeZoneFromSettings,
+  zonedClock,
+} from '../lib/mealTiming'
+import { normalizeMealRhythmHistory } from '../lib/mealRhythm'
 import { normalizeRecoveryHistory, normalizeRecoverySource, normalizeWatchActivityHistory, personalTargetFor } from '../lib/personalProtocol'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
@@ -147,6 +155,7 @@ function normalizeAppData(value: AppData): AppData {
           simple_show_guided_plan: value.settings.addons?.simple_show_guided_plan ?? true,
           simple_show_hydration_reminder: value.settings.addons?.simple_show_hydration_reminder ?? false,
           simple_show_manual_workout: value.settings.addons?.simple_show_manual_workout ?? false,
+          simple_show_next_action: value.settings.addons?.simple_show_next_action ?? false,
           adhd_mode: value.settings.addons?.adhd_mode ?? false,
           time_zone: value.settings.addons?.time_zone,
           meal_blocks: normalizeMealBlockSettings(value.settings.addons?.meal_blocks),
@@ -154,6 +163,7 @@ function normalizeAppData(value: AppData): AppData {
           meal_start_times: normalizeMealStartTimes(value.settings.addons?.meal_start_times),
           meal_timeline_snap_minutes: normalizeMealTimelineSnap(value.settings.addons?.meal_timeline_snap_minutes),
           meal_dayline_density: normalizeMealDaylineDensity(value.settings.addons?.meal_dayline_density),
+          meal_rhythm_history: normalizeMealRhythmHistory(value.settings.addons?.meal_rhythm_history),
           recovery_data_source: normalizeRecoverySource(value.settings.addons?.recovery_data_source),
           recovery_history: normalizeRecoveryHistory(value.settings.addons?.recovery_history),
           watch_activity_history: normalizeWatchActivityHistory(value.settings.addons?.watch_activity_history),
@@ -690,7 +700,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   useEffect(() => {
     const profile = data.profile
     if (!profile) return
-    const date = todayIso()
+    const date = zonedClock(new Date(), timeZoneFromSettings(data.settings)).date
     const context = eventContextFor(date, data.events)
     if (!context?.isDuring || context.event.type !== 'filming_championship') return
     const catalog = activityCatalogMap(data.activity_types)
@@ -703,12 +713,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         upsert('activity_logs', activityLogFromBlock(block, profile, date, catalog))
       }
     }
-  }, [data.activity_logs, data.activity_types, data.events, data.profile, upsert])
+  }, [data.activity_logs, data.activity_types, data.events, data.profile, data.settings, upsert])
 
   useEffect(() => {
     const profile = data.profile
     if (!profile) return
-    const date = todayIso()
+    const date = zonedClock(new Date(), timeZoneFromSettings(data.settings)).date
     const catalog = activityCatalogMap(data.activity_types)
     const activityLogs = data.activity_logs.filter((log) => log.date === date)
     const blocks = activityLogs.map((log) => blockFromActivityLog(log, catalog))
@@ -835,7 +845,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   /* ---------- RPG engine: recompute on load + when history changes ---------- */
   const engine = useMemo(
-    () => computeEngine(data, todayIso()),
+    () => computeEngine(data, zonedClock(new Date(), timeZoneFromSettings(data.settings)).date),
     // eslint-disable-next-line react-hooks/exhaustive-deps
     [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.program_days, data.exercises, data.health_metrics, data.imported_activities, data.settings],
   )

@@ -56,8 +56,8 @@ export function searchEquipment(query: string, language: 'en' | 'ro' | 'th' = 'e
     .map((entry) => entry.item)
 }
 
-export function isTrainingInductionEligible(persona: PersonaSlug): boolean {
-  return persona !== 'constantine'
+export function isTrainingInductionEligible(_persona: PersonaSlug): boolean {
+  return true
 }
 
 export interface TrainingInductionInput {

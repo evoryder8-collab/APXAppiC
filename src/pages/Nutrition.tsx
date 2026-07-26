@@ -11,7 +11,6 @@ import {
   Toggle,
 } from '../components/ui'
 import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS, type TargetMeal } from '../lib/nutrition'
-import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
@@ -48,6 +47,7 @@ import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdem
 import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { loggedMealEditorState } from '../lib/mealExperience'
 import { personalTargetFor } from '../lib/personalProtocol'
+import { clockToMinute, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -95,7 +95,8 @@ export function Nutrition() {
   const requestedDate = searchParams.get('date')
   const returnToSimple = searchParams.get('return') === 'simple'
   const handledRequestedSection = useRef(false)
-  const today = todayIso()
+  const mealTimeZone = timeZoneFromSettings(data.settings)
+  const today = zonedClock(new Date(), mealTimeZone).date
   const [selectedLogDate, setSelectedLogDate] = useState(() => requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
   const nutritionSwipeStart = useRef<{ x: number; y: number; touchId: number; blockedByLocalGesture: boolean } | null>(null)
@@ -249,6 +250,7 @@ export function Nutrition() {
     const item = await plannedFoodItem(meal)
     await foodStore.logMeal({
       date: selectedLogDate, slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
+      finishedAt: selectedLogDate === today ? undefined : zonedDateTimeToIso(selectedLogDate, meal.time, mealTimeZone),
       loggedAs: 'planned', idempotencyKey: `planned:${profile?.user_id}:${selectedLogDate}:${meal.id}`,
     })
   }
@@ -573,7 +575,7 @@ export function Nutrition() {
 
   /* Supplements resolved to today's clock and grouped */
   const trainingTime = profile?.training_time ?? '19:00'
-  const nowMin = new Date().getHours() * 60 + new Date().getMinutes()
+  const nowMin = clockToMinute(zonedClock(new Date(), mealTimeZone).time)
   const isTrainingDay = true // every weekday has a session in these programs
   const groups = useMemo(() => {
     const map = new Map<string, { time: number; items: Supplement[] }>()
@@ -660,6 +662,7 @@ export function Nutrition() {
           sourcePresetId: sourceMeal.source_preset_id,
           sourcePlannedMealId: sourceMeal.source_planned_meal_id,
           replaceMealId: replaceMeal?.id,
+          finishedAt: zonedDateTimeToIso(targetDate, zonedClock(sourceMeal.logged_at, mealTimeZone).time, mealTimeZone),
           loggedAs: sourceMeal.logged_as,
           idempotencyKey: mealBlockIdempotencyKey(dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id), sourceBlockId),
         })

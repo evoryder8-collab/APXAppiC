@@ -23,6 +23,15 @@ export interface ZonedClock {
   minute: number
 }
 
+export interface TimeZoneOption {
+  zone: string
+  city: string
+  countries: string[]
+  label: string
+  offset: string
+  searchText: string
+}
+
 export interface TimedMeal {
   meal: LoggedMeal
   time: string
@@ -233,6 +242,194 @@ export function supportedTimeZones(): string[] {
     'Australia/Sydney',
     'UTC',
   ]
+}
+
+const FALLBACK_REGION_ZONES: Record<string, string[]> = {
+  CH: ['Europe/Zurich'],
+  RO: ['Europe/Bucharest'],
+  TH: ['Asia/Bangkok'],
+  GB: ['Europe/London'],
+  IE: ['Europe/Dublin'],
+  US: ['America/New_York', 'America/Chicago', 'America/Denver', 'America/Los_Angeles', 'America/Phoenix', 'Pacific/Honolulu', 'America/Anchorage'],
+  CA: ['America/Toronto', 'America/Vancouver', 'America/Edmonton', 'America/Halifax', 'America/Winnipeg', 'America/St_Johns'],
+  AU: ['Australia/Sydney', 'Australia/Melbourne', 'Australia/Brisbane', 'Australia/Adelaide', 'Australia/Perth'],
+  NZ: ['Pacific/Auckland'],
+  DE: ['Europe/Berlin'],
+  AT: ['Europe/Vienna'],
+  FR: ['Europe/Paris'],
+  IT: ['Europe/Rome'],
+  ES: ['Europe/Madrid', 'Atlantic/Canary'],
+  PT: ['Europe/Lisbon', 'Atlantic/Azores'],
+  NL: ['Europe/Amsterdam'],
+  BE: ['Europe/Brussels'],
+  DK: ['Europe/Copenhagen'],
+  SE: ['Europe/Stockholm'],
+  NO: ['Europe/Oslo'],
+  FI: ['Europe/Helsinki'],
+  PL: ['Europe/Warsaw'],
+  GR: ['Europe/Athens'],
+  TR: ['Europe/Istanbul'],
+  UA: ['Europe/Kyiv'],
+  AE: ['Asia/Dubai'],
+  IN: ['Asia/Calcutta'],
+  SG: ['Asia/Singapore'],
+  MY: ['Asia/Kuala_Lumpur'],
+  ID: ['Asia/Jakarta', 'Asia/Makassar', 'Asia/Jayapura'],
+  PH: ['Asia/Manila'],
+  VN: ['Asia/Ho_Chi_Minh'],
+  JP: ['Asia/Tokyo'],
+  KR: ['Asia/Seoul'],
+  CN: ['Asia/Shanghai'],
+  HK: ['Asia/Hong_Kong'],
+  TW: ['Asia/Taipei'],
+  ZA: ['Africa/Johannesburg'],
+  EG: ['Africa/Cairo'],
+  BR: ['America/Sao_Paulo', 'America/Manaus', 'America/Belem'],
+  MX: ['America/Mexico_City', 'America/Tijuana', 'America/Cancun'],
+  AR: ['America/Buenos_Aires'],
+}
+
+const timeZoneOptionCache = new Map<string, TimeZoneOption[]>()
+
+function normalizedSearchText(value: string): string {
+  return value
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .replace(/[._/()-]+/g, ' ')
+    .replace(/\s+/g, ' ')
+    .trim()
+}
+
+function countryZones(): Map<string, string[]> {
+  const byRegion = new Map<string, string[]>()
+  for (const [region, zones] of Object.entries(FALLBACK_REGION_ZONES)) byRegion.set(region, zones)
+  for (let first = 65; first <= 90; first += 1) {
+    for (let second = 65; second <= 90; second += 1) {
+      const region = String.fromCharCode(first, second)
+      try {
+        const locale = new Intl.Locale(`und-${region}`) as Intl.Locale & { timeZones?: readonly string[] }
+        const zones = locale.timeZones
+        if (zones?.length) byRegion.set(region, [...zones])
+      } catch {
+        // Reserved two-letter combinations are intentionally skipped.
+      }
+    }
+  }
+  return byRegion
+}
+
+function timeZoneOffset(zone: string, locale: string): string {
+  try {
+    const part = new Intl.DateTimeFormat(locale, {
+      timeZone: zone,
+      timeZoneName: 'shortOffset',
+    }).formatToParts(new Date()).find((candidate) => candidate.type === 'timeZoneName')
+    return part?.value ?? ''
+  } catch {
+    return ''
+  }
+}
+
+/**
+ * Builds a searchable catalogue from the runtime's complete IANA database.
+ * Where supported, Intl.Locale supplies the country-to-timezone relationship,
+ * so users can search "Thailand", "România", "ประเทศไทย", a city, or an IANA
+ * identifier without shipping a second timezone database.
+ */
+export function supportedTimeZoneOptions(locale = 'en'): TimeZoneOption[] {
+  const localeKey = locale === 'ro' || locale === 'th' ? locale : 'en'
+  const cached = timeZoneOptionCache.get(localeKey)
+  if (cached) return cached
+  const zones = supportedTimeZones()
+  const zoneSet = new Set(zones)
+  const localizedNames = new Intl.DisplayNames([localeKey], { type: 'region' })
+  const englishNames = new Intl.DisplayNames(['en'], { type: 'region' })
+  const namesByZone = new Map<string, Set<string>>()
+  const searchNamesByZone = new Map<string, Set<string>>()
+
+  for (const [region, regionZones] of countryZones()) {
+    const localized = localizedNames.of(region)
+    const english = englishNames.of(region)
+    if (!localized || !english || localized === region || english === region) continue
+    for (const zone of regionZones) {
+      if (!zoneSet.has(zone)) continue
+      const visible = namesByZone.get(zone) ?? new Set<string>()
+      visible.add(localized)
+      namesByZone.set(zone, visible)
+      const searchable = searchNamesByZone.get(zone) ?? new Set<string>()
+      searchable.add(localized)
+      searchable.add(english)
+      searchable.add(region)
+      searchNamesByZone.set(zone, searchable)
+    }
+  }
+
+  const options = zones.map((zone): TimeZoneOption => {
+    const pieces = zone.split('/')
+    const city = (pieces.at(-1) ?? zone).replaceAll('_', ' ')
+    const area = pieces.slice(0, -1).join(' ').replaceAll('_', ' ')
+    const countries = [...(namesByZone.get(zone) ?? [])].sort((left, right) => left.localeCompare(right, localeKey))
+    const countryLabel = countries.slice(0, 2).join(' / ')
+    const label = countryLabel ? `${city}, ${countryLabel}` : `${city}, ${area}`
+    const searchText = normalizedSearchText([
+      zone,
+      city,
+      area,
+      ...countries,
+      ...(searchNamesByZone.get(zone) ?? []),
+    ].join(' '))
+    return {
+      zone,
+      city,
+      countries,
+      label,
+      offset: timeZoneOffset(zone, localeKey),
+      searchText,
+    }
+  }).sort((left, right) => left.label.localeCompare(right.label, localeKey))
+
+  timeZoneOptionCache.set(localeKey, options)
+  return options
+}
+
+export function searchTimeZoneOptions(
+  query: string,
+  locale = 'en',
+  limit = 18,
+): TimeZoneOption[] {
+  const needle = normalizedSearchText(query)
+  const options = supportedTimeZoneOptions(locale)
+  if (!needle) {
+    const preferred = new Set([
+      detectedTimeZone(),
+      'Europe/Zurich',
+      'Europe/Bucharest',
+      'Asia/Bangkok',
+      'Europe/London',
+      'America/New_York',
+      'America/Los_Angeles',
+      'Australia/Sydney',
+    ])
+    return [
+      ...options.filter((option) => preferred.has(option.zone)),
+      ...options.filter((option) => !preferred.has(option.zone)),
+    ].slice(0, limit)
+  }
+  return options
+    .map((option) => {
+      const zone = normalizedSearchText(option.zone)
+      const label = normalizedSearchText(option.label)
+      const exact = zone === needle || label === needle
+      const starts = zone.startsWith(needle) || label.startsWith(needle)
+        || option.searchText.split(' ').some((token) => token.startsWith(needle))
+      const contains = option.searchText.includes(needle)
+      return { option, rank: exact ? 0 : starts ? 1 : contains ? 2 : 3 }
+    })
+    .filter((candidate) => candidate.rank < 3)
+    .sort((left, right) => left.rank - right.rank || left.option.label.localeCompare(right.option.label, locale))
+    .slice(0, Math.max(1, limit))
+    .map((candidate) => candidate.option)
 }
 
 function zonedParts(value: Date | string, timeZone: string): Record<string, string> {

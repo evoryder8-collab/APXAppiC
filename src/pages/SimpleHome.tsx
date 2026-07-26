@@ -19,7 +19,7 @@ import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
 import { ACTIVITY_MULTIPLIERS, GOALS, buildTargetMealPlan, computeTargets, type TargetMeal } from '../lib/nutrition'
-import { planForDate, todayIso } from '../lib/plan'
+import { planForDate } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, ProgramSlug, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
@@ -37,7 +37,7 @@ import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
-import { normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings } from '../lib/mealTiming'
+import { clockToMinute, normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
 import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
 import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
@@ -88,7 +88,10 @@ export function SimpleHome() {
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; targetTime: string | null; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
   const [customWaterDraft, setCustomWaterDraft] = useState('')
-  const today = todayIso()
+  const profile = data.profile
+  const settings = data.settings
+  const mealTimeZone = timeZoneFromSettings(settings)
+  const today = zonedClock(new Date(), mealTimeZone).date
   const [selectedDate, setSelectedDate] = useState(today)
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseISO(today)))
@@ -103,8 +106,6 @@ export function SimpleHome() {
   const swipeStart = useRef<{ x: number; y: number; touchId: number; blockedByLocalGesture: boolean } | null>(null)
   const summaryActionsRef = useRef<HTMLDivElement>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedDate), [selectedDate])
-  const profile = data.profile
-  const settings = data.settings
   const weightUnit = weightUnitFromSettings(settings)
   const adhdMode = settings?.addons.adhd_mode ?? false
   const showOrbitShortcut = settings?.addons.simple_show_orbit ?? true
@@ -220,6 +221,7 @@ export function SimpleHome() {
   const supplementDoneIds = useMemo(() => new Set(dateSupplementLogs.map((log) => log.supplement_id)), [dateSupplementLogs])
   const guidedProgramSlug: ProgramSlug =
     profile?.persona === 'constantine' || profile?.persona === 'june' ? 'main' : 'transition'
+  const guidedScheduleRoute = guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
   const plan = useMemo(
     () => planForDate(data, guidedProgramSlug, selectedDate, false),
     [data, guidedProgramSlug, selectedDate],
@@ -415,7 +417,7 @@ export function SimpleHome() {
       void openMealBlock(recovery)
       return
     }
-    openMealAtTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: timeZoneFromSettings(settings) }))
+    openMealAtTime(zonedClock(new Date(), mealTimeZone).time)
   }
 
   const toggleMeal = async (meal: TargetMeal): Promise<void> => {
@@ -433,6 +435,7 @@ export function SimpleHome() {
         const blockId = mealBlockStatuses.find((status) => status.plannedMeal?.id === meal.id)?.block.id
         await foodStore.logMeal({
           date: selectedDate, slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
+          finishedAt: selectedDate === today ? undefined : zonedDateTimeToIso(selectedDate, meal.time, mealTimeZone),
           loggedAs: 'planned', idempotencyKey: mealBlockIdempotencyKey(`simple-planned:${profile.user_id}:${selectedDate}:${meal.id}`, blockId),
         })
         upsert('meal_logs', {
@@ -541,7 +544,7 @@ export function SimpleHome() {
     setEditingManualExerciseId(null)
   }
   const openTraining = (): void => {
-    navigate(hasWorkout && !workoutDone ? `/player/${guidedProgramSlug}/${selectedDate}` : `/${guidedProgramSlug}`)
+    navigate(hasWorkout && !workoutDone ? `/player/${guidedProgramSlug}/${selectedDate}` : guidedScheduleRoute)
   }
 
   const openNutritionSection = (section: 'meals' | 'supplements'): void => {
@@ -603,6 +606,7 @@ export function SimpleHome() {
           sourcePresetId: sourceMeal.source_preset_id,
           sourcePlannedMealId: sourceMeal.source_planned_meal_id,
           replaceMealId: replaceMeal?.id,
+          finishedAt: zonedDateTimeToIso(targetDate, zonedClock(sourceMeal.logged_at, mealTimeZone).time, mealTimeZone),
           loggedAs: sourceMeal.logged_as,
           idempotencyKey: mealBlockIdempotencyKey(dayMealCopyIdempotencyKey(profile.user_id, copiedDay, targetDate, sourceMeal.id), sourceBlockId),
         })
@@ -697,7 +701,7 @@ export function SimpleHome() {
     if (offset !== 0) moveDay(offset)
   }
 
-  const nowMinutes = selectedDate === today ? new Date().getHours() * 60 + new Date().getMinutes() : 0
+  const nowMinutes = selectedDate === today ? clockToMinute(zonedClock(new Date(), mealTimeZone).time) : 0
   const actionCandidates = [
     ...mealBlockStatuses.filter((status) => !status.completed).map((status) => ({
       time: minuteOf(status.block.time), eyebrow: 'Next meal', title: status.plannedMeal?.name ?? mealBlockLabel(status.block.kind),
@@ -879,7 +883,7 @@ export function SimpleHome() {
           date={selectedDate}
           meals={dateFoodMeals}
           entries={foodStore.entries}
-          timeZone={timeZoneFromSettings(settings)}
+          timeZone={mealTimeZone}
           density={normalizeMealDaylineDensity(settings.addons.meal_dayline_density)}
           fallbackTimes={timelineFallbackTimes}
           slots={timelineSlots}
@@ -951,7 +955,7 @@ export function SimpleHome() {
           </GlassCard>
         </Link>}
 
-        {!adhdMode && <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">Food or activity changed?</Link><Link to={`/${guidedProgramSlug}`} className="glass rounded-2xl px-3 py-3">Open full schedule</Link></div>}
+        {!adhdMode && <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">{t('Food or activity changed?')}</Link><Link to={guidedScheduleRoute} className="glass rounded-2xl px-3 py-3">{t('Open full schedule')}</Link></div>}
       </div>
       <AnimatePresence>
         {showCalendar && (

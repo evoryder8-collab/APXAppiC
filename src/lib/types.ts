@@ -365,6 +365,29 @@ export interface Settings {
        spacious default, while Long makes two-hour guidance bands especially
        easy to inspect on a phone. */
     meal_dayline_density?: 'compact' | 'medium' | 'long'
+    /* One immutable-style summary per local calendar day. Closed days keep a
+       verdict even when no meal was logged, while later corrections rebuild
+       that day and deterministically replay the Avatar engine. */
+    meal_rhythm_history?: Record<string, {
+      date: string
+      time_zone: string
+      finalized: boolean
+      expected_meals: number
+      logged_meals: number
+      scheduled_times: Array<{
+        id: string
+        slot: 'breakfast' | 'lunch' | 'dinner' | 'snack'
+        time: string
+      }>
+      meal_times: string[]
+      first_meal_at: string | null
+      last_meal_at: string | null
+      completion_score: number
+      timing_score: number | null
+      rhythm_score: number
+      verdict: 'open' | 'complete_on_time' | 'complete_irregular' | 'missed_meals' | 'no_meals'
+      updated_at: string
+    }>
     recovery_data_source?: RecoveryDataSource
     recovery_history?: RecoveryCheckin[]
     watch_activity_history?: WatchActivityCheckin[]

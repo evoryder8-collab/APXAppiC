@@ -4,6 +4,7 @@ import type { AppData, ProgramSlug } from './types'
 import { approachRamp } from './plan'
 import type { LoggedFoodEntry, LoggedMeal } from './food'
 import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming'
+import { normalizeMealRhythmHistory } from './mealRhythm'
 
 export interface MealTimingReportContext {
   meals: LoggedMeal[]
@@ -96,6 +97,18 @@ export function buildReport(
       `- ${d.date}: ${d.kcal ?? '?'} kcal, P ${d.protein_g ?? '?'} g, F ${d.fat_g ?? '?'} g, C ${d.carbs_g ?? '?'} g, water ${d.water_l} L`,
     )
   }
+  lines.push('')
+
+  const rhythmDays = Object.values(normalizeMealRhythmHistory(data.settings?.addons.meal_rhythm_history))
+    .filter((day) => day.date >= fromIso && day.date <= toIso)
+    .sort((left, right) => left.date.localeCompare(right.date))
+  lines.push('## Closed-day meal consistency')
+  for (const day of rhythmDays) {
+    lines.push(
+      `- ${day.date}: ${day.logged_meals}/${day.expected_meals} configured meals, completion ${day.completion_score}/100, timing ${day.timing_score ?? '?'} / 100, combined rhythm ${day.rhythm_score}/100, verdict ${day.verdict.replaceAll('_', ' ')}, first meal ${day.first_meal_at ?? 'not recorded'}, last meal ${day.last_meal_at ?? 'not recorded'}, timezone ${day.time_zone}.`,
+    )
+  }
+  if (rhythmDays.length === 0) lines.push('- No closed-day meal verdicts were available in this range.')
   lines.push('')
 
   if (mealTiming) {

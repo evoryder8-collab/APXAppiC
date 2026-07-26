@@ -564,6 +564,8 @@ const rows: Array<[string, string, string]> = [
   ['Use a meal above, scan a barcode, repeat a recent meal, or log one of your planned cards below.', 'Alege o masă, scanează un cod, repetă o masă recentă sau înregistrează planul de mai jos.', 'เลือกมื้อด้านบน สแกนบาร์โค้ด ทำซ้ำมื้อล่าสุด หรือบันทึกตามแผนด้านล่าง'],
   ['Build this meal', 'Construiește masa', 'จัดมื้ออาหาร'],
   ['Meal name', 'Numele mesei', 'ชื่อมื้อ'],
+  ['Meal finished at', 'Masa s-a terminat la', 'กินมื้อเสร็จเวลา'],
+  ['This time places the meal on your Dayline and updates timing trends.', 'Această oră poziționează masa pe cronologia zilei și actualizează tendințele de ritm.', 'เวลานี้จะวางมื้ออาหารบนไทม์ไลน์และอัปเดตแนวโน้มเวลา'],
   ['Search foods, aliases or brands', 'Caută alimente, denumiri sau mărci', 'ค้นหาอาหาร ชื่อเรียก หรือยี่ห้อ'],
   ['Scan', 'Scanează', 'สแกน'],
   ['Scan a food barcode', 'Scanează codul de bare al alimentului', 'สแกนบาร์โค้ดอาหาร'],

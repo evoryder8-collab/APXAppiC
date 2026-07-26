@@ -51,6 +51,8 @@ import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supaba
 import { todayIso } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import { mealBlockIdempotencyKey, mealMomentIdFromIdempotencyKey } from '../lib/mealBlocks'
+import { buildMealRhythmDay, mealRhythmRefreshDates, normalizeMealRhythmHistory } from '../lib/mealRhythm'
+import { timeZoneFromSettings, zonedClock } from '../lib/mealTiming'
 import { useStore } from './AppStore'
 import {
   OPEN_FOOD_FACTS_FIELDS,
@@ -63,6 +65,7 @@ interface LogMealInput {
   slot: MealSlot
   name: string
   items: ComposerFoodItem[]
+  finishedAt?: string | null
   sourcePresetId?: string | null
   sourcePlannedMealId?: string | null
   replaceMealId?: string | null
@@ -208,7 +211,7 @@ async function fetchAllOwnedFoodRows(
 }
 
 export function FoodStoreProvider({ children }: { children: ReactNode }) {
-  const { data, upsert } = useStore()
+  const { data, upsert, setSettings } = useStore()
   const userId = data.profile?.user_id ?? null
   const userIdRef = useRef(userId)
   userIdRef.current = userId
@@ -353,6 +356,76 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   }, [hydrationRetry, userId])
 
   useEffect(() => { void hydrate() }, [hydrate])
+
+  /*
+   * The meal ledger is the source of truth for each closed-day verdict.
+   * Rebuilding these compact summaries is deterministic: a correction made
+   * tomorrow to yesterday's meal immediately replaces yesterday's signal and
+   * causes the Avatar engine to replay from that date. The minute heartbeat is
+   * what turns the open day into a final verdict when local midnight passes.
+   */
+  useEffect(() => {
+    if (!ready || !userId || !data.settings) return
+    const settings = data.settings
+    const refreshRhythm = (): void => {
+      if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return
+      const timeZone = timeZoneFromSettings(settings)
+      const today = zonedClock(new Date(), timeZone).date
+      const current = normalizeMealRhythmHistory(settings.addons.meal_rhythm_history)
+      const dates = mealRhythmRefreshDates({
+        today,
+        baselineDate: data.profile?.baseline_date,
+        knownDates: [
+          ...Object.keys(current),
+          ...mealsRef.current.map((meal) => meal.local_date),
+        ],
+      })
+      const earliest = new Date(`${today}T12:00:00Z`)
+      earliest.setUTCDate(earliest.getUTCDate() - 729)
+      const cutoff = earliest.toISOString().slice(0, 10)
+      const next = { ...current }
+      let changed = false
+      for (const date of dates) {
+        if (date < cutoff || date > today) continue
+        const record = buildMealRhythmDay({
+          date,
+          meals: mealsRef.current,
+          settings,
+          today,
+          existing: current[date],
+        })
+        if (record !== current[date]) {
+          next[date] = record
+          changed = true
+        }
+      }
+      for (const date of Object.keys(next)) {
+        if (date < cutoff) {
+          delete next[date]
+          changed = true
+        }
+      }
+      if (!changed) return
+      setSettings({
+        addons: {
+          ...settings.addons,
+          meal_rhythm_history: Object.fromEntries(
+            Object.entries(next).sort(([left], [right]) => right.localeCompare(left)).slice(0, 730),
+          ),
+        },
+      })
+    }
+    refreshRhythm()
+    const timer = window.setInterval(refreshRhythm, 60_000)
+    return () => window.clearInterval(timer)
+  }, [
+    data.profile?.baseline_date,
+    data.settings,
+    meals,
+    ready,
+    setSettings,
+    userId,
+  ])
 
   /* Food history lives in its own transactional store. Re-hydrate it when a
      second device changes a meal or preset, and whenever iOS foregrounds the
@@ -615,6 +688,11 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     mutationRevision.current += 1
     const date = input.date ?? todayIso()
     const now = new Date().toISOString()
+    const parsedFinishedAt = input.finishedAt ? new Date(input.finishedAt) : null
+    if (parsedFinishedAt && !Number.isFinite(parsedFinishedAt.getTime())) {
+      throw new Error('Choose a valid meal finish time.')
+    }
+    const finishedAt = parsedFinishedAt?.toISOString() ?? now
     const id = crypto.randomUUID()
     const totals = mealTotals(input.items)
     const meal: LoggedMeal = {
@@ -625,7 +703,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       display_name: input.name,
       source_preset_id: input.sourcePresetId ?? null,
       source_planned_meal_id: input.sourcePlannedMealId ?? null,
-      logged_at: now,
+      logged_at: finishedAt,
       client_idempotency_key: input.idempotencyKey ?? crypto.randomUUID(),
       logged_as: input.loggedAs ?? 'custom',
       total_kcal: totals.kcal,
