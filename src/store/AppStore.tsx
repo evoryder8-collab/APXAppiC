@@ -837,7 +837,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const engine = useMemo(
     () => computeEngine(data, todayIso()),
     // eslint-disable-next-line react-hooks/exhaustive-deps
-    [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.program_days, data.exercises, data.health_metrics, data.imported_activities],
+    [data.profile, data.workout_sessions, data.workout_logs, data.daily_logs, data.program_days, data.exercises, data.health_metrics, data.imported_activities, data.settings],
   )
   const snapshots = engine.snapshots
   useEffect(() => {
