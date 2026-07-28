@@ -391,6 +391,18 @@ export interface Settings {
     recovery_data_source?: RecoveryDataSource
     recovery_history?: RecoveryCheckin[]
     watch_activity_history?: WatchActivityCheckin[]
+    /* User-editable meal guidance copied from the athlete protocol. Keys
+       include persona, meal slot and goal so switching goals never destroys
+       a carefully configured list for another phase. */
+    meal_protocol_overrides?: Record<string, string[]>
+    /* The scanner intentionally stays rear-camera-only unless a person
+       explicitly enables this accessibility fallback for a broken rear lens. */
+    food_scanner_front_camera?: boolean
+    /* Clean hides coaching prose while Detailed preserves the explanatory
+       layer. Functional labels and safety feedback remain visible in both. */
+    interface_mode?: 'clean' | 'detailed'
+    /* Persisted order for the large Simple Mode blocks. */
+    simple_block_order?: string[]
   }
 }
 

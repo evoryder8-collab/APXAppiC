@@ -487,6 +487,86 @@ const BASE_PROTOCOL_FOOD_SPECS: CatalogFoodSpec[] = [
     names: { en: 'Bell pepper strips, frozen', de: 'Paprikastreifen, tiefgekühlt', fr: 'Lanières de poivrons, surgelées', it: 'Strisce di peperoni, surgelate', ro: 'Fâșii de ardei gras congelate', th: 'พริกหวานหั่นเส้นแช่แข็ง' },
     kcal: 29, protein: 1, carbs: 6, fat: 0.3, fibre: 2.1,
   },
+  {
+    slug: 'ravioli-cheese-cooked',
+    names: { en: 'Cheese ravioli, cooked', de: 'Käse-Ravioli, gekocht', fr: 'Ravioli au fromage, cuits', it: 'Ravioli al formaggio, cotti', ro: 'Ravioli cu brânză, fierți', th: 'ราวิโอลีชีส สุก' },
+    kcal: 165, protein: 7, carbs: 25, fat: 4, fibre: 1.7, preparation: 'cooked',
+  },
+  {
+    slug: 'ravioli-meat-cooked',
+    names: { en: 'Meat ravioli, cooked', de: 'Fleisch-Ravioli, gekocht', fr: 'Ravioli à la viande, cuits', it: 'Ravioli di carne, cotti', ro: 'Ravioli cu carne, fierți', th: 'ราวิโอลีเนื้อ สุก' },
+    kcal: 180, protein: 8, carbs: 24, fat: 6, fibre: 1.6, preparation: 'cooked',
+  },
+  {
+    slug: 'ravioli-tomato-sauce',
+    names: { en: 'Ravioli with tomato sauce, prepared', de: 'Ravioli mit Tomatensauce, zubereitet', fr: 'Ravioli à la sauce tomate, préparés', it: 'Ravioli al sugo di pomodoro, preparati', ro: 'Ravioli cu sos de roșii, preparați', th: 'ราวิโอลีกับซอสมะเขือเทศ พร้อมรับประทาน' },
+    kcal: 132, protein: 5.2, carbs: 20.5, fat: 3.4, fibre: 2, preparation: 'prepared',
+  },
+  {
+    slug: 'ravioli-cream-sauce',
+    names: { en: 'Ravioli with cream sauce, prepared', de: 'Ravioli mit Rahmsauce, zubereitet', fr: 'Ravioli à la sauce à la crème, préparés', it: 'Ravioli con salsa alla panna, preparati', ro: 'Ravioli cu sos de smântână, preparați', th: 'ราวิโอลีกับซอสครีม พร้อมรับประทาน' },
+    kcal: 190, protein: 7, carbs: 22, fat: 8.5, fibre: 1.4, preparation: 'prepared',
+  },
+  {
+    slug: 'omelette-plain',
+    names: { en: 'Omelette, plain', de: 'Omelett, natur', fr: 'Omelette nature', it: 'Frittata semplice', ro: 'Omletă simplă', th: 'ไข่เจียวแบบธรรมดา' },
+    kcal: 154, protein: 10.6, carbs: 0.6, fat: 12, preparation: 'prepared',
+  },
+  {
+    slug: 'omelette-cheese',
+    names: { en: 'Cheese omelette', de: 'Käseomelett', fr: 'Omelette au fromage', it: 'Frittata al formaggio', ro: 'Omletă cu brânză', th: 'ไข่เจียวชีส' },
+    kcal: 205, protein: 14, carbs: 1.5, fat: 16, preparation: 'prepared',
+  },
+  {
+    slug: 'scrambled-eggs-plain',
+    names: { en: 'Scrambled eggs, plain', de: 'Rührei, natur', fr: 'Œufs brouillés nature', it: 'Uova strapazzate semplici', ro: 'Ouă jumări simple', th: 'ไข่คนแบบธรรมดา' },
+    kcal: 149, protein: 10, carbs: 1.6, fat: 11, preparation: 'prepared',
+  },
+  {
+    slug: 'scrambled-eggs-butter',
+    names: { en: 'Scrambled eggs with butter', de: 'Rührei mit Butter', fr: 'Œufs brouillés au beurre', it: 'Uova strapazzate al burro', ro: 'Ouă jumări cu unt', th: 'ไข่คนใส่เนย' },
+    kcal: 175, protein: 10, carbs: 1.5, fat: 14, preparation: 'prepared',
+  },
+  {
+    slug: 'wienerli-im-teig',
+    names: { en: 'Wienerli in pastry, sausage roll', de: 'Wienerli im Teig', fr: 'Saucisse en croûte', it: 'Würstel in pasta sfoglia', ro: 'Crenvurșt în aluat', th: 'ไส้กรอกห่อแป้งอบ' },
+    kcal: 310, protein: 11, carbs: 28, fat: 17, saturatedFat: 7, salt: 1.6, preparation: 'prepared', pieceGrams: 110,
+  },
+  {
+    slug: 'butter-croissant',
+    names: { en: 'Butter croissant', de: 'Buttergipfel', fr: 'Croissant au beurre', it: 'Cornetto al burro', ro: 'Croissant cu unt', th: 'ครัวซองต์เนย' },
+    kcal: 406, protein: 8.2, carbs: 45.8, fat: 21, sugar: 11, saturatedFat: 12, preparation: 'prepared', pieceGrams: 55,
+  },
+  {
+    slug: 'pain-au-chocolat',
+    names: { en: 'Chocolate pastry, pain au chocolat', de: 'Schokoladengipfel', fr: 'Pain au chocolat', it: 'Saccottino al cioccolato', ro: 'Foietaj cu ciocolată', th: 'เพนโอช็อกโกแลต' },
+    kcal: 414, protein: 7.4, carbs: 48, fat: 21.5, sugar: 22, saturatedFat: 12, preparation: 'prepared', pieceGrams: 75,
+  },
+  {
+    slug: 'apple-turnover',
+    names: { en: 'Apple turnover pastry', de: 'Apfeltasche', fr: 'Chausson aux pommes', it: 'Sfoglia alle mele', ro: 'Foietaj cu mere', th: 'พายพัฟไส้แอปเปิล' },
+    kcal: 330, protein: 4, carbs: 47, fat: 14, sugar: 20, preparation: 'prepared', pieceGrams: 95,
+  },
+  {
+    slug: 'cheese-pastry',
+    names: { en: 'Cheese pastry', de: 'Käsegebäck', fr: 'Feuilleté au fromage', it: 'Sfoglia al formaggio', ro: 'Foietaj cu brânză', th: 'พายพัฟไส้ชีส' },
+    kcal: 350, protein: 11, carbs: 31, fat: 20, salt: 1.4, preparation: 'prepared', pieceGrams: 90,
+  },
+  {
+    slug: 'sea-buckthorn-fruit-spread',
+    names: { en: 'Sea buckthorn fruit spread', de: 'Sanddornzubereitung', fr: 'Préparation à l’argousier', it: 'Preparazione all’olivello spinoso', ro: 'Preparat tartinabil din cătină', th: 'แยมซีบัคธอร์น' },
+    kcal: 240, protein: 0.5, carbs: 57, fat: 0.5, sugar: 52, preparation: 'prepared',
+  },
+  {
+    slug: 'espresso-decaffeinato-capsule-brewed',
+    names: { en: 'Decaffeinated espresso capsule, brewed', de: 'Espresso Decaffeinato Kapsel, zubereitet', fr: 'Capsule espresso décaféiné, préparé', it: 'Capsula espresso decaffeinato, preparato', ro: 'Capsulă espresso decofeinizat, preparat', th: 'กาแฟเอสเปรสโซแคปซูลดีแคฟ ชงแล้ว' },
+    kcal: 2, protein: 0.1, carbs: 0.3, fat: 0, nutritionBasis: 'per_100ml', servingAmount: 40, servingUnit: 'ml', preparation: 'prepared',
+  },
+  {
+    slug: 'lungo-decaffeinato-capsule-brewed',
+    names: { en: 'Decaffeinated lungo capsule, brewed', de: 'Lungo Decaffeinato Kapsel, zubereitet', fr: 'Capsule lungo décaféiné, préparé', it: 'Capsula lungo decaffeinato, preparato', ro: 'Capsulă lungo decofeinizat, preparat', th: 'กาแฟลุงโกแคปซูลดีแคฟ ชงแล้ว' },
+    kcal: 2, protein: 0.1, carbs: 0.3, fat: 0, nutritionBasis: 'per_100ml', servingAmount: 110, servingUnit: 'ml', preparation: 'prepared',
+  },
 ]
 
 const PROTOCOL_FOOD_SPECS: CatalogFoodSpec[] = [

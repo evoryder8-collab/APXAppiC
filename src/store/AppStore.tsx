@@ -167,6 +167,12 @@ function normalizeAppData(value: AppData): AppData {
           recovery_data_source: normalizeRecoverySource(value.settings.addons?.recovery_data_source),
           recovery_history: normalizeRecoveryHistory(value.settings.addons?.recovery_history),
           watch_activity_history: normalizeWatchActivityHistory(value.settings.addons?.watch_activity_history),
+          meal_protocol_overrides: value.settings.addons?.meal_protocol_overrides ?? {},
+          food_scanner_front_camera: value.settings.addons?.food_scanner_front_camera ?? false,
+          interface_mode: value.settings.addons?.interface_mode === 'detailed' ? 'detailed' : 'clean',
+          simple_block_order: Array.isArray(value.settings.addons?.simple_block_order)
+            ? value.settings.addons.simple_block_order.filter((item): item is string => typeof item === 'string')
+            : [],
         },
       }
     : null

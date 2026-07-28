@@ -83,7 +83,7 @@ export function Portal() {
               ? 'Lean power, abs and conditioning'
               : isIulian
                 ? 'Bodybuilding'
-                : 'Elite V6, ready when you are')}
+                : 'V8.1')}
           icon={<BoltIcon className="h-7 w-7" />}
           index={2}
         />

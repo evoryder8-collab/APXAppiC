@@ -9,6 +9,7 @@ import {
   composerItemFromSelection,
   displayFoodName,
   expandFoodSearchQueries,
+  foodNeedsPrivateMaterialization,
   isFoodNutritionComplete,
   mealTotals,
   mergeExtendedFoodResults,
@@ -29,6 +30,9 @@ import { mealBlockIdempotencyKey, normalizeMealBlockSettings, type MealBlockIden
 import { useStore } from '../../store/AppStore'
 import { rankMealHistoryRecommendations } from '../../lib/mealExperience'
 import { timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../../lib/mealTiming'
+import { computeTargets } from '../../lib/nutrition'
+import { ATHLETE_SUPPORT_PROTOCOLS } from '../../lib/personalProtocol'
+import type { IntroLanguage } from '../../lib/introLanguage'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -53,6 +57,47 @@ function foodProvenanceLabel(food: FoodRecord): string {
   if (food.source === 'open_food_facts') return 'Open Food Facts community record. Check the package label.'
   if (food.confidence === 'provider_verified') return 'Verified label or nutrition-provider reference'
   return 'Curated reference profile. Product labels can vary.'
+}
+
+const MEAL_PROTOCOL_INDEX: Record<MealSlot, number> = {
+  breakfast: 0,
+  lunch: 1,
+  snack: 2,
+  dinner: 3,
+}
+
+function goalAdjustedProtocolLine(line: string, persona: string, goal: string): string {
+  const scale = persona === 'june'
+    ? goal === 'recomp' ? 0.85 : goal === 'maintain' ? 0.93 : 1
+    : goal === 'bulk' ? 1.1 : goal === 'maintain' ? 1.04 : 1
+  if (scale === 1 || !/(?:oats?|bulgur|sweet potato|rice|evoo|walnuts?|seeds?|protein|whey)/i.test(line)) return line
+  return line.replace(/^(\d+)(?:-(\d+))?\s*(g|ml)\b/i, (_match, lowText: string, highText: string | undefined, unit: string) => {
+    const low = Math.max(1, Math.round((Number(lowText) * scale) / 5) * 5)
+    const high = highText ? Math.max(low, Math.round((Number(highText) * scale) / 5) * 5) : null
+    return `${low}${high && high !== low ? `-${high}` : ''} ${unit}`
+  })
+}
+
+function protocolFoodQuery(line: string): { query: string; quantity: number; unit: FoodUnit } {
+  const ranged = line.match(/^(\d+)(?:-(\d+))?\s*(g|ml)\s+(.+)$/i)
+  if (ranged) {
+    const low = Number(ranged[1])
+    const high = ranged[2] ? Number(ranged[2]) : low
+    return { query: ranged[4].replace(/\s+(?:when|or|according|providing|with)\b.*$/i, '').trim(), quantity: Math.round((low + high) / 2), unit: ranged[3].toLowerCase() as FoodUnit }
+  }
+  const piece = line.match(/^1\s+(.+)$/i)
+  if (piece) return { query: piece[1].replace(/\s+or\b.*$/i, '').trim(), quantity: 1, unit: 'piece' }
+  return {
+    query: line.replace(/^Optional\s+/i, '').replace(/\s+or\b.*$/i, '').trim(),
+    quantity: 100,
+    unit: 'g',
+  }
+}
+
+function translateProtocolLine(line: string, language: IntroLanguage): string {
+  const portion = line.match(/^(\d+(?:-\d+)?\s*(?:g|ml))\s+(.+)$/i)
+  if (!portion) return translateInterfaceText(line, language)
+  return `${portion[1]} ${translateInterfaceText(portion[2], language)}`
 }
 
 export function MealComposer({
@@ -105,6 +150,8 @@ export function MealComposer({
   const quickAddedTimer = useRef<number | null>(null)
   const [controlHelp, setControlHelp] = useState<{ itemId: string; kind: 'adaptive' | 'lock' | 'role' } | null>(null)
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
+  const [protocolOpen, setProtocolOpen] = useState(false)
+  const [protocolEditing, setProtocolEditing] = useState(false)
 
   const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(data.settings?.addons.meal_blocks), [data.settings?.addons.meal_blocks])
   const effectiveTargetTime = targetTime
@@ -143,6 +190,28 @@ export function MealComposer({
     [alternateQueries, query, ranked, remoteResults],
   )
   const totals = useMemo(() => mealTotals(items), [items])
+  const dailyTargets = useMemo(() => data.profile ? computeTargets(data.profile) : null, [data.profile])
+  const mealShare = slot === 'breakfast' ? 0.25 : slot === 'lunch' || slot === 'dinner' ? 0.3 : 0.15
+  const mealMacroTargets = dailyTargets
+    ? {
+        protein: Math.max(1, Math.round(dailyTargets.protein_g * mealShare)),
+        carbs: Math.max(1, Math.round(dailyTargets.carbs_g * mealShare)),
+        fat: Math.max(1, Math.round(dailyTargets.fat_g * mealShare)),
+      }
+    : null
+  const protocolKey = data.profile ? `${data.profile.persona}:${slot}:${data.profile.goal}:${language}` : ''
+  const defaultProtocolLines = useMemo(() => {
+    if (!data.profile) return []
+    const protocol = ATHLETE_SUPPORT_PROTOCOLS[data.profile.persona]
+    const meal = protocol?.meals[MEAL_PROTOCOL_INDEX[slot]]
+    return meal?.foods.map((line) => goalAdjustedProtocolLine(line, data.profile!.persona, data.profile!.goal)) ?? []
+  }, [data.profile, slot])
+  const savedProtocolLines = protocolKey ? data.settings?.addons.meal_protocol_overrides?.[protocolKey] : undefined
+  const protocolLines = savedProtocolLines ?? defaultProtocolLines.map((line) => translateProtocolLine(line, language))
+  const [protocolDraft, setProtocolDraft] = useState<string[]>(protocolLines)
+  useEffect(() => {
+    if (!protocolEditing) setProtocolDraft(protocolLines)
+  }, [protocolEditing, protocolKey, protocolLines.join('\u0000')])
   const selectionPortion = useMemo(
     () => selection ? calculatePortion(selection.food, selection.quantity, selection.unit) : null,
     [selection],
@@ -223,8 +292,14 @@ export function MealComposer({
   }, [language, query, store.widerSearch])
 
   const materializeFood = async (food: FoodRecord): Promise<FoodRecord> => {
-    const needsPrivateCopy = food.id.startsWith('off:') || food.provider_product_id?.startsWith('apex-curated:')
-    if (!needsPrivateCopy || food.owner_user_id) return food
+    /*
+     * Offline protocol references are intentionally shipped in the client so
+     * search works before the network does. Materialize both curated and
+     * protocol records into the owner's food table before an entry references
+     * them; otherwise Supabase's logged_food_entries.food_id FK can reject an
+     * otherwise valid meal on first use.
+     */
+    if (!foodNeedsPrivateMaterialization(food)) return food
     const existing = store.foods.find((candidate) => candidate.owner_user_id && (
       candidate.provider_product_id === food.provider_product_id || Boolean(food.barcode && candidate.barcode === food.barcode)
     ))
@@ -368,6 +443,47 @@ export function MealComposer({
     }
   }
 
+  const addProtocolFood = async (line: string) => {
+    const parsed = protocolFoodQuery(line)
+    const match = rankFoods(parsed.query, store.foods, store.preferences, slot)[0]
+    if (!match) {
+      setQuery(parsed.query)
+      setMessage(t('No exact saved food matched this guide item. Search results are ready for you to choose the correct label.'))
+      return
+    }
+    if (!isFoodNutritionComplete(match)) {
+      await selectFood(match)
+      return
+    }
+    const supportedUnits = availableFoodUnits(match)
+    const unit = supportedUnits.includes(parsed.unit) ? parsed.unit : match.nutrition_basis === 'per_100ml' ? 'ml' : 'g'
+    const trackableFood = await materializeFood(match)
+    setItems((current) => commitFoodSelection(current, {
+      food: trackableFood,
+      quantity: parsed.quantity,
+      unit,
+    }))
+    setQuickAddedLabel(`${t('Added')} · ${displayFoodName(match, language)}`)
+  }
+
+  const saveProtocolGuide = () => {
+    if (!data.settings || !protocolKey) return
+    const cleaned = protocolDraft.map((line) => line.trim()).filter(Boolean)
+    const nextOverrides = {
+      ...(data.settings.addons.meal_protocol_overrides ?? {}),
+    }
+    if (cleaned.length > 0) nextOverrides[protocolKey] = cleaned
+    else delete nextOverrides[protocolKey]
+    setSettings({
+      addons: {
+        ...data.settings.addons,
+        meal_protocol_overrides: nextOverrides,
+      },
+    })
+    setProtocolEditing(false)
+    setMessage(t('Predefined list saved for this goal.'))
+  }
+
   const createManual = async () => {
     const values = [manual.kcal, manual.protein, manual.carbs, manual.fat].map(parseDecimalInput)
     if (!manual.name.trim() || values.some((value) => value == null || value < 0)) {
@@ -470,7 +586,7 @@ export function MealComposer({
             <p className="font-mono text-[10px] tracking-[0.18em] text-ink-faint uppercase">{t(planning ? 'Future meal plan' : 'Actual intake')} · {slotLabel}</p>
             <h2 className="font-display text-xl font-bold text-ink">{t(planning ? 'Plan this meal' : 'Build this meal')}</h2>
           </div>
-          <button type="button" onClick={onClose} className="glass rounded-full px-4 py-2 text-sm font-bold text-ink">Close</button>
+          <button type="button" onClick={onClose} className="glass rounded-full px-4 py-2 text-sm font-bold text-ink">{t('Close')}</button>
         </div>
 
         <div className="mt-4 space-y-4">
@@ -492,12 +608,90 @@ export function MealComposer({
               </label>
             </div>
             <p className="mt-2 text-[9px] font-semibold text-ink-faint">{t('This time places the meal on your Dayline and updates timing trends.')}</p>
-            <div className="mt-3 grid grid-cols-4 gap-2 border-t border-ink/8 pt-3 text-center">
-              {([['kcal', totals.kcal], ['protein', totals.protein_g], ['carbs', totals.carbs_g], ['fat', totals.fat_g]] as const).map(([label, value]) => (
-                <div key={label}><p className="font-mono text-lg font-bold text-ink">{value}</p><p className="text-[9px] font-bold text-ink-faint uppercase">{label}</p></div>
-              ))}
+            <div className="mt-3 flex items-center justify-between gap-3 border-t border-ink/8 pt-3">
+              <div>
+                <p className="font-mono text-xl font-black text-ink">{totals.kcal} <span className="text-[10px] text-ink-faint">kcal</span></p>
+                <p className="text-[9px] font-bold text-ink-faint uppercase">{t('This meal')}</p>
+              </div>
+              {protocolLines.length > 0 && (
+                <button
+                  type="button"
+                  onClick={() => setProtocolOpen((value) => !value)}
+                  className="rounded-xl border border-amber-300/35 bg-amber-50/75 px-3 py-2 text-xs font-black text-amber-800 shadow-sm"
+                >
+                  {t('Predefined list')} {protocolOpen ? '−' : '+'}
+                </button>
+              )}
             </div>
+            {mealMacroTargets && (
+              <div className="mt-3 grid grid-cols-3 gap-2" aria-label={t('Meal macro completion')}>
+                {([
+                  ['Protein', totals.protein_g, mealMacroTargets.protein, '#ec4899'],
+                  ['Carbs', totals.carbs_g, mealMacroTargets.carbs, '#22b8e6'],
+                  ['Fat', totals.fat_g, mealMacroTargets.fat, '#9b7be8'],
+                ] as const).map(([label, value, target, color]) => {
+                  const completion = Math.max(0, Math.min(1.15, value / Math.max(1, target)))
+                  const reached = completion >= 0.85
+                  return (
+                    <div key={label} className="min-w-0 rounded-2xl border border-white/85 bg-white/62 px-2.5 py-2.5">
+                      <div className="flex items-baseline justify-between gap-1">
+                        <p className="truncate text-[10px] font-black text-ink">{t(label)}</p>
+                        <span className="shrink-0 text-[9px] font-black" style={{ color: reached ? '#047857' : '#777782' }}>{reached ? '✓' : `${value}/${target}g`}</span>
+                      </div>
+                      <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/7">
+                        <motion.div
+                          className="h-full rounded-full"
+                          animate={{ width: `${Math.min(100, completion * 100)}%` }}
+                          style={{ background: color, boxShadow: `0 0 10px ${color}66` }}
+                        />
+                      </div>
+                      <p className="mt-1 text-[8px] font-bold text-ink-faint">{reached ? t('minimum reached') : t('toward meal guide')}</p>
+                    </div>
+                  )
+                })}
+              </div>
+            )}
           </GlassCard>
+
+          <AnimatePresence initial={false}>
+            {protocolOpen && protocolLines.length > 0 && (
+              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                <GlassCard accent={amber} className="p-4">
+                  <div className="flex items-center justify-between gap-3">
+                    <div>
+                      <p className="font-mono text-[9px] font-black tracking-[.15em] text-amber-700 uppercase">{t('Your meal guide')}</p>
+                      <p className="mt-0.5 text-[11px] font-semibold text-ink-soft">{t('Adjusted for the current goal. Package labels remain the nutrition source.')}</p>
+                    </div>
+                    <button type="button" onClick={() => setProtocolEditing((value) => !value)} className="rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-black text-ink">{t(protocolEditing ? 'Done editing' : 'Configure')}</button>
+                  </div>
+                  <div className="mt-3 space-y-2">
+                    {(protocolEditing ? protocolDraft : protocolLines).map((line, index) => (
+                      <div key={`${index}:${line}`} className="flex items-center gap-2 rounded-2xl border border-white/90 bg-white/66 px-3 py-2.5">
+                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-500/10 font-mono text-[9px] font-black text-amber-800">{index + 1}</span>
+                        {protocolEditing ? (
+                          <>
+                            <input value={line} onChange={(event) => setProtocolDraft((current) => current.map((value, itemIndex) => itemIndex === index ? event.target.value : value))} className="min-w-0 flex-1 bg-transparent text-sm font-bold text-ink outline-none" />
+                            <button type="button" onClick={() => setProtocolDraft((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="grid h-7 w-7 place-items-center rounded-full bg-red-500/8 font-black text-red-600">×</button>
+                          </>
+                        ) : (
+                          <>
+                            <p className="min-w-0 flex-1 text-sm leading-snug font-bold text-ink">{line}</p>
+                            <button type="button" onClick={() => void addProtocolFood(savedProtocolLines ? line : defaultProtocolLines[index] ?? line)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-amber-400/45 bg-white text-xl font-black text-amber-700 active:scale-90" aria-label={`${t('Add')} ${line}`}>+</button>
+                          </>
+                        )}
+                      </div>
+                    ))}
+                  </div>
+                  {protocolEditing && (
+                    <div className="mt-3 flex gap-2">
+                      <button type="button" onClick={() => setProtocolDraft((current) => [...current, ''])} className="rounded-xl bg-white/75 px-3 py-2 text-xs font-black text-ink">+ {t('Item')}</button>
+                      <button type="button" onClick={saveProtocolGuide} className="flex-1 rounded-xl px-3 py-2 text-xs font-black text-white" style={{ background: amber.gradient }}>{t('Save configuration')}</button>
+                    </div>
+                  )}
+                </GlassCard>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           <GlassCard className="overflow-visible p-3">
             <div className="flex gap-2">
@@ -531,6 +725,26 @@ export function MealComposer({
               })}
               <button type="button" onClick={() => setManualOpen((value) => !value)} className="shrink-0 rounded-full bg-white/70 px-3 py-1.5 text-xs font-bold text-ink-soft">{t('+ Private food')}</button>
             </div>
+            <AnimatePresence initial={false}>
+              {manualOpen && (
+                <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }} className="overflow-hidden">
+                  <div className="mt-3 rounded-2xl border border-amber-300/25 bg-amber-50/55 p-3">
+                    <h3 className="font-display text-sm font-bold text-ink">{t('Create a private food')}</h3>
+                    <p className="mt-1 text-[10px] text-ink-soft">{t('Values are per 100 g. Decimal commas are accepted. This record is visible only to you.')}</p>
+                    <input value={manual.name} onChange={(event) => setManual((value) => ({ ...value, name: event.target.value }))} placeholder={t('Food name')} className="mt-3 w-full rounded-xl bg-white/80 px-3 py-2 text-sm outline-none" />
+                    <div className="mt-2 grid grid-cols-2 gap-2">
+                      {(['kcal', 'protein', 'carbs', 'fat'] as const).map((field) => (
+                        <input key={field} inputMode="decimal" value={manual[field]} onChange={(event) => setManual((value) => ({ ...value, [field]: event.target.value }))} placeholder={`${t(field)} / 100 g`} className="rounded-xl bg-white/80 px-3 py-2 text-sm outline-none" />
+                      ))}
+                    </div>
+                    <select value={manual.preparation} onChange={(event) => setManual((value) => ({ ...value, preparation: event.target.value as FoodRecord['preparation_state'] }))} className="mt-2 w-full rounded-xl bg-white/80 px-3 py-2 text-sm">
+                      <option value="as_sold">{t('As sold')}</option><option value="dry">{t('Dry')}</option><option value="cooked">{t('Cooked')}</option><option value="prepared">{t('Prepared')}</option><option value="drained">{t('Drained')}</option>
+                    </select>
+                    <button type="button" onClick={() => void createManual()} className="mt-3 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white">{t('Save privately and add')}</button>
+                  </div>
+                </motion.div>
+              )}
+            </AnimatePresence>
             <p className="sr-only" aria-live="polite">{quickAddedLabel}</p>
             {(displayedFoods.length > 0 || query.trim().length >= 2) && (
               <div className="mt-4 max-h-[min(32rem,52dvh)] space-y-2 overflow-y-auto pr-1">
@@ -618,33 +832,12 @@ export function MealComposer({
             )}
           </GlassCard>
 
-          <AnimatePresence>
-            {manualOpen && (
-              <motion.div initial={{ opacity: 0, height: 0 }} animate={{ opacity: 1, height: 'auto' }} exit={{ opacity: 0, height: 0 }}>
-                <GlassCard className="p-4">
-                  <h3 className="font-display text-sm font-bold text-ink">Create a private food</h3>
-                  <p className="mt-1 text-[11px] text-ink-soft">Values are per 100 g. Decimal commas are accepted. This record is visible only to you.</p>
-                  <input value={manual.name} onChange={(event) => setManual((value) => ({ ...value, name: event.target.value }))} placeholder="Food name" className="mt-3 w-full rounded-xl bg-white/70 px-3 py-2 text-sm outline-none" />
-                  <div className="mt-2 grid grid-cols-2 gap-2">
-                    {(['kcal', 'protein', 'carbs', 'fat'] as const).map((field) => (
-                      <input key={field} inputMode="decimal" value={manual[field]} onChange={(event) => setManual((value) => ({ ...value, [field]: event.target.value }))} placeholder={`${field} / 100 g`} className="rounded-xl bg-white/70 px-3 py-2 text-sm outline-none" />
-                    ))}
-                  </div>
-                  <select value={manual.preparation} onChange={(event) => setManual((value) => ({ ...value, preparation: event.target.value as FoodRecord['preparation_state'] }))} className="mt-2 w-full rounded-xl bg-white/70 px-3 py-2 text-sm">
-                    <option value="as_sold">As sold</option><option value="dry">Dry</option><option value="cooked">Cooked</option><option value="prepared">Prepared</option><option value="drained">Drained</option>
-                  </select>
-                  <button type="button" onClick={() => void createManual()} className="mt-3 rounded-xl bg-amber-500 px-4 py-2 text-xs font-bold text-white">Save privately and add</button>
-                </GlassCard>
-              </motion.div>
-            )}
-          </AnimatePresence>
-
           {(slotPresets.length > 0 || recentMeals.length > 0) && (
             <GlassCard className="p-4">
-              <p className="text-[10px] font-bold tracking-wide text-ink-faint uppercase">Fast starts</p>
+              <p className="text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Fast starts')}</p>
               <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                {slotPresets.map((preset) => <button key={preset.id} type="button" onClick={() => loadPreset(preset.id)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink">Preset · {preset.name}</button>)}
-                {recentMeals.map((meal) => <button key={meal.id} type="button" onClick={() => loadRecent(meal.id)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink">Repeat · {meal.display_name}</button>)}
+                {slotPresets.map((preset) => <button key={preset.id} type="button" onClick={() => loadPreset(preset.id)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink">{t('Preset')} · {preset.name}</button>)}
+                {recentMeals.map((meal) => <button key={meal.id} type="button" onClick={() => loadRecent(meal.id)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink">{t('Repeat')} · {meal.display_name}</button>)}
               </div>
             </GlassCard>
           )}
@@ -719,39 +912,43 @@ export function MealComposer({
                       </motion.div>
                     )}
                   </AnimatePresence>
-                  <div className="mt-2 grid grid-cols-[minmax(0,1fr)_minmax(0,1.15fr)] gap-2">
+                  <div className="mt-2">
                     <input
                       defaultValue={store.preferences.find((value) => value.food_id === item.food.id)?.personal_name ?? ''}
                       onBlur={(event) => void store.setPreference(item.food.id, { personal_name: event.target.value.trim() || null })}
                       placeholder={t('Personal label')}
-                      className="rounded-lg bg-white/65 px-2 py-1.5 text-[10px] outline-none"
+                      className="w-full rounded-lg bg-white/65 px-2 py-1.5 text-[10px] outline-none"
                     />
-                    {index === items.length - 1 ? (
-                      <button
-                        type="button"
-                        disabled={saving || totals.kcal <= 0}
-                        onClick={() => void log()}
-                        className="rounded-xl px-3 py-2 text-[11px] font-black text-white shadow-[0_12px_24px_-14px_rgba(245,158,11,.9)] disabled:opacity-50"
-                        style={{ background: amber.gradient }}
-                      >
-                        {saving ? t('Saving privately…') : t(replaceMealId ? 'Replace meal' : planning ? 'Add to day' : 'Add food')} · {totals.kcal} kcal
-                      </button>
-                    ) : <span />}
                   </div>
                 </GlassCard>
               )
             })}
           </div>
 
+          {items.length > 0 && (
+            <motion.button
+              type="button"
+              disabled={saving || totals.kcal <= 0}
+              onClick={() => void log()}
+              whileTap={{ scale: 0.985 }}
+              className="sticky bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-20 w-full rounded-[1.35rem] px-5 py-4 text-base font-black text-white shadow-[0_20px_42px_-18px_rgba(245,158,11,.95)] ring-1 ring-white/55 disabled:opacity-50"
+              style={{ background: amber.gradient }}
+            >
+              {saving
+                ? t('Saving meal…')
+                : `${t(replaceMealId ? 'Save changes & close' : planning ? 'Save to day & close' : 'Save meal & close')} · ${totals.kcal} ${t('kcal')}`}
+            </motion.button>
+          )}
+
           {message && <p className="rounded-2xl bg-amber-500/10 px-4 py-3 text-xs font-semibold text-amber-800">{translateInterfaceText(message, language)}</p>}
 
           {items.length > 0 && (
             <GlassCard className="p-4">
-              <p className="text-xs font-bold text-ink">Keep this combination</p>
+              <p className="text-xs font-bold text-ink">{t('Keep this combination')}</p>
               <div className="mt-2 flex flex-wrap gap-2">
                 <input value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder={name} className="min-w-44 flex-1 rounded-xl bg-white/75 px-3 py-2 text-sm outline-none" />
-                <button type="button" onClick={() => void savePreset(false)} className="rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-ink">{loadedPresetId ? 'Update preset' : 'Save preset'}</button>
-                {loadedPresetId && <button type="button" onClick={() => void savePreset(true)} className="rounded-xl bg-white/65 px-3 py-2 text-xs font-bold text-ink-soft">Save as new</button>}
+                <button type="button" onClick={() => void savePreset(false)} className="rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-ink">{t(loadedPresetId ? 'Update preset' : 'Save preset')}</button>
+                {loadedPresetId && <button type="button" onClick={() => void savePreset(true)} className="rounded-xl bg-white/65 px-3 py-2 text-xs font-bold text-ink-soft">{t('Save as new')}</button>}
               </div>
               <p className="mt-2 text-[10px] font-medium text-ink-faint">{t(planning ? 'Adding this meal changes only the selected date. Saved presets remain unchanged.' : 'Logging below changes today only. A saved preset changes only when you use the buttons above.')}</p>
             </GlassCard>
@@ -866,7 +1063,7 @@ export function MealComposer({
           </motion.div>
         )}
       </AnimatePresence>
-      {scanner && <Suspense fallback={null}><BarcodeScanner onDetected={(code) => void lookupCode(code)} onClose={() => setScanner(false)} /></Suspense>}
+      {scanner && <Suspense fallback={null}><BarcodeScanner allowFrontCamera={data.settings?.addons.food_scanner_front_camera ?? false} onDetected={(code) => void lookupCode(code)} onClose={() => setScanner(false)} /></Suspense>}
     </div>
   )
 }

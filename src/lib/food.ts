@@ -335,6 +335,10 @@ export function normalizeFoodSearch(value: string): string {
     .replace(/\bulei(?: de)? masine\b/g, 'ulei de masline')
     .replace(/\bextra vergin\b/g, 'extra virgin')
     .replace(/\boliv oil\b/g, 'olive oil')
+    .replace(/\bweinerli\b/g, 'wienerli')
+    .replace(/\bam teig\b/g, 'im teig')
+    .replace(/\bomlette\b/g, 'omelette')
+    .replace(/\braviolli\b/g, 'ravioli')
     .trim()
 }
 
@@ -423,6 +427,18 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'seu de vita': 'beef tallow',
     'untura de porc': 'pork lard',
     'unt clarificat': 'ghee clarified butter',
+    'ravioli cu branza': 'cheese ravioli',
+    'ravioli cu carne': 'meat ravioli',
+    'ravioli cu sos': 'ravioli sauce',
+    'omleta': 'omelette',
+    'omleta cu branza': 'cheese omelette',
+    'oua jumari': 'scrambled eggs',
+    'crenvurst in aluat': 'wienerli im teig',
+    'carnat in foietaj': 'wienerli im teig',
+    'catina': 'sea buckthorn',
+    'gem de catina': 'sea buckthorn fruit spread',
+    'cafea decofeinizata': 'decaffeinated coffee capsule',
+    'capsule cafea decofeinizata': 'decaffeinated coffee capsule',
   },
   th: {
     'อกไก่': 'chicken breast',
@@ -578,6 +594,20 @@ export function displayFoodName(food: FoodRecord, language: IntroLanguage): stri
   return food.names_i18n[language] || food.name
 }
 
+/**
+ * Provider and bundled-catalog results cannot assume that a matching shared
+ * row exists in every deployed database. Copy them into the signed-in
+ * owner's table before a logged entry points at them, preserving the server
+ * foreign-key contract across new and older deployments.
+ */
+export function foodNeedsPrivateMaterialization(food: FoodRecord): boolean {
+  return !food.owner_user_id && (
+    food.id.startsWith('off:')
+    || food.provider_product_id?.startsWith('apex-curated:') === true
+    || food.provider_product_id?.startsWith('apex-protocol:') === true
+  )
+}
+
 export function parseDecimalInput(value: string | number): number | null {
   if (typeof value === 'number') return Number.isFinite(value) ? value : null
   let normalized = value.trim().replace(/[\s']/g, '')
@@ -681,6 +711,18 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
 }
 
 const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-protocol:generic:ravioli-cheese-cooked': ['ravioli', 'cheese ravioli', 'ravioli cu branza', 'ravioli cu brânză', 'käse ravioli', 'ราวิโอลีชีส'],
+  'apex-protocol:generic:ravioli-meat-cooked': ['ravioli', 'meat ravioli', 'ravioli cu carne', 'fleisch ravioli', 'ราวิโอลีเนื้อ'],
+  'apex-protocol:generic:ravioli-tomato-sauce': ['ravioli with sauce', 'ravioli tomato sauce', 'ravioli cu sos', 'ravioli cu sos de rosii', 'ravioli mit tomatensauce'],
+  'apex-protocol:generic:ravioli-cream-sauce': ['ravioli with sauce', 'ravioli cream sauce', 'ravioli cu sos de smantana', 'ravioli mit rahmsauce'],
+  'apex-protocol:generic:omelette-plain': ['omelette', 'omelet', 'omleta', 'omletă', 'omelett', 'ไข่เจียว'],
+  'apex-protocol:generic:omelette-cheese': ['cheese omelette', 'omleta cu branza', 'omletă cu brânză', 'käseomelett', 'ไข่เจียวชีส'],
+  'apex-protocol:generic:scrambled-eggs-plain': ['scrambled egg', 'scrambled eggs', 'oua jumari', 'ouă jumări', 'ruhrei', 'rührei', 'ไข่คน'],
+  'apex-protocol:generic:scrambled-eggs-butter': ['scrambled eggs butter', 'oua jumari cu unt', 'ouă jumări cu unt', 'rührei mit butter'],
+  'apex-protocol:generic:wienerli-im-teig': ['wienerli im teig', 'weinerli am teig', 'weinerli im teig', 'sausage roll', 'crenvurst in aluat', 'cârnat în foietaj', 'würstchen im teig'],
+  'apex-protocol:generic:sea-buckthorn-fruit-spread': ['sanddornzubereitung', 'sanddorn', 'sea buckthorn jam', 'sea buckthorn spread', 'catina', 'cătină', 'gem de catina', 'migros sanddorn'],
+  'apex-protocol:generic:espresso-decaffeinato-capsule-brewed': ['migros decaf coffee capsule', 'cafe royal espresso decaffeinato', 'espresso decaf capsule', 'capsula cafea decofeinizata'],
+  'apex-protocol:generic:lungo-decaffeinato-capsule-brewed': ['migros decaf coffee capsule', 'cafe royal lungo decaffeinato', 'lungo decaf capsule', 'capsula cafea decofeinizata'],
   'apex-curated:ayran-yogurt-drink-reference': [
     'ayran', 'ayran yoghurt drink', 'ayran yogurt drink', 'turkish yoghurt drink', 'turkish yogurt drink',
     'bautura de iaurt ayran', 'băutură de iaurt ayran', 'iaurt de baut ayran', 'iaurt de băut ayran',
@@ -1007,10 +1049,10 @@ export function foodSearchRelevanceScore(
   const { names, brandedNames, personal, preferenceAliases, curatedAliases, searchable } = foodSearchValues(food, preference)
   if (personal === needle) return 12_000
   if (preferenceAliases.includes(needle)) return 11_800
+  if (brandedNames.includes(needle)) return 11_700
   if (curatedAliases.includes(needle)) return 11_600
   if (names[0] === needle) return 11_400
   if (names.slice(1).includes(needle)) return 11_200
-  if (brandedNames.includes(needle)) return 11_000
   if (searchable.some((value) => value.startsWith(needle))) return 8_500
   if (searchable.some((value) => value.includes(needle))) return 6_800
   if (allowFuzzy && searchable.some((value) => fuzzyFoodSearchMatch(needle, value))) return 4_200

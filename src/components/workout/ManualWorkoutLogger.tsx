@@ -539,12 +539,14 @@ export function TodayManualWorkoutCard({
   onEdit,
   accent = ACCENTS.teal,
   compact = false,
+  detailed = false,
 }: {
   date: string
   onAdd: () => void
   onEdit?: (sessionId: string, exerciseId: string) => void
   accent?: Accent
   compact?: boolean
+  detailed?: boolean
 }) {
   const { data, bulkUpsert, remove, toast } = useStore()
   const { language } = useLanguage()
@@ -619,7 +621,7 @@ export function TodayManualWorkoutCard({
     return (
       <button type="button" onClick={onAdd} className="group relative w-full overflow-hidden rounded-[26px] bg-[#071624] p-5 text-left text-white active:scale-[.99]" style={{ boxShadow: `0 24px 55px -34px ${accent.glowStrong}` }}>
         <div className="orbit-stars pointer-events-none absolute inset-0 opacity-40" aria-hidden /><div className="pointer-events-none absolute -right-16 -bottom-24 h-52 w-52 rounded-full bg-cyan-400/25 blur-3xl" aria-hidden />
-        <div className="relative flex items-center justify-between gap-4"><div><p className="font-mono text-[9px] font-black tracking-[.18em] text-cyan-200 uppercase">{t('TRAIN YOUR WAY')}</p><h2 className="mt-1 font-display text-xl font-bold">{t('Add Workout')}</h2><p className="mt-1 text-xs text-slate-300">{t('Log exercises, sets, reps and weight after training.')}</p></div><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400 text-2xl font-black text-slate-950 transition group-active:scale-90">+</span></div>
+        <div className="relative flex items-center justify-between gap-4"><div><p className="font-mono text-[9px] font-black tracking-[.18em] text-cyan-200 uppercase">{t('TRAIN YOUR WAY')}</p><h2 className="mt-1 font-display text-xl font-bold">{t('Add Workout')}</h2>{detailed && <p className="mt-1 text-xs text-slate-300">{t('Log exercises, sets, reps and weight after training.')}</p>}</div><span className="grid h-12 w-12 shrink-0 place-items-center rounded-2xl bg-cyan-400 text-2xl font-black text-slate-950 transition group-active:scale-90">+</span></div>
       </button>
     )
   }

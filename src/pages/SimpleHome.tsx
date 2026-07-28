@@ -1,5 +1,5 @@
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import type { ReactNode } from 'react'
+import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import {
   addDays,
   addMonths,
@@ -14,7 +14,7 @@ import {
   startOfWeek,
 } from 'date-fns'
 import { Link, useNavigate } from 'react-router-dom'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion'
 import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
@@ -69,6 +69,28 @@ function mealSlotFor(meal: TargetMeal): MealSlot {
 }
 
 const legacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
+const SIMPLE_BLOCK_IDS = [
+  'recovery',
+  'nutrition',
+  'dayline',
+  'quick-actions',
+  'activity',
+  'manual-workout',
+  'next-action',
+  'guided-plan',
+  'orbit',
+  'body-index',
+  'links',
+] as const
+type SimpleBlockId = (typeof SIMPLE_BLOCK_IDS)[number]
+
+function normalizedSimpleBlockOrder(value: unknown): SimpleBlockId[] {
+  const known = new Set<SimpleBlockId>(SIMPLE_BLOCK_IDS)
+  const saved = Array.isArray(value)
+    ? value.filter((item): item is SimpleBlockId => typeof item === 'string' && known.has(item as SimpleBlockId))
+    : []
+  return [...new Set([...saved, ...SIMPLE_BLOCK_IDS])]
+}
 
 export function SimpleHome() {
   const { data, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
@@ -90,6 +112,8 @@ export function SimpleHome() {
   const [customWaterDraft, setCustomWaterDraft] = useState('')
   const profile = data.profile
   const settings = data.settings
+  const [simpleBlockOrder, setSimpleBlockOrder] = useState<SimpleBlockId[]>(() => normalizedSimpleBlockOrder(settings?.addons.simple_block_order))
+  const simpleBlockOrderRef = useRef(simpleBlockOrder)
   const mealTimeZone = timeZoneFromSettings(settings)
   const today = zonedClock(new Date(), mealTimeZone).date
   const [selectedDate, setSelectedDate] = useState(today)
@@ -235,6 +259,12 @@ export function SimpleHome() {
     const kg = dailyLog?.weight_kg
     setWeightDraft(kg == null ? '' : String(Number(weightFromKg(kg, weightUnit).toFixed(1))))
   }, [dailyLog?.weight_kg, selectedDate, weightUnit])
+
+  useEffect(() => {
+    const next = normalizedSimpleBlockOrder(settings?.addons.simple_block_order)
+    simpleBlockOrderRef.current = next
+    setSimpleBlockOrder(next)
+  }, [settings?.addons.simple_block_order])
 
   useEffect(() => {
     if (sessionStorage.getItem('apex-simple-return-anchor') !== 'summary-actions') return
@@ -831,132 +861,155 @@ export function SimpleHome() {
           <button type="button" onClick={() => moveDay(1)} aria-label={t('Next day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">›</button>
         </div>
         <div className="mt-1 flex items-end justify-between gap-3">
-          <div><h1 className="font-display text-[30px] leading-tight font-bold tracking-tight text-ink">{selectedDate === today ? t(`Today, ${firstName}.`) : `${firstName}.`}</h1><p className="mt-1 text-sm font-medium text-ink-soft">{t(selectedDate === today ? 'Only what matters. One tap at a time.' : 'Swipe between days. Plan ahead or review what happened.')}</p></div>
+          <div><h1 className="font-display text-[30px] leading-tight font-bold tracking-tight text-ink">{selectedDate === today ? t(`Today, ${firstName}.`) : `${firstName}.`}</h1>{(settings.addons.interface_mode ?? 'clean') === 'detailed' && <p className="mt-1 text-sm font-medium text-ink-soft">{t(selectedDate === today ? 'Only what matters. One tap at a time.' : 'Swipe between days. Plan ahead or review what happened.')}</p>}</div>
           <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#10b981 ${completion}%, rgba(26,26,34,0.08) 0)` }}>
             <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-white/90 font-mono text-sm font-bold text-ink">{completion}%</div>
           </div>
         </div>
       </motion.header>
 
-      <div className="space-y-4">
-        {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
-          <RecoveryCheckinCard date={selectedDate} settings={settings} onSettingsChange={setSettings} />
-        )}
-
-        <GlassCard accent={ACCENTS.amber} className="overflow-hidden p-0">
-          <NutritionGlance
-            target={targets}
-            consumed={consumed}
-            mealsDone={completedMeals}
-            mealsTotal={totalMealBlocks}
-            status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
-            onOpen={() => openNutritionSection('meals')}
-            onRingClick={() => setQuickPanel('targets')}
-            onMacroClick={(macro) => { setSelectedMacro(macro); setQuickPanel('macro') }}
-            cornerControl={selectedDate <= today ? (
-              <div data-simple-local-gesture className="flex items-center gap-1">
-                <label className="flex items-center rounded-lg border border-amber-200/65 bg-white/82 px-2 py-1 shadow-sm" title={t('Morning weight')}>
-                  <input
-                    type="text"
-                    inputMode="decimal"
-                    value={weightDraft}
-                    placeholder={String(Number(weightFromKg(profile.weight_kg, weightUnit).toFixed(1)))}
-                    onChange={(event) => {
-                      if (/^\d*(?:[.,]\d{0,1})?$/.test(event.target.value)) setWeightDraft(event.target.value)
-                    }}
-                    onClick={(event) => event.stopPropagation()}
-                    onBlur={commitMorningWeight}
-                    onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
-                    className="w-11 bg-transparent text-right font-mono text-base font-black text-ink outline-none"
-                    aria-label={t(weightUnit === 'lb' ? 'Morning weight in pounds' : 'Morning weight in kilograms')}
-                  />
-                  <span className="ml-1 font-mono text-[8px] font-black text-ink-faint uppercase">{weightUnit}</span>
-                </label>
-                <button type="button" onClick={(event) => { event.stopPropagation(); setQuickPanel('weight') }} aria-label={t('Open weight trend')} className="grid h-7 w-7 place-items-center rounded-lg border border-violet-100 bg-white/82 text-[12px] font-black text-violet-700 shadow-sm transition active:scale-90">⌁</button>
+      <Reorder.Group
+        axis="y"
+        values={simpleBlockOrder}
+        onReorder={(next) => {
+          simpleBlockOrderRef.current = next
+          setSimpleBlockOrder(next)
+        }}
+        className="space-y-4"
+        aria-label={t('Reorderable Simple Mode blocks')}
+      >
+        {simpleBlockOrder.map((blockId) => (
+          <HoldReorderItem
+            key={blockId}
+            value={blockId}
+            onDragEnd={() => setSettings({ addons: { ...settings.addons, simple_block_order: simpleBlockOrderRef.current } })}
+          >
+            {blockId === 'recovery' ? (
+              selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june')
+                ? <RecoveryCheckinCard date={selectedDate} settings={settings} onSettingsChange={setSettings} detailed={(settings.addons.interface_mode ?? 'clean') === 'detailed'} />
+                : null
+            ) : blockId === 'nutrition' ? (
+              <GlassCard accent={ACCENTS.amber} className="overflow-hidden p-0">
+                <NutritionGlance
+                  target={targets}
+                  consumed={consumed}
+                  mealsDone={completedMeals}
+                  mealsTotal={totalMealBlocks}
+                  status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
+                  onOpen={() => openNutritionSection('meals')}
+                  onRingClick={() => setQuickPanel('targets')}
+                  onMacroClick={(macro) => { setSelectedMacro(macro); setQuickPanel('macro') }}
+                  cornerControl={selectedDate <= today ? (
+                    <div data-simple-local-gesture className="flex items-center gap-1">
+                      <label className="flex items-center rounded-lg border border-amber-200/65 bg-white/82 px-2 py-1 shadow-sm" title={t('Morning weight')}>
+                        <input
+                          type="text"
+                          inputMode="decimal"
+                          value={weightDraft}
+                          placeholder={String(Number(weightFromKg(profile.weight_kg, weightUnit).toFixed(1)))}
+                          onChange={(event) => {
+                            if (/^\d*(?:[.,]\d{0,1})?$/.test(event.target.value)) setWeightDraft(event.target.value)
+                          }}
+                          onClick={(event) => event.stopPropagation()}
+                          onBlur={commitMorningWeight}
+                          onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}
+                          className="w-11 bg-transparent text-right font-mono text-base font-black text-ink outline-none"
+                          aria-label={t(weightUnit === 'lb' ? 'Morning weight in pounds' : 'Morning weight in kilograms')}
+                        />
+                        <span className="ml-1 font-mono text-[8px] font-black text-ink-faint uppercase">{weightUnit}</span>
+                      </label>
+                      <button type="button" onClick={(event) => { event.stopPropagation(); setQuickPanel('weight') }} aria-label={t('Open weight trend')} className="grid h-7 w-7 place-items-center rounded-lg border border-violet-100 bg-white/82 text-[12px] font-black text-violet-700 shadow-sm transition active:scale-90">⌁</button>
+                    </div>
+                  ) : undefined}
+                />
+              </GlassCard>
+            ) : blockId === 'dayline' ? (
+              <MealDayline
+                compact
+                detailed={(settings.addons.interface_mode ?? 'clean') === 'detailed'}
+                date={selectedDate}
+                meals={dateFoodMeals}
+                entries={foodStore.entries}
+                timeZone={mealTimeZone}
+                density={normalizeMealDaylineDensity(settings.addons.meal_dayline_density)}
+                fallbackTimes={timelineFallbackTimes}
+                slots={timelineSlots}
+                sessions={data.workout_sessions}
+                snapMinutes={normalizeMealTimelineSnap(settings.addons.meal_timeline_snap_minutes)}
+                onMealFinishedAt={foodStore.setMealFinishedAt}
+                onOpenMeal={(meal) => void editQuickCustomMeal(meal)}
+                onOpenSlot={(slot) => void openTimelineSlot(slot)}
+                onAddAtTime={openMealAtTime}
+                onDeleteMeal={(meal) => foodStore.deleteMeal(meal.id)}
+                onOpenRecoveryMeal={openRecoveryMeal}
+              />
+            ) : blockId === 'quick-actions' ? (
+              <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
+                <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${totalMealBlocks}`} label={t('Meals')} done={totalMealBlocks > 0 && completedMeals === totalMealBlocks} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
+                <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
+                <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
+                <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
               </div>
-            ) : undefined}
-          />
-        </GlassCard>
-
-        <MealDayline
-          compact
-          date={selectedDate}
-          meals={dateFoodMeals}
-          entries={foodStore.entries}
-          timeZone={mealTimeZone}
-          density={normalizeMealDaylineDensity(settings.addons.meal_dayline_density)}
-          fallbackTimes={timelineFallbackTimes}
-          slots={timelineSlots}
-          sessions={data.workout_sessions}
-          snapMinutes={normalizeMealTimelineSnap(settings.addons.meal_timeline_snap_minutes)}
-          onMealFinishedAt={foodStore.setMealFinishedAt}
-          onOpenMeal={(meal) => void editQuickCustomMeal(meal)}
-          onOpenSlot={(slot) => void openTimelineSlot(slot)}
-          onAddAtTime={openMealAtTime}
-          onDeleteMeal={(meal) => foodStore.deleteMeal(meal.id)}
-          onOpenRecoveryMeal={openRecoveryMeal}
-        />
-
-        <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
-          <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${totalMealBlocks}`} label={t('Meals')} done={totalMealBlocks > 0 && completedMeals === totalMealBlocks} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
-          <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
-          <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
-          <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
-        </div>
-
-        {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
-          <WatchActivityCheckin
-            date={selectedDate}
-            data={data}
-            profile={profile}
-            settings={settings}
-            onSettingsChange={setSettings}
-            onProfileChange={setProfile}
-          />
-        )}
-
-        <div className="flex justify-end" data-simple-local-gesture>
-          <QuickWorkoutLauncher
-            date={selectedDate}
-            accent={emerald}
-            onSaved={() => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: true } })}
-          />
-        </div>
-
-        {hasManualWorkout && (adhdMode || showManualWorkoutCard) && <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} />}
-
-        {!adhdMode && showNextAction && <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
-          <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
-          <div className="mt-2 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
-            <div className="min-w-0"><h2 className="break-words font-display text-[clamp(1.35rem,6vw,1.75rem)] leading-tight font-bold text-ink">{nextAction.title}</h2><p className="mt-1 text-xs font-semibold text-ink-soft">{nextAction.meta}</p></div>
-            <GradientButton accent={nextAction.accent} onClick={nextAction.run} className="w-full sm:w-auto sm:shrink-0">{nextAction.action}</GradientButton>
-          </div>
-        </GlassCard>}
-
-        {!adhdMode && showGuidedPlan && hasWorkout && !workoutDone && (
-          <GlassCard accent={ACCENTS.teal} className="p-4">
-            <div className="flex items-start justify-between gap-3">
-              <div className="min-w-0"><p className="truncate font-display text-base font-bold text-ink">{t(plan.programDay?.name ?? 'Guided workout')}</p><p className="text-[11px] font-medium text-ink-soft">{t('Start directly. Skip calendar and setup.')}</p></div>
-              <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>
-            </div>
-            <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}`)}>{t('Start')}</GradientButton></div>
-          </GlassCard>
-        )}
-
-        {!adhdMode && showOrbitShortcut && <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
-          <GlassCard accent={ACCENTS.ice} className="p-4">
-            <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.ice.gradient }}><OrbitIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">APEX Orbit</p><p className="truncate text-[11px] font-medium text-ink-soft">{orbit.state.active_run ? t('Continue interrupted run') : orbitSession ? `${orbitSession.adapted.duration_min} min · ${t(missionLabel(orbitSession.adapted.mission))}` : t('Your next run, already reasoned through')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{t('RUN')}</span></div>
-          </GlassCard>
-        </Link>}
-
-        {!adhdMode && showBodyIndexShortcut && <Link to="/avatar" className="block">
-          <GlassCard accent={emerald} className="p-4">
-            <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: emerald.gradient }}><AvatarIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">Your body index</p><p className="text-[11px] font-medium text-ink-soft">{t(`${momentum >= 0 ? '+' : ''}${momentum.toFixed(1)} over 14 days · tap for the full story`)}</p></div><span className="font-mono text-2xl font-bold text-emerald">{current?.overall.toFixed(0) ?? 'N/A'}</span></div>
-          </GlassCard>
-        </Link>}
-
-        {!adhdMode && <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">{t('Food or activity changed?')}</Link><Link to={guidedScheduleRoute} className="glass rounded-2xl px-3 py-3">{t('Open full schedule')}</Link></div>}
-      </div>
+            ) : blockId === 'activity' ? (
+              <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>
+                {selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') && (
+                  <WatchActivityCheckin
+                    compact
+                    detailed={(settings.addons.interface_mode ?? 'clean') === 'detailed'}
+                    date={selectedDate}
+                    data={data}
+                    profile={profile}
+                    settings={settings}
+                    onSettingsChange={setSettings}
+                    onProfileChange={setProfile}
+                  />
+                )}
+                <QuickWorkoutLauncher
+                  tile
+                  className={selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? '' : 'h-[5.25rem] w-[5.25rem]'}
+                  date={selectedDate}
+                  accent={emerald}
+                  onSaved={() => setSettings({ addons: { ...settings.addons, simple_show_manual_workout: true } })}
+                />
+              </div>
+            ) : blockId === 'manual-workout' ? (
+              hasManualWorkout && (adhdMode || showManualWorkoutCard) ? <TodayManualWorkoutCard compact date={selectedDate} onAdd={openNewManualWorkout} onEdit={openManualWorkout} /> : null
+            ) : blockId === 'next-action' ? (
+              !adhdMode && showNextAction ? <GlassCard accent={nextAction.accent} breathe className="p-5 sm:p-6">
+                <p className="font-mono text-[10px] font-bold tracking-[0.18em] uppercase" style={{ color: nextAction.accent.deep }}>{nextAction.eyebrow}</p>
+                <div className="mt-2 grid items-end gap-4 sm:grid-cols-[minmax(0,1fr)_auto]">
+                  <div className="min-w-0"><h2 className="break-words font-display text-[clamp(1.35rem,6vw,1.75rem)] leading-tight font-bold text-ink">{nextAction.title}</h2><p className="mt-1 text-xs font-semibold text-ink-soft">{nextAction.meta}</p></div>
+                  <GradientButton accent={nextAction.accent} onClick={nextAction.run} className="w-full sm:w-auto sm:shrink-0">{nextAction.action}</GradientButton>
+                </div>
+              </GlassCard> : null
+            ) : blockId === 'guided-plan' ? (
+              !adhdMode && showGuidedPlan && hasWorkout && !workoutDone ? (
+                <GlassCard accent={ACCENTS.teal} className="p-4">
+                  <div className="flex items-start justify-between gap-3">
+                    <div className="min-w-0"><p className="truncate font-display text-base font-bold text-ink">{t(plan.programDay?.name ?? 'Guided workout')}</p>{(settings.addons.interface_mode ?? 'clean') === 'detailed' && <p className="text-[11px] font-medium text-ink-soft">{t('Start directly. Skip calendar and setup.')}</p>}</div>
+                    <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>
+                  </div>
+                  <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}`)}>{t('Start')}</GradientButton></div>
+                </GlassCard>
+              ) : null
+            ) : blockId === 'orbit' ? (
+              !adhdMode && showOrbitShortcut ? <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
+                <GlassCard accent={ACCENTS.ice} className="p-4">
+                  <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.ice.gradient }}><OrbitIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">APEX Orbit</p><p className="truncate text-[11px] font-medium text-ink-soft">{orbit.state.active_run ? t('Continue interrupted run') : orbitSession ? `${orbitSession.adapted.duration_min} min · ${t(missionLabel(orbitSession.adapted.mission))}` : t('Your next run, already reasoned through')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{t('RUN')}</span></div>
+                </GlassCard>
+              </Link> : null
+            ) : blockId === 'body-index' ? (
+              !adhdMode && showBodyIndexShortcut ? <Link to="/avatar" className="block">
+                <GlassCard accent={emerald} className="p-4">
+                  <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: emerald.gradient }}><AvatarIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">Your body index</p><p className="text-[11px] font-medium text-ink-soft">{t(`${momentum >= 0 ? '+' : ''}${momentum.toFixed(1)} over 14 days · tap for the full story`)}</p></div><span className="font-mono text-2xl font-bold text-emerald">{current?.overall.toFixed(0) ?? 'N/A'}</span></div>
+                </GlassCard>
+              </Link> : null
+            ) : (
+              !adhdMode ? <div className="grid grid-cols-2 gap-2 text-center text-[11px] font-bold text-ink-soft"><Link to="/nutrition" className="glass rounded-2xl px-3 py-3">{t('Food or activity changed?')}</Link><Link to={guidedScheduleRoute} className="glass rounded-2xl px-3 py-3">{t('Open full schedule')}</Link></div> : null
+            )}
+          </HoldReorderItem>
+        ))}
+      </Reorder.Group>
       <AnimatePresence>
         {showCalendar && (
           <motion.div
@@ -1228,6 +1281,74 @@ export function SimpleHome() {
       <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseId={editingManualExerciseId} />
       <PortalLanguageMenu />
     </div>
+  )
+}
+
+function HoldReorderItem({
+  value,
+  children,
+  onDragEnd,
+}: {
+  value: SimpleBlockId
+  children: ReactNode
+  onDragEnd: () => void
+}) {
+  const controls = useDragControls()
+  const holdTimer = useRef<ReturnType<typeof setTimeout> | null>(null)
+  const start = useRef<{ x: number; y: number } | null>(null)
+  const [arranging, setArranging] = useState(false)
+
+  const cancelHold = (): void => {
+    if (holdTimer.current) clearTimeout(holdTimer.current)
+    holdTimer.current = null
+    start.current = null
+  }
+
+  useEffect(() => () => cancelHold(), [])
+
+  const beginHold = (event: ReactPointerEvent<HTMLElement>): void => {
+    if ((event.target as HTMLElement).closest('button,a,input,select,textarea,[role="button"]')) return
+    cancelHold()
+    start.current = { x: event.clientX, y: event.clientY }
+    holdTimer.current = setTimeout(() => {
+      setArranging(true)
+      navigator.vibrate?.(16)
+      controls.start(event)
+      holdTimer.current = null
+    }, 2_000)
+  }
+
+  if (children == null || children === false) {
+    return <Reorder.Item value={value} className="hidden" />
+  }
+
+  return (
+    <Reorder.Item
+      value={value}
+      drag="y"
+      dragListener={false}
+      dragControls={controls}
+      dragElastic={0.08}
+      dragMomentum={false}
+      onPointerDown={beginHold}
+      onPointerMove={(event) => {
+        if (arranging || !start.current) return
+        if (Math.hypot(event.clientX - start.current.x, event.clientY - start.current.y) > 8) cancelHold()
+      }}
+      onPointerUp={cancelHold}
+      onPointerCancel={cancelHold}
+      onDragEnd={() => {
+        setArranging(false)
+        cancelHold()
+        onDragEnd()
+      }}
+      className={`relative ${arranging ? 'z-40 cursor-grabbing rounded-[28px] ring-2 ring-cyan-300/70 shadow-[0_24px_70px_-26px_rgba(8,145,178,.9)]' : ''}`}
+      style={{ touchAction: arranging ? 'none' : 'pan-y' }}
+      whileDrag={{ scale: 1.018 }}
+    >
+      {arranging && <span className="pointer-events-none absolute top-2 left-1/2 z-50 -translate-x-1/2 rounded-full bg-cyan-950/88 px-3 py-1 font-mono text-[8px] font-black tracking-wide text-cyan-100 shadow-lg">{'↕'}</span>}
+      {children}
+    </Reorder.Item>
   )
 }
 

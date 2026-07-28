@@ -29,10 +29,15 @@ export function tick(kind: 'soft' | 'accent' = 'soft'): void {
 
 const VOICE_LANG: Record<IntroLanguage, string> = { en: 'en-US', ro: 'ro-RO', th: 'th-TH' }
 
-export function speak(text: string, language: IntroLanguage = 'en'): void {
+export interface SpeakOptions {
+  cancel?: boolean
+  onEnd?: () => void
+}
+
+export function speak(text: string, language: IntroLanguage = 'en', options: SpeakOptions = {}): boolean {
   try {
-    if (!('speechSynthesis' in window)) return
-    window.speechSynthesis.cancel()
+    if (!('speechSynthesis' in window)) return false
+    if (options.cancel !== false) window.speechSynthesis.cancel()
     const u = new SpeechSynthesisUtterance(text)
     u.lang = VOICE_LANG[language]
     const matchingVoice = window.speechSynthesis.getVoices().find((voice) => voice.lang.toLowerCase().startsWith(VOICE_LANG[language].slice(0, 2).toLowerCase()))
@@ -40,9 +45,15 @@ export function speak(text: string, language: IntroLanguage = 'en'): void {
     u.rate = 1.05
     u.pitch = 1
     u.volume = 0.9
+    if (options.onEnd) {
+      u.onend = options.onEnd
+      u.onerror = options.onEnd
+    }
     window.speechSynthesis.speak(u)
+    return true
   } catch {
     /* speech is a nicety, never an error */
+    return false
   }
 }
 

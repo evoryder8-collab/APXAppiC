@@ -57,6 +57,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [editingManualExerciseId, setEditingManualExerciseId] = useState<string | null>(null)
+  const detailedInterface = (data.settings?.addons.interface_mode ?? 'clean') === 'detailed'
 
   const today = todayIso()
   const program = data.programs.find((candidate) => candidate.slug === slug)
@@ -146,7 +147,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
       <SectionHeader
         accent={accent}
         title={planText(sectionTitle)}
-        subtitle={planText(sectionSubtitle)}
+        subtitle={detailedInterface ? planText(sectionSubtitle) : undefined}
         right={
           <div className="flex items-center gap-2">
             <div className="relative overflow-hidden rounded-2xl border border-white/85 bg-white/72 px-3 py-2 text-right shadow-[0_12px_30px_-20px_rgba(109,40,217,.8)] backdrop-blur-xl">
@@ -195,6 +196,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         </motion.div>
 
         <TodayManualWorkoutCard
+          detailed={detailedInterface}
           date={today}
           onAdd={() => {
             setEditingManualSessionId(null)
@@ -239,9 +241,9 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             onSelectDay={setSelectedDay}
             onLongPressDay={toggleDeload}
           />
-          <p className="mt-3 text-center text-[11px] font-medium text-ink-faint">
+          {detailedInterface && <p className="mt-3 text-center text-[11px] font-medium text-ink-faint">
             Tap a day to plan it. Hold to mark deload.
-          </p>
+          </p>}
           {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('APEX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
         </GlassCard>
 
@@ -254,7 +256,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             <div>
               <p className="font-mono text-[9px] font-black tracking-[.2em] text-cyan-200 uppercase">{t('APEX WORKOUT STUDIO')}</p>
               <h2 className="mt-2 font-display text-2xl font-bold">{t('Create your own workout')}</h2>
-              <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>
+              {detailedInterface && <p className="mt-2 max-w-lg text-sm leading-relaxed text-slate-300">{t('Search machines, free weights, calisthenics, street training, HIIT and mobility. Your muscle map updates as you build.')}</p>}
             </div>
             <button type="button" onClick={() => setShowWorkoutBuilder(true)} className="min-h-14 rounded-2xl bg-gradient-to-r from-violet-600 via-fuchsia-500 to-cyan-400 px-6 text-sm font-black text-white shadow-[0_18px_42px_-18px_rgba(168,85,247,.9)] transition active:scale-[.98]">
               {t('Build a workout')} →

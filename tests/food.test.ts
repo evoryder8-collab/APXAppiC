@@ -9,6 +9,7 @@ import {
   commitFoodSelection,
   displayFoodName,
   expandFoodSearchQueries,
+  foodNeedsPrivateMaterialization,
   foodPreferenceUsageUpdates,
   mergeExtendedFoodResults,
   mergeMealsIdempotently,
@@ -222,6 +223,39 @@ test('protocol fruits, seeds and vegetables are local, multilingual and availabl
     assert.equal(rankFoods(query, COMMON_FOODS, [], 'snack')[0]?.name, expectedName, query)
   }
   assert.ok(COMMON_FOODS.every((food) => Boolean(food.names_i18n.ro && food.names_i18n.th)))
+})
+
+test('ravioli, egg dishes, Swiss pastries, sea buckthorn and Migros decaf are searchable offline', () => {
+  const expectations = [
+    ['ravioli tomato sauce', 'ravioli-tomato-sauce'],
+    ['raviolli cu carne', 'ravioli-meat-cooked'],
+    ['omletă cu brânză', 'omelette-cheese'],
+    ['ไข่คน', 'scrambled-eggs-plain'],
+    ['Weinerli am Teig', 'wienerli-im-teig'],
+    ['Sanddornzubereitung', 'sea-buckthorn-fruit-spread'],
+    ['Migros decaf coffee capsule', 'espresso-decaffeinato-capsule-brewed'],
+  ] as const
+
+  for (const [query, providerSuffix] of expectations) {
+    const result = rankFoods(query, COMMON_FOODS, [], 'breakfast')[0]
+    assert.ok(result, query)
+    assert.ok(result.provider_product_id?.endsWith(providerSuffix), `${query}: ${result.provider_product_id}`)
+  }
+  assert.ok(
+    rankFoods('ravioli with sauce', COMMON_FOODS, [], 'lunch')
+      .slice(0, 3)
+      .some((food) => food.provider_product_id?.includes('ravioli-') && food.provider_product_id?.includes('-sauce')),
+  )
+  assert.equal(rankFoods('Migros Sanddornzubereitung', COMMON_FOODS, [], 'breakfast')[0]?.brand, 'Migros')
+  assert.equal(rankFoods('Migros Wienerli im Teig', COMMON_FOODS, [], 'lunch')[0]?.brand, 'Migros')
+})
+
+test('client-only offline and provider foods materialize before server logging', () => {
+  const protocol = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-protocol:generic:ravioli-cheese-cooked')!
+  const migrated = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-173904')!
+  assert.equal(foodNeedsPrivateMaterialization(protocol), true)
+  assert.equal(foodNeedsPrivateMaterialization(migrated), true)
+  assert.equal(foodNeedsPrivateMaterialization({ ...protocol, owner_user_id: crypto.randomUUID(), source: 'private' }), false)
 })
 
 test('Nutrition V3 ships a broad multilingual offline catalog with retailer-reference variants', () => {

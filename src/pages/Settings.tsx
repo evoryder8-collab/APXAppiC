@@ -287,6 +287,27 @@ export function Settings() {
               {(settings.addons.adhd_mode ?? false) && <span className="rounded-full bg-cyan-100 px-2.5 py-1 font-mono text-[8px] font-black tracking-wide text-cyan-800">{t('ADHD ACTIVE')}</span>}
             </div>
 
+            <div className="mt-4 rounded-2xl border border-violet-100/90 bg-[linear-gradient(135deg,rgba(245,243,255,.86),rgba(255,255,255,.7))] p-3">
+              <p className={label}>{t('Interface mode')}</p>
+              <p className={`${sub} mt-1`}>{t('Clean hides optional guidance. Detailed keeps the extra context visible.')}</p>
+              <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-violet-950/6 p-1" role="group" aria-label={t('Interface mode')}>
+                {(['clean', 'detailed'] as const).map((mode) => {
+                  const active = (settings.addons.interface_mode ?? 'clean') === mode
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setSettings({ addons: { ...settings.addons, interface_mode: mode } })}
+                      className={`rounded-lg px-3 py-2 text-[10px] font-black transition ${active ? 'bg-white text-violet-800 shadow-sm' : 'text-ink-soft'}`}
+                    >
+                      {t(mode === 'clean' ? 'Clean' : 'Detailed')}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
             <div className="mt-4 rounded-2xl border border-cyan-100/80 bg-white/50 p-3">
               <p className={label}>{t('Weight unit')}</p>
               <div className="mt-2 grid grid-cols-2 gap-1 rounded-xl bg-ink/6 p-1" role="group" aria-label={t('Weight unit')}>
@@ -668,6 +689,18 @@ export function Settings() {
         <GlassCard accent={violet} className="p-5">
           <h2 className="font-display text-lg font-bold text-ink">Camera &amp; comparison</h2>
           <p className={`${sub} mt-1`}>Choose what appears on exported progress comparisons.</p>
+          <div className="mt-4 flex items-center justify-between gap-3 rounded-3xl border border-cyan-100/80 bg-cyan-50/45 p-3">
+            <div className="max-w-[76%]">
+              <p className={label}>{t('Allow front camera for food scanning')}</p>
+              <p className={`${sub} mt-1 leading-relaxed`}>{t('Off keeps every new scan on the rear camera. Turn this on only when you need a camera switch.')}</p>
+            </div>
+            <Toggle
+              accent={ACCENTS.ice}
+              label={t('Allow front camera for food scanning')}
+              on={settings.addons.food_scanner_front_camera ?? false}
+              onChange={(value) => setSettings({ addons: { ...settings.addons, food_scanner_front_camera: value } })}
+            />
+          </div>
           <div className="mt-4 rounded-3xl border border-violet-200/60 bg-white/45 p-3">
             <p className={label}>Comparison export stats</p>
             <div className="mt-3 grid grid-cols-2 gap-1 rounded-2xl bg-ink/6 p-1" role="group" aria-label="Comparison export stats">

@@ -12,6 +12,8 @@ interface Props {
   settings: Settings
   onSettingsChange: (patch: Partial<Settings>) => void
   onProfileChange: (patch: Partial<Profile>) => void
+  compact?: boolean
+  detailed?: boolean
 }
 
 function numberDraft(value: number | null | undefined): string {
@@ -30,6 +32,8 @@ export function WatchActivityCheckin({
   settings,
   onSettingsChange,
   onProfileChange,
+  compact = false,
+  detailed = false,
 }: Props) {
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
@@ -126,16 +130,16 @@ export function WatchActivityCheckin({
         }
 
   return (
-    <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className="rounded-3xl border border-cyan-100/80 bg-white/52 p-3 shadow-sm" data-simple-local-gesture>
+    <details open={open} onToggle={(event) => setOpen(event.currentTarget.open)} className={`rounded-3xl border border-cyan-100/80 bg-white/52 p-3 shadow-sm ${compact ? 'min-h-[5.25rem]' : ''}`} data-simple-local-gesture>
       <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-        <div>
+        <div className="min-w-0">
           <p className="font-display text-sm font-black text-ink">{copy.title}</p>
-          <p className="mt-0.5 text-[9px] font-semibold text-ink-faint">{existing ? `${existing.steps.toLocaleString()} ${copy.steps.toLocaleLowerCase()} · ${t(PAL_LABELS[existing.suggested_level])}` : copy.body}</p>
+          {(existing || detailed) && <p className="mt-0.5 truncate text-[9px] font-semibold text-ink-faint">{existing ? `${existing.steps.toLocaleString()} ${copy.steps.toLocaleLowerCase()} · ${t(PAL_LABELS[existing.suggested_level])}` : copy.body}</p>}
         </div>
         <span className="grid h-8 w-8 place-items-center rounded-full bg-cyan-50 text-sm font-black text-cyan-800">{open ? '−' : '+'}</span>
       </summary>
       <div className="mt-3 border-t border-ink/6 pt-3">
-        <p className="mb-3 text-[10px] leading-relaxed font-semibold text-ink-soft">{copy.body}</p>
+        {detailed && <p className="mb-3 text-[10px] leading-relaxed font-semibold text-ink-soft">{copy.body}</p>}
         <div className="grid grid-cols-3 gap-2">
           {[
             { label: copy.steps, value: steps, set: setSteps, max: 100000 },

@@ -17,6 +17,7 @@ export interface QuickWorkoutLauncherProps {
   accent?: Accent
   className?: string
   onSaved?: () => void
+  tile?: boolean
 }
 
 function DumbbellIcon({ className }: { className?: string }) {
@@ -53,6 +54,7 @@ export function QuickWorkoutLauncher({
   accent = ACCENTS.teal,
   className = '',
   onSaved,
+  tile = false,
 }: QuickWorkoutLauncherProps) {
   const { data } = useStore()
   const { language } = useLanguage()
@@ -77,15 +79,15 @@ export function QuickWorkoutLauncher({
   }
 
   return (
-    <div data-simple-local-gesture className={`inline-flex ${className}`}>
+    <div data-simple-local-gesture className={`inline-flex ${tile ? 'h-full w-full' : ''} ${className}`}>
       <button
         type="button"
         onClick={() => setPickerOpen(true)}
         aria-label={t('Quick add workout')}
-        className="relative grid h-11 w-11 shrink-0 place-items-center rounded-2xl border border-cyan-100/90 bg-white/78 text-cyan-800 shadow-[0_14px_34px_-24px_rgba(8,145,178,.9)] transition active:scale-90"
+        className={`relative grid shrink-0 place-items-center border border-cyan-100/90 bg-white/78 text-cyan-800 shadow-[0_14px_34px_-24px_rgba(8,145,178,.9)] transition active:scale-90 ${tile ? 'h-full min-h-[5.25rem] w-full rounded-3xl' : 'h-11 w-11 rounded-2xl'}`}
       >
-        <DumbbellIcon className="h-5 w-5" />
-        <span aria-hidden className="absolute -top-1 -right-1 grid h-4 w-4 place-items-center rounded-full bg-cyan-600 text-[10px] font-black leading-none text-white ring-2 ring-white">+</span>
+        <DumbbellIcon className={tile ? 'h-7 w-7' : 'h-5 w-5'} />
+        <span aria-hidden className={`absolute grid place-items-center rounded-full bg-cyan-600 font-black leading-none text-white ring-2 ring-white ${tile ? 'top-2 right-2 h-5 w-5 text-xs' : '-top-1 -right-1 h-4 w-4 text-[10px]'}`}>+</span>
       </button>
 
       <Sheet open={pickerOpen} onClose={() => setPickerOpen(false)}>

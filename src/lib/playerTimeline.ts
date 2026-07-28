@@ -16,7 +16,17 @@ export type Block =
       repDuration: number // seconds per rep for the cadence engine
       timed: number | null // seconds, for holds/videos, replaces rep counting
     }
-  | { kind: 'rest'; exIdx: number; afterSet: number; duration: number; nextLabel: string; exercise: PlannedExercise; captureLoad: boolean }
+  | { kind: 'side_switch'; exIdx: number; setNo: number; duration: number; exercise: PlannedExercise; nextSide: 'right' }
+  | {
+      kind: 'rest'
+      exIdx: number
+      afterSet: number
+      duration: number
+      nextLabel: string
+      exercise: PlannedExercise
+      captureLoad: boolean
+      reviewExercise?: boolean
+    }
   | { kind: 'log'; exIdx: number; exercise: PlannedExercise }
   | { kind: 'done' }
 
@@ -47,7 +57,7 @@ export function buildTimeline(plan: PlannedDay): Block[] {
     } else {
       for (let setNo = 1; setNo <= e.planned_sets; setNo++) {
         const sides: Array<'left' | 'right' | null> = e.per_side ? ['left', 'right'] : [null]
-        for (const side of sides) {
+        for (const [sideIndex, side] of sides.entries()) {
           blocks.push({
             kind: 'set',
             exIdx,
@@ -60,6 +70,20 @@ export function buildTimeline(plan: PlannedDay): Block[] {
             repDuration: repDuration(e),
             timed: timedSeconds(e),
           })
+          if (
+            side === 'left'
+            && sideIndex < sides.length - 1
+            && /(?:bulgarian|split[\s-]?squat)/i.test(e.name)
+          ) {
+            blocks.push({
+              kind: 'side_switch',
+              exIdx,
+              setNo,
+              duration: 3,
+              exercise: e,
+              nextSide: 'right',
+            })
+          }
         }
         const isLast = setNo === e.planned_sets
         if (!isLast && e.rest_sec > 0) {
@@ -74,7 +98,6 @@ export function buildTimeline(plan: PlannedDay): Block[] {
           })
         }
       }
-      blocks.push({ kind: 'log', exIdx, exercise: e })
       const next = plan.exercises[exIdx + 1]
       if (next && e.rest_sec > 0) {
         blocks.push({
@@ -85,7 +108,10 @@ export function buildTimeline(plan: PlannedDay): Block[] {
           nextLabel: next.name,
           exercise: e,
           captureLoad: false,
+          reviewExercise: true,
         })
+      } else {
+        blocks.push({ kind: 'log', exIdx, exercise: e })
       }
     }
   })

@@ -42,6 +42,7 @@ interface ExerciseResult {
   override: boolean
   sets: SetResult[]
   skippedAll: boolean
+  finalized?: boolean
 }
 
 interface PlayerState {
@@ -97,6 +98,7 @@ function reducer(state: PlayerState, action: Action): PlayerState {
             override: existing?.override ?? false,
             sets,
             skippedAll: existing?.skippedAll ?? false,
+            finalized: existing?.finalized ?? false,
           },
         },
       }
@@ -155,11 +157,15 @@ export function Player() {
   const ticksOn = data.settings?.ticks_on ?? true
   const [voice, setVoice] = useState(voiceOn)
   const [ticks, setTicks] = useState(ticksOn)
+  const [setAnnouncementReady, setSetAnnouncementReady] = useState(true)
+  const [showExerciseList, setShowExerciseList] = useState(false)
 
   /* announced rep tracker to fire voice/tick exactly once per rep */
   const lastRep = useRef(0)
   const announcedBlock = useRef(-1)
   const announcedRestThirty = useRef(-1)
+  const stateIdxRef = useRef(state.idx)
+  stateIdxRef.current = state.idx
 
   const advance = useCallback(() => {
     lastRep.current = 0
@@ -178,10 +184,27 @@ export function Player() {
     announcedBlock.current = state.idx
     lastRep.current = 0
     if (block.kind === 'set' && voice) {
+      setSetAnnouncementReady(false)
+      const entryIndex = state.idx
       const side = block.side ? ` ${voiceText(block.side === 'left' ? 'Left side' : 'Right side')}.` : ''
-      speak(`${voiceText(block.exercise.name)}.${side} ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`, language)
+      const started = speak(
+        `${voiceText(block.exercise.name)}.${side} ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`,
+        language,
+        {
+          onEnd: () => {
+            if (stateIdxRef.current !== entryIndex) return
+            dispatch({ type: 'jump', idx: entryIndex })
+            setSetAnnouncementReady(true)
+          },
+        },
+      )
+      if (!started) setSetAnnouncementReady(true)
+    } else if (block.kind === 'set') {
+      setSetAnnouncementReady(true)
     } else if (block.kind === 'warmup' && voice) {
       speak(voiceText('Warm up. Get ready for the first exercise.'), language)
+    } else if (block.kind === 'side_switch' && voice) {
+      speak(`${voiceText('Change legs')}. ${voiceText('Right side')} ${voiceText('in three seconds')}.`, language)
     } else if (block.kind === 'rest' && voice) {
       if (block.duration <= 30.5) {
         announcedRestThirty.current = state.idx
@@ -194,11 +217,23 @@ export function Player() {
     }
   }, [state.idx, block, voice, voiceText, language])
 
+  useEffect(() => {
+    if (voice) return
+    stopSpeech()
+    setSetAnnouncementReady(true)
+  }, [voice])
+
   /* cadence + auto-advance */
   useEffect(() => {
     if (!block || state.paused) return
     if (block.kind === 'warmup') {
       if (state.elapsed >= block.duration) advance()
+      return
+    }
+    if (block.kind === 'side_switch') {
+      const remaining = block.duration - state.elapsed
+      if (ticks && remaining <= 3.05 && remaining > 0 && Math.abs(remaining % 1) < 0.11) tick('accent')
+      if (remaining <= 0) advance()
       return
     }
     if (block.kind === 'rest') {
@@ -209,12 +244,14 @@ export function Player() {
       }
       if (ticks && remaining <= 3.05 && remaining > 0 && Math.abs(remaining % 1) < 0.11) tick('accent')
       if (remaining <= 0) {
+        if (block.reviewExercise && !state.results[block.exIdx]?.finalized) return
         if (voice) speak(`${voiceText('Rest over.')} ${voiceText(block.nextLabel)}.`, language)
         advance()
       }
       return
     }
     if (block.kind === 'set') {
+      if (!setAnnouncementReady) return
       if (block.timed != null) {
         if (state.elapsed >= block.timed) {
           dispatch({ type: 'endSet', key: block.resultKey, reps: block.timed })
@@ -236,7 +273,7 @@ export function Player() {
         advance()
       }
     }
-  }, [state.elapsed, state.paused, state.idx, block, advance, voice, ticks, voiceText, language])
+  }, [state.elapsed, state.paused, state.idx, state.results, block, advance, voice, ticks, voiceText, language, setAnnouncementReady])
 
   /* stop speech on unmount */
   useEffect(() => () => stopSpeech(), [])
@@ -254,7 +291,7 @@ export function Player() {
     [plan.exercises, data],
   )
 
-  const saveExerciseLog = (exIdx: number, weights: Array<number | null>, rir: number | null, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean): void => {
+  const saveExerciseLog = (exIdx: number, weights: Array<number | null>, rir: number | null, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter = true): void => {
     const e = plan.exercises[exIdx]
     const usableWeights = weights.filter((value): value is number => value != null)
     dispatch({
@@ -264,11 +301,12 @@ export function Player() {
         weight: usableWeights.length > 0 ? Math.max(...usableWeights) : null,
         override,
         skippedAll,
+        finalized: true,
         sets: repsBySet.map((r, index) => ({ reps: skippedAll ? null : r, rir, skipped: skippedAll, weight: skippedAll ? null : (weights[index] ?? null) })),
       },
     })
     if (voice && !skippedAll) speak(`${voiceText(e.name)}. ${voiceText('Exercise logged.')}`, language)
-    advance()
+    if (advanceAfter || (block?.kind === 'rest' && state.elapsed >= block.duration)) advance()
   }
 
   /* -------- finish -------- */
@@ -412,11 +450,19 @@ export function Player() {
           <button type="button" onClick={() => navigate(-1)} className="text-sm font-bold text-ink-soft">
             ← Exit
           </button>
-          <p className="min-w-0 truncate font-display text-sm font-bold text-ink">
+          <p className="min-w-0 flex-1 text-center font-display text-xs leading-tight font-bold text-ink sm:text-sm">
             {plan.programDay.name}
             {lite ? ' · Lite' : ''}
           </p>
           <div className="flex gap-1.5">
+            <button
+              type="button"
+              onClick={() => setShowExerciseList(true)}
+              aria-label={voiceText('Exercise list')}
+              className="glass grid h-7 w-7 place-items-center rounded-full font-serif text-sm font-black text-ink"
+            >
+              i
+            </button>
             <button
               type="button"
               onClick={() => setVoice((v) => !v)}
@@ -498,10 +544,11 @@ export function Player() {
             let label = ''
             if (b.kind === 'warmup') label = 'W'
             else if (b.kind === 'set') label = `${b.setNo}${b.side ? (b.side === 'left' ? 'L' : 'R') : ''}`
+            else if (b.kind === 'side_switch') label = '↔'
             else if (b.kind === 'check') label = '✓'
             else if (b.kind === 'log') label = '✓'
             else if (b.kind === 'done') label = '🏁'
-            if (b.kind === 'rest') {
+            if (b.kind === 'rest' || b.kind === 'side_switch') {
               return <span key={i} className="h-1 w-3 shrink-0 rounded-full" style={{ background: past ? accent.bright : 'rgba(26,26,34,0.12)' }} />
             }
             return (
@@ -526,6 +573,60 @@ export function Player() {
         </div>
       </div>
       <WorkoutStatsSheet open={showStats} onClose={() => setShowStats(false)} sessionId={summary?.sessionId ?? null} accent={accent} />
+      <AnimatePresence>
+        {showExerciseList && (
+          <motion.div
+            className="fixed inset-0 z-[80] grid place-items-center bg-ink/28 px-5 backdrop-blur-sm"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) setShowExerciseList(false)
+            }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-label={voiceText('Exercise list')}
+              initial={{ opacity: 0, y: 12, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              className="glass w-full max-w-sm rounded-[1.8rem] border border-white/85 p-4 shadow-2xl"
+            >
+              <div className="flex items-center justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-ink-faint uppercase">{voiceText('Full session')}</p>
+                  <h2 className="font-display text-lg font-black text-ink">{plan.programDay.name}</h2>
+                </div>
+                <button type="button" onClick={() => setShowExerciseList(false)} className="grid h-9 w-9 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink">×</button>
+              </div>
+              <div className="mt-3 max-h-[52dvh] space-y-2 overflow-y-auto pr-1">
+                {plan.exercises.map((exercise, index) => {
+                  const activeExercise = block && 'exIdx' in block ? block.exIdx === index : false
+                  return (
+                    <div
+                      key={`${exercise.id}:${index}`}
+                      className="flex items-start gap-3 rounded-2xl border p-3"
+                      style={{
+                        borderColor: activeExercise ? accent.glowStrong : 'rgba(26,26,34,.07)',
+                        background: activeExercise ? accent.wash : 'rgba(255,255,255,.58)',
+                      }}
+                    >
+                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full font-mono text-[10px] font-black" style={{ background: activeExercise ? accent.gradient : 'rgba(26,26,34,.06)', color: activeExercise ? '#fff' : '#6b6b75' }}>{index + 1}</span>
+                      <div className="min-w-0">
+                        <p className="font-display text-sm leading-snug font-black text-ink">{voiceText(exercise.name)}</p>
+                        <p className="mt-0.5 font-mono text-[9px] font-bold text-ink-faint">
+                          {exercise.planned_sets} {voiceText('sets')} · {exercise.rep_min === exercise.rep_max ? exercise.rep_min : `${exercise.rep_min}–${exercise.rep_max}`} {voiceText(exercise.rep_unit)}
+                        </p>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
     </div>
   )
 }
@@ -544,7 +645,7 @@ function BlockView(props: {
   onEndMaxSet: (reps: number) => void
   onConfirmCheck: (exIdx: number, completed: boolean) => void
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
+  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   onSetWeight: (exIdx: number, setNo: number, totalSets: number, weight: number | null) => void
   onSetReps: (exIdx: number, setNo: number, reps: number) => void
@@ -665,6 +766,17 @@ function BlockView(props: {
     )
   }
 
+  if (block.kind === 'side_switch') {
+    const remaining = Math.max(0, block.duration - props.elapsed)
+    return (
+      <CenterCard accent={accent}>
+        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Change legs')}</p>
+        <h2 className="mt-2 font-display text-2xl font-black text-ink">{t(block.exercise.name)}</h2>
+        <RestRing accent={accent} remaining={remaining} total={block.duration} label={t('Right side')} />
+      </CenterCard>
+    )
+  }
+
   if (block.kind === 'rest') {
     const remaining = Math.max(0, block.duration - props.elapsed)
     const existing = props.results[block.exIdx]
@@ -677,7 +789,7 @@ function BlockView(props: {
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Rest')}</p>
         <RestRing accent={accent} remaining={remaining} total={block.duration} label={`${t('next')}: ${nextLabel(block.nextLabel)}`} />
-        {(block.captureLoad || captureReps) && (
+        {!block.reviewExercise && (block.captureLoad || captureReps) && (
           <RestSetCapture
             key={`${block.exIdx}:${block.afterSet}`}
             accent={accent}
@@ -692,6 +804,19 @@ function BlockView(props: {
             onWeightChange={(weight) => props.onSetWeight(block.exIdx, block.afterSet, block.exercise.planned_sets, weight)}
             onRepsChange={(reps) => props.onSetReps(block.exIdx, block.afterSet, reps)}
           />
+        )}
+        {block.reviewExercise && !existing?.finalized && (
+          <LogCard
+            {...props}
+            exIdx={block.exIdx}
+            exercise={block.exercise}
+            embedded
+          />
+        )}
+        {block.reviewExercise && existing?.finalized && (
+          <p className="mx-auto mt-4 max-w-sm rounded-2xl bg-emerald-500/10 px-4 py-3 text-sm font-black text-emerald-800">
+            ✓ {t('Exercise saved. Rest continues.')}
+          </p>
         )}
         <div className="mt-4 flex justify-center gap-2">
           <GhostButton onClick={props.onExtendRest}>+30s</GhostButton>
@@ -882,7 +1007,7 @@ function RestRing({ accent, remaining, total, label }: { accent: Accent; remaini
         <p className="font-mono text-4xl font-bold" style={{ color: accent.deep }}>
           {Math.ceil(remaining)}
         </p>
-        <p className="max-w-[7.5rem] truncate text-[10px] font-semibold text-ink-faint">{label}</p>
+        <p className="max-w-[8.5rem] px-1 text-center text-[9px] leading-tight font-semibold text-ink-faint">{label}</p>
       </div>
     </div>
   )
@@ -931,9 +1056,9 @@ function RestSetCapture({
   return (
     <div className="mx-auto mt-4 max-w-sm rounded-[1.4rem] border border-white/85 bg-white/68 p-3 text-left shadow-[0_14px_32px_-24px_rgba(76,29,149,.75)]">
       <div className="flex items-start justify-between gap-2"><div><p className="font-mono text-[8px] font-black tracking-[0.15em] text-violet-700 uppercase">{t('Log this set during the break')}</p><p className="mt-0.5 truncate text-xs font-black text-ink">{exerciseName} · {t('Set')} {setNo}</p></div>{recommended != null && <span className="shrink-0 rounded-full px-2 py-1 font-mono text-[8px] font-black" style={{ background: accent.wash, color: accent.deep }}>{t('Suggested')} {recommended}</span>}</div>
-      <div className={`mt-2 grid gap-2 ${captureWeight && captureReps ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`mt-2 grid gap-2 ${captureWeight && captureReps ? 'grid-cols-1 sm:grid-cols-2' : 'grid-cols-1'}`}>
         {captureReps && <div><div className="mb-1 flex items-center justify-between"><span className="font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Actual reps')}</span><span className="font-mono text-[8px] font-bold text-ink-faint">{t('Target')} {targetReps}</span></div><div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-1.5"><button type="button" onClick={() => updateReps((Number(repDraft) || 0) - 1)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button><input inputMode="numeric" type="number" min="0" value={repDraft} onChange={(event) => { setRepDraft(event.target.value); const parsed = Number(event.target.value); if (Number.isFinite(parsed)) onRepsChange(Math.max(0, Math.round(parsed))) }} onBlur={() => updateReps(Number(repDraft))} className="w-full rounded-xl border border-cyan-200/70 bg-white/90 px-2 py-2 text-center font-mono text-xl font-black text-ink outline-none focus:ring-2 focus:ring-cyan-300" /><button type="button" onClick={() => updateReps((Number(repDraft) || 0) + 1)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button></div></div>}
-        {captureWeight && <div><span className="mb-1 block font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Weight used')}</span><div className="grid grid-cols-[2.25rem_minmax(0,1fr)_2.25rem] items-center gap-1.5"><button type="button" onClick={() => updateWeight((Number(draft.replace(',', '.')) || 0) - 2.5)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button><label className="relative"><span className="sr-only">{t('Weight used in kilograms')}</span><input inputMode="decimal" type="text" value={draft} onChange={(event) => { const next = event.target.value.replace(/[^\d.,]/g, ''); setDraft(next); const parsed = Number(next.replace(',', '.')); onWeightChange(next === '' || !Number.isFinite(parsed) ? null : parsed) }} onBlur={() => updateWeight(draft === '' ? null : Number(draft.replace(',', '.')))} placeholder="0" className="w-full rounded-xl border border-violet-200/70 bg-white/90 px-7 py-2 text-center font-mono text-xl font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center font-mono text-[8px] font-black text-ink-faint">KG</span></label><button type="button" onClick={() => updateWeight((Number(draft.replace(',', '.')) || 0) + 2.5)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button></div></div>}
+        {captureWeight && <div><span className="mb-1 block font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase">{t('Weight used')}</span><div className="grid grid-cols-[2.25rem_minmax(5.5rem,1fr)_2.25rem] items-center gap-1.5"><button type="button" onClick={() => updateWeight((Number(draft.replace(',', '.')) || 0) - 2.5)} className="grid h-10 place-items-center rounded-xl bg-ink/6 font-mono text-lg font-black text-ink">−</button><label className="relative min-w-0"><span className="sr-only">{t('Weight used in kilograms')}</span><input inputMode="decimal" type="text" value={draft} onChange={(event) => { const next = event.target.value.replace(/[^\d.,]/g, ''); setDraft(next); const parsed = Number(next.replace(',', '.')); onWeightChange(next === '' || !Number.isFinite(parsed) ? null : parsed) }} onBlur={() => updateWeight(draft === '' ? null : Number(draft.replace(',', '.')))} placeholder="0" className="w-full min-w-0 rounded-xl border border-violet-200/70 bg-white/90 py-2 pr-7 pl-2 text-center font-mono text-xl font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-1.5 flex items-center font-mono text-[8px] font-black text-ink-faint">KG</span></label><button type="button" onClick={() => updateWeight((Number(draft.replace(',', '.')) || 0) + 2.5)} className="grid h-10 place-items-center rounded-xl font-mono text-lg font-black text-white" style={{ background: accent.gradient }}>+</button></div></div>}
       </div>
     </div>
   )
@@ -947,11 +1072,12 @@ function LogCard(props: {
   accent: Accent
   counted: Record<string, number>
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean) => void
+  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
+  embedded?: boolean
 }) {
   const { exIdx, exercise: e, accent } = props
   const { language } = useLanguage()
@@ -976,11 +1102,11 @@ function LogCard(props: {
         return
       }
     }
-    props.onSaveLog(exIdx, weights, rir, reps, false, overridden)
+    props.onSaveLog(exIdx, weights, rir, reps, false, overridden, !props.embedded)
   }
 
-  return (
-    <CenterCard accent={accent}>
+  const content = (
+    <>
       <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">Log it</p>
       <h2 className="mt-1 font-display text-xl font-bold text-ink">{e.name}</h2>
       {rec?.weight != null && (
@@ -1023,7 +1149,7 @@ function LogCard(props: {
       </div>
 
       <div className="mt-5 flex gap-2">
-        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, reps.map(() => null), null, reps.map(() => null), true, false)}>
+        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, reps.map(() => null), null, reps.map(() => null), true, false, !props.embedded)}>
           Skipped
         </GhostButton>
         <GradientButton accent={accent} className="flex-[2]" onClick={trySave}>
@@ -1073,6 +1199,9 @@ function LogCard(props: {
           </div>
         )}
       </Sheet>
-    </CenterCard>
+    </>
   )
+  return props.embedded
+    ? <div className="mx-auto mt-4 max-h-[45dvh] max-w-sm overflow-y-auto rounded-[1.5rem] border border-white/85 bg-white/72 p-4 text-center shadow-[0_16px_34px_-26px_rgba(76,29,149,.9)]">{content}</div>
+    : <CenterCard accent={accent}>{content}</CenterCard>
 }

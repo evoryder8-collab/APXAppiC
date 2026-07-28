@@ -9,6 +9,7 @@ interface Props {
   date: string
   settings: Settings
   onSettingsChange: (patch: Partial<Settings>) => void
+  detailed?: boolean
 }
 
 const copy = {
@@ -98,7 +99,7 @@ function consecutiveLowMornings(
   return count
 }
 
-export function RecoveryCheckinCard({ date, settings, onSettingsChange }: Props) {
+export function RecoveryCheckinCard({ date, settings, onSettingsChange, detailed = false }: Props) {
   const { language } = useLanguage()
   const words = copy[language]
   const source: RecoveryDataSource = settings.addons.recovery_data_source === 'athlytic' ? 'athlytic' : 'apple'
@@ -146,7 +147,7 @@ export function RecoveryCheckinCard({ date, settings, onSettingsChange }: Props)
       <div className="flex items-start justify-between gap-3">
         <div>
           <p className="font-display text-sm font-black text-ink">{source === 'apple' ? words.apple : words.athlytic}</p>
-          <p className="mt-0.5 text-[9px] font-semibold text-ink-faint">{source === 'apple' ? words.appleHelp : words.athlyticHelp}</p>
+          {detailed && <p className="mt-0.5 text-[9px] font-semibold text-ink-faint">{source === 'apple' ? words.appleHelp : words.athlyticHelp}</p>}
         </div>
         {assessment && (
           <span className={`shrink-0 rounded-full px-2 py-1 font-mono text-[8px] font-black uppercase ${
@@ -184,7 +185,7 @@ export function RecoveryCheckinCard({ date, settings, onSettingsChange }: Props)
           </>
         )}
       </div>
-      {assessment && (
+      {detailed && assessment && (
         <p className="mt-2.5 rounded-2xl bg-white/55 px-3 py-2 text-[10px] font-bold leading-relaxed text-ink-soft">{words.guidance[assessment.state]}</p>
       )}
     </GlassCard>

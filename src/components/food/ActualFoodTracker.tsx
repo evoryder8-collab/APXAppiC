@@ -363,6 +363,7 @@ export function ActualFoodTracker({
 
         <div className="border-t border-ink/6 bg-white/24 p-2.5 sm:p-4">
           <MealDayline
+            detailed={(data.settings?.addons.interface_mode ?? 'clean') === 'detailed'}
             date={date}
             meals={store.mealsForDate(date)}
             entries={store.entries}

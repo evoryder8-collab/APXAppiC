@@ -55,7 +55,7 @@ interface DaylineMealItem {
 const COPY = {
   en: {
     eyebrow: 'LIVE METABOLIC DAYLINE',
-    title: 'Eat. Settle. Move. Recover.',
+    title: 'Meals and training',
     subtitle: 'Meals, training and recovery timing in one place.',
     finished: 'Meal finished',
     editFinish: 'Edit meal-finished time',
@@ -95,7 +95,7 @@ const COPY = {
   },
   ro: {
     eyebrow: 'CRONOLOGIE METABOLICĂ LIVE',
-    title: 'Mănâncă. Așteaptă. Mișcă-te. Recuperează.',
+    title: 'Mese și antrenament',
     subtitle: 'Mesele, antrenamentul și recuperarea într-un singur loc.',
     finished: 'Masa s-a încheiat',
     editFinish: 'Editează ora la care ai terminat masa',
@@ -135,7 +135,7 @@ const COPY = {
   },
   th: {
     eyebrow: 'ไทม์ไลน์เมตาบอลิซึมแบบสด',
-    title: 'กิน พักย่อย ฝึก และฟื้นตัว',
+    title: 'มื้ออาหารและการฝึก',
     subtitle: 'มื้ออาหาร การฝึก และเวลาฟื้นตัวอยู่ในที่เดียว',
     finished: 'กินมื้อเสร็จ',
     editFinish: 'แก้ไขเวลากินมื้อเสร็จ',
@@ -392,6 +392,7 @@ export function MealDayline({
   timeZone,
   fallbackTimes = EMPTY_FALLBACK_TIMES,
   compact = false,
+  detailed = false,
   density = 'medium',
   slots = EMPTY_DAYLINE_SLOTS,
   sessions = EMPTY_WORKOUT_SESSIONS,
@@ -410,6 +411,7 @@ export function MealDayline({
   timeZone: string
   fallbackTimes?: Record<string, string>
   compact?: boolean
+  detailed?: boolean
   density?: MealDaylineDensity
   slots?: MealDaylineSlot[]
   sessions?: WorkoutSession[]
@@ -638,7 +640,7 @@ export function MealDayline({
           <div>
             <p className="font-mono text-[8px] font-black tracking-[.22em] text-cyan-200/65 uppercase">{copy.eyebrow}</p>
             <h3 className={`mt-1 font-display font-black ${compact ? 'text-lg' : 'text-xl'}`}>{copy.title}</h3>
-            {!compact && <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-white/48">{copy.subtitle}</p>}
+            {!compact && detailed && <p className="mt-1 max-w-lg text-[11px] leading-relaxed text-white/48">{copy.subtitle}</p>}
           </div>
           <div className="shrink-0 rounded-2xl border border-white/8 bg-white/[.055] px-2.5 py-2 text-right">
             <p className="font-mono text-[12px] font-black text-cyan-100">{currentClock.time}</p>
@@ -695,25 +697,25 @@ export function MealDayline({
                 <motion.div
                   initial={{ opacity: 0, scaleY: 0 }}
                   animate={{ opacity: 1, scaleY: 1 }}
-                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-rose-200/15"
+                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-rose-200/30"
                   style={{
                     left: railX - 8,
                     top: boundedStart,
                     height: Math.max(10, boundedTransition - boundedStart),
-                    background: 'linear-gradient(90deg,rgba(251,113,133,.34),rgba(245,158,11,.17) 52%,rgba(245,158,11,.025))',
-                    boxShadow: 'inset 12px 0 22px rgba(251,113,133,.16)',
+                    background: 'linear-gradient(90deg,rgba(251,113,133,.62),rgba(245,158,11,.31) 58%,rgba(245,158,11,.07))',
+                    boxShadow: 'inset 16px 0 28px rgba(251,113,133,.32),0 0 24px rgba(251,113,133,.13)',
                   }}
                 />
                 <motion.div
                   initial={{ opacity: 0, scaleY: 0 }}
                   animate={{ opacity: 1, scaleY: 1 }}
-                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-amber-200/12"
+                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-amber-200/28"
                   style={{
                     left: railX - 8,
                     top: boundedTransition,
                     height: Math.max(10, boundedReady - boundedTransition),
-                    background: 'linear-gradient(90deg,rgba(245,158,11,.3),rgba(16,185,129,.18) 58%,rgba(16,185,129,.025))',
-                    boxShadow: 'inset 12px 0 22px rgba(245,158,11,.14)',
+                    background: 'linear-gradient(90deg,rgba(245,158,11,.56),rgba(16,185,129,.31) 62%,rgba(16,185,129,.065))',
+                    boxShadow: 'inset 16px 0 28px rgba(245,158,11,.27),0 0 24px rgba(245,158,11,.11)',
                   }}
                 />
                 <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[15px] origin-top -translate-x-1/2 rounded-full border border-rose-100/50 bg-gradient-to-b from-rose-400 to-amber-400" style={{ left: railX, top: boundedStart, height: Math.max(10, boundedTransition - boundedStart), boxShadow: '0 0 26px rgba(251,113,133,.9)' }} />
@@ -919,7 +921,7 @@ export function MealDayline({
             <div className="relative mt-2 flex flex-wrap gap-2">
               {onOpenRecoveryMeal && <button type="button" onClick={onOpenRecoveryMeal} className="rounded-xl bg-white/8 px-3 py-2 text-[9px] font-black text-cyan-100">{copy.logRecoveryMeal}</button>}
             </div>
-            <p className="relative mt-2 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.recoveryNoCliff} {copy.recoveryFast}</p>
+            {detailed && <p className="relative mt-2 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.recoveryNoCliff} {copy.recoveryFast}</p>}
           </div>
         )}
 
@@ -938,9 +940,9 @@ export function MealDayline({
                 </p>
               </div>
             </div>
-          ) : (
+          ) : detailed ? (
             <p className="text-[9px] leading-relaxed font-semibold text-white/38">{copy.note}</p>
-          )}
+          ) : null}
         </div>
 
         <AnimatePresence>
@@ -958,7 +960,7 @@ export function MealDayline({
             </motion.div>
           )}
         </AnimatePresence>
-        {latest && currentZone && <p className="relative mt-2 px-1 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.note}</p>}
+        {detailed && latest && currentZone && <p className="relative mt-2 px-1 text-[7.5px] leading-relaxed font-medium text-white/25">{copy.note}</p>}
       </div>
     </GlassCard>
   )
