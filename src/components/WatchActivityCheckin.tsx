@@ -98,8 +98,8 @@ export function WatchActivityCheckin({
 
   const copy = language === 'ro'
     ? {
-        title: 'Activitate Apple Watch',
-        body: 'Ajută APEX să recomande un mod pentru întreaga zi. Valorile nu se adaugă peste antrenamentul APEX.',
+        title: 'Activitate de pe dispozitiv',
+        body: 'Introdu valorile de pe ceas sau brățara de fitness. APEX recomandă un mod pentru întreaga zi fără să dubleze antrenamentul APEX.',
         steps: 'Pași',
         calories: 'Calorii active',
         minutes: 'Minute de exercițiu',
@@ -109,8 +109,8 @@ export function WatchActivityCheckin({
       }
     : language === 'th'
       ? {
-          title: 'กิจกรรมจาก Apple Watch',
-          body: 'ช่วย APEX แนะนำโหมดสำหรับทั้งวัน ค่านี้จะไม่บวกซ้ำกับการฝึก APEX',
+          title: 'กิจกรรมจากอุปกรณ์สวมใส่',
+          body: 'กรอกค่าจากนาฬิกาหรืออุปกรณ์ติดตามฟิตเนส APEX จะแนะนำโหมดทั้งวันโดยไม่บวกการฝึก APEX ซ้ำ',
           steps: 'ก้าว',
           calories: 'แคลอรีที่เคลื่อนไหว',
           minutes: 'นาทีออกกำลังกาย',
@@ -119,8 +119,8 @@ export function WatchActivityCheckin({
           selected: 'โหมดที่เลือกยังเป็นการตัดสินใจของคุณ',
         }
       : {
-          title: 'Apple Watch activity',
-          body: 'Helps APEX recommend one whole-day mode. These values are not added on top of an APEX workout.',
+          title: 'Wearable activity',
+          body: 'Enter values from your watch or fitness tracker. APEX recommends one whole-day mode without counting an APEX workout twice.',
           steps: 'Steps',
           calories: 'Active calories',
           minutes: 'Exercise minutes',

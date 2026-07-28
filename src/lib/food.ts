@@ -357,6 +357,21 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'izolat proteic din zer': 'whey protein isolate',
     'izolat proteic din cazeina': 'casein protein isolate',
     'orez alb fiert': 'white rice cooked',
+    'orez jasmine': 'jasmine rice',
+    'orez iasomie': 'jasmine rice',
+    'orez jasmine fiert': 'jasmine rice cooked',
+    'orez iasomie fiert': 'jasmine rice cooked',
+    'orez jasmine uscat': 'jasmine rice dry',
+    'orez lipicios': 'thai sticky rice',
+    'taitei de orez': 'rice noodles',
+    'fidea de orez': 'rice vermicelli',
+    'burta de porc prajita': 'crispy fried pork belly',
+    'porc prajit crocant': 'crispy fried pork belly',
+    'pad kra pao moo sab': 'pad kra pao moo sab',
+    'pad kra pao neua sab': 'pad kra pao neua sab',
+    'pad thai': 'pad thai',
+    'nam tok neua': 'nam tok neua',
+    'salata thai cu vita': 'nam tok neua',
     'ou intreg': 'whole egg',
     'ovaz': 'oats',
     'ovaz integral': 'whole grain oats',
@@ -452,6 +467,28 @@ const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
     'เวย์โปรตีนไอโซเลต': 'whey protein isolate',
     'เคซีนโปรตีนไอโซเลต': 'casein protein isolate',
     'ข้าวขาวสุก': 'white rice cooked',
+    'ข้าวหอมมะลิ': 'jasmine rice',
+    'ข้าวหอมมะลิขาว': 'white jasmine rice',
+    'ข้าวหอมมะลิหุงสุก': 'jasmine rice cooked',
+    'ข้าวหอมมะลิพร้อมรับประทาน': 'ready to eat jasmine rice',
+    'ข้าวกล้องหอมมะลิ': 'brown jasmine rice',
+    'ข้าวเหนียว': 'thai sticky rice',
+    'ข้าวเหนียวนึ่ง': 'steamed thai sticky rice',
+    'เส้นก๋วยเตี๋ยว': 'rice noodles',
+    'เส้นก๋วยเตี๋ยวต้ม': 'rice noodles boiled',
+    'เส้นหมี่': 'rice vermicelli',
+    'เส้นหมี่ข้าว': 'rice vermicelli',
+    'หมูกรอบ': 'crispy fried pork belly',
+    'ผัดกะเพราหมูสับ': 'pad kra pao moo sab',
+    'ผัดกระเพราหมูสับ': 'pad kra pao moo sab',
+    'ผัดกะเพราเนื้อสับ': 'pad kra pao neua sab',
+    'ผัดกระเพราเนื้อสับ': 'pad kra pao neua sab',
+    'ผัดไทย': 'pad thai',
+    'ผัดไทยกุ้ง': 'pad thai shrimp',
+    'น้ำตกเนื้อ': 'nam tok neua',
+    'ลาบหมู': 'larb moo',
+    'ต้มยำกุ้ง': 'tom yum goong',
+    'ต้มข่าไก่': 'tom kha gai',
     'ไข่ทั้งฟอง': 'whole egg',
     'ข้าวโอ๊ตออร์แกนิก': 'organic oats',
     'ข้าวโอ๊ตโฮลเกรนออร์แกนิก': 'organic whole grain oats',
@@ -523,7 +560,9 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
   ro: {
     piept: 'breast', pui: 'chicken', curcan: 'turkey', vita: 'beef', porc: 'pork', peste: 'fish',
     somon: 'salmon', ton: 'tuna', ou: 'egg', oua: 'eggs', cartof: 'potato', dulce: 'sweet',
-    orez: 'rice', ovaz: 'oats', iaurt: 'yogurt', ayran: 'ayran', bautura: 'drink', branza: 'cheese', lapte: 'milk', mar: 'apple',
+    orez: 'rice', jasmine: 'jasmine', iasomie: 'jasmine', taitei: 'noodles', fidea: 'vermicelli',
+    lipicios: 'sticky', burta: 'belly', crocant: 'crispy',
+    ovaz: 'oats', iaurt: 'yogurt', ayran: 'ayran', bautura: 'drink', branza: 'cheese', lapte: 'milk', mar: 'apple',
     banana: 'banana', broccoli: 'broccoli', crud: 'raw', cruda: 'raw', crude: 'raw', gatit: 'cooked',
     gatita: 'cooked', fiert: 'boiled', fiarta: 'boiled', copt: 'baked', coapta: 'baked',
     microunde: 'microwaved', gratar: 'grilled', prajit: 'fried', prajita: 'fried', abur: 'steamed',
@@ -549,7 +588,10 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
   th: {
     อกไก่: 'chicken breast', ไก่: 'chicken', ไก่งวง: 'turkey', เนื้อวัว: 'beef', หมู: 'pork', ปลา: 'fish',
     แซลมอน: 'salmon', ทูน่า: 'tuna', ไข่: 'egg', มันหวาน: 'sweet potato', มันฝรั่ง: 'potato',
-    ข้าว: 'rice', ข้าวโอ๊ต: 'oats', โยเกิร์ต: 'yogurt', ไอรัน: 'ayran', อัยรัน: 'ayran', อายรัน: 'ayran', ชีส: 'cheese', นม: 'milk',
+    ข้าว: 'rice', ข้าวหอมมะลิ: 'jasmine rice', ข้าวกล้องหอมมะลิ: 'brown jasmine rice',
+    ข้าวเหนียว: 'sticky rice', เส้นก๋วยเตี๋ยว: 'rice noodles', เส้นหมี่: 'rice vermicelli',
+    หมูกรอบ: 'crispy fried pork belly', ผัดกะเพรา: 'pad kra pao', ผัดกระเพรา: 'pad kra pao',
+    ข้าวโอ๊ต: 'oats', โยเกิร์ต: 'yogurt', ไอรัน: 'ayran', อัยรัน: 'ayran', อายรัน: 'ayran', ชีส: 'cheese', นม: 'milk',
     ดิบ: 'raw', สุก: 'cooked', ต้ม: 'boiled', อบ: 'baked', ไมโครเวฟ: 'microwaved',
     ย่าง: 'grilled', ทอด: 'fried', นึ่ง: 'steamed',
     เวย์: 'whey', โปรตีน: 'protein', เคซีน: 'casein', ไอโซเลต: 'isolate',
@@ -577,17 +619,20 @@ const FOOD_SEARCH_TOKENS: Record<'ro' | 'th', Record<string, string>> = {
 export function expandFoodSearchQueries(query: string, language: IntroLanguage): string[] {
   const original = query.trim()
   if (!original) return []
-  if (language === 'en') return [original]
   const normalized = normalizeFoodSearch(original)
-  const phrase = FOOD_SEARCH_PHRASES[language][normalized]
-  const tokenMap = FOOD_SEARCH_TOKENS[language]
-  const tokenTranslation = normalized
-    .split(' ')
-    .map((token) => tokenMap[token] ?? token)
-    .filter(Boolean)
-    .join(' ')
-    .trim()
-  return [...new Set([original, phrase, tokenTranslation].filter((value): value is string => Boolean(value)))]
+  const languageOrder: Array<'ro' | 'th'> = language === 'th' ? ['th', 'ro'] : ['ro', 'th']
+  const expansions = languageOrder.flatMap((candidateLanguage) => {
+    const phrase = FOOD_SEARCH_PHRASES[candidateLanguage][normalized]
+    const tokenMap = FOOD_SEARCH_TOKENS[candidateLanguage]
+    const tokenTranslation = normalized
+      .split(' ')
+      .map((token) => tokenMap[token] ?? token)
+      .filter(Boolean)
+      .join(' ')
+      .trim()
+    return [phrase, tokenTranslation]
+  })
+  return [...new Set([original, ...expansions].filter((value): value is string => Boolean(value)))]
 }
 
 export function displayFoodName(food: FoodRecord, language: IntroLanguage): string {
@@ -711,6 +756,73 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
 }
 
 const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-protocol:generic:jasmine-rice-white-dry': [
+    'jasmine rice', 'jasmine rice dry', 'uncooked jasmine rice', 'thai fragrant rice',
+    'jasmin rice', 'jasminreis', 'orez jasmine', 'orez iasomie', 'orez jasmine uscat',
+    'ข้าวหอมมะลิ', 'ข้าวหอมมะลิขาว', 'ข้าวสารหอมมะลิ',
+  ],
+  'apex-protocol:generic:jasmine-rice-brown-dry': [
+    'brown jasmine rice', 'whole grain jasmine rice', 'orez jasmine integral',
+    'orez iasomie integral', 'ข้าวกล้องหอมมะลิ',
+  ],
+  'apex-protocol:generic:jasmine-rice-cooked-ratio-1-1-5': [
+    'jasmine rice cooked', 'boiled jasmine rice', 'cooked jasmin rice', 'orez jasmine fiert',
+    'orez iasomie fiert', 'ข้าวหอมมะลิหุงสุก', 'ข้าวสวยหอมมะลิ',
+  ],
+  'apex-protocol:generic:jasmine-rice-cooked-ratio-1-2': [
+    'jasmine rice cooked', 'boiled jasmine rice', 'cooked jasmin rice', 'orez jasmine fiert',
+    'orez iasomie fiert', 'ข้าวหอมมะลิหุงสุก', 'ข้าวสวยหอมมะลิ',
+  ],
+  'apex-protocol:generic:jasmine-rice-cooked-ratio-1-2-5': [
+    'jasmine rice cooked', 'boiled jasmine rice', 'cooked jasmin rice', 'orez jasmine fiert',
+    'orez iasomie fiert', 'ข้าวหอมมะลิหุงสุก', 'ข้าวสวยหอมมะลิ',
+  ],
+  'apex-protocol:generic:jasmine-rice-ready-to-eat': [
+    'ready to eat jasmine rice', 'instant jasmine rice', 'microwave jasmine rice',
+    '7 eleven jasmine rice', '7-eleven jasmine rice', 'orez jasmine gata de consum',
+    'ข้าวหอมมะลิพร้อมรับประทาน', 'ข้าวหอมมะลิไมโครเวฟ', 'ข้าวเซเว่น',
+  ],
+  'apex-protocol:generic:sticky-rice-white-dry': [
+    'thai sticky rice', 'glutinous rice dry', 'orez lipicios', 'ข้าวเหนียว', 'ข้าวเหนียวขาว',
+  ],
+  'apex-protocol:generic:sticky-rice-white-steamed': [
+    'thai sticky rice cooked', 'steamed sticky rice', 'orez lipicios gatit', 'ข้าวเหนียวนึ่ง',
+  ],
+  'apex-protocol:generic:rice-noodles-dry': [
+    'rice noodles', 'rice noodle dry', 'thai rice noodles', 'taitei de orez', 'tăiței de orez',
+    'เส้นก๋วยเตี๋ยว', 'ก๋วยเตี๋ยวเส้นแห้ง',
+  ],
+  'apex-protocol:generic:rice-noodles-boiled': [
+    'rice noodles cooked', 'rice noodles boiled', 'taitei de orez fierti', 'tăiței de orez fierți',
+    'เส้นก๋วยเตี๋ยวต้ม', 'เส้นก๋วยเตี๋ยวลวก',
+  ],
+  'apex-protocol:generic:rice-vermicelli-dry': [
+    'rice vermicelli', 'rice vermicelli dry', 'fidea de orez', 'เส้นหมี่', 'เส้นหมี่ข้าว',
+  ],
+  'apex-protocol:generic:rice-vermicelli-cooked': [
+    'rice vermicelli cooked', 'fidea de orez fiarta', 'fidea de orez fiartă', 'เส้นหมี่ลวก',
+  ],
+  'apex-protocol:generic:crispy-fried-pork-belly-recipe': [
+    'fried pork belly', 'crispy pork belly', 'thai crispy pork', 'moo krob',
+    'burta de porc prajita', 'burtă de porc prăjită', 'porc prajit crocant', 'หมูกรอบ',
+  ],
+  'apex-protocol:generic:pad-kra-pao-moo-sab-no-rice-egg': [
+    'pad kra pao moo sab', 'pad krapow moo sab', 'phad kra pao moo sab',
+    'thai basil minced pork', 'ผัดกะเพราหมูสับ', 'ผัดกระเพราหมูสับ', 'กะเพราหมูสับ',
+  ],
+  'apex-protocol:generic:pad-kra-pao-neua-sab-no-rice-egg': [
+    'pad kra pao neua sab', 'pad krapow nua sab', 'phad kra pao neua sab',
+    'thai basil minced beef', 'ผัดกะเพราเนื้อสับ', 'ผัดกระเพราเนื้อสับ', 'กะเพราเนื้อสับ',
+  ],
+  'apex-protocol:generic:pad-thai-shrimp-recipe': [
+    'pad thai', 'phad thai', 'pad thai shrimp', 'ผัดไทย', 'ผัดไทยกุ้ง',
+  ],
+  'apex-protocol:generic:nam-tok-neua-recipe': [
+    'nam tok neua', 'nam tok nua', 'thai beef salad', 'salata thai cu vita', 'น้ำตกเนื้อ',
+  ],
+  'apex-protocol:generic:larb-moo-recipe': ['larb moo', 'laap moo', 'thai minced pork salad', 'ลาบหมู'],
+  'apex-protocol:generic:tom-yum-goong-recipe': ['tom yum goong', 'tom yam kung', 'thai shrimp soup', 'ต้มยำกุ้ง'],
+  'apex-protocol:generic:tom-kha-gai-recipe': ['tom kha gai', 'thai coconut chicken soup', 'ต้มข่าไก่'],
   'apex-protocol:generic:ravioli-cheese-cooked': ['ravioli', 'cheese ravioli', 'ravioli cu branza', 'ravioli cu brânză', 'käse ravioli', 'ราวิโอลีชีส'],
   'apex-protocol:generic:ravioli-meat-cooked': ['ravioli', 'meat ravioli', 'ravioli cu carne', 'fleisch ravioli', 'ราวิโอลีเนื้อ'],
   'apex-protocol:generic:ravioli-tomato-sauce': ['ravioli with sauce', 'ravioli tomato sauce', 'ravioli cu sos', 'ravioli cu sos de rosii', 'ravioli mit tomatensauce'],

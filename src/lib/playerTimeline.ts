@@ -30,6 +30,64 @@ export type Block =
   | { kind: 'log'; exIdx: number; exercise: PlannedExercise }
   | { kind: 'done' }
 
+/**
+ * Passive blocks are allowed to keep counting while the PWA is backgrounded.
+ * Active sets are intentionally excluded: a throttled/hidden browser must
+ * never manufacture completed repetitions.
+ */
+export function isPassiveTimerBlock(block: Block | undefined): boolean {
+  return block?.kind === 'warmup' || block?.kind === 'rest' || block?.kind === 'side_switch'
+}
+
+export function reconcilePlayerElapsed({
+  block,
+  elapsed,
+  paused,
+  persistedAt,
+  now = Date.now(),
+}: {
+  block: Block | undefined
+  elapsed: number
+  paused: boolean
+  persistedAt?: string | null
+  now?: number
+}): { elapsed: number; paused: boolean } {
+  const safeElapsed = Math.max(0, Number.isFinite(elapsed) ? elapsed : 0)
+  if (paused || !persistedAt) return { elapsed: safeElapsed, paused }
+  const persistedMs = Date.parse(persistedAt)
+  if (!Number.isFinite(persistedMs)) return { elapsed: safeElapsed, paused }
+  if (isPassiveTimerBlock(block)) {
+    return {
+      elapsed: safeElapsed + Math.max(0, (now - persistedMs) / 1000),
+      paused: false,
+    }
+  }
+  /* A restored active set waits for an explicit resume. */
+  if (block?.kind === 'set') return { elapsed: safeElapsed, paused: true }
+  return { elapsed: safeElapsed, paused }
+}
+
+/**
+ * The closest captured set is the least surprising default for the next set.
+ * This scans backwards rather than falling through to the original 2.5 kg
+ * recommendation after a person has already entered a real working load.
+ */
+export function prefillSetWeight(
+  setWeights: Array<number | null | undefined>,
+  setNo: number,
+  exerciseWeight: number | null | undefined,
+  recommendedWeight: number | null | undefined,
+): number | null {
+  const currentIndex = Math.max(0, setNo - 1)
+  for (let index = Math.min(currentIndex, setWeights.length - 1); index >= 0; index -= 1) {
+    const candidate = setWeights[index]
+    if (candidate != null && Number.isFinite(candidate)) return candidate
+  }
+  if (exerciseWeight != null && Number.isFinite(exerciseWeight)) return exerciseWeight
+  if (recommendedWeight != null && Number.isFinite(recommendedWeight)) return recommendedWeight
+  return null
+}
+
 export function repTarget(e: PlannedExercise): number | null {
   if (e.rep_unit === 'max') return null
   return Math.round((e.rep_min + e.rep_max) / 2)

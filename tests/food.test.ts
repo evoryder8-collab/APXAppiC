@@ -153,6 +153,31 @@ test('food search tolerates potato typos while rejecting unrelated fruit results
   )
 })
 
+test('Thai and Asian staples resolve across English, Romanian and Thai search', () => {
+  const expectations = [
+    ['jasmine rice cooked', 'jasmine-rice-cooked-ratio-1-1-5'],
+    ['orez iasomie fiert', 'jasmine-rice-cooked-ratio-1-1-5'],
+    ['ข้าวหอมมะลิหุงสุก', 'jasmine-rice-cooked-ratio-1-1-5'],
+    ['rice noodles', 'rice-noodles-dry'],
+    ['เส้นหมี่', 'rice-vermicelli-dry'],
+    ['fried pork belly', 'crispy-fried-pork-belly-recipe'],
+    ['ผัดกะเพราหมูสับ', 'pad-kra-pao-moo-sab-no-rice-egg'],
+    ['ผัดกะเพราเนื้อสับ', 'pad-kra-pao-neua-sab-no-rice-egg'],
+    ['pad thai', 'pad-thai-shrimp-recipe'],
+    ['น้ำตกเนื้อ', 'nam-tok-neua-recipe'],
+  ] as const
+
+  for (const [query, suffix] of expectations) {
+    assert.equal(
+      rankFoods(query, COMMON_FOODS, [], 'lunch')[0]?.provider_product_id,
+      `apex-protocol:generic:${suffix}`,
+      query,
+    )
+  }
+  assert.ok(expandFoodSearchQueries('ข้าวหอมมะลิหุงสุก', 'en').includes('jasmine rice cooked'))
+  assert.ok(rankFoods('7-eleven jasmine rice', COMMON_FOODS, [], 'lunch')[0]?.provider_product_id?.endsWith('jasmine-rice-ready-to-eat'))
+})
+
 test('localized staple search finds oats, som tam, fish sauce, avocado and prepared eggs', () => {
   const organicOats = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-173904')!
   const somTam = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:som-tam-thai-reference')!

@@ -444,6 +444,21 @@ export function Settings() {
               </div>
             </div>
 
+            <div className="mt-3 rounded-2xl border border-emerald-100/90 bg-[linear-gradient(135deg,rgba(236,253,245,.82),rgba(255,255,255,.68))] p-3">
+              <div className="flex items-center justify-between gap-3">
+                <div className="min-w-0">
+                  <p className={label}>{t('Adapt late post-workout meals to dinner')}</p>
+                  <p className={`${sub} mt-1 leading-relaxed`}>{t('After 19:00, the post-workout guide uses your complete dinner foods instead of a snack-only list.')}</p>
+                </div>
+                <Toggle
+                  accent={ACCENTS.teal}
+                  label={t('Adapt late post-workout meals to dinner')}
+                  on={settings.addons.adaptive_post_workout_dinner ?? true}
+                  onChange={(value) => setSettings({ addons: { ...settings.addons, adaptive_post_workout_dinner: value } })}
+                />
+              </div>
+            </div>
+
             <div className="mt-3 rounded-[22px] border border-amber-100/90 bg-[linear-gradient(135deg,rgba(255,251,235,.88),rgba(255,255,255,.68))] p-3.5">
               <p className={label}>{t('Meal blocks')}</p>
               <p className={`${sub} mt-1 leading-relaxed`}>{t('Choose the meals that define your daily completion score and set their usual times. Saved presets logged into a block count automatically.')}</p>

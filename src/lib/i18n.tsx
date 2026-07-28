@@ -461,10 +461,10 @@ function translateDynamic(value: string, language: Exclude<IntroLanguage, 'en'>)
   if (proteinLow) return language === 'ro'
     ? `Proteina a atins obiectivul în doar ${proteinLow[1]}% din zilele înregistrate. Distribuie proteina între mesele stabilite.`
     : `โปรตีนถึงเป้าเพียง ${proteinLow[1]}% ของวันที่บันทึก แบ่งโปรตีนให้ครบในแต่ละมื้อตามเป้า`
-  const appleCardio = value.match(/^Apple Watch cardio \(([\d.]+) min\) fed Endurance$/)
-  if (appleCardio) return language === 'ro' ? `Cardio Apple Watch (${appleCardio[1]} min) a susținut anduranța` : `คาร์ดิโอจาก Apple Watch (${appleCardio[1]} นาที) เพิ่มค่าความอดทน`
-  const appleStrength = value.match(/^Apple Watch strength work \(([\d.]+) min\) fed Strength$/)
-  if (appleStrength) return language === 'ro' ? `Antrenamentul de forță Apple Watch (${appleStrength[1]} min) a susținut forța` : `การฝึกแรงจาก Apple Watch (${appleStrength[1]} นาที) เพิ่มค่าความแข็งแรง`
+  const wearableCardio = value.match(/^(?:Apple Watch|Wearable) cardio \(([\d.]+) min\) fed Endurance$/)
+  if (wearableCardio) return language === 'ro' ? `Cardio de pe dispozitiv (${wearableCardio[1]} min) a susținut anduranța` : `คาร์ดิโอจากอุปกรณ์สวมใส่ (${wearableCardio[1]} นาที) เพิ่มค่าความอดทน`
+  const wearableStrength = value.match(/^(?:Apple Watch|Wearable) strength work \(([\d.]+) min\) fed Strength$/)
+  if (wearableStrength) return language === 'ro' ? `Antrenamentul de forță de pe dispozitiv (${wearableStrength[1]} min) a susținut forța` : `การฝึกแรงจากอุปกรณ์สวมใส่ (${wearableStrength[1]} นาที) เพิ่มค่าความแข็งแรง`
   const importedMobility = value.match(/^Imported mobility session \(([\d.]+) min\) fed Flexibility$/)
   if (importedMobility) return language === 'ro' ? `Sesiunea de mobilitate importată (${importedMobility[1]} min) a susținut flexibilitatea` : `การฝึกความคล่องตัวที่นำเข้า (${importedMobility[1]} นาที) เพิ่มค่าความยืดหยุ่น`
   const vo2Anchor = value.match(/^VO2max measured at ([\d.]+)\. Endurance anchored toward ([\d.]+)$/)

@@ -6,11 +6,12 @@ import { sessionStrengthInsights, type SessionStrengthInsight } from '../../lib/
 import { useStore } from '../../store/AppStore'
 import { AccentChip, Sheet } from '../ui'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import { isFocusT25Name } from '../../lib/focusT25'
 
 const COPY = {
-  en: { eyebrow: 'WORKOUT RECEIPT', title: 'Stats at a glance', subtitle: 'Every set is editable. Corrections update your private strength history immediately.', volume: 'Loaded volume', sets: 'Working sets', movements: 'Movements', signal: 'APEX strength signal', first: 'First clean baseline recorded. This becomes the comparison point for your next session.', saved: 'Corrections save automatically', close: 'Done', weight: 'Weight', reps: 'Reps', rir: 'RIR' },
-  ro: { eyebrow: 'REZUMATUL ANTRENAMENTULUI', title: 'Statistici dintr-o privire', subtitle: 'Fiecare set poate fi corectat. Modificările actualizează imediat istoricul privat de forță.', volume: 'Volum încărcat', sets: 'Seturi de lucru', movements: 'Mișcări', signal: 'Semnalul de forță APEX', first: 'Primul reper curat a fost înregistrat. Acesta devine comparația pentru următoarea sesiune.', saved: 'Corecțiile se salvează automat', close: 'Gata', weight: 'Greutate', reps: 'Repetări', rir: 'RIR' },
-  th: { eyebrow: 'ใบสรุปการฝึก', title: 'สถิติโดยสรุป', subtitle: 'แก้ไขได้ทุกเซต การแก้ไขจะอัปเดตประวัติความแข็งแรงส่วนตัวทันที', volume: 'ปริมาณน้ำหนักรวม', sets: 'เซตทำงาน', movements: 'ท่า', signal: 'สัญญาณความแข็งแรง APEX', first: 'บันทึกค่าฐานครั้งแรกแล้ว ค่านี้จะใช้เทียบกับการฝึกครั้งถัดไป', saved: 'บันทึกการแก้ไขอัตโนมัติ', close: 'เสร็จ', weight: 'น้ำหนัก', reps: 'ครั้ง', rir: 'RIR' },
+  en: { eyebrow: 'WORKOUT RECEIPT', title: 'Stats at a glance', subtitle: 'Every strength set is editable. Secondary sessions keep their own completion details.', volume: 'Loaded volume', sets: 'Working sets', movements: 'Movements', signal: 'APEX strength signal', first: 'First clean baseline recorded. This becomes the comparison point for your next session.', saved: 'Corrections save automatically', close: 'Done', weight: 'Weight', reps: 'Reps', rir: 'RIR', secondary: 'Secondary session', full: 'Full version', modifier: 'Used modifier', incomplete: 'Not completed' },
+  ro: { eyebrow: 'REZUMATUL ANTRENAMENTULUI', title: 'Statistici dintr-o privire', subtitle: 'Fiecare set de forță poate fi corectat. Sesiunile secundare păstrează detaliile lor proprii.', volume: 'Volum încărcat', sets: 'Seturi de lucru', movements: 'Mișcări', signal: 'Semnalul de forță APEX', first: 'Primul reper curat a fost înregistrat. Acesta devine comparația pentru următoarea sesiune.', saved: 'Corecțiile se salvează automat', close: 'Gata', weight: 'Greutate', reps: 'Repetări', rir: 'RIR', secondary: 'Sesiune secundară', full: 'Versiunea completă', modifier: 'Cu modificator', incomplete: 'Neefectuat' },
+  th: { eyebrow: 'ใบสรุปการฝึก', title: 'สถิติโดยสรุป', subtitle: 'แก้ไขได้ทุกเซตเวท ส่วนเซสชันเสริมจะเก็บรายละเอียดการทำของตัวเอง', volume: 'ปริมาณน้ำหนักรวม', sets: 'เซตทำงาน', movements: 'ท่า', signal: 'สัญญาณความแข็งแรง APEX', first: 'บันทึกค่าฐานครั้งแรกแล้ว ค่านี้จะใช้เทียบกับการฝึกครั้งถัดไป', saved: 'บันทึกการแก้ไขอัตโนมัติ', close: 'เสร็จ', weight: 'น้ำหนัก', reps: 'ครั้ง', rir: 'RIR', secondary: 'เซสชันเสริม', full: 'เวอร์ชันเต็ม', modifier: 'ใช้ท่าปรับง่าย', incomplete: 'ไม่ได้ทำ' },
 } satisfies Record<IntroLanguage, Record<string, string>>
 
 function insightText(insight: SessionStrengthInsight, language: IntroLanguage): string {
@@ -48,13 +49,21 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
     return [...map.entries()]
   }, [logs])
   const insights = sessionId ? sessionStrengthInsights(data, sessionId) : []
-  const volume = logs.reduce((sum, log) => sum + (log.skipped ? 0 : (log.weight_kg ?? 0) * (log.reps ?? 0)), 0)
-  const workingSets = logs.filter((log) => !log.skipped).length
+  const strengthLogs = logs.filter((log) => !isFocusT25Name(log.exercise_name))
+  const volume = strengthLogs.reduce((sum, log) => sum + (log.skipped ? 0 : (log.weight_kg ?? 0) * (log.reps ?? 0)), 0)
+  const workingSets = strengthLogs.filter((log) => !log.skipped).length
 
   const change = (id: string, patch: Partial<WorkoutLog>) => setLogs((current) => current.map((log) => log.id === id ? { ...log, ...patch } : log))
   const commit = (id: string) => {
     const log = logs.find((candidate) => candidate.id === id)
     if (log) upsert('workout_logs', log)
+  }
+  const persistPatch = (id: string, patch: Partial<WorkoutLog>) => {
+    const current = logs.find((candidate) => candidate.id === id)
+    if (!current) return
+    const next = { ...current, ...patch }
+    setLogs((rows) => rows.map((row) => row.id === id ? next : row))
+    upsert('workout_logs', next)
   }
 
   return (
@@ -65,7 +74,48 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
 
       {insights.length > 0 && <div className="mt-4 rounded-[1.6rem] bg-[#08111d] p-4 text-white shadow-[0_22px_45px_-30px_rgba(139,92,246,.9)]"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.8)]" /><p className="font-mono text-[8px] font-black tracking-[0.16em] text-cyan-100/65 uppercase">{copy.signal}</p></div><div className="mt-3 space-y-2">{insights.slice(0, 3).map((insight) => <p key={insight.key} className="text-[11px] leading-relaxed font-semibold text-white/72">{insightText(insight, language)}</p>)}</div></div>}
 
-      <div className="mt-4 space-y-3">{groups.map(([name, exerciseLogs]) => <section key={name} className="rounded-[1.5rem] border border-white/80 bg-white/55 p-3 shadow-sm"><div className="flex items-center justify-between gap-2"><h3 className="min-w-0 truncate text-sm font-black text-ink">{t(name)}</h3><AccentChip accent={ACCENTS.violet}>{exerciseLogs.length} {t('sets')}</AccentChip></div><div className="mt-2 space-y-2">{exerciseLogs.map((log) => <div key={log.id} className="grid grid-cols-[2.7rem_repeat(3,minmax(0,1fr))] items-end gap-1.5 rounded-xl bg-white/70 p-2"><span className="pb-2 text-center font-mono text-[9px] font-black text-ink-faint">S{log.set_no}</span><EditableNumber label={copy.weight} suffix="kg" value={log.weight_kg} step="0.5" onChange={(value) => change(log.id, { weight_kg: value })} onCommit={() => commit(log.id)} /><EditableNumber label={copy.reps} value={log.reps} step="1" onChange={(value) => change(log.id, { reps: value == null ? null : Math.round(value) })} onCommit={() => commit(log.id)} /><EditableNumber label={copy.rir} value={log.rir} step="1" max="10" onChange={(value) => change(log.id, { rir: value == null ? null : Math.round(value) })} onCommit={() => commit(log.id)} /></div>)}</div></section>)}</div>
+      <div className="mt-4 space-y-3">{groups.map(([name, exerciseLogs]) => {
+        const focusT25 = isFocusT25Name(name)
+        const focusLog = exerciseLogs[0]
+        return (
+          <section key={name} className="rounded-[1.5rem] border border-white/80 bg-white/55 p-3 shadow-sm">
+            <div className="flex items-center justify-between gap-2">
+              <h3 className="min-w-0 truncate text-sm font-black text-ink">{t(name)}</h3>
+              <AccentChip accent={focusT25 ? ACCENTS.teal : ACCENTS.violet}>{focusT25 ? copy.secondary : `${exerciseLogs.length} ${t('sets')}`}</AccentChip>
+            </div>
+            {focusT25 && focusLog ? (
+              <div className="mt-3 grid gap-2 sm:grid-cols-3">
+                {([
+                  { label: copy.full, skipped: false, modifier: false },
+                  { label: copy.modifier, skipped: false, modifier: true },
+                  { label: copy.incomplete, skipped: true, modifier: false },
+                ] as const).map((option) => {
+                  const active = focusLog.skipped === option.skipped && (option.skipped || focusLog.override_flag === option.modifier)
+                  return (
+                    <button
+                      key={option.label}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => persistPatch(focusLog.id, {
+                        skipped: option.skipped,
+                        override_flag: option.modifier,
+                        weight_kg: null,
+                        reps: option.skipped ? null : 1,
+                        rir: null,
+                      })}
+                      className={`rounded-xl border px-3 py-2.5 text-[10px] font-black transition ${active ? 'border-teal-300 bg-teal-50 text-teal-800 shadow-sm' : 'border-white/80 bg-white/65 text-ink-soft'}`}
+                    >
+                      {active ? '✓ ' : ''}{option.label}
+                    </button>
+                  )
+                })}
+              </div>
+            ) : (
+              <div className="mt-2 space-y-2">{exerciseLogs.map((log) => <div key={log.id} className="grid grid-cols-[2.7rem_repeat(3,minmax(0,1fr))] items-end gap-1.5 rounded-xl bg-white/70 p-2"><span className="pb-2 text-center font-mono text-[9px] font-black text-ink-faint">S{log.set_no}</span><EditableNumber label={copy.weight} suffix="kg" value={log.weight_kg} step="0.5" onChange={(value) => change(log.id, { weight_kg: value })} onCommit={() => commit(log.id)} /><EditableNumber label={copy.reps} value={log.reps} step="1" onChange={(value) => change(log.id, { reps: value == null ? null : Math.round(value) })} onCommit={() => commit(log.id)} /><EditableNumber label={copy.rir} value={log.rir} step="1" max="10" onChange={(value) => change(log.id, { rir: value == null ? null : Math.round(value) })} onCommit={() => commit(log.id)} /></div>)}</div>
+            )}
+          </section>
+        )
+      })}</div>
       <div className="mt-4 flex items-center justify-between gap-3"><p className="text-[10px] font-semibold text-emerald-700">✓ {copy.saved}</p><button type="button" onClick={onClose} className="rounded-2xl px-5 py-3 text-sm font-black text-white" style={{ background: accent.gradient }}>{copy.close}</button></div>
     </Sheet>
   )

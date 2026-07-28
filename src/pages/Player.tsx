@@ -10,7 +10,15 @@ import { ACCENTS, type Accent } from '../lib/theme'
 import type { ProgramSlug } from '../lib/types'
 import { useStore } from '../store/AppStore'
 import { planForDate, type PlannedExercise } from '../lib/plan'
-import { buildTimeline, countedRepsForSet, plannedSetCount, type Block } from '../lib/playerTimeline'
+import {
+  buildTimeline,
+  countedRepsForSet,
+  isPassiveTimerBlock,
+  plannedSetCount,
+  prefillSetWeight,
+  reconcilePlayerElapsed,
+  type Block,
+} from '../lib/playerTimeline'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
 import { speak, stopSpeech, tick } from '../lib/audio'
 import { currentStreak } from '../lib/streak'
@@ -20,7 +28,8 @@ import { activityLogId } from '../lib/ids'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
-import { isConditioningFocusT25 } from '../lib/focusT25'
+import { isConditioningFocusT25, isFocusT25Name } from '../lib/focusT25'
+import { exerciseExecutionCue } from '../lib/exerciseGuidance'
 import { useFoodStore } from '../store/FoodStore'
 import {
   ATHLETE_SUPPORT_PROTOCOLS,
@@ -129,14 +138,27 @@ export function Player() {
   const [state, dispatch] = useReducer(reducer, null, (): PlayerState => {
     try {
       const saved = JSON.parse(localStorage.getItem(PERSIST_KEY) ?? 'null') as
-        | (PlayerState & { slug: string; date: string; lite: boolean })
+        | (PlayerState & { slug: string; date: string; lite: boolean; persistedAt?: string })
         | null
       if (saved && saved.slug === slug && saved.date === date && saved.lite === lite) {
         const restoredResults = Object.fromEntries(Object.entries(saved.results ?? {}).map(([key, result]) => [key, {
           ...result,
           sets: (result.sets ?? []).map((set) => ({ ...set, weight: set.weight ?? result.weight ?? null })),
         }]))
-        return { idx: saved.idx, paused: true, elapsed: 0, results: restoredResults, countedReps: saved.countedReps, startedAt: saved.startedAt }
+        const reconciled = reconcilePlayerElapsed({
+          block: blocks[saved.idx],
+          elapsed: saved.elapsed,
+          paused: saved.paused,
+          persistedAt: saved.persistedAt,
+        })
+        return {
+          idx: Math.max(0, Math.min(saved.idx, blocks.length - 1)),
+          paused: reconciled.paused,
+          elapsed: reconciled.elapsed,
+          results: restoredResults,
+          countedReps: saved.countedReps ?? {},
+          startedAt: saved.startedAt ?? new Date().toISOString(),
+        }
       }
     } catch {
       /* fresh start */
@@ -148,7 +170,7 @@ export function Player() {
   useEffect(() => {
     localStorage.setItem(
       PERSIST_KEY,
-      JSON.stringify({ ...state, slug, date, lite }),
+      JSON.stringify({ ...state, slug, date, lite, persistedAt: new Date().toISOString() }),
     )
   }, [state, slug, date, lite])
 
@@ -159,6 +181,7 @@ export function Player() {
   const [ticks, setTicks] = useState(ticksOn)
   const [setAnnouncementReady, setSetAnnouncementReady] = useState(true)
   const [showExerciseList, setShowExerciseList] = useState(false)
+  const [selectedExerciseInfo, setSelectedExerciseInfo] = useState<number | null>(null)
 
   /* announced rep tracker to fire voice/tick exactly once per rep */
   const lastRep = useRef(0)
@@ -166,24 +189,70 @@ export function Player() {
   const announcedRestThirty = useRef(-1)
   const stateIdxRef = useRef(state.idx)
   stateIdxRef.current = state.idx
+  const runtimeRef = useRef({ state, block })
+  runtimeRef.current = { state, block }
 
   const advance = useCallback(() => {
     lastRep.current = 0
     dispatch({ type: 'jump', idx: Math.min(state.idx + 1, blocks.length - 1) })
   }, [state.idx, blocks.length])
 
-  /* engine tick */
+  /*
+   * Wall-clock engine: browsers throttle intervals while backgrounded, so a
+   * fixed 100 ms increment freezes rests. Passive countdowns reconcile real
+   * elapsed time; active sets cap foreground drift and pause when hidden.
+   */
   useEffect(() => {
-    const id = window.setInterval(() => dispatch({ type: 'tick', dt: 0.1 }), 100)
-    return () => window.clearInterval(id)
-  }, [])
+    let lastWallClock = Date.now()
+    const applyWallClock = () => {
+      const now = Date.now()
+      const rawDelta = Math.max(0, (now - lastWallClock) / 1000)
+      lastWallClock = now
+      const current = runtimeRef.current
+      if (current.state.paused || !current.block) return
+      if (isPassiveTimerBlock(current.block)) {
+        dispatch({ type: 'tick', dt: rawDelta })
+      } else if (current.block.kind === 'set' && !document.hidden) {
+        dispatch({ type: 'tick', dt: Math.min(rawDelta, 0.25) })
+      }
+    }
+    const visibility = () => {
+      const current = runtimeRef.current
+      if (document.hidden) {
+        if (current.block?.kind === 'set' && !current.state.paused) {
+          stopSpeech()
+          dispatch({ type: 'pause', paused: true })
+        }
+        localStorage.setItem(
+          PERSIST_KEY,
+          JSON.stringify({
+            ...current.state,
+            paused: current.block?.kind === 'set' ? true : current.state.paused,
+            slug,
+            date,
+            lite,
+            persistedAt: new Date().toISOString(),
+          }),
+        )
+        lastWallClock = Date.now()
+        return
+      }
+      applyWallClock()
+    }
+    const id = window.setInterval(applyWallClock, 100)
+    document.addEventListener('visibilitychange', visibility)
+    return () => {
+      window.clearInterval(id)
+      document.removeEventListener('visibilitychange', visibility)
+    }
+  }, [date, lite, slug])
 
   /* block entry announcements */
   useEffect(() => {
     if (!block || announcedBlock.current === state.idx) return
     announcedBlock.current = state.idx
     lastRep.current = 0
-    if (block.kind === 'set' && voice) {
+    if (block.kind === 'set' && voice && !runtimeRef.current.state.paused) {
       setSetAnnouncementReady(false)
       const entryIndex = state.idx
       const side = block.side ? ` ${voiceText(block.side === 'left' ? 'Left side' : 'Right side')}.` : ''
@@ -193,7 +262,7 @@ export function Player() {
         {
           onEnd: () => {
             if (stateIdxRef.current !== entryIndex) return
-            dispatch({ type: 'jump', idx: entryIndex })
+            if (!runtimeRef.current.state.paused) dispatch({ type: 'jump', idx: entryIndex })
             setSetAnnouncementReady(true)
           },
         },
@@ -457,7 +526,10 @@ export function Player() {
           <div className="flex gap-1.5">
             <button
               type="button"
-              onClick={() => setShowExerciseList(true)}
+              onClick={() => {
+                setSelectedExerciseInfo(null)
+                setShowExerciseList(true)
+              }}
               aria-label={voiceText('Exercise list')}
               className="glass grid h-7 w-7 place-items-center rounded-full font-serif text-sm font-black text-ink"
             >
@@ -516,7 +588,7 @@ export function Player() {
                   dispatch({ type: 'endSet', key: block.kind === 'set' ? block.resultKey : '', reps })
                   advance()
                 }}
-                onConfirmCheck={(exIdx, completed) => saveExerciseLog(exIdx, [null], null, [completed ? 1 : null], !completed, false)}
+                onConfirmCheck={(exIdx, completed, usedModifier) => saveExerciseLog(exIdx, [null], null, [completed ? 1 : null], !completed, usedModifier)}
                 recFor={recFor}
                 onSaveLog={saveExerciseLog}
                 results={state.results}
@@ -581,7 +653,10 @@ export function Player() {
             animate={{ opacity: 1 }}
             exit={{ opacity: 0 }}
             onPointerDown={(event) => {
-              if (event.target === event.currentTarget) setShowExerciseList(false)
+              if (event.target === event.currentTarget) {
+                setSelectedExerciseInfo(null)
+                setShowExerciseList(false)
+              }
             }}
           >
             <motion.div
@@ -595,34 +670,55 @@ export function Player() {
             >
               <div className="flex items-center justify-between gap-3">
                 <div>
-                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-ink-faint uppercase">{voiceText('Full session')}</p>
-                  <h2 className="font-display text-lg font-black text-ink">{plan.programDay.name}</h2>
+                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-ink-faint uppercase">{voiceText(selectedExerciseInfo == null ? 'Full session' : 'Exercise instructions')}</p>
+                  <h2 className="font-display text-lg font-black text-ink">{selectedExerciseInfo == null ? plan.programDay.name : voiceText(plan.exercises[selectedExerciseInfo]?.name ?? '')}</h2>
                 </div>
-                <button type="button" onClick={() => setShowExerciseList(false)} className="grid h-9 w-9 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink">×</button>
+                <button type="button" onClick={() => {
+                  setSelectedExerciseInfo(null)
+                  setShowExerciseList(false)
+                }} className="grid h-9 w-9 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink">×</button>
               </div>
-              <div className="mt-3 max-h-[52dvh] space-y-2 overflow-y-auto pr-1">
-                {plan.exercises.map((exercise, index) => {
-                  const activeExercise = block && 'exIdx' in block ? block.exIdx === index : false
-                  return (
-                    <div
-                      key={`${exercise.id}:${index}`}
-                      className="flex items-start gap-3 rounded-2xl border p-3"
-                      style={{
-                        borderColor: activeExercise ? accent.glowStrong : 'rgba(26,26,34,.07)',
-                        background: activeExercise ? accent.wash : 'rgba(255,255,255,.58)',
-                      }}
-                    >
-                      <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full font-mono text-[10px] font-black" style={{ background: activeExercise ? accent.gradient : 'rgba(26,26,34,.06)', color: activeExercise ? '#fff' : '#6b6b75' }}>{index + 1}</span>
-                      <div className="min-w-0">
-                        <p className="font-display text-sm leading-snug font-black text-ink">{voiceText(exercise.name)}</p>
-                        <p className="mt-0.5 font-mono text-[9px] font-bold text-ink-faint">
-                          {exercise.planned_sets} {voiceText('sets')} · {exercise.rep_min === exercise.rep_max ? exercise.rep_min : `${exercise.rep_min}–${exercise.rep_max}`} {voiceText(exercise.rep_unit)}
-                        </p>
-                      </div>
-                    </div>
-                  )
-                })}
-              </div>
+              {selectedExerciseInfo == null ? (
+                <div className="mt-3 max-h-[52dvh] space-y-2 overflow-y-auto pr-1">
+                  {plan.exercises.map((exercise, index) => {
+                    const activeExercise = block && 'exIdx' in block ? block.exIdx === index : false
+                    return (
+                      <button
+                        type="button"
+                        key={`${exercise.id}:${index}`}
+                        onClick={() => setSelectedExerciseInfo(index)}
+                        className="flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition active:scale-[.985]"
+                        style={{
+                          borderColor: activeExercise ? accent.glowStrong : 'rgba(26,26,34,.07)',
+                          background: activeExercise ? accent.wash : 'rgba(255,255,255,.58)',
+                        }}
+                      >
+                        <span className="grid h-7 w-7 shrink-0 place-items-center rounded-full font-mono text-[10px] font-black" style={{ background: activeExercise ? accent.gradient : 'rgba(26,26,34,.06)', color: activeExercise ? '#fff' : '#6b6b75' }}>{index + 1}</span>
+                        <span className="min-w-0 flex-1">
+                          <span className="block font-display text-sm leading-snug font-black text-ink">{voiceText(exercise.name)}</span>
+                          <span className="mt-0.5 block font-mono text-[9px] font-bold text-ink-faint">
+                            {exercise.planned_sets} {voiceText('sets')} · {exercise.rep_min === exercise.rep_max ? exercise.rep_min : `${exercise.rep_min}–${exercise.rep_max}`} {voiceText(exercise.rep_unit)}
+                          </span>
+                        </span>
+                        <span className="mt-1 text-sm font-black text-ink-faint">›</span>
+                      </button>
+                    )
+                  })}
+                </div>
+              ) : (
+                <div className="mt-3 max-h-[52dvh] overflow-y-auto rounded-2xl border border-white/80 bg-white/65 p-4">
+                  <p className="text-sm leading-relaxed font-semibold text-ink">{exerciseExecutionCue(plan.exercises[selectedExerciseInfo]?.name ?? '', language)}</p>
+                  {plan.exercises[selectedExerciseInfo]?.notes && (
+                    <p className="mt-3 rounded-xl bg-ink/[.035] px-3 py-2 text-[11px] leading-relaxed font-semibold text-ink-soft">{voiceText(plan.exercises[selectedExerciseInfo].notes)}</p>
+                  )}
+                  {plan.exercises[selectedExerciseInfo]?.tempo_note && (
+                    <p className="mt-2 font-mono text-[10px] font-bold text-ink-faint">{voiceText(plan.exercises[selectedExerciseInfo].tempo_note)}</p>
+                  )}
+                  <button type="button" onClick={() => setSelectedExerciseInfo(null)} className="mt-4 w-full rounded-xl bg-ink/6 px-4 py-2.5 text-xs font-black text-ink">
+                    ← {voiceText('Back to exercise list')}
+                  </button>
+                </div>
+              )}
             </motion.div>
           </motion.div>
         )}
@@ -643,7 +739,7 @@ function BlockView(props: {
   onSkipRest: () => void
   onExtendRest: () => void
   onEndMaxSet: (reps: number) => void
-  onConfirmCheck: (exIdx: number, completed: boolean) => void
+  onConfirmCheck: (exIdx: number, completed: boolean, usedModifier: boolean) => void
   recFor: (exIdx: number) => Recommendation | null
   onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
@@ -687,20 +783,35 @@ function BlockView(props: {
 
   if (block.kind === 'check') {
     const parts = block.exercise.notes.split('|').map((part) => part.trim()).filter(Boolean)
+    const focusT25 = isFocusT25Name(block.exercise.name)
     return (
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Secondary session')}</p>
         <div className="mx-auto mt-4 grid h-20 w-20 place-items-center rounded-full text-4xl text-white shadow-[0_20px_45px_-20px_rgba(13,148,136,.9)]" style={{ background: accent.gradient }}>✓</div>
         <h2 className="mt-4 font-display text-2xl font-bold text-ink">{t(block.exercise.name)}</h2>
         {parts.slice(1).map((part) => <p key={part} className="mt-2 text-sm font-semibold leading-relaxed text-ink-soft">{t(part)}</p>)}
-        <div className="mt-6 grid gap-2 sm:grid-cols-2">
-          <GradientButton accent={accent} onClick={() => props.onConfirmCheck(block.exIdx, true)}>
-            {t('Mark complete')}
-          </GradientButton>
-          <GhostButton onClick={() => props.onConfirmCheck(block.exIdx, false)}>
-            {t('Skip today')}
-          </GhostButton>
-        </div>
+        {focusT25 ? (
+          <div className="mt-6 grid gap-2">
+            <GradientButton accent={accent} onClick={() => props.onConfirmCheck(block.exIdx, true, false)}>
+              {t('Completed full version')}
+            </GradientButton>
+            <GhostButton onClick={() => props.onConfirmCheck(block.exIdx, true, true)}>
+              {t('Completed with modifier')}
+            </GhostButton>
+            <button type="button" onClick={() => props.onConfirmCheck(block.exIdx, false, false)} className="px-4 py-2 text-xs font-black text-ink-faint">
+              {t('Not completed')}
+            </button>
+          </div>
+        ) : (
+          <div className="mt-6 grid gap-2 sm:grid-cols-2">
+            <GradientButton accent={accent} onClick={() => props.onConfirmCheck(block.exIdx, true, false)}>
+              {t('Mark complete')}
+            </GradientButton>
+            <GhostButton onClick={() => props.onConfirmCheck(block.exIdx, false, false)}>
+              {t('Skip today')}
+            </GhostButton>
+          </div>
+        )}
       </CenterCard>
     )
   }
@@ -781,7 +892,12 @@ function BlockView(props: {
     const remaining = Math.max(0, block.duration - props.elapsed)
     const existing = props.results[block.exIdx]
     const recommendation = props.recFor(block.exIdx)
-    const captured = existing?.sets[block.afterSet - 1]?.weight ?? existing?.weight ?? recommendation?.weight ?? null
+    const captured = prefillSetWeight(
+      existing?.sets.map((set) => set.weight) ?? [],
+      block.afterSet,
+      existing?.weight,
+      recommendation?.weight,
+    )
     const countedReps = countedRepsForSet(props.counted, block.exIdx, block.afterSet, block.exercise.per_side)
       ?? Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)
     const captureReps = block.exercise.rep_unit === 'reps'

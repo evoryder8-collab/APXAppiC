@@ -365,6 +365,9 @@ export interface Settings {
        spacious default, while Long makes two-hour guidance bands especially
        easy to inspect on a phone. */
     meal_dayline_density?: 'compact' | 'medium' | 'long'
+    /* After 19:00 a post-workout meal uses the full dinner guidance instead
+       of a snack-only list. Enabled by default and explicitly user-controlled. */
+    adaptive_post_workout_dinner?: boolean
     /* One immutable-style summary per local calendar day. Closed days keep a
        verdict even when no meal was logged, while later corrections rebuild
        that day and deterministically replay the Avatar engine. */

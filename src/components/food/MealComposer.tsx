@@ -33,6 +33,7 @@ import { timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../../lib/
 import { computeTargets } from '../../lib/nutrition'
 import { ATHLETE_SUPPORT_PROTOCOLS } from '../../lib/personalProtocol'
 import type { IntroLanguage } from '../../lib/introLanguage'
+import { mealMacroStatus, type MealMacroKind } from '../../lib/mealMacroGuidance'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -191,7 +192,11 @@ export function MealComposer({
   )
   const totals = useMemo(() => mealTotals(items), [items])
   const dailyTargets = useMemo(() => data.profile ? computeTargets(data.profile) : null, [data.profile])
-  const mealShare = slot === 'breakfast' ? 0.25 : slot === 'lunch' || slot === 'dinner' ? 0.3 : 0.15
+  const postWorkoutDinnerActive = mealBlockId === 'post_workout'
+    && (data.settings?.addons.adaptive_post_workout_dinner ?? true)
+    && finishedTime >= '19:00'
+  const guideSlot: MealSlot = postWorkoutDinnerActive ? 'dinner' : slot
+  const mealShare = guideSlot === 'breakfast' ? 0.25 : guideSlot === 'lunch' || guideSlot === 'dinner' ? 0.3 : 0.15
   const mealMacroTargets = dailyTargets
     ? {
         protein: Math.max(1, Math.round(dailyTargets.protein_g * mealShare)),
@@ -199,13 +204,15 @@ export function MealComposer({
         fat: Math.max(1, Math.round(dailyTargets.fat_g * mealShare)),
       }
     : null
-  const protocolKey = data.profile ? `${data.profile.persona}:${slot}:${data.profile.goal}:${language}` : ''
+  const protocolKey = data.profile
+    ? `${data.profile.persona}:${guideSlot}:${data.profile.goal}:${language}${postWorkoutDinnerActive ? ':post-workout-dinner' : ''}`
+    : ''
   const defaultProtocolLines = useMemo(() => {
     if (!data.profile) return []
     const protocol = ATHLETE_SUPPORT_PROTOCOLS[data.profile.persona]
-    const meal = protocol?.meals[MEAL_PROTOCOL_INDEX[slot]]
+    const meal = protocol?.meals[MEAL_PROTOCOL_INDEX[guideSlot]]
     return meal?.foods.map((line) => goalAdjustedProtocolLine(line, data.profile!.persona, data.profile!.goal)) ?? []
-  }, [data.profile, slot])
+  }, [data.profile, guideSlot])
   const savedProtocolLines = protocolKey ? data.settings?.addons.meal_protocol_overrides?.[protocolKey] : undefined
   const protocolLines = savedProtocolLines ?? defaultProtocolLines.map((line) => translateProtocolLine(line, language))
   const [protocolDraft, setProtocolDraft] = useState<string[]>(protocolLines)
@@ -623,6 +630,11 @@ export function MealComposer({
                 </button>
               )}
             </div>
+            {postWorkoutDinnerActive && (
+              <p className="mt-2 rounded-xl bg-emerald-50/80 px-3 py-2 text-[9px] font-black text-emerald-800">
+                {t('Dinner guide active for this post-workout meal')}
+              </p>
+            )}
             {mealMacroTargets && (
               <div className="mt-3 grid grid-cols-3 gap-2" aria-label={t('Meal macro completion')}>
                 {([
@@ -630,22 +642,38 @@ export function MealComposer({
                   ['Carbs', totals.carbs_g, mealMacroTargets.carbs, '#22b8e6'],
                   ['Fat', totals.fat_g, mealMacroTargets.fat, '#9b7be8'],
                 ] as const).map(([label, value, target, color]) => {
-                  const completion = Math.max(0, Math.min(1.15, value / Math.max(1, target)))
-                  const reached = completion >= 0.85
+                  const macro = label.toLowerCase() as MealMacroKind
+                  const status = mealMacroStatus(
+                    value,
+                    target,
+                    macro,
+                    data.profile?.persona ?? 'matthew',
+                    data.profile?.goal ?? 'maintain',
+                  )
+                  const warning = status.state === 'high'
+                  const above = status.state === 'above'
                   return (
-                    <div key={label} className="min-w-0 rounded-2xl border border-white/85 bg-white/62 px-2.5 py-2.5">
-                      <div className="flex items-baseline justify-between gap-1">
+                    <div key={label} className={`min-w-0 rounded-2xl border px-2.5 py-2.5 ${warning ? 'border-rose-200 bg-rose-50/72' : above ? 'border-amber-200 bg-amber-50/55' : 'border-white/85 bg-white/62'}`}>
+                      <div className="min-w-0">
                         <p className="truncate text-[10px] font-black text-ink">{t(label)}</p>
-                        <span className="shrink-0 text-[9px] font-black" style={{ color: reached ? '#047857' : '#777782' }}>{reached ? '✓' : `${value}/${target}g`}</span>
+                        <span className={`mt-0.5 block truncate font-mono text-[9px] font-black ${warning ? 'text-rose-700' : above ? 'text-amber-700' : status.state === 'reached' ? 'text-emerald-700' : 'text-ink-faint'}`}>{value}/{target}g</span>
                       </div>
                       <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/7">
                         <motion.div
                           className="h-full rounded-full"
-                          animate={{ width: `${Math.min(100, completion * 100)}%` }}
-                          style={{ background: color, boxShadow: `0 0 10px ${color}66` }}
+                          animate={{ width: `${Math.min(100, status.completion * 100)}%` }}
+                          style={{ background: warning ? '#e11d48' : color, boxShadow: `0 0 10px ${warning ? '#e11d4866' : `${color}66`}` }}
                         />
                       </div>
-                      <p className="mt-1 text-[8px] font-bold text-ink-faint">{reached ? t('minimum reached') : t('toward meal guide')}</p>
+                      <p className={`mt-1 min-h-[1.25rem] text-[8px] leading-tight font-bold ${warning ? 'text-rose-700' : above ? 'text-amber-700' : 'text-ink-faint'}`}>
+                        {warning
+                          ? `+${status.overBy}g ${t('over meal range')}`
+                          : above
+                            ? `+${status.overBy}g ${t('above guide')}`
+                            : status.state === 'reached'
+                              ? t('minimum reached')
+                              : t('toward meal guide')}
+                      </p>
                     </div>
                   )
                 })}

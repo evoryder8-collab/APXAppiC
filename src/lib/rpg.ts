@@ -422,13 +422,13 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
           const scale = Math.min(1.3, a.importEnduranceMin / 30)
           s.endurance += 3.2 * IMPORT_CREDIT * scale * headroom(s.endurance)
           fed.endurance = true
-          synergies.push({ date, kind: 'import_feed', label: `Apple Watch cardio (${a.importEnduranceMin} min) fed Endurance` })
+          synergies.push({ date, kind: 'import_feed', label: `Wearable cardio (${a.importEnduranceMin} min) fed Endurance` })
         }
         if (a.importStrengthMin >= 8 && !fed.upper) {
           const scale = Math.min(1.3, a.importStrengthMin / 35)
           s.strength_upper += 2.0 * IMPORT_CREDIT * scale * headroom(s.strength_upper)
           fed.upper = true
-          synergies.push({ date, kind: 'import_feed', label: `Apple Watch strength work (${a.importStrengthMin} min) fed Strength` })
+          synergies.push({ date, kind: 'import_feed', label: `Wearable strength work (${a.importStrengthMin} min) fed Strength` })
         }
         if (a.importMobilityMin >= 8 && !fed.flexibility) {
           s.flexibility += 2.8 * IMPORT_CREDIT * headroom(s.flexibility)

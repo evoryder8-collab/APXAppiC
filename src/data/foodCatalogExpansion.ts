@@ -709,6 +709,161 @@ const FAT_AND_BUTTER_FOODS: CatalogFoodSpec[] = [
   },
 ]
 
+/*
+ * Curated Thai/Asian essentials for offline discovery. Mixed dishes are named
+ * as recipe references because oil, meat fat and sauces can materially change
+ * their macros; exact packaged products still come from barcode/provider
+ * records. Rice hydration variants deliberately state their cooking ratio so
+ * people do not confuse a dry value with a prepared value.
+ */
+const THAI_AND_ASIAN_FOODS: CatalogFoodSpec[] = [
+  {
+    slug: 'jasmine-rice-white-dry',
+    names: { en: 'Jasmine rice, white, dry', de: 'Jasminreis, weiß, trocken', fr: 'Riz jasmin blanc, sec', it: 'Riso jasmine bianco, secco', ro: 'Orez jasmine alb, uscat', th: 'ข้าวหอมมะลิขาว ดิบ' },
+    kcal: 356, protein: 6.5, carbs: 79.9, fat: 0.7, fibre: 1.3, preparation: 'dry', retailerReference: true,
+  },
+  {
+    slug: 'jasmine-rice-brown-dry',
+    names: { en: 'Brown jasmine rice, dry', de: 'Jasmin-Vollkornreis, trocken', fr: 'Riz jasmin complet, sec', it: 'Riso jasmine integrale, secco', ro: 'Orez jasmine integral, uscat', th: 'ข้าวกล้องหอมมะลิ ดิบ' },
+    kcal: 363, protein: 7.34, carbs: 74.93, fat: 2.95, fibre: 3.3, preparation: 'dry', retailerReference: true,
+  },
+  {
+    slug: 'jasmine-rice-cooked-ratio-1-1-5',
+    names: { en: 'Jasmine rice, cooked, 1:1.5 rice-to-water reference', de: 'Jasminreis, gekocht, Reis-Wasser 1:1,5 Referenz', fr: 'Riz jasmin cuit, référence riz-eau 1:1,5', it: 'Riso jasmine cotto, riferimento riso-acqua 1:1,5', ro: 'Orez jasmine fiert, reper orez-apă 1:1,5', th: 'ข้าวหอมมะลิหุงสุก อัตราข้าวต่อน้ำ 1:1.5' },
+    kcal: 148, protein: 2.7, carbs: 33.2, fat: 0.3, fibre: 0.5, preparation: 'cooked', retailerReference: false,
+  },
+  {
+    slug: 'jasmine-rice-cooked-ratio-1-2',
+    names: { en: 'Jasmine rice, cooked, 1:2 rice-to-water reference', de: 'Jasminreis, gekocht, Reis-Wasser 1:2 Referenz', fr: 'Riz jasmin cuit, référence riz-eau 1:2', it: 'Riso jasmine cotto, riferimento riso-acqua 1:2', ro: 'Orez jasmine fiert, reper orez-apă 1:2', th: 'ข้าวหอมมะลิหุงสุก อัตราข้าวต่อน้ำ 1:2' },
+    kcal: 130, protein: 2.4, carbs: 28.7, fat: 0.2, fibre: 0.4, preparation: 'cooked', retailerReference: false,
+  },
+  {
+    slug: 'jasmine-rice-cooked-ratio-1-2-5',
+    names: { en: 'Jasmine rice, cooked, 1:2.5 rice-to-water reference', de: 'Jasminreis, gekocht, Reis-Wasser 1:2,5 Referenz', fr: 'Riz jasmin cuit, référence riz-eau 1:2,5', it: 'Riso jasmine cotto, riferimento riso-acqua 1:2,5', ro: 'Orez jasmine fiert, reper orez-apă 1:2,5', th: 'ข้าวหอมมะลิหุงสุก อัตราข้าวต่อน้ำ 1:2.5' },
+    kcal: 114, protein: 2.1, carbs: 25.2, fat: 0.2, fibre: 0.4, preparation: 'cooked', retailerReference: false,
+  },
+  {
+    slug: 'jasmine-rice-ready-to-eat',
+    names: { en: 'Jasmine rice, ready to eat, package-label reference', de: 'Jasminreis, verzehrfertig, Etikett-Referenz', fr: 'Riz jasmin prêt à consommer, référence d’étiquette', it: 'Riso jasmine pronto, riferimento da etichetta', ro: 'Orez jasmine gata de consum, reper de etichetă', th: 'ข้าวหอมมะลิพร้อมรับประทาน ค่าอ้างอิงจากฉลาก' },
+    kcal: 154, protein: 3.1, carbs: 34, fat: 0.4, fibre: 0.5, preparation: 'prepared', servingAmount: 150, servingUnit: 'g', retailerReference: false,
+  },
+  {
+    slug: 'sticky-rice-white-dry',
+    names: { en: 'Thai sticky rice, white, dry', de: 'Thailändischer Klebreis, weiß, trocken', fr: 'Riz gluant thaï blanc, sec', it: 'Riso glutinoso thailandese bianco, secco', ro: 'Orez lipicios thailandez alb, uscat', th: 'ข้าวเหนียวขาว ดิบ' },
+    kcal: 354, protein: 6.3, carbs: 81, fat: 0.6, fibre: 1.0, preparation: 'dry', retailerReference: true,
+  },
+  {
+    slug: 'sticky-rice-white-steamed',
+    names: { en: 'Thai sticky rice, steamed', de: 'Thailändischer Klebreis, gedämpft', fr: 'Riz gluant thaï, cuit à la vapeur', it: 'Riso glutinoso thailandese al vapore', ro: 'Orez lipicios thailandez, gătit la abur', th: 'ข้าวเหนียวนึ่ง' },
+    kcal: 169, protein: 3.5, carbs: 37.4, fat: 0.3, fibre: 0.6, preparation: 'cooked', retailerReference: false,
+  },
+  {
+    slug: 'rice-noodles-dry',
+    names: { en: 'Rice noodles, dry', de: 'Reisnudeln, trocken', fr: 'Nouilles de riz, sèches', it: 'Spaghetti di riso, secchi', ro: 'Tăiței de orez, uscați', th: 'เส้นก๋วยเตี๋ยวแห้ง' },
+    kcal: 364, protein: 5.9, carbs: 80.2, fat: 0.6, fibre: 1.6, preparation: 'dry', retailerReference: true,
+  },
+  {
+    slug: 'rice-noodles-boiled',
+    names: { en: 'Rice noodles, boiled and drained', de: 'Reisnudeln, gekocht und abgetropft', fr: 'Nouilles de riz, cuites et égouttées', it: 'Spaghetti di riso, bolliti e scolati', ro: 'Tăiței de orez, fierți și scurși', th: 'เส้นก๋วยเตี๋ยวต้ม สะเด็ดน้ำ' },
+    kcal: 109, protein: 1.8, carbs: 24.9, fat: 0.2, fibre: 1.0, preparation: 'cooked', retailerReference: false,
+  },
+  {
+    slug: 'rice-vermicelli-dry',
+    names: { en: 'Rice vermicelli, dry', de: 'Reisvermicelli, trocken', fr: 'Vermicelles de riz, secs', it: 'Vermicelli di riso, secchi', ro: 'Fidea de orez, uscată', th: 'เส้นหมี่ข้าว แห้ง' },
+    kcal: 364, protein: 5.6, carbs: 81, fat: 0.5, fibre: 1.4, preparation: 'dry', retailerReference: true,
+  },
+  {
+    slug: 'rice-vermicelli-cooked',
+    names: { en: 'Rice vermicelli, cooked and drained', de: 'Reisvermicelli, gekocht und abgetropft', fr: 'Vermicelles de riz, cuits et égouttés', it: 'Vermicelli di riso, cotti e scolati', ro: 'Fidea de orez, fiartă și scursă', th: 'เส้นหมี่ข้าวลวก สะเด็ดน้ำ' },
+    kcal: 108, protein: 1.8, carbs: 24.6, fat: 0.2, fibre: 0.8, preparation: 'cooked', retailerReference: false,
+  },
+  {
+    slug: 'crispy-fried-pork-belly-recipe',
+    names: { en: 'Crispy fried pork belly, Thai recipe reference', de: 'Knusprig frittierter Schweinebauch, Thai-Rezeptreferenz', fr: 'Poitrine de porc frite croustillante, référence thaïe', it: 'Pancetta di maiale fritta croccante, riferimento thailandese', ro: 'Burtă de porc prăjită crocant, reper de rețetă thailandeză', th: 'หมูกรอบ สูตรอ้างอิง' },
+    kcal: 430, protein: 20, carbs: 4, fat: 37, saturatedFat: 13, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'pad-kra-pao-moo-sab-no-rice-egg',
+    names: { en: 'Pad kra pao moo sab, minced pork, no rice or egg, recipe reference', de: 'Pad Kra Pao Moo Sab mit Schweinehack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Pad kra pao moo sab au porc haché, sans riz ni œuf, référence', it: 'Pad kra pao moo sab con maiale macinato, senza riso o uovo, riferimento', ro: 'Pad kra pao moo sab cu porc tocat, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราหมูสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
+    kcal: 216, protein: 15, carbs: 7, fat: 14.5, sugar: 2.5, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'pad-kra-pao-neua-sab-no-rice-egg',
+    names: { en: 'Pad kra pao neua sab, minced beef, no rice or egg, recipe reference', de: 'Pad Kra Pao Neua Sab mit Rinderhack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Pad kra pao neua sab au bœuf haché, sans riz ni œuf, référence', it: 'Pad kra pao neua sab con manzo macinato, senza riso o uovo, riferimento', ro: 'Pad kra pao neua sab cu vită tocată, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราเนื้อสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
+    kcal: 190, protein: 17, carbs: 7, fat: 10.5, sugar: 2.5, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'pad-thai-shrimp-recipe',
+    names: { en: 'Pad Thai with shrimp, recipe reference', de: 'Pad Thai mit Garnelen, Rezeptreferenz', fr: 'Pad thaï aux crevettes, référence de recette', it: 'Pad Thai con gamberi, riferimento ricetta', ro: 'Pad Thai cu creveți, reper de rețetă', th: 'ผัดไทยกุ้ง สูตรอ้างอิง' },
+    kcal: 195, protein: 8, carbs: 27, fat: 6.5, fibre: 1.4, sugar: 5, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'nam-tok-neua-recipe',
+    names: { en: 'Nam tok neua, Thai beef salad, recipe reference', de: 'Nam Tok Neua, thailändischer Rindfleischsalat, Rezeptreferenz', fr: 'Nam tok neua, salade thaïe de bœuf, référence', it: 'Nam tok neua, insalata thailandese di manzo, riferimento', ro: 'Nam tok neua, salată thailandeză cu vită, reper de rețetă', th: 'น้ำตกเนื้อ สูตรอ้างอิง' },
+    kcal: 168, protein: 18, carbs: 5, fat: 8.5, fibre: 0.8, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'larb-moo-recipe',
+    names: { en: 'Larb moo, minced pork salad, recipe reference', de: 'Larb Moo, Schweinehacksalat, Rezeptreferenz', fr: 'Larb moo, salade de porc haché, référence', it: 'Larb moo, insalata di maiale macinato, riferimento', ro: 'Larb moo, salată cu porc tocat, reper de rețetă', th: 'ลาบหมู สูตรอ้างอิง' },
+    kcal: 174, protein: 17, carbs: 6, fat: 9, fibre: 0.8, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'som-tam-thai-recipe',
+    names: { en: 'Som tam Thai, green papaya salad, recipe reference', de: 'Som Tam Thai, grüner Papayasalat, Rezeptreferenz', fr: 'Som tam thaï, salade de papaye verte, référence', it: 'Som tam thai, insalata di papaya verde, riferimento', ro: 'Som tam Thai, salată de papaya verde, reper de rețetă', th: 'ส้มตำไทย สูตรอ้างอิง' },
+    kcal: 76, protein: 2, carbs: 14, fat: 1.5, fibre: 2.4, sugar: 8, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'tom-yum-goong-recipe',
+    names: { en: 'Tom yum goong, shrimp soup, recipe reference', de: 'Tom Yum Goong, Garnelensuppe, Rezeptreferenz', fr: 'Tom yum goong, soupe de crevettes, référence', it: 'Tom yum goong, zuppa di gamberi, riferimento', ro: 'Tom yum goong, supă cu creveți, reper de rețetă', th: 'ต้มยำกุ้ง สูตรอ้างอิง' },
+    kcal: 63, protein: 6.5, carbs: 4.5, fat: 2.1, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'tom-kha-gai-recipe',
+    names: { en: 'Tom kha gai, coconut chicken soup, recipe reference', de: 'Tom Kha Gai, Kokos-Hühnersuppe, Rezeptreferenz', fr: 'Tom kha gai, soupe de poulet au lait de coco, référence', it: 'Tom kha gai, zuppa di pollo al cocco, riferimento', ro: 'Tom kha gai, supă de pui cu cocos, reper de rețetă', th: 'ต้มข่าไก่ สูตรอ้างอิง' },
+    kcal: 112, protein: 7, carbs: 5, fat: 7.2, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'thai-green-curry-chicken-no-rice',
+    names: { en: 'Thai green curry with chicken, no rice, recipe reference', de: 'Thailändisches grünes Curry mit Huhn, ohne Reis, Rezeptreferenz', fr: 'Curry vert thaï au poulet, sans riz, référence', it: 'Curry verde thailandese con pollo, senza riso, riferimento', ro: 'Curry verde thailandez cu pui, fără orez, reper de rețetă', th: 'แกงเขียวหวานไก่ ไม่รวมข้าว สูตรอ้างอิง' },
+    kcal: 156, protein: 9, carbs: 7, fat: 10, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'thai-red-curry-chicken-no-rice',
+    names: { en: 'Thai red curry with chicken, no rice, recipe reference', de: 'Thailändisches rotes Curry mit Huhn, ohne Reis, Rezeptreferenz', fr: 'Curry rouge thaï au poulet, sans riz, référence', it: 'Curry rosso thailandese con pollo, senza riso, riferimento', ro: 'Curry roșu thailandez cu pui, fără orez, reper de rețetă', th: 'แกงเผ็ดไก่ ไม่รวมข้าว สูตรอ้างอิง' },
+    kcal: 162, protein: 9, carbs: 7, fat: 10.7, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'massaman-curry-beef-no-rice',
+    names: { en: 'Massaman curry with beef, no rice, recipe reference', de: 'Massaman-Curry mit Rind, ohne Reis, Rezeptreferenz', fr: 'Curry massaman au bœuf, sans riz, référence', it: 'Curry massaman con manzo, senza riso, riferimento', ro: 'Curry massaman cu vită, fără orez, reper de rețetă', th: 'แกงมัสมั่นเนื้อ ไม่รวมข้าว สูตรอ้างอิง' },
+    kcal: 196, protein: 10, carbs: 12, fat: 12, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'pad-see-ew-chicken-recipe',
+    names: { en: 'Pad see ew with chicken, recipe reference', de: 'Pad See Ew mit Huhn, Rezeptreferenz', fr: 'Pad see ew au poulet, référence', it: 'Pad see ew con pollo, riferimento', ro: 'Pad see ew cu pui, reper de rețetă', th: 'ผัดซีอิ๊วไก่ สูตรอ้างอิง' },
+    kcal: 181, protein: 9, carbs: 25, fat: 5.5, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'thai-omelette-kai-jeow',
+    names: { en: 'Thai omelette, kai jeow, recipe reference', de: 'Thailändisches Omelett, Kai Jeow, Rezeptreferenz', fr: 'Omelette thaïe kai jeow, référence', it: 'Omelette thailandese kai jeow, riferimento', ro: 'Omletă thailandeză kai jeow, reper de rețetă', th: 'ไข่เจียวไทย สูตรอ้างอิง' },
+    kcal: 235, protein: 12, carbs: 2.5, fat: 19.5, preparation: 'prepared', servingAmount: 1, servingUnit: 'piece', pieceGrams: 100, retailerReference: false,
+  },
+  {
+    slug: 'gai-yang-grilled-chicken',
+    names: { en: 'Gai yang, Thai grilled chicken, recipe reference', de: 'Gai Yang, thailändisches Grillhuhn, Rezeptreferenz', fr: 'Gai yang, poulet grillé thaï, référence', it: 'Gai yang, pollo grigliato thailandese, riferimento', ro: 'Gai yang, pui thailandez la grătar, reper de rețetă', th: 'ไก่ย่าง สูตรอ้างอิง' },
+    kcal: 190, protein: 25, carbs: 4, fat: 8, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'moo-ping-grilled-pork',
+    names: { en: 'Moo ping, Thai grilled pork skewer, recipe reference', de: 'Moo Ping, thailändischer Schweinespieß, Rezeptreferenz', fr: 'Moo ping, brochette de porc thaïe, référence', it: 'Moo ping, spiedino di maiale thailandese, riferimento', ro: 'Moo ping, frigăruie thailandeză de porc, reper de rețetă', th: 'หมูปิ้ง สูตรอ้างอิง' },
+    kcal: 245, protein: 18, carbs: 9, fat: 15, preparation: 'prepared', servingAmount: 1, servingUnit: 'piece', pieceGrams: 45, retailerReference: false,
+  },
+  {
+    slug: 'mango-sticky-rice-recipe',
+    names: { en: 'Mango sticky rice, recipe reference', de: 'Mango-Klebreis, Rezeptreferenz', fr: 'Riz gluant à la mangue, référence', it: 'Riso glutinoso al mango, riferimento', ro: 'Orez lipicios cu mango, reper de rețetă', th: 'ข้าวเหนียวมะม่วง สูตรอ้างอิง' },
+    kcal: 214, protein: 3, carbs: 42, fat: 4.3, sugar: 17, preparation: 'prepared', retailerReference: false,
+  },
+]
+
 export const EXPANDED_FOOD_SPECS: CatalogFoodSpec[] = [
   ...FISH_FOODS,
   ...MEAT_FOODS,
@@ -716,4 +871,5 @@ export const EXPANDED_FOOD_SPECS: CatalogFoodSpec[] = [
   ...STARCH_FOODS,
   ...OIL_FOODS,
   ...FAT_AND_BUTTER_FOODS,
+  ...THAI_AND_ASIAN_FOODS,
 ]

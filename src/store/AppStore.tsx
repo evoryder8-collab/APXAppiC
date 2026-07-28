@@ -163,6 +163,7 @@ function normalizeAppData(value: AppData): AppData {
           meal_start_times: normalizeMealStartTimes(value.settings.addons?.meal_start_times),
           meal_timeline_snap_minutes: normalizeMealTimelineSnap(value.settings.addons?.meal_timeline_snap_minutes),
           meal_dayline_density: normalizeMealDaylineDensity(value.settings.addons?.meal_dayline_density),
+          adaptive_post_workout_dinner: value.settings.addons?.adaptive_post_workout_dinner ?? true,
           meal_rhythm_history: normalizeMealRhythmHistory(value.settings.addons?.meal_rhythm_history),
           recovery_data_source: normalizeRecoverySource(value.settings.addons?.recovery_data_source),
           recovery_history: normalizeRecoveryHistory(value.settings.addons?.recovery_history),
