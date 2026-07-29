@@ -97,6 +97,15 @@ export function DropletIcon({ className, strokeWidth = 1.9 }: IconProps) {
   )
 }
 
+export function DumbbellIcon({ className, strokeWidth = 1.9 }: IconProps) {
+  return (
+    <svg {...base(className)} strokeWidth={strokeWidth}>
+      <path d="M7 8.5v7M4.5 9.8v4.4M17 8.5v7M19.5 9.8v4.4M7 12h10" />
+      <path d="M2.5 11v2M21.5 11v2" opacity={0.6} />
+    </svg>
+  )
+}
+
 export function ChevronRightIcon({ className, strokeWidth = 2 }: IconProps) {
   return (
     <svg {...base(className)} strokeWidth={strokeWidth}>

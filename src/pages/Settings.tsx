@@ -153,7 +153,27 @@ export function Settings() {
           body: 'Choose the vertical space between hours. Medium is spacious, while Long makes two-hour guidance windows especially easy to follow.',
           compact: 'Compact',
           medium: 'Medium',
-          long: 'Long',
+        long: 'Long',
+      }
+  const mealMemoryCopy = language === 'ro'
+    ? {
+        title: 'Memoria alimentelor pentru fiecare masă',
+        body: 'Zilnic prioritizează ce folosești recent la micul dejun, prânz sau cină. Săptămânal prioritizează aceeași zi a săptămânii și revine automat la istoricul recent dacă nu există date.',
+        daily: 'Zilnic',
+        weekly: 'Săptămânal',
+      }
+    : language === 'th'
+      ? {
+          title: 'การจดจำอาหารของแต่ละมื้อ',
+          body: 'รายวันจะเน้นอาหารล่าสุดของมื้อเช้า กลางวัน หรือเย็น ส่วนรายสัปดาห์จะเน้นวันเดียวกันของสัปดาห์และย้อนกลับไปใช้ประวัติล่าสุดเมื่อยังไม่มีข้อมูล',
+          daily: 'รายวัน',
+          weekly: 'รายสัปดาห์',
+        }
+      : {
+          title: 'Meal-specific food memory',
+          body: 'Daily prioritizes what you recently used at breakfast, lunch or dinner. Weekly prioritizes the same weekday and automatically falls back to recent history when none exists.',
+          daily: 'Daily',
+          weekly: 'Weekly',
         }
   const starterCopy = language === 'ro'
     ? {
@@ -417,6 +437,27 @@ export function Settings() {
                       className={`rounded-lg px-2 py-2 text-[10px] font-black transition ${active ? 'bg-white text-cyan-800 shadow-sm' : 'text-ink-soft'}`}
                     >
                       {daylineDensityCopy[density]}
+                    </button>
+                  )
+                })}
+              </div>
+            </div>
+
+            <div className="mt-3 rounded-2xl border border-amber-100/90 bg-[linear-gradient(135deg,rgba(255,251,235,.82),rgba(255,255,255,.68))] p-3">
+              <p className={label}>{mealMemoryCopy.title}</p>
+              <p className={`${sub} mt-1 leading-relaxed`}>{mealMemoryCopy.body}</p>
+              <div className="mt-3 grid grid-cols-2 gap-1 rounded-xl bg-amber-950/6 p-1" role="group" aria-label={mealMemoryCopy.title}>
+                {(['daily', 'weekly'] as const).map((mode) => {
+                  const active = (settings.addons.meal_memory_mode ?? 'daily') === mode
+                  return (
+                    <button
+                      key={mode}
+                      type="button"
+                      aria-pressed={active}
+                      onClick={() => setSettings({ addons: { ...settings.addons, meal_memory_mode: mode } })}
+                      className={`rounded-lg px-3 py-2 text-[10px] font-black transition ${active ? 'bg-white text-amber-800 shadow-sm' : 'text-ink-soft'}`}
+                    >
+                      {mealMemoryCopy[mode]}
                     </button>
                   )
                 })}

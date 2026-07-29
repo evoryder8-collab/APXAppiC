@@ -233,13 +233,22 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
   const hydrationGeneration = useRef(0)
   const mutationRevision = useRef(0)
 
-  useEffect(() => () => {
-    /* Async IndexedDB/Supabase work may outlive this owner-scoped provider.
-       Invalidate its guard before the next account mounts so no completion
-       callback can enqueue the previous owner's plan check in the new scope. */
-    userIdRef.current = null
-    hydrationGeneration.current += 1
-  }, [])
+  useEffect(() => {
+    /*
+     * React development mode intentionally remounts effects without rendering
+     * the provider again. Restore the active owner during effect setup so that
+     * the remount cannot leave otherwise valid meal mutations permanently
+     * blocked by the cleanup guard below.
+     */
+    userIdRef.current = userId
+    return () => {
+      /* Async IndexedDB/Supabase work may outlive this owner-scoped provider.
+         Invalidate its guard before the next account mounts so no completion
+         callback can enqueue the previous owner's plan check in the new scope. */
+      userIdRef.current = null
+      hydrationGeneration.current += 1
+    }
+  }, [userId])
 
   const hydrate = useCallback(async () => {
     const expectedUserId = userId

@@ -27,6 +27,13 @@ test('meal finish-time edits reuse the atomic immutable replacement queue', () =
   assert.match(block, /foodMutationBelongsToActiveUser\(userId, userIdRef\.current\)/)
 })
 
+test('food ownership guard is restored when React remounts provider effects', () => {
+  assert.match(
+    foodStore,
+    /useEffect\(\(\) => \{[\s\S]*userIdRef\.current = userId[\s\S]*return \(\) => \{[\s\S]*userIdRef\.current = null[\s\S]*\}, \[userId\]\)/,
+  )
+})
+
 test('private IndexedDB connections close when iOS replaces the app page', () => {
   assert.match(privateDb, /addEventListener\('pagehide', resetPrivateDbConnection\)/)
   assert.match(privateDb, /addEventListener\('beforeunload', resetPrivateDbConnection\)/)

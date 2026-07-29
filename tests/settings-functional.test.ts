@@ -37,6 +37,16 @@ test('meal editor exposes and persists a finished-at time', () => {
   assert.match(store, /logged_at: finishedAt/)
 })
 
+test('meal recommendation memory can switch between daily and same-weekday history', () => {
+  const settings = source('pages/Settings.tsx')
+  const composer = source('components/food/MealComposer.tsx')
+  const experience = source('lib/mealExperience.ts')
+  assert.match(settings, /meal_memory_mode/)
+  assert.match(settings, /\(\['daily', 'weekly'\] as const\)/)
+  assert.match(composer, /memoryMode: data\.settings\?\.addons\.meal_memory_mode \?\? 'daily'/)
+  assert.match(experience, /memoryMode === 'weekly' && sameWeekdayMeals\.length > 0/)
+})
+
 test('day-level automation and Avatar rollover follow the configured meal timezone', () => {
   const appStore = source('store/AppStore.tsx')
   assert.match(appStore, /zonedClock\(new Date\(\), timeZoneFromSettings\(data\.settings\)\)\.date/)

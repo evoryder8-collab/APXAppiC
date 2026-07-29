@@ -24,7 +24,7 @@ import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, Goal, ProgramSlug, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
-import { AvatarIcon, DropletIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
+import { AvatarIcon, DropletIcon, DumbbellIcon, OrbitIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
 import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
@@ -41,6 +41,8 @@ import { clockToMinute, normalizeMealDaylineDensity, normalizeMealTimelineSnap, 
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
 import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
 import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
+import { personaBySlug } from '../lib/persona'
+import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -104,7 +106,7 @@ export function SimpleHome() {
   const [editingManualExerciseId, setEditingManualExerciseId] = useState<string | null>(null)
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
-  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'targets' | 'macro' | 'weight' | null>(null)
+  const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'training' | 'targets' | 'macro' | 'weight' | null>(null)
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealBlockId, setQuickMealBlockId] = useState<MealBlockKind | null>(null)
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; targetTime: string | null; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
@@ -250,6 +252,10 @@ export function SimpleHome() {
     () => planForDate(data, guidedProgramSlug, selectedDate, false),
     [data, guidedProgramSlug, selectedDate],
   )
+  const lightPlan = useMemo(
+    () => planForDate(data, guidedProgramSlug, selectedDate, true),
+    [data, guidedProgramSlug, selectedDate],
+  )
   const workoutDone = data.workout_sessions.some((session) => session.date === selectedDate && session.completed)
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
@@ -299,6 +305,15 @@ export function SimpleHome() {
   const totalMealBlocks = mealBlockStatuses.length + enabledCustomMealBlocks.length
   const completedGroups = supplementGroups.filter(groupIsDone).length
   const hasWorkout = plan.exercises.length > 0
+  const fullWorkoutMinutes = plan.programDay?.est_minutes ?? Math.max(15, plan.exercises.length * 8)
+  const lightWorkoutMinutes = Math.max(
+    8,
+    Math.round(fullWorkoutMinutes * Math.max(1, lightPlan.exercises.length) / Math.max(1, plan.exercises.length)),
+  )
+  const localizedExerciseName = (name: string): string => {
+    const catalogExercise = catalogExerciseByName(name)
+    return catalogExercise ? displayExerciseName(catalogExercise, language) : t(name)
+  }
   const totalTasks = totalMealBlocks + supplementGroups.length + 1 + Number(hasWorkout)
   const completedTasks = completedMeals + completedGroups + Number(waterDone) + Number(hasWorkout && workoutDone)
   const completion = simpleCompletion(completedTasks, totalTasks)
@@ -573,10 +588,6 @@ export function SimpleHome() {
     setEditingManualSessionId(null)
     setEditingManualExerciseId(null)
   }
-  const openTraining = (): void => {
-    navigate(hasWorkout && !workoutDone ? `/player/${guidedProgramSlug}/${selectedDate}` : guidedScheduleRoute)
-  }
-
   const openNutritionSection = (section: 'meals' | 'supplements'): void => {
     sessionStorage.setItem('apex-simple-return-anchor', 'summary-actions')
     navigate(`/nutrition?section=${section}&date=${selectedDate}&return=simple`)
@@ -844,7 +855,7 @@ export function SimpleHome() {
         swipeStart.current = null
       }}
     >
-      <FloatingActiveDate label={selectedDateLabel} />
+      <FloatingActiveDate label={selectedDateLabel} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
       <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={() => moveDay(-1)} aria-label={t('Previous day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">‹</button>
@@ -945,10 +956,18 @@ export function SimpleHome() {
               />
             ) : blockId === 'quick-actions' ? (
               <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
-                <SimpleMetric icon={<LeafIcon className="h-4 w-4" />} value={`${completedMeals}/${totalMealBlocks}`} label={t('Meals')} done={totalMealBlocks > 0 && completedMeals === totalMealBlocks} onClick={() => setQuickPanel('meals')} ariaLabel={t('Edit meals')} />
-                <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
                 <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
-                <SimpleMetric icon={<TransitionIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone || !hasWorkout} onClick={openTraining} ariaLabel={t('Open training')} />
+                <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
+                <SimpleMetric
+                  icon={<img src={personaBySlug(profile.persona).portrait} alt="" className="h-full w-full scale-[2.35] object-contain [transform-origin:50%_32%]" />}
+                  value=""
+                  label={t('Stats')}
+                  done={false}
+                  portrait
+                  onClick={() => navigate('/avatar')}
+                  ariaLabel={t('Open body stats')}
+                />
+                <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => setQuickPanel('training')} ariaLabel={t('Preview training')} />
               </div>
             ) : blockId === 'activity' ? (
               <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>
@@ -1134,17 +1153,51 @@ export function SimpleHome() {
               initial={{ opacity: 0, scale: 0.93, y: 12 }}
               animate={{ opacity: 1, scale: 1, y: 0 }}
               exit={{ opacity: 0, scale: 0.96, y: 8 }}
-              className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : quickPanel === 'weight' ? 'max-w-[390px]' : 'max-w-[330px]'}`}
+              className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : quickPanel === 'weight' ? 'max-w-[390px]' : quickPanel === 'training' ? 'max-w-[360px]' : 'max-w-[330px]'}`}
               role="dialog"
               aria-modal="true"
-              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
+              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? hasWorkout ? `${plan.exercises.length} ${t(plan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${fullWorkoutMinutes} min` : t('No guided workout is planned for this day.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
-              {quickPanel === 'meals' ? (
+              {quickPanel === 'training' ? (
+                <div className="mt-3">
+                  {hasWorkout ? (
+                    <>
+                      <div className="rounded-[20px] border border-teal-100 bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-3">
+                        <div className="flex items-center gap-2">
+                          <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-teal-600 text-white shadow-sm"><DumbbellIcon className="h-4 w-4" /></span>
+                          <div className="min-w-0">
+                            <p className="truncate font-display text-sm font-black text-ink">{t(plan.programDay?.name ?? 'Training')}</p>
+                            <p className="font-mono text-[9px] font-bold text-ink-faint">{fullWorkoutMinutes} min · {plan.exercises.length} {t(plan.exercises.length === 1 ? 'exercise' : 'exercises')}</p>
+                          </div>
+                        </div>
+                        <p className="mt-3 font-mono text-[8px] font-black tracking-[0.12em] text-teal-800 uppercase">{t('Today’s exercises')}</p>
+                        <div className="mt-1.5 max-h-[24dvh] space-y-1 overflow-y-auto pr-0.5">
+                          {plan.exercises.map((exercise, index) => (
+                            <div key={exercise.id} className="flex items-center gap-2 rounded-xl bg-white/85 px-2.5 py-2 shadow-sm">
+                              <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-100 font-mono text-[8px] font-black text-teal-800">{index + 1}</span>
+                              <span className="min-w-0 flex-1 truncate text-[10px] font-black text-ink">{localizedExerciseName(exercise.name)}</span>
+                              <span className="shrink-0 font-mono text-[8px] font-bold text-ink-faint">{exercise.planned_sets} × {exercise.rep_min === exercise.rep_max ? exercise.rep_max : `${exercise.rep_min}–${exercise.rep_max}`}</span>
+                            </div>
+                          ))}
+                        </div>
+                      </div>
+                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}`) }} className="mt-3 w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-[0_12px_26px_-14px_rgba(5,150,105,.85)] transition active:scale-[.98]">{t('Start Full')} · {fullWorkoutMinutes} min</button>
+                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1`) }} className="mt-2 w-full rounded-2xl bg-sky-500 px-4 py-2.5 text-[11px] font-black text-white shadow-[0_10px_22px_-14px_rgba(14,165,233,.9)] transition active:scale-[.98]">{t('Start Light')} · {lightWorkoutMinutes} min</button>
+                    </>
+                  ) : (
+                    <div className="mt-2 rounded-[20px] bg-slate-50 p-3 text-center">
+                      <DumbbellIcon className="mx-auto h-6 w-6 text-ink-faint" />
+                      <p className="mt-2 text-[11px] font-semibold text-ink-soft">{t('No guided workout is planned for this day.')}</p>
+                      <button type="button" onClick={() => { setQuickPanel(null); navigate(guidedScheduleRoute) }} className="mt-3 w-full rounded-2xl bg-teal-600 px-3 py-2.5 text-xs font-black text-white">{t('Open workout schedule')}</button>
+                    </div>
+                  )}
+                </div>
+              ) : quickPanel === 'meals' ? (
                 <div className="mt-3">
                   <div className="max-h-[16dvh] space-y-1.5 overflow-y-auto pr-0.5">
                     {mealBlockStatuses.map((status) => {
@@ -1352,8 +1405,8 @@ function HoldReorderItem({
   )
 }
 
-function SimpleMetric({ icon, value, label, done, onClick, ariaLabel }: { icon: ReactNode; value: string; label: string; done: boolean; onClick?: () => void; ariaLabel?: string }) {
+function SimpleMetric({ icon, value, label, done, portrait = false, onClick, ariaLabel }: { icon: ReactNode; value: string; label: string; done: boolean; portrait?: boolean; onClick?: () => void; ariaLabel?: string }) {
   const className = `glass relative rounded-2xl px-1.5 py-2.5 text-center ${done ? 'ring-1 ring-emerald/25' : ''} ${onClick ? 'cursor-pointer transition active:scale-[.96]' : ''}`
-  const content = <><div className={`mx-auto grid h-6 w-6 place-items-center rounded-full ${done ? 'bg-emerald/12 text-emerald' : 'bg-ink/5 text-ink-soft'}`}>{done ? '✓' : icon}</div><p className="mt-1 font-mono text-[10px] font-bold text-ink">{value}</p><p className="truncate text-[8px] font-bold tracking-wide text-ink-faint uppercase">{label}</p>{onClick && <span className="absolute top-1.5 right-2 text-[8px] font-black text-ink-faint">↗</span>}</>
+  const content = <><div className={`mx-auto grid place-items-center rounded-full ${portrait ? 'h-9 w-9 overflow-hidden border border-white bg-violet-100 shadow-[0_5px_14px_-8px_rgba(76,29,149,.85)]' : 'h-6 w-6'} ${done ? 'bg-emerald/12 text-emerald' : !portrait ? 'bg-ink/5 text-ink-soft' : ''}`}>{done ? '✓' : icon}</div>{value && <p className="mt-1 font-mono text-[10px] font-bold text-ink">{value}</p>}<p className={`${value ? '' : 'mt-1'} truncate text-[8px] font-bold tracking-wide text-ink-faint uppercase`}>{label}</p>{onClick && <span className="absolute top-1.5 right-2 text-[8px] font-black text-ink-faint">↗</span>}</>
   return onClick ? <button type="button" onClick={onClick} aria-label={ariaLabel ?? label} className={className}>{content}</button> : <div className={className}>{content}</div>
 }

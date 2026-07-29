@@ -11,6 +11,7 @@ import {
   expandFoodSearchQueries,
   foodNeedsPrivateMaterialization,
   isFoodNutritionComplete,
+  isPlannedPrescriptionFood,
   mealTotals,
   mergeExtendedFoodResults,
   normalizeFoodSearch,
@@ -139,7 +140,10 @@ export function MealComposer({
   const [message, setMessage] = useState<string | null>(null)
   const [manualOpen, setManualOpen] = useState(false)
   const [presetName, setPresetName] = useState('')
-  const [loadedPresetId, setLoadedPresetId] = useState<string | null>(null)
+  const [presetSubtitle, setPresetSubtitle] = useState('')
+  const [appliedPresetIds, setAppliedPresetIds] = useState<string[]>([])
+  const [presetReview, setPresetReview] = useState<{ id: string; name: string; subtitle: string; items: ComposerFoodItem[] } | null>(null)
+  const [itemLayout, setItemLayout] = useState<'compact' | 'expanded'>('compact')
   const [saving, setSaving] = useState(false)
   const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
   const [addingSelection, setAddingSelection] = useState(false)
@@ -164,6 +168,7 @@ export function MealComposer({
     context: {
       date: date ?? new Date().toISOString().slice(0, 10),
       slot,
+      memoryMode: data.settings?.addons.meal_memory_mode ?? 'daily',
       blockId: mealIdentity ?? mealBlockId,
       targetTime: effectiveTargetTime,
       sequenceIndex: sequenceIndex != null && sequenceIndex >= 0 ? sequenceIndex : null,
@@ -173,18 +178,21 @@ export function MealComposer({
     entries: store.entries,
     foods: store.foods,
     presets: store.presets,
-  }), [date, effectiveTargetTime, mealBlockId, mealIdentity, replaceMealId, sequenceIndex, slot, store.entries, store.foods, store.meals, store.presets])
+  }), [data.settings?.addons.meal_memory_mode, date, effectiveTargetTime, mealBlockId, mealIdentity, replaceMealId, sequenceIndex, slot, store.entries, store.foods, store.meals, store.presets])
   const ranked = useMemo(() => {
-    if (query.trim()) return rankFoods(query, store.foods, store.preferences, slot).slice(0, 12)
+    if (query.trim()) return rankFoods(query, store.foods, store.preferences, slot).filter((food) => !isPlannedPrescriptionFood(food)).slice(0, 12)
     const usedFoodIds = new Set(store.preferences.filter((preference) => preference.favourite || preference.usage_count > 0).map((preference) => preference.food_id))
-    const preferenceBackfill = rankFoods('', store.foods, store.preferences, slot).filter((food) => usedFoodIds.has(food.id))
+    const preferenceBackfill = (data.settings?.addons.meal_memory_mode ?? 'daily') === 'weekly' && historyStarts.foods.length > 0
+      ? []
+      : rankFoods('', store.foods, store.preferences, slot).filter((food) => usedFoodIds.has(food.id))
     const seen = new Set<string>()
     return [...historyStarts.foods, ...preferenceBackfill].filter((food) => {
+      if (isPlannedPrescriptionFood(food)) return false
       if (seen.has(food.id)) return false
       seen.add(food.id)
       return true
     }).slice(0, 12)
-  }, [historyStarts.foods, query, slot, store.foods, store.preferences])
+  }, [data.settings?.addons.meal_memory_mode, historyStarts.foods, query, slot, store.foods, store.preferences])
   const alternateQueries = useMemo(() => expandFoodSearchQueries(query, language), [language, query])
   const displayedFoods = useMemo(
     () => mergeExtendedFoodResults(query, ranked, remoteResults, alternateQueries).slice(0, 30),
@@ -512,9 +520,28 @@ export function MealComposer({
 
   const loadPreset = (id: string) => {
     const preset = store.presets.find((value) => value.id === id)
-    setItems(store.itemsForPreset(id).map((item) => ({ ...item, id: crypto.randomUUID() })))
-    if (preset) setName(preset.name)
-    setLoadedPresetId(id)
+    if (!preset) return
+    setPresetReview({
+      id,
+      name: preset.name,
+      subtitle: data.settings?.addons.meal_preset_subtitles?.[id] ?? '',
+      items: store.itemsForPreset(id).map((item, index) => ({ ...item, id: crypto.randomUUID(), sort_order: index })),
+    })
+  }
+
+  const confirmPresetReview = () => {
+    if (!presetReview || presetReview.items.length === 0) return
+    setItems((current) => [
+      ...current,
+      ...presetReview.items.map((item, index) => ({
+        ...item,
+        id: crypto.randomUUID(),
+        sort_order: current.length + index,
+      })),
+    ])
+    setAppliedPresetIds((current) => current.includes(presetReview.id) ? current : [...current, presetReview.id])
+    setPresetReview(null)
+    setMessage(t('Preset items added to this meal.'))
   }
 
   const loadRecent = (mealId: string) => {
@@ -527,33 +554,38 @@ export function MealComposer({
     }).filter((item): item is ComposerFoodItem => item != null)
     setItems(next)
     setName(meal.display_name)
-    setLoadedPresetId(null)
+    setAppliedPresetIds([])
   }
 
-  const savePreset = async (asNew = false) => {
+  const savePreset = async () => {
     if (!items.length) return
-    const current = !asNew && loadedPresetId ? store.presets.find((preset) => preset.id === loadedPresetId) : undefined
     const saved = await store.savePreset({
-      id: current?.id,
-      expectedVersion: current?.version,
       name: presetName.trim() || name,
       slot,
       items,
       sourcePlannedMealId: plannedMealId,
     })
-    if (mealBlockId && data.settings) {
+    if (data.settings) {
+      const nextSubtitles = { ...(data.settings.addons.meal_preset_subtitles ?? {}) }
+      const cleanSubtitle = presetSubtitle.trim()
+      if (cleanSubtitle) nextSubtitles[saved.id] = cleanSubtitle
+      else delete nextSubtitles[saved.id]
       setSettings({
         addons: {
           ...data.settings.addons,
-          meal_blocks: {
-            ...mealBlockSettings,
-            preset_assignments: { ...mealBlockSettings.preset_assignments, [saved.id]: mealBlockId },
-          },
+          meal_preset_subtitles: nextSubtitles,
+          ...(mealBlockId ? {
+            meal_blocks: {
+              ...mealBlockSettings,
+              preset_assignments: { ...mealBlockSettings.preset_assignments, [saved.id]: mealBlockId },
+            },
+          } : {}),
         },
       })
     }
-    setLoadedPresetId(saved.id)
+    setAppliedPresetIds((current) => current.includes(saved.id) ? current : [...current, saved.id])
     setPresetName('')
+    setPresetSubtitle('')
     setMessage('Reusable preset saved. Adjustable amounts can adapt without rewriting your template.')
   }
 
@@ -564,14 +596,15 @@ export function MealComposer({
     }
     setSaving(true)
     try {
-      const assignedBlock = mealIdentity ?? mealBlockId ?? (loadedPresetId ? mealBlockSettings.preset_assignments[loadedPresetId] : null)
+      const sourcePresetId = appliedPresetIds.length === 1 ? appliedPresetIds[0] : null
+      const assignedBlock = mealIdentity ?? mealBlockId ?? (sourcePresetId ? mealBlockSettings.preset_assignments[sourcePresetId] : null)
       await store.logMeal({
         date: mealDate,
         slot,
         name: name.trim() || 'Meal',
         items,
         finishedAt: zonedDateTimeToIso(mealDate, finishedTime, timeZone),
-        sourcePresetId: loadedPresetId,
+        sourcePresetId,
         sourcePlannedMealId: plannedMealId,
         replaceMealId, loggedAs: planning ? 'planned' : plannedMealId ? (initialItems.length ? 'changed' : 'planned') : 'custom',
         idempotencyKey: mealBlockIdempotencyKey(crypto.randomUUID(), assignedBlock),
@@ -864,25 +897,82 @@ export function MealComposer({
             <GlassCard className="p-4">
               <p className="text-[10px] font-bold tracking-wide text-ink-faint uppercase">{t('Fast starts')}</p>
               <div className="mt-2 flex gap-2 overflow-x-auto pb-1">
-                {slotPresets.map((preset) => <button key={preset.id} type="button" onClick={() => loadPreset(preset.id)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink">{t('Preset')} · {preset.name}</button>)}
+                {slotPresets.map((preset) => {
+                  const subtitle = data.settings?.addons.meal_preset_subtitles?.[preset.id]
+                  return (
+                    <button key={preset.id} type="button" onClick={() => loadPreset(preset.id)} className="shrink-0 rounded-2xl bg-white/75 px-3 py-2 text-left text-xs font-bold text-ink">
+                      <span className="block">{t('Preset')} · {preset.name}</span>
+                      {subtitle && <span className="mt-0.5 block max-w-44 truncate text-[9px] font-semibold text-ink-faint">{subtitle}</span>}
+                    </button>
+                  )
+                })}
                 {recentMeals.map((meal) => <button key={meal.id} type="button" onClick={() => loadRecent(meal.id)} className="shrink-0 rounded-full bg-white/75 px-3 py-2 text-xs font-bold text-ink">{t('Repeat')} · {meal.display_name}</button>)}
               </div>
             </GlassCard>
           )}
 
-          <div className="space-y-3">
+          <div className={itemLayout === 'compact' ? 'space-y-1.5' : 'space-y-3'}>
             {items.length > 0 && (
               <div className="flex items-end justify-between gap-3 px-1">
                 <div>
                   <p className="font-mono text-[10px] font-black tracking-[0.14em] text-amber-700 uppercase">{t('In this meal')}</p>
                   <p className="mt-0.5 text-sm font-semibold text-ink-soft">{items.length} {t(items.length === 1 ? 'food' : 'foods')}</p>
                 </div>
-                <p className="font-mono text-xs font-bold text-ink-faint">{totals.kcal} {t('kcal')}</p>
+                <div className="flex items-center gap-2">
+                  <div className="flex rounded-xl bg-ink/5 p-0.5" role="group" aria-label={t('Food item layout')}>
+                    {(['compact', 'expanded'] as const).map((layout) => (
+                      <button
+                        key={layout}
+                        type="button"
+                        aria-pressed={itemLayout === layout}
+                        onClick={() => setItemLayout(layout)}
+                        className={`rounded-[9px] px-2 py-1 text-[8px] font-black uppercase ${itemLayout === layout ? 'bg-white text-amber-800 shadow-sm' : 'text-ink-faint'}`}
+                      >
+                        {t(layout === 'compact' ? 'Compact' : 'Expanded')}
+                      </button>
+                    ))}
+                  </div>
+                  <p className="font-mono text-xs font-bold text-ink-faint">{totals.kcal} {t('kcal')}</p>
+                </div>
               </div>
             )}
             {items.map((item, index) => {
               const portion = calculatePortion(item.food, item.quantity, item.unit)
               const units = availableFoodUnits(item.food)
+              if (itemLayout === 'compact') {
+                return (
+                  <GlassCard key={item.id} accent={amber} className="px-2.5 py-2">
+                    <div className="flex min-w-0 items-center gap-1.5">
+                      <div className="min-w-0 flex-1">
+                        <h3 className="truncate font-display text-[13px] leading-tight font-black text-ink">{displayFoodName(item.food, language)}</h3>
+                        <p className="mt-0.5 truncate font-mono text-[8px] font-bold text-ink-faint">
+                          {portion?.kcal ?? '?'} kcal · P {portion?.protein_g ?? '?'} · C {portion?.carbs_g ?? '?'} · F {portion?.fat_g ?? '?'}
+                        </p>
+                      </div>
+                      <input
+                        aria-label={`Amount for ${item.food.name}`}
+                        inputMode="decimal"
+                        value={item.quantity}
+                        onChange={(event) => patchItem(item.id, { quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) })}
+                        className="h-8 w-[3.65rem] rounded-lg border border-white/90 bg-white/82 px-1.5 text-right font-mono text-[12px] font-black text-ink outline-none"
+                      />
+                      <select
+                        aria-label={`${t('Unit')} · ${displayFoodName(item.food, language)}`}
+                        value={item.unit}
+                        onChange={(event) => patchItem(item.id, { unit: event.target.value as FoodUnit })}
+                        className="h-8 w-[3.45rem] rounded-lg border border-white/90 bg-white/82 px-1 text-[10px] font-black text-ink"
+                      >
+                        {units.map((unit) => <option key={unit} value={unit}>{t(unit)}</option>)}
+                      </select>
+                      <div className="grid grid-cols-2 gap-0.5">
+                        <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="grid h-4 w-4 place-items-center rounded bg-white/65 text-[8px] disabled:opacity-20">↑</button>
+                        <button type="button" onClick={() => setItems((current) => current.filter((value) => value.id !== item.id))} className="row-span-2 grid h-[2.05rem] w-5 place-items-center rounded-md bg-red-500/8 text-[10px] font-black text-red-600">×</button>
+                        <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="grid h-4 w-4 place-items-center rounded bg-white/65 text-[8px] disabled:opacity-20">↓</button>
+                      </div>
+                    </div>
+                  </GlassCard>
+                )
+              }
               return (
                 <GlassCard key={item.id} accent={amber} className="p-4">
                   <div className="flex items-start justify-between gap-2">
@@ -973,17 +1063,93 @@ export function MealComposer({
           {items.length > 0 && (
             <GlassCard className="p-4">
               <p className="text-xs font-bold text-ink">{t('Keep this combination')}</p>
-              <div className="mt-2 flex flex-wrap gap-2">
-                <input value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder={name} className="min-w-44 flex-1 rounded-xl bg-white/75 px-3 py-2 text-sm outline-none" />
-                <button type="button" onClick={() => void savePreset(false)} className="rounded-xl bg-white/80 px-3 py-2 text-xs font-bold text-ink">{t(loadedPresetId ? 'Update preset' : 'Save preset')}</button>
-                {loadedPresetId && <button type="button" onClick={() => void savePreset(true)} className="rounded-xl bg-white/65 px-3 py-2 text-xs font-bold text-ink-soft">{t('Save as new')}</button>}
+              <div className="mt-2 grid gap-2 sm:grid-cols-2">
+                <input value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder={t('Preset title')} className="min-w-0 rounded-xl bg-white/75 px-3 py-2 text-sm font-bold outline-none" />
+                <input value={presetSubtitle} onChange={(event) => setPresetSubtitle(event.target.value)} placeholder={t('Subtitle (optional)')} className="min-w-0 rounded-xl bg-white/75 px-3 py-2 text-sm outline-none" />
               </div>
-              <p className="mt-2 text-[10px] font-medium text-ink-faint">{t(planning ? 'Adding this meal changes only the selected date. Saved presets remain unchanged.' : 'Logging below changes today only. A saved preset changes only when you use the buttons above.')}</p>
+              <button type="button" onClick={() => void savePreset()} className="mt-2 w-full rounded-xl bg-white/85 px-3 py-2.5 text-xs font-black text-ink shadow-sm">{t('Save preset')}</button>
+              <p className="mt-2 text-[10px] font-medium text-ink-faint">{t('Presets are reusable food groups. Add several presets to one meal without renaming the meal itself.')}</p>
             </GlassCard>
           )}
           <p className="text-center text-[10px] font-medium text-ink-faint">Logged entries are immutable snapshots. Editing a food later will never rewrite your history.</p>
         </div>
       </div>
+      <AnimatePresence>
+        {presetReview && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[102] grid place-items-center bg-slate-950/42 px-4 py-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-md"
+            onPointerDown={(event) => { if (event.target === event.currentTarget) setPresetReview(null) }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 16, scale: 0.97 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 10, scale: 0.98 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('Review preset items')}
+              className="flex max-h-[78dvh] w-full max-w-md flex-col overflow-hidden rounded-[1.75rem] border border-white/90 bg-canvas/98 p-4 shadow-[0_32px_90px_-32px_rgba(15,23,42,.75)]"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div className="min-w-0">
+                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-amber-700 uppercase">{t('Preset preview')}</p>
+                  <h3 className="mt-1 truncate font-display text-xl font-black text-ink">{presetReview.name}</h3>
+                  {presetReview.subtitle && <p className="mt-0.5 truncate text-xs font-semibold text-ink-soft">{presetReview.subtitle}</p>}
+                </div>
+                <button type="button" onClick={() => setPresetReview(null)} aria-label={t('Close')} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/75 text-lg font-black text-ink-soft">×</button>
+              </div>
+              <p className="mt-2 text-[10px] font-semibold leading-relaxed text-ink-faint">{t('Check the saved amounts, adjust anything for today, then add this group to the current meal.')}</p>
+              <div className="mt-3 min-h-0 flex-1 space-y-1.5 overflow-y-auto pr-0.5">
+                {presetReview.items.map((item) => {
+                  const portion = calculatePortion(item.food, item.quantity, item.unit)
+                  return (
+                    <div key={item.id} className="rounded-2xl border border-white/90 bg-white/76 px-3 py-2">
+                      <div className="flex min-w-0 items-center gap-2">
+                        <div className="min-w-0 flex-1">
+                          <p className="truncate text-[12px] font-black text-ink">{displayFoodName(item.food, language)}</p>
+                          <p className="mt-0.5 truncate font-mono text-[8px] font-bold text-ink-faint">{portion?.kcal ?? 0} kcal · P {portion?.protein_g ?? 0} · C {portion?.carbs_g ?? 0} · F {portion?.fat_g ?? 0}</p>
+                        </div>
+                        <input
+                          inputMode="decimal"
+                          value={item.quantity}
+                          aria-label={`${t('Quantity')} · ${displayFoodName(item.food, language)}`}
+                          onChange={(event) => setPresetReview((current) => current ? {
+                            ...current,
+                            items: current.items.map((candidate) => candidate.id === item.id ? { ...candidate, quantity: Math.max(0, parseDecimalInput(event.target.value) ?? 0) } : candidate),
+                          } : current)}
+                          className="h-9 w-[4.25rem] rounded-xl bg-amber-50/75 px-2 text-right font-mono text-sm font-black text-ink outline-none"
+                        />
+                        <select
+                          value={item.unit}
+                          onChange={(event) => setPresetReview((current) => current ? {
+                            ...current,
+                            items: current.items.map((candidate) => candidate.id === item.id ? { ...candidate, unit: event.target.value as FoodUnit } : candidate),
+                          } : current)}
+                          className="h-9 w-[4rem] rounded-xl bg-amber-50/75 px-1 text-[10px] font-black text-ink"
+                        >
+                          {availableFoodUnits(item.food).map((unit) => <option key={unit} value={unit}>{t(unit)}</option>)}
+                        </select>
+                      </div>
+                    </div>
+                  )
+                })}
+              </div>
+              <button
+                type="button"
+                disabled={presetReview.items.length === 0 || mealTotals(presetReview.items).kcal <= 0}
+                onClick={confirmPresetReview}
+                className="mt-3 w-full rounded-2xl px-4 py-3.5 text-sm font-black text-white shadow-lg disabled:opacity-40"
+                style={{ background: amber.gradient }}
+              >
+                {t('Add preset items')} · {mealTotals(presetReview.items).kcal} {t('kcal')}
+              </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <AnimatePresence>
         {selection && (
           <motion.div

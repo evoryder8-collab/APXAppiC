@@ -640,8 +640,37 @@ export function expandFoodSearchQueries(query: string, language: IntroLanguage):
   return [...new Set([original, ...expansions].filter((value): value is string => Boolean(value)))]
 }
 
+const CANONICAL_PROVIDER_NAMES: Record<string, Partial<Record<'en' | 'de' | 'fr' | 'it' | 'ro' | 'th', string>>> = {
+  'apex-protocol:generic:pad-kra-pao-moo-sab-no-rice-egg': {
+    en: 'Pad Kaprao Moo Sab, minced pork, no rice or egg, recipe reference',
+    de: 'Pad Kaprao Moo Sab mit Schweinehack, ohne Reis oder Ei, Rezeptreferenz',
+    fr: 'Pad Kaprao Moo Sab au porc haché, sans riz ni œuf, référence',
+    it: 'Pad Kaprao Moo Sab con maiale macinato, senza riso o uovo, riferimento',
+    ro: 'Pad Kaprao Moo Sab cu porc tocat, fără orez sau ou, reper de rețetă',
+    th: 'ผัดกะเพราหมูสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง',
+  },
+  'apex-protocol:generic:pad-kra-pao-neua-sab-no-rice-egg': {
+    en: 'Pad Kaprao Neua Sab, minced beef, no rice or egg, recipe reference',
+    de: 'Pad Kaprao Neua Sab mit Rinderhack, ohne Reis oder Ei, Rezeptreferenz',
+    fr: 'Pad Kaprao Neua Sab au bœuf haché, sans riz ni œuf, référence',
+    it: 'Pad Kaprao Neua Sab con manzo macinato, senza riso o uovo, riferimento',
+    ro: 'Pad Kaprao Neua Sab cu vită tocată, fără orez sau ou, reper de rețetă',
+    th: 'ผัดกะเพราเนื้อสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง',
+  },
+}
+
+/** Provider identity wins over a stale materialized display label. This lets
+ * existing private rows adopt corrected canonical names immediately without
+ * deleting history or breaking their foreign-key identity. */
 export function displayFoodName(food: FoodRecord, language: IntroLanguage): string {
-  return food.names_i18n[language] || food.name
+  const canonical = food.provider_product_id ? CANONICAL_PROVIDER_NAMES[food.provider_product_id] : undefined
+  return canonical?.[language] || canonical?.en || food.names_i18n[language] || food.name
+}
+
+export function isPlannedPrescriptionFood(food: FoodRecord): boolean {
+  return food.provider_product_id?.startsWith('apex-plan:') === true
+    || food.brand === 'APEX plan'
+    || food.name.toLocaleLowerCase().includes('planned prescription')
 }
 
 /**
@@ -812,12 +841,12 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
     'burta de porc prajita', 'burtă de porc prăjită', 'porc prajit crocant', 'หมูกรอบ',
   ],
   'apex-protocol:generic:pad-kra-pao-moo-sab-no-rice-egg': [
-    'phad kaprao moo sab', 'pad kaprao moo sab', 'phad kaphrao moo sab',
+    'pad kaprao moo sab', 'phad kaprao moo sab', 'phad kaphrao moo sab',
     'pad kra pao moo sab', 'pad krapow moo sab', 'phad kra pao moo sab',
     'thai basil minced pork', 'ผัดกะเพราหมูสับ', 'ผัดกระเพราหมูสับ', 'กะเพราหมูสับ',
   ],
   'apex-protocol:generic:pad-kra-pao-neua-sab-no-rice-egg': [
-    'phad kaprao neua sab', 'pad kaprao neua sab', 'phad kaphrao neua sab',
+    'pad kaprao neua sab', 'phad kaprao neua sab', 'phad kaphrao neua sab',
     'pad kra pao neua sab', 'pad krapow nua sab', 'phad kra pao neua sab',
     'thai basil minced beef', 'ผัดกะเพราเนื้อสับ', 'ผัดกระเพราเนื้อสับ', 'กะเพราเนื้อสับ',
   ],
@@ -830,6 +859,17 @@ const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
   'apex-protocol:generic:larb-moo-recipe': ['larb moo', 'laap moo', 'thai minced pork salad', 'ลาบหมู'],
   'apex-protocol:generic:tom-yum-goong-recipe': ['tom yum goong', 'tom yam kung', 'thai shrimp soup', 'ต้มยำกุ้ง'],
   'apex-protocol:generic:tom-kha-gai-recipe': ['tom kha gai', 'thai coconut chicken soup', 'ต้มข่าไก่'],
+  'apex-protocol:generic:massaman-curry-beef-no-rice': [
+    'massaman curry beef', 'masaman curry beef', 'thai massaman beef', 'แกงมัสมั่นเนื้อ',
+  ],
+  'apex-protocol:generic:massaman-curry-chicken-no-rice': [
+    'massaman curry chicken', 'masaman curry chicken', 'thai massaman chicken', 'แกงมัสมั่นไก่',
+  ],
+  'apex-protocol:generic:koh-moo-yang-grilled-pork-neck': [
+    'koh moo yang', 'kor moo yang', 'kho moo yang', 'kaw moo yang',
+    'thai grilled pork neck', 'grilled pork neck', 'ceafa de porc la gratar',
+    'ceafă de porc la grătar', 'คอหมูย่าง',
+  ],
   'apex-protocol:generic:kap-moo-thai-pork-cracklings': [
     'kap moo', 'khaep mu', 'kaep moo', 'thai pork cracklings', 'thai pork rinds',
     'pork cracklings', 'pork rinds', 'แคปหมู',

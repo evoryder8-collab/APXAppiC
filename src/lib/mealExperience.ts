@@ -59,10 +59,17 @@ export function loggedMealEditorState(
 export interface MealRecommendationContext {
   date: string
   slot: MealSlot
+  memoryMode?: MealMemoryMode
   blockId?: MealBlockIdentity | null
   targetTime?: string | null
   sequenceIndex?: number | null
   excludeMealId?: string | null
+}
+
+export type MealMemoryMode = 'daily' | 'weekly'
+
+export function normalizeMealMemoryMode(value: unknown): MealMemoryMode {
+  return value === 'weekly' ? 'weekly' : 'daily'
 }
 
 export interface MealHistoryRecommendations {
@@ -134,14 +141,36 @@ export function rankMealHistoryRecommendations(input: {
   const targetMs = dateMs(context.date)
   const targetWeekday = weekday(context.date)
   const targetMinutes = clockMinutes(context.targetTime)
-  const indexes = sequenceIndexes(input.meals)
+  const foodById = new Map(input.foods.map((food) => [food.id, food]))
+  const entriesByMeal = new Map<string, LoggedFoodEntry[]>()
+  for (const entry of input.entries) entriesByMeal.set(entry.meal_id, [...(entriesByMeal.get(entry.meal_id) ?? []), entry])
+  const isSyntheticPlannedMeal = (meal: LoggedMeal): boolean => (
+    (entriesByMeal.get(meal.id) ?? []).some((entry) => (
+      entry.snapshot_brand === 'APEX plan'
+      || entry.snapshot_name.toLocaleLowerCase().includes('planned prescription')
+      || Boolean(entry.food_id && foodById.get(entry.food_id)?.provider_product_id?.startsWith('apex-plan:'))
+    ))
+  )
+  const eligibleSlotMeals = input.meals.filter((meal) => (
+    meal.id !== context.excludeMealId
+    && meal.local_date <= context.date
+    && meal.meal_slot === context.slot
+    && !isSyntheticPlannedMeal(meal)
+  ))
+  const sameWeekdayMeals = eligibleSlotMeals.filter((meal) => weekday(meal.local_date) === targetWeekday)
+  const memoryMode = normalizeMealMemoryMode(context.memoryMode)
+  /* Weekly memory stays strict when matching history exists, but a new user
+     still receives useful recent starts instead of an empty composer. */
+  const candidateMeals = memoryMode === 'weekly' && sameWeekdayMeals.length > 0
+    ? sameWeekdayMeals
+    : eligibleSlotMeals
+  const candidateIds = new Set(candidateMeals.map((meal) => meal.id))
+  const indexes = sequenceIndexes(candidateMeals)
   const scoreByMeal = new Map<string, number>()
   const frequencyByIdentity = new Map<string, number>()
   const weekdayFrequencyByIdentity = new Map<string, number>()
 
-  for (const meal of input.meals) {
-    if (meal.id === context.excludeMealId || meal.local_date > context.date) continue
-    if (meal.meal_slot !== context.slot) continue
+  for (const meal of candidateMeals) {
     const identity = recommendationIdentity(meal)
     frequencyByIdentity.set(identity, (frequencyByIdentity.get(identity) ?? 0) + 1)
     if (weekday(meal.local_date) === targetWeekday) {
@@ -149,11 +178,10 @@ export function rankMealHistoryRecommendations(input: {
     }
   }
 
-  for (const meal of input.meals) {
-    if (meal.id === context.excludeMealId || meal.local_date > context.date) continue
+  for (const meal of candidateMeals) {
     const ageDays = Math.max(0, Math.round((targetMs - dateMs(meal.local_date)) / 86_400_000))
     let score = Math.max(0, 260 - ageDays * 3)
-    score += meal.meal_slot === context.slot ? 260 : -180
+    score += 260
     if (context.blockId && markedBlock(meal) === context.blockId) score += 320
     if (weekday(meal.local_date) === targetWeekday) score += 90
     if (context.sequenceIndex != null && indexes.get(meal.id) === context.sequenceIndex) score += 120
@@ -170,16 +198,13 @@ export function rankMealHistoryRecommendations(input: {
     scoreByMeal.set(meal.id, score)
   }
 
-  const rankedMeals = input.meals
-    .filter((meal) => scoreByMeal.has(meal.id))
+  const rankedMeals = candidateMeals
+    .filter((meal) => candidateIds.has(meal.id) && scoreByMeal.has(meal.id))
     .slice()
     .sort((left, right) => (scoreByMeal.get(right.id) ?? 0) - (scoreByMeal.get(left.id) ?? 0)
       || right.local_date.localeCompare(left.local_date)
       || right.logged_at.localeCompare(left.logged_at))
 
-  const foodById = new Map(input.foods.map((food) => [food.id, food]))
-  const entriesByMeal = new Map<string, LoggedFoodEntry[]>()
-  for (const entry of input.entries) entriesByMeal.set(entry.meal_id, [...(entriesByMeal.get(entry.meal_id) ?? []), entry])
   const foodScores = new Map<string, number>()
   const presetScores = new Map<string, number>()
   /* Eighty high-signal meals cover months of repetition without turning a

@@ -784,12 +784,12 @@ const THAI_AND_ASIAN_FOODS: CatalogFoodSpec[] = [
   },
   {
     slug: 'pad-kra-pao-moo-sab-no-rice-egg',
-    names: { en: 'Phad Kaprao Moo Sab, minced pork, no rice or egg, recipe reference', de: 'Phad Kaprao Moo Sab mit Schweinehack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Phad Kaprao Moo Sab au porc haché, sans riz ni œuf, référence', it: 'Phad Kaprao Moo Sab con maiale macinato, senza riso o uovo, riferimento', ro: 'Phad Kaprao Moo Sab cu porc tocat, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราหมูสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
+    names: { en: 'Pad Kaprao Moo Sab, minced pork, no rice or egg, recipe reference', de: 'Pad Kaprao Moo Sab mit Schweinehack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Pad Kaprao Moo Sab au porc haché, sans riz ni œuf, référence', it: 'Pad Kaprao Moo Sab con maiale macinato, senza riso o uovo, riferimento', ro: 'Pad Kaprao Moo Sab cu porc tocat, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราหมูสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
     kcal: 216, protein: 15, carbs: 7, fat: 14.5, sugar: 2.5, preparation: 'prepared', retailerReference: false,
   },
   {
     slug: 'pad-kra-pao-neua-sab-no-rice-egg',
-    names: { en: 'Phad Kaprao Neua Sab, minced beef, no rice or egg, recipe reference', de: 'Phad Kaprao Neua Sab mit Rinderhack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Phad Kaprao Neua Sab au bœuf haché, sans riz ni œuf, référence', it: 'Phad Kaprao Neua Sab con manzo macinato, senza riso o uovo, riferimento', ro: 'Phad Kaprao Neua Sab cu vită tocată, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราเนื้อสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
+    names: { en: 'Pad Kaprao Neua Sab, minced beef, no rice or egg, recipe reference', de: 'Pad Kaprao Neua Sab mit Rinderhack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Pad Kaprao Neua Sab au bœuf haché, sans riz ni œuf, référence', it: 'Pad Kaprao Neua Sab con manzo macinato, senza riso o uovo, riferimento', ro: 'Pad Kaprao Neua Sab cu vită tocată, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราเนื้อสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
     kcal: 190, protein: 17, carbs: 7, fat: 10.5, sugar: 2.5, preparation: 'prepared', retailerReference: false,
   },
   {
@@ -836,6 +836,16 @@ const THAI_AND_ASIAN_FOODS: CatalogFoodSpec[] = [
     slug: 'massaman-curry-beef-no-rice',
     names: { en: 'Massaman curry with beef, no rice, recipe reference', de: 'Massaman-Curry mit Rind, ohne Reis, Rezeptreferenz', fr: 'Curry massaman au bœuf, sans riz, référence', it: 'Curry massaman con manzo, senza riso, riferimento', ro: 'Curry massaman cu vită, fără orez, reper de rețetă', th: 'แกงมัสมั่นเนื้อ ไม่รวมข้าว สูตรอ้างอิง' },
     kcal: 196, protein: 10, carbs: 12, fat: 12, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'massaman-curry-chicken-no-rice',
+    names: { en: 'Massaman curry with chicken, no rice, recipe reference', de: 'Massaman-Curry mit Huhn, ohne Reis, Rezeptreferenz', fr: 'Curry massaman au poulet, sans riz, référence', it: 'Curry massaman con pollo, senza riso, riferimento', ro: 'Curry massaman cu pui, fără orez, reper de rețetă', th: 'แกงมัสมั่นไก่ ไม่รวมข้าว สูตรอ้างอิง' },
+    kcal: 181, protein: 10.5, carbs: 12, fat: 10, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'koh-moo-yang-grilled-pork-neck',
+    names: { en: 'Koh Moo Yang, Thai grilled pork neck, recipe reference', de: 'Koh Moo Yang, thailändischer gegrillter Schweinenacken, Rezeptreferenz', fr: 'Koh Moo Yang, échine de porc grillée thaïe, référence', it: 'Koh Moo Yang, collo di maiale thailandese alla griglia, riferimento', ro: 'Koh Moo Yang, ceafă de porc thailandeză la grătar, reper de rețetă', th: 'คอหมูย่าง สูตรอ้างอิง' },
+    kcal: 255, protein: 22, carbs: 4, fat: 17, sugar: 2, preparation: 'prepared', retailerReference: false,
   },
   {
     slug: 'pad-see-ew-chicken-recipe',

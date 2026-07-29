@@ -26,3 +26,21 @@ test('both date surfaces gate interactive starts and cancel tracked gestures on 
   }
   assert.match(styles, /\.ios-focus-safe input[\s\S]*?font-size: 16px !important/)
 })
+
+test('Simple Mode shortcuts use the requested order and preview training locally', () => {
+  const start = simple.indexOf('id="simple-summary-actions"')
+  const end = simple.indexOf("blockId === 'activity'", start)
+  assert.ok(start >= 0 && end > start)
+  const actions = simple.slice(start, end)
+  const water = actions.indexOf("label={t('Water')}")
+  const supplements = actions.indexOf("label={t('Supps')}")
+  const stats = actions.indexOf("label={t('Stats')}")
+  const training = actions.indexOf("label={t('Training')}")
+  assert.ok(water >= 0 && water < supplements && supplements < stats && stats < training)
+  assert.match(actions, /personaBySlug\(profile\.persona\)\.portrait/)
+  assert.match(actions, /setQuickPanel\('training'\)/)
+  assert.match(simple, /Start Full/)
+  assert.match(simple, /Start Light/)
+  assert.match(simple, /Today’s exercises/)
+  assert.match(simple, /FloatingActiveDate label=\{selectedDateLabel\} onClick=\{\(\) => window\.scrollTo/)
+})

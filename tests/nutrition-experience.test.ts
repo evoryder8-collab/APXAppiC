@@ -157,3 +157,93 @@ test('blank composer history learns frequency before recency while retaining wee
 
   assert.equal(ranked.meals[0]?.display_name, 'Thursday oats')
 })
+
+test('history suggestions never surface synthetic planned prescriptions', () => {
+  const actualFood = COMMON_FOODS[0]
+  const plannedMeal = meal({
+    id: 'planned-breakfast',
+    local_date: '2026-07-15',
+    meal_slot: 'breakfast',
+    display_name: 'Breakfast · planned prescription',
+    source_preset_id: null,
+    logged_at: '2026-07-15T07:00:00.000Z',
+  })
+  const actualMeal = meal({
+    id: 'actual-breakfast',
+    local_date: '2026-07-14',
+    meal_slot: 'breakfast',
+    display_name: 'Oats and berries',
+    source_preset_id: null,
+    logged_at: '2026-07-14T07:00:00.000Z',
+  })
+  const plannedEntry = {
+    ...entry(plannedMeal.id, actualFood.id),
+    snapshot_name: 'Breakfast · planned prescription',
+    snapshot_brand: 'APEX plan',
+  }
+
+  const ranked = rankMealHistoryRecommendations({
+    context: { date: '2026-07-16', slot: 'breakfast', memoryMode: 'daily', targetTime: '07:00' },
+    meals: [plannedMeal, actualMeal],
+    entries: [plannedEntry, entry(actualMeal.id, actualFood.id)],
+    foods: COMMON_FOODS,
+    presets: [],
+  })
+
+  assert.deepEqual(ranked.meals.map((candidate) => candidate.id), [actualMeal.id])
+  assert.equal(ranked.foods[0]?.id, actualFood.id)
+})
+
+test('daily memory uses recent same-meal history while weekly memory stays on the same weekday', () => {
+  const chicken = COMMON_FOODS[0]
+  const oats = COMMON_FOODS[1]
+  const sameWeekday = meal({
+    id: 'same-weekday',
+    local_date: '2026-06-11',
+    meal_slot: 'breakfast',
+    display_name: 'Thursday oats',
+    source_preset_id: null,
+    logged_at: '2026-06-11T07:30:00.000Z',
+    client_idempotency_key: 'breakfast|apex-meal-block=breakfast',
+  })
+  const recentDay = meal({
+    id: 'recent-day',
+    local_date: '2026-07-15',
+    meal_slot: 'breakfast',
+    display_name: 'Recent chicken',
+    source_preset_id: null,
+    logged_at: '2026-07-15T07:30:00.000Z',
+    client_idempotency_key: 'breakfast|apex-meal-block=breakfast',
+  })
+  const commonInput = {
+    meals: [sameWeekday, recentDay],
+    entries: [entry(sameWeekday.id, oats.id), entry(recentDay.id, chicken.id)],
+    foods: COMMON_FOODS,
+    presets: [],
+  }
+
+  const daily = rankMealHistoryRecommendations({
+    ...commonInput,
+    context: { date: '2026-07-16', slot: 'breakfast' as const, memoryMode: 'daily' as const, blockId: 'breakfast' as const, targetTime: '07:30' },
+  })
+  const weekly = rankMealHistoryRecommendations({
+    ...commonInput,
+    context: { date: '2026-07-16', slot: 'breakfast' as const, memoryMode: 'weekly' as const, blockId: 'breakfast' as const, targetTime: '07:30' },
+  })
+
+  assert.equal(daily.meals[0]?.id, recentDay.id)
+  assert.equal(daily.foods[0]?.id, chicken.id)
+  assert.equal(weekly.meals[0]?.id, sameWeekday.id)
+  assert.equal(weekly.foods[0]?.id, oats.id)
+})
+
+test('meal presets are composable, reviewable, subtitled and compact by default', () => {
+  const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
+  assert.match(source, /useState<'compact' \| 'expanded'>\('compact'\)/)
+  assert.match(source, /meal_preset_subtitles/)
+  assert.match(source, /setPresetReview\(/)
+  assert.match(source, /setItems\(\(current\) => \[\s*\.\.\.current,/)
+  assert.match(source, /Add preset items/)
+  assert.match(source, /Presets are reusable food groups/)
+  assert.doesNotMatch(source, /setName\(preset\.name\)/)
+})

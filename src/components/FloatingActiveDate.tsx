@@ -6,10 +6,12 @@ export function FloatingActiveDate({
   label,
   revealAfter = 220,
   tone = 'violet',
+  onClick,
 }: {
   label: string
   revealAfter?: number
   tone?: 'violet' | 'amber'
+  onClick?: () => void
 }) {
   const [visible, setVisible] = useState(false)
 
@@ -38,16 +40,27 @@ export function FloatingActiveDate({
     <AnimatePresence initial={false}>
       {visible && (
         <motion.div
-          aria-hidden="true"
-          className="pointer-events-none fixed top-[calc(4.45rem+env(safe-area-inset-top))] left-1/2 z-30 max-w-[78vw] -translate-x-1/2"
+          aria-hidden={onClick ? undefined : 'true'}
+          className={`fixed top-[calc(4.45rem+env(safe-area-inset-top))] left-1/2 z-30 max-w-[78vw] -translate-x-1/2 ${onClick ? 'pointer-events-auto' : 'pointer-events-none'}`}
           initial={{ opacity: 0, y: -8, scale: 0.96 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -6, scale: 0.97 }}
           transition={{ duration: 0.18, ease: [0.22, 1, 0.36, 1] }}
         >
-          <div className={`truncate rounded-full border bg-white/72 px-3 py-1.5 text-center font-mono text-[9px] font-black tracking-[0.1em] uppercase shadow-lg backdrop-blur-xl ${toneClass}`}>
-            {label}
-          </div>
+          {onClick ? (
+            <button
+              type="button"
+              onClick={onClick}
+              aria-label={`${label} · back to top`}
+              className={`block max-w-[78vw] truncate rounded-full border bg-white/78 px-3 py-1.5 text-center font-mono text-[9px] font-black tracking-[0.1em] uppercase shadow-lg backdrop-blur-xl transition active:scale-95 ${toneClass}`}
+            >
+              {label} · ↑
+            </button>
+          ) : (
+            <div className={`truncate rounded-full border bg-white/72 px-3 py-1.5 text-center font-mono text-[9px] font-black tracking-[0.1em] uppercase shadow-lg backdrop-blur-xl ${toneClass}`}>
+              {label}
+            </div>
+          )}
         </motion.div>
       )}
     </AnimatePresence>

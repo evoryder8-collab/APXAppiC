@@ -365,6 +365,15 @@ export interface Settings {
        spacious default, while Long makes two-hour guidance bands especially
        easy to inspect on a phone. */
     meal_dayline_density?: 'compact' | 'medium' | 'long'
+    /* Controls which prior meals seed the blank meal composer. Daily learns
+       across recent occurrences of the same meal slot. Weekly first learns
+       from the same weekday, then falls back when that weekday has no
+       history. */
+    meal_memory_mode?: 'daily' | 'weekly'
+    /* Optional display subtitles for reusable meal-component presets. The
+       deployed preset table predates subtitles, so this account-synced map
+       adds them without making release deployment depend on a schema change. */
+    meal_preset_subtitles?: Record<string, string>
     /* After 19:00 a post-workout meal uses the full dinner guidance instead
        of a snack-only list. Enabled by default and explicitly user-controlled. */
     adaptive_post_workout_dinner?: boolean
