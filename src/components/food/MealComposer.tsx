@@ -144,6 +144,11 @@ export function MealComposer({
   const [appliedPresetIds, setAppliedPresetIds] = useState<string[]>([])
   const [presetReview, setPresetReview] = useState<{ id: string; name: string; subtitle: string; items: ComposerFoodItem[] } | null>(null)
   const [itemLayout, setItemLayout] = useState<'compact' | 'expanded'>('compact')
+  const [foodFinderExpanded, setFoodFinderExpanded] = useState(false)
+  const [itemSelectionMode, setItemSelectionMode] = useState(false)
+  const [selectedItemIds, setSelectedItemIds] = useState<string[]>([])
+  const [selectedPresetDraft, setSelectedPresetDraft] = useState<{ title: string; subtitle: string } | null>(null)
+  const [savingPreset, setSavingPreset] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
   const [addingSelection, setAddingSelection] = useState(false)
@@ -198,7 +203,15 @@ export function MealComposer({
     () => mergeExtendedFoodResults(query, ranked, remoteResults, alternateQueries).slice(0, 30),
     [alternateQueries, query, ranked, remoteResults],
   )
+  const visibleDisplayedFoods = useMemo(
+    () => query.trim() || foodFinderExpanded ? displayedFoods : displayedFoods.slice(0, 2),
+    [displayedFoods, foodFinderExpanded, query],
+  )
   const totals = useMemo(() => mealTotals(items), [items])
+  const selectedPresetItems = useMemo(
+    () => items.filter((item) => selectedItemIds.includes(item.id)),
+    [items, selectedItemIds],
+  )
   const dailyTargets = useMemo(() => data.profile ? computeTargets(data.profile) : null, [data.profile])
   const postWorkoutDinnerActive = mealBlockId === 'post_workout'
     && (data.settings?.addons.adaptive_post_workout_dinner ?? true)
@@ -370,6 +383,23 @@ export function MealComposer({
 
   const patchItem = (id: string, patch: Partial<ComposerFoodItem>) => {
     setItems((current) => current.map((item) => item.id === id ? { ...item, ...patch } : item))
+  }
+
+  const removeItem = (id: string) => {
+    setItems((current) => current.filter((item) => item.id !== id))
+    setSelectedItemIds((current) => current.filter((itemId) => itemId !== id))
+  }
+
+  const toggleItemSelection = (id: string) => {
+    setSelectedItemIds((current) => current.includes(id)
+      ? current.filter((itemId) => itemId !== id)
+      : [...current, id])
+  }
+
+  const cancelItemSelection = () => {
+    setItemSelectionMode(false)
+    setSelectedItemIds([])
+    setSelectedPresetDraft(null)
   }
 
   const moveItem = (index: number, direction: -1 | 1) => {
@@ -557,36 +587,73 @@ export function MealComposer({
     setAppliedPresetIds([])
   }
 
-  const savePreset = async () => {
-    if (!items.length) return
-    const saved = await store.savePreset({
-      name: presetName.trim() || name,
-      slot,
-      items,
-      sourcePlannedMealId: plannedMealId,
-    })
-    if (data.settings) {
-      const nextSubtitles = { ...(data.settings.addons.meal_preset_subtitles ?? {}) }
-      const cleanSubtitle = presetSubtitle.trim()
-      if (cleanSubtitle) nextSubtitles[saved.id] = cleanSubtitle
-      else delete nextSubtitles[saved.id]
-      setSettings({
-        addons: {
-          ...data.settings.addons,
-          meal_preset_subtitles: nextSubtitles,
-          ...(mealBlockId ? {
-            meal_blocks: {
-              ...mealBlockSettings,
-              preset_assignments: { ...mealBlockSettings.preset_assignments, [saved.id]: mealBlockId },
-            },
-          } : {}),
-        },
+  const persistPreset = async (
+    presetItems: ComposerFoodItem[],
+    title: string,
+    subtitle: string,
+    markApplied = true,
+  ) => {
+    if (!presetItems.length || savingPreset) return null
+    setSavingPreset(true)
+    try {
+      const saved = await store.savePreset({
+        name: title.trim() || name,
+        slot,
+        items: presetItems,
+        sourcePlannedMealId: plannedMealId,
       })
+      if (data.settings) {
+        const nextSubtitles = { ...(data.settings.addons.meal_preset_subtitles ?? {}) }
+        const cleanSubtitle = subtitle.trim()
+        if (cleanSubtitle) nextSubtitles[saved.id] = cleanSubtitle
+        else delete nextSubtitles[saved.id]
+        setSettings({
+          addons: {
+            ...data.settings.addons,
+            meal_preset_subtitles: nextSubtitles,
+            ...(mealBlockId ? {
+              meal_blocks: {
+                ...mealBlockSettings,
+                preset_assignments: { ...mealBlockSettings.preset_assignments, [saved.id]: mealBlockId },
+              },
+            } : {}),
+          },
+        })
+      }
+      if (markApplied) {
+        setAppliedPresetIds((current) => current.includes(saved.id) ? current : [...current, saved.id])
+      }
+      return saved
+    } catch (error) {
+      setMessage(error instanceof Error ? error.message : t('Preset could not be saved.'))
+      return null
+    } finally {
+      setSavingPreset(false)
     }
-    setAppliedPresetIds((current) => current.includes(saved.id) ? current : [...current, saved.id])
+  }
+
+  const savePreset = async () => {
+    const saved = await persistPreset(items, presetName, presetSubtitle)
+    if (!saved) return
     setPresetName('')
     setPresetSubtitle('')
     setMessage('Reusable preset saved. Adjustable amounts can adapt without rewriting your template.')
+  }
+
+  const saveSelectedPreset = async () => {
+    if (!selectedPresetDraft || selectedPresetItems.length === 0) {
+      setMessage(t('Choose at least one food'))
+      return
+    }
+    const saved = await persistPreset(
+      selectedPresetItems,
+      selectedPresetDraft.title,
+      selectedPresetDraft.subtitle,
+      false,
+    )
+    if (!saved) return
+    cancelItemSelection()
+    setMessage(t('Selected-food preset saved.'))
   }
 
   const log = async () => {
@@ -757,8 +824,8 @@ export function MealComposer({
           <GlassCard className="overflow-visible p-3">
             <div className="flex gap-2">
               <input
-                autoFocus
                 value={query}
+                onFocus={() => setFoodFinderExpanded(true)}
                 onChange={(event) => {
                   setQuery(event.target.value)
                   setRemoteResults([])
@@ -808,16 +875,21 @@ export function MealComposer({
             </AnimatePresence>
             <p className="sr-only" aria-live="polite">{quickAddedLabel}</p>
             {(displayedFoods.length > 0 || query.trim().length >= 2) && (
-              <div className="mt-4 max-h-[min(32rem,52dvh)] space-y-2 overflow-y-auto pr-1">
+              <div className={`mt-4 space-y-2 pr-1 ${query.trim() || foodFinderExpanded ? 'max-h-[min(32rem,52dvh)] overflow-y-auto' : 'overflow-hidden'}`}>
                 <div className="flex items-center justify-between gap-3 px-1 pb-1">
-                  <p className="text-[10px] font-black tracking-[0.14em] text-ink-faint uppercase">
-                    {t(query.trim() ? 'Food results' : 'Recent & frequent')}
-                  </p>
+                  <div className="min-w-0">
+                    <p className="text-[10px] font-black tracking-[0.14em] text-ink-faint uppercase">
+                      {t(query.trim() ? 'Food results' : 'Recent & frequent')}
+                    </p>
+                    {!query.trim() && !foodFinderExpanded && displayedFoods.length > 2 && (
+                      <p className="mt-0.5 text-[9px] font-semibold text-ink-faint">{t('Tap search to see all suggestions')}</p>
+                    )}
+                  </div>
                   <p className="text-right text-[10px] font-semibold text-ink-faint">
                     {searching ? t('Searching the full food catalog…') : t('Tap a food to change its amount')}
                   </p>
                 </div>
-                {displayedFoods.map((food) => {
+                {visibleDisplayedFoods.map((food) => {
                   const preference = store.preferences.find((value) => value.food_id === food.id)
                   const quickSelection = beginFoodSelection(food, preference)
                   const quickPortion = calculatePortion(food, quickSelection.quantity, quickSelection.unit)
@@ -913,10 +985,41 @@ export function MealComposer({
 
           <div className={itemLayout === 'compact' ? 'space-y-1.5' : 'space-y-3'}>
             {items.length > 0 && (
-              <div className="flex items-end justify-between gap-3 px-1">
-                <div>
-                  <p className="font-mono text-[10px] font-black tracking-[0.14em] text-amber-700 uppercase">{t('In this meal')}</p>
-                  <p className="mt-0.5 text-sm font-semibold text-ink-soft">{items.length} {t(items.length === 1 ? 'food' : 'foods')}</p>
+              <div className="flex flex-wrap items-end justify-between gap-2 px-1">
+                <div className="flex min-w-0 flex-wrap items-center gap-2">
+                  <div>
+                    <p className="font-mono text-[10px] font-black tracking-[0.14em] text-amber-700 uppercase">{t('In this meal')}</p>
+                    <p className="mt-0.5 text-sm font-semibold text-ink-soft">{items.length} {t(items.length === 1 ? 'food' : 'foods')}</p>
+                  </div>
+                  {!itemSelectionMode ? (
+                    <button
+                      type="button"
+                      onClick={() => {
+                        setItemSelectionMode(true)
+                        setSelectedItemIds([])
+                      }}
+                      className="rounded-full border border-amber-300/35 bg-white/82 px-3 py-1.5 text-[10px] font-black text-amber-800 shadow-sm"
+                    >
+                      {t('Select')}
+                    </button>
+                  ) : (
+                    <div className="flex flex-wrap items-center gap-1.5">
+                      <span className="rounded-full bg-amber-500/10 px-2.5 py-1.5 text-[9px] font-black text-amber-800">
+                        {selectedPresetItems.length} {t('selected')}
+                      </span>
+                      <button
+                        type="button"
+                        disabled={selectedPresetItems.length === 0}
+                        onClick={() => setSelectedPresetDraft({ title: '', subtitle: '' })}
+                        className="rounded-full bg-amber-500 px-3 py-1.5 text-[9px] font-black text-white shadow-sm disabled:opacity-35"
+                      >
+                        {t('Create preset')}
+                      </button>
+                      <button type="button" onClick={cancelItemSelection} className="rounded-full bg-white/75 px-2.5 py-1.5 text-[9px] font-black text-ink-soft">
+                        {t('Cancel')}
+                      </button>
+                    </div>
+                  )}
                 </div>
                 <div className="flex items-center gap-2">
                   <div className="flex rounded-xl bg-ink/5 p-0.5" role="group" aria-label={t('Food item layout')}>
@@ -939,10 +1042,22 @@ export function MealComposer({
             {items.map((item, index) => {
               const portion = calculatePortion(item.food, item.quantity, item.unit)
               const units = availableFoodUnits(item.food)
+              const itemSelected = selectedItemIds.includes(item.id)
               if (itemLayout === 'compact') {
                 return (
-                  <GlassCard key={item.id} accent={amber} className="px-2.5 py-2">
+                  <GlassCard key={item.id} accent={amber} className={`px-2.5 py-2 ${itemSelected ? 'ring-2 ring-amber-400/55' : ''}`}>
                     <div className="flex min-w-0 items-center gap-1.5">
+                      {itemSelectionMode && (
+                        <button
+                          type="button"
+                          aria-pressed={itemSelected}
+                          aria-label={`${t(itemSelected ? 'Deselect' : 'Select')} · ${displayFoodName(item.food, language)}`}
+                          onClick={() => toggleItemSelection(item.id)}
+                          className={`grid h-7 w-7 shrink-0 place-items-center rounded-full border-2 text-[11px] font-black transition ${itemSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-ink/15 bg-white/78 text-transparent'}`}
+                        >
+                          ✓
+                        </button>
+                      )}
                       <div className="min-w-0 flex-1">
                         <h3 className="truncate font-display text-[13px] leading-tight font-black text-ink">{displayFoodName(item.food, language)}</h3>
                         <p className="mt-0.5 truncate font-mono text-[8px] font-bold text-ink-faint">
@@ -966,7 +1081,7 @@ export function MealComposer({
                       </select>
                       <div className="grid grid-cols-2 gap-0.5">
                         <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="grid h-4 w-4 place-items-center rounded bg-white/65 text-[8px] disabled:opacity-20">↑</button>
-                        <button type="button" onClick={() => setItems((current) => current.filter((value) => value.id !== item.id))} className="row-span-2 grid h-[2.05rem] w-5 place-items-center rounded-md bg-red-500/8 text-[10px] font-black text-red-600">×</button>
+                        <button type="button" onClick={() => removeItem(item.id)} className="row-span-2 grid h-[2.05rem] w-5 place-items-center rounded-md bg-red-500/8 text-[10px] font-black text-red-600">×</button>
                         <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="grid h-4 w-4 place-items-center rounded bg-white/65 text-[8px] disabled:opacity-20">↓</button>
                       </div>
                     </div>
@@ -974,8 +1089,19 @@ export function MealComposer({
                 )
               }
               return (
-                <GlassCard key={item.id} accent={amber} className="p-4">
+                <GlassCard key={item.id} accent={amber} className={`p-4 ${itemSelected ? 'ring-2 ring-amber-400/55' : ''}`}>
                   <div className="flex items-start justify-between gap-2">
+                    {itemSelectionMode && (
+                      <button
+                        type="button"
+                        aria-pressed={itemSelected}
+                        aria-label={`${t(itemSelected ? 'Deselect' : 'Select')} · ${displayFoodName(item.food, language)}`}
+                        onClick={() => toggleItemSelection(item.id)}
+                        className={`mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-full border-2 text-xs font-black transition ${itemSelected ? 'border-amber-500 bg-amber-500 text-white' : 'border-ink/15 bg-white/78 text-transparent'}`}
+                      >
+                        ✓
+                      </button>
+                    )}
                     <div className="min-w-0">
                       <h3 className="truncate font-display text-lg leading-tight font-bold text-ink">{displayFoodName(item.food, language)}</h3>
                       <p className="mt-1 truncate text-xs font-medium text-ink-faint">{item.food.brand || translateInterfaceText(item.food.preparation_state.replace('_', ' '), language)}</p>
@@ -983,7 +1109,7 @@ export function MealComposer({
                     <div className="flex gap-1">
                       <button type="button" onClick={() => moveItem(index, -1)} disabled={index === 0} className="rounded-lg bg-white/65 px-2 py-1 text-xs disabled:opacity-25">↑</button>
                       <button type="button" onClick={() => moveItem(index, 1)} disabled={index === items.length - 1} className="rounded-lg bg-white/65 px-2 py-1 text-xs disabled:opacity-25">↓</button>
-                      <button type="button" onClick={() => setItems((current) => current.filter((value) => value.id !== item.id))} className="rounded-lg bg-red-500/8 px-2 py-1 text-xs font-bold text-red-600">×</button>
+                      <button type="button" onClick={() => removeItem(item.id)} className="rounded-lg bg-red-500/8 px-2 py-1 text-xs font-bold text-red-600">×</button>
                     </div>
                   </div>
                   <div className="mt-3 flex items-center gap-2">
@@ -1067,7 +1193,7 @@ export function MealComposer({
                 <input value={presetName} onChange={(event) => setPresetName(event.target.value)} placeholder={t('Preset title')} className="min-w-0 rounded-xl bg-white/75 px-3 py-2 text-sm font-bold outline-none" />
                 <input value={presetSubtitle} onChange={(event) => setPresetSubtitle(event.target.value)} placeholder={t('Subtitle (optional)')} className="min-w-0 rounded-xl bg-white/75 px-3 py-2 text-sm outline-none" />
               </div>
-              <button type="button" onClick={() => void savePreset()} className="mt-2 w-full rounded-xl bg-white/85 px-3 py-2.5 text-xs font-black text-ink shadow-sm">{t('Save preset')}</button>
+              <button type="button" disabled={savingPreset} onClick={() => void savePreset()} className="mt-2 w-full rounded-xl bg-white/85 px-3 py-2.5 text-xs font-black text-ink shadow-sm disabled:opacity-45">{t(savingPreset ? 'Saving…' : 'Save preset')}</button>
               <p className="mt-2 text-[10px] font-medium text-ink-faint">{t('Presets are reusable food groups. Add several presets to one meal without renaming the meal itself.')}</p>
             </GlassCard>
           )}
@@ -1146,6 +1272,89 @@ export function MealComposer({
               >
                 {t('Add preset items')} · {mealTotals(presetReview.items).kcal} {t('kcal')}
               </button>
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {selectedPresetDraft && (
+          <motion.div
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            className="fixed inset-0 z-[103] grid place-items-center bg-slate-950/45 px-4 py-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-md"
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget && !savingPreset) setSelectedPresetDraft(null)
+            }}
+          >
+            <motion.div
+              initial={{ opacity: 0, y: 14, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 8, scale: 0.98 }}
+              role="dialog"
+              aria-modal="true"
+              aria-label={t('Create preset from selected foods')}
+              className="w-full max-w-md rounded-[1.75rem] border border-white/90 bg-canvas/98 p-4 shadow-[0_32px_90px_-32px_rgba(15,23,42,.75)]"
+              onPointerDown={(event) => event.stopPropagation()}
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-amber-700 uppercase">{t('Selected foods')}</p>
+                  <h3 className="mt-1 font-display text-xl font-black text-ink">{t('Create preset')}</h3>
+                </div>
+                <button
+                  type="button"
+                  disabled={savingPreset}
+                  onClick={() => setSelectedPresetDraft(null)}
+                  aria-label={t('Close')}
+                  className="grid h-9 w-9 place-items-center rounded-full bg-white/78 text-lg font-black text-ink-soft disabled:opacity-40"
+                >
+                  ×
+                </button>
+              </div>
+              <div className="mt-3 flex max-h-32 flex-wrap gap-1.5 overflow-y-auto rounded-2xl border border-white/90 bg-white/62 p-2.5">
+                {selectedPresetItems.map((item) => (
+                  <span key={item.id} className="max-w-full truncate rounded-full bg-amber-500/10 px-2.5 py-1 text-[10px] font-black text-amber-900">
+                    {displayFoodName(item.food, language)}
+                  </span>
+                ))}
+              </div>
+              <div className="mt-3 grid gap-2">
+                <input
+                  autoFocus
+                  value={selectedPresetDraft.title}
+                  onChange={(event) => setSelectedPresetDraft((current) => current ? { ...current, title: event.target.value } : current)}
+                  placeholder={t('Preset title')}
+                  aria-label={t('Preset title')}
+                  className="rounded-xl border border-white/90 bg-white/82 px-3 py-3 text-sm font-black text-ink outline-none ring-amber-400/35 focus:ring-2"
+                />
+                <input
+                  value={selectedPresetDraft.subtitle}
+                  onChange={(event) => setSelectedPresetDraft((current) => current ? { ...current, subtitle: event.target.value } : current)}
+                  placeholder={t('Subtitle (optional)')}
+                  aria-label={t('Subtitle (optional)')}
+                  className="rounded-xl border border-white/90 bg-white/82 px-3 py-3 text-sm text-ink outline-none ring-amber-400/35 focus:ring-2"
+                />
+              </div>
+              <div className="mt-4 grid grid-cols-[auto_minmax(0,1fr)] gap-2">
+                <button
+                  type="button"
+                  disabled={savingPreset}
+                  onClick={() => setSelectedPresetDraft(null)}
+                  className="rounded-xl bg-white/80 px-4 py-3 text-sm font-black text-ink-soft disabled:opacity-40"
+                >
+                  {t('Cancel')}
+                </button>
+                <button
+                  type="button"
+                  disabled={savingPreset || selectedPresetItems.length === 0 || !selectedPresetDraft.title.trim()}
+                  onClick={() => void saveSelectedPreset()}
+                  className="rounded-xl px-4 py-3 text-sm font-black text-white shadow-lg disabled:opacity-40"
+                  style={{ background: amber.gradient }}
+                >
+                  {t(savingPreset ? 'Saving…' : 'Save selected preset')} · {selectedPresetItems.length}
+                </button>
+              </div>
             </motion.div>
           </motion.div>
         )}

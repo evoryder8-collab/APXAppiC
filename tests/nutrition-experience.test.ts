@@ -75,6 +75,18 @@ test('meal food picker keeps configure and exact-amount quick add as separate ac
   assert.doesNotMatch(source, />\s*\{translateInterfaceText\(searching \? 'Searching more foods…' : 'Extend search'/)
 })
 
+test('meal composer starts with two suggestions and can save a preset from selected foods', () => {
+  const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
+  assert.match(source, /displayedFoods\.slice\(0, 2\)/)
+  assert.match(source, /onFocus=\{\(\) => setFoodFinderExpanded\(true\)\}/)
+  assert.match(source, /visibleDisplayedFoods\.map\(\(food\) =>/)
+  assert.match(source, /const \[itemSelectionMode, setItemSelectionMode\]/)
+  assert.match(source, /const selectedPresetItems = useMemo/)
+  assert.match(source, /items: presetItems/)
+  assert.match(source, /Create preset from selected foods/)
+  assert.match(source, /Save selected preset/)
+})
+
 test('logged meal editor state always replaces the selected snapshot meal', () => {
   const saved = meal({ id: 'meal-to-replace', source_planned_meal_id: 'planned-1', display_name: 'Renamed meal' })
   assert.deepEqual(loggedMealEditorState(saved, 'lunch', '13:00'), {

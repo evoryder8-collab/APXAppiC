@@ -41,6 +41,17 @@ test('Constantine V8.1 uses the prescribed weekday structure and dynamic Focus T
   ))
 })
 
+test('Constantine Wednesday 65-minute estimate includes the 25-minute Focus T25 episode', () => {
+  const data = withProtocol('constantine')
+  const wednesday = planForDate(data, 'main', '2026-07-29', false)
+  const focus = wednesday.exercises.find((exercise) => exercise.name.startsWith('Focus T25'))
+
+  assert.equal(wednesday.programDay?.est_minutes, 65)
+  assert.equal(focus?.rep_unit, 'check')
+  assert.match(focus?.notes ?? '', /25 min/)
+  assert.equal((wednesday.programDay?.est_minutes ?? 0) - 25, 40)
+})
+
 test('deload weeks cap work at two sets and remove non-core Focus T25 sessions', () => {
   const data = withProtocol('constantine')
   const deloadWednesday = planForDate(data, 'main', '2026-08-19', false)
