@@ -55,14 +55,14 @@ function LoadingSurface({ page = false }: { page?: boolean }) {
   )
 }
 
-function Page({ children }: { children: ReactNode }) {
+function Page({ children, immersive = false }: { children: ReactNode; immersive?: boolean }) {
   return (
     <motion.main
       initial={{ opacity: 0, y: 14 }}
       animate={{ opacity: 1, y: 0 }}
       exit={{ opacity: 0, y: -10 }}
       transition={{ duration: 0.26, ease: EASE }}
-      className="min-h-dvh px-4 pt-24 pb-[calc(7rem+env(safe-area-inset-bottom))] sm:px-6 sm:pt-28"
+      className={`min-h-dvh px-4 pt-24 sm:px-6 sm:pt-28 ${immersive ? 'pb-[max(1rem,env(safe-area-inset-bottom))]' : 'pb-[calc(7rem+env(safe-area-inset-bottom))]'}`}
     >
       {children}
     </motion.main>
@@ -113,7 +113,7 @@ function AnimatedRoutes() {
         <Route path="/orbit/campaign" element={<Page><MarathonCampaignPage /></Page>} />
         <Route path="/orbit/science" element={<Page><OrbitScience /></Page>} />
         <Route path="/settings" element={<Page><Settings /></Page>} />
-        <Route path="/player/:slug/:date" element={<Page><Player /></Page>} />
+        <Route path="/player/:slug/:date" element={<Page immersive><Player /></Page>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>
@@ -137,6 +137,8 @@ function Reminders() {
 
 function Shell() {
   const { ready, authed, signOut, toasts } = useStore()
+  const location = useLocation()
+  const workoutPlayerOpen = location.pathname.startsWith('/player/')
   const [selectedPersona, setSelectedPersonaState] = useState<PersonaSlug | null>(() =>
     hasEntryGrant() ? getSelectedPersona() : null,
   )
@@ -218,11 +220,13 @@ function Shell() {
       <Suspense fallback={<LoadingSurface page />}>
         <AnimatedRoutes />
       </Suspense>
-      <ProfileSwitcher
-        activePersona={selectedPersona}
-        busy={switchingPersona}
-        onSwitch={() => void returnToPersonaIntro()}
-      />
+      {!workoutPlayerOpen && (
+        <ProfileSwitcher
+          activePersona={selectedPersona}
+          busy={switchingPersona}
+          onSwitch={() => void returnToPersonaIntro()}
+        />
+      )}
       <Reminders />
       <Toasts items={toasts} />
     </>

@@ -161,6 +161,11 @@ test('Thai and Asian staples resolve across English, Romanian and Thai search', 
     ['rice noodles', 'rice-noodles-dry'],
     ['เส้นหมี่', 'rice-vermicelli-dry'],
     ['fried pork belly', 'crispy-fried-pork-belly-recipe'],
+    ['Kap Moo', 'kap-moo-thai-pork-cracklings'],
+    ['แคปหมู', 'kap-moo-thai-pork-cracklings'],
+    ['Khai Dao', 'khai-dao-thai-fried-egg'],
+    ['ไข่ดาว', 'khai-dao-thai-fried-egg'],
+    ['Phad Kaprao Moo Sab', 'pad-kra-pao-moo-sab-no-rice-egg'],
     ['ผัดกะเพราหมูสับ', 'pad-kra-pao-moo-sab-no-rice-egg'],
     ['ผัดกะเพราเนื้อสับ', 'pad-kra-pao-neua-sab-no-rice-egg'],
     ['pad thai', 'pad-thai-shrimp-recipe'],
@@ -176,6 +181,15 @@ test('Thai and Asian staples resolve across English, Romanian and Thai search', 
   }
   assert.ok(expandFoodSearchQueries('ข้าวหอมมะลิหุงสุก', 'en').includes('jasmine rice cooked'))
   assert.ok(rankFoods('7-eleven jasmine rice', COMMON_FOODS, [], 'lunch')[0]?.provider_product_id?.endsWith('jasmine-rice-ready-to-eat'))
+  const kaprao = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-protocol:generic:pad-kra-pao-moo-sab-no-rice-egg')!
+  assert.match(displayFoodName(kaprao, 'en'), /^Phad Kaprao Moo Sab/)
+  assert.match(displayFoodName(kaprao, 'th'), /^ผัดกะเพราหมูสับ/)
+  /* Legacy spellings remain searchable so existing history and user habits
+     survive the canonical display-name correction. */
+  assert.equal(
+    rankFoods('pad kra pao moo sab', COMMON_FOODS, [], 'lunch')[0]?.id,
+    kaprao.id,
+  )
 })
 
 test('localized staple search finds oats, som tam, fish sauce, avocado and prepared eggs', () => {

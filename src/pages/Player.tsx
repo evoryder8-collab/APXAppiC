@@ -512,9 +512,9 @@ export function Player() {
   const progress = Math.min(1, state.idx / (blocks.length - 1))
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col" style={{ minHeight: 'calc(100dvh - 8rem)' }}>
+    <div className="mx-auto flex w-full max-w-xl flex-col" style={{ minHeight: 'calc(100dvh - 7rem - env(safe-area-inset-bottom))' }}>
       {/* header: progress + controls */}
-      <div className="mb-4">
+      <div className="mb-2">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={() => navigate(-1)} className="text-sm font-bold text-ink-soft">
             ← Exit
@@ -553,7 +553,7 @@ export function Player() {
             </button>
           </div>
         </div>
-        <div className="mt-3 h-2 overflow-hidden rounded-full bg-ink/8">
+        <div className="mt-2 h-1.5 overflow-hidden rounded-full bg-ink/8">
           <motion.div
             className="h-full rounded-full"
             style={{ background: accent.gradient }}
@@ -564,7 +564,7 @@ export function Player() {
       </div>
 
       {/* current block */}
-      <div className="flex flex-1 items-center justify-center py-2">
+      <div className="flex items-start justify-center">
         <AnimatePresence mode="wait">
           <motion.div
             key={state.idx}
@@ -608,7 +608,7 @@ export function Player() {
       </div>
 
       {/* checkpoint scrubber */}
-      <div className="mt-4 overflow-x-auto pb-2" role="navigation" aria-label="Session checkpoints">
+      <div className="mt-2 overflow-x-auto pb-1" role="navigation" aria-label="Session checkpoints">
         <div className="flex min-w-max items-center gap-1.5 px-1">
           {blocks.map((b, i) => {
             const active = i === state.idx
@@ -1080,7 +1080,7 @@ function PostWorkoutRecoveryPrompt({ completedAt, date }: { completedAt: string;
 function CenterCard({ accent, children }: { accent: Accent; children: React.ReactNode }) {
   return (
     <div
-      className="glass breathe rounded-3xl p-6 text-center sm:p-8"
+      className="glass breathe rounded-3xl p-4 text-center sm:p-8"
       style={{ '--glow-soft': accent.glowSoft, '--glow-strong': accent.glowStrong } as React.CSSProperties}
     >
       {children}
@@ -1103,7 +1103,7 @@ function RestRing({ accent, remaining, total, label }: { accent: Accent; remaini
   const R = 64
   const C = 2 * Math.PI * R
   return (
-    <div className="relative mx-auto mt-4 h-40 w-40">
+    <div className="relative mx-auto mt-3 h-36 w-36 sm:mt-4 sm:h-40 sm:w-40">
       <svg viewBox="0 0 160 160" className="h-full w-full -rotate-90">
         <circle cx="80" cy="80" r={R} fill="none" stroke="rgba(26,26,34,0.08)" strokeWidth="10" />
         <circle

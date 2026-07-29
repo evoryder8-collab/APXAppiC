@@ -784,12 +784,12 @@ const THAI_AND_ASIAN_FOODS: CatalogFoodSpec[] = [
   },
   {
     slug: 'pad-kra-pao-moo-sab-no-rice-egg',
-    names: { en: 'Pad kra pao moo sab, minced pork, no rice or egg, recipe reference', de: 'Pad Kra Pao Moo Sab mit Schweinehack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Pad kra pao moo sab au porc haché, sans riz ni œuf, référence', it: 'Pad kra pao moo sab con maiale macinato, senza riso o uovo, riferimento', ro: 'Pad kra pao moo sab cu porc tocat, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราหมูสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
+    names: { en: 'Phad Kaprao Moo Sab, minced pork, no rice or egg, recipe reference', de: 'Phad Kaprao Moo Sab mit Schweinehack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Phad Kaprao Moo Sab au porc haché, sans riz ni œuf, référence', it: 'Phad Kaprao Moo Sab con maiale macinato, senza riso o uovo, riferimento', ro: 'Phad Kaprao Moo Sab cu porc tocat, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราหมูสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
     kcal: 216, protein: 15, carbs: 7, fat: 14.5, sugar: 2.5, preparation: 'prepared', retailerReference: false,
   },
   {
     slug: 'pad-kra-pao-neua-sab-no-rice-egg',
-    names: { en: 'Pad kra pao neua sab, minced beef, no rice or egg, recipe reference', de: 'Pad Kra Pao Neua Sab mit Rinderhack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Pad kra pao neua sab au bœuf haché, sans riz ni œuf, référence', it: 'Pad kra pao neua sab con manzo macinato, senza riso o uovo, riferimento', ro: 'Pad kra pao neua sab cu vită tocată, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราเนื้อสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
+    names: { en: 'Phad Kaprao Neua Sab, minced beef, no rice or egg, recipe reference', de: 'Phad Kaprao Neua Sab mit Rinderhack, ohne Reis oder Ei, Rezeptreferenz', fr: 'Phad Kaprao Neua Sab au bœuf haché, sans riz ni œuf, référence', it: 'Phad Kaprao Neua Sab con manzo macinato, senza riso o uovo, riferimento', ro: 'Phad Kaprao Neua Sab cu vită tocată, fără orez sau ou, reper de rețetă', th: 'ผัดกะเพราเนื้อสับ ไม่รวมข้าวหรือไข่ สูตรอ้างอิง' },
     kcal: 190, protein: 17, carbs: 7, fat: 10.5, sugar: 2.5, preparation: 'prepared', retailerReference: false,
   },
   {
@@ -861,6 +861,16 @@ const THAI_AND_ASIAN_FOODS: CatalogFoodSpec[] = [
     slug: 'mango-sticky-rice-recipe',
     names: { en: 'Mango sticky rice, recipe reference', de: 'Mango-Klebreis, Rezeptreferenz', fr: 'Riz gluant à la mangue, référence', it: 'Riso glutinoso al mango, riferimento', ro: 'Orez lipicios cu mango, reper de rețetă', th: 'ข้าวเหนียวมะม่วง สูตรอ้างอิง' },
     kcal: 214, protein: 3, carbs: 42, fat: 4.3, sugar: 17, preparation: 'prepared', retailerReference: false,
+  },
+  {
+    slug: 'kap-moo-thai-pork-cracklings',
+    names: { en: 'Kap Moo, Thai pork cracklings, recipe reference', de: 'Kap Moo, thailändische Schweineschwarten-Chips, Rezeptreferenz', fr: 'Kap Moo, couennes de porc croustillantes thaïes, référence', it: 'Kap Moo, cotenne di maiale croccanti thailandesi, riferimento', ro: 'Kap Moo, șorici de porc crocant thailandez, reper de rețetă', th: 'แคปหมู สูตรอ้างอิง' },
+    kcal: 544, protein: 61.3, carbs: 0, fat: 31.3, saturatedFat: 11.4, preparation: 'prepared', servingAmount: 30, servingUnit: 'g', retailerReference: false,
+  },
+  {
+    slug: 'khai-dao-thai-fried-egg',
+    names: { en: 'Khai Dao, Thai fried egg, recipe reference', de: 'Khai Dao, thailändisches Spiegelei, Rezeptreferenz', fr: 'Khai Dao, œuf frit thaï, référence', it: 'Khai Dao, uovo fritto thailandese, riferimento', ro: 'Khai Dao, ou prăjit thailandez, reper de rețetă', th: 'ไข่ดาว สูตรอ้างอิง' },
+    kcal: 196, protein: 13.6, carbs: 0.8, fat: 14.8, saturatedFat: 4.2, preparation: 'prepared', servingAmount: 1, servingUnit: 'piece', pieceGrams: 46, retailerReference: false,
   },
 ]
 
