@@ -6,6 +6,7 @@ import {
   comfortZone,
   daylineRatio,
   isQuietClock,
+  layoutDaylineLabels,
   mealDaylineHeight,
   mealComfortWindow,
   normalizeMealDaylineDensity,
@@ -165,6 +166,18 @@ test('dayline density defaults to spacious medium and grows predictably', () => 
   assert.ok(medium < long)
   assert.ok(medium >= 780)
   assert.ok(long >= 1_040)
+})
+
+test('Dayline labels separate a meal logged minutes after a completed workout', () => {
+  const labels = layoutDaylineLabels([
+    { key: 'workout:legs', minute: 20 * 60, height: 34 },
+    { key: 'meal:dinner', minute: 20 * 60 + 10, height: 64 },
+  ], 860)
+  const workout = labels.get('workout:legs')
+  const dinner = labels.get('meal:dinner')
+  assert.ok(workout != null)
+  assert.ok(dinner != null)
+  assert.ok(dinner - workout >= 59)
 })
 
 test('meal start records reject invalid timestamps and remain bounded sync data', () => {

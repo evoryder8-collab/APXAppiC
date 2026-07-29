@@ -10,6 +10,7 @@ import {
   daylineRatio,
   fallbackMealTime,
   isQuietClock,
+  layoutDaylineLabels,
   mealDaylineHeight,
   minuteToClock,
   normalizeMealDaylineDensity,
@@ -199,27 +200,6 @@ const ZONE_COLOR: Record<MealComfortZone, string> = {
 const EMPTY_FALLBACK_TIMES: Record<string, string> = {}
 const EMPTY_DAYLINE_SLOTS: MealDaylineSlot[] = []
 const EMPTY_WORKOUT_SESSIONS: WorkoutSession[] = []
-function labelLayout(items: DaylineMealItem[], height: number, compact: boolean): Map<string, number> {
-  const pad = compact ? 30 : 34
-  const gap = compact ? 64 : 70
-  const ordered = items
-    .map((item) => ({ key: item.key, actual: daylineRatio(item.minute) * height }))
-    .sort((left, right) => left.actual - right.actual)
-  if (!ordered.length) return new Map()
-  const positions = ordered.map((event, index) =>
-    Math.max(pad, Math.min(height - pad, index === 0 ? event.actual : Math.max(event.actual, 0))),
-  )
-  for (let index = 1; index < positions.length; index += 1) {
-    positions[index] = Math.max(positions[index], positions[index - 1] + gap)
-  }
-  if ((positions.at(-1) ?? 0) > height - pad) {
-    positions[positions.length - 1] = height - pad
-    for (let index = positions.length - 2; index >= 0; index -= 1) {
-      positions[index] = Math.min(positions[index], positions[index + 1] - gap)
-    }
-  }
-  return new Map(ordered.map((event, index) => [event.key, Math.max(pad, positions[index])]))
-}
 
 function minutesLabel(minutes: number): string {
   if (minutes < 60) return `${Math.max(1, Math.round(minutes))} min`
@@ -532,9 +512,27 @@ export function MealDayline({
     }
   }), [dragPreview, items])
 
+  const workouts = useMemo(() => sessions
+    .filter((session) => session.date === date)
+    .flatMap((session) => {
+      const timed = timedWorkout(session, timeZone)
+      return timed ? [timed] : []
+    })
+    .sort((left, right) => left.completedLineMinute - right.completedLineMinute), [date, sessions, timeZone])
   const resolvedDensity = normalizeMealDaylineDensity(density)
-  const height = mealDaylineHeight(resolvedDensity, compact, displayItems.length)
-  const labels = useMemo(() => labelLayout(displayItems, height, compact), [compact, displayItems, height])
+  const height = mealDaylineHeight(resolvedDensity, compact, displayItems.length + workouts.length)
+  const labels = useMemo(() => layoutDaylineLabels([
+    ...displayItems.map((item) => ({
+      key: item.key,
+      minute: item.minute,
+      height: compact ? 58 : 64,
+    })),
+    ...workouts.map((workout) => ({
+      key: `workout:${workout.session.id}`,
+      minute: workout.completedMinute,
+      height: 34,
+    })),
+  ], height, compact), [compact, displayItems, height, workouts])
   const nowY = daylineRatio(currentClock.minute) * height
   const recordedEvents = displayItems.filter((item) => item.meal && item.recorded && Date.parse(item.meal.logged_at) <= now.getTime())
   const latest = isLiveDate
@@ -545,13 +543,6 @@ export function MealDayline({
   const readyIn = latest?.window && elapsed != null ? Math.max(0, latest.window.readyAfterMinutes - elapsed) : null
   const transitionIn = latest?.window && elapsed != null ? Math.max(0, latest.window.transitionAfterMinutes - elapsed) : null
   const quiet = isQuietClock(currentClock.minute)
-  const workouts = useMemo(() => sessions
-    .filter((session) => session.date === date)
-    .flatMap((session) => {
-      const timed = timedWorkout(session, timeZone)
-      return timed ? [timed] : []
-    })
-    .sort((left, right) => left.completedLineMinute - right.completedLineMinute), [date, sessions, timeZone])
   const recoveryRelations = useMemo(() => resolvePostWorkoutNutrition({
     sessions: sessions.filter((session) => session.date === date),
     meals,
@@ -728,6 +719,7 @@ export function MealDayline({
             const start = daylineRatio(workout.completedMinute) * height
             const end = daylineRatio(workout.completedMinute + 120) * height
             const bandHeight = Math.max(12, Math.min(height, end) - start)
+            const label = labels.get(`workout:${workout.session.id}`) ?? start
             return (
               <div key={workout.session.id}>
                 <motion.div
@@ -743,8 +735,20 @@ export function MealDayline({
                   }}
                 />
                 <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-[11] w-[17px] origin-top -translate-x-1/2 rounded-full border border-emerald-100/55 bg-gradient-to-b from-emerald-300 via-cyan-300 to-cyan-300/20" style={{ left: railX, top: start, height: bandHeight, boxShadow: '0 0 30px rgba(52,211,153,.95)' }} />
-                <div className="pointer-events-none absolute right-1 z-[16] -translate-y-full rounded-full border border-emerald-200/15 bg-[#07151c]/85 px-2 py-1 font-mono text-[7px] font-black text-emerald-200/75 backdrop-blur" style={{ top: start - 4 }}>
-                  ✓ {copy.workoutDone} · {workout.completedTime}
+                <svg className="pointer-events-none absolute inset-0 z-10 h-full w-full overflow-visible" aria-hidden>
+                  <path
+                    d={`M ${railX} ${start} C ${railX + 11} ${start}, ${railX + 12} ${label}, ${railX + 25} ${label}`}
+                    fill="none"
+                    stroke="rgba(110,231,183,.58)"
+                    strokeWidth="1.5"
+                  />
+                </svg>
+                <div
+                  className="pointer-events-none absolute right-1 z-[19] flex min-h-[34px] -translate-y-1/2 items-center justify-between gap-2 rounded-xl border border-emerald-200/18 bg-[#07151c]/92 px-2.5 py-1.5 font-mono text-emerald-100 backdrop-blur-md"
+                  style={{ left: railX + 27, top: label, boxShadow: '0 10px 26px -18px rgba(52,211,153,.85)' }}
+                >
+                  <span className="min-w-0 truncate text-[8px] font-black">✓ {copy.workoutDone}</span>
+                  <span className="shrink-0 text-[8px] font-black text-emerald-200/70">{workout.completedTime}</span>
                 </div>
               </div>
             )

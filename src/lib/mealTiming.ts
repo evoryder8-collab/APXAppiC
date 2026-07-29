@@ -32,6 +32,12 @@ export interface TimeZoneOption {
   searchText: string
 }
 
+export interface DaylineLabelAnchor {
+  key: string
+  minute: number
+  height: number
+}
+
 export interface TimedMeal {
   meal: LoggedMeal
   time: string
@@ -514,6 +520,73 @@ export function toDaylineMinute(clockMinute: number): number {
 export function daylineRatio(clockMinute: number): number {
   const lineMinute = toDaylineMinute(clockMinute)
   return Math.min(1, Math.max(0, (lineMinute - DAYLINE_START_MINUTE) / DAYLINE_DURATION_MINUTES))
+}
+
+/**
+ * Meal cards and workout labels share the same side of the Dayline. Lay them
+ * out as one collision group while their connector lines preserve the exact
+ * event time on the rail.
+ */
+export function layoutDaylineLabels(
+  anchors: readonly DaylineLabelAnchor[],
+  height: number,
+  compactPresentation = false,
+): Map<string, number> {
+  if (!anchors.length || height <= 0) return new Map()
+  const edgeGap = compactPresentation ? 8 : 10
+  const collisionGap = compactPresentation ? 8 : 10
+  const ordered = anchors
+    .map((anchor) => {
+      const labelHeight = Math.max(20, anchor.height)
+      return {
+        ...anchor,
+        height: labelHeight,
+        half: labelHeight / 2,
+        actual: daylineRatio(anchor.minute) * height,
+      }
+    })
+    .sort((left, right) => left.actual - right.actual || left.key.localeCompare(right.key))
+  const positions = ordered.map((anchor) => (
+    Math.max(edgeGap + anchor.half, Math.min(height - edgeGap - anchor.half, anchor.actual))
+  ))
+
+  for (let index = 1; index < positions.length; index += 1) {
+    const previous = ordered[index - 1]
+    const current = ordered[index]
+    positions[index] = Math.max(
+      positions[index],
+      positions[index - 1] + previous.half + current.half + collisionGap,
+    )
+  }
+
+  const last = ordered.length - 1
+  const lastLimit = height - edgeGap - ordered[last].half
+  if (positions[last] > lastLimit) {
+    positions[last] = lastLimit
+    for (let index = last - 1; index >= 0; index -= 1) {
+      const current = ordered[index]
+      const next = ordered[index + 1]
+      positions[index] = Math.min(
+        positions[index],
+        positions[index + 1] - current.half - next.half - collisionGap,
+      )
+    }
+  }
+
+  const firstLimit = edgeGap + ordered[0].half
+  if (positions[0] < firstLimit) {
+    positions[0] = firstLimit
+    for (let index = 1; index < positions.length; index += 1) {
+      const previous = ordered[index - 1]
+      const current = ordered[index]
+      positions[index] = Math.max(
+        positions[index],
+        positions[index - 1] + previous.half + current.half + collisionGap,
+      )
+    }
+  }
+
+  return new Map(ordered.map((anchor, index) => [anchor.key, positions[index]]))
 }
 
 export function isQuietClock(clockMinute: number): boolean {
