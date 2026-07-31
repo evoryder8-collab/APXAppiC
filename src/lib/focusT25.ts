@@ -88,7 +88,7 @@ export function resolveFocusT25(
       minutes: 25,
       rpe: 'RPE 7',
       kind: 'conditioning',
-      note: 'Complete strength first. A later separate session is preferred.',
+      note: 'This belongs to the Light option only. Use low-impact modifications and stop at RPE 6–7. Full Legs B ends after strength.',
     }
   }
 

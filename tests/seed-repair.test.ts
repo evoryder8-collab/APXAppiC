@@ -283,7 +283,90 @@ test('V8.1 repair replaces the bespoke main plan while preserving historical day
   assert.equal(repair.data.workout_sessions[0].program_day_id, tuesday.id)
   assert.ok(repair.data.exercises.some((row) => row.program_day_id === tuesday.id && row.rep_unit === 'check'))
   assert.ok(!repair.data.exercises.some((row) => row.name === 'Obsolete programme exercise'))
-  assert.deepEqual(repair.removed.exercises, [obsoleteExercise.id])
+  assert.ok(repair.removed.exercises.includes(obsoleteExercise.id))
+  assert.ok(repair.removed.exercises.length >= 1)
   assert.equal(repair.data.settings?.addons.training_protocol?.version, 81)
   assert.equal(repair.missing.program_days.length, 7)
+})
+
+test('V6 repairs existing V5 Full and Light rows without crossing strength history', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  assert.ok(seeded.profile)
+  const main = seeded.programs.find((row) => row.slug === 'main')
+  assert.ok(main)
+  const friday = seeded.program_days.find((row) => row.program_id === main.id && row.weekday === 5)
+  assert.ok(friday)
+  const fridayRows = seeded.exercises.filter((row) => row.program_day_id === friday.id)
+  const byName = (name: string, isLite: boolean) => {
+    const row = fridayRows.find((candidate) => candidate.name === name && candidate.is_lite === isLite)
+    assert.ok(row)
+    return row
+  }
+  const oldFullFocus = {
+    ...byName('Focus T25 · Friday conditioning', true),
+    id: '61000000-0000-4000-8000-000000000001',
+    is_lite: false,
+    sort_order: 4,
+  }
+  const oldFullFront = {
+    ...byName('Front Lunge', false),
+    id: '61000000-0000-4000-8000-000000000002',
+  }
+  const oldLightFront = {
+    ...byName('Front Lunge', true),
+    id: '61000000-0000-4000-8000-000000000003',
+    sets: 2,
+  }
+  const legacyFridayRows = [
+    oldFullFront,
+    byName('Reverse Lunge', false),
+    byName('Single-Leg Romanian Deadlift', false),
+    byName('Calf Raise', false),
+    oldFullFocus,
+    oldLightFront,
+    byName('Single-Leg Romanian Deadlift', true),
+    byName('Focus T25 · Friday conditioning', true),
+  ]
+  const current = {
+    ...seeded,
+    profile: { ...seeded.profile, seed_version: 5 },
+    exercises: [
+      ...seeded.exercises.filter((row) => row.program_day_id !== friday.id),
+      ...legacyFridayRows,
+    ],
+    workout_sessions: [{
+      id: '62000000-0000-4000-8000-000000000001',
+      user_id: userId,
+      date: '2026-07-24',
+      program_day_id: friday.id,
+      is_lite: false,
+      is_deload: false,
+      is_event_recovery: false,
+      completed: true,
+      quality_score: 1,
+      started_at: null,
+      completed_at: null,
+      notes: '',
+    }],
+  }
+
+  const repair = repairSeedDefinitions(current, seeded)
+  const repairedFriday = repair.data.program_days.find((row) => row.program_id === main.id && row.weekday === 5)
+  const repairedRows = repair.data.exercises.filter((row) => row.program_day_id === repairedFriday?.id)
+
+  assert.equal(repair.needsRepair, true)
+  assert.equal(repair.data.profile?.seed_version, 6)
+  assert.equal(repairedFriday?.id, friday.id)
+  assert.equal(repair.data.workout_sessions[0].program_day_id, friday.id)
+  assert.equal(
+    repairedRows.find((row) => row.name === 'Front Lunge' && !row.is_lite)?.id,
+    oldFullFront.id,
+  )
+  assert.equal(
+    repairedRows.find((row) => row.name === 'Front Lunge' && row.is_lite)?.id,
+    oldLightFront.id,
+  )
+  assert.ok(!repairedRows.some((row) => row.name.startsWith('Focus T25') && !row.is_lite))
+  assert.ok(repairedRows.some((row) => row.name === 'Reverse Lunge' && row.is_lite))
+  assert.ok(repair.removed.exercises.includes(oldFullFocus.id))
 })

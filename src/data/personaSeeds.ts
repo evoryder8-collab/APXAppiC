@@ -72,18 +72,19 @@ function today(): string {
 
 const JUNE_DAYS: DaySpec[] = [
   {
-    weekday: 1, name: 'Glutes A', type: 'legs_a', minutes: 50,
-    warmup: '8 bodyweight glute bridges, 6 reverse lunges per side and 10 slow hinges',
+    weekday: 1, name: 'Glutes A · Partner strength', type: 'legs_a', minutes: 58,
+    warmup: '8 bodyweight split squats per side, 10 slow hinges and 10 ankle rocks per side',
     full: [
-      { name: 'Dumbbell Hip Thrust', sets: 4, reps: [8, 12], rest: 120, pause: 2, increment: 2, tempo: 'Hold the top for 2 seconds' },
-      { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
-      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2, note: 'Partner-sync block 1 of 3.' },
+      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 12], rest: 120, increment: 2, note: 'Partner-sync block 2 of 3.' },
+      { name: 'Sliding Leg Curl', sets: 2, reps: [10, 15], rest: 90, down: 3, note: 'Partner-sync block 3 of 3.' },
+      { name: 'Dumbbell Hip Thrust', sets: 3, reps: [8, 12], rest: 120, pause: 2, increment: 2, tempo: 'Hold the top for 2 seconds', note: 'June-only glute hypertrophy block after the shared work.' },
       { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
     ],
     lite: [
-      { name: 'Dumbbell Hip Thrust', sets: 3, reps: [8, 12], rest: 120, pause: 2, increment: 2 },
       { name: 'Bulgarian Split Squat', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
-      { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
+      { name: 'Dumbbell Romanian Deadlift', sets: 2, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Dumbbell Hip Thrust', sets: 2, reps: [8, 12], rest: 120, pause: 2, increment: 2 },
     ],
   },
   {
@@ -91,11 +92,13 @@ const JUNE_DAYS: DaySpec[] = [
     warmup: '15 band pull-aparts and 2 sets of 8 scapular push-ups',
     full: [
       { name: 'Strict Push-Up', sets: 3, reps: [10, 15], rest: 90 },
+      { name: 'Feet-Elevated Push-Up', sets: 2, reps: [8, 12], rest: 90, note: 'Shared second movement. Use a stable height and stop with 2 clean reps available.' },
       { name: 'Diamond or Close-Grip Push-Up', sets: 2, reps: [8, 15], rest: 90 },
       { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
     lite: [
       { name: 'Strict Push-Up', sets: 2, reps: [10, 15], rest: 90 },
+      { name: 'Feet-Elevated Push-Up', sets: 1, reps: [8, 12], rest: 90 },
       { name: 'Diamond or Close-Grip Push-Up', sets: 1, reps: [8, 15], rest: 90 },
       { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
@@ -107,11 +110,13 @@ const JUNE_DAYS: DaySpec[] = [
       { name: 'Band-Assisted Pull-Up', sets: 3, reps: [4, 8], rest: 120 },
       { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 90, increment: 2 },
       { name: 'Band Face Pull', sets: 2, reps: [15, 20], rest: 60, pause: 2 },
+      { name: 'Gimbal Front Hold', sets: 2, reps: [30, 45], unit: 'seconds', rest: 60, note: 'Shared filming-capacity block. Stop before shaking or shoulder pain.' },
       { name: 'Focus T25 · Wednesday lower and speed', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
     lite: [
       { name: 'Band-Assisted Pull-Up', sets: 2, reps: [4, 8], rest: 120 },
       { name: 'Chest-Supported Dumbbell Row', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
+      { name: 'Gimbal Front Hold', sets: 1, reps: [30, 45], unit: 'seconds', rest: 60 },
       { name: 'Focus T25 · Wednesday lower and speed', sets: 1, reps: [1, 1], unit: 'check', rest: 0, note: 'Episode adapts to the current V8.1 block.' },
     ],
   },
@@ -123,6 +128,7 @@ const JUNE_DAYS: DaySpec[] = [
       { name: 'Bird-Dog', sets: 2, reps: [6, 6], perSide: true, rest: 0, pause: 3, note: 'Two circuit rounds. Pause three seconds.' },
       { name: 'Wall Slide', sets: 2, reps: [10, 10], rest: 0, note: 'Two circuit rounds.' },
       { name: 'Band Pull-Apart', sets: 2, reps: [15, 15], rest: 0, note: 'Two circuit rounds.' },
+      { name: 'Side Plank', sets: 2, reps: [20, 30], unit: 'seconds', perSide: true, rest: 0, note: 'Shared posture circuit. Keep breathing normally.' },
       { name: 'Wrist Extensor Isometric', sets: 2, reps: [20, 20], unit: 'seconds', perSide: true, rest: 0, note: 'Two circuit rounds.' },
     ],
     lite: [
@@ -132,30 +138,35 @@ const JUNE_DAYS: DaySpec[] = [
     ],
   },
   {
-    weekday: 5, name: 'Glutes B', type: 'legs_b', minutes: 48,
-    warmup: '8 bodyweight glute bridges, 6 reverse lunges per side and 8 hamstring walkouts',
+    weekday: 5, name: 'Glutes B · Partner strength', type: 'legs_b', minutes: 56,
+    warmup: '6 reverse lunges per side, 10 slow hinges and 10 ankle rocks per side',
     full: [
-      { name: 'Reverse Lunge', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
-      { name: 'B-Stance or Single-Leg Hip Thrust', sets: 3, reps: [8, 12], perSide: true, rest: 90, pause: 2, increment: 2 },
-      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 15], rest: 90, down: 3 },
-      { name: 'Frog Pump', sets: 1, reps: [25, 35], rest: 60 },
+      { name: 'Front Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, increment: 2, note: 'Partner-sync block 1 of 3.' },
+      { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, increment: 2, note: 'Partner-sync block 2 of 3.' },
+      { name: 'Single-Leg Romanian Deadlift', sets: 2, reps: [8, 12], perSide: true, rest: 90, increment: 2, note: 'Partner-sync block 3 of 3.' },
+      { name: 'B-Stance or Single-Leg Hip Thrust', sets: 3, reps: [8, 12], perSide: true, rest: 90, pause: 2, increment: 2, note: 'June-only glute hypertrophy block.' },
+      { name: 'Sliding Leg Curl', sets: 2, reps: [10, 15], rest: 90, down: 3, note: 'June-only hamstring finisher.' },
+      { name: 'Frog Pump', sets: 1, reps: [25, 35], rest: 60, note: 'June-only glute finisher. Constantin can stop after his own calf work.' },
     ],
     lite: [
+      { name: 'Front Lunge', sets: 1, reps: [8, 12], perSide: true, rest: 90, increment: 2 },
       { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'Single-Leg Romanian Deadlift', sets: 1, reps: [8, 12], perSide: true, rest: 90, increment: 2 },
       { name: 'B-Stance or Single-Leg Hip Thrust', sets: 2, reps: [8, 12], perSide: true, rest: 90, pause: 2, increment: 2 },
-      { name: 'Frog Pump', sets: 1, reps: [25, 35], rest: 60 },
     ],
   },
   {
     weekday: 6, name: 'Push B', type: 'push', minutes: 31,
     warmup: 'Band pull-aparts and two progressive push-up sets',
     full: [
-      { name: 'Weighted or Feet-Elevated Push-Up', sets: 3, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Weighted Push-Up', sets: 3, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Pike Push-Up', sets: 2, reps: [8, 12], rest: 90, note: 'Shared second movement.' },
       { name: 'Dumbbell Overhead Press', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
       { name: 'Band Row', sets: 2, reps: [12, 15], rest: 60 },
     ],
     lite: [
-      { name: 'Weighted or Feet-Elevated Push-Up', sets: 2, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Weighted Push-Up', sets: 2, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Pike Push-Up', sets: 1, reps: [8, 12], rest: 90 },
       { name: 'Dumbbell Overhead Press', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
     ],
   },

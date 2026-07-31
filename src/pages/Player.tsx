@@ -14,6 +14,7 @@ import {
   buildTimeline,
   countedRepsForSet,
   isPassiveTimerBlock,
+  plannedWorkoutDurationBreakdown,
   plannedSetCount,
   prefillSetWeight,
   reconcilePlayerElapsed,
@@ -448,12 +449,13 @@ export function Player() {
     const activityCatalog = activityCatalogMap(data.activity_types)
     const activityType = activityCatalog.get(activityTypeId)
     if (activityType && data.profile) {
+      const durations = plannedWorkoutDurationBreakdown(plan, plan.programDay.est_minutes, lite)
       const activityBlock = {
         ...emptyActivityBlock(
           activityType,
           activityLogId(date, data.profile.user_id, `workout:${sessionId}`),
         ),
-        durationMin: plan.programDay.est_minutes,
+        durationMin: durations.primary,
         source: 'workout_module' as const,
         reconciled: true,
       }

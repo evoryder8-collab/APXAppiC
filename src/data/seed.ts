@@ -285,14 +285,14 @@ const TRANSITION_DAYS: DaySpec[] = [
 const MAIN_DAYS: DaySpec[] = [
   {
     weekday: 1,
-    name: 'Legs A · Foundation',
+    name: 'Legs A · Partner strength',
     type: 'legs_a',
     est: 52,
     warmup: '8 bodyweight split squats per side, 10 slow hinges and 10 ankle rocks per side',
     full: [
-      { name: 'Bulgarian Split Squat', sets: 4, reps: [8, 12], perSide: true, rest: 120, incr: 2.5, notes: '90–120 seconds. Control every rep.' },
-      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 10], rest: 120, incr: 2.5 },
-      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 15], rest: 90, down: 3 },
+      { name: 'Bulgarian Split Squat', sets: 4, reps: [8, 12], perSide: true, rest: 120, incr: 2.5, notes: 'Partner-sync block 1 of 3. Control every rep.' },
+      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 10], rest: 120, incr: 2.5, notes: 'Partner-sync block 2 of 3.' },
+      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 15], rest: 90, down: 3, notes: 'Partner-sync block 3 of 3.' },
       { name: 'Single-Leg Calf Raise', sets: 3, reps: [12, 20], perSide: true, rest: 60 },
     ],
     lite: [
@@ -360,21 +360,21 @@ const MAIN_DAYS: DaySpec[] = [
   },
   {
     weekday: 5,
-    name: 'Legs B + Focus T25',
+    name: 'Legs B · Partner strength',
     type: 'legs_b',
-    est: 64,
+    est: 44,
     warmup: '6 reverse lunges per side, 10 slow hinges and 10 ankle rocks per side',
     full: [
-      { name: 'Front Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
-      { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
-      { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+      { name: 'Front Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5, notes: 'Partner-sync block 1 of 3.' },
+      { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5, notes: 'Partner-sync block 2 of 3.' },
+      { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: [8, 12], perSide: true, rest: 90, incr: 2.5, notes: 'Partner-sync block 3 of 3.' },
       { name: 'Calf Raise', sets: 2, reps: [15, 25], rest: 60, incr: 2.5 },
-      { name: 'Focus T25 · Friday conditioning', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Episode adapts to the current V8.1 block.' },
     ],
     lite: [
-      { name: 'Front Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+      { name: 'Front Lunge', sets: 1, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+      { name: 'Reverse Lunge', sets: 1, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
       { name: 'Single-Leg Romanian Deadlift', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
-      { name: 'Focus T25 · Friday conditioning', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Episode adapts to the current V8.1 block.' },
+      { name: 'Focus T25 · Friday conditioning', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Light-session conditioning only. Use low-impact modifications and stop at RPE 6–7.' },
     ],
   },
   {

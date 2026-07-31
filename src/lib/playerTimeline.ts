@@ -1,5 +1,6 @@
 /* Builds the guided player's block timeline from an adjusted plan. */
 import type { PlannedDay, PlannedExercise } from './plan'
+import { isConditioningFocusT25, isFocusT25Name } from './focusT25.ts'
 
 export type Block =
   | { kind: 'warmup'; text: string; duration: number }
@@ -175,6 +176,47 @@ export function buildTimeline(plan: PlannedDay): Block[] {
   })
   blocks.push({ kind: 'done' })
   return blocks
+}
+
+/**
+ * A variant-aware preview estimate. ProgramDay.est_minutes remains the
+ * authored Full estimate, while Light may contain a 25-minute external T25
+ * check and cannot be estimated from exercise count alone.
+ */
+export function estimatedTimelineMinutes(plan: PlannedDay): number {
+  const seconds = buildTimeline(plan).reduce((total, block) => {
+    if (block.kind === 'warmup' || block.kind === 'rest' || block.kind === 'side_switch') {
+      return total + block.duration
+    }
+    if (block.kind === 'set') {
+      if (block.timed != null) return total + block.timed
+      return total + (block.targetReps ?? 12) * block.repDuration
+    }
+    if (block.kind === 'check') {
+      if (!isFocusT25Name(block.exercise.name)) return total + 30
+      const explicit = block.exercise.notes.match(/\|\s*(\d+)\s*min\s*\|/i)?.[1]
+      return total + Math.max(1, Number(explicit) || 25) * 60
+    }
+    if (block.kind === 'log') return total + 20
+    return total
+  }, 0)
+  return Math.max(1, Math.round(seconds / 60))
+}
+
+export function plannedWorkoutDurationBreakdown(
+  plan: PlannedDay,
+  authoredFullMinutes: number,
+  lite: boolean,
+): { total: number; primary: number; focusT25: number } {
+  const total = Math.max(1, lite ? estimatedTimelineMinutes(plan) : authoredFullMinutes)
+  const mixedConditioning = plan.programDay?.day_type !== 't25'
+    && plan.exercises.some((exercise) => isConditioningFocusT25(exercise.name))
+  const focusT25 = mixedConditioning ? 25 : 0
+  return {
+    total,
+    primary: Math.max(1, total - focusT25),
+    focusT25,
+  }
 }
 
 export function countedRepsForSet(

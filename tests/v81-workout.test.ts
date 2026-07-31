@@ -2,7 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildSeedData } from '../src/data/seed.ts'
 import { planForDate } from '../src/lib/plan.ts'
-import { buildTimeline } from '../src/lib/playerTimeline.ts'
+import { buildTimeline, estimatedTimelineMinutes, plannedWorkoutDurationBreakdown } from '../src/lib/playerTimeline.ts'
 import { computeEngine } from '../src/lib/rpg.ts'
 
 const userId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
@@ -24,7 +24,7 @@ function withProtocol(persona: 'constantine' | 'june') {
 test('Constantine V8.1 uses the prescribed weekday structure and dynamic Focus T25 episode', () => {
   const data = withProtocol('constantine')
   const monday = planForDate(data, 'main', '2026-08-03', false)
-  assert.equal(monday.programDay?.name, 'Legs A · Foundation')
+  assert.equal(monday.programDay?.name, 'Legs A · Partner strength')
   assert.deepEqual(
     monday.exercises.map((exercise) => [exercise.name, exercise.planned_sets, exercise.rest_sec]),
     [
@@ -41,6 +41,36 @@ test('Constantine V8.1 uses the prescribed weekday structure and dynamic Focus T
   ))
 })
 
+test('Friday Full and Light are explicit, distinct prescriptions in opening week', () => {
+  const data = withProtocol('constantine')
+  const full = planForDate(data, 'main', '2026-07-31', false)
+  const light = planForDate(data, 'main', '2026-07-31', true)
+
+  assert.equal(full.programDay?.name, 'Legs B · Partner strength')
+  assert.deepEqual(
+    full.exercises.map((exercise) => [exercise.name, exercise.planned_sets]),
+    [
+      ['Front Lunge', 2],
+      ['Reverse Lunge', 2],
+      ['Single-Leg Romanian Deadlift', 3],
+      ['Calf Raise', 2],
+    ],
+  )
+  assert.ok(!full.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
+  assert.deepEqual(
+    light.exercises.map((exercise) => [exercise.name, exercise.planned_sets]),
+    [
+      ['Front Lunge', 1],
+      ['Reverse Lunge', 1],
+      ['Single-Leg Romanian Deadlift', 2],
+      ['Focus T25 · Speed 1.0', 1],
+    ],
+  )
+  assert.match(light.exercises.at(-1)?.notes ?? '', /25 min/)
+  assert.ok(estimatedTimelineMinutes(light) >= 25)
+  assert.ok(estimatedTimelineMinutes(light) < (full.programDay?.est_minutes ?? 0))
+})
+
 test('Constantine Wednesday 65-minute estimate includes the 25-minute Focus T25 episode', () => {
   const data = withProtocol('constantine')
   const wednesday = planForDate(data, 'main', '2026-07-29', false)
@@ -50,6 +80,10 @@ test('Constantine Wednesday 65-minute estimate includes the 25-minute Focus T25 
   assert.equal(focus?.rep_unit, 'check')
   assert.match(focus?.notes ?? '', /25 min/)
   assert.equal((wednesday.programDay?.est_minutes ?? 0) - 25, 40)
+  assert.deepEqual(
+    plannedWorkoutDurationBreakdown(wednesday, wednesday.programDay?.est_minutes ?? 0, false),
+    { total: 65, primary: 40, focusT25: 25 },
+  )
 })
 
 test('deload weeks cap work at two sets and remove non-core Focus T25 sessions', () => {
@@ -79,8 +113,8 @@ test('benchmark weeks replace normal push volume with the PDF max-test protocol'
 
 test('June V8.1 has two glute days, three prescribed T25 slots and a true Sunday rest', () => {
   const data = withProtocol('june')
-  assert.equal(planForDate(data, 'main', '2026-08-03', false).programDay?.name, 'Glutes A')
-  assert.equal(planForDate(data, 'main', '2026-08-07', false).programDay?.name, 'Glutes B')
+  assert.equal(planForDate(data, 'main', '2026-08-03', false).programDay?.name, 'Glutes A · Partner strength')
+  assert.equal(planForDate(data, 'main', '2026-08-07', false).programDay?.name, 'Glutes B · Partner strength')
   assert.equal(planForDate(data, 'main', '2026-08-09', false).exercises.length, 0)
   assert.equal(
     planForDate(data, 'main', '2026-08-04', false).exercises.at(-1)?.name,
@@ -94,6 +128,29 @@ test('June V8.1 has two glute days, three prescribed T25 slots and a true Sunday
     planForDate(data, 'main', '2026-08-06', false).exercises[0]?.name,
     'Focus T25 · Stretch',
   )
+})
+
+test('June Full is never silently replaced by Light and partner blocks align first', () => {
+  const constantine = withProtocol('constantine')
+  const june = withProtocol('june')
+  const constantineMonday = planForDate(constantine, 'main', '2026-08-03', false)
+  const juneMonday = planForDate(june, 'main', '2026-08-03', false)
+  const constantineFriday = planForDate(constantine, 'main', '2026-07-31', false)
+  const juneFriday = planForDate(june, 'main', '2026-07-31', false)
+  const juneFridayLight = planForDate(june, 'main', '2026-07-31', true)
+
+  assert.deepEqual(
+    juneMonday.exercises.slice(0, 3).map((exercise) => exercise.name),
+    constantineMonday.exercises.slice(0, 3).map((exercise) => exercise.name),
+  )
+  assert.deepEqual(
+    juneFriday.exercises.slice(0, 3).map((exercise) => exercise.name),
+    constantineFriday.exercises.slice(0, 3).map((exercise) => exercise.name),
+  )
+  assert.deepEqual(juneFriday.exercises.map((exercise) => exercise.planned_sets), [2, 2, 2, 3, 2, 1])
+  assert.deepEqual(juneFridayLight.exercises.map((exercise) => exercise.planned_sets), [1, 2, 1, 2])
+  assert.ok(!juneFriday.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
+  assert.ok(!juneFridayLight.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
 })
 
 test('guided timeline completes both sides and keeps the full prescribed rest', () => {

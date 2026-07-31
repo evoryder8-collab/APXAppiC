@@ -1,6 +1,6 @@
 import type { AppData } from './types'
 
-export const CURRENT_SEED_VERSION = 5
+export const CURRENT_SEED_VERSION = 6
 
 export type SeedDefinitionTable =
   | 'meals'
@@ -115,12 +115,15 @@ function upgradeBespokeMainProgramme(
     const currentRows = existingDay
       ? current.exercises.filter((row) => row.program_day_id === existingDay.id)
       : []
-    const currentBySlot = new Map(currentRows.map((row) => [`${row.is_lite}|${row.sort_order}`, row]))
+    const currentByIdentity = new Map(currentRows.map((row) => [`${row.is_lite}|${row.name.toLocaleLowerCase('en')}`, row]))
     return seeded.exercises
       .filter((row) => row.program_day_id === seededDay.id)
       .map((row) => {
         const slot = `${row.is_lite}|${row.sort_order}`
-        const existing = currentBySlot.get(slot)
+        /* Preserve an exercise id only when the exercise itself still matches.
+           Reusing ids by visual slot would attach old strength history to a
+           different movement after a partner-sync reorder. */
+        const existing = currentByIdentity.get(`${row.is_lite}|${row.name.toLocaleLowerCase('en')}`)
         return {
           ...row,
           id: existing?.id ?? stableUpgradeId(currentProgram.user_id, `main-exercise:${mappedDay.weekday}:${slot}`),
@@ -303,7 +306,7 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
       }
     : current
   const upgradesV81Programme =
-    currentVersion < 3 &&
+    currentVersion < 6 &&
     (current.profile?.persona === 'constantine' || current.profile?.persona === 'june')
       ? upgradeBespokeMainProgramme(iulianWorking, seeded)
       : null

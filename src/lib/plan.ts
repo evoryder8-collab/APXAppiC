@@ -301,15 +301,22 @@ export function planForDate(
             }
         exercises = [test, backoff, ...t25.map((exercise, index) => ({ ...exercise, sort_order: index + 2 }))]
       }
+    } else if (protocolWeek === 1 && lite) {
+      /* Light already has its own deliberately reduced rows. Applying another
+         hidden subtraction made Full and Light visually indistinguishable and
+         caused a person who explicitly chose Full to receive ramp volume. */
+      badges.push('Opening-week ramp selected: reduced Light prescription')
     } else if (protocolWeek === 1) {
-      exercises = exercises.map((exercise, index) => {
-        if (exercise.rep_unit === 'check') return exercise
-        if (persona === 'june' && (weekday === 1 || weekday === 5)) {
-          return index < 3 ? { ...exercise, planned_sets: Math.min(2, exercise.planned_sets) } : exercise
-        }
-        return { ...exercise, planned_sets: Math.max(1, exercise.planned_sets - 1) }
-      })
-      badges.push('Opening week: reduced work sets while technique and recovery establish the baseline')
+      badges.push('Full selected: complete prescribed sets. Choose Light for the opening-week ramp')
+    }
+
+    if ((weekday === 1 || weekday === 5) && (persona === 'constantine' || persona === 'june')) {
+      badges.push('Partner-sync order: shared strength first, profile-specific finishers last')
+    }
+    if (weekday === 5 && persona === 'constantine') {
+      badges.push(lite
+        ? 'Light pairs reduced leg work with controlled Speed 1.0'
+        : 'Full ends after strength. Speed 1.0 is not an immediate finisher')
     }
   }
 

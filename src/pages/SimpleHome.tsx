@@ -43,6 +43,8 @@ import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
 import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
 import { personaBySlug } from '../lib/persona'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
+import { estimatedTimelineMinutes } from '../lib/playerTimeline'
+import { isFocusT25Name } from '../lib/focusT25'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -107,6 +109,7 @@ export function SimpleHome() {
   const [busyMeal, setBusyMeal] = useState<string | null>(null)
   const [weightDraft, setWeightDraft] = useState('')
   const [quickPanel, setQuickPanel] = useState<'meals' | 'supplements' | 'water' | 'training' | 'targets' | 'macro' | 'weight' | null>(null)
+  const [trainingPreviewMode, setTrainingPreviewMode] = useState<'full' | 'light'>('full')
   const [selectedMacro, setSelectedMacro] = useState<SimpleMacroKey>('protein_g')
   const [quickMealBlockId, setQuickMealBlockId] = useState<MealBlockKind | null>(null)
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; targetTime: string | null; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
@@ -306,10 +309,11 @@ export function SimpleHome() {
   const completedGroups = supplementGroups.filter(groupIsDone).length
   const hasWorkout = plan.exercises.length > 0
   const fullWorkoutMinutes = plan.programDay?.est_minutes ?? Math.max(15, plan.exercises.length * 8)
-  const lightWorkoutMinutes = Math.max(
-    8,
-    Math.round(fullWorkoutMinutes * Math.max(1, lightPlan.exercises.length) / Math.max(1, plan.exercises.length)),
-  )
+  const lightWorkoutMinutes = Math.max(8, estimatedTimelineMinutes(lightPlan))
+  const previewPlan = trainingPreviewMode === 'full' ? plan : lightPlan
+  const previewWorkoutMinutes = trainingPreviewMode === 'full' ? fullWorkoutMinutes : lightWorkoutMinutes
+  const previewIsFridayLegDay = /(?:legs|glutes) b/i.test(previewPlan.programDay?.name ?? '')
+  const previewHasFocusT25 = previewPlan.exercises.some((exercise) => isFocusT25Name(exercise.name))
   const localizedExerciseName = (name: string): string => {
     const catalogExercise = catalogExerciseByName(name)
     return catalogExercise ? displayExerciseName(catalogExercise, language) : t(name)
@@ -967,7 +971,7 @@ export function SimpleHome() {
                   onClick={() => navigate('/avatar')}
                   ariaLabel={t('Open body stats')}
                 />
-                <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${plan.programDay?.est_minutes ?? 15}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => setQuickPanel('training')} ariaLabel={t('Preview training')} />
+                <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
               </div>
             ) : blockId === 'activity' ? (
               <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>
@@ -1159,7 +1163,7 @@ export function SimpleHome() {
               aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? hasWorkout ? `${plan.exercises.length} ${t(plan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${fullWorkoutMinutes} min` : t('No guided workout is planned for this day.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? hasWorkout ? `${previewPlan.exercises.length} ${t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${previewWorkoutMinutes} min` : t('No guided workout is planned for this day.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
@@ -1167,21 +1171,48 @@ export function SimpleHome() {
                 <div className="mt-3">
                   {hasWorkout ? (
                     <>
+                      <div className="mb-2 grid grid-cols-2 rounded-2xl bg-slate-100 p-1" role="tablist" aria-label={t('Workout version')}>
+                        {(['full', 'light'] as const).map((mode) => {
+                          const selected = trainingPreviewMode === mode
+                          return (
+                            <button
+                              key={mode}
+                              type="button"
+                              role="tab"
+                              aria-selected={selected}
+                              onClick={() => setTrainingPreviewMode(mode)}
+                              className={`rounded-xl px-3 py-2 font-mono text-[9px] font-black tracking-[0.08em] uppercase transition ${selected ? mode === 'full' ? 'bg-emerald-600 text-white shadow-sm' : 'bg-sky-500 text-white shadow-sm' : 'text-ink-faint'}`}
+                            >
+                              {t(mode === 'full' ? 'Full prescription' : 'Light prescription')}
+                            </button>
+                          )
+                        })}
+                      </div>
                       <div className="rounded-[20px] border border-teal-100 bg-gradient-to-br from-teal-50 via-white to-cyan-50 p-3">
                         <div className="flex items-center gap-2">
                           <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-teal-600 text-white shadow-sm"><DumbbellIcon className="h-4 w-4" /></span>
                           <div className="min-w-0">
-                            <p className="truncate font-display text-sm font-black text-ink">{t(plan.programDay?.name ?? 'Training')}</p>
-                            <p className="font-mono text-[9px] font-bold text-ink-faint">{fullWorkoutMinutes} min · {plan.exercises.length} {t(plan.exercises.length === 1 ? 'exercise' : 'exercises')}</p>
+                            <p className="truncate font-display text-sm font-black text-ink">{t(previewPlan.programDay?.name ?? 'Training')}</p>
+                            <p className="font-mono text-[9px] font-bold text-ink-faint">{previewWorkoutMinutes} min · {previewPlan.exercises.length} {t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')}</p>
                           </div>
                         </div>
+                        <p className={`mt-2 rounded-xl px-2.5 py-2 text-[9px] font-bold leading-snug ${trainingPreviewMode === 'full' ? 'bg-emerald-50 text-emerald-800' : 'bg-sky-50 text-sky-800'}`}>
+                          {t(previewIsFridayLegDay && previewHasFocusT25
+                            ? 'Reduced strength plus controlled Speed 1.0.'
+                            : previewIsFridayLegDay && trainingPreviewMode === 'full'
+                              ? 'Full strength ends here. Speed 1.0 is not included.'
+                            : trainingPreviewMode === 'full'
+                              ? 'This list is the exact Full prescription.'
+                              : 'This list is the exact reduced Light prescription.')}
+                        </p>
+                        <p className="mt-1.5 px-1 text-[8px] font-semibold leading-snug text-ink-faint">{t('Shared movements come first. Profile-specific finishers follow.')}</p>
                         <p className="mt-3 font-mono text-[8px] font-black tracking-[0.12em] text-teal-800 uppercase">{t('Today’s exercises')}</p>
                         <div className="mt-1.5 max-h-[24dvh] space-y-1 overflow-y-auto pr-0.5">
-                          {plan.exercises.map((exercise, index) => (
+                          {previewPlan.exercises.map((exercise, index) => (
                             <div key={exercise.id} className="flex items-center gap-2 rounded-xl bg-white/85 px-2.5 py-2 shadow-sm">
                               <span className="grid h-5 w-5 shrink-0 place-items-center rounded-full bg-teal-100 font-mono text-[8px] font-black text-teal-800">{index + 1}</span>
                               <span className="min-w-0 flex-1 truncate text-[10px] font-black text-ink">{localizedExerciseName(exercise.name)}</span>
-                              <span className="shrink-0 font-mono text-[8px] font-bold text-ink-faint">{exercise.planned_sets} × {exercise.rep_min === exercise.rep_max ? exercise.rep_max : `${exercise.rep_min}–${exercise.rep_max}`}</span>
+                              <span className="shrink-0 font-mono text-[8px] font-bold text-ink-faint">{isFocusT25Name(exercise.name) ? '25 min' : `${exercise.planned_sets} × ${exercise.rep_min === exercise.rep_max ? exercise.rep_max : `${exercise.rep_min}–${exercise.rep_max}`}`}</span>
                             </div>
                           ))}
                         </div>
