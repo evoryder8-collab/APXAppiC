@@ -48,6 +48,7 @@ import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, 
 import { loggedMealEditorState } from '../lib/mealExperience'
 import { personalTargetFor } from '../lib/personalProtocol'
 import { clockToMinute, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
+import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -97,7 +98,8 @@ export function Nutrition() {
   const handledRequestedSection = useRef(false)
   const mealTimeZone = timeZoneFromSettings(data.settings)
   const today = zonedClock(new Date(), mealTimeZone).date
-  const [selectedLogDate, setSelectedLogDate] = useState(() => requestedDate && /^\d{4}-\d{2}-\d{2}$/.test(requestedDate) ? requestedDate : today)
+  const [selectedLogDate, setSelectedLogDate] = useState(() => loadActiveDate(data.profile?.user_id, today, requestedDate))
+  const activeDateUser = useRef(data.profile?.user_id)
   const [logMonth, setLogMonth] = useState(() => startOfMonth(new Date()))
   const nutritionSwipeStart = useRef<{ x: number; y: number; touchId: number; blockedByLocalGesture: boolean } | null>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedLogDate), [selectedLogDate])
@@ -160,6 +162,16 @@ export function Nutrition() {
   useEffect(() => {
     setWaterDraft(String(selectedLog.water_l ?? 0))
   }, [selectedLog.water_l, selectedLogDate])
+
+  useEffect(() => {
+    rememberActiveDate(profile?.user_id, selectedLogDate)
+  }, [profile?.user_id, selectedLogDate])
+
+  useEffect(() => {
+    if (activeDateUser.current === profile?.user_id) return
+    activeDateUser.current = profile?.user_id
+    setSelectedLogDate(loadActiveDate(profile?.user_id, today, requestedDate))
+  }, [profile?.user_id, requestedDate, today])
 
   useEffect(() => {
     if (handledRequestedSection.current || (requestedSection !== 'meals' && requestedSection !== 'supplements')) return

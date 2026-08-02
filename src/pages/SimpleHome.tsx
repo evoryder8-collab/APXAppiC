@@ -35,9 +35,10 @@ import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/worko
 import { QuickWorkoutLauncher } from '../components/workout/QuickWorkoutLauncher'
 import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
+import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
 import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
-import { clockToMinute, normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
+import { clockToMinute, daylineDateTimeToIso, normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
 import { RecoveryCheckinCard } from '../components/RecoveryCheckinCard'
 import { WatchActivityCheckin } from '../components/WatchActivityCheckin'
@@ -45,6 +46,7 @@ import { personaBySlug } from '../lib/persona'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 import { estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
+import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -115,13 +117,17 @@ export function SimpleHome() {
   const [quickMealEditor, setQuickMealEditor] = useState<{ slot: MealSlot; blockId: MealBlockKind | null; mealIdentity: MealBlockIdentity | null; title: string; targetTime: string | null; items: ComposerFoodItem[]; plannedMealId: string | null; replaceMealId: string | null } | null>(null)
   const [customWaterOpen, setCustomWaterOpen] = useState(false)
   const [customWaterDraft, setCustomWaterDraft] = useState('')
+  const [workoutStatsSessionId, setWorkoutStatsSessionId] = useState<string | null>(null)
+  const [editingCompletedWorkoutId, setEditingCompletedWorkoutId] = useState<string | null>(null)
+  const [completedWorkoutTimeDraft, setCompletedWorkoutTimeDraft] = useState('')
   const profile = data.profile
   const settings = data.settings
   const [simpleBlockOrder, setSimpleBlockOrder] = useState<SimpleBlockId[]>(() => normalizedSimpleBlockOrder(settings?.addons.simple_block_order))
   const simpleBlockOrderRef = useRef(simpleBlockOrder)
   const mealTimeZone = timeZoneFromSettings(settings)
   const today = zonedClock(new Date(), mealTimeZone).date
-  const [selectedDate, setSelectedDate] = useState(today)
+  const [selectedDate, setSelectedDate] = useState(() => loadActiveDate(profile?.user_id, today))
+  const activeDateUser = useRef(profile?.user_id)
   const [showCalendar, setShowCalendar] = useState(false)
   const [calendarMonth, setCalendarMonth] = useState(() => startOfMonth(parseISO(today)))
   const [calendarContextDate, setCalendarContextDate] = useState<string | null>(null)
@@ -259,7 +265,11 @@ export function SimpleHome() {
     () => planForDate(data, guidedProgramSlug, selectedDate, true),
     [data, guidedProgramSlug, selectedDate],
   )
-  const workoutDone = data.workout_sessions.some((session) => session.date === selectedDate && session.completed)
+  const completedWorkoutSessions = useMemo(() => data.workout_sessions
+    .filter((session) => session.date === selectedDate && session.completed)
+    .sort((left, right) => (right.completed_at ?? right.started_at ?? '').localeCompare(left.completed_at ?? left.started_at ?? '')),
+  [data.workout_sessions, selectedDate])
+  const workoutDone = completedWorkoutSessions.length > 0
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
   const waterDone = targets ? simpleWaterTargetComplete(water, targets.water_l) : false
@@ -268,6 +278,16 @@ export function SimpleHome() {
     const kg = dailyLog?.weight_kg
     setWeightDraft(kg == null ? '' : String(Number(weightFromKg(kg, weightUnit).toFixed(1))))
   }, [dailyLog?.weight_kg, selectedDate, weightUnit])
+
+  useEffect(() => {
+    rememberActiveDate(profile?.user_id, selectedDate)
+  }, [profile?.user_id, selectedDate])
+
+  useEffect(() => {
+    if (activeDateUser.current === profile?.user_id) return
+    activeDateUser.current = profile?.user_id
+    setSelectedDate(loadActiveDate(profile?.user_id, today))
+  }, [profile?.user_id, today])
 
   useEffect(() => {
     const next = normalizedSimpleBlockOrder(settings?.addons.simple_block_order)
@@ -317,6 +337,30 @@ export function SimpleHome() {
   const localizedExerciseName = (name: string): string => {
     const catalogExercise = catalogExerciseByName(name)
     return catalogExercise ? displayExerciseName(catalogExercise, language) : t(name)
+  }
+  const trainingPanelTitle = workoutDone ? t('Completed training') : t('Training preview')
+  const trainingPanelSubtitle = workoutDone
+    ? `${completedWorkoutSessions.length} ${t(completedWorkoutSessions.length === 1 ? 'completed workout' : 'completed workouts')}`
+    : hasWorkout
+      ? `${previewPlan.exercises.length} ${t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${previewWorkoutMinutes} min`
+      : t('No guided workout is planned for this day.')
+
+  const beginCompletedWorkoutTimeEdit = (sessionId: string): void => {
+    const session = completedWorkoutSessions.find((candidate) => candidate.id === sessionId)
+    if (!session?.completed_at) return
+    setEditingCompletedWorkoutId(sessionId)
+    setCompletedWorkoutTimeDraft(zonedClock(session.completed_at, mealTimeZone).time)
+  }
+
+  const saveCompletedWorkoutTime = (): void => {
+    const session = completedWorkoutSessions.find((candidate) => candidate.id === editingCompletedWorkoutId)
+    if (!session || !completedWorkoutTimeDraft) return
+    upsert('workout_sessions', {
+      ...session,
+      completed_at: daylineDateTimeToIso(selectedDate, completedWorkoutTimeDraft, mealTimeZone),
+    })
+    setEditingCompletedWorkoutId(null)
+    toast(t('Workout finish time saved'), 'ok')
   }
   const totalTasks = totalMealBlocks + supplementGroups.length + 1 + Number(hasWorkout)
   const completedTasks = completedMeals + completedGroups + Number(waterDone) + Number(hasWorkout && workoutDone)
@@ -1165,16 +1209,53 @@ export function SimpleHome() {
               className={`relative w-full overflow-hidden rounded-[24px] border border-white/95 bg-white/95 p-4 shadow-[0_28px_80px_-30px_rgba(15,23,42,.7)] ${quickPanel === 'water' ? 'max-w-[310px]' : quickPanel === 'supplements' ? 'flex h-[min(32dvh,300px)] max-w-[330px] flex-col' : quickPanel === 'weight' ? 'max-w-[390px]' : quickPanel === 'training' ? 'max-w-[360px]' : 'max-w-[330px]'}`}
               role="dialog"
               aria-modal="true"
-              aria-label={t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
+              aria-label={quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'training' ? 'Training preview' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? hasWorkout ? `${previewPlan.exercises.length} ${t(previewPlan.exercises.length === 1 ? 'exercise' : 'exercises')} · ${previewWorkoutMinutes} min` : t('No guided workout is planned for this day.') : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
               {quickPanel === 'training' ? (
                 <div className="mt-3">
-                  {hasWorkout ? (
+                  {workoutDone ? (
+                    <div className="max-h-[52dvh] space-y-2 overflow-y-auto pr-0.5">
+                      {completedWorkoutSessions.map((session) => {
+                        const sessionLogs = data.workout_logs.filter((log) => log.session_id === session.id)
+                        const workingSets = sessionLogs.filter((log) => !log.skipped && !isFocusT25Name(log.exercise_name)).length
+                        const movements = new Set(sessionLogs.map((log) => log.exercise_name)).size
+                        const programDay = data.program_days.find((day) => day.id === session.program_day_id)
+                        const durationMinutes = session.started_at && session.completed_at
+                          ? Math.max(1, Math.round((Date.parse(session.completed_at) - Date.parse(session.started_at)) / 60_000))
+                          : null
+                        const completedTime = session.completed_at ? zonedClock(session.completed_at, mealTimeZone).time : null
+                        const editingTime = editingCompletedWorkoutId === session.id
+                        return (
+                          <section key={session.id} className="rounded-[20px] border border-emerald-100 bg-gradient-to-br from-emerald-50 via-white to-cyan-50 p-3 shadow-sm">
+                            <div className="flex items-start gap-2.5">
+                              <span className="grid h-9 w-9 shrink-0 place-items-center rounded-2xl bg-emerald-600 text-white shadow-sm">✓</span>
+                              <div className="min-w-0 flex-1">
+                                <p className="truncate font-display text-sm font-black text-ink">{t(programDay?.name ?? 'Completed workout')}</p>
+                                <p className="mt-0.5 font-mono text-[8px] font-bold text-ink-faint">
+                                  {[completedTime, durationMinutes ? `${durationMinutes} min` : null, `${workingSets} ${t('working sets')}`, `${movements} ${t(movements === 1 ? 'movement' : 'movements')}`].filter(Boolean).join(' · ')}
+                                </p>
+                              </div>
+                              {completedTime && (
+                                <button type="button" onClick={() => beginCompletedWorkoutTimeEdit(session.id)} className="shrink-0 rounded-xl border border-emerald-100 bg-white/85 px-2 py-1.5 font-mono text-[9px] font-black text-emerald-800" aria-label={t('Edit workout finish time')}>{completedTime}</button>
+                              )}
+                            </div>
+                            {editingTime && (
+                              <div className="mt-2 flex items-center gap-2 rounded-2xl bg-white/80 p-2">
+                                <label className="min-w-0 flex-1"><span className="block text-[8px] font-black text-ink-faint">{t('Workout finished')}</span><input type="time" value={completedWorkoutTimeDraft} onChange={(event) => setCompletedWorkoutTimeDraft(event.target.value)} className="mt-1 w-full rounded-xl border border-emerald-100 bg-white px-3 py-2 font-mono text-sm font-black text-ink outline-none" /></label>
+                                <button type="button" onClick={saveCompletedWorkoutTime} className="self-end rounded-xl bg-emerald-600 px-3 py-2.5 text-[10px] font-black text-white">{t('Save')}</button>
+                              </div>
+                            )}
+                            <button type="button" onClick={() => { setQuickPanel(null); setWorkoutStatsSessionId(session.id) }} className="mt-2.5 w-full rounded-2xl bg-emerald-600 px-3 py-2.5 text-xs font-black text-white shadow-sm">{t('View workout stats')}</button>
+                          </section>
+                        )
+                      })}
+                    </div>
+                  ) : hasWorkout ? (
                     <>
                       <div className="mb-2 grid grid-cols-2 rounded-2xl bg-slate-100 p-1" role="tablist" aria-label={t('Workout version')}>
                         {(['full', 'light'] as const).map((mode) => {
@@ -1368,6 +1449,7 @@ export function SimpleHome() {
         </Suspense>
       )}
       <ManualWorkoutLogger open={showManualWorkout} onClose={closeManualWorkout} date={selectedDate} editSessionId={editingManualSessionId} focusExerciseId={editingManualExerciseId} />
+      <WorkoutStatsSheet open={Boolean(workoutStatsSessionId)} onClose={() => setWorkoutStatsSessionId(null)} sessionId={workoutStatsSessionId} accent={ACCENTS.teal} />
       <PortalLanguageMenu />
     </div>
   )

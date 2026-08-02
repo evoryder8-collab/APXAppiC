@@ -499,6 +499,34 @@ export function zonedDateTimeToIso(date: string, time: string, timeZone: string)
   return new Date(guess).toISOString()
 }
 
+function shiftIsoDate(date: string, days: number): string {
+  const [year, month, day] = date.split('-').map(Number)
+  const shifted = new Date(Date.UTC(year, month - 1, day + days, 12, 0, 0, 0))
+  return shifted.toISOString().slice(0, 10)
+}
+
+/**
+ * A Dayline belongs to the date on which its 03:00 rail starts. Times from
+ * midnight through 02:59 therefore live on the following calendar date while
+ * remaining part of the selected training/nutrition day.
+ */
+export function daylineClockDate(date: string, time: string): string {
+  return clockToMinute(time) < DAYLINE_START_MINUTE ? shiftIsoDate(date, 1) : date
+}
+
+export function daylineDateTimeToIso(date: string, time: string, timeZone: string): string {
+  return zonedDateTimeToIso(daylineClockDate(date, time), time, timeZone)
+}
+
+export function daylineDateForInstant(value: Date | string, timeZone: string): string {
+  const clock = zonedClock(value, timeZone)
+  return clock.minute < DAYLINE_START_MINUTE ? shiftIsoDate(clock.date, -1) : clock.date
+}
+
+export function instantBelongsToDaylineDate(date: string, value: Date | string, timeZone: string): boolean {
+  return daylineDateForInstant(value, timeZone) === date
+}
+
 export function clockToMinute(time: string): number {
   const match = /^(\d{1,2}):(\d{2})$/.exec(time)
   if (!match) return 0
@@ -637,7 +665,7 @@ export function timedMeal(
   fallbackTime = fallbackMealTime(meal),
 ): TimedMeal {
   const finishedClock = zonedClock(meal.logged_at, timeZone)
-  const finishedAt = finishedClock.date === meal.local_date ? meal.logged_at : null
+  const finishedAt = instantBelongsToDaylineDate(meal.local_date, meal.logged_at, timeZone) ? meal.logged_at : null
   const timingSource = finishedAt ? 'recorded_finish' : 'scheduled'
   const time = finishedAt ? finishedClock.time : fallbackTime
   const minute = clockToMinute(time)
@@ -659,11 +687,13 @@ export function timedMeal(
 export function timedWorkout(session: WorkoutSession, timeZone: string): TimedWorkout | null {
   if (!session.completed || !session.completed_at) return null
   const completed = zonedClock(session.completed_at, timeZone)
-  if (completed.date !== session.date) return null
+  if (!instantBelongsToDaylineDate(session.date, session.completed_at, timeZone)) return null
   const started = session.started_at ? zonedClock(session.started_at, timeZone) : null
   return {
     session,
-    startedTime: started?.date === session.date ? started.time : null,
+    startedTime: session.started_at && instantBelongsToDaylineDate(session.date, session.started_at, timeZone)
+      ? started?.time ?? null
+      : null,
     completedTime: completed.time,
     completedMinute: completed.minute,
     completedLineMinute: toDaylineMinute(completed.minute),

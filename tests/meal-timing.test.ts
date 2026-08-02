@@ -5,6 +5,8 @@ import type { LoggedFoodEntry, LoggedMeal } from '../src/lib/food.ts'
 import {
   analyzeMealTiming,
   comfortZone,
+  daylineDateForInstant,
+  daylineDateTimeToIso,
   daylineRatio,
   isQuietClock,
   layoutDaylineLabels,
@@ -103,7 +105,7 @@ test('completed workout time is editable from both Dayline surfaces', () => {
   const simpleHome = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
   const nutrition = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
   assert.match(dayline, /onWorkoutCompletedAt\?: \(sessionId: string, completedAt: string\)/)
-  assert.match(dayline, /zonedDateTimeToIso\(date, visibleTime, timeZone\)/)
+  assert.match(dayline, /daylineDateTimeToIso\(date, visibleTime, timeZone\)/)
   assert.match(simpleHome, /onWorkoutCompletedAt=\{\(sessionId, completedAt\) =>/)
   assert.match(nutrition, /onWorkoutCompletedAt=\{\(sessionId, completedAt\) =>/)
 })
@@ -124,6 +126,13 @@ test('IANA timezone conversion round-trips a Zurich summer clock', () => {
     time: '14:30',
     minute: 14 * 60 + 30,
   })
+})
+
+test('the selected Dayline owns next-calendar-day events until 02:59', () => {
+  assert.equal(daylineDateForInstant('2026-08-02T02:40:00.000Z', 'UTC'), '2026-08-01')
+  assert.equal(daylineDateForInstant('2026-08-02T03:00:00.000Z', 'UTC'), '2026-08-02')
+  assert.equal(daylineDateTimeToIso('2026-08-01', '02:40', 'UTC'), '2026-08-02T02:40:00.000Z')
+  assert.equal(daylineDateTimeToIso('2026-08-01', '23:40', 'UTC'), '2026-08-01T23:40:00.000Z')
 })
 
 test('meal comfort bands expand with actual energy, fat and fibre load', () => {
@@ -221,6 +230,18 @@ test('completed workouts become exact dayline events in the selected timezone', 
   assert.equal(event.completedTime, '16:30')
   assert.equal(event.completedMinute, 16 * 60 + 30)
   assert.equal(timedWorkout(session({ completed: false }), 'UTC'), null)
+})
+
+test('a 02:40 workout remains visible and editable on the previous training day', () => {
+  const event = timedWorkout(session({
+    date: '2026-08-01',
+    started_at: '2026-08-02T01:40:00.000Z',
+    completed_at: '2026-08-02T02:40:00.000Z',
+  }), 'UTC')
+  assert.ok(event)
+  assert.equal(event.completedTime, '02:40')
+  assert.equal(event.completedLineMinute, 26 * 60 + 40)
+  assert.equal(event.startedTime, '01:40')
 })
 
 test('post-workout scoring uses a broad two-hour plateau rather than an artificial minute cliff', () => {

@@ -7,6 +7,8 @@ import {
   DAYLINE_DURATION_MINUTES,
   DAYLINE_START_MINUTE,
   comfortZone,
+  daylineDateForInstant,
+  daylineDateTimeToIso,
   daylineRatio,
   fallbackMealTime,
   isQuietClock,
@@ -20,7 +22,6 @@ import {
   timedMeal,
   timedWorkout,
   zonedClock,
-  zonedDateTimeToIso,
   type MealDaylineDensity,
   type MealComfortWindow,
   type MealComfortZone,
@@ -444,7 +445,7 @@ export function MealDayline({
   }, [meals, sessions])
 
   const currentClock = zonedClock(now, timeZone)
-  const isLiveDate = currentClock.date === date
+  const isLiveDate = daylineDateForInstant(now, timeZone) === date
   const items = useMemo(() => {
     const byId = new Map(meals.map((meal) => [meal.id, meal]))
     const used = new Set<string>()
@@ -582,7 +583,7 @@ export function MealDayline({
     setSaveError('')
     try {
       const visibleTime = timeInputRef.current?.value || timeDraft
-      await onMealFinishedAt(editing, zonedDateTimeToIso(date, visibleTime, timeZone))
+      await onMealFinishedAt(editing, daylineDateTimeToIso(date, visibleTime, timeZone))
       setEditing(null)
     } catch {
       setSaveError(copy.saveFailed)
@@ -606,7 +607,7 @@ export function MealDayline({
     setSaveError('')
     try {
       const visibleTime = workoutTimeInputRef.current?.value || workoutTimeDraft
-      await onWorkoutCompletedAt(editingWorkout, zonedDateTimeToIso(date, visibleTime, timeZone))
+      await onWorkoutCompletedAt(editingWorkout, daylineDateTimeToIso(date, visibleTime, timeZone))
       setEditingWorkout(null)
     } catch {
       setSaveError(copy.saveFailed)
@@ -646,7 +647,7 @@ export function MealDayline({
     try {
       if (!next) return
       if (item.meal && onMealFinishedAt) {
-        await onMealFinishedAt(item.meal.id, zonedDateTimeToIso(date, next.time, timeZone))
+        await onMealFinishedAt(item.meal.id, daylineDateTimeToIso(date, next.time, timeZone))
       } else if (item.slot && onSlotTimeChanged) {
         await onSlotTimeChanged(item.slot.id, next.time)
       }
