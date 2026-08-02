@@ -16,6 +16,21 @@ test('meal replacement commits the replacement tombstone, snapshots and outbox a
   assert.match(foodStore, /saveMealAtomically\([\s\S]*input\.replaceMealId \?\? null/)
 })
 
+test('meal logging queues remembered amounts with the immutable meal and verifies server durability', () => {
+  assert.match(privateDb, /PrivateOutboxOp \| PrivateOutboxOp\[\] \| null/)
+  assert.match(privateDb, /for \(const operation of outboxOperations\) transaction\.objectStore\('private_outbox'\)\.put\(operation\)/)
+  const logMealStart = foodStore.indexOf('const logMeal =')
+  const logMealBlock = foodStore.slice(logMealStart, foodStore.indexOf('const setMealFinishedAt =', logMealStart))
+  assert.match(logMealBlock, /preferenceUpdates\.map\(\(preference\) => outbox\(userId, 'save_usage_preference'/)
+  assert.match(logMealBlock, /\[\.\.\.preferenceOperations, operation\]/)
+  const sendStart = foodStore.indexOf('const sendOutbox')
+  const sendBlock = foodStore.slice(sendStart, foodStore.indexOf('const flush =', sendStart))
+  assert.match(sendBlock, /detachedLoggedMealPayload\(payload\)/)
+  assert.match(sendBlock, /entryCheck\.count !== payload\.entries\.length/)
+  assert.match(sendBlock, /op\.operation === 'save_usage_preference' && isMealReferenceError\(error\)/)
+  assert.match(foodStore, /foodSyncFailureCanYield\(operation\.operation\)/)
+})
+
 test('meal finish-time edits reuse the atomic immutable replacement queue', () => {
   const start = foodStore.indexOf('const setMealFinishedAt =')
   const block = foodStore.slice(start, foodStore.indexOf('const deleteMeal =', start))

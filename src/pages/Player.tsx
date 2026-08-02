@@ -16,8 +16,10 @@ import {
   isPassiveTimerBlock,
   plannedWorkoutDurationBreakdown,
   plannedSetCount,
+  prefillSetReps,
   prefillSetWeight,
   reconcilePlayerElapsed,
+  speechAnnouncementFallbackMs,
   type Block,
 } from '../lib/playerTimeline'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
@@ -71,6 +73,7 @@ type Action =
   | { type: 'extend'; seconds: number }
   | { type: 'endSet'; key: string; reps: number }
   | { type: 'saveLog'; exIdx: number; result: ExerciseResult }
+  | { type: 'recordReps'; exIdx: number; setNo: number; totalSets: number; reps: number }
   | { type: 'recordWeight'; exIdx: number; setNo: number; totalSets: number; weight: number | null }
   | { type: 'restore'; state: PlayerState }
 
@@ -89,6 +92,29 @@ function reducer(state: PlayerState, action: Action): PlayerState {
       return { ...state, countedReps: { ...state.countedReps, [action.key]: action.reps } }
     case 'saveLog':
       return { ...state, results: { ...state.results, [action.exIdx]: action.result } }
+    case 'recordReps': {
+      const existing = state.results[action.exIdx]
+      const sets = [...Array(action.totalSets)].map((_, index) => {
+        const current = existing?.sets[index]
+        return current
+          ? { ...current }
+          : { reps: null, rir: null, skipped: false, weight: null }
+      })
+      sets[action.setNo - 1] = { ...sets[action.setNo - 1], reps: action.reps }
+      return {
+        ...state,
+        results: {
+          ...state.results,
+          [action.exIdx]: {
+            weight: existing?.weight ?? null,
+            override: existing?.override ?? false,
+            sets,
+            skippedAll: existing?.skippedAll ?? false,
+            finalized: existing?.finalized ?? false,
+          },
+        },
+      }
+    }
     case 'recordWeight': {
       const existing = state.results[action.exIdx]
       const sets = [...Array(action.totalSets)].map((_, index) => {
@@ -257,18 +283,32 @@ export function Player() {
       setSetAnnouncementReady(false)
       const entryIndex = state.idx
       const side = block.side ? ` ${voiceText(block.side === 'left' ? 'Left side' : 'Right side')}.` : ''
+      const announcement = `${voiceText(block.exercise.name)}.${side} ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`
+      let fallbackTimer: number | null = null
+      let released = false
+      const releaseAnnouncement = () => {
+        if (released) return
+        released = true
+        if (fallbackTimer !== null) window.clearTimeout(fallbackTimer)
+        if (stateIdxRef.current !== entryIndex) return
+        if (!runtimeRef.current.state.paused) dispatch({ type: 'jump', idx: entryIndex })
+        setSetAnnouncementReady(true)
+      }
       const started = speak(
-        `${voiceText(block.exercise.name)}.${side} ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`,
+        announcement,
         language,
         {
-          onEnd: () => {
-            if (stateIdxRef.current !== entryIndex) return
-            if (!runtimeRef.current.state.paused) dispatch({ type: 'jump', idx: entryIndex })
-            setSetAnnouncementReady(true)
-          },
+          onEnd: releaseAnnouncement,
         },
       )
-      if (!started) setSetAnnouncementReady(true)
+      if (started && !released) {
+        fallbackTimer = window.setTimeout(releaseAnnouncement, speechAnnouncementFallbackMs(announcement))
+      } else if (!started) {
+        releaseAnnouncement()
+      }
+      return () => {
+        if (fallbackTimer !== null) window.clearTimeout(fallbackTimer)
+      }
     } else if (block.kind === 'set') {
       setSetAnnouncementReady(true)
     } else if (block.kind === 'warmup' && voice) {
@@ -595,7 +635,7 @@ export function Player() {
                 onSaveLog={saveExerciseLog}
                 results={state.results}
                 onSetWeight={(exIdx, setNo, totalSets, weight) => dispatch({ type: 'recordWeight', exIdx, setNo, totalSets, weight })}
-                onSetReps={(exIdx, setNo, reps) => dispatch({ type: 'endSet', key: `${exIdx}-${setNo}`, reps })}
+                onSetReps={(exIdx, setNo, totalSets, reps) => dispatch({ type: 'recordReps', exIdx, setNo, totalSets, reps })}
                 guardian={guardian}
                 setGuardian={setGuardian}
                 guardianFactor={data.settings?.guardian_factor ?? 1.5}
@@ -746,7 +786,7 @@ function BlockView(props: {
   onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   onSetWeight: (exIdx: number, setNo: number, totalSets: number, weight: number | null) => void
-  onSetReps: (exIdx: number, setNo: number, reps: number) => void
+  onSetReps: (exIdx: number, setNo: number, totalSets: number, reps: number) => void
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
   guardianFactor: number
@@ -900,8 +940,13 @@ function BlockView(props: {
       existing?.weight,
       recommendation?.weight,
     )
-    const countedReps = countedRepsForSet(props.counted, block.exIdx, block.afterSet, block.exercise.per_side)
-      ?? Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)
+    const targetReps = Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)
+    const countedReps = prefillSetReps(
+      existing?.sets.map((set) => set.reps) ?? [],
+      block.afterSet,
+      countedRepsForSet(props.counted, block.exIdx, block.afterSet, block.exercise.per_side),
+      targetReps,
+    )
     const captureReps = block.exercise.rep_unit === 'reps'
     return (
       <CenterCard accent={accent}>
@@ -917,10 +962,10 @@ function BlockView(props: {
             recommended={recommendation?.weight ?? null}
             captureWeight={block.captureLoad}
             reps={countedReps}
-            targetReps={Math.round((block.exercise.rep_min + block.exercise.rep_max) / 2)}
+            targetReps={targetReps}
             captureReps={captureReps}
             onWeightChange={(weight) => props.onSetWeight(block.exIdx, block.afterSet, block.exercise.planned_sets, weight)}
-            onRepsChange={(reps) => props.onSetReps(block.exIdx, block.afterSet, reps)}
+            onRepsChange={(reps) => props.onSetReps(block.exIdx, block.afterSet, block.exercise.planned_sets, reps)}
           />
         )}
         {block.reviewExercise && !existing?.finalized && (
@@ -1203,11 +1248,23 @@ function LogCard(props: {
   const rec = props.recFor(exIdx)
   const existing = props.results[exIdx]
   const [weights, setWeights] = useState<Array<number | null>>(() =>
-    [...Array(e.planned_sets)].map((_, index) => existing?.sets[index]?.weight ?? existing?.weight ?? rec?.weight ?? null),
+    [...Array(e.planned_sets)].map((_, index) => prefillSetWeight(
+      existing?.sets.map((set) => set.weight) ?? [],
+      index + 1,
+      existing?.weight,
+      rec?.weight,
+    )),
   )
   const [rir, setRir] = useState<number | null>(1)
   const [reps, setReps] = useState<Array<number | null>>(() =>
-    [...Array(e.planned_sets)].map((_, i) => countedRepsForSet(props.counted, exIdx, i + 1, e.per_side) ?? (e.rep_unit === 'reps' ? Math.round((e.rep_min + e.rep_max) / 2) : null)),
+    [...Array(e.planned_sets)].map((_, i) => e.rep_unit === 'reps'
+      ? prefillSetReps(
+          existing?.sets.map((set) => set.reps) ?? [],
+          i + 1,
+          countedRepsForSet(props.counted, exIdx, i + 1, e.per_side),
+          Math.round((e.rep_min + e.rep_max) / 2),
+        )
+      : null),
   )
   const [overridden, setOverridden] = useState(false)
 

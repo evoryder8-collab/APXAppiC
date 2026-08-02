@@ -60,6 +60,8 @@ const COPY = {
     subtitle: 'Meals, training and recovery timing in one place.',
     finished: 'Meal finished',
     editFinish: 'Edit meal-finished time',
+    workoutFinished: 'Workout finished',
+    editWorkoutFinish: 'Edit workout-finished time',
     dragHint: 'Hold and move finish',
     snap: 'snap',
     finishOnly: 'finish recorded',
@@ -100,6 +102,8 @@ const COPY = {
     subtitle: 'Mesele, antrenamentul și recuperarea într-un singur loc.',
     finished: 'Masa s-a încheiat',
     editFinish: 'Editează ora la care ai terminat masa',
+    workoutFinished: 'Antrenament încheiat',
+    editWorkoutFinish: 'Editează ora la care ai terminat antrenamentul',
     dragHint: 'Ține apăsat și mută finalul',
     snap: 'pas',
     finishOnly: 'final înregistrat',
@@ -140,6 +144,8 @@ const COPY = {
     subtitle: 'มื้ออาหาร การฝึก และเวลาฟื้นตัวอยู่ในที่เดียว',
     finished: 'กินมื้อเสร็จ',
     editFinish: 'แก้ไขเวลากินมื้อเสร็จ',
+    workoutFinished: 'ฝึกเสร็จ',
+    editWorkoutFinish: 'แก้ไขเวลาที่ฝึกเสร็จ',
     dragHint: 'แตะค้างแล้วเลื่อนเวลาจบ',
     snap: 'ช่วง',
     finishOnly: 'บันทึกเวลาจบแล้ว',
@@ -384,6 +390,7 @@ export function MealDayline({
   onAddAtTime,
   onDeleteMeal,
   onOpenRecoveryMeal,
+  onWorkoutCompletedAt,
 }: {
   date: string
   meals: LoggedMeal[]
@@ -403,12 +410,15 @@ export function MealDayline({
   onAddAtTime?: (time: string) => void
   onDeleteMeal?: (meal: LoggedMeal) => Promise<void>
   onOpenRecoveryMeal?: () => void
+  onWorkoutCompletedAt?: (sessionId: string, completedAt: string) => Promise<unknown> | void
 }) {
   const { language } = useLanguage()
   const copy = COPY[language]
   const [now, setNow] = useState(() => new Date())
   const [editing, setEditing] = useState<string | null>(null)
   const [timeDraft, setTimeDraft] = useState('12:00')
+  const [editingWorkout, setEditingWorkout] = useState<string | null>(null)
+  const [workoutTimeDraft, setWorkoutTimeDraft] = useState('12:00')
   const [saving, setSaving] = useState(false)
   const [saveError, setSaveError] = useState('')
   const [revealedMeal, setRevealedMeal] = useState<string | null>(null)
@@ -417,6 +427,7 @@ export function MealDayline({
   const [dragPreview, setDragPreview] = useState<{ id: string; minute: number; time: string } | null>(null)
   const timelineRef = useRef<HTMLDivElement>(null)
   const timeInputRef = useRef<HTMLInputElement>(null)
+  const workoutTimeInputRef = useRef<HTMLInputElement>(null)
 
   useEffect(() => {
     const update = () => setNow(new Date())
@@ -559,6 +570,7 @@ export function MealDayline({
 
   const beginEdit = (item: DaylineMealItem) => {
     if (!item.meal || !onMealFinishedAt) return
+    setEditingWorkout(null)
     setEditing(item.meal.id)
     setTimeDraft(zonedClock(item.meal.logged_at, timeZone).time)
     setSaveError('')
@@ -580,6 +592,28 @@ export function MealDayline({
   }
 
   const activeEvent = items.find((item) => item.meal?.id === editing) ?? null
+  const activeWorkout = workouts.find((workout) => workout.session.id === editingWorkout) ?? null
+  const beginWorkoutEdit = (workout: (typeof workouts)[number]) => {
+    if (!onWorkoutCompletedAt) return
+    setEditing(null)
+    setEditingWorkout(workout.session.id)
+    setWorkoutTimeDraft(workout.completedTime)
+    setSaveError('')
+  }
+  const saveWorkoutTime = async () => {
+    if (!editingWorkout || saving || !onWorkoutCompletedAt) return
+    setSaving(true)
+    setSaveError('')
+    try {
+      const visibleTime = workoutTimeInputRef.current?.value || workoutTimeDraft
+      await onWorkoutCompletedAt(editingWorkout, zonedDateTimeToIso(date, visibleTime, timeZone))
+      setEditingWorkout(null)
+    } catch {
+      setSaveError(copy.saveFailed)
+    } finally {
+      setSaving(false)
+    }
+  }
   const railX = compact ? 52 : 58
   const addMinute = addTime ? clockMinute(addTime) : null
   const resolvedSnap = normalizeMealTimelineSnap(snapMinutes)
@@ -743,13 +777,21 @@ export function MealDayline({
                     strokeWidth="1.5"
                   />
                 </svg>
-                <div
-                  className="pointer-events-none absolute right-1 z-[19] flex min-h-[34px] -translate-y-1/2 items-center justify-between gap-2 rounded-xl border border-emerald-200/18 bg-[#07151c]/92 px-2.5 py-1.5 font-mono text-emerald-100 backdrop-blur-md"
+                <motion.button
+                  type="button"
+                  data-dayline-workout-time-control
+                  disabled={!onWorkoutCompletedAt}
+                  onClick={(event) => {
+                    event.stopPropagation()
+                    beginWorkoutEdit(workout)
+                  }}
+                  aria-label={`${copy.editWorkoutFinish} ${workout.completedTime}`}
+                  className="absolute right-1 z-[19] flex min-h-[34px] -translate-y-1/2 items-center justify-between gap-2 rounded-xl border border-emerald-200/18 bg-[#07151c]/92 px-2.5 py-1.5 font-mono text-emerald-100 backdrop-blur-md transition active:scale-[.985] disabled:pointer-events-none"
                   style={{ left: railX + 27, top: label, boxShadow: '0 10px 26px -18px rgba(52,211,153,.85)' }}
                 >
                   <span className="min-w-0 truncate text-[8px] font-black">✓ {copy.workoutDone}</span>
                   <span className="shrink-0 text-[8px] font-black text-emerald-200/70">{workout.completedTime}</span>
-                </div>
+                </motion.button>
               </div>
             )
           })}
@@ -959,6 +1001,21 @@ export function MealDayline({
                 </label>
                 <button type="button" disabled={saving} onClick={() => void saveTime()} className="min-h-10 shrink-0 rounded-xl bg-gradient-to-r from-cyan-400 to-emerald-400 px-3 text-[10px] font-black text-[#051019] disabled:opacity-50">{saving ? copy.saving : copy.save}</button>
                 <button type="button" onClick={() => setEditing(null)} aria-label={copy.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/8 font-black text-white/55">×</button>
+              </div>
+              {saveError && <p className="px-3 pb-3 text-[9px] font-semibold text-rose-300">{saveError}</p>}
+            </motion.div>
+          )}
+        </AnimatePresence>
+        <AnimatePresence>
+          {activeWorkout && (
+            <motion.div initial={{ opacity: 0, y: 8, height: 0 }} animate={{ opacity: 1, y: 0, height: 'auto' }} exit={{ opacity: 0, y: 6, height: 0 }} className="relative mt-2 overflow-hidden rounded-2xl border border-emerald-200/15 bg-emerald-100/[.075]">
+              <div className="flex items-end gap-2 p-3">
+                <label className="min-w-0 flex-1">
+                  <span className="block truncate text-[9px] font-black text-emerald-100">{copy.workoutFinished}</span>
+                  <input type="time" ref={workoutTimeInputRef} defaultValue={workoutTimeDraft} onInput={(event) => setWorkoutTimeDraft(event.currentTarget.value)} onChange={(event) => setWorkoutTimeDraft(event.currentTarget.value)} className="mt-1.5 w-full rounded-xl border border-white/10 bg-[#07151c]/80 px-3 py-2 font-mono text-sm font-black text-white outline-none focus:border-emerald-300/50" />
+                </label>
+                <button type="button" disabled={saving} onClick={() => void saveWorkoutTime()} className="min-h-10 shrink-0 rounded-xl bg-gradient-to-r from-emerald-400 to-cyan-400 px-3 text-[10px] font-black text-[#051019] disabled:opacity-50">{saving ? copy.saving : copy.save}</button>
+                <button type="button" onClick={() => setEditingWorkout(null)} aria-label={copy.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-xl bg-white/8 font-black text-white/55">×</button>
               </div>
               {saveError && <p className="px-3 pb-3 text-[9px] font-semibold text-rose-300">{saveError}</p>}
             </motion.div>

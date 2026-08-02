@@ -29,10 +29,14 @@ import {
 } from '../lib/food'
 import type { IntroLanguage } from '../lib/introLanguage'
 import {
+  detachedLoggedMealPayload,
+  foodSyncFailureCanYield,
   foodMutationBelongsToActiveUser,
   foodOperationBelongsToUser,
+  isMealReferenceError,
   replayFoodOutbox,
   foodSessionBelongsToExpectedUser,
+  type LoggedMealSyncPayload,
 } from '../lib/foodSync'
 import { mergePendingSyncOperations } from '../lib/sync'
 import {
@@ -495,9 +499,26 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
 
   const sendOutbox = useCallback(async (client: SupabaseClient, op: PrivateOutboxOp): Promise<boolean> => {
     if (op.operation === 'log_meal') {
-      const payload = op.payload as { meal: LoggedMeal & { replace_meal_id?: string | null }; entries: LoggedFoodEntry[] }
-      const { error } = await client.rpc('log_structured_meal', { p_meal: payload.meal, p_entries: payload.entries })
-      if (error) throw error
+      const payload = op.payload as LoggedMealSyncPayload
+      let sent = payload
+      let result = await client.rpc('log_structured_meal', { p_meal: sent.meal, p_entries: sent.entries })
+      if (result.error && isMealReferenceError(result.error)) {
+        sent = detachedLoggedMealPayload(payload)
+        result = await client.rpc('log_structured_meal', { p_meal: sent.meal, p_entries: sent.entries })
+      }
+      if (result.error) throw result.error
+
+      /* Do not acknowledge a meal merely because the RPC returned. Confirm
+         the immutable header and every snapshot reached the server first. */
+      const [mealCheck, entryCheck] = await Promise.all([
+        client.from('logged_meals').select('id').eq('id', payload.meal.id).maybeSingle(),
+        client.from('logged_food_entries').select('id', { count: 'exact', head: true }).eq('meal_id', payload.meal.id),
+      ])
+      if (mealCheck.error) throw mealCheck.error
+      if (entryCheck.error) throw entryCheck.error
+      if (!mealCheck.data || entryCheck.count !== payload.entries.length) {
+        throw new Error('Meal sync verification failed; the complete snapshot remains queued.')
+      }
       return true
     }
     if (op.operation === 'save_food') {
@@ -505,8 +526,15 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       if (error) throw error
       return true
     }
-    if (op.operation === 'save_preference') {
+    if (op.operation === 'save_preference' || op.operation === 'save_usage_preference') {
       const { error } = await client.from('food_preferences').upsert(op.payload as FoodPreference, { onConflict: 'user_id,food_id' })
+      /* A usage preference is a convenience cache created while logging a
+         meal. Some older deployments do not yet contain the client catalogue
+         row referenced by that preference. The immutable meal history still
+         carries the exact quantity and unit, so acknowledge only this optional
+         cache on a reference error rather than leaving the account permanently
+         marked as queued. Explicit user preferences remain strict. */
+      if (error && op.operation === 'save_usage_preference' && isMealReferenceError(error)) return true
       if (error) throw error
       return true
     }
@@ -552,7 +580,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         .sort((a, b) => {
           const byTime = a.created_at.localeCompare(b.created_at)
           if (byTime) return byTime
-          const priority: Record<string, number> = { save_food: 0, save_preference: 1, save_preset: 2, log_meal: 3, delete_meal: 4, delete_preset: 4 }
+          const priority: Record<string, number> = { save_food: 0, save_preference: 1, save_usage_preference: 1, save_preset: 2, log_meal: 3, delete_meal: 4, delete_preset: 4 }
           return (priority[a.operation] ?? 9) - (priority[b.operation] ?? 9)
         })
       for (const operation of operations) {
@@ -569,7 +597,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
             last_error: error instanceof Error ? error.message : 'Food sync request failed',
           })
           console.warn('Food sync remains queued', error)
-          break
+          if (!foodSyncFailureCanYield(operation.operation)) break
         }
       }
       const remaining = await privateGetAllForUser<PrivateOutboxOp>('private_outbox', syncUserId)
@@ -728,12 +756,15 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     if (snapshots.length !== input.items.length) throw new Error('Every item needs complete nutrition and a reliable portion unit')
     const preferenceUpdates = foodPreferenceUsageUpdates(preferencesRef.current, input.items, userId, input.slot, now)
     const payloadMeal = { ...meal, replace_meal_id: input.replaceMealId ?? null }
+    const preferenceOperations = isLocalMode
+      ? []
+      : preferenceUpdates.map((preference) => outbox(userId, 'save_usage_preference', preference.id, preference))
     const operation = outbox(userId, 'log_meal', id, { meal: payloadMeal, entries: snapshots })
     await saveMealAtomically(
       meal,
       snapshots,
       preferenceUpdates,
-      isLocalMode ? null : operation,
+      isLocalMode ? null : [...preferenceOperations, operation],
       input.replaceMealId ?? null,
     )
     /* The account may have changed while IndexedDB was committing. The A

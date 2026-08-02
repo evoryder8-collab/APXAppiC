@@ -21,7 +21,7 @@ function meal(patch: Partial<LoggedMeal> = {}): LoggedMeal {
   }
 }
 
-function entry(mealId: string, foodId: string): LoggedFoodEntry {
+function entry(mealId: string, foodId: string, quantity = 100): LoggedFoodEntry {
   const food = COMMON_FOODS.find((candidate) => candidate.id === foodId)!
   return {
     id: crypto.randomUUID(), meal_id: mealId, user_id: 'user-1', food_id: food.id, sort_order: 0,
@@ -30,9 +30,9 @@ function entry(mealId: string, foodId: string): LoggedFoodEntry {
     snapshot_protein_100: food.protein_100 ?? 0, snapshot_carbs_100: food.carbs_100 ?? 0,
     snapshot_fat_100: food.fat_100 ?? 0, snapshot_fibre_100: food.fibre_100,
     snapshot_sugar_100: food.sugar_100, snapshot_saturated_fat_100: food.saturated_fat_100,
-    snapshot_salt_100: food.salt_100, quantity: 100, unit: 'g', equivalent_amount: 100,
-    kcal: food.kcal_100 ?? 0, protein_g: food.protein_100 ?? 0, carbs_g: food.carbs_100 ?? 0,
-    fat_g: food.fat_100 ?? 0, fibre_g: food.fibre_100, sugar_g: food.sugar_100,
+    snapshot_salt_100: food.salt_100, quantity, unit: 'g', equivalent_amount: quantity,
+    kcal: (food.kcal_100 ?? 0) * quantity / 100, protein_g: (food.protein_100 ?? 0) * quantity / 100, carbs_g: (food.carbs_100 ?? 0) * quantity / 100,
+    fat_g: (food.fat_100 ?? 0) * quantity / 100, fibre_g: food.fibre_100 == null ? null : food.fibre_100 * quantity / 100, sugar_g: food.sugar_100 == null ? null : food.sugar_100 * quantity / 100,
     saturated_fat_g: food.saturated_fat_100, salt_g: food.salt_100, created_at: '2026-07-09T13:05:00.000Z',
   }
 }
@@ -61,7 +61,7 @@ test('meal completion callbacks are invalidated at the account boundary', () => 
 test('meal food picker keeps configure and exact-amount quick add as separate actions', () => {
   const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
   assert.match(source, /const quickAddFood = async \(food: FoodRecord\)/)
-  assert.match(source, /const draft = beginFoodSelection\(food, preference\)/)
+  assert.match(source, /const draft = selectionDraftForFood\(food\)/)
   assert.match(source, /commitFoodSelection\(current, \{ \.\.\.draft, food: trackableFood \}\)/)
   assert.match(source, /onClick=\{\(\) => void selectFood\(food\)\}/)
   assert.match(source, /onClick=\{\(\) => void quickAddFood\(food\)\}/)
@@ -129,13 +129,33 @@ test('blank composer history prioritizes same block, weekday, hour and sequence'
   const ranked = rankMealHistoryRecommendations({
     context: { date: '2026-07-16', slot: 'lunch', blockId: 'lunch', targetTime: '13:00', sequenceIndex: 0 },
     meals: [recentWrongSlot, olderLunch, sameMoment],
-    entries: [entry(sameMoment.id, chicken.id), entry(recentWrongSlot.id, oats.id)],
+    entries: [entry(sameMoment.id, chicken.id, 175), entry(recentWrongSlot.id, oats.id)],
     foods: COMMON_FOODS,
     presets: [preset],
   })
   assert.equal(ranked.meals[0]?.id, sameMoment.id)
   assert.equal(ranked.foods[0]?.id, chicken.id)
+  assert.deepEqual(ranked.selections[0], { foodId: chicken.id, quantity: 175, unit: 'g' })
   assert.equal(ranked.presets[0]?.id, preset.id)
+})
+
+test('history preserves exact grams and remains usable without its optional food row', () => {
+  const original = COMMON_FOODS[0]
+  const breakfast = meal({ id: 'detached-breakfast', meal_slot: 'breakfast', local_date: '2026-07-31' })
+  const detachedEntry = {
+    ...entry(breakfast.id, original.id, 163),
+    food_id: null,
+  }
+  const ranked = rankMealHistoryRecommendations({
+    context: { date: '2026-08-01', slot: 'breakfast', blockId: 'breakfast', targetTime: '07:00' },
+    meals: [breakfast],
+    entries: [detachedEntry],
+    foods: [],
+    presets: [],
+  })
+  assert.match(ranked.foods[0]?.id ?? '', /^history:/)
+  assert.equal(ranked.foods[0]?.name, original.name)
+  assert.deepEqual(ranked.selections[0], { foodId: ranked.foods[0].id, quantity: 163, unit: 'g' })
 })
 
 test('blank composer history learns frequency before recency while retaining weekday relevance', () => {

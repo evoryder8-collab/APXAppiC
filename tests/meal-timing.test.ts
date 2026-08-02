@@ -1,4 +1,5 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import type { LoggedFoodEntry, LoggedMeal } from '../src/lib/food.ts'
 import {
@@ -96,6 +97,16 @@ function session(patch: Partial<WorkoutSession> = {}): WorkoutSession {
     ...patch,
   }
 }
+
+test('completed workout time is editable from both Dayline surfaces', () => {
+  const dayline = readFileSync(new URL('../src/components/food/MealDayline.tsx', import.meta.url), 'utf8')
+  const simpleHome = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
+  const nutrition = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
+  assert.match(dayline, /onWorkoutCompletedAt\?: \(sessionId: string, completedAt: string\)/)
+  assert.match(dayline, /zonedDateTimeToIso\(date, visibleTime, timeZone\)/)
+  assert.match(simpleHome, /onWorkoutCompletedAt=\{\(sessionId, completedAt\) =>/)
+  assert.match(nutrition, /onWorkoutCompletedAt=\{\(sessionId, completedAt\) =>/)
+})
 
 test('the dayline spans 03:00 through the next quiet hours and preserves night context', () => {
   assert.equal(daylineRatio(3 * 60), 0)

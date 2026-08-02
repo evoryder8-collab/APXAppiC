@@ -345,12 +345,13 @@ export async function saveMealAtomically(
   meal: LoggedMeal,
   entries: LoggedFoodEntry[],
   preferenceUpdates: FoodPreference[],
-  outbox: PrivateOutboxOp | null,
+  outbox: PrivateOutboxOp | PrivateOutboxOp[] | null,
   replaceMealId: string | null = null,
 ): Promise<void> {
   const database = await openPrivateDb()
   const stores: PrivateStoreName[] = ['logged_meals', 'logged_food_entries', 'food_preferences']
-  if (outbox) stores.push('private_outbox')
+  const outboxOperations = outbox == null ? [] : Array.isArray(outbox) ? outbox : [outbox]
+  if (outboxOperations.length > 0) stores.push('private_outbox')
   const transaction = database.transaction(stores, 'readwrite')
   const mealStore = transaction.objectStore('logged_meals')
   const entryStore = transaction.objectStore('logged_food_entries')
@@ -368,7 +369,7 @@ export async function saveMealAtomically(
   mealStore.put(meal)
   for (const entry of entries) entryStore.put(entry)
   for (const preference of preferenceUpdates) transaction.objectStore('food_preferences').put(preference)
-  if (outbox) transaction.objectStore('private_outbox').put(outbox)
+  for (const operation of outboxOperations) transaction.objectStore('private_outbox').put(operation)
   await transactionDone(transaction)
 }
 

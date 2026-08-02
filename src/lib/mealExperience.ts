@@ -1,10 +1,11 @@
-import type {
-  FoodRecord,
-  LoggedFoodEntry,
-  LoggedMeal,
-  MealPreset,
-  MealSlot,
-} from './food'
+import {
+  foodFromLoggedEntry,
+  type FoodRecord,
+  type LoggedFoodEntry,
+  type LoggedMeal,
+  type MealPreset,
+  type MealSlot,
+} from './food.ts'
 import { mealMomentIdFromIdempotencyKey, type MealBlockIdentity, type MealBlockKind } from './mealBlocks.ts'
 
 export interface GesturePoint {
@@ -75,6 +76,9 @@ export function normalizeMealMemoryMode(value: unknown): MealMemoryMode {
 export interface MealHistoryRecommendations {
   meals: LoggedMeal[]
   foods: FoodRecord[]
+  /** Most recently confirmed amount for each returned food, sourced directly
+   * from immutable history so it survives another device and missing prefs. */
+  selections: Array<{ foodId: string; quantity: number; unit: LoggedFoodEntry['unit'] }>
   presets: MealPreset[]
 }
 
@@ -124,9 +128,9 @@ function recommendationIdentity(meal: LoggedMeal): string {
     : `meal:${meal.meal_slot}:${meal.display_name.trim().toLocaleLowerCase()}`
 }
 
-/** Rank repeatable starts from immutable history. No source record is mutated
- * or reconstructed, and foods are returned only when their current catalogue
- * identity still exists. */
+/** Rank repeatable starts from immutable history. Source records are never
+ * mutated; a missing optional catalogue row is reconstructed from its meal
+ * snapshot so history remains useful across devices and catalogue releases. */
 export function rankMealHistoryRecommendations(input: {
   context: MealRecommendationContext
   meals: LoggedMeal[]
@@ -206,6 +210,8 @@ export function rankMealHistoryRecommendations(input: {
       || right.logged_at.localeCompare(left.logged_at))
 
   const foodScores = new Map<string, number>()
+  const recommendationFoods = new Map<string, FoodRecord>()
+  const latestSelectionByFood = new Map<string, { foodId: string; quantity: number; unit: LoggedFoodEntry['unit']; usedAt: string }>()
   const presetScores = new Map<string, number>()
   /* Eighty high-signal meals cover months of repetition without turning a
      blank-search render into a quadratic scan of an account's full history. */
@@ -213,8 +219,15 @@ export function rankMealHistoryRecommendations(input: {
     const mealScore = scoreByMeal.get(meal.id) ?? 0
     if (meal.source_preset_id) presetScores.set(meal.source_preset_id, (presetScores.get(meal.source_preset_id) ?? 0) + mealScore)
     for (const entry of entriesByMeal.get(meal.id) ?? []) {
-      if (!entry.food_id || !foodById.has(entry.food_id)) continue
-      foodScores.set(entry.food_id, (foodScores.get(entry.food_id) ?? 0) + mealScore + 45)
+      const food = entry.food_id ? foodById.get(entry.food_id) ?? foodFromLoggedEntry(entry) : foodFromLoggedEntry(entry)
+      const foodId = food.id
+      recommendationFoods.set(foodId, food)
+      foodScores.set(foodId, (foodScores.get(foodId) ?? 0) + mealScore + 45)
+      const usedAt = meal.logged_at || entry.created_at
+      const previous = latestSelectionByFood.get(foodId)
+      if (!previous || usedAt > previous.usedAt) {
+        latestSelectionByFood.set(foodId, { foodId, quantity: entry.quantity, unit: entry.unit, usedAt })
+      }
     }
   }
 
@@ -227,12 +240,18 @@ export function rankMealHistoryRecommendations(input: {
     uniqueMeals.push(meal)
   }
 
+  const rankedFoodIds = [...foodScores.entries()]
+    .sort((left, right) => right[1] - left[1])
+    .map(([foodId]) => foodId)
+    .slice(0, input.foodLimit ?? 10)
+
   return {
     meals: uniqueMeals.slice(0, input.mealLimit ?? 5),
-    foods: [...foodScores.entries()]
-      .sort((left, right) => right[1] - left[1])
-      .flatMap(([foodId]) => foodById.get(foodId) ?? [])
-      .slice(0, input.foodLimit ?? 10),
+    foods: rankedFoodIds.flatMap((foodId) => recommendationFoods.get(foodId) ?? foodById.get(foodId) ?? []),
+    selections: rankedFoodIds.flatMap((foodId) => {
+      const selection = latestSelectionByFood.get(foodId)
+      return selection ? [{ foodId, quantity: selection.quantity, unit: selection.unit }] : []
+    }),
     presets: input.presets
       .filter((preset) => !preset.archived && (preset.meal_slot === context.slot || presetScores.has(preset.id)))
       .slice()

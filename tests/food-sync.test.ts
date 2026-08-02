@@ -1,11 +1,43 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  detachedLoggedMealPayload,
+  foodSyncFailureCanYield,
   foodMutationBelongsToActiveUser,
   foodOperationBelongsToUser,
+  isMealReferenceError,
   replayFoodOutbox,
   foodSessionBelongsToExpectedUser,
 } from '../src/lib/foodSync.ts'
+
+test('meal snapshots can detach optional catalogue links without changing nutrition', () => {
+  const payload = {
+    meal: {
+      id: 'meal-1',
+      source_preset_id: 'preset-1',
+      source_planned_meal_id: 'planned-1',
+    },
+    entries: [{ id: 'entry-1', food_id: 'client-food', kcal: 321, quantity: 175, unit: 'g' }],
+  }
+  const detached = detachedLoggedMealPayload(payload as never)
+  assert.equal(detached.meal.source_preset_id, null)
+  assert.equal(detached.meal.source_planned_meal_id, null)
+  assert.equal(detached.entries[0].food_id, null)
+  assert.equal(detached.entries[0].kcal, 321)
+  assert.equal(detached.entries[0].quantity, 175)
+  assert.equal(payload.entries[0].food_id, 'client-food', 'the durable queued payload remains immutable')
+})
+
+test('only reference failures detach a meal and optional catalogue failures yield', () => {
+  assert.equal(isMealReferenceError({ code: '23503', message: 'foreign key violation' }), true)
+  assert.equal(isMealReferenceError({ code: '22P02', message: 'invalid input syntax for type uuid' }), true)
+  assert.equal(isMealReferenceError({ code: '42501', message: 'permission denied' }), false)
+  assert.equal(foodSyncFailureCanYield('save_preference'), true)
+  assert.equal(foodSyncFailureCanYield('save_usage_preference'), true)
+  assert.equal(foodSyncFailureCanYield('save_food'), true)
+  assert.equal(foodSyncFailureCanYield('log_meal'), false)
+  assert.equal(foodSyncFailureCanYield('delete_meal'), false)
+})
 
 test('food mutations only update the account that started them', () => {
   assert.equal(foodMutationBelongsToActiveUser('account-a', 'account-a'), true)

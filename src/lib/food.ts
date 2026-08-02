@@ -139,8 +139,19 @@ export function availableFoodUnits(food: FoodRecord): FoodUnit[] {
   ]
 }
 
-export function beginFoodSelection(food: FoodRecord, preference?: FoodPreference): FoodSelectionDraft {
+export function beginFoodSelection(
+  food: FoodRecord,
+  preference?: FoodPreference,
+  remembered?: Pick<FoodSelectionDraft, 'quantity' | 'unit'>,
+): FoodSelectionDraft {
   const units = availableFoodUnits(food)
+  if (
+    remembered?.quantity != null
+    && remembered.quantity > 0
+    && units.includes(remembered.unit)
+  ) {
+    return { food, quantity: remembered.quantity, unit: remembered.unit }
+  }
   if (
     preference?.usual_amount != null
     && preference.usual_amount > 0
@@ -246,6 +257,64 @@ export interface LoggedFoodEntry {
   saturated_fat_g: number | null
   salt_g: number | null
   created_at: string
+}
+
+function loggedFoodSignature(entry: LoggedFoodEntry): string {
+  return [
+    entry.snapshot_name,
+    entry.snapshot_brand ?? '',
+    entry.snapshot_preparation_state,
+    entry.snapshot_nutrition_basis,
+    entry.snapshot_kcal_100,
+    entry.snapshot_protein_100,
+    entry.snapshot_carbs_100,
+    entry.snapshot_fat_100,
+  ]
+    .join('|')
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .replace(/[^a-z0-9]+/g, '-')
+    .replace(/^-|-$/g, '')
+    .slice(0, 150)
+}
+
+/** Rebuild a repeatable catalogue item from the immutable meal snapshot when
+ * its optional food row is absent. This is intentionally a local protocol
+ * record so selecting it will materialize a real owner row before the next
+ * meal is sent to the server. */
+export function foodFromLoggedEntry(entry: LoggedFoodEntry): FoodRecord {
+  const signature = loggedFoodSignature(entry) || entry.id
+  return {
+    id: entry.food_id ?? `history:${signature}`,
+    owner_user_id: null,
+    name: entry.snapshot_name,
+    names_i18n: {},
+    brand: entry.snapshot_brand,
+    barcode: null,
+    source: 'apex_cache',
+    provider_product_id: `apex-protocol:history:${signature}`,
+    external_image_url: null,
+    package_quantity: null,
+    nutrition_basis: entry.snapshot_nutrition_basis,
+    preparation_state: entry.snapshot_preparation_state,
+    kcal_100: entry.snapshot_kcal_100,
+    protein_100: entry.snapshot_protein_100,
+    carbs_100: entry.snapshot_carbs_100,
+    fat_100: entry.snapshot_fat_100,
+    fibre_100: entry.snapshot_fibre_100,
+    sugar_100: entry.snapshot_sugar_100,
+    saturated_fat_100: entry.snapshot_saturated_fat_100,
+    salt_100: entry.snapshot_salt_100,
+    serving_amount: entry.unit === 'serving' ? 1 : null,
+    serving_unit: entry.unit === 'serving' ? 'serving' : null,
+    serving_grams_or_ml: entry.unit === 'serving' ? entry.equivalent_amount / Math.max(1, entry.quantity) : null,
+    piece_grams_or_ml: entry.unit === 'piece' ? entry.equivalent_amount / Math.max(1, entry.quantity) : null,
+    provider_updated_at: entry.created_at,
+    confidence: 'complete',
+    created_at: entry.created_at,
+    updated_at: entry.created_at,
+  }
 }
 
 /* Always derive the next history from the latest committed collection. This is

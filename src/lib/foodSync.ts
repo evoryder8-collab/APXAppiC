@@ -23,6 +23,50 @@ export interface FoodSyncSnapshot {
   entries: LoggedFoodEntry[]
 }
 
+export interface LoggedMealSyncPayload {
+  meal: LoggedMeal & { replace_meal_id?: string | null }
+  entries: LoggedFoodEntry[]
+}
+
+/**
+ * A logged meal is already an immutable nutrition snapshot. Optional links to
+ * a food, preset or planned meal improve navigation, but they must never make
+ * the meal itself impossible to persist when an older database has not yet
+ * received a newer client catalogue row.
+ */
+export function detachedLoggedMealPayload(payload: LoggedMealSyncPayload): LoggedMealSyncPayload {
+  return {
+    meal: {
+      ...payload.meal,
+      source_preset_id: null,
+      source_planned_meal_id: null,
+    },
+    entries: payload.entries.map((entry) => ({ ...entry, food_id: null })),
+  }
+}
+
+/** Postgres codes used when an optional client-side catalogue reference is
+ * absent or is not a server UUID. Both are safe to retry as a detached meal
+ * because every calorie and macro remains inside the entry snapshot. */
+export function isMealReferenceError(error: unknown): boolean {
+  const candidate = error as { code?: unknown; message?: unknown; details?: unknown }
+  const code = String(candidate?.code ?? '')
+  const message = `${String(candidate?.message ?? '')} ${String(candidate?.details ?? '')}`.toLocaleLowerCase()
+  return code === '23503'
+    || code === '22P02'
+    || message.includes('foreign key')
+    || message.includes('invalid input syntax for type uuid')
+}
+
+/** Catalogue conveniences may retry independently. Ledger mutations retain
+ * strict ordering so a later edit or delete can never overtake its meal. */
+export function foodSyncFailureCanYield(operation: string): boolean {
+  return operation === 'save_food'
+    || operation === 'save_preference'
+    || operation === 'save_usage_preference'
+    || operation === 'save_preset'
+}
+
 /** Keep a queued intent and its acknowledgement inside its captured account. */
 export function foodOperationBelongsToUser(
   operation: { user_id: string },
@@ -74,7 +118,7 @@ export function replayFoodOutbox(
       if (food?.id) foods.set(food.id, food)
       continue
     }
-    if (operation.operation === 'save_preference') {
+    if (operation.operation === 'save_preference' || operation.operation === 'save_usage_preference') {
       const preference = operation.payload as FoodPreference
       if (preference?.id) preferences.set(preference.id, preference)
       continue

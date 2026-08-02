@@ -9,6 +9,7 @@ import {
   commitFoodSelection,
   displayFoodName,
   expandFoodSearchQueries,
+  foodFromLoggedEntry,
   foodNeedsPrivateMaterialization,
   foodPreferenceUsageUpdates,
   mergeExtendedFoodResults,
@@ -52,6 +53,28 @@ test('selecting a search result creates a draft and does not insert until explic
   assert.equal(original.length, 0, 'confirmation must not mutate the existing meal')
   assert.equal(confirmed.length, 1)
   assert.equal(confirmed[0].id, 'confirmed-food')
+})
+
+test('the most recently logged amount outranks a stale preference and generic 100 g default', () => {
+  const food = COMMON_FOODS[0]
+  const preference: FoodPreference = {
+    id: 'pref-1', user_id: 'user-1', food_id: food.id, personal_name: null, aliases: [],
+    favourite: false, usual_amount: 100, usual_unit: 'g', usage_count: 4,
+    last_used_at: '2026-07-30T07:00:00.000Z', hidden: false, slot_usage: { breakfast: 4 },
+    version: 1, updated_at: '2026-07-30T07:00:00.000Z',
+  }
+  const remembered = beginFoodSelection(food, preference, { quantity: 175, unit: 'g' })
+  assert.deepEqual({ quantity: remembered.quantity, unit: remembered.unit }, { quantity: 175, unit: 'g' })
+})
+
+test('immutable history reconstructs a repeatable food when its optional catalogue row is absent', () => {
+  const source = COMMON_FOODS[0]
+  const snapshot = snapshotEntry(item(0, 165), 'user-1', 'meal-1', '2026-08-01T07:00:00.000Z')!
+  const detached = foodFromLoggedEntry({ ...snapshot, food_id: null })
+  assert.match(detached.id, /^history:/)
+  assert.equal(detached.name, source.name)
+  assert.equal(detached.kcal_100, source.kcal_100)
+  assert.equal(detached.provider_product_id?.startsWith('apex-protocol:history:'), true)
 })
 
 test('scanner foods default to weight units unless the record is genuinely portioned', () => {

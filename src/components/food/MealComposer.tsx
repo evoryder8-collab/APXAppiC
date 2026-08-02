@@ -9,6 +9,7 @@ import {
   composerItemFromSelection,
   displayFoodName,
   expandFoodSearchQueries,
+  foodFromLoggedEntry,
   foodNeedsPrivateMaterialization,
   isFoodNutritionComplete,
   isPlannedPrescriptionFood,
@@ -184,6 +185,10 @@ export function MealComposer({
     foods: store.foods,
     presets: store.presets,
   }), [data.settings?.addons.meal_memory_mode, date, effectiveTargetTime, mealBlockId, mealIdentity, replaceMealId, sequenceIndex, slot, store.entries, store.foods, store.meals, store.presets])
+  const rememberedSelectionByFoodId = useMemo(
+    () => new Map(historyStarts.selections.map((selection) => [selection.foodId, selection])),
+    [historyStarts.selections],
+  )
   const ranked = useMemo(() => {
     if (query.trim()) return rankFoods(query, store.foods, store.preferences, slot).filter((food) => !isPlannedPrescriptionFood(food)).slice(0, 12)
     const usedFoodIds = new Set(store.preferences.filter((preference) => preference.favourite || preference.usage_count > 0).map((preference) => preference.food_id))
@@ -359,9 +364,13 @@ export function MealComposer({
     })
   }
 
-  const openFoodSelection = (food: FoodRecord) => {
+  const selectionDraftForFood = (food: FoodRecord): FoodSelectionDraft => {
     const preference = store.preferences.find((value) => value.food_id === food.id)
-    setSelection(beginFoodSelection(food, preference))
+    return beginFoodSelection(food, preference, rememberedSelectionByFoodId.get(food.id))
+  }
+
+  const openFoodSelection = (food: FoodRecord) => {
+    setSelection(selectionDraftForFood(food))
     setMessage(null)
   }
 
@@ -463,8 +472,7 @@ export function MealComposer({
       await selectFood(food)
       return
     }
-    const preference = store.preferences.find((value) => value.food_id === food.id)
-    const draft = beginFoodSelection(food, preference)
+    const draft = selectionDraftForFood(food)
     if (!calculatePortion(food, draft.quantity, draft.unit)) {
       openFoodSelection(food)
       return
@@ -578,8 +586,7 @@ export function MealComposer({
     const meal = store.meals.find((value) => value.id === mealId)
     if (!meal) return
     const next = store.entries.filter((entry) => entry.meal_id === mealId).map((entry, index) => {
-      const food = store.foods.find((value) => value.id === entry.food_id)
-      if (!food) return null
+      const food = store.foods.find((value) => value.id === entry.food_id) ?? foodFromLoggedEntry(entry)
       return composerItemFromSelection({ food, quantity: entry.quantity, unit: entry.unit }, index)
     }).filter((item): item is ComposerFoodItem => item != null)
     setItems(next)
@@ -891,12 +898,14 @@ export function MealComposer({
                 </div>
                 {visibleDisplayedFoods.map((food) => {
                   const preference = store.preferences.find((value) => value.food_id === food.id)
-                  const quickSelection = beginFoodSelection(food, preference)
+                  const rememberedSelection = rememberedSelectionByFoodId.get(food.id)
+                  const quickSelection = beginFoodSelection(food, preference, rememberedSelection)
                   const quickPortion = calculatePortion(food, quickSelection.quantity, quickSelection.unit)
                   const hasSavedAmount = Boolean(
-                    preference?.usage_count
-                    && preference.usual_amount != null
-                    && preference.usual_unit != null,
+                    rememberedSelection
+                    || (preference?.usage_count
+                      && preference.usual_amount != null
+                      && preference.usual_unit != null),
                   )
                   const quickAdding = quickAddingFoodId === food.id
                   const quickAdded = quickAddedFoodId === food.id

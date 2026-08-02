@@ -199,7 +199,7 @@ export function ActualFoodTracker({
   onDeleteLogged: (meal: LoggedMeal) => Promise<void>
 }) {
   const store = useFoodStore()
-  const { data, setSettings } = useStore()
+  const { data, setSettings, upsert } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const [composer, setComposer] = useState<ComposerTarget | null>(null)
@@ -379,6 +379,11 @@ export function ActualFoodTracker({
             onAddAtTime={openMealAtTime}
             onDeleteMeal={onDeleteLogged}
             onOpenRecoveryMeal={openRecoveryMeal}
+            onWorkoutCompletedAt={(sessionId, completedAt) => {
+              const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
+              if (!session) throw new Error('This workout is no longer available.')
+              upsert('workout_sessions', { ...session, completed_at: completedAt })
+            }}
           />
         </div>
 

@@ -3,8 +3,10 @@ import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { exerciseExecutionCue } from '../src/lib/exerciseGuidance.ts'
 import {
+  prefillSetReps,
   prefillSetWeight,
   reconcilePlayerElapsed,
+  speechAnnouncementFallbackMs,
   type Block,
 } from '../src/lib/playerTimeline.ts'
 
@@ -36,6 +38,23 @@ test('the next set defaults to the most recently entered real load', () => {
   assert.equal(prefillSetWeight([17], 2, null, 2.5), 17)
   assert.equal(prefillSetWeight([17, 20], 3, null, 2.5), 20)
   assert.equal(prefillSetWeight([], 1, 12.5, 2.5), 12.5)
+})
+
+test('the next set remembers corrected reps before falling back to its plan', () => {
+  assert.equal(prefillSetReps([6], 2, 8, 8), 6)
+  assert.equal(prefillSetReps([6, 7], 3, 8, 8), 7)
+  assert.equal(prefillSetReps([], 1, 8, 10), 8)
+  assert.equal(prefillSetReps([], 1, null, 10), 10)
+})
+
+test('speech announcements always have a bounded Safari fail-safe', () => {
+  assert.equal(speechAnnouncementFallbackMs('Push-up. Set 1 of 3.'), 2_700)
+  assert.equal(speechAnnouncementFallbackMs('x'), 2_500)
+  assert.equal(speechAnnouncementFallbackMs('x'.repeat(200)), 9_000)
+  const player = readFileSync(new URL('../src/pages/Player.tsx', import.meta.url), 'utf8')
+  assert.match(player, /fallbackTimer = window\.setTimeout\(releaseAnnouncement, speechAnnouncementFallbackMs\(announcement\)\)/)
+  assert.match(player, /onEnd: releaseAnnouncement/)
+  assert.match(player, /type: 'recordReps'/)
 })
 
 test('exercise instructions are localized and available from the player list', () => {

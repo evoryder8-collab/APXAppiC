@@ -957,6 +957,11 @@ export function SimpleHome() {
                 onAddAtTime={openMealAtTime}
                 onDeleteMeal={(meal) => foodStore.deleteMeal(meal.id)}
                 onOpenRecoveryMeal={openRecoveryMeal}
+                onWorkoutCompletedAt={(sessionId, completedAt) => {
+                  const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
+                  if (!session) throw new Error('This workout is no longer available.')
+                  upsert('workout_sessions', { ...session, completed_at: completedAt })
+                }}
               />
             ) : blockId === 'quick-actions' ? (
               <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>

@@ -89,6 +89,37 @@ export function prefillSetWeight(
   return null
 }
 
+/**
+ * Corrections entered during a break are the best starting point for the next
+ * set. Fall back to the just-counted set only when no earlier correction
+ * exists, then finally to the authored target.
+ */
+export function prefillSetReps(
+  setReps: Array<number | null | undefined>,
+  setNo: number,
+  countedReps: number | null | undefined,
+  targetReps: number | null | undefined,
+): number {
+  const currentIndex = Math.max(0, setNo - 1)
+  for (let index = Math.min(currentIndex, setReps.length - 1); index >= 0; index -= 1) {
+    const candidate = setReps[index]
+    if (candidate != null && Number.isFinite(candidate)) return Math.max(0, Math.round(candidate))
+  }
+  if (countedReps != null && Number.isFinite(countedReps)) return Math.max(0, Math.round(countedReps))
+  if (targetReps != null && Number.isFinite(targetReps)) return Math.max(0, Math.round(targetReps))
+  return 0
+}
+
+/**
+ * Safari occasionally starts speech but never emits `end` or `error`. The
+ * player waits long enough for the full exercise announcement, then releases
+ * the cadence gate so a completed set can never remain stuck on its last rep.
+ */
+export function speechAnnouncementFallbackMs(text: string): number {
+  const estimated = 900 + text.trim().length * 90
+  return Math.max(2_500, Math.min(9_000, estimated))
+}
+
 export function repTarget(e: PlannedExercise): number | null {
   if (e.rep_unit === 'max') return null
   return Math.round((e.rep_min + e.rep_max) / 2)
