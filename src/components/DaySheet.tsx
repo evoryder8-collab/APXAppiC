@@ -13,6 +13,7 @@ import { DropletIcon } from './Icons'
 import { dailyLogId } from '../lib/ids'
 import { WorkoutStatsSheet } from './workout/WorkoutStatsSheet'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { workoutLogsInPerformedOrder } from '../lib/workoutLogOrder'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((m) => ({ default: m.HologramStage })),
@@ -82,9 +83,7 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
   }
 
   const logsForDone = done
-    ? data.workout_logs
-        .filter((l) => l.session_id === done.id)
-        .sort((a, b) => a.exercise_name.localeCompare(b.exercise_name) || a.set_no - b.set_no)
+    ? workoutLogsInPerformedOrder(data, done.id)
     : []
 
   const d = new Date(dateIso + 'T12:00:00')

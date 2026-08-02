@@ -7,6 +7,7 @@ import { useStore } from '../../store/AppStore'
 import { AccentChip, Sheet } from '../ui'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { isFocusT25Name } from '../../lib/focusT25'
+import { workoutLogsInPerformedOrder } from '../../lib/workoutLogOrder'
 
 const COPY = {
   en: { eyebrow: 'WORKOUT RECEIPT', title: 'Stats at a glance', subtitle: 'Every strength set is editable. Secondary sessions keep their own completion details.', volume: 'Loaded volume', sets: 'Working sets', movements: 'Movements', signal: 'APEX strength signal', first: 'First clean baseline recorded. This becomes the comparison point for your next session.', saved: 'Corrections save automatically', close: 'Done', weight: 'Weight', reps: 'Reps', rir: 'RIR', secondary: 'Secondary session', full: 'Full version', modifier: 'Used modifier', incomplete: 'Not completed' },
@@ -38,7 +39,10 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
   const { language } = useLanguage()
   const copy = COPY[language]
   const t = (value: string): string => translateInterfaceText(value, language)
-  const sourceLogs = useMemo(() => data.workout_logs.filter((log) => log.session_id === sessionId).sort((a, b) => a.exercise_name.localeCompare(b.exercise_name) || a.set_no - b.set_no), [data.workout_logs, sessionId])
+  const sourceLogs = useMemo(
+    () => sessionId ? workoutLogsInPerformedOrder(data, sessionId) : [],
+    [data.exercises, data.workout_logs, data.workout_sessions, sessionId],
+  )
   const [logs, setLogs] = useState<WorkoutLog[]>(sourceLogs)
 
   useEffect(() => { if (open) setLogs(sourceLogs) }, [open, sourceLogs])

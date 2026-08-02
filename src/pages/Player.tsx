@@ -454,6 +454,8 @@ export function Player() {
       completed_at: completedAt,
       notes: '',
     })
+    const workoutLogCreatedAt = Date.now()
+    let workoutLogOrder = 0
     plan.exercises.forEach((e, exIdx) => {
       const r = state.results[exIdx]
       const isRealExercise = data.exercises.some((x) => x.id === e.id)
@@ -472,7 +474,7 @@ export function Player() {
           rir: r?.skippedAll ? null : (sr?.rir ?? null),
           skipped: r?.skippedAll ?? !r,
           override_flag: r?.override ?? false,
-          created_at: new Date().toISOString(),
+          created_at: new Date(workoutLogCreatedAt + workoutLogOrder++).toISOString(),
         })
       }
     })

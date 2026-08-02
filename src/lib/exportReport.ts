@@ -5,6 +5,7 @@ import { approachRamp } from './plan'
 import type { LoggedFoodEntry, LoggedMeal } from './food'
 import { analyzeMealTiming, fallbackMealTime, timedMeal, zonedClock } from './mealTiming'
 import { normalizeMealRhythmHistory } from './mealRhythm'
+import { workoutLogsInPerformedOrder } from './workoutLogOrder'
 
 export interface MealTimingReportContext {
   meals: LoggedMeal[]
@@ -62,9 +63,7 @@ export function buildReport(
     const day = dayById.get(s.program_day_id)
     lines.push(`### ${s.date}: ${day?.name ?? '?'}${s.is_lite ? ' (Lite)' : ''}`)
     if (s.notes) lines.push(`Notes: ${s.notes}`)
-    const logs = data.workout_logs
-      .filter((l) => l.session_id === s.id)
-      .sort((a, b) => a.exercise_name.localeCompare(b.exercise_name) || a.set_no - b.set_no)
+    const logs = workoutLogsInPerformedOrder(data, s.id)
     let currentName = ''
     for (const l of logs) {
       const name = l.exercise_name || exById.get(l.exercise_id ?? '')?.name || 'Exercise'
