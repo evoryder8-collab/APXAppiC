@@ -199,10 +199,94 @@ private struct GlanceMacroCard: View {
     }
 }
 
+struct APEXDateNavigator: View {
+    @State private var language = LanguageState.shared
+    let date: Date
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+    let onOpenCalendar: () -> Void
+
+    var body: some View {
+        HStack(spacing: 14) {
+            Button(action: onPrevious) {
+                Image(systemName: "chevron.left")
+                    .font(.system(size: 15, weight: .black))
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .accessibilityLabel(language.text("Previous day"))
+
+            Button(action: onOpenCalendar) {
+                VStack(spacing: 2) {
+                    Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)).uppercased(with: language.language.locale))
+                        .font(APEXFont.mono(10))
+                        .tracking(1.25)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.75)
+                    Text(Calendar.current.isDateInToday(date) ? language.text("TODAY") : language.text("OPEN CALENDAR"))
+                        .font(APEXFont.mono(8))
+                        .foregroundStyle(APEXColor.violet)
+                }
+                .frame(maxWidth: .infinity)
+                .frame(height: 46)
+                .padding(.horizontal, 14)
+                .background(.ultraThinMaterial, in: Capsule())
+                .overlay(Capsule().stroke(.white.opacity(0.72), lineWidth: 1))
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(language.text("Open calendar"))
+
+            Button(action: onNext) {
+                Image(systemName: "chevron.right")
+                    .font(.system(size: 15, weight: .black))
+                    .frame(width: 44, height: 44)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .accessibilityLabel(language.text("Next day"))
+        }
+        .foregroundStyle(APEXColor.secondaryInk)
+        .shadow(color: APEXColor.ink.opacity(0.08), radius: 10, y: 5)
+    }
+}
+
+private struct APEXEdgeDateSwipeModifier: ViewModifier {
+    let onPrevious: () -> Void
+    let onNext: () -> Void
+
+    func body(content: Content) -> some View {
+        content
+            .overlay(alignment: .leading) {
+                Color.clear
+                    .frame(width: 24)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 28).onEnded { value in
+                        guard value.translation.width > 54, abs(value.translation.height) < 90 else { return }
+                        onPrevious()
+                    })
+            }
+            .overlay(alignment: .trailing) {
+                Color.clear
+                    .frame(width: 24)
+                    .contentShape(Rectangle())
+                    .gesture(DragGesture(minimumDistance: 28).onEnded { value in
+                        guard value.translation.width < -54, abs(value.translation.height) < 90 else { return }
+                        onNext()
+                    })
+            }
+    }
+}
+
+extension View {
+    func apexEdgeDateSwipe(onPrevious: @escaping () -> Void, onNext: @escaping () -> Void) -> some View {
+        modifier(APEXEdgeDateSwipeModifier(onPrevious: onPrevious, onNext: onNext))
+    }
+}
+
 struct NutritionTargetSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
+    @State private var pendingQuickLevel: ActivityLevel?
 
     let date: Date
 
@@ -217,12 +301,11 @@ struct NutritionTargetSheet: View {
 
     var body: some View {
         NavigationStack {
-            ScrollView {
-                VStack(alignment: .leading, spacing: 20) {
+            VStack(alignment: .leading, spacing: 14) {
                     if let targets {
                         HStack(alignment: .firstTextBaseline) {
                             Text("\(targets.targetCalories)")
-                                .font(APEXFont.display(44))
+                                .font(APEXFont.display(40))
                                 .contentTransition(.numericText())
                             Text("kcal")
                                 .font(APEXFont.body(15, weight: .bold))
@@ -249,23 +332,25 @@ struct NutritionTargetSheet: View {
                     }
 
                     targetGroup(title: "ACTIVITY LEVEL") {
-                        VStack(alignment: .leading, spacing: 11) {
-                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 9) {
+                        VStack(alignment: .leading, spacing: 8) {
+                            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 7) {
                                 ForEach(ActivityLevel.allCases, id: \.self) { level in
                                     Button(language.text(level.title)) {
-                                        guard logs.isEmpty else { return }
-                                        Task { await session.setActivityLevel(level) }
+                                        if logs.isEmpty {
+                                            Task { await session.setActivityLevel(level) }
+                                        } else {
+                                            pendingQuickLevel = level
+                                        }
                                     }
                                     .buttonStyle(TargetChoiceStyle(
                                         selected: session.profile?.activityLevel == level && logs.isEmpty,
                                         color: APEXColor.cyan
                                     ))
-                                    .disabled(!logs.isEmpty)
                                 }
                             }
                             if !logs.isEmpty {
-                                Label("Computed from your day. Clear every activity block to return to Quick Mode.", systemImage: "sparkles")
-                                    .font(APEXFont.body(11, weight: .semibold))
+                                Label("Computed from your day. Tap a level to switch back to Quick Mode.", systemImage: "sparkles")
+                                    .font(APEXFont.body(9, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
                         }
@@ -279,9 +364,8 @@ struct NutritionTargetSheet: View {
                             targetFooterMetric("TDEE", targets.tdee, "")
                         }
                     }
-                }
-                .padding(20)
             }
+            .padding(18)
             .background(APEXBackground())
             .navigationTitle(language.text("Daily calorie target"))
             .navigationBarTitleDisplayMode(.inline)
@@ -291,12 +375,32 @@ struct NutritionTargetSheet: View {
                         .font(APEXFont.body(14, weight: .bold))
                 }
             }
+            .confirmationDialog(
+                language.text("Switch to Quick Mode?"),
+                isPresented: Binding(
+                    get: { pendingQuickLevel != nil },
+                    set: { if !$0 { pendingQuickLevel = nil } }
+                ),
+                titleVisibility: .visible
+            ) {
+                Button(language.text("Clear precise activities and switch"), role: .destructive) {
+                    guard let level = pendingQuickLevel else { return }
+                    pendingQuickLevel = nil
+                    Task {
+                        await session.clearActivities(on: date)
+                        await session.setActivityLevel(level)
+                    }
+                }
+                Button(language.text("Cancel"), role: .cancel) { pendingQuickLevel = nil }
+            } message: {
+                Text(language.text("This removes today's precise activity blocks so the selected activity level becomes active."))
+            }
         }
     }
 
     private func targetGroup<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {
-        GlassCard(radius: 27, padding: 17) {
-            VStack(alignment: .leading, spacing: 13) {
+        GlassCard(radius: 24, padding: 13) {
+            VStack(alignment: .leading, spacing: 9) {
                 Text(language.text(title))
                     .font(APEXFont.mono(10))
                     .tracking(1.4)
@@ -331,7 +435,7 @@ private struct TargetChoiceStyle: ButtonStyle {
             .lineLimit(1)
             .minimumScaleFactor(0.72)
             .frame(maxWidth: .infinity)
-            .frame(height: 52)
+            .frame(height: 44)
             .background(selected ? color.gradient : Color.white.opacity(0.56).gradient, in: RoundedRectangle(cornerRadius: 17))
             .opacity(configuration.isPressed ? 0.76 : 1)
     }
@@ -750,6 +854,11 @@ struct NutritionCalendarSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     @State private var month: Date
+    @State private var copiedSource: Date?
+    @State private var workflow: NutritionCalendarWorkflow?
+    @State private var selectedMealIDs = Set<UUID>()
+    @State private var isWorking = false
+    @State private var errorMessage: String?
 
     let selectedDate: Date
     let onSelect: (Date) -> Void
@@ -782,71 +891,334 @@ struct NutritionCalendarSheet: View {
 
     var body: some View {
         NavigationStack {
-            VStack(spacing: 20) {
-                HStack {
-                    Button { changeMonth(-1) } label: { Image(systemName: "chevron.left") }
-                        .buttonStyle(CalendarArrowStyle())
-                    Spacer()
-                    VStack(spacing: 4) {
-                        Text(month.formatted(.dateTime.month(.wide).year().locale(language.language.locale)))
-                            .font(APEXFont.display(22))
-                        Button("Jump to today") {
-                            month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
-                            onSelect(.now)
-                            dismiss()
-                        }
-                        .font(APEXFont.mono(9))
-                        .foregroundStyle(APEXColor.violet)
-                    }
-                    Spacer()
-                    Button { changeMonth(1) } label: { Image(systemName: "chevron.right") }
-                        .buttonStyle(CalendarArrowStyle())
-                }
-
-                LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
-                    ForEach(weekdaySymbols, id: \.self) { symbol in
-                        Text(symbol)
-                            .font(APEXFont.mono(9))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                    }
-                    ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
-                        if let date = cell {
-                            let selected = calendar.isDate(date, inSameDayAs: selectedDate)
-                            Button {
-                                onSelect(date)
-                                dismiss()
-                            } label: {
-                                VStack(spacing: 4) {
-                                    Text("\(calendar.component(.day, from: date))")
-                                        .font(APEXFont.mono(12))
-                                    Circle()
-                                        .fill(hasEvidence(on: date) ? APEXColor.green : Color.clear)
-                                        .frame(width: 5, height: 5)
+            ZStack {
+                VStack(spacing: 20) {
+                    HStack {
+                        Button { changeMonth(-1) } label: { Image(systemName: "chevron.left") }
+                            .buttonStyle(CalendarArrowStyle())
+                        Spacer()
+                        VStack(spacing: 4) {
+                            Text(month.formatted(.dateTime.month(.wide).year().locale(language.language.locale)))
+                                .font(APEXFont.display(22))
+                            if copiedSource == nil {
+                                Button("Jump to today") {
+                                    month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
+                                    onSelect(.now)
+                                    dismiss()
                                 }
-                                .foregroundStyle(selected ? .white : APEXColor.ink)
-                                .frame(maxWidth: .infinity)
-                                .frame(height: 48)
-                                .background(selected ? APEXColor.violet : Color.clear, in: RoundedRectangle(cornerRadius: 14))
+                                .font(APEXFont.mono(9))
+                                .foregroundStyle(APEXColor.violet)
+                            } else {
+                                Text("CHOOSE WHERE TO PASTE")
+                                    .font(APEXFont.mono(9))
+                                    .tracking(1.15)
+                                    .foregroundStyle(APEXColor.cyan)
                             }
-                            .buttonStyle(.plain)
-                        } else {
-                            Color.clear.frame(height: 48)
+                        }
+                        Spacer()
+                        Button { changeMonth(1) } label: { Image(systemName: "chevron.right") }
+                            .buttonStyle(CalendarArrowStyle())
+                    }
+
+                    LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
+                        ForEach(weekdaySymbols, id: \.self) { symbol in
+                            Text(symbol)
+                                .font(APEXFont.mono(9))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                        ForEach(Array(cells.enumerated()), id: \.offset) { _, cell in
+                            if let date = cell {
+                                calendarCell(date)
+                            } else {
+                                Color.clear.frame(height: 48)
+                            }
                         }
                     }
-                }
 
-                Text("Dots mark dates with meals, water, supplements, workouts, or activity evidence.")
-                    .font(APEXFont.body(11, weight: .medium))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                Spacer()
+                    if let copiedSource {
+                        HStack(spacing: 8) {
+                            Image(systemName: "doc.on.doc.fill")
+                            Text(language.format(
+                                "Copied %@. Tap a different day to continue.",
+                                copiedSource.formatted(.dateTime.day().month(.abbreviated).locale(language.language.locale))
+                            ))
+                            Spacer()
+                            Button("Cancel") { self.copiedSource = nil }
+                                .font(APEXFont.body(10, weight: .bold))
+                        }
+                        .font(APEXFont.body(10, weight: .semibold))
+                        .foregroundStyle(APEXColor.cyan)
+                        .padding(12)
+                        .background(APEXColor.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
+                    } else {
+                        Text("Tap to open a day. Hold any day to copy or clear its meals and snacks.")
+                            .font(APEXFont.body(11, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                    }
+                    Spacer()
+                }
+                .padding(20)
+
+                if workflow != nil {
+                    Color.black.opacity(0.24)
+                        .ignoresSafeArea()
+                        .onTapGesture { workflow = nil }
+                    workflowOverlay
+                        .padding(18)
+                        .transition(.scale(scale: 0.96).combined(with: .opacity))
+                }
             }
-            .padding(20)
             .background(APEXBackground())
             .navigationTitle(language.text("Calendar"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+            .animation(.snappy, value: workflow)
+            .alert("Calendar action failed", isPresented: Binding(
+                get: { errorMessage != nil },
+                set: { if !$0 { errorMessage = nil } }
+            )) {
+                Button("OK", role: .cancel) { errorMessage = nil }
+            } message: {
+                Text(errorMessage ?? "Please try again.")
+            }
         }
+    }
+
+    private func calendarCell(_ date: Date) -> some View {
+        let selected = calendar.isDate(date, inSameDayAs: selectedDate)
+        let source = copiedSource.map { calendar.isDate(date, inSameDayAs: $0) } ?? false
+        let choosingDestination = copiedSource != nil && !source
+        return VStack(spacing: 4) {
+            Text("\(calendar.component(.day, from: date))")
+                .font(APEXFont.mono(12))
+            Circle()
+                .fill(hasEvidence(on: date) ? APEXColor.green : Color.clear)
+                .frame(width: 5, height: 5)
+        }
+        .foregroundStyle((selected || source) ? .white : APEXColor.ink)
+        .frame(maxWidth: .infinity)
+        .frame(height: 48)
+        .background(
+            source ? APEXColor.cyan : selected ? APEXColor.violet : Color.clear,
+            in: RoundedRectangle(cornerRadius: 14)
+        )
+        .overlay {
+            if choosingDestination {
+                RoundedRectangle(cornerRadius: 14)
+                    .stroke(APEXColor.cyan, style: StrokeStyle(lineWidth: 1.5, dash: [5]))
+            }
+        }
+        .contentShape(RoundedRectangle(cornerRadius: 14))
+        .onTapGesture {
+            if let copiedSource, !source {
+                workflow = .paste(source: copiedSource, destination: date)
+            } else if copiedSource == nil {
+                onSelect(date)
+                dismiss()
+            }
+        }
+        .onLongPressGesture(minimumDuration: 0.42) {
+            copiedSource = nil
+            workflow = .actions(date)
+            UIImpactFeedbackGenerator(style: .medium).impactOccurred()
+        }
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityLabel(date.formatted(date: .long, time: .omitted))
+    }
+
+    @ViewBuilder
+    private var workflowOverlay: some View {
+        if let workflow {
+            switch workflow {
+            case .actions(let date):
+                calendarActionCard(date)
+            case .paste(let source, let destination):
+                pasteChoiceCard(source: source, destination: destination)
+            case .select(let source, let destination):
+                selectMealsCard(source: source, destination: destination)
+            }
+        }
+    }
+
+    private func calendarActionCard(_ date: Date) -> some View {
+        VStack(alignment: .leading, spacing: 16) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)))
+                        .font(APEXFont.display(23))
+                    Text("Copy or clear this day’s meals and snacks.")
+                        .font(APEXFont.body(12, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                Spacer()
+                closeWorkflowButton
+            }
+            Button {
+                copiedSource = date
+                workflow = nil
+            } label: {
+                Label("Copy", systemImage: "doc.on.doc")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(CalendarWorkflowButtonStyle(color: APEXColor.cyan))
+            Button(role: .destructive) {
+                isWorking = true
+                Task {
+                    await session.clearNutritionDay(date)
+                    isWorking = false
+                    workflow = nil
+                }
+            } label: {
+                Label(isWorking ? "Clearing…" : "Clear", systemImage: "xmark")
+                    .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(CalendarWorkflowButtonStyle(color: Color(red: 0.87, green: 0.3, blue: 0.55)))
+            .disabled(isWorking)
+        }
+        .calendarWorkflowCard()
+    }
+
+    private func pasteChoiceCard(source: Date, destination: Date) -> some View {
+        VStack(alignment: .leading, spacing: 15) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 4) {
+                    Text("Paste copied day")
+                        .font(APEXFont.display(23))
+                    Text("\(shortDate(source)) → \(shortDate(destination))")
+                        .font(APEXFont.body(13, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                Spacer()
+                closeWorkflowButton
+            }
+            Button {
+                pasteDay(source: source, destination: destination, mealIDs: nil)
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Paste").font(APEXFont.display(18))
+                    Text("All meals and snacks").font(APEXFont.body(11, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(CalendarWorkflowButtonStyle(color: APEXColor.cyan, filled: true))
+            .disabled(isWorking)
+
+            Button {
+                selectedMealIDs = []
+                workflow = .select(source: source, destination: destination)
+            } label: {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Select").font(APEXFont.display(18))
+                    Text("Choose individual meals or snacks").font(APEXFont.body(11, weight: .semibold))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+            .buttonStyle(CalendarWorkflowButtonStyle(color: APEXColor.violet))
+        }
+        .calendarWorkflowCard()
+    }
+
+    private func selectMealsCard(source: Date, destination: Date) -> some View {
+        let meals = sourceMeals(on: source)
+        return VStack(alignment: .leading, spacing: 14) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Choose meals")
+                        .font(APEXFont.display(23))
+                    Text("\(shortDate(source)) → \(shortDate(destination))")
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                Spacer()
+                closeWorkflowButton
+            }
+            if meals.isEmpty {
+                Text("No structured meals are available to copy from this day.")
+                    .font(APEXFont.body(12, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .padding(.vertical, 12)
+            } else {
+                ScrollView {
+                    VStack(spacing: 8) {
+                        ForEach(meals) { meal in
+                            Button {
+                                if selectedMealIDs.contains(meal.id) {
+                                    selectedMealIDs.remove(meal.id)
+                                } else {
+                                    selectedMealIDs.insert(meal.id)
+                                }
+                            } label: {
+                                HStack(spacing: 12) {
+                                    Image(systemName: selectedMealIDs.contains(meal.id) ? "checkmark.circle.fill" : "circle")
+                                        .font(.system(size: 23, weight: .semibold))
+                                        .foregroundStyle(selectedMealIDs.contains(meal.id) ? APEXColor.amber : APEXColor.secondaryInk.opacity(0.45))
+                                    VStack(alignment: .leading, spacing: 2) {
+                                        Text(meal.displayName)
+                                            .font(APEXFont.display(16))
+                                        Text(language.format("%d kcal", Int(meal.totalKcal.rounded())))
+                                            .font(APEXFont.mono(9))
+                                            .foregroundStyle(APEXColor.secondaryInk)
+                                    }
+                                    Spacer()
+                                }
+                                .foregroundStyle(APEXColor.ink)
+                                .padding(12)
+                                .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 17))
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                .frame(maxHeight: 290)
+
+                Button {
+                    pasteDay(source: source, destination: destination, mealIDs: selectedMealIDs)
+                } label: {
+                    Text(language.format("Paste %d selected", selectedMealIDs.count))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(CalendarWorkflowButtonStyle(color: APEXColor.amber, filled: true))
+                .disabled(selectedMealIDs.isEmpty || isWorking)
+            }
+        }
+        .calendarWorkflowCard()
+    }
+
+    private var closeWorkflowButton: some View {
+        Button { workflow = nil } label: {
+            Image(systemName: "xmark")
+                .font(.system(size: 15, weight: .black))
+                .frame(width: 42, height: 42)
+                .background(APEXColor.ink.opacity(0.06), in: Circle())
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func pasteDay(source: Date, destination: Date, mealIDs: Set<UUID>?) {
+        isWorking = true
+        Task {
+            do {
+                try await session.copyNutritionDay(from: source, to: destination, mealIDs: mealIDs)
+                onSelect(destination)
+                copiedSource = nil
+                workflow = nil
+                dismiss()
+            } catch {
+                errorMessage = error.localizedDescription
+            }
+            isWorking = false
+        }
+    }
+
+    private func sourceMeals(on date: Date) -> [LoggedMeal] {
+        session.data.loggedMeals
+            .filter { $0.localDate == date.apexDateKey }
+            .sorted { $0.loggedAt < $1.loggedAt }
+    }
+
+    private func shortDate(_ date: Date) -> String {
+        date.formatted(.dateTime.day().month(.abbreviated).locale(language.language.locale))
     }
 
     private var weekdaySymbols: [String] {
@@ -869,6 +1241,39 @@ struct NutritionCalendarSheet: View {
         withAnimation(.snappy) {
             month = calendar.date(byAdding: .month, value: value, to: month) ?? month
         }
+    }
+}
+
+private enum NutritionCalendarWorkflow: Equatable {
+    case actions(Date)
+    case paste(source: Date, destination: Date)
+    case select(source: Date, destination: Date)
+}
+
+private struct CalendarWorkflowButtonStyle: ButtonStyle {
+    let color: Color
+    var filled = false
+
+    func makeBody(configuration: Configuration) -> some View {
+        configuration.label
+            .font(APEXFont.body(15, weight: .bold))
+            .foregroundStyle(filled ? Color.white : color)
+            .padding(.horizontal, 17)
+            .frame(minHeight: 58)
+            .background(
+                filled ? color.opacity(configuration.isPressed ? 0.72 : 1) : color.opacity(configuration.isPressed ? 0.13 : 0.075),
+                in: RoundedRectangle(cornerRadius: 20)
+            )
+    }
+}
+
+private extension View {
+    func calendarWorkflowCard() -> some View {
+        self
+            .padding(20)
+            .background(.ultraThickMaterial, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+            .overlay(RoundedRectangle(cornerRadius: 30).stroke(.white.opacity(0.8)))
+            .shadow(color: APEXColor.ink.opacity(0.18), radius: 25, y: 13)
     }
 }
 

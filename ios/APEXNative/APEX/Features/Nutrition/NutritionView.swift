@@ -23,61 +23,68 @@ struct NutritionView: View {
     }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 22) {
-                nutritionHeader
-                dateStrip
-                if let targets {
-                    NutritionGlanceCard(
-                        date: selectedDate,
-                        targets: targets,
-                        onEditTargets: { showTargetEditor = true },
-                        onOpenCalendar: { showCalendar = true }
-                    )
-                }
-                TodaysActivitiesPanel(
-                    date: selectedDate,
-                    logs: dayActivities,
-                    targets: targets,
-                    onAdd: { showAddActivity = true },
-                    onGuide: { showActivityGuide = true }
-                )
-                if let targets {
-                    DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
-                    APEXDaylineView(
-                        date: selectedDate,
-                        onOpenComposer: { composerRequest = $0 },
-                        onAddMeal: { showMealSlotPicker = true }
-                    )
-                    LoggedMealsCard(
-                        date: selectedDate,
-                        onAdd: { showMealSlotPicker = true },
-                        onEdit: { composerRequest = .edit($0) }
-                    )
-                    MealTimeline(date: selectedDate, targets: targets)
-                    SupplementTimeline(date: selectedDate)
-                    DailyLogCard(
-                        date: selectedDate,
-                        targets: targets,
-                        onAdjustActivities: { showAddActivity = true },
-                        onOpenCalendar: { showCalendar = true }
-                    )
-                    BodyAssessmentCard(targets: targets, date: selectedDate)
-                }
-            }
+        VStack(spacing: 8) {
+            nutritionHeader
+                .padding(.horizontal, 18)
+                .padding(.top, 10)
+
+            APEXDateNavigator(
+                date: selectedDate,
+                onPrevious: { changeDate(-1) },
+                onNext: { changeDate(1) },
+                onOpenCalendar: { showCalendar = true }
+            )
             .padding(.horizontal, 18)
-            .padding(.top, 10)
-            .padding(.bottom, 28)
-        }
-        .refreshable { await session.refresh() }
-        .navigationBarTitleDisplayMode(.inline)
-        .toolbar {
-            ToolbarItem(placement: .principal) {
-                Text(selectedDate.formatted(.dateTime.weekday(.abbreviated).day().month(.abbreviated).locale(language.language.locale)))
-                    .font(APEXFont.mono(13))
-                    .tracking(1)
+
+            ScrollView {
+                LazyVStack(spacing: 22) {
+                    if let targets {
+                        NutritionGlanceCard(
+                            date: selectedDate,
+                            targets: targets,
+                            onEditTargets: { showTargetEditor = true },
+                            onOpenCalendar: { showCalendar = true }
+                        )
+                    }
+                    TodaysActivitiesPanel(
+                        date: selectedDate,
+                        logs: dayActivities,
+                        targets: targets,
+                        onAdd: { showAddActivity = true },
+                        onGuide: { showActivityGuide = true }
+                    )
+                    if let targets {
+                        DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
+                        APEXDaylineView(
+                            date: selectedDate,
+                            onOpenComposer: { composerRequest = $0 },
+                            onAddMeal: { showMealSlotPicker = true },
+                            compact: false
+                        )
+                        LoggedMealsCard(
+                            date: selectedDate,
+                            onAdd: { showMealSlotPicker = true },
+                            onEdit: { composerRequest = .edit($0) }
+                        )
+                        MealTimeline(date: selectedDate, targets: targets)
+                        SupplementTimeline(date: selectedDate)
+                        DailyLogCard(
+                            date: selectedDate,
+                            targets: targets,
+                            onAdjustActivities: { showAddActivity = true },
+                            onOpenCalendar: { showCalendar = true }
+                        )
+                        BodyAssessmentCard(targets: targets, date: selectedDate)
+                    }
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 4)
+                .padding(.bottom, 28)
             }
+            .refreshable { await session.refresh() }
         }
+        .apexEdgeDateSwipe(onPrevious: { changeDate(-1) }, onNext: { changeDate(1) })
+        .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAddActivity) {
             AddActivitySheet(date: selectedDate)
                 .presentationDetents([.medium, .large])
@@ -90,7 +97,7 @@ struct NutritionView: View {
         }
         .sheet(isPresented: $showTargetEditor) {
             NutritionTargetSheet(date: selectedDate)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showCalendar) {
@@ -111,41 +118,19 @@ struct NutritionView: View {
         }
     }
 
+    private func changeDate(_ offset: Int) {
+        withAnimation(.snappy) {
+            selectedDate = Calendar.current.date(byAdding: .day, value: offset, to: selectedDate) ?? selectedDate
+        }
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
     private var nutritionHeader: some View {
         APEXTopBar(profile: session.profile) {
             session.navigationPath.append(.settings)
         }
     }
 
-    private var dateStrip: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            Text(selectedDate.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(language.language.locale)).uppercased(with: language.language.locale))
-                .font(APEXFont.mono(12))
-                .tracking(1.8)
-                .foregroundStyle(APEXColor.secondaryInk)
-            HStack(spacing: 9) {
-                ForEach(-3...3, id: \.self) { offset in
-                    let date = Calendar.current.date(byAdding: .day, value: offset, to: Date()) ?? Date()
-                    let active = Calendar.current.isDate(date, inSameDayAs: selectedDate)
-                    Button {
-                        withAnimation(.snappy) { selectedDate = date }
-                    } label: {
-                        VStack(spacing: 4) {
-                            Text(date.formatted(.dateTime.weekday(.narrow).locale(language.language.locale)))
-                                .font(APEXFont.mono(10))
-                            Text(date.formatted(.dateTime.day()))
-                                .font(APEXFont.display(16))
-                        }
-                        .foregroundStyle(active ? .white : APEXColor.ink)
-                        .frame(maxWidth: .infinity)
-                        .frame(height: 57)
-                        .background(active ? APEXColor.amber : .white.opacity(0.55), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                }
-            }
-        }
-    }
 }
 
 private struct TodaysActivitiesPanel: View {

@@ -99,8 +99,8 @@ struct SimpleHomeView: View {
     private var completion: Int { SimpleHomeLogic.completion(completed: completedTasks, total: totalTasks) }
 
     var body: some View {
-        ScrollView {
-            LazyVStack(spacing: 15) {
+        VStack(spacing: 8) {
+            VStack(spacing: 8) {
                 APEXTopBar(profile: profile) {
                     session.navigationPath.append(.settings)
                 }
@@ -113,61 +113,76 @@ struct SimpleHomeView: View {
                         .tracking(1.1)
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
-
-                simpleHeader
-
-                if let targets {
-                    NutritionGlanceCard(
-                        date: selectedDate,
-                        targets: targets,
-                        onEditTargets: { showTargetEditor = true },
-                        onOpenCalendar: { showCalendar = true }
-                    )
-                    APEXDaylineView(
-                        date: selectedDate,
-                        onOpenComposer: { composerRequest = $0 },
-                        onAddMeal: { showMealSlotPicker = true },
-                        compact: true
-                    )
-                }
-
-                if let action = nextAction {
-                    NextActionCard(action: action) {
-                        perform(action.kind)
-                    }
-                }
-
-                metrics
-                checklist
-
-                if let todayProgramDay, !workoutDone {
-                    workoutShortcut(day: todayProgramDay)
-                }
-
-                orbitShortcut
-                avatarShortcut
-                fullDetailShortcuts
-
-                HStack {
-                    PortalLanguagePicker()
-                    Spacer()
-                    if session.pendingSyncCount > 0 {
-                        Label(language.format("%d queued", session.pendingSyncCount), systemImage: "icloud.and.arrow.up")
-                            .font(APEXFont.mono(9))
-                            .foregroundStyle(APEXColor.amberDeep)
-                    } else {
-                        Label("Synced", systemImage: "checkmark.icloud")
-                            .font(APEXFont.mono(9))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                    }
-                }
-                .padding(.top, 4)
             }
             .padding(.horizontal, 18)
             .padding(.top, 10)
-            .padding(.bottom, 38)
+
+            APEXDateNavigator(
+                date: selectedDate,
+                onPrevious: { changeDate(-1) },
+                onNext: { changeDate(1) },
+                onOpenCalendar: { showCalendar = true }
+            )
+            .padding(.horizontal, 18)
+
+            ScrollView {
+                LazyVStack(spacing: 15) {
+                    simpleHeader
+
+                    if let targets {
+                        NutritionGlanceCard(
+                            date: selectedDate,
+                            targets: targets,
+                            onEditTargets: { showTargetEditor = true },
+                            onOpenCalendar: { showCalendar = true }
+                        )
+                        APEXDaylineView(
+                            date: selectedDate,
+                            onOpenComposer: { composerRequest = $0 },
+                            onAddMeal: { showMealSlotPicker = true },
+                            compact: false
+                        )
+                    }
+
+                    if let action = nextAction {
+                        NextActionCard(action: action) {
+                            perform(action.kind)
+                        }
+                    }
+
+                    metrics
+                    checklist
+
+                    if let todayProgramDay, !workoutDone {
+                        workoutShortcut(day: todayProgramDay)
+                    }
+
+                    orbitShortcut
+                    avatarShortcut
+                    fullDetailShortcuts
+
+                    HStack {
+                        PortalLanguagePicker()
+                        Spacer()
+                        if session.pendingSyncCount > 0 {
+                            Label(language.format("%d queued", session.pendingSyncCount), systemImage: "icloud.and.arrow.up")
+                                .font(APEXFont.mono(9))
+                                .foregroundStyle(APEXColor.amberDeep)
+                        } else {
+                            Label("Synced", systemImage: "checkmark.icloud")
+                                .font(APEXFont.mono(9))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                    }
+                    .padding(.top, 4)
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 2)
+                .padding(.bottom, 38)
+            }
+            .refreshable { await session.refresh() }
         }
-        .refreshable { await session.refresh() }
+        .apexEdgeDateSwipe(onPrevious: { changeDate(-1) }, onNext: { changeDate(1) })
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showWorkout) {
             if let todayProgramDay {
@@ -181,7 +196,7 @@ struct SimpleHomeView: View {
         }
         .sheet(isPresented: $showTargetEditor) {
             NutritionTargetSheet(date: selectedDate)
-                .presentationDetents([.medium, .large])
+                .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showCalendar) {
@@ -202,10 +217,6 @@ struct SimpleHomeView: View {
     private var simpleHeader: some View {
         HStack(alignment: .bottom, spacing: 14) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(selectedDate.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)).uppercased(with: language.language.locale))
-                    .font(APEXFont.mono(10))
-                    .tracking(1.5)
-                    .foregroundStyle(APEXColor.secondaryInk)
                 Text(language.format("Today, %@.", profile?.displayName.components(separatedBy: " ").first ?? "APEX"))
                     .font(APEXFont.display(31))
                     .minimumScaleFactor(0.8)
@@ -217,6 +228,13 @@ struct SimpleHomeView: View {
             CompletionRing(value: completion)
         }
         .padding(.vertical, 17)
+    }
+
+    private func changeDate(_ offset: Int) {
+        withAnimation(.snappy) {
+            selectedDate = Calendar.current.date(byAdding: .day, value: offset, to: selectedDate) ?? selectedDate
+        }
+        UISelectionFeedbackGenerator().selectionChanged()
     }
 
     private var metrics: some View {

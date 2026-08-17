@@ -128,7 +128,15 @@ final class AppSession {
     func refresh() async {
         if let userID = profile?.userID { await flushPendingChanges(for: userID) }
         do { try await refreshDashboard() }
-        catch { alertMessage = "APEX is using its last local view. \(error.localizedDescription)" }
+        catch is CancellationError {
+            // Pull-to-refresh, realtime refreshes and scene transitions may
+            // legitimately supersede one another. Cancellation is control
+            // flow, not a user-facing sync failure.
+        } catch let error as URLError where error.code == .cancelled {
+            // URLSession reports the same benign cancellation separately.
+        } catch {
+            alertMessage = "APEX is using its last local view. \(error.localizedDescription)"
+        }
     }
 
     func onAppBecameActive() async {
@@ -623,6 +631,115 @@ final class AppSession {
             pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
             alertMessage = "Meal saved on this iPhone and queued for Supabase."
         }
+    }
+
+    /// Copies the selected structured meals and legacy planned-meal checks to
+    /// another date. The web client follows the same replacement rule: a
+    /// copied planned meal replaces that planned meal on the destination day,
+    /// while genuinely custom meals remain separate entries.
+    func copyNutritionDay(
+        from sourceDate: Date,
+        to destinationDate: Date,
+        mealIDs: Set<UUID>? = nil
+    ) async throws {
+        guard let profile else { throw APEXServiceError.configurationMissing }
+        let sourceKey = sourceDate.apexDateKey
+        let destinationKey = destinationDate.apexDateKey
+        guard sourceKey != destinationKey else { return }
+
+        let sourceMeals = data.loggedMeals
+            .filter { $0.localDate == sourceKey && (mealIDs == nil || mealIDs?.contains($0.id) == true) }
+            .sorted { $0.loggedAt < $1.loggedAt }
+        var destinationMeals = data.loggedMeals.filter { $0.localDate == destinationKey }
+
+        for sourceMeal in sourceMeals {
+            let sourceEntries = data.loggedFoodEntries
+                .filter { $0.mealID == sourceMeal.id }
+                .sorted { $0.sortOrder < $1.sortOrder }
+            guard sourceEntries.isEmpty == false else { continue }
+
+            let newMealID = UUID()
+            let replacement = sourceMeal.sourcePlannedMealID.flatMap { plannedID in
+                destinationMeals.first { $0.sourcePlannedMealID == plannedID }
+            }
+            let items = sourceEntries.map { entry -> MealComposerItem in
+                var item = MealComposerItem(entry: entry)
+                item.id = UUID()
+                return item
+            }
+            let draft = MealComposerDraft(
+                id: newMealID,
+                localDate: destinationKey,
+                mealSlot: sourceMeal.mealSlot,
+                displayName: sourceMeal.displayName,
+                finishedAt: copiedClock(from: sourceMeal.loggedAt, onto: destinationDate),
+                sourcePresetID: sourceMeal.sourcePresetID,
+                sourcePlannedMealID: sourceMeal.sourcePlannedMealID,
+                replaceMealID: replacement?.id,
+                loggedAs: sourceMeal.loggedAs,
+                items: items
+            )
+            try await saveStructuredMeal(draft)
+            destinationMeals = data.loggedMeals.filter { $0.localDate == destinationKey }
+        }
+
+        let structuredSourcePlannedIDs = Set(sourceMeals.compactMap(\.sourcePlannedMealID))
+        let sourceChecks = data.mealLogs.filter { check in
+            guard check.date == sourceKey else { return false }
+            if let mealIDs {
+                // A structured planned check follows the selected structured
+                // meal. Legacy checks without a structured meal are offered
+                // only by a full-day paste.
+                return structuredSourcePlannedIDs.contains(check.mealID)
+                    && sourceMeals.contains { $0.sourcePlannedMealID == check.mealID && mealIDs.contains($0.id) }
+            }
+            return true
+        }
+        var destinationChecks = Set(data.mealLogs.filter { $0.date == destinationKey }.map(\.mealID))
+        for sourceCheck in sourceChecks where destinationChecks.contains(sourceCheck.mealID) == false {
+            let row = MealLog(
+                id: UUID(),
+                userID: profile.userID,
+                date: destinationKey,
+                mealID: sourceCheck.mealID,
+                checkedAt: Date().ISO8601Format()
+            )
+            data.mealLogs.append(row)
+            await persistUpsert(row, table: "meal_logs", onConflict: "user_id,date,meal_id")
+            destinationChecks.insert(sourceCheck.mealID)
+        }
+
+        await saveLocalSnapshot()
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    /// Calendar Clear intentionally removes only meals and snacks. Hydration,
+    /// workouts, supplements and activity evidence remain untouched.
+    func clearNutritionDay(_ date: Date) async {
+        let key = date.apexDateKey
+        let structured = data.loggedMeals.filter { $0.localDate == key }
+        let legacyChecks = data.mealLogs.filter { $0.date == key }
+        for meal in structured { await deleteLoggedMeal(meal) }
+        for check in legacyChecks {
+            data.mealLogs.removeAll { $0.id == check.id }
+            await persistDelete(table: "meal_logs", id: check.id)
+        }
+        if let userID = profile?.userID {
+            recalculateLocalStructuredDay(key, userID: userID)
+            await saveLocalSnapshot()
+        }
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    private func copiedClock(from isoTimestamp: String, onto destination: Date) -> Date {
+        let source = ISO8601DateFormatter().date(from: isoTimestamp) ?? destination
+        let calendar = Calendar.current
+        let clock = calendar.dateComponents([.hour, .minute, .second], from: source)
+        var destinationParts = calendar.dateComponents([.year, .month, .day], from: destination)
+        destinationParts.hour = clock.hour
+        destinationParts.minute = clock.minute
+        destinationParts.second = clock.second
+        return calendar.date(from: destinationParts) ?? destination
     }
 
     @discardableResult
