@@ -472,11 +472,52 @@ struct APEXDaylineView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
     @State private var dragPreview: [String: Int] = [:]
+    /*
+     * Swipe-to-delete state lives here, not inside the row. Rows are rebuilt
+     * whenever the day's data changes, and row-local @State is discarded with
+     * them, which slammed a revealed card shut a moment after it opened.
+     * Only one card may stand open at a time, as on the web.
+     */
+    @State private var revealedEntryID: String?
+    @State private var swipingEntryID: String?
+    @State private var liveRevealOffset: CGFloat = 0
+
+    private let revealWidth: CGFloat = 96
 
     let date: Date
     let onOpenComposer: (MealComposerRequest) -> Void
     let onAddMeal: () -> Void
     var compact = false
+
+    private func revealOffset(for entry: DaylineEntry) -> CGFloat {
+        if swipingEntryID == entry.id { return liveRevealOffset }
+        return revealedEntryID == entry.id ? -revealWidth : 0
+    }
+
+    private func beginReveal(_ entry: DaylineEntry, translation: CGFloat) {
+        let base: CGFloat = revealedEntryID == entry.id ? -revealWidth : 0
+        swipingEntryID = entry.id
+        liveRevealOffset = max(-revealWidth, min(0, base + translation))
+    }
+
+    private func endReveal(_ entry: DaylineEntry, translation: CGFloat) {
+        let base: CGFloat = revealedEntryID == entry.id ? -revealWidth : 0
+        let settled = base + translation
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            revealedEntryID = settled < -revealWidth / 2 ? entry.id : nil
+            swipingEntryID = nil
+            liveRevealOffset = 0
+        }
+    }
+
+    private func closeReveal() {
+        guard revealedEntryID != nil || swipingEntryID != nil else { return }
+        withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
+            revealedEntryID = nil
+            swipingEntryID = nil
+            liveRevealOffset = 0
+        }
+    }
 
     private var daylineTimeZone: TimeZone {
         let identifier = session.data.settings?.addons["time_zone"]?.stringValue
@@ -692,6 +733,7 @@ struct APEXDaylineView: View {
                                 entry: entry,
                                 displayedMinute: previewMinute,
                                 isDragging: dragPreview[entry.id] != nil,
+                                revealOffset: revealOffset(for: entry),
                                 action: { open(entry) },
                                 /* Absolute Y inside the timeline, so the meal
                                    follows the finger and never chases its own
@@ -706,8 +748,11 @@ struct APEXDaylineView: View {
                                     dragPreview[entry.id] = nil
                                     move(entry, to: snappedLine, clockMinute: finalClock)
                                 },
+                                onSwipeChanged: { beginReveal(entry, translation: $0) },
+                                onSwipeEnded: { endReveal(entry, translation: $0) },
                                 onDelete: {
                                     guard let logged = entry.loggedMeal else { return }
+                                    closeReveal()
                                     Task { await session.deleteLoggedMeal(logged) }
                                 }
                             )
@@ -892,16 +937,22 @@ private struct DaylineEntryRow: View {
     @State private var language = LanguageState.shared
     /* A completed hold-and-drag must not also open the composer on release */
     @State private var dragConsumedTap = false
-    /* Swipe-left reveal for delete, matching the web Dayline */
-    @State private var revealOffset: CGFloat = 0
-    @State private var confirmingDelete = false
+    /* Which axis this touch committed to, decided once per gesture so a
+       sideways swipe can never also nudge the meal's time. */
+    @State private var axisLock: Axis?
     let entry: DaylineEntry
     let displayedMinute: Int
     let isDragging: Bool
+    /* Owned by the parent so a data refresh cannot discard it mid-swipe */
+    let revealOffset: CGFloat
     let action: () -> Void
     let onDragChanged: (CGFloat) -> Void
     let onDragEnded: (CGFloat) -> Void
+    let onSwipeChanged: (CGFloat) -> Void
+    let onSwipeEnded: (CGFloat) -> Void
     let onDelete: () -> Void
+
+    private enum Axis { case horizontal, vertical }
 
     private let revealWidth: CGFloat = 96
 
@@ -933,7 +984,6 @@ private struct DaylineEntryRow: View {
                 if entry.isLogged {
                     Button {
                         onDelete()
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { revealOffset = 0 }
                     } label: {
                         VStack(spacing: 3) {
                             Image(systemName: "xmark")
@@ -952,8 +1002,9 @@ private struct DaylineEntryRow: View {
 
                 Button {
                     guard !dragConsumedTap else { return }
+                    /* An open card closes on tap instead of opening the editor */
                     if revealOffset != 0 {
-                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { revealOffset = 0 }
+                        onSwipeEnded(revealWidth)
                         return
                     }
                     action()
@@ -997,20 +1048,30 @@ private struct DaylineEntryRow: View {
             }
         }
         .contentShape(Rectangle())
-        /* Horizontal swipe reveals delete. Recognised only when the movement
-           is clearly sideways so it never competes with the vertical
-           hold-and-move time gesture. */
+        /*
+         * Horizontal swipe reveals delete. The axis is decided once, on the
+         * first meaningful movement, and held for the rest of the touch.
+         * Re-evaluating it every frame let a swipe flip between "reveal" and
+         * "move the meal" mid-gesture, which read as the card twitching and
+         * snapping shut.
+         */
         .simultaneousGesture(
-            DragGesture(minimumDistance: 16)
+            DragGesture(minimumDistance: 12)
                 .onChanged { value in
-                    guard entry.isLogged, abs(value.translation.width) > abs(value.translation.height) else { return }
-                    revealOffset = max(-revealWidth, min(0, value.translation.width))
+                    guard entry.isLogged else { return }
+                    if axisLock == nil {
+                        let dx = abs(value.translation.width)
+                        let dy = abs(value.translation.height)
+                        guard max(dx, dy) > 12 else { return }
+                        axisLock = dx > dy * 1.4 ? .horizontal : .vertical
+                    }
+                    guard axisLock == .horizontal else { return }
+                    onSwipeChanged(value.translation.width)
                 }
                 .onEnded { value in
-                    guard entry.isLogged, abs(value.translation.width) > abs(value.translation.height) else { return }
-                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
-                        revealOffset = value.translation.width < -revealWidth / 2 ? -revealWidth : 0
-                    }
+                    defer { axisLock = nil }
+                    guard entry.isLogged, axisLock == .horizontal else { return }
+                    onSwipeEnded(value.translation.width)
                 }
         )
         /* simultaneousGesture instead of highPriorityGesture: a plain tap
@@ -1026,12 +1087,14 @@ private struct DaylineEntryRow: View {
                 .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("apex-dayline")))
                 .onChanged { phase in
                     if case .second(true, let drag?) = phase {
+                        /* A committed sideways swipe owns this touch */
+                        guard axisLock != .horizontal else { return }
                         dragConsumedTap = true
                         onDragChanged(drag.location.y)
                     }
                 }
                 .onEnded { phase in
-                    if case .second(true, let drag?) = phase {
+                    if case .second(true, let drag?) = phase, axisLock != .horizontal {
                         onDragEnded(drag.location.y)
                     }
                     Task { @MainActor in
