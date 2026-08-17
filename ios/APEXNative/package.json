@@ -1,0 +1,12 @@
+{
+  "name": "apex-native-tools",
+  "private": true,
+  "type": "module",
+  "scripts": {
+    "localize": "node Tools/generate-localizations.mjs",
+    "audit": "node Tools/audit-localizations.mjs && node Tools/audit-runtime-content.mjs && node Tools/audit-runtime-swift-content.mjs && node Tools/audit-client-contracts.mjs"
+  },
+  "devDependencies": {
+    "@babel/parser": "^7.28.4"
+  }
+}

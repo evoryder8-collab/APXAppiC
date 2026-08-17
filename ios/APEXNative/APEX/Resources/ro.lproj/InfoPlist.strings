@@ -1,0 +1,7 @@
+"NSCameraUsageDescription" = "APEX folosește camera pentru scanarea codurilor de bare și pentru fotografii private de progres.";
+"NSPhotoLibraryUsageDescription" = "APEX poate importa o fotografie de progres aleasă de tine.";
+"NSPhotoLibraryAddUsageDescription" = "APEX poate salva afișele traseelor și exporturile de progres pe care le soliciți.";
+"NSHealthShareUsageDescription" = "APEX citește datele de sănătate și activitate pe care le alegi pentru a coordona nutriția, recuperarea, Avatarul și Orbit.";
+"NSHealthUpdateUsageDescription" = "APEX scrie antrenamentele finalizate și apa doar când alegi sincronizarea cu Apple Health.";
+"NSLocationWhenInUseUsageDescription" = "APEX Orbit folosește locația pentru a înregistra alergări și a planifica trasee cât timp aplicația este deschisă.";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "APEX Orbit continuă înregistrarea unei alergări active când ecranul este blocat.";

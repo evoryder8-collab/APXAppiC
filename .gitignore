@@ -4,3 +4,13 @@ dist
 .env.local
 *.local
 .DS_Store
+
+# Native Apple build products and machine-specific signing/configuration
+ios/APEXNative/build/
+ios/APEXNative/DerivedData/
+ios/APEXNative/*DerivedData/
+ios/APEXNative/.swiftpm/
+ios/APEXNative/APEXNative.xcodeproj/project.xcworkspace/xcuserdata/
+ios/APEXNative/APEXNative.xcodeproj/xcuserdata/
+ios/APEXNative/Config/Secrets.xcconfig
+*.xcuserstate

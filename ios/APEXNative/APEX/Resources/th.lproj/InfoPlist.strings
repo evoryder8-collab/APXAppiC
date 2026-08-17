@@ -1,0 +1,7 @@
+"NSCameraUsageDescription" = "APEX ใช้กล้องเพื่อสแกนบาร์โค้ดอาหารและถ่ายภาพความก้าวหน้าส่วนตัว";
+"NSPhotoLibraryUsageDescription" = "APEX สามารถนำเข้าภาพความก้าวหน้าที่คุณเลือก";
+"NSPhotoLibraryAddUsageDescription" = "APEX สามารถบันทึกโปสเตอร์เส้นทางและไฟล์ความก้าวหน้าที่คุณขอ";
+"NSHealthShareUsageDescription" = "APEX อ่านข้อมูลสุขภาพและกิจกรรมที่คุณอนุญาต เพื่อประสานโภชนาการ การฟื้นตัว Avatar และ Orbit";
+"NSHealthUpdateUsageDescription" = "APEX จะเขียนข้อมูลการออกกำลังกายที่เสร็จแล้วและการดื่มน้ำเมื่อคุณเลือกซิงก์กับ Apple Health เท่านั้น";
+"NSLocationWhenInUseUsageDescription" = "APEX Orbit ใช้ตำแหน่งเพื่อบันทึกการวิ่งและวางแผนเส้นทางขณะเปิดแอป";
+"NSLocationAlwaysAndWhenInUseUsageDescription" = "APEX Orbit จะบันทึกการวิ่งต่อเมื่อหน้าจอล็อก";

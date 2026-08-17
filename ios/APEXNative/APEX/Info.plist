@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<!DOCTYPE plist PUBLIC "-//Apple//DTD PLIST 1.0//EN" "http://www.apple.com/DTDs/PropertyList-1.0.dtd">
+<plist version="1.0">
+<dict>
+	<key>BGTaskSchedulerPermittedIdentifiers</key>
+	<array>
+		<string>ch.apexperformance.APEX.health-refresh</string>
+	</array>
+	<key>CFBundleDevelopmentRegion</key>
+	<string>$(DEVELOPMENT_LANGUAGE)</string>
+	<key>CFBundleDisplayName</key>
+	<string>APEX</string>
+	<key>CFBundleExecutable</key>
+	<string>$(EXECUTABLE_NAME)</string>
+	<key>CFBundleIdentifier</key>
+	<string>$(PRODUCT_BUNDLE_IDENTIFIER)</string>
+	<key>CFBundleInfoDictionaryVersion</key>
+	<string>6.0</string>
+	<key>CFBundleName</key>
+	<string>APEX</string>
+	<key>CFBundlePackageType</key>
+	<string>APPL</string>
+	<key>CFBundleShortVersionString</key>
+	<string>$(MARKETING_VERSION)</string>
+	<key>CFBundleURLTypes</key>
+	<array>
+		<dict>
+			<key>CFBundleTypeRole</key>
+			<string>Editor</string>
+			<key>CFBundleURLName</key>
+			<string>ch.apexperformance.APEX.auth</string>
+			<key>CFBundleURLSchemes</key>
+			<array>
+				<string>apex</string>
+			</array>
+		</dict>
+	</array>
+	<key>CFBundleVersion</key>
+	<string>$(CURRENT_PROJECT_VERSION)</string>
+	<key>ITSAppUsesNonExemptEncryption</key>
+	<false/>
+	<key>NSCameraUsageDescription</key>
+	<string>APEX uses the camera to scan food barcodes and capture private visual-progress photos.</string>
+	<key>NSHealthShareUsageDescription</key>
+	<string>APEX reads the health and activity data you choose so nutrition, recovery, Avatar, and Orbit stay aligned.</string>
+	<key>NSHealthUpdateUsageDescription</key>
+	<string>APEX writes completed workouts and water entries only when you choose to sync them with Apple Health.</string>
+	<key>NSLocationAlwaysAndWhenInUseUsageDescription</key>
+	<string>APEX Orbit continues recording an active run when your screen is locked.</string>
+	<key>NSLocationWhenInUseUsageDescription</key>
+	<string>APEX Orbit uses your location to record runs and plan routes while the app is open.</string>
+	<key>NSPhotoLibraryAddUsageDescription</key>
+	<string>APEX can save route posters and progress exports that you request.</string>
+	<key>NSPhotoLibraryUsageDescription</key>
+	<string>APEX can import a progress photo that you choose.</string>
+	<key>SUPABASE_ANON_KEY</key>
+	<string>$(SUPABASE_ANON_KEY)</string>
+	<key>SUPABASE_URL</key>
+	<string>$(SUPABASE_URL)</string>
+	<key>UIApplicationSupportsIndirectInputEvents</key>
+	<true/>
+	<key>UIBackgroundModes</key>
+	<array>
+		<string>location</string>
+		<string>processing</string>
+	</array>
+	<key>UILaunchScreen</key>
+	<dict>
+		<key>UIColorName</key>
+		<string>LaunchBackground</string>
+	</dict>
+	<key>UISupportedInterfaceOrientations</key>
+	<array>
+		<string>UIInterfaceOrientationPortrait</string>
+	</array>
+</dict>
+</plist>

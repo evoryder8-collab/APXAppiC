@@ -1,0 +1,103 @@
+import XCTest
+@testable import APEX
+
+final class OrbitIntegrationsTests: XCTestCase {
+    func testShortRunDoesNotAddFoodAutomatically() {
+        let adjustment = OrbitIntegrations.nutritionAdjustment(run: run(minutes: 42), weightKG: 70)
+
+        XCTAssertEqual(adjustment.kcal, 0)
+        XCTAssertEqual(adjustment.timing, "normal_meals")
+    }
+
+    func testLongRunCreatesReviewableFuelingAdjustment() {
+        let adjustment = OrbitIntegrations.nutritionAdjustment(run: run(minutes: 120), weightKG: 70)
+
+        XCTAssertEqual(adjustment.carbsG, 65)
+        XCTAssertEqual(adjustment.proteinG, 21)
+        XCTAssertEqual(adjustment.kcal, 344)
+        XCTAssertEqual(adjustment.timing, "during_and_recovery")
+    }
+
+    func testFoodMemoryPrefersFavouriteCompleteCarbohydrateFood() {
+        let userID = UUID()
+        let favouriteID = UUID()
+        let otherID = UUID()
+        let foods = [food(id: otherID, name: "Rice", carbs: 28), food(id: favouriteID, name: "Oats", carbs: 60)]
+        let preferences = [
+            preference(userID: userID, foodID: otherID, favourite: false, useCount: 12),
+            preference(userID: userID, foodID: favouriteID, favourite: true, useCount: 2)
+        ]
+        let adjustment = OrbitNutritionAdjustment(kcal: 180, carbsG: 45, proteinG: 0, fatG: 0, timing: "pre_and_post", explanation: "")
+
+        let suggestion = OrbitIntegrations.foodMemorySuggestion(
+            adjustment: adjustment,
+            foods: foods,
+            preferences: preferences
+        )
+
+        XCTAssertEqual(suggestion?.food.name, "Oats")
+        XCTAssertEqual(suggestion?.amount, 75)
+        XCTAssertEqual(suggestion?.nutrients.carbsG ?? 0, 45, accuracy: 0.001)
+    }
+
+    func testAvatarContributionUsesOneRunAndReportsPacingDiscipline() {
+        let contribution = OrbitIntegrations.avatarContribution(run: run(minutes: 75))
+
+        XCTAssertEqual(contribution.enduranceMinutes, 75)
+        XCTAssertEqual(contribution.lowerBodySignal, 1, accuracy: 0.001)
+        XCTAssertGreaterThan(contribution.pacingDisciplineSignal, 0.9)
+        XCTAssertTrue(contribution.explanation.contains("one authoritative endurance record"))
+    }
+
+    func testStableIDMatchesBrowserClientAlgorithm() {
+        let userID = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let result = APEXStableID.scopedUUID(
+            namespace: "daily-log",
+            date: "2026-08-16",
+            userID: userID
+        )
+
+        XCTAssertEqual(result.uuidString.lowercased(), "9ff06421-9493-466d-a0ea-2048b31d7814")
+    }
+
+    private func run(minutes: Double) -> OrbitRunRecord {
+        let userID = UUID()
+        return OrbitRunRecord(
+            id: UUID(), userID: userID, clientIdempotencyKey: UUID().uuidString,
+            localDate: "2026-08-16", startedAt: "2026-08-16T08:00:00Z", endedAt: "2026-08-16T10:00:00Z",
+            mission: "aerobic_base", routeID: nil, campaignSessionID: nil, shoeID: nil,
+            samples: [], pauses: [], manualLapsM: [],
+            metrics: [
+                "moving_s": .number(minutes * 60),
+                "distance_m": .number(minutes * 125),
+                "splits": .array([
+                    .object(["distance_m": .number(1_000), "pace_sec_km": .number(480)]),
+                    .object(["distance_m": .number(1_000), "pace_sec_km": .number(485)]),
+                    .object(["distance_m": .number(1_000), "pace_sec_km": .number(478)])
+                ])
+            ],
+            checkIn: ["discomfort": .string("none")], nutritionAdjustmentAppliedAt: nil,
+            status: "completed", createdAt: "2026-08-16T08:00:00Z", updatedAt: "2026-08-16T10:00:00Z"
+        )
+    }
+
+    private func food(id: UUID, name: String, carbs: Double) -> Food {
+        Food(
+            id: id.uuidString.lowercased(), ownerUserID: nil, name: name, namesI18n: [:],
+            brand: nil, barcode: nil, source: "test", providerProductID: nil,
+            externalImageURL: nil, packageQuantity: nil, nutritionBasis: "per_100g",
+            preparationState: "ready", kcal100: 380, protein100: 12, carbs100: carbs,
+            fat100: 7, fibre100: nil, sugar100: nil, saturatedFat100: nil, salt100: nil,
+            servingAmount: nil, servingUnit: nil, servingGramsOrML: nil,
+            pieceGramsOrML: nil, confidence: "verified"
+        )
+    }
+
+    private func preference(userID: UUID, foodID: UUID, favourite: Bool, useCount: Int) -> FoodPreference {
+        FoodPreference(
+            id: UUID(), userID: userID, foodID: foodID, personalName: nil,
+            aliases: [], favourite: favourite, usualAmount: nil, usualUnit: nil,
+            usageCount: useCount, lastUsedAt: nil, hidden: false
+        )
+    }
+}
