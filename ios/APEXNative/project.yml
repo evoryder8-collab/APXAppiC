@@ -1,0 +1,139 @@
+name: APEXNative
+
+options:
+  bundleIdPrefix: ch.apexperformance
+  deploymentTarget:
+    iOS: "17.0"
+  xcodeVersion: "26.0"
+  createIntermediateGroups: true
+
+configs:
+  Debug: debug
+  Release: release
+
+configFiles:
+  Debug: Config/Secrets.xcconfig
+  Release: Config/Secrets.xcconfig
+
+packages:
+  Supabase:
+    url: https://github.com/supabase/supabase-swift.git
+    from: 2.54.1
+
+settings:
+  base:
+    SWIFT_VERSION: 6.0
+    IPHONEOS_DEPLOYMENT_TARGET: 17.0
+    DEVELOPMENT_TEAM: UG979XDY72
+    CODE_SIGN_STYLE: Automatic
+    CURRENT_PROJECT_VERSION: 1
+    MARKETING_VERSION: 1.0.0
+    ENABLE_USER_SCRIPT_SANDBOXING: YES
+    CLANG_ANALYZER_LOCALIZABILITY_NONLOCALIZED: YES
+    SWIFT_STRICT_CONCURRENCY: complete
+
+targets:
+  APEX:
+    type: application
+    platform: iOS
+    sources:
+      - path: APEX
+    resources:
+      - path: APEX/Resources
+      - path: APEX/PrivacyInfo.xcprivacy
+    dependencies:
+      - package: Supabase
+        product: Supabase
+    entitlements:
+      path: APEX/APEX.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+        com.apple.developer.healthkit.background-delivery: true
+    info:
+      path: APEX/Info.plist
+      properties:
+        CFBundleDisplayName: APEX
+        CFBundleName: APEX
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        SUPABASE_URL: $(SUPABASE_URL)
+        SUPABASE_ANON_KEY: $(SUPABASE_ANON_KEY)
+        NSCameraUsageDescription: APEX uses the camera to scan food barcodes and capture private visual-progress photos.
+        NSPhotoLibraryUsageDescription: APEX can import a progress photo that you choose.
+        NSPhotoLibraryAddUsageDescription: APEX can save route posters and progress exports that you request.
+        NSHealthShareUsageDescription: APEX reads the health and activity data you choose so nutrition, recovery, Avatar, and Orbit stay aligned.
+        NSHealthUpdateUsageDescription: APEX writes completed workouts and water entries only when you choose to sync them with Apple Health.
+        NSLocationWhenInUseUsageDescription: APEX Orbit uses your location to record runs and plan routes while the app is open.
+        NSLocationAlwaysAndWhenInUseUsageDescription: APEX Orbit continues recording an active run when your screen is locked.
+        UIBackgroundModes:
+          - location
+          - processing
+        BGTaskSchedulerPermittedIdentifiers:
+          - ch.apexperformance.APEX.health-refresh
+        UILaunchScreen:
+          UIColorName: LaunchBackground
+        UISupportedInterfaceOrientations:
+          - UIInterfaceOrientationPortrait
+        UIApplicationSupportsIndirectInputEvents: true
+        CFBundleURLTypes:
+          - CFBundleTypeRole: Editor
+            CFBundleURLName: ch.apexperformance.APEX.auth
+            CFBundleURLSchemes:
+              - apex
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.apexperformance.APEX
+        PRODUCT_NAME: APEX
+        ASSETCATALOG_COMPILER_GLOBAL_ACCENT_COLOR_NAME: AccentColor
+        ASSETCATALOG_COMPILER_APPICON_NAME: AppIcon
+        TARGETED_DEVICE_FAMILY: "1"
+        SUPPORTS_MACCATALYST: NO
+        INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
+        INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        GENERATE_INFOPLIST_FILE: NO
+
+  APEXTests:
+    type: bundle.unit-test
+    platform: iOS
+    sources:
+      - path: APEXTests
+    dependencies:
+      - target: APEX
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.apexperformance.APEXTests
+        GENERATE_INFOPLIST_FILE: YES
+        TEST_HOST: $(BUILT_PRODUCTS_DIR)/APEX.app/$(BUNDLE_EXECUTABLE_FOLDER_PATH)/APEX
+        BUNDLE_LOADER: $(TEST_HOST)
+
+  APEXUITests:
+    type: bundle.ui-testing
+    platform: iOS
+    sources:
+      - path: APEXUITests
+    dependencies:
+      - target: APEX
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.apexperformance.APEXUITests
+        GENERATE_INFOPLIST_FILE: YES
+
+schemes:
+  APEX:
+    build:
+      targets:
+        APEX: all
+        APEXTests: [test]
+        APEXUITests: [test]
+    run:
+      config: Debug
+    test:
+      config: Debug
+      gatherCoverageData: true
+      targets:
+        - name: APEXTests
+        - name: APEXUITests
+    archive:
+      config: Release

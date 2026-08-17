@@ -1,0 +1,1515 @@
+import Foundation
+import Observation
+import UIKit
+
+@MainActor
+@Observable
+final class AppSession {
+    var route: AppRoute = .launching
+    var selectedPersona: Persona?
+    var data: DashboardData = .empty
+    var isBusy = false
+    var isRefreshing = false
+    var alertMessage: String?
+    var lastSyncAt: Date?
+    var pendingSyncCount = 0
+    var navigationPath: [PortalDestination] = []
+
+    private let service = SupabaseService.shared
+    private let offlineStore = OfflineStore.shared
+    private let defaults = UserDefaults.standard
+    private var bootstrapped = false
+    private var realtimeDebounceTask: Task<Void, Never>?
+
+    var profile: Profile? { data.profile }
+    var isAuthenticated: Bool { data.profile != nil }
+    var interfaceMode: PortalUIMode { PortalUIMode.current(from: data.settings) }
+
+    func bootstrap() async {
+        guard !bootstrapped else { return }
+        bootstrapped = true
+
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") {
+            LanguageState.shared.language = .english
+            data = APEXDebugFixture.dashboard()
+            selectedPersona = .constantine
+            route = .portal
+            return
+        }
+        #endif
+
+        if let userID = await service.currentUserID() {
+            if let cached = try? await offlineStore.loadDashboard(for: userID),
+               cached.profile?.userID == userID {
+                data = cached
+                selectedPersona = cached.profile?.persona
+                route = .portal
+            }
+            do {
+                await flushPendingChanges(for: userID)
+                try await refreshDashboard(expectedUserID: userID)
+                selectedPersona = data.profile?.persona
+                route = .portal
+                await startRealtimeSync()
+                return
+            } catch {
+                if data.profile?.userID == userID {
+                    alertMessage = "APEX is offline. Your last synced data and new entries remain available."
+                    return
+                }
+            }
+        }
+
+        route = .persona
+    }
+
+    func choose(_ persona: Persona) {
+        selectedPersona = persona
+        route = .login(persona)
+    }
+
+    func returnToPersonas() {
+        selectedPersona = nil
+        route = .persona
+    }
+
+    func signIn(email: String, password: String) async {
+        guard let expected = selectedPersona else { return }
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let userID = try await service.signIn(email: email, password: password)
+            try await refreshDashboard(expectedUserID: userID)
+            guard let actual = data.profile?.persona else {
+                throw APEXServiceError.configurationMissing
+            }
+            guard actual == expected else {
+                try await service.signOut()
+                data = .empty
+                throw APEXServiceError.personaMismatch(expected: expected, actual: actual)
+            }
+            defaults.set(actual.rawValue, forKey: "apex.lastPersona")
+            route = .portal
+            await startRealtimeSync()
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    func signOut() async {
+        isBusy = true
+        defer { isBusy = false }
+        do { try await service.signOut() }
+        catch { alertMessage = error.localizedDescription }
+        data = .empty
+        pendingSyncCount = 0
+        navigationPath.removeAll()
+        selectedPersona = nil
+        route = .persona
+    }
+
+    func refreshDashboard(expectedUserID: UUID? = nil) async throws {
+        isRefreshing = true
+        defer { isRefreshing = false }
+        let next = try await service.loadDashboard()
+        if let expectedUserID, next.profile?.userID != expectedUserID {
+            throw APEXServiceError.configurationMissing
+        }
+        data = next
+        lastSyncAt = .now
+        if let userID = next.profile?.userID {
+            try? await offlineStore.saveDashboard(next, for: userID)
+            pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? 0
+        }
+        await considerWeeklyCalibration()
+    }
+
+    func refresh() async {
+        if let userID = profile?.userID { await flushPendingChanges(for: userID) }
+        do { try await refreshDashboard() }
+        catch { alertMessage = "APEX is using its last local view. \(error.localizedDescription)" }
+    }
+
+    func onAppBecameActive() async {
+        #if DEBUG
+        // UI automation uses a deterministic, local dashboard and must not
+        // replace it with an unauthenticated network refresh when XCTest
+        // brings the app to the foreground.
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
+        #endif
+        guard route == .portal else { return }
+        await refresh()
+    }
+
+    func handleAuthCallback(_ url: URL) async {
+        do {
+            try await service.handleAuthCallback(url)
+            try await refreshDashboard()
+            selectedPersona = data.profile?.persona
+            route = .portal
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    func toggleMeal(_ meal: Meal, on date: Date = .now) async {
+        guard let profile else { return }
+        let day = date.apexDateKey
+        if let existing = data.mealLogs.first(where: { $0.date == day && $0.mealID == meal.id }) {
+            data.mealLogs.removeAll { $0.id == existing.id }
+            await persistDelete(table: "meal_logs", id: existing.id)
+        } else {
+            let row = MealLog(id: UUID(), userID: profile.userID, date: day, mealID: meal.id, checkedAt: Date().ISO8601Format())
+            data.mealLogs.append(row)
+            await persistUpsert(row, table: "meal_logs", onConflict: "user_id,date,meal_id")
+        }
+    }
+
+    /// Mirrors the browser Simple Mode contract: one tap records both the
+    /// planned-meal completion and an exact structured nutrition snapshot.
+    /// The shared idempotency key lets web and iOS converge on one meal.
+    func togglePlannedMeal(_ prescription: AdaptiveMeal, on date: Date = .now) async {
+        guard let profile else { return }
+        let meal = prescription.source
+        let day = date.apexDateKey
+        let existingCheck = data.mealLogs.first { $0.date == day && $0.mealID == meal.id }
+        let existingStructured = data.loggedMeals.first {
+            $0.localDate == day && $0.sourcePlannedMealID == meal.id
+        }
+
+        if existingCheck != nil || existingStructured != nil {
+            if let existingStructured { await deleteLoggedMeal(existingStructured) }
+            if let existingCheck {
+                data.mealLogs.removeAll { $0.id == existingCheck.id }
+                await persistDelete(table: "meal_logs", id: existingCheck.id)
+            }
+            return
+        }
+
+        let now = Date().ISO8601Format()
+        let mealID = UUID()
+        let entryID = UUID()
+        let idempotencyKey = "simple-planned:\(profile.userID.uuidString.lowercased()):\(day):\(meal.id.uuidString.lowercased())"
+        let request = StructuredMealRequest(
+            id: mealID,
+            localDate: day,
+            mealSlot: plannedMealSlot(meal),
+            displayName: meal.name,
+            sourcePresetID: nil,
+            sourcePlannedMealID: meal.id,
+            loggedAt: now,
+            clientIdempotencyKey: idempotencyKey,
+            loggedAs: "planned",
+            replaceMealID: nil
+        )
+        let entry = StructuredFoodEntryRequest(
+            id: entryID,
+            foodID: nil,
+            sortOrder: 0,
+            snapshotName: "\(meal.name) · planned prescription",
+            snapshotBrand: "APEX plan",
+            snapshotPreparationState: "prepared",
+            snapshotNutritionBasis: "per_100g",
+            snapshotKcal100: Double(prescription.kcal),
+            snapshotProtein100: Double(prescription.proteinG),
+            snapshotCarbs100: Double(prescription.carbsG),
+            snapshotFat100: Double(prescription.fatG),
+            snapshotFibre100: nil,
+            snapshotSugar100: nil,
+            snapshotSaturatedFat100: nil,
+            snapshotSalt100: nil,
+            quantity: 1,
+            unit: "serving",
+            equivalentAmount: 100
+        )
+        let localMeal = LoggedMeal(
+            id: mealID,
+            userID: profile.userID,
+            localDate: day,
+            mealSlot: plannedMealSlot(meal),
+            displayName: meal.name,
+            sourcePresetID: nil,
+            sourcePlannedMealID: meal.id,
+            loggedAt: now,
+            clientIdempotencyKey: idempotencyKey,
+            loggedAs: "planned",
+            totalKcal: Double(prescription.kcal),
+            totalProteinG: Double(prescription.proteinG),
+            totalCarbsG: Double(prescription.carbsG),
+            totalFatG: Double(prescription.fatG)
+        )
+        let localEntry = LoggedFoodEntry(
+            id: entryID,
+            mealID: mealID,
+            userID: profile.userID,
+            foodID: nil,
+            sortOrder: 0,
+            snapshotName: "\(meal.name) · planned prescription",
+            snapshotBrand: "APEX plan",
+            snapshotPreparationState: "prepared",
+            snapshotNutritionBasis: "per_100g",
+            snapshotKcal100: Double(prescription.kcal),
+            snapshotProtein100: Double(prescription.proteinG),
+            snapshotCarbs100: Double(prescription.carbsG),
+            snapshotFat100: Double(prescription.fatG),
+            quantity: 1,
+            unit: "serving",
+            equivalentAmount: 100,
+            kcal: Double(prescription.kcal),
+            proteinG: Double(prescription.proteinG),
+            carbsG: Double(prescription.carbsG),
+            fatG: Double(prescription.fatG)
+        )
+        let check = MealLog(
+            id: UUID(), userID: profile.userID, date: day,
+            mealID: meal.id, checkedAt: now
+        )
+
+        data.loggedMeals.insert(localMeal, at: 0)
+        data.loggedFoodEntries.insert(localEntry, at: 0)
+        data.mealLogs.append(check)
+        recalculateLocalStructuredDay(day, userID: profile.userID)
+        await persistUpsert(check, table: "meal_logs", onConflict: "user_id,date,meal_id")
+
+        do {
+            _ = try await service.logStructuredMeal(meal: request, entries: [entry])
+            try await refreshDashboard()
+        } catch {
+            do {
+                let payload = StructuredMealRPCPayload(pMeal: request, pEntries: [entry])
+                try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
+                pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+                alertMessage = "Food saved on this iPhone and queued for Supabase."
+            } catch {
+                alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func toggleSupplement(_ supplement: Supplement, on date: Date = .now) async {
+        guard let profile else { return }
+        let day = date.apexDateKey
+        if let existing = data.supplementLogs.first(where: { $0.date == day && $0.supplementID == supplement.id }) {
+            data.supplementLogs.removeAll { $0.id == existing.id }
+            await persistDelete(table: "supplement_logs", id: existing.id)
+        } else {
+            let row = SupplementLog(id: UUID(), userID: profile.userID, date: day, supplementID: supplement.id, checkedAt: Date().ISO8601Format())
+            data.supplementLogs.append(row)
+            await persistUpsert(row, table: "supplement_logs", onConflict: "user_id,date,supplement_id")
+        }
+    }
+
+    func updateDailyLog(_ row: DailyLog) async {
+        if let index = data.dailyLogs.firstIndex(where: { $0.id == row.id }) {
+            data.dailyLogs[index] = row
+        } else {
+            data.dailyLogs.append(row)
+        }
+        await persistUpsert(row, table: "daily_logs", onConflict: "user_id,date")
+    }
+
+    func setActivityLevel(_ level: ActivityLevel) async {
+        guard var profile else { return }
+        profile.activityLevel = level
+        profile.updatedAt = Date().ISO8601Format()
+        data.profile = profile
+        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+    }
+
+    func setGoal(_ goal: Goal) async {
+        guard var profile else { return }
+        profile.goal = goal
+        profile.updatedAt = Date().ISO8601Format()
+        data.profile = profile
+        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+    }
+
+    func updateSettings(_ transform: (inout UserSettings) -> Void) async {
+        guard var settings = data.settings else { return }
+        transform(&settings)
+        data.settings = settings
+        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+    }
+
+    func setInterfaceMode(_ mode: PortalUIMode) async {
+        await updateSettings { settings in
+            settings.addons["uiMode"] = .string(mode.rawValue)
+        }
+    }
+
+    func applyHealthSnapshot(_ snapshot: HealthSnapshot) async {
+        guard let profile else { return }
+        if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
+            let existing = data.healthMetrics.first { $0.date == snapshot.date }
+            let metric = HealthMetric(
+                id: existing?.id ?? UUID(),
+                userID: profile.userID,
+                date: snapshot.date,
+                weightKG: snapshot.weightKG ?? existing?.weightKG,
+                vo2Max: snapshot.vo2Max ?? existing?.vo2Max,
+                restingHeartRate: snapshot.restingHeartRate ?? existing?.restingHeartRate
+            )
+            data.healthMetrics.removeAll { $0.id == metric.id }
+            data.healthMetrics.append(metric)
+            await persistUpsert(metric, table: "health_metrics", onConflict: "user_id,date")
+        }
+
+        if let dietaryWaterL = snapshot.dietaryWaterL, dietaryWaterL > 0 {
+            let existing = data.dailyLogs.first { $0.date == snapshot.date }
+            let row = DailyLog(
+                id: existing?.id ?? UUID(), userID: profile.userID, date: snapshot.date,
+                kcal: existing?.kcal, proteinG: existing?.proteinG,
+                fatG: existing?.fatG, carbsG: existing?.carbsG,
+                waterL: max(existing?.waterL ?? 0, dietaryWaterL),
+                estimatedTDEE: existing?.estimatedTDEE,
+                computedPAL: existing?.computedPAL,
+                activityMode: existing?.activityMode ?? "quick",
+                weightKG: snapshot.weightKG ?? existing?.weightKG
+            )
+            await updateDailyLog(row)
+        }
+
+        for workout in snapshot.workouts {
+            await importHealthWorkoutIfNeeded(workout)
+        }
+    }
+
+    func addActivity(
+        type: ActivityType,
+        date: Date,
+        quantity: Double = 1,
+        durationMinutes: Int? = nil,
+        distanceKM: Double? = nil,
+        watchKcal: Double? = nil,
+        source: String = "manual"
+    ) async {
+        guard let profile else { return }
+        let now = Date().ISO8601Format()
+        let log = ActivityLog(
+            id: UUID(),
+            userID: profile.userID,
+            date: date.apexDateKey,
+            typeID: type.id,
+            quantity: quantity,
+            durationMinutes: durationMinutes,
+            distanceKM: distanceKM,
+            watchKcal: watchKcal,
+            computedKcal: EnergyEngine.blockCalories(
+                type: type,
+                quantity: quantity,
+                durationMinutes: durationMinutes,
+                distanceKM: distanceKM,
+                watchKcal: watchKcal,
+                weightKG: profile.weightKG
+            ),
+            source: source,
+            reconciled: false,
+            createdAt: now,
+            updatedAt: now
+        )
+        data.activityLogs.append(log)
+        await persistUpsert(log, table: "activity_logs")
+    }
+
+    func prefillEventActivitiesIfNeeded(for date: Date) async {
+        guard let profile else { return }
+        let day = date.apexDateKey
+        let event = data.events.first {
+            $0.userID == profile.userID
+                && $0.type == "filming_championship"
+                && $0.startDate <= day
+                && $0.endDate >= day
+        }
+        guard let event else { return }
+        guard data.activityLogs.contains(where: { $0.date == day }) == false else { return }
+
+        let marker = "apex.event-prefill.\(profile.userID.uuidString).\(event.id.uuidString).\(day)"
+        guard defaults.bool(forKey: marker) == false else { return }
+        defaults.set(true, forKey: marker)
+
+        if let filming = data.activityTypes.first(where: { $0.id == "gimbal-filming" }) {
+            await addActivity(
+                type: filming,
+                date: date,
+                durationMinutes: 8 * 60,
+                source: "event_prefill"
+            )
+        }
+        if let travel = data.activityTypes.first(where: { $0.id == "travel-day" }) {
+            await addActivity(
+                type: travel,
+                date: date,
+                durationMinutes: 2 * 60,
+                source: "event_prefill"
+            )
+        }
+    }
+
+    func removeActivity(_ log: ActivityLog) async {
+        data.activityLogs.removeAll { $0.id == log.id }
+        await persistDelete(table: "activity_logs", id: log.id)
+    }
+
+    func clearActivities(on date: Date) async {
+        let logs = data.activityLogs.filter { $0.date == date.apexDateKey }
+        for log in logs { await removeActivity(log) }
+    }
+
+    func repeatYesterday(onto date: Date) async {
+        guard let yesterday = Calendar.current.date(byAdding: .day, value: -1, to: date) else { return }
+        let previous = data.activityLogs.filter { $0.date == yesterday.apexDateKey }
+        for log in previous {
+            guard let type = data.activityTypes.first(where: { $0.id == log.typeID }) else { continue }
+            await addActivity(
+                type: type,
+                date: date,
+                quantity: log.quantity,
+                durationMinutes: log.durationMinutes,
+                distanceKM: log.distanceKM,
+                watchKcal: log.watchKcal,
+                source: "manual"
+            )
+        }
+    }
+
+    func finalizeActivityDay(_ date: Date, targets: NutritionTargets) async {
+        guard let profile else { return }
+        let day = date.apexDateKey
+        let indices = data.activityLogs.indices.filter { data.activityLogs[$0].date == day }
+        for index in indices {
+            data.activityLogs[index].reconciled = true
+            data.activityLogs[index].updatedAt = Date().ISO8601Format()
+            await persistUpsert(data.activityLogs[index], table: "activity_logs")
+        }
+        let existing = data.dailyLogs.first { $0.date == day }
+        let row = DailyLog(
+            id: existing?.id ?? UUID(),
+            userID: profile.userID,
+            date: day,
+            kcal: existing?.kcal,
+            proteinG: existing?.proteinG,
+            fatG: existing?.fatG,
+            carbsG: existing?.carbsG,
+            waterL: existing?.waterL ?? 0,
+            estimatedTDEE: targets.tdee,
+            computedPAL: targets.pal,
+            activityMode: indices.isEmpty ? "quick" : "precise",
+            weightKG: existing?.weightKG ?? profile.weightKG,
+            nutritionSource: existing?.nutritionSource ?? "manual",
+            manualKcal: existing?.manualKcal,
+            manualProteinG: existing?.manualProteinG,
+            manualFatG: existing?.manualFatG,
+            manualCarbsG: existing?.manualCarbsG
+        )
+        await updateDailyLog(row)
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    func lookupFood(barcode: String) async throws -> FoodLookupEnvelope {
+        try await service.lookupFood(barcode: barcode)
+    }
+
+    func searchFoods(query: String) async throws -> [Food] {
+        let remote = try await service.searchFoods(query: query)
+        return remote.results ?? []
+    }
+
+    func logFood(
+        _ food: Food,
+        amount: Double,
+        unit: String,
+        mealSlot: String,
+        date: Date
+    ) async throws {
+        guard let profile else { throw APEXServiceError.configurationMissing }
+        let equivalentAmount: Double
+        switch unit {
+        case "piece": equivalentAmount = amount * (food.pieceGramsOrML ?? 0)
+        case "serving": equivalentAmount = amount * (food.servingGramsOrML ?? 0)
+        default: equivalentAmount = amount
+        }
+        guard equivalentAmount > 0, food.kcal100 != nil else {
+            throw APEXServiceError.incompleteFood
+        }
+
+        let now = Date().ISO8601Format()
+        let mealID = UUID()
+        let entryID = UUID()
+        let nutrients = food.nutrients(forEquivalentAmount: equivalentAmount)
+        let key = "ios-food-\(mealID.uuidString.lowercased())"
+        let mealRequest = StructuredMealRequest(
+            id: mealID,
+            localDate: date.apexDateKey,
+            mealSlot: mealSlot,
+            displayName: food.name,
+            sourcePresetID: nil,
+            sourcePlannedMealID: nil,
+            loggedAt: now,
+            clientIdempotencyKey: key,
+            loggedAs: "custom",
+            replaceMealID: nil
+        )
+        let entryRequest = StructuredFoodEntryRequest(
+            id: entryID,
+            foodID: UUID(uuidString: food.id),
+            sortOrder: 0,
+            snapshotName: food.name,
+            snapshotBrand: food.brand,
+            snapshotPreparationState: food.preparationState,
+            snapshotNutritionBasis: food.nutritionBasis,
+            snapshotKcal100: food.kcal100 ?? 0,
+            snapshotProtein100: food.protein100 ?? 0,
+            snapshotCarbs100: food.carbs100 ?? 0,
+            snapshotFat100: food.fat100 ?? 0,
+            snapshotFibre100: food.fibre100,
+            snapshotSugar100: food.sugar100,
+            snapshotSaturatedFat100: food.saturatedFat100,
+            snapshotSalt100: food.salt100,
+            quantity: amount,
+            unit: unit,
+            equivalentAmount: equivalentAmount
+        )
+        let localMeal = LoggedMeal(
+            id: mealID,
+            userID: profile.userID,
+            localDate: date.apexDateKey,
+            mealSlot: mealSlot,
+            displayName: food.name,
+            sourcePresetID: nil,
+            sourcePlannedMealID: nil,
+            loggedAt: now,
+            clientIdempotencyKey: key,
+            loggedAs: "custom",
+            totalKcal: nutrients.kcal.rounded(),
+            totalProteinG: nutrients.proteinG,
+            totalCarbsG: nutrients.carbsG,
+            totalFatG: nutrients.fatG
+        )
+        let localEntry = LoggedFoodEntry(
+            id: entryID,
+            mealID: mealID,
+            userID: profile.userID,
+            foodID: UUID(uuidString: food.id),
+            sortOrder: 0,
+            snapshotName: food.name,
+            snapshotBrand: food.brand,
+            snapshotPreparationState: food.preparationState,
+            snapshotNutritionBasis: food.nutritionBasis,
+            snapshotKcal100: food.kcal100 ?? 0,
+            snapshotProtein100: food.protein100 ?? 0,
+            snapshotCarbs100: food.carbs100 ?? 0,
+            snapshotFat100: food.fat100 ?? 0,
+            quantity: amount,
+            unit: unit,
+            equivalentAmount: equivalentAmount,
+            kcal: nutrients.kcal.rounded(),
+            proteinG: nutrients.proteinG,
+            carbsG: nutrients.carbsG,
+            fatG: nutrients.fatG
+        )
+
+        data.loggedMeals.insert(localMeal, at: 0)
+        data.loggedFoodEntries.insert(localEntry, at: 0)
+        recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
+        await saveLocalSnapshot()
+
+        do {
+            _ = try await service.logStructuredMeal(meal: mealRequest, entries: [entryRequest])
+            try await refreshDashboard()
+        } catch {
+            let payload = StructuredMealRPCPayload(pMeal: mealRequest, pEntries: [entryRequest])
+            let operation = try OfflineOperation.rpc("log_structured_meal", params: payload)
+            try await offlineStore.enqueue(operation, for: profile.userID)
+            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+            alertMessage = "Food saved on this iPhone and queued for Supabase."
+        }
+    }
+
+    func deleteLoggedMeal(_ meal: LoggedMeal) async {
+        guard let profile else { return }
+        data.loggedMeals.removeAll { $0.id == meal.id }
+        data.loggedFoodEntries.removeAll { $0.mealID == meal.id }
+        recalculateLocalStructuredDay(meal.localDate, userID: profile.userID)
+        await saveLocalSnapshot()
+        do {
+            try await service.deleteStructuredMeal(meal.id)
+            try await refreshDashboard()
+        } catch {
+            do {
+                let operation = try OfflineOperation.rpc(
+                    "delete_structured_meal",
+                    params: ["p_meal_id": meal.id.uuidString]
+                )
+                try await offlineStore.enqueue(operation, for: profile.userID)
+                pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+                alertMessage = "Meal removal is queued and will sync automatically."
+            } catch {
+                alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func saveProgressPhoto(
+        original: Data,
+        thumbnail: Data,
+        width: Int,
+        height: Int,
+        pose: String,
+        note: String,
+        date: Date = .now
+    ) async throws {
+        guard let profile else { throw APEXServiceError.configurationMissing }
+        let id = UUID()
+        let owner = profile.userID.uuidString.lowercased()
+        let month = String(date.apexDateKey.prefix(7))
+        let stem = id.uuidString.lowercased()
+        let originalPath = "\(owner)/\(month)/\(stem)-original.jpg"
+        let thumbnailPath = "\(owner)/\(month)/\(stem)-thumb.jpg"
+        let row = ProgressPhoto(
+            id: id,
+            userID: profile.userID,
+            localDate: date.apexDateKey,
+            capturedAt: date.ISO8601Format(),
+            pose: pose,
+            storagePath: originalPath,
+            thumbnailPath: thumbnailPath,
+            width: width,
+            height: height,
+            aspectRatio: Double(width) / Double(max(height, 1)),
+            cropX: 0.5,
+            cropY: 0.5,
+            cropScale: 1,
+            referencePhotoID: data.progressPhotos.first(where: { $0.pose == pose })?.id,
+            weightKG: profile.weightKG,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            clientIdempotencyKey: "ios-progress-\(stem)"
+        )
+        try await service.uploadProgressPhoto(row: row, original: original, thumbnail: thumbnail)
+        data.progressPhotos.insert(row, at: 0)
+        await saveLocalSnapshot()
+    }
+
+    func signedProgressURL(for photo: ProgressPhoto, thumbnail: Bool) async throws -> URL {
+        try await service.signedProgressURL(path: thumbnail ? photo.thumbnailPath : photo.storagePath)
+    }
+
+    func completeWorkout(day: ProgramDay, exercises: [Exercise], lite: Bool) async {
+        guard let profile else { return }
+        let now = Date().ISO8601Format()
+        let isDeload = TrainingAdjustmentEngine.isDeload(
+            on: Date().apexDateKey,
+            marks: data.deloadMarks ?? []
+        )
+        let workout = WorkoutSession(
+            id: UUID(), userID: profile.userID, date: Date().apexDateKey,
+            programDayID: day.id, isLite: lite, isDeload: isDeload,
+            isEventRecovery: false, completed: true, qualityScore: 1,
+            startedAt: now, completedAt: now, notes: "Completed in APEX iOS"
+        )
+        let logs = exercises.flatMap { exercise in
+            (1...max(exercise.sets, 1)).map { set in
+                WorkoutLog(
+                    id: UUID(), userID: profile.userID, sessionID: workout.id,
+                    exerciseID: exercise.id, exerciseName: exercise.name,
+                    setNumber: set, weightKG: nil,
+                    reps: exercise.repMax > 0 ? exercise.repMax : nil,
+                    rir: 2, skipped: false, overrideFlag: false, createdAt: now
+                )
+            }
+        }
+        data.workoutSessions.append(workout)
+        data.workoutLogs.append(contentsOf: logs)
+        await persistUpsert(workout, table: "workout_sessions")
+        for log in logs {
+            await persistUpsert(log, table: "workout_logs")
+        }
+        if let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
+            await addActivity(type: activityType, date: .now, durationMinutes: day.estimatedMinutes)
+        }
+    }
+
+    func toggleDeload(on date: Date = .now) async {
+        guard let profile else { return }
+        let day = date.apexDateKey
+        if let existing = (data.deloadMarks ?? []).first(where: { $0.date == day }) {
+            data.deloadMarks?.removeAll { $0.id == existing.id }
+            await persistDelete(table: "deload_marks", id: existing.id)
+        } else {
+            let mark = DeloadMark(id: UUID(), userID: profile.userID, date: day)
+            if data.deloadMarks == nil { data.deloadMarks = [] }
+            data.deloadMarks?.append(mark)
+            await persistUpsert(mark, table: "deload_marks", onConflict: "user_id,date")
+        }
+    }
+
+    func exportOrbitData() throws -> URL {
+        guard let profile else { throw APEXServiceError.configurationMissing }
+        return try OrbitPrivateArchive
+            .ownerScoped(from: data, userID: profile.userID)
+            .writeTemporaryFile()
+    }
+
+    func deleteAllOrbitData() async {
+        guard let profile else { return }
+
+        let posters = data.orbitPosters.filter { $0.userID == profile.userID }
+        let segments = data.orbitSegments.filter { $0.userID == profile.userID }
+        let runs = data.orbitRuns.filter { $0.userID == profile.userID }
+        let campaignSessions = data.orbitCampaignSessions.filter { $0.userID == profile.userID }
+        let campaigns = data.orbitCampaigns.filter { $0.userID == profile.userID }
+        let inductions = data.orbitInductions.filter { $0.userID == profile.userID }
+        let routes = data.orbitRoutes.filter { $0.userID == profile.userID }
+        let shoes = data.orbitShoes.filter { $0.userID == profile.userID }
+
+        // Clear the local owner-scoped view first. Each remote delete then uses
+        // the normal protected offline outbox if connectivity disappears.
+        data.orbitPosters.removeAll { $0.userID == profile.userID }
+        data.orbitSegments.removeAll { $0.userID == profile.userID }
+        data.orbitRuns.removeAll { $0.userID == profile.userID }
+        data.orbitCampaignSessions.removeAll { $0.userID == profile.userID }
+        data.orbitCampaigns.removeAll { $0.userID == profile.userID }
+        data.orbitInductions.removeAll { $0.userID == profile.userID }
+        data.orbitRoutes.removeAll { $0.userID == profile.userID }
+        data.orbitShoes.removeAll { $0.userID == profile.userID }
+        OrbitLocationManager.shared.cancel()
+        await saveLocalSnapshot()
+
+        for item in posters { await persistDelete(table: "orbit_posters", id: item.id) }
+        for item in segments { await persistDelete(table: "orbit_segments", id: item.id) }
+        for item in runs { await persistDelete(table: "orbit_runs", id: item.id) }
+        for item in campaignSessions { await persistDelete(table: "orbit_campaign_sessions", id: item.id) }
+        for item in campaigns { await persistDelete(table: "orbit_campaigns", id: item.id) }
+        for item in inductions { await persistDelete(table: "orbit_inductions", id: item.id) }
+        for item in routes { await persistDelete(table: "orbit_routes", id: item.id) }
+        for item in shoes { await persistDelete(table: "orbit_shoes", id: item.id) }
+        alertMessage = "Orbit data deleted for this profile."
+    }
+
+    func saveOrbitRun(
+        mission: String,
+        startedAt: Date,
+        endedAt: Date,
+        samples: [OrbitLocationSample],
+        distanceM: Double,
+        movingSeconds: TimeInterval,
+        pauses: [OrbitPauseInterval] = [],
+        manualLapsM: [Double] = [],
+        routeID: UUID? = nil,
+        campaignSessionID: UUID? = nil,
+        shoeID: UUID? = nil
+    ) async -> OrbitRunRecord? {
+        guard let profile else { return nil }
+        let metrics = OrbitRunMetricsEngine.calculate(
+            samples: samples,
+            elapsedSeconds: endedAt.timeIntervalSince(startedAt),
+            movingSeconds: movingSeconds,
+            weightKG: profile.weightKG
+        )
+        let sampleJSON = metrics.acceptedSamples.map { sample in
+            JSONValue.object([
+                "lat": .number(sample.latitude),
+                "lng": .number(sample.longitude),
+                "elevation_m": sample.altitude.isFinite ? .number(sample.altitude) : .null,
+                "recorded_at": .number(sample.timestamp.timeIntervalSince1970 * 1_000),
+                "accuracy_m": .number(sample.horizontalAccuracy),
+                "heart_rate_bpm": .null,
+                "cadence_spm": .null
+            ])
+        }
+        let runID = UUID()
+        let now = Date().ISO8601Format()
+        let run = OrbitRunRecord(
+            id: runID, userID: profile.userID,
+            clientIdempotencyKey: "ios-run-\(runID.uuidString.lowercased())",
+            localDate: startedAt.apexDateKey,
+            startedAt: startedAt.ISO8601Format(), endedAt: endedAt.ISO8601Format(),
+            mission: mission, routeID: routeID, campaignSessionID: campaignSessionID, shoeID: shoeID,
+            samples: sampleJSON,
+            pauses: pauses.map(\.json),
+            manualLapsM: manualLapsM.map { .number($0) },
+            metrics: metrics.json,
+            checkIn: [
+                "perceived_effort": .null,
+                "legs": .null,
+                "discomfort": .null,
+                "note": .string("")
+            ], nutritionAdjustmentAppliedAt: nil,
+            status: "completed", createdAt: now, updatedAt: now
+        )
+        data.orbitRuns.insert(run, at: 0)
+        await persistUpsert(run, table: "orbit_runs", onConflict: "user_id,client_idempotency_key")
+        if let campaignSessionID,
+           let index = data.orbitCampaignSessions.firstIndex(where: { $0.id == campaignSessionID }) {
+            data.orbitCampaignSessions[index].status = "completed"
+            data.orbitCampaignSessions[index].completionRunID = runID
+            data.orbitCampaignSessions[index].updatedAt = now
+            await persistUpsert(data.orbitCampaignSessions[index], table: "orbit_campaign_sessions")
+        }
+        await integrateOrbitRun(run)
+        return run
+    }
+
+    func updateOrbitRunCheckIn(
+        _ run: OrbitRunRecord,
+        perceivedEffort: Int?,
+        legs: String?,
+        discomfort: String?,
+        note: String
+    ) async -> OrbitRunRecord {
+        let updated = OrbitRunRecord(
+            id: run.id,
+            userID: run.userID,
+            clientIdempotencyKey: run.clientIdempotencyKey,
+            localDate: run.localDate,
+            startedAt: run.startedAt,
+            endedAt: run.endedAt,
+            mission: run.mission,
+            routeID: run.routeID,
+            campaignSessionID: run.campaignSessionID,
+            shoeID: run.shoeID,
+            samples: run.samples,
+            pauses: run.pauses,
+            manualLapsM: run.manualLapsM,
+            metrics: run.metrics,
+            checkIn: [
+                "perceived_effort": perceivedEffort.map { .number(Double($0)) } ?? .null,
+                "legs": legs.map { .string($0) } ?? .null,
+                "discomfort": discomfort.map { .string($0) } ?? .null,
+                "note": .string(note.trimmingCharacters(in: .whitespacesAndNewlines))
+            ],
+            nutritionAdjustmentAppliedAt: run.nutritionAdjustmentAppliedAt,
+            status: run.status,
+            createdAt: run.createdAt,
+            updatedAt: Date().ISO8601Format()
+        )
+        if let index = data.orbitRuns.firstIndex(where: { $0.id == run.id }) {
+            data.orbitRuns[index] = updated
+        }
+        await persistUpsert(updated, table: "orbit_runs", onConflict: "user_id,client_idempotency_key")
+        await adaptCampaignAfterRun(updated)
+        return updated
+    }
+
+    func applyOrbitNutritionAdjustment(
+        to run: OrbitRunRecord,
+        foodSuggestion: OrbitFoodMemorySuggestion?
+    ) async -> OrbitRunRecord {
+        guard let profile, run.userID == profile.userID,
+              run.nutritionAdjustmentAppliedAt == nil
+        else { return run }
+        let adjustment = OrbitIntegrations.nutritionAdjustment(run: run, weightKG: profile.weightKG)
+        guard adjustment.kcal > 0 else { return run }
+
+        let kcal = Int((foodSuggestion?.nutrients.kcal ?? Double(adjustment.kcal)).rounded())
+        let protein = Int((foodSuggestion?.nutrients.proteinG ?? Double(adjustment.proteinG)).rounded())
+        let fat = Int((foodSuggestion?.nutrients.fatG ?? Double(adjustment.fatG)).rounded())
+        let carbs = Int((foodSuggestion?.nutrients.carbsG ?? Double(adjustment.carbsG)).rounded())
+        let existing = data.dailyLogs.first { $0.date == run.localDate }
+        let day = DailyLog(
+            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: run.localDate, userID: profile.userID),
+            userID: profile.userID,
+            date: run.localDate,
+            kcal: (existing?.kcal ?? 0) + kcal,
+            proteinG: (existing?.proteinG ?? 0) + protein,
+            fatG: (existing?.fatG ?? 0) + fat,
+            carbsG: (existing?.carbsG ?? 0) + carbs,
+            waterL: existing?.waterL ?? 0,
+            estimatedTDEE: existing?.estimatedTDEE,
+            computedPAL: existing?.computedPAL,
+            activityMode: existing?.activityMode ?? "precise",
+            weightKG: existing?.weightKG ?? profile.weightKG,
+            nutritionSource: "manual",
+            manualKcal: (existing?.manualKcal ?? existing?.kcal ?? 0) + kcal,
+            manualProteinG: (existing?.manualProteinG ?? existing?.proteinG ?? 0) + protein,
+            manualFatG: (existing?.manualFatG ?? existing?.fatG ?? 0) + fat,
+            manualCarbsG: (existing?.manualCarbsG ?? existing?.carbsG ?? 0) + carbs
+        )
+        await updateDailyLog(day)
+
+        let updated = OrbitRunRecord(
+            id: run.id, userID: run.userID, clientIdempotencyKey: run.clientIdempotencyKey,
+            localDate: run.localDate, startedAt: run.startedAt, endedAt: run.endedAt,
+            mission: run.mission, routeID: run.routeID, campaignSessionID: run.campaignSessionID,
+            shoeID: run.shoeID, samples: run.samples, pauses: run.pauses,
+            manualLapsM: run.manualLapsM, metrics: run.metrics, checkIn: run.checkIn,
+            nutritionAdjustmentAppliedAt: Date().ISO8601Format(), status: run.status,
+            createdAt: run.createdAt, updatedAt: Date().ISO8601Format()
+        )
+        data.orbitRuns.removeAll { $0.id == run.id }
+        data.orbitRuns.insert(updated, at: 0)
+        await persistUpsert(updated, table: "orbit_runs", onConflict: "user_id,client_idempotency_key")
+        return updated
+    }
+
+    func saveOrbitInduction(_ induction: OrbitInduction) async {
+        if let index = data.orbitInductions.firstIndex(where: { $0.id == induction.id }) {
+            data.orbitInductions[index] = induction
+        } else {
+            data.orbitInductions.insert(induction, at: 0)
+        }
+        await persistUpsert(induction, table: "orbit_inductions")
+    }
+
+    func completeOrbitInduction(_ induction: OrbitInduction) async -> OrbitCampaign {
+        await saveOrbitInduction(induction)
+        let generated = OrbitCampaignEngine.createCampaign(
+            induction: induction,
+            programDays: data.programDays,
+            events: data.events
+        )
+        data.orbitCampaigns.removeAll { $0.id == generated.campaign.id }
+        data.orbitCampaigns.insert(generated.campaign, at: 0)
+        let generatedIDs = Set(generated.sessions.map(\.id))
+        data.orbitCampaignSessions.removeAll { generatedIDs.contains($0.id) }
+        data.orbitCampaignSessions.append(contentsOf: generated.sessions)
+        await persistUpsert(
+            generated.campaign,
+            table: "orbit_campaigns",
+            onConflict: "user_id,client_idempotency_key"
+        )
+        for item in generated.sessions {
+            await persistUpsert(item, table: "orbit_campaign_sessions")
+        }
+        return generated.campaign
+    }
+
+    func markOrbitCampaignSessionMissed(_ session: OrbitCampaignSession) async {
+        guard let campaign = data.orbitCampaigns.first(where: { $0.id == session.campaignID }) else { return }
+        let bundle = OrbitCampaignEngine.adaptAfterMissed(
+            campaign: campaign,
+            sessions: data.orbitCampaignSessions.filter { $0.campaignID == campaign.id },
+            missedID: session.id
+        )
+        await saveCampaignBundle(bundle.campaign, sessions: bundle.sessions)
+    }
+
+    func chooseOrbitCampaignVersion(_ session: OrbitCampaignSession, useOriginal: Bool) async {
+        guard let campaignIndex = data.orbitCampaigns.firstIndex(where: { $0.id == session.campaignID }) else { return }
+        var updatedSession = session
+        if useOriginal { updatedSession.adapted = updatedSession.original }
+        updatedSession.userOverride = true
+        if useOriginal { updatedSession.adaptationReason = "User kept the original prescription." }
+        updatedSession.updatedAt = Date().ISO8601Format()
+        if let index = data.orbitCampaignSessions.firstIndex(where: { $0.id == session.id }) {
+            data.orbitCampaignSessions[index] = updatedSession
+        }
+
+        var campaign = data.orbitCampaigns[campaignIndex]
+        campaign.adaptations = campaign.adaptations.map { value in
+            guard case .object(var object) = value,
+                  object["session_id"]?.stringValue == session.id.uuidString.lowercased()
+            else { return value }
+            object["accepted"] = .bool(useOriginal == false)
+            return .object(object)
+        }
+        campaign.updatedAt = Date().ISO8601Format()
+        data.orbitCampaigns[campaignIndex] = campaign
+        await persistUpsert(updatedSession, table: "orbit_campaign_sessions")
+        await persistUpsert(campaign, table: "orbit_campaigns", onConflict: "user_id,client_idempotency_key")
+    }
+
+    func saveOrbitRoute(
+        _ candidate: OrbitRouteCandidate,
+        name: String,
+        mission: String,
+        surface: String,
+        shape: String
+    ) async -> OrbitRouteRecord? {
+        guard let profile else { return nil }
+        let id = UUID()
+        let now = Date().ISO8601Format()
+        let points = candidate.points.map { point in
+            JSONValue.object([
+                "lat": .number(point.lat),
+                "lng": .number(point.lng),
+                "elevation_m": point.elevationM.map { .number($0) } ?? .null
+            ])
+        }
+        let route = OrbitRouteRecord(
+            id: id,
+            userID: profile.userID,
+            clientIdempotencyKey: "ios-route-\(id.uuidString.lowercased())",
+            name: name,
+            note: candidate.explanation,
+            points: points,
+            distanceM: candidate.distanceM,
+            elevationGainM: candidate.elevationGainM,
+            surface: surface,
+            terrain: candidate.terrain,
+            shape: shape,
+            navigationComplexity: candidate.navigationComplexity,
+            familiarityPercent: nil,
+            favourite: false,
+            rating: nil,
+            missionTags: [mission.lowercased().replacingOccurrences(of: " ", with: "_")],
+            preferredSections: [],
+            avoidedSections: [],
+            provider: "BRouter and OpenStreetMap",
+            attribution: "Route data © OpenStreetMap contributors · routing by BRouter",
+            createdAt: now,
+            updatedAt: now
+        )
+        data.orbitRoutes.insert(route, at: 0)
+        await persistUpsert(route, table: "orbit_routes", onConflict: "user_id,client_idempotency_key")
+        return route
+    }
+
+    func updateOrbitRoute(_ route: OrbitRouteRecord) async {
+        var updated = route
+        updated.updatedAt = Date().ISO8601Format()
+        data.orbitRoutes.removeAll { $0.id == updated.id }
+        data.orbitRoutes.insert(updated, at: 0)
+        await persistUpsert(updated, table: "orbit_routes", onConflict: "user_id,client_idempotency_key")
+    }
+
+    func duplicateOrbitRoute(_ route: OrbitRouteRecord) async -> OrbitRouteRecord? {
+        guard let profile else { return nil }
+        var copy = route
+        let id = UUID()
+        let now = Date().ISO8601Format()
+        copy = OrbitRouteRecord(
+            id: id,
+            userID: profile.userID,
+            clientIdempotencyKey: "ios-route-\(id.uuidString.lowercased())",
+            name: "\(route.name) copy",
+            note: route.note,
+            points: route.points,
+            distanceM: route.distanceM,
+            elevationGainM: route.elevationGainM,
+            surface: route.surface,
+            terrain: route.terrain,
+            shape: route.shape,
+            navigationComplexity: route.navigationComplexity,
+            familiarityPercent: route.familiarityPercent,
+            favourite: false,
+            rating: route.rating,
+            missionTags: route.missionTags,
+            preferredSections: route.preferredSections,
+            avoidedSections: route.avoidedSections,
+            provider: route.provider,
+            attribution: route.attribution,
+            createdAt: now,
+            updatedAt: now
+        )
+        data.orbitRoutes.insert(copy, at: 0)
+        await persistUpsert(copy, table: "orbit_routes", onConflict: "user_id,client_idempotency_key")
+        return copy
+    }
+
+    func saveOrbitShoe(
+        id: UUID? = nil,
+        name: String,
+        brand: String,
+        firstUseDate: Date,
+        surfaces: [String],
+        notes: String,
+        archived: Bool = false
+    ) async {
+        guard let profile else { return }
+        let identifier = id ?? UUID()
+        let existing = data.orbitShoes.first { $0.id == identifier }
+        let now = Date().ISO8601Format()
+        let shoe = OrbitShoe(
+            id: identifier,
+            userID: profile.userID,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            brand: brand.trimmingCharacters(in: .whitespacesAndNewlines),
+            firstUseDate: firstUseDate.apexDateKey,
+            preferredSurfaces: surfaces,
+            notes: notes.trimmingCharacters(in: .whitespacesAndNewlines),
+            archived: archived,
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now
+        )
+        data.orbitShoes.removeAll { $0.id == identifier }
+        data.orbitShoes.append(shoe)
+        await persistUpsert(shoe, table: "orbit_shoes")
+    }
+
+    func archiveOrbitShoe(_ shoe: OrbitShoe) async {
+        await saveOrbitShoe(
+            id: shoe.id,
+            name: shoe.name,
+            brand: shoe.brand,
+            firstUseDate: ISO8601DateFormatter.apexDateOnly.date(from: shoe.firstUseDate) ?? .now,
+            surfaces: shoe.preferredSurfaces,
+            notes: shoe.notes,
+            archived: true
+        )
+    }
+
+    func saveOrbitSegment(
+        route: OrbitRouteRecord,
+        name: String,
+        startDistanceM: Int,
+        endDistanceM: Int
+    ) async {
+        guard let profile, endDistanceM > startDistanceM else { return }
+        let now = Date().ISO8601Format()
+        let segment = OrbitSegment(
+            id: UUID(), userID: profile.userID, routeID: route.id,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            startDistanceM: max(0, startDistanceM),
+            endDistanceM: min(route.distanceM, endDistanceM),
+            createdAt: now, updatedAt: now
+        )
+        data.orbitSegments.append(segment)
+        await persistUpsert(segment, table: "orbit_segments")
+    }
+
+    func saveOrbitPosterMetadata(
+        run: OrbitRunRecord,
+        style: String,
+        privacyTrimM: Int,
+        includeHeartRate: Bool,
+        note: String
+    ) async {
+        guard let profile else { return }
+        let poster = OrbitPoster(
+            id: UUID(), userID: profile.userID, runID: run.id,
+            style: style, privacyTrimM: max(0, privacyTrimM),
+            includeHeartRate: includeHeartRate,
+            note: note.trimmingCharacters(in: .whitespacesAndNewlines),
+            createdAt: Date().ISO8601Format()
+        )
+        data.orbitPosters.insert(poster, at: 0)
+        await persistUpsert(poster, table: "orbit_posters")
+    }
+
+    private func adaptCampaignAfterRun(_ run: OrbitRunRecord) async {
+        guard let campaignSessionID = run.campaignSessionID,
+              let completedSession = data.orbitCampaignSessions.first(where: { $0.id == campaignSessionID }),
+              let campaign = data.orbitCampaigns.first(where: { $0.id == completedSession.campaignID })
+        else { return }
+        let bundle = OrbitCampaignEngine.adaptAfterRun(
+            campaign: campaign,
+            sessions: data.orbitCampaignSessions.filter { $0.campaignID == campaign.id },
+            run: run
+        )
+        guard bundle.campaign != campaign || bundle.sessions != data.orbitCampaignSessions.filter({ $0.campaignID == campaign.id }) else { return }
+        await saveCampaignBundle(bundle.campaign, sessions: bundle.sessions)
+    }
+
+    private func integrateOrbitRun(_ run: OrbitRunRecord) async {
+        guard let profile, run.userID == profile.userID else { return }
+        let overlapping = data.activityLogs.filter {
+            $0.date == run.localDate
+                && ($0.typeID == "jog-run" || ($0.typeID == "watch-kcal" && $0.source != "orbit"))
+        }
+        for log in overlapping {
+            data.activityLogs.removeAll { $0.id == log.id }
+            await persistDelete(table: "activity_logs", id: log.id)
+        }
+
+        let distanceKM = max(0, (run.metrics["distance_m"]?.numberValue ?? 0) / 1_000)
+        let durationMinutes = max(1, Int(((run.metrics["moving_s"]?.numberValue ?? 0) / 60).rounded()))
+        let id = APEXStableID.scopedUUID(
+            namespace: "activity-log:orbit:\(run.id.uuidString.lowercased())",
+            date: run.localDate,
+            userID: profile.userID
+        )
+        let activity = ActivityLog(
+            id: id, userID: profile.userID, date: run.localDate,
+            typeID: "jog-run", quantity: 1,
+            durationMinutes: durationMinutes, distanceKM: distanceKM,
+            watchKcal: nil, computedKcal: (profile.weightKG * distanceKM).rounded(),
+            source: "orbit", reconciled: true,
+            createdAt: run.createdAt, updatedAt: run.updatedAt
+        )
+        data.activityLogs.removeAll { $0.id == id }
+        data.activityLogs.append(activity)
+        await persistUpsert(activity, table: "activity_logs")
+
+        let healthAlreadyRepresentsRun = data.importedActivities.contains {
+            $0.date == run.localDate
+                && $0.kind == "endurance"
+                && $0.source == "Apple Health"
+                && abs($0.durationMinutes - durationMinutes) <= 5
+        }
+        if healthAlreadyRepresentsRun == false {
+            let importedID = APEXStableID.orbitUUID(userID: profile.userID, key: "imported:\(run.id.uuidString.lowercased())")
+            let imported = ImportedActivity(
+                id: importedID, userID: profile.userID, date: run.localDate,
+                kind: "endurance",
+                activity: "APEX Orbit: \(run.mission.replacingOccurrences(of: "_", with: " "))",
+                durationMinutes: durationMinutes,
+                source: "APEX Orbit"
+            )
+            data.importedActivities.removeAll { $0.id == importedID }
+            data.importedActivities.append(imported)
+            await persistUpsert(imported, table: "imported_activities")
+        }
+
+        let dayLogs = data.activityLogs.filter { $0.date == run.localDate }
+        let targets = EnergyEngine.targets(profile: profile, logs: dayLogs, catalog: data.activityTypes)
+        let existing = data.dailyLogs.first { $0.date == run.localDate }
+        let daily = DailyLog(
+            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: run.localDate, userID: profile.userID),
+            userID: profile.userID, date: run.localDate,
+            kcal: existing?.kcal, proteinG: existing?.proteinG,
+            fatG: existing?.fatG, carbsG: existing?.carbsG,
+            waterL: existing?.waterL ?? 0,
+            estimatedTDEE: targets.tdee, computedPAL: targets.pal,
+            activityMode: "precise", weightKG: existing?.weightKG ?? profile.weightKG,
+            nutritionSource: existing?.nutritionSource ?? "manual",
+            manualKcal: existing?.manualKcal, manualProteinG: existing?.manualProteinG,
+            manualFatG: existing?.manualFatG, manualCarbsG: existing?.manualCarbsG
+        )
+        await updateDailyLog(daily)
+    }
+
+    private func saveCampaignBundle(_ campaign: OrbitCampaign, sessions: [OrbitCampaignSession]) async {
+        data.orbitCampaigns.removeAll { $0.id == campaign.id }
+        data.orbitCampaigns.insert(campaign, at: 0)
+        let ids = Set(sessions.map(\.id))
+        data.orbitCampaignSessions.removeAll { ids.contains($0.id) }
+        data.orbitCampaignSessions.append(contentsOf: sessions)
+        await persistUpsert(campaign, table: "orbit_campaigns", onConflict: "user_id,client_idempotency_key")
+        for item in sessions { await persistUpsert(item, table: "orbit_campaign_sessions") }
+    }
+
+    private func persistUpsert<T: Encodable & Sendable>(
+        _ value: T,
+        table: String,
+        onConflict: String? = nil
+    ) async {
+        await saveLocalSnapshot()
+        do {
+            try await service.upsert(value, table: table, onConflict: onConflict)
+            lastSyncAt = .now
+        } catch {
+            guard let userID = profile?.userID else { return }
+            do {
+                let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
+                try await offlineStore.enqueue(operation, for: userID)
+                pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
+                alertMessage = "Saved on this iPhone. APEX will sync it automatically when the connection returns."
+            } catch {
+                alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func persistDelete(table: String, id: UUID) async {
+        await saveLocalSnapshot()
+        do {
+            try await service.delete(table: table, id: id)
+            lastSyncAt = .now
+        } catch {
+            guard let userID = profile?.userID else { return }
+            do {
+                try await offlineStore.enqueue(.delete(table: table, id: id), for: userID)
+                pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
+                alertMessage = "Saved on this iPhone. APEX will sync it automatically when the connection returns."
+            } catch {
+                alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
+            }
+        }
+    }
+
+    private func saveLocalSnapshot() async {
+        guard let userID = profile?.userID else { return }
+        try? await offlineStore.saveDashboard(data, for: userID)
+    }
+
+    private func recalculateLocalStructuredDay(_ date: String, userID: UUID) {
+        let meals = data.loggedMeals.filter { $0.localDate == date }
+        let existing = data.dailyLogs.first { $0.date == date }
+        let manualKcal = existing?.nutritionSource == "manual" ? existing?.kcal : existing?.manualKcal
+        let manualProtein = existing?.nutritionSource == "manual" ? existing?.proteinG : existing?.manualProteinG
+        let manualFat = existing?.nutritionSource == "manual" ? existing?.fatG : existing?.manualFatG
+        let manualCarbs = existing?.nutritionSource == "manual" ? existing?.carbsG : existing?.manualCarbsG
+        let row = DailyLog(
+            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: date, userID: userID),
+            userID: userID,
+            date: date,
+            kcal: meals.isEmpty ? manualKcal : Int(meals.reduce(0) { $0 + $1.totalKcal }.rounded()),
+            proteinG: meals.isEmpty ? manualProtein : Int(meals.reduce(0) { $0 + $1.totalProteinG }.rounded()),
+            fatG: meals.isEmpty ? manualFat : Int(meals.reduce(0) { $0 + $1.totalFatG }.rounded()),
+            carbsG: meals.isEmpty ? manualCarbs : Int(meals.reduce(0) { $0 + $1.totalCarbsG }.rounded()),
+            waterL: existing?.waterL ?? 0,
+            estimatedTDEE: existing?.estimatedTDEE,
+            computedPAL: existing?.computedPAL,
+            activityMode: existing?.activityMode ?? "quick",
+            weightKG: existing?.weightKG,
+            nutritionSource: meals.isEmpty ? "manual" : "structured",
+            manualKcal: manualKcal,
+            manualProteinG: manualProtein,
+            manualFatG: manualFat,
+            manualCarbsG: manualCarbs
+        )
+        data.dailyLogs.removeAll { $0.date == date }
+        data.dailyLogs.append(row)
+    }
+
+    private func plannedMealSlot(_ meal: Meal) -> String {
+        let lower = meal.name.lowercased()
+        if lower.contains("snack") || lower.contains("shake") { return "snack" }
+        let hour = Int(meal.time.split(separator: ":").first ?? "0") ?? 0
+        if hour < 11 { return "breakfast" }
+        if hour < 16 { return "lunch" }
+        return "dinner"
+    }
+
+    private func considerWeeklyCalibration() async {
+        guard var profile else { return }
+        let today = Date().apexDateKey
+        guard profile.calibrationHistory.last?.appliedAt.hasPrefix(today) != true else { return }
+        let cutoff = Calendar.current.date(byAdding: .day, value: -13, to: .now)?.apexDateKey ?? today
+        let samples = data.dailyLogs
+            .filter {
+                $0.date >= cutoff && $0.date <= today
+                    && $0.kcal != nil && $0.weightKG != nil && $0.estimatedTDEE != nil
+            }
+            .sorted { $0.date < $1.date }
+        guard samples.count >= 12,
+              let firstDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.first?.date ?? ""),
+              let lastDate = ISO8601DateFormatter.apexDateOnly.date(from: samples.last?.date ?? "")
+        else { return }
+
+        let ema = EnergyEngine.weightEMA(samples.compactMap(\.weightKG))
+        guard let startWeight = ema.first, let endWeight = ema.last else { return }
+        let elapsedDays = max(1, Calendar.current.dateComponents([.day], from: firstDate, to: lastDate).day ?? 1)
+        let meanIntake = samples.reduce(0) { $0 + Double($1.kcal ?? 0) } / Double(samples.count)
+        let predicted = samples.reduce(0) { $0 + Double($1.estimatedTDEE ?? 0) } / Double(samples.count)
+        let next = EnergyEngine.calibratedK(
+            currentK: profile.calibrationK,
+            meanDailyIntake: meanIntake,
+            predictedDailyTDEE: predicted,
+            startingEMAWeight: startWeight,
+            endingEMAWeight: endWeight,
+            elapsedDays: elapsedDays
+        )
+        guard abs(next - profile.calibrationK) >= 0.001 else { return }
+        let storedPerDay = (endWeight - startWeight) * 7_700 / Double(elapsedDays)
+        let observed = meanIntake - storedPerDay
+        let previous = profile.calibrationK
+        profile.calibrationK = next
+        profile.calibrationHistory.append(.init(
+            appliedAt: Date().ISO8601Format(),
+            previousK: previous,
+            nextK: next,
+            observedTDEE: observed,
+            predictedTDEE: predicted,
+            sampleDays: samples.count
+        ))
+        profile.calibrationHistory = Array(profile.calibrationHistory.suffix(52))
+        profile.updatedAt = Date().ISO8601Format()
+        data.profile = profile
+        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+    }
+
+    private func flushPendingChanges(for userID: UUID) async {
+        guard let operations = try? await offlineStore.pendingOperations(for: userID) else { return }
+        pendingSyncCount = operations.count
+        for operation in operations {
+            do {
+                try await service.replay(operation)
+                try await offlineStore.removeOperation(operation.id, for: userID)
+                pendingSyncCount -= 1
+            } catch {
+                return
+            }
+        }
+        if operations.isEmpty == false { lastSyncAt = .now }
+    }
+
+    private func startRealtimeSync() async {
+        HealthKitManager.shared.startBackgroundMonitoring { [weak self] snapshot in
+            await self?.applyHealthSnapshot(snapshot)
+        }
+        do {
+            try await service.startRealtime { [weak self] in
+                Task { @MainActor [weak self] in
+                    self?.scheduleRealtimeRefresh()
+                }
+            }
+        } catch {
+            // Foreground refresh and the offline outbox remain available if
+            // Realtime is temporarily unavailable.
+        }
+    }
+
+    private func scheduleRealtimeRefresh() {
+        realtimeDebounceTask?.cancel()
+        realtimeDebounceTask = Task { [weak self] in
+            try? await Task.sleep(for: .milliseconds(900))
+            guard Task.isCancelled == false else { return }
+            await self?.refresh()
+        }
+    }
+
+    private func importHealthWorkoutIfNeeded(_ workout: HealthWorkoutSnapshot) async {
+        guard let profile else { return }
+        guard data.importedActivities.contains(where: { $0.id == workout.id }) == false else { return }
+
+        let overlapsOrbit = data.orbitRuns.contains { run in
+            guard let start = ISO8601DateFormatter().date(from: run.startedAt) else { return false }
+            return abs(start.timeIntervalSince(workout.startedAt)) < 5 * 60
+        }
+        guard overlapsOrbit == false else { return }
+
+        let avatarKind: String
+        switch workout.kind {
+        case "run", "walk", "hiit": avatarKind = "endurance"
+        case "strength": avatarKind = "strength"
+        case "mobility": avatarKind = "mobility"
+        default: avatarKind = "mobility"
+        }
+
+        let imported = ImportedActivity(
+            id: workout.id,
+            userID: profile.userID,
+            date: workout.date,
+            kind: avatarKind,
+            activity: workout.activityName,
+            durationMinutes: workout.durationMinutes,
+            source: "Apple Health"
+        )
+        data.importedActivities.append(imported)
+        await persistUpsert(imported, table: "imported_activities")
+
+        guard data.activityLogs.contains(where: { $0.id == workout.id }) == false else { return }
+
+        let type: ActivityType?
+        switch workout.kind {
+        case "run": type = data.activityTypes.first { $0.id == "jog-run" }
+        case "walk":
+            type = data.activityTypes.first {
+                $0.id == (workout.distanceKM == nil ? "casual-walk" : "walking-distance")
+            }
+        case "strength": type = data.activityTypes.first { $0.id == "apex-strength" }
+        case "hiit": type = data.activityTypes.first { $0.id == "focus-hiit" }
+        case "mobility": type = data.activityTypes.first { $0.id == "mobility" }
+        default: type = nil
+        }
+        guard let type else { return }
+        let now = Date().ISO8601Format()
+        let computed = EnergyEngine.blockCalories(
+            type: type,
+            quantity: 1,
+            durationMinutes: workout.durationMinutes,
+            distanceKM: workout.distanceKM,
+            watchKcal: workout.activeEnergyKcal,
+            weightKG: profile.weightKG
+        )
+        let log = ActivityLog(
+            id: workout.id,
+            userID: profile.userID,
+            date: workout.date,
+            typeID: type.id,
+            quantity: 1,
+            durationMinutes: type.inputStyle == .duration ? workout.durationMinutes : nil,
+            distanceKM: workout.distanceKM,
+            watchKcal: workout.activeEnergyKcal,
+            computedKcal: computed,
+            source: "workout_module",
+            reconciled: true,
+            createdAt: now,
+            updatedAt: now
+        )
+        data.activityLogs.append(log)
+        await persistUpsert(log, table: "activity_logs")
+    }
+}
