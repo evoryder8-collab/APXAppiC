@@ -693,19 +693,22 @@ struct APEXDaylineView: View {
                                 displayedMinute: previewMinute,
                                 isDragging: dragPreview[entry.id] != nil,
                                 action: { open(entry) },
-                                onDragChanged: { translation in
-                                    let delta = Int((translation / timelineHeight * 1_440).rounded())
-                                    let rawLine = lineMinute(entry.minute) + delta
-                                    let snapped = snap(rawLine)
+                                /* Absolute Y inside the timeline, so the meal
+                                   follows the finger and never chases its own
+                                   moving frame. */
+                                onDragChanged: { locationY in
+                                    let snapped = snap(minuteAt(y: locationY, height: timelineHeight))
                                     dragPreview[entry.id] = lineClockMinute(snapped)
                                 },
-                                onDragEnded: { translation in
-                                    let delta = Int((translation / timelineHeight * 1_440).rounded())
-                                    let rawLine = lineMinute(entry.minute) + delta
-                                    let snappedLine = snap(rawLine)
+                                onDragEnded: { locationY in
+                                    let snappedLine = snap(minuteAt(y: locationY, height: timelineHeight))
                                     let finalClock = lineClockMinute(snappedLine)
                                     dragPreview[entry.id] = nil
                                     move(entry, to: snappedLine, clockMinute: finalClock)
+                                },
+                                onDelete: {
+                                    guard let logged = entry.loggedMeal else { return }
+                                    Task { await session.deleteLoggedMeal(logged) }
                                 }
                             )
                             .frame(width: proxy.size.width)
@@ -825,6 +828,12 @@ struct APEXDaylineView: View {
         CGFloat(min(max(minute, 180), 1_620) - 180) / 1_440 * height
     }
 
+    /* Inverse of yPosition: which timeline minute a point on the rail is. */
+    private func minuteAt(y: CGFloat, height: CGFloat) -> Int {
+        guard height > 0 else { return 180 }
+        return Int((y / height * 1_440).rounded()) + 180
+    }
+
     private func clock(_ minute: Int) -> String {
         String(format: "%02d:%02d", minute / 60, minute % 60)
     }
@@ -883,12 +892,18 @@ private struct DaylineEntryRow: View {
     @State private var language = LanguageState.shared
     /* A completed hold-and-drag must not also open the composer on release */
     @State private var dragConsumedTap = false
+    /* Swipe-left reveal for delete, matching the web Dayline */
+    @State private var revealOffset: CGFloat = 0
+    @State private var confirmingDelete = false
     let entry: DaylineEntry
     let displayedMinute: Int
     let isDragging: Bool
     let action: () -> Void
     let onDragChanged: (CGFloat) -> Void
     let onDragEnded: (CGFloat) -> Void
+    let onDelete: () -> Void
+
+    private let revealWidth: CGFloat = 96
 
     var body: some View {
         HStack(alignment: .center, spacing: 12) {
@@ -913,62 +928,111 @@ private struct DaylineEntryRow: View {
             }
             .zIndex(2)
 
-            Button {
-                guard !dragConsumedTap else { return }
-                action()
-            } label: {
-                HStack(spacing: 10) {
-                    VStack(alignment: .leading, spacing: 4) {
-                        Text(language.text(entry.title))
-                            .font(APEXFont.display(16))
-                            .foregroundStyle(.white)
-                            .lineLimit(1)
-                            .accessibilityIdentifier("meal-dayline-title-\(entry.slot)")
-                        if let meal = entry.loggedMeal {
-                            Text(language.format("%d kcal · finish recorded", Int(meal.totalKcal.rounded())))
-                                .font(APEXFont.mono(8))
-                                .foregroundStyle(Color(red: 0.65, green: 0.86, blue: 0.84))
-                        } else {
-                            Text(language.text("Add meal"))
-                                .font(APEXFont.body(10, weight: .semibold))
-                                .foregroundStyle(.white.opacity(0.42))
+            ZStack(alignment: .trailing) {
+                /* Revealed behind the card by a left swipe, exactly like the web */
+                if entry.isLogged {
+                    Button {
+                        onDelete()
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { revealOffset = 0 }
+                    } label: {
+                        VStack(spacing: 3) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 15, weight: .heavy))
+                            Text(language.text("DELETE"))
+                                .font(APEXFont.mono(7, weight: .bold))
                         }
+                        .foregroundStyle(.white)
+                        .frame(width: revealWidth, height: 72)
+                        .background(APEXColor.danger, in: RoundedRectangle(cornerRadius: 19))
                     }
-                    Spacer()
-                    Text(entry.isLogged ? "LOGGED" : "SCHEDULED")
-                        .font(APEXFont.mono(7))
-                        .foregroundStyle(.white.opacity(0.34))
-                    Image(systemName: "chevron.right")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.35))
+                    .buttonStyle(.plain)
+                    .opacity(revealOffset < -8 ? 1 : 0)
+                    .accessibilityIdentifier("meal-dayline-delete-\(entry.slot)")
                 }
-                .padding(.horizontal, 15)
-                .frame(height: 72)
-                .background(.white.opacity(entry.isLogged ? 0.095 : 0.045), in: RoundedRectangle(cornerRadius: 19))
-                .overlay(
-                    RoundedRectangle(cornerRadius: 19)
-                        .stroke(entry.isLogged ? APEXColor.green.opacity(0.26) : Color.white.opacity(0.11), style: StrokeStyle(lineWidth: 1, dash: entry.isLogged ? [] : [5]))
-                )
+
+                Button {
+                    guard !dragConsumedTap else { return }
+                    if revealOffset != 0 {
+                        withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) { revealOffset = 0 }
+                        return
+                    }
+                    action()
+                } label: {
+                    HStack(spacing: 10) {
+                        VStack(alignment: .leading, spacing: 4) {
+                            Text(language.text(entry.title))
+                                .font(APEXFont.display(16))
+                                .foregroundStyle(.white)
+                                .lineLimit(1)
+                                .accessibilityIdentifier("meal-dayline-title-\(entry.slot)")
+                            if let meal = entry.loggedMeal {
+                                Text(language.format("%d kcal · finish recorded", Int(meal.totalKcal.rounded())))
+                                    .font(APEXFont.mono(8))
+                                    .foregroundStyle(Color(red: 0.65, green: 0.86, blue: 0.84))
+                            } else {
+                                Text(language.text("Add meal"))
+                                    .font(APEXFont.body(10, weight: .semibold))
+                                    .foregroundStyle(.white.opacity(0.42))
+                            }
+                        }
+                        Spacer()
+                        Text(entry.isLogged ? "LOGGED" : "SCHEDULED")
+                            .font(APEXFont.mono(7))
+                            .foregroundStyle(.white.opacity(0.34))
+                        Image(systemName: "chevron.right")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.35))
+                    }
+                    .padding(.horizontal, 15)
+                    .frame(height: 72)
+                    .background(.white.opacity(entry.isLogged ? 0.095 : 0.045), in: RoundedRectangle(cornerRadius: 19))
+                    .overlay(
+                        RoundedRectangle(cornerRadius: 19)
+                            .stroke(entry.isLogged ? APEXColor.green.opacity(0.26) : Color.white.opacity(0.11), style: StrokeStyle(lineWidth: 1, dash: entry.isLogged ? [] : [5]))
+                    )
+                }
+                .buttonStyle(.plain)
+                .offset(x: revealOffset)
+                .accessibilityIdentifier("meal-dayline-\(entry.slot)")
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("meal-dayline-\(entry.slot)")
         }
         .contentShape(Rectangle())
+        /* Horizontal swipe reveals delete. Recognised only when the movement
+           is clearly sideways so it never competes with the vertical
+           hold-and-move time gesture. */
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 16)
+                .onChanged { value in
+                    guard entry.isLogged, abs(value.translation.width) > abs(value.translation.height) else { return }
+                    revealOffset = max(-revealWidth, min(0, value.translation.width))
+                }
+                .onEnded { value in
+                    guard entry.isLogged, abs(value.translation.width) > abs(value.translation.height) else { return }
+                    withAnimation(.spring(response: 0.3, dampingFraction: 0.8)) {
+                        revealOffset = value.translation.width < -revealWidth / 2 ? -revealWidth : 0
+                    }
+                }
+        )
         /* simultaneousGesture instead of highPriorityGesture: a plain tap
            must reach the meal button (it opens the composer), while the
-           deliberate hold-and-move gesture still adjusts the finish time. */
+           deliberate hold-and-move gesture still adjusts the finish time.
+           The drag reports its absolute position inside the timeline's own
+           coordinate space: reading `translation` measured the finger against
+           the row, but the row moves as it is dragged, so each frame changed
+           the very number the next frame was derived from and the card
+           oscillated. An absolute position cannot chase itself. */
         .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.24)
-                .sequenced(before: DragGesture(minimumDistance: 0))
+                .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("apex-dayline")))
                 .onChanged { phase in
                     if case .second(true, let drag?) = phase {
                         dragConsumedTap = true
-                        onDragChanged(drag.translation.height)
+                        onDragChanged(drag.location.y)
                     }
                 }
                 .onEnded { phase in
                     if case .second(true, let drag?) = phase {
-                        onDragEnded(drag.translation.height)
+                        onDragEnded(drag.location.y)
                     }
                     Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(280))

@@ -22,6 +22,23 @@ struct NutritionView: View {
         return EnergyEngine.targets(profile: profile, logs: dayActivities, catalog: session.data.activityTypes)
     }
 
+    private var goalLabel: String {
+        switch session.profile?.goal.rawValue {
+        case "bulk": return "Lean bulk"
+        case "maintain": return "Maintain"
+        default: return "Lean recomp"
+        }
+    }
+
+    /* Mirrors the web's collapsed supplement row: "3/7 · 17 Aug" */
+    private var supplementSummary: String {
+        let total = session.data.supplements.count
+        let done = session.data.supplementLogs.filter { $0.date == dayKey }.count
+        let formatter = DateFormatter()
+        formatter.dateFormat = "d MMM"
+        return "\(min(done, total))/\(total) · \(formatter.string(from: selectedDate))"
+    }
+
     var body: some View {
         VStack(spacing: 8) {
             nutritionHeader
@@ -46,15 +63,13 @@ struct NutritionView: View {
                             onOpenCalendar: { showCalendar = true }
                         )
                     }
-                    TodaysActivitiesPanel(
-                        date: selectedDate,
-                        logs: dayActivities,
-                        targets: targets,
-                        onAdd: { showAddActivity = true },
-                        onGuide: { showActivityGuide = true }
-                    )
+                    /*
+                     * Web parity: only what you act on every day stays open.
+                     * Reference and configuration sit behind a disclosure the
+                     * way the web page does, which is why the web fits this
+                     * page in four screens where the native build needed nine.
+                     */
                     if let targets {
-                        DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
                         APEXDaylineView(
                             date: selectedDate,
                             onOpenComposer: { composerRequest = $0 },
@@ -66,15 +81,59 @@ struct NutritionView: View {
                             onAdd: { showMealSlotPicker = true },
                             onEdit: { composerRequest = .edit($0) }
                         )
-                        MealTimeline(date: selectedDate, targets: targets)
-                        SupplementTimeline(date: selectedDate)
+
+                        CollapsibleSection(
+                            id: "activities",
+                            title: language.text("Activity & nutrition targets"),
+                            subtitle: language.format(
+                                "%d kcal · %@ · %@",
+                                targets.targetCalories,
+                                language.text(targets.level.title),
+                                language.text(goalLabel)
+                            )
+                        ) {
+                            VStack(spacing: 18) {
+                                TodaysActivitiesPanel(
+                                    date: selectedDate,
+                                    logs: dayActivities,
+                                    targets: targets,
+                                    onAdd: { showAddActivity = true },
+                                    onGuide: { showActivityGuide = true }
+                                )
+                                DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
+                            }
+                        }
+
+                        CollapsibleSection(
+                            id: "meal-timeline",
+                            title: language.text("Meal timeline"),
+                            subtitle: language.text("Portions adapt to your activity and goal selection.")
+                        ) {
+                            MealTimeline(date: selectedDate, targets: targets)
+                        }
+
+                        CollapsibleSection(
+                            id: "supplements",
+                            title: language.text("Supplement stack"),
+                            subtitle: supplementSummary
+                        ) {
+                            SupplementTimeline(date: selectedDate)
+                        }
+
                         DailyLogCard(
                             date: selectedDate,
                             targets: targets,
                             onAdjustActivities: { showAddActivity = true },
                             onOpenCalendar: { showCalendar = true }
                         )
-                        BodyAssessmentCard(targets: targets, date: selectedDate)
+
+                        CollapsibleSection(
+                            id: "assessment",
+                            title: language.text("APEX assessment"),
+                            subtitle: language.text("Today's energy model and the clearest gap.")
+                        ) {
+                            BodyAssessmentCard(targets: targets, date: selectedDate)
+                        }
                     }
                 }
                 .padding(.horizontal, 18)
@@ -84,6 +143,7 @@ struct NutritionView: View {
             .refreshable { await session.refresh() }
         }
         .apexEdgeDateSwipe(onPrevious: { changeDate(-1) }, onNext: { changeDate(1) })
+        .background(Color.clear)
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showAddActivity) {
             AddActivitySheet(date: selectedDate)
@@ -765,19 +825,11 @@ private struct DailyLogCard: View {
     }
 
     private func update(title: String, delta: Double) {
-        guard let profile = session.profile else { return }
-        var row = current ?? DailyLog(
-            id: UUID(), userID: profile.userID, date: date.apexDateKey,
-            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
-            estimatedTDEE: targets.tdee, computedPAL: targets.pal,
-            activityMode: session.data.activityLogs.contains(where: { $0.date == date.apexDateKey }) ? "precise" : "quick",
-            weightKG: nil
-        )
-        if title == "Water" { row.waterL = max(0, row.waterL + delta) }
-        Task { await session.updateDailyLog(row) }
-        if title == "Water", delta > 0 {
-            Task { try? await HealthKitManager.shared.saveWater(liters: delta, date: date) }
-        }
+        guard title == "Water" else { return }
+        /* Routed through the session so the HealthKit watermark moves with the
+           edit. Writing the row directly here let the next sync restore the
+           old, higher total and a decrease could never stick. */
+        Task { await session.adjustWater(deltaLiters: delta, on: date) }
     }
 
     private func saveMorningWeight() {
@@ -793,6 +845,65 @@ private struct DailyLogCard: View {
         )
         row.weightKG = weight
         Task { await session.updateDailyLog(row) }
+    }
+}
+
+/*
+ * Web-parity disclosure: a single glass row that states what is inside and
+ * expands on tap. Expansion is remembered per section so a person who always
+ * opens their supplements keeps them open.
+ */
+struct CollapsibleSection<Content: View>: View {
+    let id: String
+    let title: String
+    let subtitle: String
+    @ViewBuilder let content: () -> Content
+
+    @AppStorage private var expanded: Bool
+
+    init(id: String, title: String, subtitle: String, @ViewBuilder content: @escaping () -> Content) {
+        self.id = id
+        self.title = title
+        self.subtitle = subtitle
+        self.content = content
+        _expanded = AppStorage(wrappedValue: false, "apex.section.expanded.\(id)")
+    }
+
+    var body: some View {
+        VStack(spacing: 14) {
+            Button {
+                withAnimation(.spring(response: 0.34, dampingFraction: 0.86)) { expanded.toggle() }
+            } label: {
+                GlassCard(radius: 26, padding: 17) {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(title)
+                                .font(APEXFont.display(19))
+                                .foregroundStyle(APEXColor.ink)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                            Text(subtitle)
+                                .font(APEXFont.body(11, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .lineLimit(2)
+                                .multilineTextAlignment(.leading)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                        Image(systemName: "plus")
+                            .font(.system(size: 15, weight: .bold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .rotationEffect(.degrees(expanded ? 45 : 0))
+                    }
+                }
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("section-toggle-\(id)")
+            .accessibilityHint(expanded ? "Collapse" : "Expand")
+
+            if expanded {
+                content()
+                    .transition(.opacity.combined(with: .move(edge: .top)))
+            }
+        }
     }
 }
 

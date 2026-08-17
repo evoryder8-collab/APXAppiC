@@ -528,8 +528,84 @@ private struct MealComposerItemCard: View {
     }
 
     var body: some View {
-        GlassCard(radius: 25, padding: density == .compact ? 13 : 17) {
-            VStack(alignment: .leading, spacing: density == .compact ? 10 : 15) {
+        GlassCard(radius: density == .compact ? 18 : 25, padding: density == .compact ? 9 : 17) {
+            VStack(alignment: .leading, spacing: density == .compact ? 0 : 15) {
+                if density == .compact {
+                    /* One line, like the web: identity on the left, amount,
+                       unit, reorder and remove inline on the right. The old
+                       layout wrapped these onto a second row and made every
+                       food twice as tall as it needs to be. */
+                    HStack(spacing: 7) {
+                        if selecting {
+                            Button(action: onToggleSelection) {
+                                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                                    .font(.system(size: 22, weight: .semibold))
+                                    .foregroundStyle(selected ? APEXColor.amber : APEXColor.secondaryInk.opacity(0.35))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("meal-item-select-\(item.name)")
+                        }
+
+                        VStack(alignment: .leading, spacing: 1) {
+                            Text(item.personalLabel.isEmpty ? item.name : item.personalLabel)
+                                .font(APEXFont.display(15))
+                                .lineLimit(1)
+                                .truncationMode(.tail)
+                            Text(language.format(
+                                "%d kcal · P %.1f · C %.1f · F %.1f",
+                                Int(item.nutrients.kcal.rounded()), item.nutrients.proteinG,
+                                item.nutrients.carbsG, item.nutrients.fatG
+                            ))
+                            .font(APEXFont.mono(8))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .lineLimit(1)
+                        }
+                        .frame(maxWidth: .infinity, alignment: .leading)
+
+                        TextField("Amount", value: Binding(
+                            get: { item.quantity },
+                            set: { item.setQuantity($0, food: food) }
+                        ), format: .number.precision(.fractionLength(0...1)))
+                            .keyboardType(.decimalPad)
+                            .font(APEXFont.mono(16))
+                            .multilineTextAlignment(.center)
+                            .frame(width: 52)
+                            .padding(.vertical, 7)
+                            .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+                        Picker("Unit", selection: Binding(
+                            get: { item.unit },
+                            set: { item.setUnit($0, food: food) }
+                        )) {
+                            ForEach(availableUnits, id: \.self) { unit in
+                                Text(language.text(unit)).tag(unit)
+                            }
+                        }
+                        .pickerStyle(.menu)
+                        .labelsHidden()
+                        .font(APEXFont.body(12, weight: .bold))
+                        .frame(width: 54)
+                        .padding(.vertical, 1)
+                        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+
+                        VStack(spacing: 1) {
+                            Button(action: onMoveUp) { Image(systemName: "arrow.up") }.disabled(!canMoveUp)
+                            Button(action: onMoveDown) { Image(systemName: "arrow.down") }.disabled(!canMoveDown)
+                        }
+                        .font(.system(size: 10, weight: .bold))
+                        .buttonStyle(.plain)
+
+                        Button(role: .destructive, action: onDelete) {
+                            Image(systemName: "xmark")
+                                .font(.system(size: 11, weight: .bold))
+                                .frame(width: 28, height: 34)
+                                .background(APEXColor.danger.opacity(0.09), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+
+                if density == .expanded {
                 HStack(spacing: 11) {
                     if selecting {
                         Button(action: onToggleSelection) {
@@ -608,6 +684,7 @@ private struct MealComposerItemCard: View {
                     }
                     .buttonStyle(.plain)
                 }
+                } // end expanded two-row layout
 
                 if density == .expanded {
                     Divider()

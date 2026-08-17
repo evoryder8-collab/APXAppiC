@@ -227,7 +227,7 @@ struct SimpleHomeView: View {
                 ) { liters in
                     addWater(liters)
                 }
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
             case .supplements:
                 SupplementQuickSheet(date: selectedDate)
                     .presentationDetents([.large])
@@ -577,22 +577,10 @@ struct SimpleHomeView: View {
         }
     }
 
+    /* Single owner of water writes: keeps the HealthKit watermark honest so a
+       later reduction is never undone by the next sync. */
     private func addWater(_ liters: Double = 0.25) {
-        guard let profile, let targets else { return }
-        var row = dailyLog ?? DailyLog(
-            id: APEXStableID.scopedUUID(namespace: "daily-log", date: today, userID: profile.userID),
-            userID: profile.userID, date: today,
-            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
-            estimatedTDEE: targets.tdee, computedPAL: targets.pal,
-            activityMode: activities.isEmpty ? "quick" : "precise", weightKG: nil
-        )
-        let added = max(0, min(liters, 6 - row.waterL))
-        guard added > 0 else { return }
-        row.waterL = min(6, ((row.waterL + added) * 100).rounded() / 100)
-        Task {
-            await session.updateDailyLog(row)
-            try? await health.saveWater(liters: added, date: selectedDate)
-        }
+        Task { await session.adjustWater(deltaLiters: liters, on: selectedDate) }
     }
 
     private func supplementTime(_ supplement: Supplement) -> Int {
@@ -868,43 +856,138 @@ private struct WaterQuickAddSheet: View {
     private var totalLiters: Double { min(6, drinkLiters + foodLiters) }
 
     var body: some View {
-        VStack(spacing: 17) {
-            HStack {
-                VStack(alignment: .leading, spacing: 3) {
-                    Text("Water quick add").font(APEXFont.display(25))
-                    Text(String(format: "%.2f / %.2f L", totalLiters, targetLiters))
-                        .font(APEXFont.body(12, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
-                    Text(String(format: "Drinks %.2f L · Food %.2f L", drinkLiters, foodLiters))
-                        .font(APEXFont.body(9, weight: .medium))
+        ScrollView {
+            VStack(spacing: 16) {
+                HStack(alignment: .top, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Water quick add").font(APEXFont.display(25))
+                        Text(String(format: "%.2f / %.2f L", totalLiters, targetLiters))
+                            .font(APEXFont.body(12, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
+                        Text(String(format: "Drinks %.2f L · Food %.2f L", drinkLiters, foodLiters))
+                            .font(APEXFont.body(9, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        Spacer(minLength: 0)
+                    }
+                    /* The figure is the centrepiece of this sheet, so it gets
+                       real size and a scale that reads against the target. */
+                    HydrationFigureGauge(
+                        totalLiters: totalLiters,
+                        targetLiters: targetLiters,
+                        sex: sex
+                    )
+                }
+
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("ADD").font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
+                    LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 10) {
+                        ForEach([250, 300, 500], id: \.self) { amount in
+                            quickButton("+ \(amount) ml", tint: APEXColor.cyan) {
+                                add(Double(amount) / 1_000); dismiss()
+                            }
+                        }
+                        TextField("Custom ml", text: $customML)
+                            .keyboardType(.numberPad).font(APEXFont.mono(14)).multilineTextAlignment(.center)
+                            .frame(minHeight: 54)
+                            .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
+                            .onSubmit { addCustom() }
+                    }
+                    Button("Add custom amount") { addCustom() }
+                        .buttonStyle(.borderedProminent).tint(APEXColor.cyan)
+                        .disabled(Double(customML) == nil)
                 }
-                Spacer()
-                HydrationFigureWebView(progress: min(1, totalLiters / targetLiters), sex: sex)
-                    .frame(width: 74, height: 112)
-            }
-            LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 10) {
-                ForEach([250, 300, 500], id: \.self) { amount in
-                    quickButton("\(amount) ml") { add(Double(amount) / 1_000); dismiss() }
+
+                /* Added something by mistake: take it straight back off. */
+                VStack(alignment: .leading, spacing: 8) {
+                    Text("REMOVE").font(APEXFont.mono(10, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    LazyVGrid(columns: [.init(.flexible()), .init(.flexible()), .init(.flexible())], spacing: 10) {
+                        ForEach([250, 300, 500], id: \.self) { amount in
+                            quickButton("− \(amount) ml", tint: APEXColor.danger) {
+                                add(-Double(amount) / 1_000)
+                            }
+                            .disabled(drinkLiters <= 0)
+                            .opacity(drinkLiters <= 0 ? 0.4 : 1)
+                        }
+                    }
+                    Button("Clear today's water") { add(-drinkLiters) }
+                        .font(APEXFont.body(12, weight: .bold))
+                        .foregroundStyle(APEXColor.danger)
+                        .disabled(drinkLiters <= 0)
+                        .opacity(drinkLiters <= 0 ? 0.4 : 1)
                 }
-                TextField("Custom ml", text: $customML)
-                    .keyboardType(.numberPad).font(APEXFont.mono(14)).multilineTextAlignment(.center)
-                    .frame(minHeight: 54).background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
-                    .onSubmit { addCustom() }
             }
-            Button("Add custom amount") { addCustom() }
-                .buttonStyle(.borderedProminent).tint(APEXColor.cyan).disabled(Double(customML) == nil)
+            .padding(22)
         }
-        .padding(22)
         .presentationBackground(.ultraThinMaterial)
+        .presentationDetents([.medium, .large])
     }
 
-    private func quickButton(_ title: String, action: @escaping () -> Void) -> some View {
+    private func quickButton(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
         Button(title, action: action).font(APEXFont.mono(13)).frame(maxWidth: .infinity, minHeight: 54)
-            .background(APEXColor.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 17)).buttonStyle(.plain)
+            .foregroundStyle(tint)
+            .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 17)).buttonStyle(.plain)
     }
     private func addCustom() {
         guard let ml = Double(customML), ml > 0 else { return }
         add(min(3_000, ml) / 1_000); dismiss()
+    }
+}
+
+/*
+ * The silhouette with a litre scale beside it: 0 L sits at the feet and the
+ * configured target sits at the crown, so the fill height reads as a real
+ * measurement rather than a decorative graphic.
+ */
+private struct HydrationFigureGauge: View {
+    let totalLiters: Double
+    let targetLiters: Double
+    let sex: String
+
+    private var progress: Double { targetLiters > 0 ? min(1, totalLiters / targetLiters) : 0 }
+
+    private var ticks: [Double] {
+        guard targetLiters > 0 else { return [] }
+        let step: Double = targetLiters <= 2 ? 0.5 : targetLiters <= 4 ? 0.5 : 1
+        var values: [Double] = []
+        var value: Double = 0
+        while value < targetLiters - 0.01 {
+            values.append(value)
+            value += step
+        }
+        values.append(targetLiters)
+        return values.reversed()
+    }
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 6) {
+            GeometryReader { geometry in
+                ZStack(alignment: .topTrailing) {
+                    ForEach(ticks, id: \.self) { value in
+                        let fraction = targetLiters > 0 ? value / targetLiters : 0
+                        let y = geometry.size.height * (1 - fraction)
+                        HStack(spacing: 3) {
+                            Spacer(minLength: 0)
+                            Text(value == targetLiters || value == 0
+                                 ? String(format: "%.1fL", value)
+                                 : String(format: "%.1f", value))
+                                .font(APEXFont.mono(8, weight: value == targetLiters ? .bold : .medium))
+                                .foregroundStyle(value == targetLiters ? APEXColor.cyan : APEXColor.secondaryInk)
+                            Rectangle()
+                                .fill(value == targetLiters ? APEXColor.cyan.opacity(0.8) : APEXColor.secondaryInk.opacity(0.35))
+                                .frame(width: value == targetLiters || value == 0 ? 9 : 5, height: 1)
+                        }
+                        .offset(y: y - 5)
+                    }
+                }
+            }
+            .frame(width: 42, height: 190)
+
+            HydrationFigureWebView(progress: progress, sex: sex)
+                .frame(width: 128, height: 190)
+        }
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(String(format: "Hydration %.2f of %.2f litres", totalLiters, targetLiters))
     }
 }
 

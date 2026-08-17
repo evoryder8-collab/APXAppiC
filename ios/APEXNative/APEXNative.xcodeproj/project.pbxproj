@@ -70,6 +70,7 @@
 		B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164418CABD783ED9B17E6A7D /* APEXLocalization.swift */; };
 		B9308BBF59D1E8E81559AA3D /* APEXConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5DD87DC31AEF8E5A0A6905 /* APEXConfiguration.swift */; };
 		BD0BA71A490CB6D6DFB67907 /* LiveRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40E903D44C28E09F0F689EE /* LiveRunView.swift */; };
+		BDA21103F8E66723272C8D8D /* WaterWatermarkTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13C42E6D8962A2AD2B91E47E /* WaterWatermarkTests.swift */; };
 		BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */; };
 		C0320FD9E04C12BD252004C4 /* OfflineStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = CF248DED2EE048A28CD25CC8 /* OfflineStore.swift */; };
 		C085A173776E040F97A913FD /* NutritionParityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */; };
@@ -166,6 +167,7 @@
 		116EADF08A0352441607F57F /* constantine.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = constantine.png; sourceTree = "<group>"; };
 		120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchiveTests.swift; sourceTree = "<group>"; };
 		135C463AB8CEF57FA521CD01 /* AppRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoute.swift; sourceTree = "<group>"; };
+		13C42E6D8962A2AD2B91E47E /* WaterWatermarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterWatermarkTests.swift; sourceTree = "<group>"; };
 		1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealComposerTests.swift; sourceTree = "<group>"; };
 		1477C72FA445DA292C502653 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		164418CABD783ED9B17E6A7D /* APEXLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXLocalization.swift; sourceTree = "<group>"; };
@@ -432,6 +434,7 @@
 				F9FA7F456BCA3A39E46A833E /* OrbitRunMetricsTests.swift */,
 				20D9ABA6AE517DC03269E042 /* SimpleHomeLogicTests.swift */,
 				3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */,
+				13C42E6D8962A2AD2B91E47E /* WaterWatermarkTests.swift */,
 				7AA9DCC13FC62A6E7BA3F5D8 /* Fixtures */,
 			);
 			path = APEXTests;
@@ -881,6 +884,7 @@
 				ABEFB6D91D508680F3FAC2D2 /* OrbitRunMetricsTests.swift in Sources */,
 				376BEAEBCF7B7C3D48642471 /* SimpleHomeLogicTests.swift in Sources */,
 				EBF350EC7ADE89A83BCF504D /* TrainingAdjustmentEngineTests.swift in Sources */,
+				BDA21103F8E66723272C8D8D /* WaterWatermarkTests.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

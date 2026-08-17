@@ -403,6 +403,54 @@ final class AppSession {
         }
     }
 
+    static func waterWatermarkKey(_ date: String) -> String { "apex.hk.water.applied.\(date)" }
+
+    /*
+     * Every water change flows through here so the HealthKit watermark stays
+     * consistent. Additions are mirrored into HealthKit and raise the
+     * watermark by the same amount, so the next sync sees no new water and
+     * cannot double count. Reductions stay local: HealthKit samples APEX did
+     * not author are not ours to delete, and leaving the watermark where it
+     * is means the removed amount is never re-imported.
+     */
+    @discardableResult
+    func adjustWater(deltaLiters: Double, on date: Date) async -> Double {
+        guard let profile else { return 0 }
+        let key = date.apexDateKey
+        let existing = data.dailyLogs.first { $0.date == key }
+        let current = existing?.waterL ?? 0
+        let next = min(6, max(0, ((current + deltaLiters) * 100).rounded() / 100))
+        guard next != current else { return current }
+
+        var row = existing ?? DailyLog(
+            id: APEXStableID.scopedUUID(namespace: "daily-log", date: key, userID: profile.userID),
+            userID: profile.userID, date: key,
+            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
+            estimatedTDEE: nil, computedPAL: nil,
+            activityMode: data.activityLogs.contains { $0.date == key } ? "precise" : "quick",
+            weightKG: nil
+        )
+        row.waterL = next
+        await updateDailyLog(row)
+
+        let applied = next - current
+        if applied > 0 {
+            try? await HealthKitManager.shared.saveWater(liters: applied, date: date)
+            let defaults = UserDefaults.standard
+            let watermark = defaults.object(forKey: Self.waterWatermarkKey(key)) as? Double
+            if let watermark {
+                defaults.set(watermark + applied, forKey: Self.waterWatermarkKey(key))
+            }
+        }
+        return next
+    }
+
+    func setWaterTotal(_ liters: Double, on date: Date) async {
+        let key = date.apexDateKey
+        let current = data.dailyLogs.first { $0.date == key }?.waterL ?? 0
+        await adjustWater(deltaLiters: liters - current, on: date)
+    }
+
     func applyHealthSnapshot(_ snapshot: HealthSnapshot) async {
         guard let profile else { return }
         if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
@@ -422,17 +470,43 @@ final class AppSession {
 
         if let dietaryWaterL = snapshot.dietaryWaterL, dietaryWaterL > 0 {
             let existing = data.dailyLogs.first { $0.date == snapshot.date }
-            let row = DailyLog(
-                id: existing?.id ?? UUID(), userID: profile.userID, date: snapshot.date,
-                kcal: existing?.kcal, proteinG: existing?.proteinG,
-                fatG: existing?.fatG, carbsG: existing?.carbsG,
-                waterL: max(existing?.waterL ?? 0, dietaryWaterL),
-                estimatedTDEE: existing?.estimatedTDEE,
-                computedPAL: existing?.computedPAL,
-                activityMode: existing?.activityMode ?? "quick",
-                weightKG: snapshot.weightKG ?? existing?.weightKG
-            )
-            await updateDailyLog(row)
+            /*
+             * Import only water HealthKit has learned since the last sync.
+             * Taking max(local, healthKit) ratcheted the total upward forever:
+             * APEX writes its own additions into HealthKit, so any manual
+             * decrease was restored on the next refresh and could never stick.
+             * The watermark keeps the person's edit authoritative while water
+             * logged elsewhere (the Watch, another app) still arrives.
+             */
+            let watermarkKey = Self.waterWatermarkKey(snapshot.date)
+            let defaults = UserDefaults.standard
+            let previouslyApplied = defaults.object(forKey: watermarkKey) as? Double
+            var nextWater = existing?.waterL ?? 0
+            if let previouslyApplied {
+                let newlyLogged = dietaryWaterL - previouslyApplied
+                if newlyLogged > 0.001 {
+                    nextWater = min(6, ((nextWater + newlyLogged) * 100).rounded() / 100)
+                }
+            } else {
+                /* First sight of this date on this device: adopt whichever
+                   record is richer, then track from there. */
+                nextWater = max(nextWater, dietaryWaterL)
+            }
+            defaults.set(dietaryWaterL, forKey: watermarkKey)
+
+            if nextWater != existing?.waterL || existing == nil {
+                let row = DailyLog(
+                    id: existing?.id ?? UUID(), userID: profile.userID, date: snapshot.date,
+                    kcal: existing?.kcal, proteinG: existing?.proteinG,
+                    fatG: existing?.fatG, carbsG: existing?.carbsG,
+                    waterL: nextWater,
+                    estimatedTDEE: existing?.estimatedTDEE,
+                    computedPAL: existing?.computedPAL,
+                    activityMode: existing?.activityMode ?? "quick",
+                    weightKG: snapshot.weightKG ?? existing?.weightKG
+                )
+                await updateDailyLog(row)
+            }
         }
 
         if snapshot.steps != nil || snapshot.activeEnergyKcal != nil || snapshot.exerciseMinutes != nil {
