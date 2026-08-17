@@ -112,6 +112,18 @@ test('legacy offline batches are repaired before replay', () => {
   ])
 })
 
+test('legacy Orbit imported activity ids are repaired before Supabase replay', () => {
+  const repaired = normalizeSyncRecord('imported_activities', {
+    id: 'orbit-d4c3a069-9bb5-42c7-83f8-6b6f880d50b9',
+    user_id: '00000000-0000-4000-8000-000000000001',
+    date: '2026-08-17',
+    source: 'APEX Orbit',
+    activity: 'APEX Orbit: easy',
+  })
+
+  assert.match(repaired.id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+})
+
 test('measured BMR remains compatible with the existing profile schema', () => {
   const profile = normalizeSyncRecord('profile', {
     id: 'profile-id',
