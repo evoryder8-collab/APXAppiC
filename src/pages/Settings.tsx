@@ -604,9 +604,27 @@ export function Settings() {
                   accent={emerald}
                   on={settings.addons.newbie_mode ?? false}
                   label={starterCopy.title}
-                  onChange={(value) => setSettings({ addons: { ...settings.addons, newbie_mode: value } })}
+                  onChange={(value) => {
+                    /* Turning this on hides the established programme behind a
+                       generated beginner block, which reads as "my protocol
+                       vanished". Ask before that happens, never on the way out. */
+                    if (value && !window.confirm(t('Starter mode replaces the plan shown in your calendars with a generated beginner block. Your existing programme is kept and returns when you switch this off. Continue?'))) return
+                    setSettings({ addons: { ...settings.addons, newbie_mode: value, ...(value ? {} : { training_induction: null }) } })
+                  }}
                 />
               </div>
+              {(settings.addons.newbie_mode || settings.addons.training_induction) && (
+                <button
+                  type="button"
+                  onClick={() => {
+                    if (!window.confirm(t('Restore your original programme and clear the generated starter plan?'))) return
+                    setSettings({ addons: { ...settings.addons, newbie_mode: false, training_induction: null } })
+                  }}
+                  className="mt-4 w-full rounded-2xl border border-emerald-300/60 bg-emerald-50/70 px-4 py-3 text-sm font-bold text-emerald-800 transition-colors hover:bg-emerald-100/80"
+                >
+                  {t('Restore my original programme')}
+                </button>
+              )}
             </GlassCard>
           </div>
         )}

@@ -102,6 +102,16 @@ struct SimpleHomeView: View {
     }
     private var completion: Int { SimpleHomeLogic.completion(completed: completedTasks, total: totalTasks) }
 
+    /* Simple-mode surface preferences, mirroring the web's defaults exactly */
+    private var addons: [String: JSONValue] { session.data.settings?.addons ?? [:] }
+    private func flag(_ key: String, default fallback: Bool) -> Bool {
+        addons[key]?.boolValue ?? fallback
+    }
+    private var showNextAction: Bool { flag("simple_show_next_action", default: false) }
+    private var showGuidedPlan: Bool { flag("simple_show_guided_plan", default: true) }
+    private var showOrbitShortcut: Bool { flag("simple_show_orbit", default: true) }
+    private var showBodyIndexShortcut: Bool { flag("simple_show_body_index", default: true) }
+
     var body: some View {
         VStack(spacing: 8) {
             VStack(spacing: 8) {
@@ -150,7 +160,13 @@ struct SimpleHomeView: View {
                         )
                     }
 
-                    if let action = nextAction {
+                    /* The web keeps this card behind a preference that is off
+                       by default, because the metric tiles below already
+                       cover water, supplements, stats and training. iOS was
+                       rendering it unconditionally, which is why a large
+                       hydration block sat above tiles that do the same job
+                       and why the settings switch appeared to do nothing. */
+                    if showNextAction, let action = nextAction {
                         NextActionCard(action: action) {
                             perform(action.kind)
                         }
@@ -160,12 +176,12 @@ struct SimpleHomeView: View {
                     WearableActivityCard(date: selectedDate)
                     checklist
 
-                    if let todayProgramDay, !workoutDone {
+                    if showGuidedPlan, let todayProgramDay, !workoutDone {
                         workoutShortcut(day: todayProgramDay)
                     }
 
-                    orbitShortcut
-                    avatarShortcut
+                    if showOrbitShortcut { orbitShortcut }
+                    if showBodyIndexShortcut { avatarShortcut }
                     fullDetailShortcuts
 
                     HStack {
@@ -298,6 +314,7 @@ struct SimpleHomeView: View {
                 label: "Stats",
                 done: false,
                 color: APEXColor.green,
+                portrait: (profile?.persona ?? .constantine).rawValue,
                 action: { quickPanel = .stats }
             )
             SimpleMetric(
@@ -689,16 +706,25 @@ private struct SimpleMetric: View {
     let label: String
     let done: Bool
     let color: Color
+    /* When set, the tile shows the person instead of a glyph, as the web does */
+    var portrait: String? = nil
     let action: () -> Void
 
     var body: some View {
         Button(action: action) {
         VStack(spacing: 5) {
+            if let portrait {
+                PortraitImage(name: portrait)
+                    .frame(width: 27, height: 27)
+                    .clipShape(Circle())
+                    .overlay(Circle().stroke(color.opacity(0.5), lineWidth: 1.5))
+            } else {
             Image(systemName: done ? "checkmark" : icon)
                 .font(.system(size: 11, weight: .bold))
                 .foregroundStyle(done ? .white : color)
                 .frame(width: 27, height: 27)
                 .background(done ? APEXColor.green : color.opacity(0.11), in: Circle())
+            }
             Text(value)
                 .font(APEXFont.mono(9))
                 .lineLimit(1)
@@ -1165,6 +1191,7 @@ private struct WearableActivityCard: View {
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
     @State private var showEditor = false
+    @AppStorage("apex.section.expanded.wearable") private var expanded = false
     let date: Date
 
     private var record: WearableActivityRecord? {
@@ -1178,10 +1205,29 @@ private struct WearableActivityCard: View {
 
     var body: some View {
         GlassCard(radius: 25, padding: 16) {
-            VStack(alignment: .leading, spacing: 11) {
+            VStack(alignment: .leading, spacing: expanded ? 11 : 0) {
+                /* Collapsed to its name by default. Steps and mode are
+                   reference, not something acted on every day. */
+                Button {
+                    withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { expanded.toggle() }
+                } label: {
+                    HStack {
+                        Text("Wearable activity").font(APEXFont.display(18))
+                            .foregroundStyle(APEXColor.ink)
+                        Spacer()
+                        Image(systemName: "chevron.down")
+                            .font(.system(size: 13, weight: .bold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .rotationEffect(.degrees(expanded ? 180 : 0))
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("wearable-activity-toggle")
+
+                if expanded {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("Wearable activity").font(APEXFont.display(18))
                         Text(record.map { "\($0.steps.formatted()) steps · \(level.title)" } ?? "No wearable data for this day")
                             .font(APEXFont.body(10, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -1201,6 +1247,7 @@ private struct WearableActivityCard: View {
                         Task { if let snapshot = await health.requestAccessAndImport() { await session.applyHealthSnapshot(snapshot) } }
                     }.buttonStyle(.borderedProminent).tint(APEXColor.cyan)
                 }
+                } // end expanded
             }
         }
         .sheet(isPresented: $showEditor) { WearableActivityEditor(date: date, existing: record).presentationDetents([.medium]) }

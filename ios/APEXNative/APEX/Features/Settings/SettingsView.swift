@@ -5,6 +5,8 @@ struct SettingsView: View {
     @State private var health = HealthKitManager.shared
     @State private var language = LanguageState.shared
     @State private var showLogout = false
+    @State private var pendingNewbieMode = false
+    @State private var confirmRestorePlan = false
     @State private var timeZoneDraft = ""
     @State private var measuredBMRDraft = ""
 
@@ -188,11 +190,53 @@ struct SettingsView: View {
                 Text(language.text("Athlytic does not publish its proprietary Recovery score through HealthKit. APEX imports the Apple Health context automatically and keeps a fast manual fallback for that score."))
                     .font(APEXFont.body(10, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
-                settingToggle("I’m a newbie", subtitle: "Turn on the short induction in Transition and Main Phase.", value: addonBool("newbie_mode", default: false)) {
-                    setAddon("newbie_mode", .bool($0))
+                /* Switching this on shows a generated beginner block instead
+                   of the established programme. Nothing is deleted, but it
+                   looks exactly like loss, so it asks first. */
+                settingToggle("I’m a newbie", subtitle: "Turn on the short induction in Transition and Main Phase.", value: addonBool("newbie_mode", default: false)) { enabled in
+                    if enabled {
+                        pendingNewbieMode = true
+                    } else {
+                        setAddon("newbie_mode", .bool(false))
+                        setAddon("training_induction", .null)
+                    }
+                }
+
+                if addonBool("newbie_mode", default: false) || hasInduction {
+                    Button {
+                        confirmRestorePlan = true
+                    } label: {
+                        Text(language.text("Restore my original programme"))
+                            .font(APEXFont.body(14, weight: .bold))
+                            .foregroundStyle(APEXColor.green)
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                            .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
+                    }
+                    .buttonStyle(.plain)
                 }
             }
         }
+        .alert(language.text("Turn on starter mode?"), isPresented: $pendingNewbieMode) {
+            Button(language.text("Cancel"), role: .cancel) {}
+            Button(language.text("Continue")) { setAddon("newbie_mode", .bool(true)) }
+        } message: {
+            Text(language.text("Starter mode shows a generated beginner block instead of your current programme. Your programme is kept and returns when you switch this off."))
+        }
+        .alert(language.text("Restore your original programme?"), isPresented: $confirmRestorePlan) {
+            Button(language.text("Cancel"), role: .cancel) {}
+            Button(language.text("Restore")) {
+                setAddon("newbie_mode", .bool(false))
+                setAddon("training_induction", .null)
+            }
+        } message: {
+            Text(language.text("This clears the generated starter plan and brings your own programme back into every calendar."))
+        }
+    }
+
+    private var hasInduction: Bool {
+        guard let value = session.data.settings?.addons["training_induction"] else { return false }
+        if case .null = value { return false }
+        return true
     }
 
     private var bodyProfileCard: some View {

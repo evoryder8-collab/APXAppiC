@@ -151,6 +151,16 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     const userId = data.profile?.user_id
     const settings = data.settings
     if (!userId || !settings) return
+    /*
+     * Installing a starter plan narrows every calendar to the generated days.
+     * The established programme is not deleted, but it disappears from view,
+     * which is indistinguishable from data loss for the person looking at it.
+     * Confirm before that happens, and say plainly that it is reversible.
+     */
+    const replacingExistingPlan = data.program_days.length > 0 && !settings.addons.training_induction
+    if (replacingExistingPlan && !window.confirm(
+      'This installs a generated beginner plan and shows it instead of your current programme. Your existing programme is kept and returns from Settings, Restore my original programme. Continue?',
+    )) return
     const generated = generateTrainingPlan(userId, draft, data.programs)
     bulkUpsert('programs', generated.programs)
     bulkUpsert('program_days', generated.program_days)
