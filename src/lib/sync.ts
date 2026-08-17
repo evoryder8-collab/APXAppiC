@@ -1,3 +1,5 @@
+import { importedActivityId } from './ids.ts'
+
 const UPSERT_CONFLICT_TARGETS: Readonly<Record<string, string>> = {
   rpg_snapshots: 'user_id,date',
 }
@@ -51,6 +53,19 @@ export function normalizeDailyLogIntegers<T extends object>(row: T): T {
 
 export function normalizeSyncRecord<T extends object>(table: string, row: T): T {
   if (table === 'daily_logs') return normalizeDailyLogIntegers(row)
+  if (table === 'imported_activities') {
+    const next = { ...row } as Record<string, unknown>
+    const id = typeof next.id === 'string' ? next.id : ''
+    const userId = typeof next.user_id === 'string' ? next.user_id : ''
+    const date = typeof next.date === 'string' ? next.date : ''
+    if (!/^[0-9a-f]{8}-[0-9a-f]{4}-[1-5][0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i.test(id)
+      && userId && date) {
+      const activity = typeof next.activity === 'string' ? next.activity : 'unknown'
+      const source = typeof next.source === 'string' ? next.source : 'unknown'
+      next.id = importedActivityId(date, userId, `${source}:${activity}:${id}`)
+    }
+    return next as T
+  }
   if (table === 'profile') {
     /* Measured BMR is persisted in settings.addons, an existing JSONB field.
        Keep the derived runtime property off profile writes so this release is

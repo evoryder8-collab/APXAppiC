@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { authoritativeActivityLogs, avatarContributionForRun, nutritionAdjustmentForRun, trainingAdjustmentForRun } from '../src/orbit/domain/integrations.ts'
+import { authoritativeActivityLogs, avatarContributionForRun, importedActivityForRun, nutritionAdjustmentForRun, trainingAdjustmentForRun } from '../src/orbit/domain/integrations.ts'
 import { recommendMission, scoreRouteCandidate } from '../src/orbit/domain/missions.ts'
 import { orbitUuid } from '../src/orbit/domain/ids.ts'
 import type { ActivityLog, Profile } from '../src/lib/types.ts'
@@ -24,6 +24,13 @@ test('completed Orbit run is authoritative and removes overlapping manual distan
   assert.equal(result.orbitLog.source, 'orbit')
   assert.equal(result.orbitLog.computed_kcal, 1260)
   assert.ok(!result.removeIds.includes('massage'))
+})
+
+test('Orbit imported activity uses a database-safe deterministic UUID', () => {
+  const first = importedActivityForRun(run())
+  const second = importedActivityForRun(run())
+  assert.match(first.id, /^[0-9a-f]{8}-[0-9a-f]{4}-4[0-9a-f]{3}-[89ab][0-9a-f]{3}-[0-9a-f]{12}$/i)
+  assert.equal(first.id, second.id)
 })
 
 test('cross-domain proposals are exact, optional and based only on recorded facts', () => {

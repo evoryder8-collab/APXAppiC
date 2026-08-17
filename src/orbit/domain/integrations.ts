@@ -1,5 +1,5 @@
 import type { ActivityLog, ImportedActivity, Profile, WorkoutSession, ProgramDay } from '../../lib/types.ts'
-import { activityLogId } from '../../lib/ids.ts'
+import { activityLogId, importedActivityId } from '../../lib/ids.ts'
 import type { OrbitRun } from './types.ts'
 
 export interface NutritionAdjustment {
@@ -58,7 +58,7 @@ export function authoritativeActivityLogs(existing: ActivityLog[], run: OrbitRun
 
 export function importedActivityForRun(run: OrbitRun): ImportedActivity {
   return {
-    id: `orbit-${run.id}`,
+    id: importedActivityId(run.local_date, run.user_id, `orbit:${run.id}`),
     user_id: run.user_id,
     date: run.local_date,
     kind: 'endurance',

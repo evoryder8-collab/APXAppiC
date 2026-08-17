@@ -40,3 +40,7 @@ export function rpgSnapshotId(date: string, userId: string): string {
 export function activityLogId(date: string, userId: string, sourceKey: string): string {
   return scopedUuid(`activity-log:${sourceKey}`, date, userId)
 }
+
+export function importedActivityId(date: string, userId: string, sourceKey: string): string {
+  return scopedUuid(`imported-activity:${sourceKey}`, date, userId)
+}
