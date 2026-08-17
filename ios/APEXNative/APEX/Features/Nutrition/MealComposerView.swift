@@ -646,6 +646,10 @@ private struct MealFoodPicker: View {
     @State private var isSearching = false
     @State private var showScanner = false
     @State private var message: String?
+    /* Food whose amount is being configured, and per-food burst counters
+       that drive the quick-add confirmation animation. */
+    @State private var configuring: Food?
+    @State private var burstCounts: [String: Int] = [:]
 
     private var displayedFoods: [Food] {
         let source = remoteResults.isEmpty ? session.data.foods : remoteResults
@@ -691,7 +695,9 @@ private struct MealFoodPicker: View {
 
                     ForEach(displayedFoods) { food in
                         HStack(spacing: 12) {
-                            Button { addDefault(food) } label: {
+                            /* Tapping the food opens the amount configurator,
+                               matching the web composer. Only + quick-adds. */
+                            Button { configuring = food } label: {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(food.name)
                                         .font(APEXFont.body(15, weight: .bold))
@@ -704,14 +710,23 @@ private struct MealFoodPicker: View {
                                 .frame(maxWidth: .infinity, alignment: .leading)
                             }
                             .buttonStyle(.plain)
-                            Button { addDefault(food) } label: {
-                                Image(systemName: "plus")
-                                    .font(.system(size: 18, weight: .bold))
-                                    .foregroundStyle(APEXColor.amberDeep)
-                                    .frame(width: 48, height: 48)
-                                    .background(APEXColor.amber.opacity(0.1), in: Circle())
+                            .accessibilityIdentifier("food-row-\(food.id)")
+                            .accessibilityHint(language.text("Configure amount"))
+
+                            Button { quickAdd(food) } label: {
+                                ZStack {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 18, weight: .bold))
+                                        .foregroundStyle(APEXColor.amberDeep)
+                                        .frame(width: 48, height: 48)
+                                        .background(APEXColor.amber.opacity(0.1), in: Circle())
+                                        .quickAddKick(trigger: burstCounts[food.id] ?? 0)
+                                    QuickAddBurst(trigger: burstCounts[food.id] ?? 0)
+                                }
                             }
                             .buttonStyle(.plain)
+                            .accessibilityIdentifier("food-quick-add-\(food.id)")
+                            .accessibilityLabel(language.format("Quick add %@", food.name))
                         }
                         .padding(14)
                         .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 21, style: .continuous))
@@ -738,25 +753,28 @@ private struct MealFoodPicker: View {
                     showScanner = false
                 }
             }
+            .sheet(item: $configuring) { food in
+                FoodAmountSheet(food: food, preference: preference(for: food)) { amount, unit in
+                    onAdd(food, amount, unit)
+                }
+            }
         }
     }
 
-    private func addDefault(_ food: Food) {
-        let preference = UUID(uuidString: food.id).flatMap { id in session.data.foodPreferences.first { $0.foodID == id } }
-        let unit: String
-        let amount: Double
-        if let usualUnit = preference?.usualUnit, let usualAmount = preference?.usualAmount {
-            unit = usualUnit
-            amount = usualAmount
-        } else if food.servingGramsOrML != nil {
-            unit = "serving"; amount = 1
-        } else if food.pieceGramsOrML != nil {
-            unit = "piece"; amount = 1
-        } else {
-            unit = food.nutritionBasis == "per_100ml" ? "ml" : "g"; amount = 100
+    private func preference(for food: Food) -> FoodPreference? {
+        UUID(uuidString: food.id).flatMap { id in
+            session.data.foodPreferences.first { $0.foodID == id }
         }
-        onAdd(food, amount, unit)
-        UIImpactFeedbackGenerator(style: .light).impactOccurred()
+    }
+
+    /* + adds the remembered portion straight away. The default now comes
+       from the same beginFoodSelection rules the web uses, so the quantity
+       shown in the configurator and the quantity + adds are the same. */
+    private func quickAdd(_ food: Food) {
+        let start = FoodPortionMath.defaultSelection(food, preference: preference(for: food))
+        onAdd(food, start.quantity, start.unit.rawValue)
+        burstCounts[food.id, default: 0] += 1
+        UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
     private func foodSubtitle(_ food: Food) -> String {
