@@ -355,7 +355,10 @@ test('V6 repairs existing V5 Full and Light rows without crossing strength histo
   const repairedRows = repair.data.exercises.filter((row) => row.program_day_id === repairedFriday?.id)
 
   assert.equal(repair.needsRepair, true)
-  assert.equal(repair.data.profile?.seed_version, 6)
+  /* Reference the constant so a protocol revision does not fail this test
+     for the wrong reason. What matters here is that Friday's rows were
+     repaired without crossing strength history. */
+  assert.equal(repair.data.profile?.seed_version, CURRENT_SEED_VERSION)
   assert.equal(repairedFriday?.id, friday.id)
   assert.equal(repair.data.workout_sessions[0].program_day_id, friday.id)
   assert.equal(

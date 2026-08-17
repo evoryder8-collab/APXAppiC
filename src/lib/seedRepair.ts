@@ -1,6 +1,6 @@
 import type { AppData } from './types'
 
-export const CURRENT_SEED_VERSION = 6
+export const CURRENT_SEED_VERSION = 7
 
 export type SeedDefinitionTable =
   | 'meals'
@@ -305,9 +305,13 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
         exercises: replaceRowsBySeedId(current.exercises, seeded.exercises),
       }
     : current
+  /* Version 7 carries the V8.2 revision of Constantin's main plan: Tuesday
+     becomes bodyweight rep capacity and Saturday's pike volume rises. The
+     mapper keeps ids wherever a movement still matches by name, so logged
+     history stays attached to the movement it belongs to. */
   const upgradesV81Programme =
-    currentVersion < 6 &&
-    (current.profile?.persona === 'constantine' || current.profile?.persona === 'june')
+    ((current.profile?.persona === 'constantine' && currentVersion < 7) ||
+     (current.profile?.persona === 'june' && currentVersion < 6))
       ? upgradeBespokeMainProgramme(iulianWorking, seeded)
       : null
   const programmeWorking = upgradesV81Programme?.data ?? iulianWorking

@@ -307,16 +307,18 @@ const MAIN_DAYS: DaySpec[] = [
     type: 'push',
     est: 61,
     warmup: '15 band pull-aparts, 2 sets of 8 scapular push-ups and one easy set of 8 push-ups',
+    /* V8.2: Tuesday is bodyweight rep capacity. Weighted work belongs to
+       Saturday, which is where the tracked push-up load lives. On weeks 1, 5,
+       9 and 13 the benchmark protocol replaces these sets with the fresh
+       maximum test and its back-off sets. */
     full: [
-      { name: 'Weighted Push-Up on Handles', sets: 4, reps: [12, 15], rest: 120, incr: 2.5 },
-      { name: 'Feet-Elevated Push-Up', sets: 3, reps: [10, 12], rest: 120, incr: 2.5 },
-      { name: 'Diamond or Close-Grip Push-Up', sets: 2, reps: [8, 15], rest: 90 },
-      { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Episode adapts to the current V8.1 block.' },
+      { name: 'Strict Bodyweight Push-Up', sets: 4, reps: 'max', rest: 90, notes: 'Stop every set with about 2 clean reps available. Do not calculate fresh max minus two. Add one total repetition across the four sets when you can still preserve 2 RIR.' },
+      { name: 'Diamond or Close-Grip Push-Up', sets: 2, reps: [8, 15], rest: 90, notes: 'Stop 1-2 reps before failure. Use knees or an incline when full-range quality drops.' },
+      { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Episode adapts to the current V8.2 block.' },
     ],
     lite: [
-      { name: 'Weighted Push-Up on Handles', sets: 3, reps: [12, 15], rest: 120, incr: 2.5 },
-      { name: 'Feet-Elevated Push-Up', sets: 2, reps: [10, 12], rest: 120, incr: 2.5 },
-      { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Episode adapts to the current V8.1 block.' },
+      { name: 'Strict Bodyweight Push-Up', sets: 4, reps: 'max', rest: 90, notes: 'Stop every set with about 2 clean reps available.' },
+      { name: 'Focus T25 · Tuesday core', sets: 1, reps: [1, 1], unit: 'check', rest: 0, notes: 'Episode adapts to the current V8.2 block.' },
     ],
   },
   {
@@ -384,8 +386,9 @@ const MAIN_DAYS: DaySpec[] = [
     est: 31,
     warmup: '15 band pull-aparts, 8 scapular push-ups and two progressive push-up sets',
     full: [
-      { name: 'Weighted Push-Up', sets: 4, reps: [6, 10], rest: 120, incr: 2.5 },
-      { name: 'Pike Push-Up', sets: 2, reps: [8, 12], rest: 90 },
+      { name: 'Weighted Push-Up', sets: 4, reps: [6, 10], rest: 120, incr: 2.5, notes: 'Backpack secured high on the torso. Add 1-2 kg only after 10, 10, 10 with 1-2 RIR.' },
+      /* V8.2 raises the pike volume from two sets to three */
+      { name: 'Pike Push-Up', sets: 3, reps: [8, 12], rest: 90, notes: 'Feet on the floor or a chair. Keep the head path forward and down; stop before neck or shoulder irritation.' },
     ],
     lite: [
       { name: 'Weighted Push-Up', sets: 3, reps: [6, 10], rest: 120, incr: 2.5 },
