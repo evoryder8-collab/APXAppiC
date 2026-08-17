@@ -6,10 +6,15 @@ struct SimpleHomeView: View {
     @State private var showChecklist = false
     @State private var showWorkout = false
     @State private var workoutIsLite = false
+    @State private var selectedDate = Date()
+    @State private var showTargetEditor = false
+    @State private var showCalendar = false
+    @State private var showMealSlotPicker = false
+    @State private var composerRequest: MealComposerRequest?
 
     private let waterTargetL = 2.75
 
-    private var today: String { Date().apexDateKey }
+    private var today: String { selectedDate.apexDateKey }
     private var profile: Profile? { session.profile }
     private var meals: [Meal] { session.data.meals.sorted { $0.sortOrder < $1.sortOrder } }
     private var activities: [ActivityLog] { session.data.activityLogs.filter { $0.date == today } }
@@ -47,7 +52,7 @@ struct SimpleHomeView: View {
 
     private var transitionProgram: Program? { session.data.programs.first { $0.slug == "transition" } }
     private var todayWeekday: Int {
-        let weekday = Calendar.current.component(.weekday, from: .now)
+        let weekday = Calendar.current.component(.weekday, from: selectedDate)
         return weekday == 1 ? 7 : weekday - 1
     }
     private var todayProgramDay: ProgramDay? {
@@ -111,6 +116,21 @@ struct SimpleHomeView: View {
 
                 simpleHeader
 
+                if let targets {
+                    NutritionGlanceCard(
+                        date: selectedDate,
+                        targets: targets,
+                        onEditTargets: { showTargetEditor = true },
+                        onOpenCalendar: { showCalendar = true }
+                    )
+                    APEXDaylineView(
+                        date: selectedDate,
+                        onOpenComposer: { composerRequest = $0 },
+                        onAddMeal: { showMealSlotPicker = true },
+                        compact: true
+                    )
+                }
+
                 if let action = nextAction {
                     NextActionCard(action: action) {
                         perform(action.kind)
@@ -159,12 +179,30 @@ struct SimpleHomeView: View {
                 )
             }
         }
+        .sheet(isPresented: $showTargetEditor) {
+            NutritionTargetSheet(date: selectedDate)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showCalendar) {
+            NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showMealSlotPicker) {
+            MealSlotPickerSheet(date: selectedDate) { composerRequest = $0 }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(item: $composerRequest) { request in
+            MealComposerView(request: request)
+        }
     }
 
     private var simpleHeader: some View {
         HStack(alignment: .bottom, spacing: 14) {
             VStack(alignment: .leading, spacing: 5) {
-                Text(Date.now.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)).uppercased(with: language.language.locale))
+                Text(selectedDate.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)).uppercased(with: language.language.locale))
                     .font(APEXFont.mono(10))
                     .tracking(1.5)
                     .foregroundStyle(APEXColor.secondaryInk)

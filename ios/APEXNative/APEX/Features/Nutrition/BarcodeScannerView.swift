@@ -6,6 +6,7 @@ struct BarcodeScannerView: View {
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     let date: Date
+    var onAdd: ((Food, Double, String) -> Void)? = nil
     @State private var code: String?
     @State private var permissionDenied = false
     @State private var food: Food?
@@ -119,7 +120,10 @@ struct BarcodeScannerView: View {
         }
         .sheet(isPresented: $showPortion) {
             if let food {
-                FoodPortionSheet(food: food, date: date)
+                FoodPortionSheet(food: food, date: date) { food, amount, unit in
+                    onAdd?(food, amount, unit)
+                    if onAdd != nil { dismiss() }
+                }
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }

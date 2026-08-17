@@ -10,6 +10,7 @@ enum APEXDebugFixture {
         let mainDayID = UUID()
         let now = Date().ISO8601Format()
         let today = Date().apexDateKey
+        let priorDate = Calendar.current.date(byAdding: .day, value: -30, to: .now)?.apexDateKey ?? today
         let weekday = apexWeekday(.now)
 
         let profile = Profile(
@@ -42,7 +43,12 @@ enum APEXDebugFixture {
             ticksOn: true,
             notificationsOn: false,
             guardianFactor: 1.4,
-            addons: ["uiMode": .string("advanced")]
+            addons: [
+                "uiMode": .string("advanced"),
+                "time_zone": .string("Europe/Zurich"),
+                "meal_dayline_density": .string("medium"),
+                "food_memory_mode": .string("daily")
+            ]
         )
 
         let meals = [
@@ -73,6 +79,42 @@ enum APEXDebugFixture {
             exercise(userID: userID, dayID: mainDayID, name: "Feet-elevated push-ups", sets: 3, min: 8, max: 12, order: 2),
             exercise(userID: userID, dayID: mainDayID, name: "Lateral raises", sets: 3, min: 15, max: 20, order: 3),
         ]
+        let oatsID = UUID()
+        let wheyID = UUID()
+        let berriesID = UUID()
+        let foods = [
+            food(id: oatsID, name: "Swiss rolled oats", brand: "APEX Food Memory", kcal: 370, protein: 13, carbs: 60, fat: 7),
+            food(id: wheyID, name: "Whey protein isolate", brand: "APEX Food Memory", kcal: 360, protein: 86, carbs: 2, fat: 1),
+            food(id: berriesID, name: "Strawberries, fresh", brand: nil, kcal: 32, protein: 0.7, carbs: 7.7, fat: 0.3),
+        ]
+        let breakfastID = UUID()
+        let loggedBreakfast = LoggedMeal(
+            id: breakfastID, userID: userID, localDate: today, mealSlot: "breakfast",
+            displayName: "Breakfast", sourcePresetID: nil, sourcePlannedMealID: meals[0].id,
+            loggedAt: now, clientIdempotencyKey: "ui-breakfast", loggedAs: "actual",
+            totalKcal: 330, totalProteinG: 33.6, totalCarbsG: 36.6, totalFatG: 4.5
+        )
+        let loggedEntries = [
+            foodEntry(id: UUID(), mealID: breakfastID, userID: userID, food: foods[0], foodID: oatsID, order: 0, quantity: 60),
+            foodEntry(id: UUID(), mealID: breakfastID, userID: userID, food: foods[1], foodID: wheyID, order: 1, quantity: 30),
+        ]
+        let presetID = UUID()
+        let breakfastPreset = MealPreset(
+            id: presetID, userID: userID, name: "Fast protein breakfast", mealSlot: "breakfast",
+            sourcePlannedMealID: meals[0].id, archived: false, version: 1
+        )
+        let presetItems = [
+            MealPresetItem(
+                id: UUID(), presetID: presetID, userID: userID, foodID: oatsID, sortOrder: 0,
+                quantity: 60, unit: "g", optional: false, locked: false, adjustable: true,
+                minimumAmount: 30, maximumAmount: 100, stepAmount: 5, adjustmentRole: "carb"
+            ),
+            MealPresetItem(
+                id: UUID(), presetID: presetID, userID: userID, foodID: wheyID, sortOrder: 1,
+                quantity: 30, unit: "g", optional: false, locked: true, adjustable: false,
+                minimumAmount: nil, maximumAmount: nil, stepAmount: nil, adjustmentRole: "protein"
+            ),
+        ]
         let activityTypes = [
             ActivityType(id: "massage", category: "Work: hands-on therapy", name: "Massage session given", icon: "hands.sparkles", met: 4, inputStyle: .count, defaultDurationMinutes: 60, isTrainingLinked: false, notes: "Count each session and choose its length.", distanceFactor: nil, supportsWatch: false),
             ActivityType(id: "gimbal", category: "Work: camera", name: "Handheld or gimbal filming", icon: "video", met: 3.2, inputStyle: .duration, defaultDurationMinutes: 120, isTrainingLinked: false, notes: "Moving camera work.", distanceFactor: nil, supportsWatch: false),
@@ -87,6 +129,31 @@ enum APEXDebugFixture {
             id: UUID(), userID: userID, date: today, overall: 68, health: 75, joint: 61,
             flexibility: 58, endurance: 66, strength: 72, strengthUpper: 76, strengthLower: 68
         )
+        let priorSnapshot = RPGSnapshot(
+            id: UUID(), userID: userID, date: priorDate, overall: 62, health: 69, joint: 58,
+            flexibility: 53, endurance: 60, strength: 66, strengthUpper: 70, strengthLower: 61
+        )
+        let workoutSession = WorkoutSession(
+            id: UUID(), userID: userID, date: today, programDayID: transitionDayID,
+            isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+            qualityScore: 0.9, startedAt: now, completedAt: now, notes: "UI validation session"
+        )
+        let workoutLogs = [
+            WorkoutLog(
+                id: UUID(), userID: userID, sessionID: workoutSession.id,
+                exerciseID: exercises[1].id, exerciseName: exercises[1].name, setNumber: 1,
+                weightKG: 18, reps: 12, rir: 2, skipped: false, overrideFlag: false, createdAt: now
+            ),
+            WorkoutLog(
+                id: UUID(), userID: userID, sessionID: workoutSession.id,
+                exerciseID: exercises[1].id, exerciseName: exercises[1].name, setNumber: 2,
+                weightKG: 18, reps: 11, rir: 1, skipped: false, overrideFlag: false, createdAt: now
+            ),
+        ]
+        let healthMetrics = [
+            HealthMetric(id: UUID(), userID: userID, date: priorDate, weightKG: 70.6, vo2Max: 43.1, restingHeartRate: 59),
+            HealthMetric(id: UUID(), userID: userID, date: today, weightKG: 70, vo2Max: 44.3, restingHeartRate: 56),
+        ]
         let run = OrbitRunRecord(
             id: UUID(), userID: userID, clientIdempotencyKey: "ui-test-run", localDate: today,
             startedAt: now, endedAt: now, mission: "aerobic_base", routeID: nil,
@@ -104,9 +171,17 @@ enum APEXDebugFixture {
             programs: programs,
             programDays: days,
             exercises: exercises,
+            workoutSessions: [workoutSession],
+            workoutLogs: workoutLogs,
             activityTypes: activityTypes,
             dailyLogs: [dailyLog],
-            snapshots: [snapshot],
+            foods: foods,
+            mealPresets: [breakfastPreset],
+            mealPresetItems: presetItems,
+            loggedMeals: [loggedBreakfast],
+            loggedFoodEntries: loggedEntries,
+            snapshots: [priorSnapshot, snapshot],
+            healthMetrics: healthMetrics,
             orbitRuns: [run]
         )
     }
@@ -125,6 +200,53 @@ enum APEXDebugFixture {
             repMin: min, repMax: max, repUnit: "reps", perSide: false, restSeconds: 90,
             tempoUp: 1, tempoDown: 2, tempoPause: 0, tempoNote: "controlled", notes: "",
             incrementKG: 1, isLite: false, optional: false, sortOrder: order
+        )
+    }
+
+    private static func food(
+        id: UUID,
+        name: String,
+        brand: String?,
+        kcal: Double,
+        protein: Double,
+        carbs: Double,
+        fat: Double
+    ) -> Food {
+        Food(
+            id: id.uuidString, ownerUserID: nil, name: name, namesI18n: [:], brand: brand,
+            barcode: nil, source: "ui_fixture", providerProductID: nil, externalImageURL: nil,
+            packageQuantity: nil, nutritionBasis: "per_100g", preparationState: "as_sold",
+            kcal100: kcal, protein100: protein, carbs100: carbs, fat100: fat,
+            fibre100: nil, sugar100: nil, saturatedFat100: nil, salt100: nil,
+            servingAmount: nil, servingUnit: nil, servingGramsOrML: nil,
+            pieceGramsOrML: nil, confidence: "verified"
+        )
+    }
+
+    private static func foodEntry(
+        id: UUID,
+        mealID: UUID,
+        userID: UUID,
+        food: Food,
+        foodID: UUID,
+        order: Int,
+        quantity: Double
+    ) -> LoggedFoodEntry {
+        let scale = quantity / 100
+        return LoggedFoodEntry(
+            id: id, mealID: mealID, userID: userID, foodID: foodID, sortOrder: order,
+            snapshotName: food.name, snapshotBrand: food.brand,
+            snapshotPreparationState: food.preparationState,
+            snapshotNutritionBasis: food.nutritionBasis,
+            snapshotKcal100: food.kcal100 ?? 0,
+            snapshotProtein100: food.protein100 ?? 0,
+            snapshotCarbs100: food.carbs100 ?? 0,
+            snapshotFat100: food.fat100 ?? 0,
+            quantity: quantity, unit: "g", equivalentAmount: quantity,
+            kcal: (food.kcal100 ?? 0) * scale,
+            proteinG: (food.protein100 ?? 0) * scale,
+            carbsG: (food.carbs100 ?? 0) * scale,
+            fatG: (food.fat100 ?? 0) * scale
         )
     }
 

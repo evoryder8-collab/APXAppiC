@@ -447,6 +447,16 @@ struct WorkoutLog: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct WorkoutSetInput: Codable, Hashable, Sendable {
+    let exerciseID: UUID?
+    var exerciseName: String
+    var setNumber: Int
+    var weightKG: Double?
+    var reps: Int?
+    var rir: Int?
+    var skipped: Bool
+}
+
 struct DailyLog: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userID: UUID
@@ -799,6 +809,201 @@ struct StructuredMealRPCPayload: Codable, Sendable {
     enum CodingKeys: String, CodingKey {
         case pMeal = "p_meal"
         case pEntries = "p_entries"
+    }
+}
+
+/// The native meal composer uses the same immutable food snapshots as the web
+/// client. A draft is intentionally local-only; committing it always goes
+/// through `log_structured_meal`, which atomically replaces the meal and
+/// recalculates the shared daily nutrition row.
+struct MealComposerItem: Identifiable, Hashable, Sendable {
+    var id: UUID
+    var foodID: UUID?
+    var name: String
+    var brand: String?
+    var preparationState: String
+    var nutritionBasis: String
+    var kcal100: Double
+    var protein100: Double
+    var carbs100: Double
+    var fat100: Double
+    var fibre100: Double?
+    var sugar100: Double?
+    var saturatedFat100: Double?
+    var salt100: Double?
+    var quantity: Double
+    var unit: String
+    var equivalentAmount: Double
+    var optional: Bool = false
+    var locked: Bool = false
+    var adjustable: Bool = true
+    var minimumAmount: Double?
+    var maximumAmount: Double?
+    var stepAmount: Double?
+    var adjustmentRole: String = "none"
+    var personalLabel: String = ""
+
+    var nutrients: FoodNutrients {
+        let scale = max(0, equivalentAmount) / 100
+        return FoodNutrients(
+            kcal: kcal100 * scale,
+            proteinG: protein100 * scale,
+            carbsG: carbs100 * scale,
+            fatG: fat100 * scale
+        )
+    }
+
+    mutating func setQuantity(_ value: Double, food: Food? = nil) {
+        quantity = max(0, value)
+        switch unit {
+        case "piece": equivalentAmount = quantity * (food?.pieceGramsOrML ?? equivalentAmountPerUnit)
+        case "serving": equivalentAmount = quantity * (food?.servingGramsOrML ?? equivalentAmountPerUnit)
+        default: equivalentAmount = quantity
+        }
+    }
+
+    mutating func setUnit(_ value: String, food: Food? = nil) {
+        unit = value
+        setQuantity(quantity, food: food)
+    }
+
+    private var equivalentAmountPerUnit: Double {
+        guard quantity > 0 else { return 0 }
+        return equivalentAmount / quantity
+    }
+
+    init(food: Food, quantity: Double, unit: String) {
+        let equivalent: Double
+        switch unit {
+        case "piece": equivalent = quantity * (food.pieceGramsOrML ?? 0)
+        case "serving": equivalent = quantity * (food.servingGramsOrML ?? 0)
+        default: equivalent = quantity
+        }
+        id = UUID()
+        foodID = UUID(uuidString: food.id)
+        name = food.name
+        brand = food.brand
+        preparationState = food.preparationState
+        nutritionBasis = food.nutritionBasis
+        kcal100 = food.kcal100 ?? 0
+        protein100 = food.protein100 ?? 0
+        carbs100 = food.carbs100 ?? 0
+        fat100 = food.fat100 ?? 0
+        fibre100 = food.fibre100
+        sugar100 = food.sugar100
+        saturatedFat100 = food.saturatedFat100
+        salt100 = food.salt100
+        self.quantity = quantity
+        self.unit = unit
+        equivalentAmount = equivalent
+    }
+
+    init(entry: LoggedFoodEntry) {
+        id = entry.id
+        foodID = entry.foodID
+        name = entry.snapshotName
+        brand = entry.snapshotBrand
+        preparationState = entry.snapshotPreparationState
+        nutritionBasis = entry.snapshotNutritionBasis
+        kcal100 = entry.snapshotKcal100
+        protein100 = entry.snapshotProtein100
+        carbs100 = entry.snapshotCarbs100
+        fat100 = entry.snapshotFat100
+        fibre100 = nil
+        sugar100 = nil
+        saturatedFat100 = nil
+        salt100 = nil
+        quantity = entry.quantity
+        unit = entry.unit
+        equivalentAmount = entry.equivalentAmount
+    }
+
+    init(food: Food, preset: MealPresetItem) {
+        self.init(food: food, quantity: preset.quantity, unit: preset.unit)
+        id = preset.id
+        optional = preset.optional
+        locked = preset.locked
+        adjustable = preset.adjustable
+        minimumAmount = preset.minimumAmount
+        maximumAmount = preset.maximumAmount
+        stepAmount = preset.stepAmount
+        adjustmentRole = preset.adjustmentRole
+    }
+}
+
+struct MealComposerDraft: Identifiable, Hashable, Sendable {
+    var id: UUID
+    var localDate: String
+    var mealSlot: String
+    var displayName: String
+    var finishedAt: Date
+    var sourcePresetID: UUID?
+    var sourcePlannedMealID: UUID?
+    var replaceMealID: UUID?
+    var loggedAs: String
+    var items: [MealComposerItem]
+
+    var totals: FoodNutrients {
+        items.reduce(FoodNutrients(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0)) { partial, item in
+            let value = item.nutrients
+            return FoodNutrients(
+                kcal: partial.kcal + value.kcal,
+                proteinG: partial.proteinG + value.proteinG,
+                carbsG: partial.carbsG + value.carbsG,
+                fatG: partial.fatG + value.fatG
+            )
+        }
+    }
+}
+
+struct MealPresetRequest: Codable, Sendable {
+    let id: UUID
+    let name: String
+    let mealSlot: String
+    let sourcePlannedMealID: UUID?
+    let archived: Bool
+
+    enum CodingKeys: String, CodingKey {
+        case id, name, archived
+        case mealSlot = "meal_slot"
+        case sourcePlannedMealID = "source_planned_meal_id"
+    }
+}
+
+struct MealPresetItemRequest: Codable, Sendable {
+    let id: UUID
+    let foodID: UUID
+    let sortOrder: Int
+    let quantity: Double
+    let unit: String
+    let optional: Bool
+    let locked: Bool
+    let adjustable: Bool
+    let minimumAmount: Double?
+    let maximumAmount: Double?
+    let stepAmount: Double?
+    let adjustmentRole: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, quantity, unit, optional, locked, adjustable
+        case foodID = "food_id"
+        case sortOrder = "sort_order"
+        case minimumAmount = "minimum_amount"
+        case maximumAmount = "maximum_amount"
+        case stepAmount = "step_amount"
+        case adjustmentRole = "adjustment_role"
+    }
+}
+
+struct MealPresetRPCPayload: Codable, Sendable {
+    let pPreset: MealPresetRequest
+    let pItems: [MealPresetItemRequest]
+    let pExpectedVersion: Int
+
+    enum CodingKeys: String, CodingKey {
+        case pPreset = "p_preset"
+        case pItems = "p_items"
+        case pExpectedVersion = "p_expected_version"
     }
 }
 

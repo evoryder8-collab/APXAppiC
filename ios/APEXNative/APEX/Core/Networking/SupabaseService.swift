@@ -188,6 +188,28 @@ actor SupabaseService {
             .value
     }
 
+    func saveMealPreset(
+        preset: MealPresetRequest,
+        items: [MealPresetItemRequest],
+        expectedVersion: Int
+    ) async throws -> UUID {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let params = MealPresetRPCPayload(
+            pPreset: preset,
+            pItems: items,
+            pExpectedVersion: expectedVersion
+        )
+        return try await client.rpc("save_meal_preset", params: params).execute().value
+    }
+
+    func deleteMealPreset(_ id: UUID) async throws {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let _: Bool = try await client
+            .rpc("delete_meal_preset", params: ["p_preset_id": id.uuidString])
+            .execute()
+            .value
+    }
+
     func startRealtime(onChange: @escaping @Sendable () -> Void) async throws {
         guard let client else { throw APEXServiceError.configurationMissing }
         await stopRealtime()

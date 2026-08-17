@@ -5,8 +5,10 @@ struct NutritionView: View {
     @State private var selectedDate = Date()
     @State private var showAddActivity = false
     @State private var showActivityGuide = false
-    @State private var showBarcode = false
-    @State private var showFoodSearch = false
+    @State private var showTargetEditor = false
+    @State private var showCalendar = false
+    @State private var showMealSlotPicker = false
+    @State private var composerRequest: MealComposerRequest?
     @State private var language = LanguageState.shared
 
     private var dayKey: String { selectedDate.apexDateKey }
@@ -25,6 +27,14 @@ struct NutritionView: View {
             LazyVStack(spacing: 22) {
                 nutritionHeader
                 dateStrip
+                if let targets {
+                    NutritionGlanceCard(
+                        date: selectedDate,
+                        targets: targets,
+                        onEditTargets: { showTargetEditor = true },
+                        onOpenCalendar: { showCalendar = true }
+                    )
+                }
                 TodaysActivitiesPanel(
                     date: selectedDate,
                     logs: dayActivities,
@@ -34,17 +44,23 @@ struct NutritionView: View {
                 )
                 if let targets {
                     DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
-                    MealTimeline(date: selectedDate, targets: targets)
-                    FoodLoggingCard(
+                    APEXDaylineView(
                         date: selectedDate,
-                        showBarcode: $showBarcode,
-                        showFoodSearch: $showFoodSearch
+                        onOpenComposer: { composerRequest = $0 },
+                        onAddMeal: { showMealSlotPicker = true }
                     )
+                    LoggedMealsCard(
+                        date: selectedDate,
+                        onAdd: { showMealSlotPicker = true },
+                        onEdit: { composerRequest = .edit($0) }
+                    )
+                    MealTimeline(date: selectedDate, targets: targets)
                     SupplementTimeline(date: selectedDate)
                     DailyLogCard(
                         date: selectedDate,
                         targets: targets,
-                        onAdjustActivities: { showAddActivity = true }
+                        onAdjustActivities: { showAddActivity = true },
+                        onOpenCalendar: { showCalendar = true }
                     )
                     BodyAssessmentCard(targets: targets, date: selectedDate)
                 }
@@ -72,13 +88,23 @@ struct NutritionView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
-        .fullScreenCover(isPresented: $showBarcode) {
-            BarcodeScannerView(date: selectedDate)
+        .sheet(isPresented: $showTargetEditor) {
+            NutritionTargetSheet(date: selectedDate)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showFoodSearch) {
-            FoodSearchSheet(date: selectedDate)
+        .sheet(isPresented: $showCalendar) {
+            NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+        }
+        .sheet(isPresented: $showMealSlotPicker) {
+            MealSlotPickerSheet(date: selectedDate) { composerRequest = $0 }
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
+        }
+        .fullScreenCover(item: $composerRequest) { request in
+            MealComposerView(request: request)
         }
         .task(id: dayKey) {
             await session.prefillEventActivitiesIfNeeded(for: selectedDate)
@@ -604,9 +630,11 @@ private struct SupplementTimeline: View {
 private struct DailyLogCard: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
+    @State private var morningWeightText = ""
     let date: Date
     let targets: NutritionTargets
     let onAdjustActivities: () -> Void
+    let onOpenCalendar: () -> Void
 
     private var current: DailyLog? {
         session.data.dailyLogs.first { $0.date == date.apexDateKey }
@@ -620,6 +648,11 @@ private struct DailyLogCard: View {
                 Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(language.language.locale)))
                     .font(APEXFont.mono(12))
                     .foregroundStyle(APEXColor.secondaryInk)
+
+                Text(language.text("Nutrition is calculated from logged meals. Enter only water and morning weight here."))
+                    .font(APEXFont.body(13, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .lineSpacing(3)
 
                 if preciseLogs.isEmpty == false {
                     VStack(alignment: .leading, spacing: 11) {
@@ -654,17 +687,67 @@ private struct DailyLogCard: View {
                     .background(APEXColor.amber.opacity(0.09), in: RoundedRectangle(cornerRadius: 21, style: .continuous))
                 }
 
-                logStepper(title: "Water", value: current?.waterL ?? 0, unit: "L", step: 0.25)
-                logStepper(title: "Calories", value: Double(current?.kcal ?? 0), unit: "kcal", step: 50)
-                logStepper(title: "Protein", value: Double(current?.proteinG ?? 0), unit: "g", step: 5)
+                Divider()
 
-                HStack {
-                    Image(systemName: "scope")
-                    Text(language.format("%d kcal target · %d g protein", targets.targetCalories, targets.proteinG))
+                VStack(alignment: .leading, spacing: 11) {
+                    Text(language.text("Water"))
+                        .font(APEXFont.display(19))
+                    Text(language.text("Editable here or from the workout calendar."))
+                        .font(APEXFont.body(11, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    logStepper(title: "Water", value: current?.waterL ?? 0, unit: "L", step: 0.25)
                 }
-                .font(APEXFont.body(12, weight: .semibold))
-                .foregroundStyle(APEXColor.secondaryInk)
+
+                VStack(alignment: .leading, spacing: 10) {
+                    Text(language.text("Morning weight"))
+                        .font(APEXFont.display(19))
+                    Text(language.text("Optional · feeds the 7-day calibration EMA"))
+                        .font(APEXFont.body(11, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    HStack(spacing: 10) {
+                        TextField(language.text("Weight"), text: $morningWeightText)
+                            .keyboardType(.decimalPad)
+                            .font(APEXFont.mono(17))
+                            .multilineTextAlignment(.trailing)
+                            .padding(.horizontal, 16)
+                            .frame(height: 52)
+                            .background(.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                            .overlay(RoundedRectangle(cornerRadius: 17, style: .continuous).stroke(APEXColor.ink.opacity(0.08)))
+                            .onSubmit(saveMorningWeight)
+                        Text(language.text("kg"))
+                            .font(APEXFont.mono(12))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        Button(language.text("Save"), action: saveMorningWeight)
+                            .buttonStyle(.borderedProminent)
+                            .tint(APEXColor.teal)
+                    }
+                }
+
+                Button(action: onOpenCalendar) {
+                    HStack(spacing: 13) {
+                        Image(systemName: "calendar")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(APEXColor.violet)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(language.text("Calendar"))
+                                .font(APEXFont.display(18))
+                            Text(language.text("Open any past or future date."))
+                                .font(APEXFont.body(11, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                        Spacer()
+                        Image(systemName: "chevron.right")
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    .padding(14)
+                    .background(APEXColor.violet.opacity(0.06), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
+                }
+                .buttonStyle(.plain)
             }
+        }
+        .task(id: date.apexDateKey) {
+            let value = current?.weightKG ?? session.profile?.weightKG
+            morningWeightText = value.map { $0.formatted(.number.precision(.fractionLength(1)).locale(language.language.locale)) } ?? ""
         }
     }
 
@@ -705,28 +788,26 @@ private struct DailyLogCard: View {
             activityMode: session.data.activityLogs.contains(where: { $0.date == date.apexDateKey }) ? "precise" : "quick",
             weightKG: nil
         )
-        switch title {
-        case "Water": row.waterL = max(0, row.waterL + delta)
-        case "Calories":
-            row.kcal = max(0, (row.kcal ?? 0) + Int(delta))
-            row.nutritionSource = "manual"
-            row.manualKcal = row.kcal
-            row.manualProteinG = row.proteinG
-            row.manualFatG = row.fatG
-            row.manualCarbsG = row.carbsG
-        case "Protein":
-            row.proteinG = max(0, (row.proteinG ?? 0) + Int(delta))
-            row.nutritionSource = "manual"
-            row.manualKcal = row.kcal
-            row.manualProteinG = row.proteinG
-            row.manualFatG = row.fatG
-            row.manualCarbsG = row.carbsG
-        default: break
-        }
+        if title == "Water" { row.waterL = max(0, row.waterL + delta) }
         Task { await session.updateDailyLog(row) }
         if title == "Water", delta > 0 {
             Task { try? await HealthKitManager.shared.saveWater(liters: delta, date: date) }
         }
+    }
+
+    private func saveMorningWeight() {
+        guard let profile = session.profile else { return }
+        let normalized = morningWeightText.replacingOccurrences(of: ",", with: ".")
+        guard let weight = Double(normalized), (25...350).contains(weight) else { return }
+        var row = current ?? DailyLog(
+            id: UUID(), userID: profile.userID, date: date.apexDateKey,
+            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
+            estimatedTDEE: targets.tdee, computedPAL: targets.pal,
+            activityMode: preciseLogs.isEmpty ? "quick" : "precise",
+            weightKG: nil
+        )
+        row.weightKG = weight
+        Task { await session.updateDailyLog(row) }
     }
 }
 

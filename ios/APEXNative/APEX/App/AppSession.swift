@@ -515,6 +515,246 @@ final class AppSession {
         return remote.results ?? []
     }
 
+    /// Saves a complete meal in one atomic Supabase operation. The same RPC is
+    /// used by the web client, so edits, ordering and nutrition totals converge
+    /// across both clients instead of creating one row per food.
+    func saveStructuredMeal(_ draft: MealComposerDraft) async throws {
+        guard let profile else { throw APEXServiceError.configurationMissing }
+        let validItems = draft.items.filter { $0.equivalentAmount > 0 }
+        guard validItems.isEmpty == false else { throw APEXServiceError.incompleteFood }
+
+        let key = "ios-meal-\(draft.id.uuidString.lowercased())"
+        let request = StructuredMealRequest(
+            id: draft.id,
+            localDate: draft.localDate,
+            mealSlot: draft.mealSlot,
+            displayName: draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+                ? draft.mealSlot.capitalized
+                : draft.displayName.trimmingCharacters(in: .whitespacesAndNewlines),
+            sourcePresetID: draft.sourcePresetID,
+            sourcePlannedMealID: draft.sourcePlannedMealID,
+            loggedAt: draft.finishedAt.ISO8601Format(),
+            clientIdempotencyKey: key,
+            loggedAs: draft.loggedAs,
+            replaceMealID: draft.replaceMealID
+        )
+        let entryRequests = validItems.enumerated().map { index, item in
+            StructuredFoodEntryRequest(
+                id: item.id,
+                foodID: item.foodID,
+                sortOrder: index,
+                snapshotName: item.name,
+                snapshotBrand: item.brand,
+                snapshotPreparationState: item.preparationState,
+                snapshotNutritionBasis: item.nutritionBasis,
+                snapshotKcal100: item.kcal100,
+                snapshotProtein100: item.protein100,
+                snapshotCarbs100: item.carbs100,
+                snapshotFat100: item.fat100,
+                snapshotFibre100: item.fibre100,
+                snapshotSugar100: item.sugar100,
+                snapshotSaturatedFat100: item.saturatedFat100,
+                snapshotSalt100: item.salt100,
+                quantity: item.quantity,
+                unit: item.unit,
+                equivalentAmount: item.equivalentAmount
+            )
+        }
+        let totals = draft.totals
+        let localMeal = LoggedMeal(
+            id: draft.id,
+            userID: profile.userID,
+            localDate: draft.localDate,
+            mealSlot: draft.mealSlot,
+            displayName: request.displayName,
+            sourcePresetID: draft.sourcePresetID,
+            sourcePlannedMealID: draft.sourcePlannedMealID,
+            loggedAt: request.loggedAt,
+            clientIdempotencyKey: key,
+            loggedAs: draft.loggedAs,
+            totalKcal: totals.kcal.rounded(),
+            totalProteinG: totals.proteinG,
+            totalCarbsG: totals.carbsG,
+            totalFatG: totals.fatG
+        )
+        let localEntries = validItems.enumerated().map { index, item in
+            let nutrients = item.nutrients
+            return LoggedFoodEntry(
+                id: item.id,
+                mealID: draft.id,
+                userID: profile.userID,
+                foodID: item.foodID,
+                sortOrder: index,
+                snapshotName: item.name,
+                snapshotBrand: item.brand,
+                snapshotPreparationState: item.preparationState,
+                snapshotNutritionBasis: item.nutritionBasis,
+                snapshotKcal100: item.kcal100,
+                snapshotProtein100: item.protein100,
+                snapshotCarbs100: item.carbs100,
+                snapshotFat100: item.fat100,
+                quantity: item.quantity,
+                unit: item.unit,
+                equivalentAmount: item.equivalentAmount,
+                kcal: nutrients.kcal.rounded(),
+                proteinG: nutrients.proteinG,
+                carbsG: nutrients.carbsG,
+                fatG: nutrients.fatG
+            )
+        }
+
+        if let replaced = draft.replaceMealID {
+            data.loggedMeals.removeAll { $0.id == replaced }
+            data.loggedFoodEntries.removeAll { $0.mealID == replaced }
+        }
+        data.loggedMeals.removeAll { $0.id == draft.id }
+        data.loggedMeals.insert(localMeal, at: 0)
+        data.loggedFoodEntries.removeAll { $0.mealID == draft.id }
+        data.loggedFoodEntries.insert(contentsOf: localEntries, at: 0)
+        recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
+        await saveLocalSnapshot()
+
+        do {
+            _ = try await service.logStructuredMeal(meal: request, entries: entryRequests)
+            try await refreshDashboard()
+        } catch {
+            let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
+            try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
+            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+            alertMessage = "Meal saved on this iPhone and queued for Supabase."
+        }
+    }
+
+    @discardableResult
+    func saveMealPreset(
+        name: String,
+        mealSlot: String,
+        items: [MealComposerItem],
+        subtitle: String = "",
+        existing: MealPreset? = nil
+    ) async throws -> UUID {
+        guard let profile else { throw APEXServiceError.configurationMissing }
+        let eligible = items.filter { $0.foodID != nil && $0.equivalentAmount > 0 }
+        guard eligible.isEmpty == false else { throw APEXServiceError.incompleteFood }
+        let presetID = existing?.id ?? UUID()
+        let preset = MealPresetRequest(
+            id: presetID,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            mealSlot: mealSlot,
+            sourcePlannedMealID: existing?.sourcePlannedMealID,
+            archived: false
+        )
+        let itemRequests = eligible.enumerated().compactMap { index, item -> MealPresetItemRequest? in
+            guard let foodID = item.foodID else { return nil }
+            return MealPresetItemRequest(
+                id: UUID(), foodID: foodID, sortOrder: index,
+                quantity: item.quantity, unit: item.unit,
+                optional: item.optional, locked: item.locked,
+                adjustable: item.adjustable,
+                minimumAmount: item.minimumAmount,
+                maximumAmount: item.maximumAmount,
+                stepAmount: item.stepAmount,
+                adjustmentRole: item.adjustmentRole
+            )
+        }
+        let expectedVersion = existing?.version ?? 0
+        let localPreset = MealPreset(
+            id: presetID, userID: profile.userID,
+            name: preset.name, mealSlot: mealSlot,
+            sourcePlannedMealID: existing?.sourcePlannedMealID,
+            archived: false, version: expectedVersion + 1
+        )
+        let localItems = itemRequests.map { value in
+            MealPresetItem(
+                id: value.id, presetID: presetID, userID: profile.userID,
+                foodID: value.foodID, sortOrder: value.sortOrder,
+                quantity: value.quantity, unit: value.unit,
+                optional: value.optional, locked: value.locked,
+                adjustable: value.adjustable,
+                minimumAmount: value.minimumAmount,
+                maximumAmount: value.maximumAmount,
+                stepAmount: value.stepAmount,
+                adjustmentRole: value.adjustmentRole
+            )
+        }
+        data.mealPresets.removeAll { $0.id == presetID }
+        data.mealPresets.append(localPreset)
+        data.mealPresetItems.removeAll { $0.presetID == presetID }
+        data.mealPresetItems.append(contentsOf: localItems)
+        if subtitle.isEmpty == false {
+            await updateSettings { settings in
+                var subtitles = settings.addons["meal_preset_subtitles"]?.objectValue ?? [:]
+                subtitles[presetID.uuidString.lowercased()] = .string(subtitle)
+                settings.addons["meal_preset_subtitles"] = .object(subtitles)
+            }
+        }
+        await saveLocalSnapshot()
+
+        do {
+            let savedID = try await service.saveMealPreset(
+                preset: preset,
+                items: itemRequests,
+                expectedVersion: expectedVersion
+            )
+            try await refreshDashboard()
+            return savedID
+        } catch {
+            let payload = MealPresetRPCPayload(
+                pPreset: preset,
+                pItems: itemRequests,
+                pExpectedVersion: expectedVersion
+            )
+            try await offlineStore.enqueue(.rpc("save_meal_preset", params: payload), for: profile.userID)
+            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+            alertMessage = "Preset saved on this iPhone and queued for Supabase."
+            return presetID
+        }
+    }
+
+    func deleteMealPreset(_ preset: MealPreset) async {
+        guard let profile else { return }
+        data.mealPresets.removeAll { $0.id == preset.id }
+        data.mealPresetItems.removeAll { $0.presetID == preset.id }
+        await saveLocalSnapshot()
+        do {
+            try await service.deleteMealPreset(preset.id)
+            try await refreshDashboard()
+        } catch {
+            do {
+                try await offlineStore.enqueue(
+                    .rpc("delete_meal_preset", params: ["p_preset_id": preset.id.uuidString]),
+                    for: profile.userID
+                )
+                pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
+            } catch {
+                alertMessage = error.localizedDescription
+            }
+        }
+    }
+
+    func setFoodFavourite(_ food: Food, favourite: Bool) async {
+        guard let profile, let foodID = UUID(uuidString: food.id) else { return }
+        let existing = data.foodPreferences.first { $0.foodID == foodID }
+        let value = FoodPreference(
+            id: existing?.id ?? UUID(), userID: profile.userID, foodID: foodID,
+            personalName: existing?.personalName, aliases: existing?.aliases ?? [],
+            favourite: favourite, usualAmount: existing?.usualAmount,
+            usualUnit: existing?.usualUnit, usageCount: existing?.usageCount ?? 0,
+            lastUsedAt: existing?.lastUsedAt, hidden: existing?.hidden ?? false
+        )
+        data.foodPreferences.removeAll { $0.foodID == foodID }
+        data.foodPreferences.append(value)
+        await persistUpsert(value, table: "food_preferences", onConflict: "user_id,food_id")
+    }
+
+    func updateProfile(_ transform: (inout Profile) -> Void) async {
+        guard var profile else { return }
+        transform(&profile)
+        profile.updatedAt = Date().ISO8601Format()
+        data.profile = profile
+        await persistUpsert(profile, table: "profile", onConflict: "user_id")
+    }
+
     func logFood(
         _ food: Food,
         amount: Double,
@@ -695,6 +935,28 @@ final class AppSession {
     }
 
     func completeWorkout(day: ProgramDay, exercises: [Exercise], lite: Bool) async {
+        let inputs = exercises.flatMap { exercise in
+            (1...max(exercise.sets, 1)).map { set in
+                WorkoutSetInput(
+                    exerciseID: exercise.id,
+                    exerciseName: exercise.name,
+                    setNumber: set,
+                    weightKG: nil,
+                    reps: exercise.repMax > 0 ? exercise.repMax : nil,
+                    rir: 2,
+                    skipped: false
+                )
+            }
+        }
+        await completeWorkout(day: day, setInputs: inputs, lite: lite, startedAt: .now)
+    }
+
+    func completeWorkout(
+        day: ProgramDay,
+        setInputs: [WorkoutSetInput],
+        lite: Bool,
+        startedAt: Date
+    ) async {
         guard let profile else { return }
         let now = Date().ISO8601Format()
         let isDeload = TrainingAdjustmentEngine.isDeload(
@@ -705,18 +967,16 @@ final class AppSession {
             id: UUID(), userID: profile.userID, date: Date().apexDateKey,
             programDayID: day.id, isLite: lite, isDeload: isDeload,
             isEventRecovery: false, completed: true, qualityScore: 1,
-            startedAt: now, completedAt: now, notes: "Completed in APEX iOS"
+            startedAt: startedAt.ISO8601Format(), completedAt: now, notes: "Completed in APEX iOS"
         )
-        let logs = exercises.flatMap { exercise in
-            (1...max(exercise.sets, 1)).map { set in
-                WorkoutLog(
-                    id: UUID(), userID: profile.userID, sessionID: workout.id,
-                    exerciseID: exercise.id, exerciseName: exercise.name,
-                    setNumber: set, weightKG: nil,
-                    reps: exercise.repMax > 0 ? exercise.repMax : nil,
-                    rir: 2, skipped: false, overrideFlag: false, createdAt: now
-                )
-            }
+        let logs = setInputs.map { input in
+            WorkoutLog(
+                id: UUID(), userID: profile.userID, sessionID: workout.id,
+                exerciseID: input.exerciseID, exerciseName: input.exerciseName,
+                setNumber: input.setNumber, weightKG: input.weightKG,
+                reps: input.reps, rir: input.rir, skipped: input.skipped,
+                overrideFlag: false, createdAt: now
+            )
         }
         data.workoutSessions.append(workout)
         data.workoutLogs.append(contentsOf: logs)
@@ -725,7 +985,8 @@ final class AppSession {
             await persistUpsert(log, table: "workout_logs")
         }
         if let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
-            await addActivity(type: activityType, date: .now, durationMinutes: day.estimatedMinutes)
+            let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
+            await addActivity(type: activityType, date: .now, durationMinutes: elapsed)
         }
     }
 

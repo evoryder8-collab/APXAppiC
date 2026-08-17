@@ -149,6 +149,7 @@ struct FoodPortionSheet: View {
     @State private var language = LanguageState.shared
     let food: Food
     let date: Date
+    var onAdd: ((Food, Double, String) -> Void)? = nil
 
     @State private var amount: Double
     @State private var unit: String
@@ -156,9 +157,10 @@ struct FoodPortionSheet: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
 
-    init(food: Food, date: Date) {
+    init(food: Food, date: Date, onAdd: ((Food, Double, String) -> Void)? = nil) {
         self.food = food
         self.date = date
+        self.onAdd = onAdd
         if food.servingGramsOrML != nil {
             _amount = State(initialValue: 1)
             _unit = State(initialValue: "serving")
@@ -284,6 +286,11 @@ struct FoodPortionSheet: View {
     private func save() async {
         isSaving = true
         defer { isSaving = false }
+        if let onAdd {
+            onAdd(food, amount, unit)
+            dismiss()
+            return
+        }
         do {
             try await session.logFood(food, amount: amount, unit: unit, mealSlot: mealSlot, date: date)
             dismiss()
