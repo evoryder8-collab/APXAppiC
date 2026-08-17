@@ -11,6 +11,8 @@ struct SimpleHomeView: View {
     @State private var showCalendar = false
     @State private var showMealSlotPicker = false
     @State private var composerRequest: MealComposerRequest?
+    @State private var health = HealthKitManager.shared
+    @State private var quickPanel: SimpleQuickPanel?
 
     private let waterTargetL = 2.75
 
@@ -129,6 +131,8 @@ struct SimpleHomeView: View {
                 LazyVStack(spacing: 15) {
                     simpleHeader
 
+                    RecoveryMorningCard(date: selectedDate)
+
                     if let targets {
                         NutritionGlanceCard(
                             date: selectedDate,
@@ -151,6 +155,7 @@ struct SimpleHomeView: View {
                     }
 
                     metrics
+                    WearableActivityCard(date: selectedDate)
                     checklist
 
                     if let todayProgramDay, !workoutDone {
@@ -209,6 +214,31 @@ struct SimpleHomeView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
+        .sheet(item: $quickPanel) { panel in
+            switch panel {
+            case .water:
+                WaterQuickAddSheet(currentLiters: waterL, targetLiters: waterTargetL) { liters in
+                    addWater(liters)
+                }
+                .presentationDetents([.medium])
+            case .supplements:
+                SupplementQuickSheet(date: selectedDate)
+                    .presentationDetents([.large])
+            case .stats:
+                StatsQuickSheet(date: selectedDate)
+                    .presentationDetents([.medium])
+            case .training:
+                TrainingQuickSheet(day: todayProgramDay) { lite in
+                    guard todayProgramDay != nil else {
+                        session.navigationPath.append(.transition)
+                        return
+                    }
+                    workoutIsLite = lite
+                    showWorkout = true
+                }
+                .presentationDetents([.medium])
+            }
+        }
         .fullScreenCover(item: $composerRequest) { request in
             MealComposerView(request: request)
         }
@@ -240,32 +270,36 @@ struct SimpleHomeView: View {
     private var metrics: some View {
         HStack(spacing: 7) {
             SimpleMetric(
-                icon: "leaf.fill",
-                value: "\(completedMealCount)/\(meals.count)",
-                label: "Meals",
-                done: !meals.isEmpty && completedMealCount == meals.count,
-                color: APEXColor.amber
+                icon: "drop.fill",
+                value: language.format("%.1f L", waterL),
+                label: "Water",
+                done: waterDone,
+                color: APEXColor.cyan,
+                action: { quickPanel = .water }
             )
             SimpleMetric(
                 icon: "sparkles",
                 value: "\(completedSupplementCount)/\(supplementGroups.count)",
                 label: "Supps",
                 done: !supplementGroups.isEmpty && completedSupplementCount == supplementGroups.count,
-                color: APEXColor.violet
+                color: APEXColor.violet,
+                action: { quickPanel = .supplements }
             )
             SimpleMetric(
-                icon: "drop.fill",
-                value: language.format("%.1f L", waterL),
-                label: "Water",
-                done: waterDone,
-                color: APEXColor.cyan
+                icon: "chart.xyaxis.line",
+                value: latestSnapshot.map { String(Int($0.overall.rounded())) } ?? "—",
+                label: "Stats",
+                done: false,
+                color: APEXColor.green,
+                action: { quickPanel = .stats }
             )
             SimpleMetric(
                 icon: "figure.strengthtraining.traditional",
                 value: todayProgramDay == nil ? language.text("Rest") : workoutDone ? language.text("Done") : todayProgramDay.map { "\($0.estimatedMinutes)m" } ?? language.text("Rest"),
                 label: "Training",
                 done: workoutDone,
-                color: APEXColor.teal
+                color: APEXColor.teal,
+                action: { quickPanel = .training }
             )
         }
     }
@@ -321,7 +355,7 @@ struct SimpleHomeView: View {
                             title: language.text("Water"),
                             detail: language.format("%.2f / %.2f L", waterL, waterTargetL),
                             done: waterDone,
-                            action: addWater
+                            action: { addWater() }
                         )
                         if let todayProgramDay {
                             SimpleChecklistRow(
@@ -536,7 +570,7 @@ struct SimpleHomeView: View {
         }
     }
 
-    private func addWater() {
+    private func addWater(_ liters: Double = 0.25) {
         guard let profile, let targets else { return }
         var row = dailyLog ?? DailyLog(
             id: APEXStableID.scopedUUID(namespace: "daily-log", date: today, userID: profile.userID),
@@ -545,12 +579,12 @@ struct SimpleHomeView: View {
             estimatedTDEE: targets.tdee, computedPAL: targets.pal,
             activityMode: activities.isEmpty ? "quick" : "precise", weightKG: nil
         )
-        let added = max(0, min(0.25, 6 - row.waterL))
+        let added = max(0, min(liters, 6 - row.waterL))
         guard added > 0 else { return }
         row.waterL = min(6, ((row.waterL + added) * 100).rounded() / 100)
         Task {
             await session.updateDailyLog(row)
-            try? await HealthKitManager.shared.saveWater(liters: added, date: .now)
+            try? await health.saveWater(liters: added, date: selectedDate)
         }
     }
 
@@ -660,8 +694,10 @@ private struct SimpleMetric: View {
     let label: String
     let done: Bool
     let color: Color
+    let action: () -> Void
 
     var body: some View {
+        Button(action: action) {
         VStack(spacing: 5) {
             Image(systemName: done ? "checkmark" : icon)
                 .font(.system(size: 11, weight: .bold))
@@ -683,6 +719,8 @@ private struct SimpleMetric: View {
         .frame(height: 84)
         .background(.ultraThinMaterial.opacity(0.84), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(done ? APEXColor.green.opacity(0.26) : .white.opacity(0.82)))
+        }
+        .buttonStyle(.plain)
     }
 }
 
@@ -757,6 +795,323 @@ private struct SimpleShortcutCard: View {
         .background(.ultraThinMaterial.opacity(0.9), in: RoundedRectangle(cornerRadius: 27, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 27, style: .continuous).stroke(.white.opacity(0.88)))
         .shadow(color: color.opacity(0.1), radius: 18, y: 9)
+    }
+}
+
+enum SimpleQuickPanel: String, Identifiable {
+    case water, supplements, stats, training
+    var id: String { rawValue }
+}
+
+struct WearableActivityRecord: Hashable, Sendable {
+    let date: String
+    let steps: Int
+    let activeCalories: Int
+    let exerciseMinutes: Int
+    let source: String
+    let updatedAt: String
+
+    var jsonValue: JSONValue {
+        .object([
+            "date": .string(date), "steps": .number(Double(steps)),
+            "active_calories": .number(Double(activeCalories)),
+            "exercise_minutes": .number(Double(exerciseMinutes)),
+            "source": .string(source), "updated_at": .string(updatedAt)
+        ])
+    }
+
+    static func history(from value: JSONValue?) -> [Self] {
+        (value?.arrayValue ?? []).compactMap { item in
+            guard let object = item.objectValue, let date = object["date"]?.stringValue else { return nil }
+            return Self(
+                date: date,
+                steps: Int(object["steps"]?.numberValue ?? 0),
+                activeCalories: Int(object["active_calories"]?.numberValue ?? 0),
+                exerciseMinutes: Int(object["exercise_minutes"]?.numberValue ?? 0),
+                source: object["source"]?.stringValue ?? "manual",
+                updatedAt: object["updated_at"]?.stringValue ?? ""
+            )
+        }
+    }
+}
+
+enum WearableActivityEngine {
+    static func suggestedLevel(persona: Persona, steps: Int, activeCalories: Int, exerciseMinutes: Int) -> ActivityLevel {
+        let stepCuts = persona == .june ? [4_000, 7_000, 11_500, 16_000] : [4_000, 7_500, 12_000, 18_000]
+        let calorieCuts = persona == .june ? [180, 350, 550, 800] : [250, 500, 750, 1_100]
+        let exerciseCuts = [10, 25, 50, 80]
+        let rank = max(rank(steps, cuts: stepCuts), rank(activeCalories, cuts: calorieCuts), rank(exerciseMinutes, cuts: exerciseCuts))
+        return [ActivityLevel.sedentary, .light, .moderate, .very, .extra][rank]
+    }
+
+    private static func rank(_ value: Int, cuts: [Int]) -> Int {
+        cuts.reduce(0) { $0 + (value >= $1 ? 1 : 0) }
+    }
+}
+
+private struct WaterQuickAddSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let currentLiters: Double
+    let targetLiters: Double
+    let add: (Double) -> Void
+    @State private var customML = ""
+
+    var body: some View {
+        VStack(spacing: 17) {
+            HStack {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text("Water quick add").font(APEXFont.display(25))
+                    Text(String(format: "%.2f / %.2f L", currentLiters, targetLiters))
+                        .font(APEXFont.body(12, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
+                }
+                Spacer()
+                HydrationFigureView(progress: min(1, currentLiters / targetLiters))
+                    .frame(width: 62, height: 96)
+            }
+            LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 10) {
+                ForEach([250, 300, 500], id: \.self) { amount in
+                    quickButton("\(amount) ml") { add(Double(amount) / 1_000); dismiss() }
+                }
+                TextField("Custom ml", text: $customML)
+                    .keyboardType(.numberPad).font(APEXFont.mono(14)).multilineTextAlignment(.center)
+                    .frame(minHeight: 54).background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
+                    .onSubmit { addCustom() }
+            }
+            Button("Add custom amount") { addCustom() }
+                .buttonStyle(.borderedProminent).tint(APEXColor.cyan).disabled(Double(customML) == nil)
+        }
+        .padding(22)
+        .presentationBackground(.ultraThinMaterial)
+    }
+
+    private func quickButton(_ title: String, action: @escaping () -> Void) -> some View {
+        Button(title, action: action).font(APEXFont.mono(13)).frame(maxWidth: .infinity, minHeight: 54)
+            .background(APEXColor.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 17)).buttonStyle(.plain)
+    }
+    private func addCustom() {
+        guard let ml = Double(customML), ml > 0 else { return }
+        add(min(3_000, ml) / 1_000); dismiss()
+    }
+}
+
+private struct HydrationFigureView: View {
+    let progress: Double
+    @State private var phase = false
+
+    var body: some View {
+        GeometryReader { proxy in
+            ZStack(alignment: .bottom) {
+                HydrationBodyShape().fill(APEXColor.ink.opacity(0.08))
+                Rectangle()
+                    .fill(LinearGradient(colors: [APEXColor.cyan, .blue.opacity(0.72)], startPoint: .top, endPoint: .bottom))
+                    .frame(height: proxy.size.height * progress)
+                    .offset(x: phase ? 2 : -2)
+                    .mask(HydrationBodyShape())
+                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: phase)
+                HydrationBodyShape().stroke(APEXColor.cyan.opacity(0.62), lineWidth: 1.4)
+            }
+            .onAppear { phase = true }
+        }
+        .accessibilityLabel("Hydration level")
+        .accessibilityValue("\(Int(progress * 100)) percent")
+    }
+}
+
+private struct HydrationBodyShape: Shape {
+    func path(in rect: CGRect) -> Path {
+        var p = Path()
+        let cx = rect.midX
+        p.addEllipse(in: CGRect(x: cx - rect.width * 0.13, y: rect.minY, width: rect.width * 0.26, height: rect.width * 0.26))
+        p.addRoundedRect(in: CGRect(x: cx - rect.width * 0.19, y: rect.height * 0.23, width: rect.width * 0.38, height: rect.height * 0.42), cornerSize: CGSize(width: 12, height: 12))
+        p.addRoundedRect(in: CGRect(x: cx - rect.width * 0.34, y: rect.height * 0.26, width: rect.width * 0.13, height: rect.height * 0.46), cornerSize: CGSize(width: 8, height: 8))
+        p.addRoundedRect(in: CGRect(x: cx + rect.width * 0.21, y: rect.height * 0.26, width: rect.width * 0.13, height: rect.height * 0.46), cornerSize: CGSize(width: 8, height: 8))
+        p.addRoundedRect(in: CGRect(x: cx - rect.width * 0.18, y: rect.height * 0.61, width: rect.width * 0.15, height: rect.height * 0.38), cornerSize: CGSize(width: 8, height: 8))
+        p.addRoundedRect(in: CGRect(x: cx + rect.width * 0.03, y: rect.height * 0.61, width: rect.width * 0.15, height: rect.height * 0.38), cornerSize: CGSize(width: 8, height: 8))
+        return p
+    }
+}
+
+private struct SupplementQuickSheet: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    let date: Date
+
+    var body: some View {
+        NavigationStack {
+            List(session.data.supplements.sorted { $0.sortOrder < $1.sortOrder }) { supplement in
+                let done = session.data.supplementLogs.contains { $0.date == date.apexDateKey && $0.supplementID == supplement.id }
+                Button { Task { await session.toggleSupplement(supplement, on: date) } } label: {
+                    HStack {
+                        Image(systemName: done ? "checkmark.circle.fill" : "circle").foregroundStyle(done ? APEXColor.green : APEXColor.secondaryInk)
+                        VStack(alignment: .leading) {
+                            Text(supplement.name).font(APEXFont.body(14, weight: .bold))
+                            Text("\(supplement.dose) · \(supplement.groupLabel)").font(APEXFont.body(10)).foregroundStyle(APEXColor.secondaryInk)
+                        }
+                    }
+                }.buttonStyle(.plain)
+            }
+            .navigationTitle("Supplement stack")
+            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
+        }
+    }
+}
+
+private struct StatsQuickSheet: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    let date: Date
+    private var snapshot: RPGSnapshot? { session.data.snapshots.filter { $0.date <= date.apexDateKey }.max { $0.date < $1.date } }
+
+    var body: some View {
+        VStack(spacing: 16) {
+            Text("Body signals").font(APEXFont.display(26))
+            if let snapshot {
+                Text(String(Int(snapshot.overall.rounded()))).font(APEXFont.mono(54)).foregroundStyle(APEXColor.green)
+                Text("Overall Fitness Level").font(APEXFont.body(13, weight: .bold))
+            } else { ContentUnavailableView("No stats yet", systemImage: "chart.xyaxis.line") }
+            Button("Open full Avatar") { dismiss(); session.navigationPath.append(.avatar) }
+                .buttonStyle(.borderedProminent).tint(APEXColor.green)
+        }.padding(24).presentationBackground(.ultraThinMaterial)
+    }
+}
+
+private struct TrainingQuickSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    let day: ProgramDay?
+    let start: (Bool) -> Void
+    var body: some View {
+        VStack(spacing: 18) {
+            Image(systemName: "figure.strengthtraining.traditional").font(.system(size: 42)).foregroundStyle(APEXColor.teal)
+            Text(day?.name ?? "Recovery day").font(APEXFont.display(26))
+            Text(day.map { "\($0.estimatedMinutes) min planned" } ?? "No planned strength session today")
+                .font(APEXFont.body(12)).foregroundStyle(APEXColor.secondaryInk)
+            HStack {
+                Button("Open plan") { dismiss(); start(false) }.buttonStyle(.bordered)
+                if day != nil { Button("Quick start") { dismiss(); start(true) }.buttonStyle(.borderedProminent).tint(APEXColor.teal) }
+            }
+        }.padding(24).presentationBackground(.ultraThinMaterial)
+    }
+}
+
+private struct WearableActivityCard: View {
+    @Environment(AppSession.self) private var session
+    @State private var health = HealthKitManager.shared
+    @State private var showEditor = false
+    let date: Date
+
+    private var record: WearableActivityRecord? {
+        let history = WearableActivityRecord.history(from: session.data.settings?.addons["watch_activity_history"])
+        return history.last { $0.date == date.apexDateKey }
+    }
+    private var level: ActivityLevel {
+        guard let record else { return .sedentary }
+        return WearableActivityEngine.suggestedLevel(persona: session.profile?.persona ?? .constantine, steps: record.steps, activeCalories: record.activeCalories, exerciseMinutes: record.exerciseMinutes)
+    }
+
+    var body: some View {
+        GlassCard(radius: 25, padding: 16) {
+            VStack(alignment: .leading, spacing: 11) {
+                HStack {
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text("Wearable activity").font(APEXFont.display(18))
+                        Text(record.map { "\($0.steps.formatted()) steps · \(level.title)" } ?? "No wearable data for this day")
+                            .font(APEXFont.body(10, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    Spacer()
+                    Button { showEditor = true } label: { Image(systemName: record == nil ? "plus" : "pencil") }.buttonStyle(.bordered)
+                }
+                if let record {
+                    HStack(spacing: 8) {
+                        wearableMetric("Steps", record.steps)
+                        wearableMetric("Active kcal", record.activeCalories)
+                        wearableMetric("Exercise min", record.exerciseMinutes)
+                    }
+                    Button("Use \(level.title)") { Task { await session.setActivityLevel(level) } }
+                        .buttonStyle(.borderedProminent).tint(APEXColor.cyan)
+                } else if date.apexDateKey == Date().apexDateKey {
+                    Button(health.isAuthorized ? "Refresh Apple Health" : "Connect Apple Health") {
+                        Task { if let snapshot = await health.requestAccessAndImport() { await session.applyHealthSnapshot(snapshot) } }
+                    }.buttonStyle(.borderedProminent).tint(APEXColor.cyan)
+                }
+            }
+        }
+        .sheet(isPresented: $showEditor) { WearableActivityEditor(date: date, existing: record).presentationDetents([.medium]) }
+    }
+
+    private func wearableMetric(_ label: String, _ value: Int) -> some View {
+        VStack(spacing: 3) { Text(value.formatted()).font(APEXFont.mono(12)); Text(label).font(APEXFont.body(8)).foregroundStyle(APEXColor.secondaryInk) }
+            .frame(maxWidth: .infinity).padding(.vertical, 10).background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 13))
+    }
+}
+
+private struct WearableActivityEditor: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    let date: Date
+    let existing: WearableActivityRecord?
+    @State private var steps = ""
+    @State private var calories = ""
+    @State private var minutes = ""
+    var body: some View {
+        VStack(alignment: .leading, spacing: 15) {
+            Text("Wearable activity").font(APEXFont.display(25))
+            HStack { field("Steps", text: $steps); field("Active kcal", text: $calories); field("Exercise min", text: $minutes) }
+            Button("Save and use suggested mode") {
+                let record = WearableActivityRecord(date: date.apexDateKey, steps: Int(steps) ?? 0, activeCalories: Int(calories) ?? 0, exerciseMinutes: Int(minutes) ?? 0, source: "manual", updatedAt: Date().ISO8601Format())
+                Task { await session.saveWearableActivity(record, automaticallyApply: true); dismiss() }
+            }.buttonStyle(.borderedProminent).tint(APEXColor.cyan).frame(maxWidth: .infinity)
+        }.padding(22).onAppear { steps = existing.map { String($0.steps) } ?? ""; calories = existing.map { String($0.activeCalories) } ?? ""; minutes = existing.map { String($0.exerciseMinutes) } ?? "" }
+    }
+    private func field(_ label: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading) { Text(label).font(APEXFont.body(9, weight: .bold)); TextField("0", text: text).keyboardType(.numberPad).font(APEXFont.mono(14)).padding(11).background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 13)) }
+    }
+}
+
+private struct RecoveryMorningCard: View {
+    @Environment(AppSession.self) private var session
+    @State private var health = HealthKitManager.shared
+    @State private var sleep = ""
+    @State private var recovery = ""
+    let date: Date
+    private var source: String { session.data.settings?.addons["recovery_data_source"]?.stringValue ?? "apple" }
+    private var context: [String: JSONValue]? { session.data.settings?.addons["apple_recovery_context"]?.objectValue }
+    private var isToday: Bool { date.apexDateKey == Date().apexDateKey }
+
+    var body: some View {
+        GlassCard(radius: 25, padding: 16) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack { Text(source == "athlytic" ? "Athlytic morning check" : "Apple morning check").font(APEXFont.display(18)); Spacer(); Text(health.isAuthorized ? "AUTO + MANUAL" : "MANUAL").font(APEXFont.mono(8)).foregroundStyle(APEXColor.green) }
+                if isToday, let hours = context?["sleep_duration_hours"]?.numberValue {
+                    Text(String(format: "Apple Health sleep: %.1f h", hours)).font(APEXFont.body(10, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
+                }
+                HStack {
+                    scoreField("Sleep", text: $sleep)
+                    if source == "athlytic" { scoreField("Recovery", text: $recovery) }
+                }
+                Text(source == "athlytic" ? "Athlytic’s proprietary score is entered manually; Apple Health context is imported automatically." : "Apple Health sleep context imports automatically. Add the 0–100 score when your watch does not expose one.")
+                    .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
+                Button("Save morning check") { save() }.buttonStyle(.borderedProminent).tint(APEXColor.green)
+            }
+        }
+        .onAppear { load() }
+    }
+    private func scoreField(_ title: String, text: Binding<String>) -> some View {
+        VStack(alignment: .leading) { Text(title).font(APEXFont.body(9, weight: .bold)); TextField("%", text: text).keyboardType(.numberPad).font(APEXFont.mono(15)).multilineTextAlignment(.center).padding(11).background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 14)) }
+    }
+    private func load() {
+        let history = session.data.settings?.addons["recovery_history"]?.arrayValue ?? []
+        guard let row = history.compactMap(\.objectValue).last(where: { $0["date"]?.stringValue == date.apexDateKey }) else { return }
+        sleep = row["sleep_score"]?.numberValue.map { String(Int($0)) } ?? ""
+        recovery = row["recovery_pct"]?.numberValue.map { String(Int($0)) } ?? ""
+    }
+    private func save() {
+        let sleepValue = min(100, max(0, Double(sleep) ?? 0)); let recoveryValue = min(100, max(0, Double(recovery) ?? sleepValue))
+        Task { await session.updateSettings { settings in
+            var rows = settings.addons["recovery_history"]?.arrayValue ?? []
+            rows.removeAll { $0.objectValue?["date"]?.stringValue == date.apexDateKey }
+            rows.append(.object(["date": .string(date.apexDateKey), "source": .string(source), "sleep_score": .number(sleepValue), "sleep_pct": .number(sleepValue), "recovery_pct": .number(recoveryValue), "updated_at": .string(Date().ISO8601Format())]))
+            settings.addons["recovery_history"] = .array(Array(rows.suffix(730)))
+        } }
     }
 }
 

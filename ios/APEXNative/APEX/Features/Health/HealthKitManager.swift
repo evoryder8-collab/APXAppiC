@@ -10,6 +10,9 @@ struct HealthSnapshot: Sendable {
     let dietaryWaterL: Double?
     let steps: Double?
     let activeEnergyKcal: Double?
+    let exerciseMinutes: Double?
+    let sleepDurationHours: Double?
+    let heartRateVariabilityMS: Double?
     let workouts: [HealthWorkoutSnapshot]
 }
 
@@ -78,6 +81,9 @@ final class HealthKitManager {
         async let water = cumulativeQuantity(.dietaryWater, unit: .liter(), start: start, end: end)
         async let steps = cumulativeQuantity(.stepCount, unit: .count(), start: start, end: end)
         async let energy = cumulativeQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: start, end: end)
+        async let exercise = cumulativeQuantity(.appleExerciseTime, unit: .minute(), start: start, end: end)
+        async let hrv = latestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
+        async let sleep = sleepDurationHours(endingAt: end)
         async let workouts = workoutSnapshots(start: start, end: end)
 
         return try await HealthSnapshot(
@@ -88,6 +94,9 @@ final class HealthKitManager {
             dietaryWaterL: water,
             steps: steps,
             activeEnergyKcal: energy,
+            exerciseMinutes: exercise,
+            sleepDurationHours: sleep,
+            heartRateVariabilityMS: hrv,
             workouts: workouts
         )
     }
@@ -99,7 +108,9 @@ final class HealthKitManager {
         guard observerQueries.isEmpty, isAvailable else { return }
         for sampleType in [
             quantity(.bodyMass), quantity(.dietaryWater), quantity(.vo2Max),
-            quantity(.restingHeartRate), HKObjectType.workoutType()
+            quantity(.restingHeartRate), quantity(.stepCount), quantity(.activeEnergyBurned),
+            quantity(.appleExerciseTime), quantity(.heartRateVariabilitySDNN),
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis), HKObjectType.workoutType()
         ].compactMap({ $0 }) {
             let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completion, error in
                 guard error == nil else { completion(); return }
@@ -131,7 +142,8 @@ final class HealthKitManager {
         [
             quantity(.bodyMass), quantity(.vo2Max), quantity(.restingHeartRate),
             quantity(.dietaryWater), quantity(.stepCount), quantity(.activeEnergyBurned),
-            HKObjectType.workoutType()
+            quantity(.appleExerciseTime), quantity(.heartRateVariabilitySDNN),
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis), HKObjectType.workoutType()
         ].compactMap { $0 }
     }
 
@@ -167,6 +179,42 @@ final class HealthKitManager {
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, stats, error in
                 if let error { continuation.resume(throwing: error); return }
                 continuation.resume(returning: stats?.sumQuantity()?.doubleValue(for: unit))
+            }
+            store.execute(query)
+        }
+    }
+
+    private func sleepDurationHours(endingAt end: Date) async throws -> Double? {
+        guard let type = HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
+              let start = Calendar.current.date(byAdding: .hour, value: -18, to: end) else { return nil }
+        let predicate = HKQuery.predicateForSamples(withStart: start, end: end, options: [])
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKSampleQuery(
+                sampleType: type,
+                predicate: predicate,
+                limit: HKObjectQueryNoLimit,
+                sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
+            ) { _, samples, error in
+                if let error { continuation.resume(throwing: error); return }
+                let asleep = (samples as? [HKCategorySample] ?? []).compactMap { sample -> DateInterval? in
+                    guard let value = HKCategoryValueSleepAnalysis(rawValue: sample.value) else { return nil }
+                    switch value {
+                    case .asleep, .asleepCore, .asleepDeep, .asleepREM, .asleepUnspecified:
+                        return DateInterval(start: sample.startDate, end: sample.endDate)
+                    default:
+                        return nil
+                    }
+                }
+                guard !asleep.isEmpty else { continuation.resume(returning: nil); return }
+                var merged: [DateInterval] = []
+                for interval in asleep.sorted(by: { $0.start < $1.start }) {
+                    if let last = merged.last, interval.start <= last.end {
+                        merged[merged.count - 1] = DateInterval(start: last.start, end: max(last.end, interval.end))
+                    } else {
+                        merged.append(interval)
+                    }
+                }
+                continuation.resume(returning: merged.reduce(0) { $0 + $1.duration } / 3_600)
             }
             store.execute(query)
         }
@@ -216,7 +264,9 @@ final class HealthKitManager {
     private func enableBackgroundDelivery() async {
         for type in [
             quantity(.bodyMass), quantity(.dietaryWater), quantity(.vo2Max),
-            quantity(.restingHeartRate), HKObjectType.workoutType()
+            quantity(.restingHeartRate), quantity(.stepCount), quantity(.activeEnergyBurned),
+            quantity(.appleExerciseTime), quantity(.heartRateVariabilitySDNN),
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis), HKObjectType.workoutType()
         ].compactMap({ $0 }) {
             try? await store.enableBackgroundDelivery(for: type, frequency: .hourly)
         }

@@ -181,10 +181,13 @@ struct SettingsView: View {
     private var recoveryCard: some View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 17) {
-                sectionTitle("Recovery data source", subtitle: "Earlier history keeps its source and is never reinterpreted.")
+                sectionTitle("Recovery data source", subtitle: "Apple Health sleep, HRV and resting heart rate import automatically. Earlier history keeps its source and is never reinterpreted.")
                 choiceRow(options: [("Apple", "apple"), ("Athlytic", "athlytic")], selected: addonString("recovery_data_source", default: "apple")) {
                     setAddon("recovery_data_source", .string($0))
                 }
+                Text(language.text("Athlytic does not publish its proprietary Recovery score through HealthKit. APEX imports the Apple Health context automatically and keeps a fast manual fallback for that score."))
+                    .font(APEXFont.body(10, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
                 settingToggle("I’m a newbie", subtitle: "Turn on the short induction in Transition and Main Phase.", value: addonBool("newbie_mode", default: false)) {
                     setAddon("newbie_mode", .bool($0))
                 }

@@ -378,9 +378,53 @@ final class AppSession {
             await updateDailyLog(row)
         }
 
+        if snapshot.steps != nil || snapshot.activeEnergyKcal != nil || snapshot.exerciseMinutes != nil {
+            let wearable = WearableActivityRecord(
+                date: snapshot.date,
+                steps: Int((snapshot.steps ?? 0).rounded()),
+                activeCalories: Int((snapshot.activeEnergyKcal ?? 0).rounded()),
+                exerciseMinutes: Int((snapshot.exerciseMinutes ?? 0).rounded()),
+                source: "apple_health",
+                updatedAt: Date().ISO8601Format()
+            )
+            await saveWearableActivity(wearable, automaticallyApply: snapshot.date == Date().apexDateKey)
+        }
+
+        if snapshot.sleepDurationHours != nil || snapshot.heartRateVariabilityMS != nil {
+            await updateSettings { settings in
+                settings.addons["apple_recovery_context"] = .object([
+                    "date": .string(snapshot.date),
+                    "sleep_duration_hours": snapshot.sleepDurationHours.map(JSONValue.number) ?? .null,
+                    "heart_rate_variability_ms": snapshot.heartRateVariabilityMS.map(JSONValue.number) ?? .null,
+                    "resting_heart_rate": snapshot.restingHeartRate.map(JSONValue.number) ?? .null,
+                    "source": .string("apple_health"),
+                    "updated_at": .string(Date().ISO8601Format())
+                ])
+            }
+        }
+
         for workout in snapshot.workouts {
             await importHealthWorkoutIfNeeded(workout)
         }
+    }
+
+    func saveWearableActivity(_ record: WearableActivityRecord, automaticallyApply: Bool) async {
+        await updateSettings { settings in
+            var history = WearableActivityRecord.history(from: settings.addons["watch_activity_history"])
+            history.removeAll { $0.date == record.date }
+            history.append(record)
+            history.sort { $0.date < $1.date }
+            settings.addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
+        }
+        guard automaticallyApply,
+              data.activityLogs.contains(where: { $0.date == record.date }) == false else { return }
+        let suggested = WearableActivityEngine.suggestedLevel(
+            persona: profile?.persona ?? .constantine,
+            steps: record.steps,
+            activeCalories: record.activeCalories,
+            exerciseMinutes: record.exerciseMinutes
+        )
+        await setActivityLevel(suggested)
     }
 
     func addActivity(
