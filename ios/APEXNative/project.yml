@@ -4,6 +4,7 @@ options:
   bundleIdPrefix: ch.apexperformance
   deploymentTarget:
     iOS: "17.0"
+    watchOS: "10.0"
   xcodeVersion: "26.0"
   createIntermediateGroups: true
 
@@ -44,6 +45,8 @@ targets:
     dependencies:
       - package: Supabase
         product: Supabase
+      - target: APEXWatch
+        embed: true
     entitlements:
       path: APEX/APEX.entitlements
       properties:
@@ -92,6 +95,38 @@ targets:
         SUPPORTS_MACCATALYST: NO
         INFOPLIST_KEY_UIApplicationSceneManifest_Generation: YES
         INFOPLIST_KEY_UIApplicationSupportsIndirectInputEvents: YES
+        GENERATE_INFOPLIST_FILE: NO
+
+  APEXWatch:
+    type: application
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: APEXWatch
+    entitlements:
+      path: APEXWatch/APEXWatch.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+    info:
+      path: APEXWatch/Info.plist
+      properties:
+        CFBundleDisplayName: APEX Water
+        CFBundleName: APEX Water
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        ITSAppUsesNonExemptEncryption: false
+        WKApplication: true
+        WKCompanionAppBundleIdentifier: ch.apexperformance.APEX
+        WKRunsIndependentlyOfCompanionApp: true
+        NSHealthShareUsageDescription: APEX reads today's water total so the Watch and iPhone remain aligned.
+        NSHealthUpdateUsageDescription: APEX adds water to Apple Health when you tap a quantity on the Watch.
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.apexperformance.APEX.watchkitapp
+        PRODUCT_NAME: APEX Water
+        TARGETED_DEVICE_FAMILY: "4"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
         GENERATE_INFOPLIST_FILE: NO
 
   APEXTests:

@@ -227,6 +227,7 @@ final class AppSession {
             snapshotSugar100: nil,
             snapshotSaturatedFat100: nil,
             snapshotSalt100: nil,
+            snapshotWaterML100: nil,
             quantity: 1,
             unit: "serving",
             equivalentAmount: 100
@@ -315,6 +316,23 @@ final class AppSession {
             data.dailyLogs.append(row)
         }
         await persistUpsert(row, table: "daily_logs", onConflict: "user_id,date")
+    }
+
+    /// Water naturally present in foods logged for the selected day. This is
+    /// deliberately kept separate from `DailyLog.waterL`, which represents
+    /// drinks and Apple Health dietary-water samples.
+    func foodHydrationLiters(on date: Date) -> Double {
+        let day = date.apexDateKey
+        let mealIDs = Set(data.loggedMeals.lazy.filter { $0.localDate == day }.map(\.id))
+        guard !mealIDs.isEmpty else { return 0 }
+        let milliliters = data.loggedFoodEntries.lazy
+            .filter { mealIDs.contains($0.mealID) }
+            .reduce(0.0) { result, entry in
+                if let measured = entry.waterML { return result + max(0, measured) }
+                guard let per100 = entry.snapshotWaterML100 else { return result }
+                return result + max(0, per100) * max(0, entry.equivalentAmount) / 100
+            }
+        return milliliters / 1_000
     }
 
     func setActivityLevel(_ level: ActivityLevel) async {
@@ -607,6 +625,7 @@ final class AppSession {
                 snapshotSugar100: item.sugar100,
                 snapshotSaturatedFat100: item.saturatedFat100,
                 snapshotSalt100: item.salt100,
+                snapshotWaterML100: item.waterML100,
                 quantity: item.quantity,
                 unit: item.unit,
                 equivalentAmount: item.equivalentAmount
@@ -659,7 +678,9 @@ final class AppSession {
                 fibreG: item.fibre100.map { $0 * item.equivalentAmount / 100 },
                 sugarG: item.sugar100.map { $0 * item.equivalentAmount / 100 },
                 saturatedFatG: item.saturatedFat100.map { $0 * item.equivalentAmount / 100 },
-                saltG: item.salt100.map { $0 * item.equivalentAmount / 100 }
+                saltG: item.salt100.map { $0 * item.equivalentAmount / 100 },
+                snapshotWaterML100: item.waterML100,
+                waterML: item.waterML100.map { $0 * item.equivalentAmount / 100 }
             )
         }
 
@@ -997,6 +1018,7 @@ final class AppSession {
             snapshotSugar100: food.sugar100,
             snapshotSaturatedFat100: food.saturatedFat100,
             snapshotSalt100: food.salt100,
+            snapshotWaterML100: food.waterML100,
             quantity: amount,
             unit: unit,
             equivalentAmount: equivalentAmount
@@ -1037,7 +1059,17 @@ final class AppSession {
             kcal: nutrients.kcal.rounded(),
             proteinG: nutrients.proteinG,
             carbsG: nutrients.carbsG,
-            fatG: nutrients.fatG
+            fatG: nutrients.fatG,
+            snapshotFibre100: food.fibre100,
+            snapshotSugar100: food.sugar100,
+            snapshotSaturatedFat100: food.saturatedFat100,
+            snapshotSalt100: food.salt100,
+            fibreG: food.fibre100.map { $0 * equivalentAmount / 100 },
+            sugarG: food.sugar100.map { $0 * equivalentAmount / 100 },
+            saturatedFatG: food.saturatedFat100.map { $0 * equivalentAmount / 100 },
+            saltG: food.salt100.map { $0 * equivalentAmount / 100 },
+            snapshotWaterML100: food.waterML100,
+            waterML: food.waterML100.map { $0 * equivalentAmount / 100 }
         )
 
         data.loggedMeals.insert(localMeal, at: 0)

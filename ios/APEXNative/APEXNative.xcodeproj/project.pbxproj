@@ -36,6 +36,7 @@
 		512B74F72960908BA58D57E0 /* APEXTheme.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1BBEDBBF651D57DA43AD5F4F /* APEXTheme.swift */; };
 		516960626A9CEA62B1AD0855 /* OrbitCampaignEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A8E4CAC9808F1C0452E3AFD /* OrbitCampaignEngine.swift */; };
 		5179CE96D30A5E7676A5D37C /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60170C01AE471FFE7A710F8E /* AppSession.swift */; };
+		5196E4E94B9FEB846353E19F /* APEXWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 19CCE3BAA0DACC16E351652C /* APEXWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		52CF4E5E604428674E9C3985 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2BEE1685C3BD78ADAB767C5C /* PrivacyInfo.xcprivacy */; };
 		56B1F6FAA6E101011A01133E /* constantine.png in Resources */ = {isa = PBXBuildFile; fileRef = 116EADF08A0352441607F57F /* constantine.png */; };
 		5B5477F674796C1519BD5C24 /* AdaptiveMealPlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */; };
@@ -44,18 +45,22 @@
 		65016A753C50D66AE4789CC3 /* OrbitLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172120F69D75C87F5025756 /* OrbitLocationManager.swift */; };
 		65B5574345E07294F33F35B1 /* PortalHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */; };
 		6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4545B8749346593913BC3AA /* HealthKitManager.swift */; };
+		708DCA6DB776A84982950FBE /* HydrationFigureWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCE6313D2113D84E45897C7 /* HydrationFigureWebView.swift */; };
 		7550A61FEC002CEF289FF257 /* OrbitIntegrations.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5B6D7EBC10E6E7795AFC4F41 /* OrbitIntegrations.swift */; };
 		7844717B06A0968147BE2154 /* APEXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */; };
 		803AB91282B418FFB9B7300C /* AppRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135C463AB8CEF57FA521CD01 /* AppRoute.swift */; };
 		886A675690E6502EB8A62CF9 /* EnergyEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */; };
 		8877B70250BE84F4417ADD50 /* OrbitGPXService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6681DF046ED9381B422E42E /* OrbitGPXService.swift */; };
+		8BC10A8062BBE646E6EA45DF /* hydration-male.html in Resources */ = {isa = PBXBuildFile; fileRef = 8D471F877A5E7E72F1A31D06 /* hydration-male.html */; };
 		8D6FC92C25B4152CC1030D1C /* matthew.png in Resources */ = {isa = PBXBuildFile; fileRef = 859EB7961437751182D5344E /* matthew.png */; };
 		8E65B12988DD76BCCDF06E51 /* APEXStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2402484CFB9ECDD04C1C9FF5 /* APEXStableID.swift */; };
 		93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E079A75C9AF4BCDAB514617 /* RunDebriefView.swift */; };
 		9632A64865B548AC3A1EB5F5 /* TrainingAdjustmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2EBA8504BDA79522C3269E /* TrainingAdjustmentEngine.swift */; };
+		A22FF4B2C6F9F70894245D15 /* WatchHydrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30EF9B38F05590E84DA2E6D /* WatchHydrationStore.swift */; };
 		ABEFB6D91D508680F3FAC2D2 /* OrbitRunMetricsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F9FA7F456BCA3A39E46A833E /* OrbitRunMetricsTests.swift */; };
 		AD8C098DFD871BCEB390F49C /* OrbitRouteEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0DBA2DE3264926BAC649C781 /* OrbitRouteEngine.swift */; };
 		B0AA988F6D009C1FDEE5C924 /* EnergyEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AFBB1AFAB9939A56CD5D5A /* EnergyEngine.swift */; };
+		B4BF6E3B81DB4637133F3964 /* WatchHydrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EA63CF243F8658739BDAAB9 /* WatchHydrationView.swift */; };
 		B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164418CABD783ED9B17E6A7D /* APEXLocalization.swift */; };
 		B9308BBF59D1E8E81559AA3D /* APEXConfiguration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5C5DD87DC31AEF8E5A0A6905 /* APEXConfiguration.swift */; };
 		BD0BA71A490CB6D6DFB67907 /* LiveRunView.swift in Sources */ = {isa = PBXBuildFile; fileRef = F40E903D44C28E09F0F689EE /* LiveRunView.swift */; };
@@ -68,6 +73,7 @@
 		CDB733EA8C3A51BA86957A2A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D5BCB187A0A27A97258B96D /* Localizable.strings */; };
 		D563974C02928CDF2507E1DC /* OrbitRunMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810780DA6BA555E5A02AC97F /* OrbitRunMetrics.swift */; };
 		DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA785FB8ED5CCCEA551C98B /* APEXDebugFixture.swift */; };
+		E17507E2B0EF745D03AD6DC9 /* hydration-female.html in Resources */ = {isa = PBXBuildFile; fileRef = 4211E4F924B1006E215C67A3 /* hydration-female.html */; };
 		E227F2278FD58892015DA6B1 /* MarathonInductionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0AD96EE9719E0D9D7C05FD9D /* MarathonInductionView.swift */; };
 		E26EF9F3303A85464243B2CF /* AdaptiveMealPlanEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 3155391EAD03EBC5E9C93E63 /* AdaptiveMealPlanEngine.swift */; };
 		E4036F21EDE6CE6179EA150B /* InfoPlist.strings in Resources */ = {isa = PBXBuildFile; fileRef = BA29BEC6ED52DB3A785F85E6 /* InfoPlist.strings */; };
@@ -82,6 +88,7 @@
 		F93650FBDEF08078139961E5 /* ActivityGuideSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */; };
 		FB2886C69218995F3175742D /* PortalUIMode.swift in Sources */ = {isa = PBXBuildFile; fileRef = 632052FC4CBD35619B02271A /* PortalUIMode.swift */; };
 		FC1F8BD61AD0FF9921D6B3A9 /* APEXSmokeUITests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBEBF9318A86A10BB0C23822 /* APEXSmokeUITests.swift */; };
+		FC25F1FF3CA76633FA57F300 /* APEXWaterWatchApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = 61AFE9BFC5E92652BD0408A7 /* APEXWaterWatchApp.swift */; };
 /* End PBXBuildFile section */
 
 /* Begin PBXContainerItemProxy section */
@@ -92,6 +99,13 @@
 			remoteGlobalIDString = A1C29A672AB02C945979A1DF;
 			remoteInfo = APEX;
 		};
+		E0B6B581279B3E7A37A092F6 /* PBXContainerItemProxy */ = {
+			isa = PBXContainerItemProxy;
+			containerPortal = CE93ECDAAB0266A4D7108566 /* Project object */;
+			proxyType = 1;
+			remoteGlobalIDString = EA708D65D5D16B049EE13162;
+			remoteInfo = APEXWatch;
+		};
 		FCACB41895714343CCB440CC /* PBXContainerItemProxy */ = {
 			isa = PBXContainerItemProxy;
 			containerPortal = CE93ECDAAB0266A4D7108566 /* Project object */;
@@ -101,6 +115,20 @@
 		};
 /* End PBXContainerItemProxy section */
 
+/* Begin PBXCopyFilesBuildPhase section */
+		642BBD664A358A8162EEF3FE /* Embed Watch Content */ = {
+			isa = PBXCopyFilesBuildPhase;
+			buildActionMask = 2147483647;
+			dstPath = "$(CONTENTS_FOLDER_PATH)/Watch";
+			dstSubfolderSpec = 16;
+			files = (
+				5196E4E94B9FEB846353E19F /* APEXWatch.app in Embed Watch Content */,
+			);
+			name = "Embed Watch Content";
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+/* End PBXCopyFilesBuildPhase section */
+
 /* Begin PBXFileReference section */
 		0AD96EE9719E0D9D7C05FD9D /* MarathonInductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonInductionView.swift; sourceTree = "<group>"; };
 		0DBA2DE3264926BAC649C781 /* OrbitRouteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitRouteEngine.swift; sourceTree = "<group>"; };
@@ -108,11 +136,13 @@
 		120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchiveTests.swift; sourceTree = "<group>"; };
 		135C463AB8CEF57FA521CD01 /* AppRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoute.swift; sourceTree = "<group>"; };
 		1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealComposerTests.swift; sourceTree = "<group>"; };
+		1477C72FA445DA292C502653 /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		164418CABD783ED9B17E6A7D /* APEXLocalization.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXLocalization.swift; sourceTree = "<group>"; };
 		16EDB23CA552311D34D8B188 /* iulian.webp */ = {isa = PBXFileReference; path = iulian.webp; sourceTree = "<group>"; };
 		187FABCA64C67402E716B2DB /* OrbitAnalysisEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitAnalysisEngine.swift; sourceTree = "<group>"; };
 		192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LocalizationTests.swift; sourceTree = "<group>"; };
 		1932164D18C5CDF33CF3FEDD /* SimpleHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SimpleHomeView.swift; sourceTree = "<group>"; };
+		19CCE3BAA0DACC16E351652C /* APEXWatch.app */ = {isa = PBXFileReference; explicitFileType = wrapper.application; includeInIndex = 0; path = APEXWatch.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		1AA785FB8ED5CCCEA551C98B /* APEXDebugFixture.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXDebugFixture.swift; sourceTree = "<group>"; };
 		1BBEDBBF651D57DA43AD5F4F /* APEXTheme.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXTheme.swift; sourceTree = "<group>"; };
 		1DBD3EB027AC7801F7A33F9B /* VisualProgressView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = VisualProgressView.swift; sourceTree = "<group>"; };
@@ -125,6 +155,7 @@
 		30B06C160134CB27687F7B35 /* APEXIcon.svg */ = {isa = PBXFileReference; path = APEXIcon.svg; sourceTree = "<group>"; };
 		3155391EAD03EBC5E9C93E63 /* AdaptiveMealPlanEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngine.swift; sourceTree = "<group>"; };
 		3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingAdjustmentEngineTests.swift; sourceTree = "<group>"; };
+		4211E4F924B1006E215C67A3 /* hydration-female.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-female.html"; sourceTree = "<group>"; };
 		4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortalHomeView.swift; sourceTree = "<group>"; };
 		4AF48CCB29A2D4316F36F99B /* OrbitLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitLibraryView.swift; sourceTree = "<group>"; };
 		4B49E8F5F785351C11F1E042 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
@@ -134,6 +165,7 @@
 		5B6D7EBC10E6E7795AFC4F41 /* OrbitIntegrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitIntegrations.swift; sourceTree = "<group>"; };
 		5C5DD87DC31AEF8E5A0A6905 /* APEXConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXConfiguration.swift; sourceTree = "<group>"; };
 		60170C01AE471FFE7A710F8E /* AppSession.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppSession.swift; sourceTree = "<group>"; };
+		61AFE9BFC5E92652BD0408A7 /* APEXWaterWatchApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXWaterWatchApp.swift; sourceTree = "<group>"; };
 		632052FC4CBD35619B02271A /* PortalUIMode.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortalUIMode.swift; sourceTree = "<group>"; };
 		69246314EF923E1ADFC12E85 /* MealComposerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealComposerView.swift; sourceTree = "<group>"; };
 		758FD0E991B148EBA20CC451 /* PortalShellView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortalShellView.swift; sourceTree = "<group>"; };
@@ -153,10 +185,13 @@
 		88FC672B13DFB786889784E8 /* HolographicBodyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolographicBodyView.swift; sourceTree = "<group>"; };
 		8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionParityViews.swift; sourceTree = "<group>"; };
 		8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngineTests.swift; sourceTree = "<group>"; };
+		8D471F877A5E7E72F1A31D06 /* hydration-male.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-male.html"; sourceTree = "<group>"; };
 		946DC4125357F8D2D3ACEFE8 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		95409AE77B69B4A6848B009E /* OrbitIntegrationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitIntegrationsTests.swift; sourceTree = "<group>"; };
 		984FEF3A9C87EA524EF49121 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
+		9EA63CF243F8658739BDAAB9 /* WatchHydrationView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationView.swift; sourceTree = "<group>"; };
 		9F9CADFB8882AD0612CEB397 /* APEXUITests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = APEXUITests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		A30EF9B38F05590E84DA2E6D /* WatchHydrationStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationStore.swift; sourceTree = "<group>"; };
 		AF3317DF4780AB6304BCF6DC /* OrbitHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitHomeView.swift; sourceTree = "<group>"; };
 		B4545B8749346593913BC3AA /* HealthKitManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthKitManager.swift; sourceTree = "<group>"; };
 		B6681DF046ED9381B422E42E /* OrbitGPXService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitGPXService.swift; sourceTree = "<group>"; };
@@ -164,6 +199,7 @@
 		BB51E587FD5871DC83D34C64 /* APEX.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = APEX.entitlements; sourceTree = "<group>"; };
 		BDEC7A72DF9A3E1BF5F24BDD /* Secrets.xcconfig */ = {isa = PBXFileReference; lastKnownFileType = text.xcconfig; path = Secrets.xcconfig; sourceTree = "<group>"; };
 		BF30FAAECAD9556CE3CA68FB /* APEXTests.xctest */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.cfbundle; path = APEXTests.xctest; sourceTree = BUILT_PRODUCTS_DIR; };
+		C0D62AAA22223F571969B818 /* APEXWatch.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = APEXWatch.entitlements; sourceTree = "<group>"; };
 		C44BDDDDEA6D9B45DF19CAC8 /* RoutePlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RoutePlannerView.swift; sourceTree = "<group>"; };
 		C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		CF248DED2EE048A28CD25CC8 /* OfflineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineStore.swift; sourceTree = "<group>"; };
@@ -173,6 +209,7 @@
 		E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyEngineTests.swift; sourceTree = "<group>"; };
 		E95C814C0119931140528180 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
 		EE49E70C67A00A7BBD30FFEC /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		EFCE6313D2113D84E45897C7 /* HydrationFigureWebView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationFigureWebView.swift; sourceTree = "<group>"; };
 		F3D5B52C6B4FA9073204F20D /* APEX.app */ = {isa = PBXFileReference; includeInIndex = 0; lastKnownFileType = wrapper.application; path = APEX.app; sourceTree = BUILT_PRODUCTS_DIR; };
 		F40E903D44C28E09F0F689EE /* LiveRunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRunView.swift; sourceTree = "<group>"; };
 		F4FA38B5FE553198BEC0A229 /* PersonaSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSelectorView.swift; sourceTree = "<group>"; };
@@ -317,6 +354,18 @@
 			path = Orbit;
 			sourceTree = "<group>";
 		};
+		7C3F27E9E0F7A40858B939EF /* APEXWatch */ = {
+			isa = PBXGroup;
+			children = (
+				C0D62AAA22223F571969B818 /* APEXWatch.entitlements */,
+				61AFE9BFC5E92652BD0408A7 /* APEXWaterWatchApp.swift */,
+				1477C72FA445DA292C502653 /* Info.plist */,
+				A30EF9B38F05590E84DA2E6D /* WatchHydrationStore.swift */,
+				9EA63CF243F8658739BDAAB9 /* WatchHydrationView.swift */,
+			);
+			path = APEXWatch;
+			sourceTree = "<group>";
+		};
 		7E396C58A26060A7DFFB0391 /* APEXTests */ = {
 			isa = PBXGroup;
 			children = (
@@ -332,6 +381,15 @@
 				3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */,
 			);
 			path = APEXTests;
+			sourceTree = "<group>";
+		};
+		824BF923D9B1FDA73E7A7B31 /* Hydration */ = {
+			isa = PBXGroup;
+			children = (
+				4211E4F924B1006E215C67A3 /* hydration-female.html */,
+				8D471F877A5E7E72F1A31D06 /* hydration-male.html */,
+			);
+			path = Hydration;
 			sourceTree = "<group>";
 		};
 		833D01BC14E295D93225EFBA /* Persistence */ = {
@@ -364,6 +422,7 @@
 				F60F21F488DA31129354FF26 /* Localizable.strings */,
 				7D5BCB187A0A27A97258B96D /* Localizable.strings */,
 				859EB7961437751182D5344E /* matthew.png */,
+				824BF923D9B1FDA73E7A7B31 /* Hydration */,
 			);
 			path = Resources;
 			sourceTree = "<group>";
@@ -379,6 +438,7 @@
 		B8EBD70D74777BEE4E9795ED /* Portal */ = {
 			isa = PBXGroup;
 			children = (
+				EFCE6313D2113D84E45897C7 /* HydrationFigureWebView.swift */,
 				4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */,
 				758FD0E991B148EBA20CC451 /* PortalShellView.swift */,
 				632052FC4CBD35619B02271A /* PortalUIMode.swift */,
@@ -423,6 +483,7 @@
 				CF753E06A413793AC17B9E59 /* APEX */,
 				7E396C58A26060A7DFFB0391 /* APEXTests */,
 				4DFD8371DB188732021457C9 /* APEXUITests */,
+				7C3F27E9E0F7A40858B939EF /* APEXWatch */,
 				4833984EFC421EE349BC3EBB /* Config */,
 				E1C45EAAB7BB629D0990F3AF /* Products */,
 			);
@@ -434,6 +495,7 @@
 				F3D5B52C6B4FA9073204F20D /* APEX.app */,
 				BF30FAAECAD9556CE3CA68FB /* APEXTests.xctest */,
 				9F9CADFB8882AD0612CEB397 /* APEXUITests.xctest */,
+				19CCE3BAA0DACC16E351652C /* APEXWatch.app */,
 			);
 			name = Products;
 			sourceTree = "<group>";
@@ -496,10 +558,12 @@
 				40344ADD413E80A763DA73BD /* Sources */,
 				3F3EA13A3309B9571CCB7979 /* Resources */,
 				23207BA75978F3ABE9A2AE8F /* Frameworks */,
+				642BBD664A358A8162EEF3FE /* Embed Watch Content */,
 			);
 			buildRules = (
 			);
 			dependencies = (
+				2F0050A56B2DBC906A077297 /* PBXTargetDependency */,
 			);
 			name = APEX;
 			packageProductDependencies = (
@@ -507,6 +571,23 @@
 			);
 			productName = APEX;
 			productReference = F3D5B52C6B4FA9073204F20D /* APEX.app */;
+			productType = "com.apple.product-type.application";
+		};
+		EA708D65D5D16B049EE13162 /* APEXWatch */ = {
+			isa = PBXNativeTarget;
+			buildConfigurationList = 1527996CCE63F8B7FD91A555 /* Build configuration list for PBXNativeTarget "APEXWatch" */;
+			buildPhases = (
+				048DBF7B1F78A7A64DC84463 /* Sources */,
+			);
+			buildRules = (
+			);
+			dependencies = (
+			);
+			name = APEXWatch;
+			packageProductDependencies = (
+			);
+			productName = APEXWatch;
+			productReference = 19CCE3BAA0DACC16E351652C /* APEXWatch.app */;
 			productType = "com.apple.product-type.application";
 		};
 /* End PBXNativeTarget section */
@@ -528,6 +609,10 @@
 						TestTargetID = A1C29A672AB02C945979A1DF;
 					};
 					A1C29A672AB02C945979A1DF = {
+						DevelopmentTeam = UG979XDY72;
+						ProvisioningStyle = Automatic;
+					};
+					EA708D65D5D16B049EE13162 = {
 						DevelopmentTeam = UG979XDY72;
 						ProvisioningStyle = Automatic;
 					};
@@ -553,6 +638,7 @@
 			projectRoot = "";
 			targets = (
 				A1C29A672AB02C945979A1DF /* APEX */,
+				EA708D65D5D16B049EE13162 /* APEXWatch */,
 				99B231457940EFD23E962692 /* APEXTests */,
 				9EB5F000599BCC909ACDB298 /* APEXUITests */,
 			);
@@ -572,6 +658,8 @@
 				168AD385ACE1D45B04E1788C /* Localizable.strings in Resources */,
 				52CF4E5E604428674E9C3985 /* PrivacyInfo.xcprivacy in Resources */,
 				56B1F6FAA6E101011A01133E /* constantine.png in Resources */,
+				E17507E2B0EF745D03AD6DC9 /* hydration-female.html in Resources */,
+				8BC10A8062BBE646E6EA45DF /* hydration-male.html in Resources */,
 				22113A8279C4CE646779A26D /* iulian.webp in Resources */,
 				19D0AA967AD19A6A0915F5A1 /* june.png in Resources */,
 				8D6FC92C25B4152CC1030D1C /* matthew.png in Resources */,
@@ -581,6 +669,16 @@
 /* End PBXResourcesBuildPhase section */
 
 /* Begin PBXSourcesBuildPhase section */
+		048DBF7B1F78A7A64DC84463 /* Sources */ = {
+			isa = PBXSourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				FC25F1FF3CA76633FA57F300 /* APEXWaterWatchApp.swift in Sources */,
+				A22FF4B2C6F9F70894245D15 /* WatchHydrationStore.swift in Sources */,
+				B4BF6E3B81DB4637133F3964 /* WatchHydrationView.swift in Sources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		40344ADD413E80A763DA73BD /* Sources */ = {
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -604,6 +702,7 @@
 				F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */,
 				6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */,
 				1BE4BAAFBF290CE5F184761A /* HolographicBodyView.swift in Sources */,
+				708DCA6DB776A84982950FBE /* HydrationFigureWebView.swift in Sources */,
 				BD0BA71A490CB6D6DFB67907 /* LiveRunView.swift in Sources */,
 				F1365543A54BB3712F867003 /* LoginView.swift in Sources */,
 				CD8B1FE6660C170BB63D95A2 /* ManualRouteEditorView.swift in Sources */,
@@ -668,6 +767,11 @@
 /* End PBXSourcesBuildPhase section */
 
 /* Begin PBXTargetDependency section */
+		2F0050A56B2DBC906A077297 /* PBXTargetDependency */ = {
+			isa = PBXTargetDependency;
+			target = EA708D65D5D16B049EE13162 /* APEXWatch */;
+			targetProxy = E0B6B581279B3E7A37A092F6 /* PBXContainerItemProxy */;
+		};
 		7EB0620F5C3882D7E76D018F /* PBXTargetDependency */ = {
 			isa = PBXTargetDependency;
 			target = A1C29A672AB02C945979A1DF /* APEX */;
@@ -714,6 +818,22 @@
 				TEST_TARGET_NAME = APEX;
 			};
 			name = Release;
+		};
+		37E5EE9C9AFFBBE8EFD99D5A /* Debug */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = APEXWatch/APEXWatch.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = APEXWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.apexperformance.APEX.watchkitapp;
+				PRODUCT_NAME = "APEX Water";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Debug;
 		};
 		8A341A5CC4D492BC55D552B9 /* Release */ = {
 			isa = XCBuildConfiguration;
@@ -834,11 +954,11 @@
 				MTL_ENABLE_DEBUG_INFO = NO;
 				MTL_FAST_MATH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_COMPILATION_MODE = wholemodule;
 				SWIFT_OPTIMIZATION_LEVEL = "-O";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Release;
 		};
@@ -905,11 +1025,11 @@
 				MTL_FAST_MATH = YES;
 				ONLY_ACTIVE_ARCH = YES;
 				PRODUCT_NAME = "$(TARGET_NAME)";
-				SDKROOT = iphoneos;
 				SWIFT_ACTIVE_COMPILATION_CONDITIONS = DEBUG;
 				SWIFT_OPTIMIZATION_LEVEL = "-Onone";
 				SWIFT_STRICT_CONCURRENCY = complete;
 				SWIFT_VERSION = 6.0;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
 			};
 			name = Debug;
 		};
@@ -930,6 +1050,22 @@
 			};
 			name = Debug;
 		};
+		F8A5F3140D74181C6CFD0C6C /* Release */ = {
+			isa = XCBuildConfiguration;
+			buildSettings = {
+				ASSETCATALOG_COMPILER_APPICON_NAME = AppIcon;
+				CODE_SIGN_ENTITLEMENTS = APEXWatch/APEXWatch.entitlements;
+				GENERATE_INFOPLIST_FILE = NO;
+				INFOPLIST_FILE = APEXWatch/Info.plist;
+				PRODUCT_BUNDLE_IDENTIFIER = ch.apexperformance.APEX.watchkitapp;
+				PRODUCT_NAME = "APEX Water";
+				SDKROOT = watchos;
+				SKIP_INSTALL = YES;
+				TARGETED_DEVICE_FAMILY = 4;
+				WATCHOS_DEPLOYMENT_TARGET = 10.0;
+			};
+			name = Release;
+		};
 /* End XCBuildConfiguration section */
 
 /* Begin XCConfigurationList section */
@@ -938,6 +1074,15 @@
 			buildConfigurations = (
 				CE65D0885CD350F8A870BDC3 /* Debug */,
 				BC19A0283682D9C88CE65ED8 /* Release */,
+			);
+			defaultConfigurationIsVisible = 0;
+			defaultConfigurationName = Debug;
+		};
+		1527996CCE63F8B7FD91A555 /* Build configuration list for PBXNativeTarget "APEXWatch" */ = {
+			isa = XCConfigurationList;
+			buildConfigurations = (
+				37E5EE9C9AFFBBE8EFD99D5A /* Debug */,
+				F8A5F3140D74181C6CFD0C6C /* Release */,
 			);
 			defaultConfigurationIsVisible = 0;
 			defaultConfigurationName = Debug;

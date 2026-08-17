@@ -533,6 +533,7 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
     var sugar100: Double?
     var saturatedFat100: Double?
     var salt100: Double?
+    var waterML100: Double? = nil
     var servingAmount: Double?
     var servingUnit: String?
     var servingGramsOrML: Double?
@@ -556,6 +557,7 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
         case sugar100 = "sugar_100"
         case saturatedFat100 = "saturated_fat_100"
         case salt100 = "salt_100"
+        case waterML100 = "water_ml_100"
         case servingAmount = "serving_amount"
         case servingUnit = "serving_unit"
         case servingGramsOrML = "serving_grams_or_ml"
@@ -714,6 +716,8 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
     var sugarG: Double? = nil
     var saturatedFatG: Double? = nil
     var saltG: Double? = nil
+    var snapshotWaterML100: Double? = nil
+    var waterML: Double? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, quantity, unit, kcal
@@ -733,6 +737,7 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
         case snapshotSugar100 = "snapshot_sugar_100"
         case snapshotSaturatedFat100 = "snapshot_saturated_fat_100"
         case snapshotSalt100 = "snapshot_salt_100"
+        case snapshotWaterML100 = "snapshot_water_ml_100"
         case equivalentAmount = "equivalent_amount"
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
@@ -741,6 +746,7 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
         case sugarG = "sugar_g"
         case saturatedFatG = "saturated_fat_g"
         case saltG = "salt_g"
+        case waterML = "water_ml"
     }
 }
 
@@ -794,6 +800,7 @@ struct StructuredFoodEntryRequest: Codable, Sendable {
     let snapshotSugar100: Double?
     let snapshotSaturatedFat100: Double?
     let snapshotSalt100: Double?
+    let snapshotWaterML100: Double?
     let quantity: Double
     let unit: String
     let equivalentAmount: Double
@@ -814,6 +821,7 @@ struct StructuredFoodEntryRequest: Codable, Sendable {
         case snapshotSugar100 = "snapshot_sugar_100"
         case snapshotSaturatedFat100 = "snapshot_saturated_fat_100"
         case snapshotSalt100 = "snapshot_salt_100"
+        case snapshotWaterML100 = "snapshot_water_ml_100"
         case equivalentAmount = "equivalent_amount"
     }
 }
@@ -847,6 +855,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     var sugar100: Double?
     var saturatedFat100: Double?
     var salt100: Double?
+    var waterML100: Double?
     var quantity: Double
     var unit: String
     var equivalentAmount: Double
@@ -867,6 +876,10 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
             carbsG: carbs100 * scale,
             fatG: fat100 * scale
         )
+    }
+
+    var waterML: Double {
+        max(0, waterML100 ?? 0) * max(0, equivalentAmount) / 100
     }
 
     mutating func setQuantity(_ value: Double, food: Food? = nil) {
@@ -909,6 +922,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
         sugar100 = food.sugar100
         saturatedFat100 = food.saturatedFat100
         salt100 = food.salt100
+        waterML100 = food.waterML100
         self.quantity = quantity
         self.unit = unit
         equivalentAmount = equivalent
@@ -929,6 +943,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
         sugar100 = entry.snapshotSugar100
         saturatedFat100 = entry.snapshotSaturatedFat100
         salt100 = entry.snapshotSalt100
+        waterML100 = entry.snapshotWaterML100
         quantity = entry.quantity
         unit = entry.unit
         equivalentAmount = entry.equivalentAmount

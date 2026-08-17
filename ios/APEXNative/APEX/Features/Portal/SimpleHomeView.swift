@@ -33,7 +33,9 @@ struct SimpleHomeView: View {
         )
     }
     private var dailyLog: DailyLog? { session.data.dailyLogs.first { $0.date == today } }
-    private var waterL: Double { dailyLog?.waterL ?? 0 }
+    private var drinkWaterL: Double { dailyLog?.waterL ?? 0 }
+    private var foodWaterL: Double { session.foodHydrationLiters(on: selectedDate) }
+    private var waterL: Double { min(6, drinkWaterL + foodWaterL) }
     private var waterDone: Bool { waterL >= waterTargetL * 0.9 }
 
     private var supplementGroups: [SimpleSupplementGroup] {
@@ -217,7 +219,12 @@ struct SimpleHomeView: View {
         .sheet(item: $quickPanel) { panel in
             switch panel {
             case .water:
-                WaterQuickAddSheet(currentLiters: waterL, targetLiters: waterTargetL) { liters in
+                WaterQuickAddSheet(
+                    drinkLiters: drinkWaterL,
+                    foodLiters: foodWaterL,
+                    targetLiters: waterTargetL,
+                    sex: profile?.sex ?? "male"
+                ) { liters in
                     addWater(liters)
                 }
                 .presentationDetents([.medium])
@@ -851,22 +858,29 @@ enum WearableActivityEngine {
 
 private struct WaterQuickAddSheet: View {
     @Environment(\.dismiss) private var dismiss
-    let currentLiters: Double
+    let drinkLiters: Double
+    let foodLiters: Double
     let targetLiters: Double
+    let sex: String
     let add: (Double) -> Void
     @State private var customML = ""
+
+    private var totalLiters: Double { min(6, drinkLiters + foodLiters) }
 
     var body: some View {
         VStack(spacing: 17) {
             HStack {
                 VStack(alignment: .leading, spacing: 3) {
                     Text("Water quick add").font(APEXFont.display(25))
-                    Text(String(format: "%.2f / %.2f L", currentLiters, targetLiters))
+                    Text(String(format: "%.2f / %.2f L", totalLiters, targetLiters))
                         .font(APEXFont.body(12, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
+                    Text(String(format: "Drinks %.2f L · Food %.2f L", drinkLiters, foodLiters))
+                        .font(APEXFont.body(9, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
                 }
                 Spacer()
-                HydrationFigureView(progress: min(1, currentLiters / targetLiters))
-                    .frame(width: 62, height: 96)
+                HydrationFigureWebView(progress: min(1, totalLiters / targetLiters), sex: sex)
+                    .frame(width: 74, height: 112)
             }
             LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 10) {
                 ForEach([250, 300, 500], id: \.self) { amount in
@@ -891,43 +905,6 @@ private struct WaterQuickAddSheet: View {
     private func addCustom() {
         guard let ml = Double(customML), ml > 0 else { return }
         add(min(3_000, ml) / 1_000); dismiss()
-    }
-}
-
-private struct HydrationFigureView: View {
-    let progress: Double
-    @State private var phase = false
-
-    var body: some View {
-        GeometryReader { proxy in
-            ZStack(alignment: .bottom) {
-                HydrationBodyShape().fill(APEXColor.ink.opacity(0.08))
-                Rectangle()
-                    .fill(LinearGradient(colors: [APEXColor.cyan, .blue.opacity(0.72)], startPoint: .top, endPoint: .bottom))
-                    .frame(height: proxy.size.height * progress)
-                    .offset(x: phase ? 2 : -2)
-                    .mask(HydrationBodyShape())
-                    .animation(.easeInOut(duration: 1.6).repeatForever(autoreverses: true), value: phase)
-                HydrationBodyShape().stroke(APEXColor.cyan.opacity(0.62), lineWidth: 1.4)
-            }
-            .onAppear { phase = true }
-        }
-        .accessibilityLabel("Hydration level")
-        .accessibilityValue("\(Int(progress * 100)) percent")
-    }
-}
-
-private struct HydrationBodyShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        var p = Path()
-        let cx = rect.midX
-        p.addEllipse(in: CGRect(x: cx - rect.width * 0.13, y: rect.minY, width: rect.width * 0.26, height: rect.width * 0.26))
-        p.addRoundedRect(in: CGRect(x: cx - rect.width * 0.19, y: rect.height * 0.23, width: rect.width * 0.38, height: rect.height * 0.42), cornerSize: CGSize(width: 12, height: 12))
-        p.addRoundedRect(in: CGRect(x: cx - rect.width * 0.34, y: rect.height * 0.26, width: rect.width * 0.13, height: rect.height * 0.46), cornerSize: CGSize(width: 8, height: 8))
-        p.addRoundedRect(in: CGRect(x: cx + rect.width * 0.21, y: rect.height * 0.26, width: rect.width * 0.13, height: rect.height * 0.46), cornerSize: CGSize(width: 8, height: 8))
-        p.addRoundedRect(in: CGRect(x: cx - rect.width * 0.18, y: rect.height * 0.61, width: rect.width * 0.15, height: rect.height * 0.38), cornerSize: CGSize(width: 8, height: 8))
-        p.addRoundedRect(in: CGRect(x: cx + rect.width * 0.03, y: rect.height * 0.61, width: rect.width * 0.15, height: rect.height * 0.38), cornerSize: CGSize(width: 8, height: 8))
-        return p
     }
 }
 
