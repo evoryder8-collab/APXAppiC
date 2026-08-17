@@ -651,7 +651,15 @@ final class AppSession {
                 kcal: nutrients.kcal.rounded(),
                 proteinG: nutrients.proteinG,
                 carbsG: nutrients.carbsG,
-                fatG: nutrients.fatG
+                fatG: nutrients.fatG,
+                snapshotFibre100: item.fibre100,
+                snapshotSugar100: item.sugar100,
+                snapshotSaturatedFat100: item.saturatedFat100,
+                snapshotSalt100: item.salt100,
+                fibreG: item.fibre100.map { $0 * item.equivalentAmount / 100 },
+                sugarG: item.sugar100.map { $0 * item.equivalentAmount / 100 },
+                saturatedFatG: item.saturatedFat100.map { $0 * item.equivalentAmount / 100 },
+                saltG: item.salt100.map { $0 * item.equivalentAmount / 100 }
             )
         }
 
@@ -773,6 +781,28 @@ final class AppSession {
             await saveLocalSnapshot()
         }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
+    }
+
+    /// Moves an actual meal on the metabolic Dayline. The nutrition values do
+    /// not change, only the recorded finish time used by timing intelligence.
+    func updateLoggedMealFinishedAt(_ mealID: UUID, to date: Date) async {
+        guard let index = data.loggedMeals.firstIndex(where: { $0.id == mealID }) else { return }
+        var meal = data.loggedMeals[index]
+        meal.loggedAt = date.ISO8601Format()
+        data.loggedMeals[index] = meal
+        await persistUpsert(meal, table: "logged_meals")
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
+    /// Moves a planned meal moment. This is intentionally account-scoped and
+    /// persists the same `meals.time` value consumed by the web client.
+    func updatePlannedMealTime(_ mealID: UUID, to time: String) async {
+        guard let index = data.meals.firstIndex(where: { $0.id == mealID }) else { return }
+        var meal = data.meals[index]
+        meal.time = time
+        data.meals[index] = meal
+        await persistUpsert(meal, table: "meals")
+        UISelectionFeedbackGenerator().selectionChanged()
     }
 
     private func copiedClock(from isoTimestamp: String, onto destination: Date) -> Date {

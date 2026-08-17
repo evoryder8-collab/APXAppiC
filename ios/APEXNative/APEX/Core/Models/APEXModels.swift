@@ -659,7 +659,7 @@ struct LoggedMeal: Codable, Identifiable, Hashable, Sendable {
     let displayName: String
     let sourcePresetID: UUID?
     let sourcePlannedMealID: UUID?
-    let loggedAt: String
+    var loggedAt: String
     let clientIdempotencyKey: String
     let loggedAs: String
     let totalKcal: Double
@@ -706,6 +706,14 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
     let proteinG: Double
     let carbsG: Double
     let fatG: Double
+    var snapshotFibre100: Double? = nil
+    var snapshotSugar100: Double? = nil
+    var snapshotSaturatedFat100: Double? = nil
+    var snapshotSalt100: Double? = nil
+    var fibreG: Double? = nil
+    var sugarG: Double? = nil
+    var saturatedFatG: Double? = nil
+    var saltG: Double? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, quantity, unit, kcal
@@ -721,10 +729,18 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
         case snapshotProtein100 = "snapshot_protein_100"
         case snapshotCarbs100 = "snapshot_carbs_100"
         case snapshotFat100 = "snapshot_fat_100"
+        case snapshotFibre100 = "snapshot_fibre_100"
+        case snapshotSugar100 = "snapshot_sugar_100"
+        case snapshotSaturatedFat100 = "snapshot_saturated_fat_100"
+        case snapshotSalt100 = "snapshot_salt_100"
         case equivalentAmount = "equivalent_amount"
         case proteinG = "protein_g"
         case carbsG = "carbs_g"
         case fatG = "fat_g"
+        case fibreG = "fibre_g"
+        case sugarG = "sugar_g"
+        case saturatedFatG = "saturated_fat_g"
+        case saltG = "salt_g"
     }
 }
 
@@ -909,10 +925,10 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
         protein100 = entry.snapshotProtein100
         carbs100 = entry.snapshotCarbs100
         fat100 = entry.snapshotFat100
-        fibre100 = nil
-        sugar100 = nil
-        saturatedFat100 = nil
-        salt100 = nil
+        fibre100 = entry.snapshotFibre100
+        sugar100 = entry.snapshotSugar100
+        saturatedFat100 = entry.snapshotSaturatedFat100
+        salt100 = entry.snapshotSalt100
         quantity = entry.quantity
         unit = entry.unit
         equivalentAmount = entry.equivalentAmount
