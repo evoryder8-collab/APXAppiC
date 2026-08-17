@@ -1,5 +1,6 @@
 import Foundation
 import HealthKit
+import WidgetKit
 
 @MainActor
 final class WatchHydrationStore: ObservableObject {
@@ -80,6 +81,9 @@ final class WatchHydrationStore: ObservableObject {
                 healthStore.execute(query)
             }
             liters = max(0, total)
+            /* Keep the watch face ring honest the moment the total moves,
+               instead of waiting for the next scheduled timeline refresh. */
+            WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
         } catch {
             if !(error is CancellationError) {
                 message = "Using the last water total."

@@ -103,6 +103,9 @@ targets:
     deploymentTarget: "10.0"
     sources:
       - path: APEXWatch
+    dependencies:
+      - target: APEXWatchWidgets
+        embed: true
     entitlements:
       path: APEXWatch/APEXWatch.entitlements
       properties:
@@ -128,6 +131,36 @@ targets:
         TARGETED_DEVICE_FAMILY: "4"
         WATCHOS_DEPLOYMENT_TARGET: "10.0"
         GENERATE_INFOPLIST_FILE: NO
+
+  APEXWatchWidgets:
+    type: app-extension
+    platform: watchOS
+    deploymentTarget: "10.0"
+    sources:
+      - path: APEXWatchWidgets
+    entitlements:
+      path: APEXWatchWidgets/APEXWatchWidgets.entitlements
+      properties:
+        com.apple.developer.healthkit: true
+        com.apple.developer.healthkit.access: []
+    info:
+      path: APEXWatchWidgets/Info.plist
+      properties:
+        CFBundleDisplayName: APEX Water
+        CFBundleName: APEXWatchWidgets
+        CFBundleShortVersionString: $(MARKETING_VERSION)
+        CFBundleVersion: $(CURRENT_PROJECT_VERSION)
+        NSHealthShareUsageDescription: APEX reads today's water total so the complication stays current.
+        NSExtension:
+          NSExtensionPointIdentifier: com.apple.widgetkit-extension
+    settings:
+      base:
+        PRODUCT_BUNDLE_IDENTIFIER: ch.apexperformance.APEX.watchkitapp.widgets
+        PRODUCT_NAME: APEXWatchWidgets
+        TARGETED_DEVICE_FAMILY: "4"
+        WATCHOS_DEPLOYMENT_TARGET: "10.0"
+        GENERATE_INFOPLIST_FILE: NO
+        SKIP_INSTALL: YES
 
   APEXTests:
     type: bundle.unit-test
