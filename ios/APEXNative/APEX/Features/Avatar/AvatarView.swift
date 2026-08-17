@@ -353,7 +353,36 @@ struct AvatarView: View {
         }
     }
 
+    /* The real receipts: rules that actually fired inside FitnessBrainEngine,
+       with the same labels the web app shows. Falls back to plain activity
+       summaries only when no rule has fired yet. */
     private var engineFacts: [AvatarEvidence] {
+        let synergy = session.brainSynergies
+            .sorted { $0.date > $1.date }
+            .prefix(8)
+            .enumerated()
+            .map { index, event in
+                AvatarEvidence(
+                    id: "synergy-\(event.date)-\(event.kind.rawValue)-\(index)",
+                    text: language.text(event.label),
+                    date: event.date,
+                    color: synergyColor(event.kind))
+            }
+        if !synergy.isEmpty { return Array(synergy) }
+        return activitySummaryFacts
+    }
+
+    private func synergyColor(_ kind: FBSynergyKind) -> Color {
+        switch kind {
+        case .proteinStrength, .deficitStrength, .mealRhythm: return APEXColor.amber
+        case .hydrationEndurance, .importFeed: return APEXColor.cyan
+        case .mobilityAfterLegs, .deloadHonored: return APEXColor.teal
+        case .recoverySignal: return APEXColor.green
+        case .vo2Anchor: return APEXColor.violet
+        }
+    }
+
+    private var activitySummaryFacts: [AvatarEvidence] {
         let recentDates = Set((0..<min(trendDays, 14)).compactMap { Calendar.current.date(byAdding: .day, value: -$0, to: .now)?.apexDateKey })
         var facts: [AvatarEvidence] = []
         for date in recentDates.sorted(by: >) {

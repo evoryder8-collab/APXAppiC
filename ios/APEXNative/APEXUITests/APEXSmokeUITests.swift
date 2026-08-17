@@ -121,8 +121,10 @@ final class APEXSmokeUITests: XCTestCase {
 
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.staticTexts["Push-ups"].exists)
-        app.buttons["workout-count-rep"].tap()
-        app.buttons["workout-count-rep"].tap()
+        /* Reps count themselves now (tempo cadence). The athlete only
+           pauses, finishes, or skips. */
+        XCTAssertTrue(app.buttons["workout-pause-set"].exists)
+        XCTAssertFalse(app.buttons["workout-count-rep"].exists)
         app.buttons["workout-end-set"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-rest"].waitForExistence(timeout: 2))

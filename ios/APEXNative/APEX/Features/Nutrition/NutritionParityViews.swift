@@ -41,8 +41,21 @@ struct NutritionGlanceCard: View {
         max(0, targets.targetCalories - Int(totals.kcal.rounded()))
     }
 
+    /* Web parity: the denominator is the enabled meal blocks configured in
+       settings (plus custom blocks), not the legacy prescribed-meals table,
+       which current seeds leave empty. */
     private var configuredMealCount: Int {
-        max(session.data.meals.count, 1)
+        let addons = session.data.settings?.addons
+        let root = addons?["meal_blocks"]?.objectValue
+        let enabled = (root?["blocks"]?.arrayValue ?? []).filter {
+            $0.objectValue?["enabled"]?.boolValue ?? false
+        }.count
+        let custom = (root?["custom_blocks"]?.arrayValue ?? []).filter {
+            $0.objectValue?["enabled"]?.boolValue ?? true
+        }.count
+        let blocks = enabled + custom
+        if blocks > 0 { return blocks }
+        return max(session.data.meals.count, 1)
     }
 
     private var calorieProgress: Double {
@@ -868,6 +881,8 @@ private struct MealComfortWindow {
 
 private struct DaylineEntryRow: View {
     @State private var language = LanguageState.shared
+    /* A completed hold-and-drag must not also open the composer on release */
+    @State private var dragConsumedTap = false
     let entry: DaylineEntry
     let displayedMinute: Int
     let isDragging: Bool
@@ -898,7 +913,10 @@ private struct DaylineEntryRow: View {
             }
             .zIndex(2)
 
-            Button(action: action) {
+            Button {
+                guard !dragConsumedTap else { return }
+                action()
+            } label: {
                 HStack(spacing: 10) {
                     VStack(alignment: .leading, spacing: 4) {
                         Text(language.text(entry.title))
@@ -936,17 +954,25 @@ private struct DaylineEntryRow: View {
             .accessibilityIdentifier("meal-dayline-\(entry.slot)")
         }
         .contentShape(Rectangle())
-        .highPriorityGesture(
+        /* simultaneousGesture instead of highPriorityGesture: a plain tap
+           must reach the meal button (it opens the composer), while the
+           deliberate hold-and-move gesture still adjusts the finish time. */
+        .simultaneousGesture(
             LongPressGesture(minimumDuration: 0.24)
                 .sequenced(before: DragGesture(minimumDistance: 0))
                 .onChanged { phase in
                     if case .second(true, let drag?) = phase {
+                        dragConsumedTap = true
                         onDragChanged(drag.translation.height)
                     }
                 }
                 .onEnded { phase in
                     if case .second(true, let drag?) = phase {
                         onDragEnded(drag.translation.height)
+                    }
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(280))
+                        dragConsumedTap = false
                     }
                 }
         )

@@ -105,6 +105,7 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     var sex: String
     var weightKG: Double
     var bodyFatPercent: Double
+    var customBMR: Double?
     var heightCM: Double
     var birthdate: String
     var activityLevel: ActivityLevel
@@ -129,6 +130,7 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         case sex
         case weightKG = "weight_kg"
         case bodyFatPercent = "body_fat_pct"
+        case customBMR = "custom_bmr"
         case heightCM = "height_cm"
         case birthdate
         case activityLevel = "activity_level"

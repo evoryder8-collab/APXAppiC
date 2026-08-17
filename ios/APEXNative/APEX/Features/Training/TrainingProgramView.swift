@@ -1,3 +1,4 @@
+import AudioToolbox
 import AVFoundation
 import Combine
 import SwiftUI
@@ -361,10 +362,44 @@ struct WorkoutPlayerView: View {
     @State private var showExit = false
     @State private var isSaving = false
 
-    private let timer = Timer.publish(every: 1, on: .main, in: .common).autoconnect()
+    /* Automatic rep cadence, ported from the web player (playerTimeline.ts):
+       APEX counts and paces every rep from the exercise's prescribed tempo.
+       Nobody taps buttons mid-set. */
+    @State private var repElapsed: Double = 0
+    @State private var announcedRep = 0
+    @State private var subSecond: Double = 0
+
+    private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
 
     private var current: Exercise? {
         exercises.indices.contains(currentIndex) ? exercises[currentIndex] : nil
+    }
+
+    /* Web parity: target is the middle of the rep range; "max" sets count up */
+    private func targetReps(_ exercise: Exercise) -> Int? {
+        exercise.repUnit == "max"
+            ? nil
+            : Int((Double(exercise.repMin + exercise.repMax) / 2).rounded(.toNearestOrAwayFromZero))
+    }
+
+    /* Web parity: seconds per rep from prescribed tempo, floor 1.6 s */
+    private func repDuration(_ exercise: Exercise) -> Double {
+        max(1.6, exercise.tempoUp + exercise.tempoDown + exercise.tempoPause + 0.4)
+    }
+
+    /* Timed holds and video blocks: dead hangs, stretches, T25 */
+    private func timedSeconds(_ exercise: Exercise) -> Double? {
+        let mid = Double((exercise.repMin + exercise.repMax) / 2)
+        if exercise.repUnit == "seconds" { return mid }
+        if exercise.repUnit == "minutes" { return mid * 60 }
+        return nil
+    }
+
+    private func tempoLine(_ exercise: Exercise) -> String {
+        if !exercise.tempoNote.isEmpty { return language.text(exercise.tempoNote) }
+        let up = exercise.tempoUp.formatted(.number.precision(.fractionLength(0...1)))
+        let down = exercise.tempoDown.formatted(.number.precision(.fractionLength(0...1)))
+        return language.format("APEX paces you: %@s up, %@s down", up, down)
     }
 
     private var voiceOn: Bool { session.data.settings?.voiceOn ?? true }
@@ -525,40 +560,54 @@ struct WorkoutPlayerView: View {
                     Text(language.text(current.name))
                         .font(APEXFont.display(32))
                         .multilineTextAlignment(.center)
-                    Text("\(actualReps)")
-                        .font(APEXFont.mono(84))
-                        .foregroundStyle(accent)
-                        .contentTransition(.numericText())
-                    Text(language.format("of %d target reps", current.repMax))
-                        .font(APEXFont.mono(13))
-                        .foregroundStyle(APEXColor.secondaryInk)
+
+                    if let hold = timedSeconds(current) {
+                        /* Timed hold: countdown ring, auto-completes */
+                        ZStack {
+                            Circle().stroke(APEXColor.ink.opacity(0.08), lineWidth: 12)
+                            Circle()
+                                .trim(from: 0, to: hold == 0 ? 0 : CGFloat(max(0, hold - repElapsed) / hold))
+                                .stroke(accent.gradient, style: StrokeStyle(lineWidth: 12, lineCap: .round))
+                                .rotationEffect(.degrees(-90))
+                            Text("\(Int(max(0, hold - repElapsed).rounded(.up)))")
+                                .font(APEXFont.mono(48))
+                                .foregroundStyle(accent)
+                                .contentTransition(.numericText())
+                        }
+                        .frame(width: 170, height: 170)
+                        Text(language.text(current.perSide ? "Hold · per side" : "Hold"))
+                            .font(APEXFont.mono(13))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    } else {
+                        /* Auto-paced rep counter */
+                        Text("\(actualReps)")
+                            .font(APEXFont.mono(84))
+                            .foregroundStyle(accent)
+                            .contentTransition(.numericText())
+                        if let target = targetReps(current) {
+                            Text(language.format("of %d · counted for you", target))
+                                .font(APEXFont.mono(13))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        } else {
+                            Text(language.text("to failure · tap done when you stop"))
+                                .font(APEXFont.mono(13))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                    }
 
                     HStack(spacing: 12) {
-                        Button {
-                            actualReps = max(0, actualReps - 1)
-                        } label: {
-                            Image(systemName: "minus")
-                                .frame(width: 48, height: 48)
-                        }
-                        .buttonStyle(.bordered)
-
-                        Button {
-                            countRep()
-                        } label: {
-                            Label(language.text("Count rep"), systemImage: "plus")
-                                .frame(maxWidth: .infinity)
-                        }
-                        .buttonStyle(.borderedProminent)
-                        .tint(accent)
-                        .accessibilityIdentifier("workout-count-rep")
+                        Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("workout-pause-set")
 
                         Button {
                             endCurrentSet(skipped: false)
                         } label: {
-                            Image(systemName: "checkmark")
-                                .frame(width: 48, height: 48)
+                            Label(language.text("Done"), systemImage: "checkmark")
+                                .frame(maxWidth: .infinity)
                         }
-                        .buttonStyle(.bordered)
+                        .buttonStyle(.borderedProminent)
+                        .tint(accent)
                         .accessibilityIdentifier("workout-end-set")
                     }
 
@@ -567,7 +616,7 @@ struct WorkoutPlayerView: View {
                             .buttonStyle(.plain)
                             .foregroundStyle(APEXColor.secondaryInk)
                         Spacer()
-                        Text(language.text(current.tempoNote.isEmpty ? "Tap once for every completed rep" : current.tempoNote))
+                        Text(tempoLine(current))
                             .font(APEXFont.body(10, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -713,39 +762,82 @@ struct WorkoutPlayerView: View {
     }
 
     private func tick() {
-        guard !paused, phase == .warmup || phase == .rest else { return }
-        if timerRemaining > 0 {
-            timerRemaining -= 1
-            if timerRemaining == 30 {
-                WorkoutAudioCoach.shared.say(language.text("30 seconds"), enabled: voiceOn)
+        guard !paused else { return }
+        switch phase {
+        case .active:
+            cadenceTick()
+        case .warmup, .rest:
+            subSecond += 0.1
+            guard subSecond >= 0.999 else { return }
+            subSecond = 0
+            if timerRemaining > 0 {
+                timerRemaining -= 1
+                if timerRemaining == 30 {
+                    WorkoutAudioCoach.shared.say(language.text("30 seconds"), enabled: voiceOn)
+                }
+            } else if phase == .warmup {
+                beginActiveSet()
+            } else {
+                advanceAfterRest()
             }
-        } else if phase == .warmup {
-            beginActiveSet()
-        } else {
-            advanceAfterRest()
+        case .complete:
+            break
+        }
+    }
+
+    /* The friction killer: reps announce themselves on the prescribed tempo
+       and the set advances on its own when the target is reached. */
+    private func cadenceTick() {
+        guard let current else { return }
+        repElapsed += 0.1
+
+        if let hold = timedSeconds(current) {
+            if repElapsed >= hold {
+                actualReps = Int(hold)
+                endCurrentSet(skipped: false)
+            }
+            return
+        }
+
+        let duration = repDuration(current)
+        let target = targetReps(current)
+        let rep = Int(repElapsed / duration) + 1
+        let capped = target.map { min($0, rep) } ?? rep
+        if capped != announcedRep, repElapsed > 0.1 {
+            announcedRep = capped
+            actualReps = capped
+            announceRep(capped)
+        }
+        if let target, repElapsed >= Double(target) * duration + 0.3 {
+            endCurrentSet(skipped: false)
+        }
+    }
+
+    private func announceRep(_ rep: Int) {
+        if ticksOn {
+            UIImpactFeedbackGenerator(style: .light).impactOccurred()
+            AudioServicesPlaySystemSound(1057)
+        }
+        if voiceOn, rep <= 30 {
+            WorkoutAudioCoach.shared.say("\(rep)", enabled: true)
         }
     }
 
     private func beginActiveSet() {
-        guard current != nil else {
+        guard let exercise = current else {
             phase = .complete
             return
         }
         paused = false
         actualReps = 0
+        repElapsed = 0
+        announcedRep = 0
         currentWeight = suggestedWeight
         phase = .active
-        WorkoutAudioCoach.shared.say(language.text(current?.name ?? "Begin"), enabled: voiceOn)
-    }
-
-    private func countRep() {
-        actualReps += 1
-        if ticksOn {
-            UIImpactFeedbackGenerator(style: .light).impactOccurred()
-        }
-        if voiceOn, actualReps <= 20 {
-            WorkoutAudioCoach.shared.say("\(actualReps)", enabled: true)
-        }
+        WorkoutAudioCoach.shared.say(
+            language.format("%@. Set %d of %d.", language.text(exercise.name), currentSet, exercise.sets),
+            enabled: voiceOn
+        )
     }
 
     private func endCurrentSet(skipped: Bool) {
@@ -763,6 +855,7 @@ struct WorkoutPlayerView: View {
         setInputs.append(input)
 
         let finalSet = currentIndex == exercises.count - 1 && currentSet >= current.sets
+        subSecond = 0
         if finalSet {
             phase = .complete
             WorkoutAudioCoach.shared.say(language.text("Session complete"), enabled: voiceOn)

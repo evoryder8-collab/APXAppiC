@@ -7,7 +7,12 @@ import UIKit
 final class AppSession {
     var route: AppRoute = .launching
     var selectedPersona: Persona?
-    var data: DashboardData = .empty
+    var data: DashboardData = .empty {
+        didSet { recomputeBrain() }
+    }
+    /* Receipts from the interconnection engine, for the Avatar feed */
+    var brainSynergies: [FBSynergyEvent] = []
+    @ObservationIgnored private var brainRecomputing = false
     var isBusy = false
     var isRefreshing = false
     var alertMessage: String?
@@ -123,6 +128,40 @@ final class AppSession {
             pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? 0
         }
         await considerWeeklyCalibration()
+    }
+
+    /*
+     * The brain lives on the phone now. Every material data change replays
+     * the deterministic engine from the baseline date, exactly like the web
+     * client, and the newest snapshot is upserted under the same
+     * deterministic per-user id so both clients converge on one row.
+     * A missing network never freezes stats again: decay, synergies and
+     * imports all keep computing offline.
+     */
+    private func recomputeBrain() {
+        guard !brainRecomputing,
+              let userID = data.profile?.userID,
+              let input = FitnessBrainService.engineInput(from: data) else { return }
+        let result = FitnessBrainEngine.compute(input, throughDate: Date().apexDateKey)
+        guard !result.snapshots.isEmpty else { return }
+
+        let previousLatest = data.snapshots.max { $0.date < $1.date }
+        let rows = FitnessBrainService.appSnapshots(result.snapshots, userID: userID)
+        brainRecomputing = true
+        data.snapshots = rows
+        brainSynergies = result.synergies
+        brainRecomputing = false
+
+        if let latest = rows.last,
+           previousLatest?.date != latest.date || previousLatest?.overall != latest.overall {
+            #if DEBUG
+            // UI automation runs an unauthenticated local fixture; a remote
+            // persist would fail into the offline path and raise an alert
+            // over the screen mid-test.
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
+            #endif
+            Task { await persistUpsert(latest, table: "rpg_snapshots") }
+        }
     }
 
     func refresh() async {

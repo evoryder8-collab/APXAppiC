@@ -3103,3 +3103,11 @@
 "Search Food Memory, scan a barcode, or apply a saved preset." = "Caută în Memoria alimentelor, scanează un cod de bare sau aplică o presetare salvată.";
 "Prefer simpler navigation" = "Preferă navigarea mai simplă";
 "The right run,\nfor this body, today." = "Alergarea potrivită,\npentru corpul tău, azi.";
+
+/* Automatic rep cadence (guided player) */
+"APEX paces you: %@s up, %@s down" = "APEX îți dă ritmul: %@s sus, %@s jos";
+"of %d · counted for you" = "din %d · numărat pentru tine";
+"to failure · tap done when you stop" = "până la epuizare · apasă Gata când te oprești";
+"%@. Set %d of %d." = "%@. Setul %d din %d.";
+"Hold" = "Menține";
+"Hold · per side" = "Menține · pe fiecare parte";

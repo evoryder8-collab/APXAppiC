@@ -12,6 +12,7 @@
 		06DE4F94D67318117B35516E /* FitnessBrainParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */; };
 		076D90E875EC34BBD94517C8 /* PortalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758FD0E991B148EBA20CC451 /* PortalShellView.swift */; };
 		09109A906D755E3898C0E3A9 /* OrbitAnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187FABCA64C67402E716B2DB /* OrbitAnalysisEngine.swift */; };
+		0EA74FD3C3F993F87B9D16DD /* FitnessBrainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */; };
 		0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */; };
 		14088089CF6805A4D9336CB0 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946DC4125357F8D2D3ACEFE8 /* NutritionView.swift */; };
 		168AD385ACE1D45B04E1788C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F60F21F488DA31129354FF26 /* Localizable.strings */; };
@@ -135,6 +136,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainService.swift; sourceTree = "<group>"; };
 		0AD96EE9719E0D9D7C05FD9D /* MarathonInductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonInductionView.swift; sourceTree = "<group>"; };
 		0DBA2DE3264926BAC649C781 /* OrbitRouteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitRouteEngine.swift; sourceTree = "<group>"; };
 		116EADF08A0352441607F57F /* constantine.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = constantine.png; sourceTree = "<group>"; };
@@ -515,6 +517,7 @@
 			children = (
 				73A775E9746F75FF485AA68B /* FitnessBrainEngine.swift */,
 				7757182FAE315C42B5918CBC /* FitnessBrainModels.swift */,
+				08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */,
 				59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */,
 			);
 			path = Engine;
@@ -741,6 +744,7 @@
 				B0AA988F6D009C1FDEE5C924 /* EnergyEngine.swift in Sources */,
 				8919266C5A4F0701D86E6C23 /* FitnessBrainEngine.swift in Sources */,
 				F76CE2A4FF09A75EB68BD666 /* FitnessBrainModels.swift in Sources */,
+				0EA74FD3C3F993F87B9D16DD /* FitnessBrainService.swift in Sources */,
 				352AACC240CD4D66A83DD10E /* FitnessBrainTargets.swift in Sources */,
 				F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */,
 				6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */,

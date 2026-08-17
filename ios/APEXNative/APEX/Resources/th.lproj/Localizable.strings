@@ -3103,3 +3103,11 @@
 "Search Food Memory, scan a barcode, or apply a saved preset." = "ค้นหาในความจำอาหาร สแกนบาร์โค้ด หรือใช้พรีเซ็ตที่บันทึกไว้";
 "Prefer simpler navigation" = "เลือกการนำทางที่ง่ายกว่า";
 "The right run,\nfor this body, today." = "การวิ่งที่เหมาะ\nกับร่างกายของคุณในวันนี้";
+
+/* Automatic rep cadence (guided player) */
+"APEX paces you: %@s up, %@s down" = "APEX คุมจังหวะให้: ขึ้น %@ วิ ลง %@ วิ";
+"of %d · counted for you" = "จาก %d · นับให้อัตโนมัติ";
+"to failure · tap done when you stop" = "จนหมดแรง · แตะ เสร็จ เมื่อหยุด";
+"%@. Set %d of %d." = "%@ เซ็ตที่ %d จาก %d";
+"Hold" = "ค้างไว้";
+"Hold · per side" = "ค้างไว้ · ข้างละด้าน";
