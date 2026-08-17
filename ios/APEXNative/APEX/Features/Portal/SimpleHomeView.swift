@@ -846,145 +846,253 @@ enum WearableActivityEngine {
 
 private struct WaterQuickAddSheet: View {
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let drinkLiters: Double
     let foodLiters: Double
     let targetLiters: Double
     let sex: String
     let add: (Double) -> Void
     @State private var customML = ""
+    @State private var pulse = false
 
     private var totalLiters: Double { min(6, drinkLiters + foodLiters) }
 
     var body: some View {
-        ScrollView {
-            VStack(spacing: 16) {
-                HStack(alignment: .top, spacing: 14) {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text("Water quick add").font(APEXFont.display(25))
-                        Text(String(format: "%.2f / %.2f L", totalLiters, targetLiters))
-                            .font(APEXFont.body(12, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
-                        Text(String(format: "Drinks %.2f L · Food %.2f L", drinkLiters, foodLiters))
-                            .font(APEXFont.body(9, weight: .medium))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                        Spacer(minLength: 0)
-                    }
-                    /* The figure is the centrepiece of this sheet, so it gets
-                       real size and a scale that reads against the target. */
-                    HydrationFigureGauge(
-                        totalLiters: totalLiters,
-                        targetLiters: targetLiters,
-                        sex: sex
-                    )
+        VStack(spacing: 0) {
+            HStack(alignment: .firstTextBaseline) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Water quick add").font(APEXFont.display(24))
+                    Text(String(format: "Drinks %.2f L · Food %.2f L", drinkLiters, foodLiters))
+                        .font(APEXFont.body(10, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
                 }
+                Spacer()
+                Button("Done") { dismiss() }
+                    .font(APEXFont.body(14, weight: .bold))
+                    .foregroundStyle(APEXColor.cyan)
+            }
+            .padding(.horizontal, 22)
+            .padding(.top, 18)
 
-                VStack(alignment: .leading, spacing: 8) {
+            /* The figure owns the free space, so it grows with the sheet
+               instead of sitting small above a field of emptiness. */
+            HydrationFigureGauge(
+                totalLiters: totalLiters,
+                targetLiters: targetLiters,
+                sex: sex
+            )
+            .frame(maxWidth: .infinity, maxHeight: .infinity)
+            .padding(.top, 8)
+
+            /* The number belongs under the feet, at a size worth reading. */
+            VStack(spacing: 2) {
+                Text(String(format: "%.2f / %.2f L", totalLiters, targetLiters))
+                    .font(APEXFont.mono(30, weight: .bold))
+                    .foregroundStyle(APEXColor.ink)
+                    .contentTransition(.numericText())
+                    .scaleEffect(pulse ? 1.06 : 1)
+                Text(targetLiters > 0
+                     ? String(format: "%.0f%% of today's target", min(1, totalLiters / targetLiters) * 100)
+                     : "")
+                    .font(APEXFont.body(11, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            .padding(.top, 6)
+            .padding(.bottom, 14)
+
+            VStack(spacing: 12) {
+                VStack(alignment: .leading, spacing: 7) {
                     Text("ADD").font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
-                    LazyVGrid(columns: [.init(.flexible()), .init(.flexible())], spacing: 10) {
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 9) {
                         ForEach([250, 300, 500], id: \.self) { amount in
-                            quickButton("+ \(amount) ml", tint: APEXColor.cyan) {
-                                add(Double(amount) / 1_000); dismiss()
+                            quickButton("+ \(amount)", tint: APEXColor.cyan) {
+                                commit(Double(amount) / 1_000)
                             }
                         }
-                        TextField("Custom ml", text: $customML)
-                            .keyboardType(.numberPad).font(APEXFont.mono(14)).multilineTextAlignment(.center)
-                            .frame(minHeight: 54)
-                            .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 17))
-                            .onSubmit { addCustom() }
+                        TextField("ml", text: $customML)
+                            .keyboardType(.numberPad)
+                            .font(APEXFont.mono(14))
+                            .multilineTextAlignment(.center)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
+                            .onSubmit(addCustom)
+                        if Double(customML) != nil {
+                            Button(action: addCustom) {
+                                Image(systemName: "arrow.right.circle.fill")
+                                    .font(.system(size: 26))
+                                    .foregroundStyle(APEXColor.cyan)
+                            }
+                            .buttonStyle(.plain)
+                        }
                     }
-                    Button("Add custom amount") { addCustom() }
-                        .buttonStyle(.borderedProminent).tint(APEXColor.cyan)
-                        .disabled(Double(customML) == nil)
                 }
 
-                /* Added something by mistake: take it straight back off. */
-                VStack(alignment: .leading, spacing: 8) {
+                VStack(alignment: .leading, spacing: 7) {
                     Text("REMOVE").font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
-                    LazyVGrid(columns: [.init(.flexible()), .init(.flexible()), .init(.flexible())], spacing: 10) {
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                    HStack(spacing: 9) {
                         ForEach([250, 300, 500], id: \.self) { amount in
-                            quickButton("− \(amount) ml", tint: APEXColor.danger) {
-                                add(-Double(amount) / 1_000)
+                            quickButton("− \(amount)", tint: APEXColor.danger) {
+                                commit(-Double(amount) / 1_000)
                             }
                             .disabled(drinkLiters <= 0)
-                            .opacity(drinkLiters <= 0 ? 0.4 : 1)
+                            .opacity(drinkLiters <= 0 ? 0.35 : 1)
                         }
+                        Button("Clear") { commit(-drinkLiters) }
+                            .font(APEXFont.body(12, weight: .bold))
+                            .foregroundStyle(APEXColor.danger)
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .disabled(drinkLiters <= 0)
+                            .opacity(drinkLiters <= 0 ? 0.35 : 1)
                     }
-                    Button("Clear today's water") { add(-drinkLiters) }
-                        .font(APEXFont.body(12, weight: .bold))
-                        .foregroundStyle(APEXColor.danger)
-                        .disabled(drinkLiters <= 0)
-                        .opacity(drinkLiters <= 0 ? 0.4 : 1)
                 }
             }
-            .padding(22)
+            .padding(.horizontal, 22)
+            .padding(.bottom, 26)
         }
         .presentationBackground(.ultraThinMaterial)
-        .presentationDetents([.medium, .large])
+    }
+
+    /* Logging never dismisses the sheet: the figure animates the new level
+       and you close it when you have finished drinking. */
+    private func commit(_ liters: Double) {
+        add(liters)
+        guard !reduceMotion else { return }
+        withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) { pulse = true }
+        Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(220))
+            withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { pulse = false }
+        }
     }
 
     private func quickButton(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
-        Button(title, action: action).font(APEXFont.mono(13)).frame(maxWidth: .infinity, minHeight: 54)
+        Button(title, action: action)
+            .font(APEXFont.mono(13, weight: .bold))
+            .frame(maxWidth: .infinity, minHeight: 50)
             .foregroundStyle(tint)
-            .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 17)).buttonStyle(.plain)
+            .background(tint.opacity(0.09), in: RoundedRectangle(cornerRadius: 15))
+            .buttonStyle(.plain)
     }
+
     private func addCustom() {
         guard let ml = Double(customML), ml > 0 else { return }
-        add(min(3_000, ml) / 1_000); dismiss()
+        commit(min(3_000, ml) / 1_000)
+        customML = ""
     }
 }
 
 /*
- * The silhouette with a litre scale beside it: 0 L sits at the feet and the
- * configured target sits at the crown, so the fill height reads as a real
- * measurement rather than a decorative graphic.
+ * The silhouette with a litre scale locked to its body.
+ *
+ * The figure is an SVG whose viewBox is `-150 -150 W 1015`, drawn with
+ * xMidYMid meet. Inside that box the crown of the head sits at y = 0 and the
+ * feet, where the water level rests at zero, sit at y = 712. So the body
+ * occupies a fixed slice of the rendered frame: 150/1015 of the way down at
+ * the hairline and 862/1015 at the feet. Sizing the frame to the viewBox's
+ * own aspect ratio removes any letterboxing, which lets the ruler land
+ * exactly on the body: 0 L at the feet, the target at the crown.
  */
 private struct HydrationFigureGauge: View {
     let totalLiters: Double
     let targetLiters: Double
     let sex: String
 
-    private var progress: Double { targetLiters > 0 ? min(1, totalLiters / targetLiters) : 0 }
+    private var isFemale: Bool { sex.lowercased().contains("female") }
+    /* viewBox widths differ slightly between the two figures */
+    private var aspect: CGFloat { (isFemale ? 568.0 : 583.6) / 1015.0 }
 
-    private var ticks: [Double] {
+    private let crownFraction: CGFloat = 150.0 / 1015.0
+    private let feetFraction: CGFloat = 862.0 / 1015.0
+
+    private var progress: Double { targetLiters > 0 ? min(1, max(0, totalLiters / targetLiters)) : 0 }
+
+    /* Minor ticks every 250 ml, labels every 500 ml, plus 0 and the target. */
+    private var minorStep: Double { targetLiters > 4 ? 0.5 : 0.25 }
+
+    private var tickValues: [Double] {
         guard targetLiters > 0 else { return [] }
-        let step: Double = targetLiters <= 2 ? 0.5 : targetLiters <= 4 ? 0.5 : 1
         var values: [Double] = []
         var value: Double = 0
-        while value < targetLiters - 0.01 {
-            values.append(value)
-            value += step
+        while value < targetLiters - 0.001 {
+            values.append((value * 100).rounded() / 100)
+            value += minorStep
         }
         values.append(targetLiters)
-        return values.reversed()
+        return values
+    }
+
+    private func isLabelled(_ value: Double) -> Bool {
+        if value == 0 || value == targetLiters { return true }
+        let halves = value / 0.5
+        return abs(halves - halves.rounded()) < 0.001
     }
 
     var body: some View {
-        HStack(alignment: .center, spacing: 6) {
-            GeometryReader { geometry in
-                ZStack(alignment: .topTrailing) {
-                    ForEach(ticks, id: \.self) { value in
+        GeometryReader { proxy in
+            let available = proxy.size
+            /* Reserve the ruler column, then take the largest figure that
+               still fits both dimensions. */
+            let rulerWidth: CGFloat = 62
+            let heightLimited = available.height
+            let widthLimited = max(0, available.width - rulerWidth - 10) / aspect
+            let figureHeight = max(160, min(heightLimited, widthLimited))
+            let figureWidth = figureHeight * aspect
+
+            let crownY = crownFraction * figureHeight
+            let feetY = feetFraction * figureHeight
+            let span = feetY - crownY
+
+            HStack(spacing: 10) {
+                Spacer(minLength: 0)
+
+                ZStack(alignment: .topLeading) {
+                    ForEach(tickValues, id: \.self) { value in
                         let fraction = targetLiters > 0 ? value / targetLiters : 0
-                        let y = geometry.size.height * (1 - fraction)
-                        HStack(spacing: 3) {
+                        let y = feetY - CGFloat(fraction) * span
+                        let labelled = isLabelled(value)
+                        let isTarget = value == targetLiters
+                        HStack(spacing: 4) {
                             Spacer(minLength: 0)
-                            Text(value == targetLiters || value == 0
-                                 ? String(format: "%.1fL", value)
-                                 : String(format: "%.1f", value))
-                                .font(APEXFont.mono(8, weight: value == targetLiters ? .bold : .medium))
-                                .foregroundStyle(value == targetLiters ? APEXColor.cyan : APEXColor.secondaryInk)
+                            if labelled {
+                                Text(isTarget || value == 0
+                                     ? String(format: "%.2fL", value)
+                                     : String(format: "%.1f", value))
+                                    .font(APEXFont.mono(isTarget ? 11 : 10, weight: isTarget ? .bold : .medium))
+                                    .foregroundStyle(isTarget ? APEXColor.cyan : APEXColor.secondaryInk)
+                                    .fixedSize()
+                            }
                             Rectangle()
-                                .fill(value == targetLiters ? APEXColor.cyan.opacity(0.8) : APEXColor.secondaryInk.opacity(0.35))
-                                .frame(width: value == targetLiters || value == 0 ? 9 : 5, height: 1)
+                                .fill(isTarget ? APEXColor.cyan : APEXColor.secondaryInk.opacity(labelled ? 0.45 : 0.22))
+                                .frame(width: labelled ? 12 : 6, height: isTarget ? 1.6 : 1)
                         }
-                        .offset(y: y - 5)
+                        .frame(width: rulerWidth, alignment: .trailing)
+                        .position(x: rulerWidth / 2, y: y)
+                    }
+
+                    /* Where the level actually stands right now */
+                    if progress > 0 {
+                        let y = feetY - CGFloat(progress) * span
+                        Text(String(format: "%.2f", totalLiters))
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 6)
+                            .padding(.vertical, 3)
+                            .background(APEXColor.cyan, in: Capsule())
+                            .position(x: rulerWidth / 2, y: y)
+                            .animation(.spring(response: 0.75, dampingFraction: 0.85), value: progress)
                     }
                 }
-            }
-            .frame(width: 42, height: 190)
+                .frame(width: rulerWidth, height: figureHeight)
 
-            HydrationFigureWebView(progress: progress, sex: sex)
-                .frame(width: 128, height: 190)
+                HydrationFigureWebView(progress: progress, sex: sex)
+                    .frame(width: figureWidth, height: figureHeight)
+
+                Spacer(minLength: 0)
+            }
+            .frame(width: available.width, height: available.height, alignment: .center)
         }
         .accessibilityElement(children: .ignore)
         .accessibilityLabel(String(format: "Hydration %.2f of %.2f litres", totalLiters, targetLiters))
