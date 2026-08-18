@@ -2147,6 +2147,22 @@ final class AppSession {
         await persistUpsert(settings, table: "settings", onConflict: "user_id")
     }
 
+    /// Store a rewritten predefined list, keyed so an edit to one meal on one
+    /// goal never quietly rewrites the others. An emptied list falls back to
+    /// the protocol default.
+    func saveMealProtocolOverride(key: String, lines: [String]) async {
+        guard var settings = data.settings else { return }
+        var overrides = settings.addons["meal_protocol_overrides"]?.objectValue ?? [:]
+        if lines.isEmpty {
+            overrides.removeValue(forKey: key)
+        } else {
+            overrides[key] = .array(lines.map { .string($0) })
+        }
+        settings.addons["meal_protocol_overrides"] = .object(overrides)
+        data.settings = settings
+        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+    }
+
     private func persistUpsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,

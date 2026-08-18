@@ -86,6 +86,9 @@ final class APEXSmokeUITests: XCTestCase {
         breakfast.tap()
 
         XCTAssertTrue(app.staticTexts["Build this meal"].waitForExistence(timeout: 3))
+        /* Overlapping Dayline cards used to hand the tap to a neighbouring
+           meal, which then failed further down for the wrong reason. */
+        XCTAssertTrue(app.staticTexts["ACTUAL INTAKE · BREAKFAST"].exists, "tapped breakfast, opened something else")
         /* The presets card sits below the fold inside a lazy stack, so it is not
            built until the sheet is scrolled to it. */
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["FAST STARTS"], in: app))
@@ -104,7 +107,10 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(firstFood.waitForExistence(timeout: 2))
         firstFood.tap()
         XCTAssertTrue(app.buttons["Create preset"].isEnabled)
-        XCTAssertTrue(app.staticTexts["1 selected"].exists)
+        /* The count label lands a frame after the button enables. */
+        let count = app.descendants(matching: .any)["meal-selection-count"]
+        XCTAssertTrue(count.waitForExistence(timeout: 2))
+        XCTAssertEqual(count.label, "1 selected")
         capture("meal-composer-selection")
     }
 
@@ -193,7 +199,7 @@ final class APEXSmokeUITests: XCTestCase {
      * plain flick with a drag along the left gutter, which on every screen is
      * label space rather than anything interactive.
      */
-    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 30) -> Bool {
+    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 60) -> Bool {
         if isReachable(element) { return true }
         for attempt in 0..<attempts {
             if attempt.isMultiple(of: 2) {

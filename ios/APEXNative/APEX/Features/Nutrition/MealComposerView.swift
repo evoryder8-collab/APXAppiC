@@ -56,6 +56,10 @@ struct MealComposerView: View {
     @State private var isSaving = false
     @State private var errorMessage: String?
     @State private var hydrated = false
+    @State private var guideOpen = false
+    @State private var guideEditing = false
+    @State private var guideDraft: [String] = []
+    @State private var guideQuery: MealProtocolGuide.Query?
 
     init(request: MealComposerRequest) {
         self.request = request
@@ -79,8 +83,12 @@ struct MealComposerView: View {
     var body: some View {
         NavigationStack {
             ScrollView {
-                LazyVStack(spacing: 18) {
+                /* Not lazy: the guide and discovery cards are taller than the
+                   sheet, and a lazy stack stops materialising what follows
+                   them. The same trap the nutrition and training pages hit. */
+                VStack(spacing: 18) {
                     mealSummary
+                    guideCard
                     discoveryCard
                     presetsCard
                     itemsHeader
@@ -136,6 +144,12 @@ struct MealComposerView: View {
             }
             .safeAreaInset(edge: .bottom) {
                 saveBar
+            }
+            .sheet(item: $guideQuery) { query in
+                MealFoodPicker(date: request.date, initialQuery: query.search) { food, amount, unit in
+                    add(food, amount: amount, unit: unit)
+                }
+                .environment(session)
             }
             .sheet(isPresented: $showFoodPicker) {
                 MealFoodPicker(date: request.date) { food, amount, unit in
@@ -206,9 +220,21 @@ struct MealComposerView: View {
                         .font(APEXFont.body(14, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
                     Spacer()
-                    Text(language.format("%d foods", draft.items.count))
-                        .font(APEXFont.mono(11))
-                        .foregroundStyle(APEXColor.secondaryInk)
+                    if !guideLines.isEmpty {
+                        Button {
+                            withAnimation(.snappy(duration: 0.26)) { guideOpen.toggle() }
+                        } label: {
+                            Text("\(language.text("Predefined list")) \(guideOpen ? "−" : "+")")
+                                .font(APEXFont.body(13, weight: .bold))
+                                .foregroundStyle(APEXColor.amberDeep)
+                                .padding(.horizontal, 13)
+                                .frame(height: 38)
+                                .background(APEXColor.amber.opacity(0.14), in: Capsule())
+                                .overlay(Capsule().stroke(APEXColor.amber.opacity(0.45), lineWidth: 1))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("meal-guide-toggle")
+                    }
                 }
 
                 HStack(spacing: 9) {
@@ -218,6 +244,170 @@ struct MealComposerView: View {
                 }
             }
         }
+    }
+
+    // MARK: - Predefined list
+
+    private var guidePersona: String { session.data.profile?.persona.rawValue ?? "constantine" }
+    private var guideGoal: String { session.data.profile?.goal.rawValue ?? "recomp" }
+
+    private var guideLines: [String] {
+        MealProtocolGuide.lines(
+            persona: guidePersona,
+            slot: draft.mealSlot,
+            goal: guideGoal,
+            language: language.language.rawValue,
+            overrides: session.data.settings?.addons["meal_protocol_overrides"]?.objectValue
+        )
+    }
+
+    /*
+     * The list a person can eat from, shop from, or rewrite. Tapping a line
+     * opens the search already pointed at that food and amount; Configure turns
+     * the same rows into fields, so the list becomes theirs.
+     */
+    @ViewBuilder
+    private var guideCard: some View {
+        if guideOpen, !guideLines.isEmpty {
+            GlassCard(radius: 27, padding: 16) {
+                VStack(alignment: .leading, spacing: 12) {
+                    HStack(alignment: .top, spacing: 12) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text("YOUR MEAL GUIDE")
+                                .font(APEXFont.mono(10, weight: .bold))
+                                .tracking(1.3)
+                                .foregroundStyle(APEXColor.amberDeep)
+                            Text(language.text("Adjusted for the current goal. Package labels remain the nutrition source."))
+                                .font(APEXFont.body(12, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                        Spacer(minLength: 6)
+                        Button {
+                            if guideEditing {
+                                guideEditing = false
+                            } else {
+                                guideDraft = guideLines
+                                guideEditing = true
+                            }
+                        } label: {
+                            Text(language.text(guideEditing ? "Done editing" : "Configure"))
+                                .font(APEXFont.body(11, weight: .bold))
+                                .foregroundStyle(APEXColor.ink)
+                                .padding(.horizontal, 11)
+                                .frame(height: 32)
+                                .background(.white.opacity(0.78), in: Capsule())
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("meal-guide-configure")
+                    }
+
+                    if guideEditing {
+                        ForEach(Array(guideDraft.indices), id: \.self) { index in
+                            HStack(spacing: 10) {
+                                indexBadge(index + 1)
+                                TextField(
+                                    language.text("Write anything you like"),
+                                    text: Binding(
+                                        get: { index < guideDraft.count ? guideDraft[index] : "" },
+                                        set: { if index < guideDraft.count { guideDraft[index] = $0 } }
+                                    )
+                                )
+                                .font(APEXFont.body(14, weight: .bold))
+                                Button {
+                                    guideDraft.remove(at: index)
+                                } label: {
+                                    Image(systemName: "xmark")
+                                        .font(.system(size: 11, weight: .bold))
+                                        .foregroundStyle(APEXColor.danger)
+                                        .frame(width: 30, height: 30)
+                                        .background(APEXColor.danger.opacity(0.1), in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 9)
+                            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 16))
+                        }
+
+                        HStack(spacing: 10) {
+                            Button {
+                                guideDraft.append("")
+                            } label: {
+                                Text(language.text("+ Item"))
+                                    .font(APEXFont.body(13, weight: .bold))
+                                    .foregroundStyle(APEXColor.ink)
+                                    .padding(.horizontal, 15)
+                                    .frame(height: 44)
+                                    .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 14))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("meal-guide-add-item")
+
+                            Button {
+                                saveGuide()
+                            } label: {
+                                Text(language.text("Save configuration"))
+                                    .font(APEXFont.body(13, weight: .bold))
+                                    .foregroundStyle(.white)
+                                    .frame(maxWidth: .infinity)
+                                    .frame(height: 44)
+                                    .background(APEXColor.amber.gradient, in: RoundedRectangle(cornerRadius: 14))
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityIdentifier("meal-guide-save")
+                        }
+                    } else {
+                        ForEach(Array(guideLines.enumerated()), id: \.offset) { index, line in
+                            HStack(spacing: 10) {
+                                indexBadge(index + 1)
+                                Text(line)
+                                    .font(APEXFont.body(14, weight: .bold))
+                                    .foregroundStyle(APEXColor.ink)
+                                    .fixedSize(horizontal: false, vertical: true)
+                                Spacer(minLength: 6)
+                                Button {
+                                    guideQuery = MealProtocolGuide.Query(line: line)
+                                } label: {
+                                    Image(systemName: "plus")
+                                        .font(.system(size: 13, weight: .bold))
+                                        .foregroundStyle(APEXColor.amberDeep)
+                                        .frame(width: 34, height: 34)
+                                        .background(Circle().stroke(APEXColor.amber.opacity(0.55), lineWidth: 1.5))
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            .padding(.horizontal, 12)
+                            .padding(.vertical, 11)
+                            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 16))
+                        }
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
+        }
+    }
+
+    private func indexBadge(_ number: Int) -> some View {
+        Text("\(number)")
+            .font(APEXFont.mono(10, weight: .bold))
+            .foregroundStyle(APEXColor.amberDeep)
+            .frame(width: 26, height: 26)
+            .background(APEXColor.amber.opacity(0.2), in: Circle())
+    }
+
+    private func saveGuide() {
+        let cleaned = guideDraft
+            .map { $0.trimmingCharacters(in: .whitespaces) }
+            .filter { !$0.isEmpty }
+        let key = MealProtocolGuide.overrideKey(
+            persona: guidePersona,
+            slot: draft.mealSlot,
+            goal: guideGoal,
+            language: language.language.rawValue
+        )
+        guideEditing = false
+        Task { await session.saveMealProtocolOverride(key: key, lines: cleaned) }
     }
 
     private var discoveryCard: some View {
@@ -297,9 +487,13 @@ struct MealComposerView: View {
                 }
                 Spacer()
                 if selectionMode {
+                    /* Three controls and a count do not fit one row on a phone;
+                       without this the count truncates to nothing readable. */
                     Text(language.format("%d selected", selectedItemIDs.count))
                         .font(APEXFont.body(12, weight: .bold))
                         .foregroundStyle(APEXColor.amberDeep)
+                        .fixedSize()
+                        .accessibilityIdentifier("meal-selection-count")
                     Button("Create preset") {
                         guard selectedItemIDs.isEmpty == false else { return }
                         showPresetCreator = true
@@ -716,6 +910,8 @@ private struct MealFoodPicker: View {
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     let date: Date
+    /// Opens already searching, when a guide line said what to look for.
+    var initialQuery: String = ""
     let onAdd: (Food, Double, String) -> Void
 
     @State private var query = ""
@@ -817,6 +1013,7 @@ private struct MealFoodPicker: View {
             .searchable(text: $query, prompt: "Search foods, aliases or brands")
             .onSubmit(of: .search) { Task { await search() } }
             .onChange(of: query) { _, value in if value.isEmpty { remoteResults = []; message = nil } }
+            .onAppear { if query.isEmpty { query = initialQuery } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {

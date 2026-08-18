@@ -78,6 +78,7 @@
 		8959C5F43634727949ECA305 /* FoodAmountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E2F7B6697D817761D223A9 /* FoodAmountSheet.swift */; };
 		8BC10A8062BBE646E6EA45DF /* hydration-male.html in Resources */ = {isa = PBXBuildFile; fileRef = 8D471F877A5E7E72F1A31D06 /* hydration-male.html */; };
 		8D6FC92C25B4152CC1030D1C /* matthew.png in Resources */ = {isa = PBXBuildFile; fileRef = 859EB7961437751182D5344E /* matthew.png */; };
+		8E2A71F45ACBC6FA812BA569 /* MealProtocolGuideTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */; };
 		8E65B12988DD76BCCDF06E51 /* APEXStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2402484CFB9ECDD04C1C9FF5 /* APEXStableID.swift */; };
 		93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E079A75C9AF4BCDAB514617 /* RunDebriefView.swift */; };
 		9632A64865B548AC3A1EB5F5 /* TrainingAdjustmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2EBA8504BDA79522C3269E /* TrainingAdjustmentEngine.swift */; };
@@ -129,6 +130,7 @@
 		EFE1D97D110D324BE6722A59 /* FoodPortionParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */; };
 		F1365543A54BB3712F867003 /* LoginView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 984FEF3A9C87EA524EF49121 /* LoginView.swift */; };
 		F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CE846D4F5B16E4B613ACBC /* FoodLoggingViews.swift */; };
+		F31B84CD7B344A4CE1A5591B /* MealProtocolGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13557A81963363E286A7705D /* MealProtocolGuide.swift */; };
 		F4A7EDE2DD1D8B5D176AF23A /* OrbitPrivacyArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */; };
 		F4FB65B7C724511A5AC2889E /* AddActivitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DCBD44E63C4ADAA7603EFD2 /* AddActivitySheet.swift */; };
 		F76CE2A4FF09A75EB68BD666 /* FitnessBrainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7757182FAE315C42B5918CBC /* FitnessBrainModels.swift */; };
@@ -208,6 +210,7 @@
 		116EADF08A0352441607F57F /* constantine.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = constantine.png; sourceTree = "<group>"; };
 		120870CB00AA18D20B3CC9C8 /* arms_dif.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = arms_dif.jpg; sourceTree = "<group>"; };
 		120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchiveTests.swift; sourceTree = "<group>"; };
+		13557A81963363E286A7705D /* MealProtocolGuide.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealProtocolGuide.swift; sourceTree = "<group>"; };
 		135C463AB8CEF57FA521CD01 /* AppRoute.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRoute.swift; sourceTree = "<group>"; };
 		13C42E6D8962A2AD2B91E47E /* WaterWatermarkTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WaterWatermarkTests.swift; sourceTree = "<group>"; };
 		1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealComposerTests.swift; sourceTree = "<group>"; };
@@ -318,6 +321,7 @@
 		C76E2757FE379C6EA33A59F5 /* WorkoutLogOrder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WorkoutLogOrder.swift; sourceTree = "<group>"; };
 		C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AvatarView.swift; sourceTree = "<group>"; };
 		C8E4463683E46A0209E86AAB /* ManualWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualWorkout.swift; sourceTree = "<group>"; };
+		CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealProtocolGuideTests.swift; sourceTree = "<group>"; };
 		CF248DED2EE048A28CD25CC8 /* OfflineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineStore.swift; sourceTree = "<group>"; };
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
@@ -517,6 +521,7 @@
 				192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */,
 				39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */,
 				1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */,
+				CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */,
 				FCA69789408B0833425C9ADB /* OrbitCampaignEngineTests.swift */,
 				95409AE77B69B4A6848B009E /* OrbitIntegrationsTests.swift */,
 				120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */,
@@ -681,6 +686,7 @@
 				59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */,
 				4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */,
 				C8E4463683E46A0209E86AAB /* ManualWorkout.swift */,
+				13557A81963363E286A7705D /* MealProtocolGuide.swift */,
 				393564C9A7237B2AE2880001 /* ProgressionEngine.swift */,
 				6D5F4855EBFA6D7681E2FF1E /* TrainingInduction.swift */,
 				B64FC8D2C776DE0378E7E796 /* TrainingPlanEngine.swift */,
@@ -968,6 +974,7 @@
 				3AA8A0C7384CBA70BE6DA42E /* MarathonCampaignView.swift in Sources */,
 				E227F2278FD58892015DA6B1 /* MarathonInductionView.swift in Sources */,
 				48303D0F50307649C7299C9C /* MealComposerView.swift in Sources */,
+				F31B84CD7B344A4CE1A5591B /* MealProtocolGuide.swift in Sources */,
 				42ED8A7CB4EA88FE1941CF09 /* MuscleMapAssetHandler.swift in Sources */,
 				B71C19C7366753A84F73BE7C /* MuscleMapCard.swift in Sources */,
 				9EEED55F9769ADB756BDB9AF /* MuscleMapView.swift in Sources */,
@@ -1032,6 +1039,7 @@
 				BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */,
 				355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */,
 				0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */,
+				8E2A71F45ACBC6FA812BA569 /* MealProtocolGuideTests.swift in Sources */,
 				32D893E92DA3F60F1C311EC1 /* OrbitCampaignEngineTests.swift in Sources */,
 				30CAB99C5259074A64EF3B4C /* OrbitIntegrationsTests.swift in Sources */,
 				F4A7EDE2DD1D8B5D176AF23A /* OrbitPrivacyArchiveTests.swift in Sources */,

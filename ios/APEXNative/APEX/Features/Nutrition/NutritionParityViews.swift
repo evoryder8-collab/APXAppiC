@@ -737,12 +737,17 @@ struct APEXDaylineView: View {
                                 .position(x: 18, y: nowY)
                         }
 
+                        let laidOut = separated(visibleEntries, height: timelineHeight)
                         ForEach(visibleEntries) { entry in
-                            let previewMinute = dragPreview[entry.id] ?? entry.minute
-                            let y = yPosition(for: lineMinute(previewMinute), height: timelineHeight)
+                            let y = laidOut[entry.id] ?? yPosition(
+                                for: lineMinute(dragPreview[entry.id] ?? entry.minute),
+                                height: timelineHeight
+                            )
                             DaylineEntryRow(
                                 entry: entry,
-                                displayedMinute: previewMinute,
+                                /* The card can be nudged down to clear its
+                                   neighbour, but it still states its own time. */
+                                displayedMinute: dragPreview[entry.id] ?? entry.minute,
                                 isDragging: dragPreview[entry.id] != nil,
                                 revealOffset: revealOffset(for: entry),
                                 action: { open(entry) },
@@ -878,6 +883,26 @@ struct APEXDaylineView: View {
 
     private func lineClockMinute(_ minute: Int) -> Int {
         ((minute % 1_440) + 1_440) % 1_440
+    }
+
+    /*
+     * Two meals an hour apart sit 37pt apart on a 900pt day, and a card is
+     * ninety. Placed on the clock alone they overlap, which reads as one meal
+     * and hands a tap to whichever card happens to be on top. Each card keeps
+     * its time unless the one above it is too close, and then it steps down
+     * just far enough to stay its own target.
+     */
+    private func separated(_ entries: [DaylineEntry], height: CGFloat) -> [String: CGFloat] {
+        let minimumGap: CGFloat = 104
+        var placed: [String: CGFloat] = [:]
+        var lastY: CGFloat?
+        for entry in entries.sorted(by: { $0.minute < $1.minute }) {
+            let wanted = yPosition(for: lineMinute(dragPreview[entry.id] ?? entry.minute), height: height)
+            let y = lastY.map { max(wanted, $0 + minimumGap) } ?? wanted
+            placed[entry.id] = y
+            lastY = y
+        }
+        return placed
     }
 
     private func yPosition(for minute: Int, height: CGFloat) -> CGFloat {
