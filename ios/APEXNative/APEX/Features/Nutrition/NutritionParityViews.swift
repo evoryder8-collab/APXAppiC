@@ -108,8 +108,13 @@ struct NutritionGlanceCard: View {
 
                 HStack(spacing: 15) {
                     VStack(spacing: 3) {
+                        /* Four-digit intakes wrapped mid-number, dropping the
+                           last digit onto its own line. The column is narrow by
+                           design, so the figure scales instead of wrapping. */
                         Text("\(Int(totals.kcal.rounded()))")
                             .font(APEXFont.display(32))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                             .contentTransition(.numericText())
                         Text(language.text("Eaten").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(8))
@@ -138,6 +143,8 @@ struct NutritionGlanceCard: View {
                                     .foregroundStyle(APEXColor.secondaryInk)
                                 Text("\(remaining)")
                                     .font(APEXFont.display(34))
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.5)
                                     .contentTransition(.numericText())
                                 Text(language.format("of %d kcal", targets.targetCalories))
                                     .font(APEXFont.mono(8))
@@ -1065,13 +1072,13 @@ private struct DaylineEntryRow: View {
          * snapping shut.
          */
         .simultaneousGesture(
-            DragGesture(minimumDistance: 12)
+            DragGesture(minimumDistance: 18)
                 .onChanged { value in
                     guard entry.isLogged else { return }
                     if axisLock == nil {
                         let dx = abs(value.translation.width)
                         let dy = abs(value.translation.height)
-                        guard max(dx, dy) > 12 else { return }
+                        guard max(dx, dy) > 18 else { return }
                         axisLock = dx > dy * 1.4 ? .horizontal : .vertical
                     }
                     guard axisLock == .horizontal else { return }
@@ -1099,7 +1106,15 @@ private struct DaylineEntryRow: View {
            the very number the next frame was derived from and the card
            oscillated. An absolute position cannot chase itself. */
         .simultaneousGesture(
-            LongPressGesture(minimumDuration: 0.24)
+            /*
+             * A deliberate hold, not a pause. At 0.24 s simply resting a
+             * finger on a meal before scrolling satisfied the press, and the
+             * follow-on drag then owned the touch: the page stopped scrolling
+             * and the meal moved instead. A longer hold with a tight movement
+             * tolerance fails the moment the finger travels, so an ordinary
+             * scroll reaches the scroll view untouched.
+             */
+            LongPressGesture(minimumDuration: 0.55, maximumDistance: 6)
                 .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("apex-dayline")))
                 .onChanged { phase in
                     if case .second(true, let drag?) = phase {
