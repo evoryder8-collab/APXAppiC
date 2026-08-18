@@ -13,6 +13,8 @@ struct TrainingProgramView: View {
     @State private var showBuilder = false
     @State private var savedFromBuilder = false
     @State private var selectedDay: CalendarDaySelection?
+    @State private var showManualLogger = false
+    @State private var exportURL: ExportedReport?
 
     private var program: Program? { session.data.programs.first { $0.slug == slug } }
     private var days: [ProgramDay] {
@@ -28,6 +30,92 @@ struct TrainingProgramView: View {
             on: Date().apexDateKey,
             marks: session.data.deloadMarks ?? []
         )
+    }
+
+    /// Web parity: the starter-plan builder belongs to newbie mode. Showing it
+    /// to everyone pushed the day the person came for below three other cards.
+    private var showInduction: Bool {
+        (session.data.settings?.addons["newbie_mode"]?.boolValue ?? false)
+            && (slug == "transition" || slug == "main")
+    }
+
+    private var todayPlan: PlannedDay {
+        TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
+    }
+
+    /// What today asks for, before anything else on the screen.
+    private var todayHero: some View {
+        let plan = todayPlan
+        return GlassCard(radius: 26, padding: 17) {
+            VStack(alignment: .leading, spacing: 9) {
+                Text(language.text("TODAY"))
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(APEXColor.secondaryInk)
+                Text(language.text(
+                    plan.isRecoveryMicro ? "Recovery micro-session" : (plan.programDay?.name ?? "Rest day")
+                ))
+                .font(APEXFont.display(21))
+                if let day = plan.programDay {
+                    Text(language.format("~%d min · %d exercises", day.estimatedMinutes, plan.exercises.count))
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                if !plan.badges.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        ForEach(plan.badges.prefix(3), id: \.self) { badge in
+                            Text(language.text(badge))
+                                .font(APEXFont.body(10, weight: .bold))
+                                .foregroundStyle(badgeTint(badge))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 4)
+                                .background(badgeTint(badge).opacity(0.12), in: Capsule())
+                        }
+                    }
+                }
+                if !plan.exercises.isEmpty {
+                    Button {
+                        selectedDay = CalendarDaySelection(date: Date().apexDateKey)
+                    } label: {
+                        Label(language.text("Open today"), systemImage: "arrow.right")
+                            .font(APEXFont.body(13, weight: .bold))
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .foregroundStyle(.white)
+                            .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("training-today-open")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    /// Teal for recovery, amber for anything that removes work, accent otherwise.
+    private func badgeTint(_ badge: String) -> Color {
+        if badge.hasPrefix("Deload") || badge.hasPrefix("Return") || badge.hasPrefix("Scheduled deload") {
+            return APEXColor.teal
+        }
+        if badge.contains("Taper") || badge.contains("Championship") || badge.contains("recovery") {
+            return APEXColor.amberDeep
+        }
+        return accent
+    }
+
+    /// Writes the Markdown report for the last ninety days and offers it to the
+    /// share sheet, which is how a file leaves the phone.
+    private func exportReport() {
+        let today = Date().apexDateKey
+        let markdown = ExportReport.build(
+            session.data,
+            slug: slug,
+            from: APEXDateMath.adding(days: -90, to: today),
+            to: today
+        )
+        guard let url = try? ExportReport.writeTemporaryFile(
+            markdown, filename: "apex-\(slug)-\(today).md"
+        ) else { return }
+        exportURL = ExportedReport(url: url, markdown: markdown)
     }
 
     /// The date this weekday lands on in the current week, so a plan for it can
@@ -61,7 +149,11 @@ struct TrainingProgramView: View {
 
     var body: some View {
         ScrollView {
-            LazyVStack(spacing: 18) {
+            /* Not lazy: the month grid is taller than the viewport, and a lazy
+               stack never materialised the day cards below it, so scrolling
+               stopped at the calendar and the sessions were unreachable. The
+               same trap the nutrition page fell into. */
+            VStack(spacing: 18) {
                 APEXTopBar(profile: session.profile) {
                     session.navigationPath.append(.settings)
                 }
@@ -79,6 +171,13 @@ struct TrainingProgramView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 14)
+
+                if showInduction {
+                    TrainingInductionPanel(slug: slug)
+                        .environment(session)
+                }
+
+                if slug != "custom" { todayHero }
 
                 MuscleMapCard(
                     dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper",
@@ -138,6 +237,32 @@ struct TrainingProgramView: View {
                     .frame(maxWidth: .infinity, alignment: .leading)
                 }
 
+                HStack(spacing: 10) {
+                    Button {
+                        showManualLogger = true
+                    } label: {
+                        Label(language.text("Quick log"), systemImage: "square.and.pencil")
+                            .font(APEXFont.body(13, weight: .bold))
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                            .foregroundStyle(APEXColor.cyan)
+                            .background(APEXColor.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 15))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("training-quick-log")
+
+                    Button {
+                        exportReport()
+                    } label: {
+                        Label(language.text("Export"), systemImage: "square.and.arrow.up")
+                            .font(APEXFont.body(13, weight: .bold))
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 15))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("training-export")
+                }
+
                 if slug == "custom" && days.isEmpty {
                     Text(language.text("Saving another workout on the same weekday replaces that day's custom plan."))
                         .font(APEXFont.body(12, weight: .medium))
@@ -192,6 +317,9 @@ struct TrainingProgramView: View {
                         )
                     }
                     .buttonStyle(.plain)
+                    /* Its own name: the today hero repeats the same session
+                       title, so the card needs to be addressable on its own. */
+                    .accessibilityIdentifier("training-day-\(day.weekday)")
                     .contextMenu {
                         if day.weekday == todayWeekday {
                             Button {
@@ -213,6 +341,13 @@ struct TrainingProgramView: View {
         }
         .navigationTitle(language.text(program?.name ?? "Training"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showManualLogger) {
+            ManualWorkoutLoggerView()
+                .environment(session)
+        }
+        .sheet(item: $exportURL) { report in
+            ExportPreviewSheet(report: report, accent: accent)
+        }
         .sheet(item: $selectedDay) { selection in
             WorkoutDaySheet(date: selection.date, slug: slug, accent: accent)
                 .environment(session)
@@ -308,6 +443,48 @@ private struct DayCard: View {
         let symbols = formatter.shortWeekdaySymbols ?? ["Sun", "Mon", "Tue", "Wed", "Thu", "Fri", "Sat"]
         let sundayFirstIndex = weekday == 7 ? 0 : weekday
         return symbols[sundayFirstIndex].uppercased(with: language.language.locale)
+    }
+}
+
+/// A written report, wrapped so a sheet can key off it.
+struct ExportedReport: Identifiable, Hashable {
+    let url: URL
+    let markdown: String
+    var id: URL { url }
+}
+
+/// Shows what is about to leave the phone before it leaves.
+private struct ExportPreviewSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+    let report: ExportedReport
+    let accent: Color
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                Text(report.markdown)
+                    .font(APEXFont.mono(10))
+                    .foregroundStyle(APEXColor.ink)
+                    .textSelection(.enabled)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(18)
+            }
+            .background(APEXBackground())
+            .navigationTitle(language.text("Training report"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(language.text("Done")) { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    ShareLink(item: report.url) {
+                        Image(systemName: "square.and.arrow.up")
+                    }
+                    .tint(accent)
+                }
+            }
+        }
     }
 }
 

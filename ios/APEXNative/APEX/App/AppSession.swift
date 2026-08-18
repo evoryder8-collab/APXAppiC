@@ -1949,6 +1949,204 @@ final class AppSession {
         for row in rows { await persistUpsert(row, table: "exercises") }
     }
 
+    /*
+     * Save a session that was not on the plan. An edit reuses the rows it
+     * replaces so the workout never briefly reads as empty, and the parents are
+     * written before the stale rows are removed.
+     */
+    func saveManualWorkout(
+        date: String,
+        title: String,
+        exercises: [ManualWorkout.ExerciseDraft],
+        editing sessionID: UUID? = nil
+    ) async -> Bool {
+        guard let profile else { return false }
+        let userID = profile.userID
+
+        let usable = exercises.filter { draft in
+            if let treadmill = draft.treadmill { return treadmill.durationMinutes > 0 }
+            return draft.sets.contains { $0.reps > 0 }
+        }
+        guard !usable.isEmpty else { return false }
+
+        let existingProgram = data.programs.first { $0.slug == "custom" }
+        let program = existingProgram ?? Program(
+            id: UUID(),
+            userID: userID,
+            slug: "custom",
+            name: "Custom workouts",
+            description: "Your searchable exercise studio, saved privately."
+        )
+        let weekday = APEXDateMath.isoWeekday(date)
+        let existingDay = data.programDays.first { $0.programID == program.id && $0.weekday == weekday }
+        let day = existingDay ?? ProgramDay(
+            id: UUID(),
+            userID: userID,
+            programID: program.id,
+            weekday: weekday,
+            name: "Manual workout",
+            dayType: "custom",
+            estimatedMinutes: 45,
+            warmupNote: "Five minutes of pain-free joint preparation",
+            sortOrder: weekday
+        )
+
+        let existingSession = sessionID.flatMap { id in data.workoutSessions.first { $0.id == id } }
+        if sessionID != nil && existingSession == nil { return false }
+
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        let now = formatter.string(from: .now)
+
+        let workout = WorkoutSession(
+            id: existingSession?.id ?? UUID(),
+            userID: userID,
+            date: date,
+            programDayID: existingSession?.programDayID ?? day.id,
+            isLite: existingSession?.isLite ?? false,
+            isDeload: existingSession?.isDeload ?? false,
+            isEventRecovery: existingSession?.isEventRecovery ?? false,
+            completed: true,
+            qualityScore: 1,
+            startedAt: existingSession?.startedAt ?? now,
+            completedAt: now,
+            notes: ManualWorkout.notes(title: title)
+        )
+
+        let existingLogs = existingSession
+            .map { session in data.workoutLogs.filter { $0.sessionID == session.id } } ?? []
+        /* Chronology is the durable identity here: give every exercise its own
+           minute so a movement repeated later in the session never collapses
+           into its earlier occurrence. */
+        let existingTimes = existingLogs.compactMap { formatter.date(from: $0.createdAt)?.timeIntervalSince1970 }
+        let base = existingTimes.min() ?? Date().timeIntervalSince1970
+
+        var proposed: [WorkoutLog] = []
+        for (index, draft) in usable.enumerated() {
+            let exerciseTime = base + Double(index) * 60
+            if let treadmill = draft.treadmill {
+                proposed.append(
+                    WorkoutLog(
+                        id: UUID(),
+                        userID: userID,
+                        sessionID: workout.id,
+                        exerciseID: nil,
+                        exerciseName: ManualWorkout.encodeTreadmill(name: draft.name, metrics: treadmill),
+                        setNumber: 1,
+                        weightKG: nil,
+                        reps: nil,
+                        rir: nil,
+                        skipped: false,
+                        overrideFlag: false,
+                        createdAt: formatter.string(from: Date(timeIntervalSince1970: exerciseTime))
+                    )
+                )
+                continue
+            }
+            for (setIndex, set) in draft.sets.filter({ $0.reps > 0 }).enumerated() {
+                proposed.append(
+                    WorkoutLog(
+                        id: UUID(),
+                        userID: userID,
+                        sessionID: workout.id,
+                        exerciseID: nil,
+                        exerciseName: draft.name,
+                        setNumber: setIndex + 1,
+                        weightKG: set.weightKG > 0 ? set.weightKG : nil,
+                        reps: set.reps,
+                        rir: nil,
+                        skipped: false,
+                        overrideFlag: false,
+                        createdAt: formatter.string(
+                            from: Date(timeIntervalSince1970: exerciseTime + Double(setIndex) * 0.1)
+                        )
+                    )
+                )
+            }
+        }
+
+        let reconciled = ManualWorkout.reconcile(existing: existingLogs, next: proposed)
+
+        if existingSession == nil, existingProgram == nil { data.programs.append(program) }
+        if existingSession == nil, existingDay == nil { data.programDays.append(day) }
+        if let index = data.workoutSessions.firstIndex(where: { $0.id == workout.id }) {
+            data.workoutSessions[index] = workout
+        } else {
+            data.workoutSessions.append(workout)
+        }
+        data.workoutLogs.removeAll { $0.sessionID == workout.id }
+        data.workoutLogs.append(contentsOf: reconciled.logs)
+
+        if existingSession == nil, existingProgram == nil {
+            await persistUpsert(program, table: "programs")
+        }
+        if existingSession == nil, existingDay == nil {
+            await persistUpsert(day, table: "program_days")
+        }
+        await persistUpsert(workout, table: "workout_sessions")
+        for log in reconciled.logs { await persistUpsert(log, table: "workout_logs") }
+        for staleID in reconciled.staleIDs { await persistDelete(table: "workout_logs", id: staleID) }
+        /* A completed session moves the stat line, so replay the brain. */
+        recomputeBrain()
+        return true
+    }
+
+    /*
+     * Install a generated starter plan.
+     *
+     * This narrows every calendar to the generated days. The established
+     * programme is not deleted and returns from Settings, but from the outside
+     * it simply vanishes, which is indistinguishable from data loss. The caller
+     * is responsible for confirming before this runs.
+     */
+    func installInductionPlan(_ input: TrainingInduction.Input) async {
+        guard let profile, var settings = data.settings else { return }
+        let plan = TrainingInduction.generate(
+            userID: profile.userID,
+            input: input,
+            existingPrograms: data.programs
+        )
+
+        for program in plan.programs {
+            if let index = data.programs.firstIndex(where: { $0.id == program.id }) {
+                data.programs[index] = program
+            } else {
+                data.programs.append(program)
+            }
+        }
+        for day in plan.programDays {
+            if let index = data.programDays.firstIndex(where: { $0.id == day.id }) {
+                data.programDays[index] = day
+            } else {
+                data.programDays.append(day)
+            }
+        }
+        for exercise in plan.exercises {
+            if let index = data.exercises.firstIndex(where: { $0.id == exercise.id }) {
+                data.exercises[index] = exercise
+            } else {
+                data.exercises.append(exercise)
+            }
+        }
+        settings.addons["newbie_mode"] = .bool(true)
+        settings.addons["training_induction"] = .object(plan.induction)
+        data.settings = settings
+
+        for program in plan.programs { await persistUpsert(program, table: "programs") }
+        for day in plan.programDays { await persistUpsert(day, table: "program_days") }
+        for exercise in plan.exercises { await persistUpsert(exercise, table: "exercises") }
+        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+    }
+
+    /// Puts the original programme back by clearing the generated overlay.
+    func restoreOriginalProgramme() async {
+        guard var settings = data.settings else { return }
+        settings.addons["newbie_mode"] = .bool(false)
+        settings.addons.removeValue(forKey: "training_induction")
+        data.settings = settings
+        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+    }
+
     private func persistUpsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,

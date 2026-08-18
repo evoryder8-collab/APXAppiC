@@ -115,11 +115,15 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
         app.buttons["portal.transition"].tap()
 
-        let trainingDay = app.staticTexts["Full-body foundation"]
+        /* The day card, not the today hero, which repeats the same title. */
+        let trainingDay = app.buttons["training-day-2"]
         XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
+        /* A card in the middle of the list is nowhere near the dock, so let
+           XCUITest scroll it in and hit its centre. */
         trainingDay.tap()
 
         let start = app.buttons["workout-start-session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5), "the day view should have pushed")
         XCTAssertTrue(scrollUntilVisible(start, in: app))
         app.swipeUp()
         tapClearOfDock(start)
@@ -189,7 +193,7 @@ final class APEXSmokeUITests: XCTestCase {
      * plain flick with a drag along the left gutter, which on every screen is
      * label space rather than anything interactive.
      */
-    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 14) -> Bool {
+    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 30) -> Bool {
         if isReachable(element) { return true }
         for attempt in 0..<attempts {
             if attempt.isMultiple(of: 2) {

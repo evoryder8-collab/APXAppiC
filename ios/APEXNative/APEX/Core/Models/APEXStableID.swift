@@ -22,6 +22,16 @@ enum APEXStableID {
         return uuid(from: raw)
     }
 
+    /// The induction generator's own scheme, which puts the user first.
+    static func inductionUUID(userID: UUID, label: String) -> UUID {
+        let input = "\(userID.uuidString.lowercased()):training-induction:\(label)"
+        let seeds: [UInt32] = [0x811c9dc5, 0x9e3779b9, 0x85ebca6b, 0xc2b2ae35]
+        let raw = seeds.map { hash32(input, seed: $0) }
+            .map { String(format: "%08x", $0) }
+            .joined()
+        return uuid(from: raw)
+    }
+
     private static func hash32(_ value: String, seed: UInt32) -> UInt32 {
         var hash = seed
         for codeUnit in value.utf16 {
