@@ -224,6 +224,8 @@ enum LocalizedKey {
     case nutrition
     case transition
     case mainPhase
+    case customWorkouts
+    case customWorkoutsSubtitle
     case orbit
     case settings
     case profiles
@@ -269,6 +271,12 @@ enum LocalizedKey {
         case (.transition, .english): "Transition Phase"
         case (.transition, .thai): "ช่วงเปลี่ยนผ่าน"
         case (.transition, .romanian): "Faza de tranziție"
+        case (.customWorkouts, .english): "Custom Workouts"
+        case (.customWorkouts, .romanian): "Antrenamente personalizate"
+        case (.customWorkouts, .thai): "โปรแกรมที่คุณสร้างเอง"
+        case (.customWorkoutsSubtitle, .english): "Sessions you built yourself"
+        case (.customWorkoutsSubtitle, .romanian): "Sesiuni construite de tine"
+        case (.customWorkoutsSubtitle, .thai): "เซสชันที่คุณสร้างเอง"
         case (.mainPhase, .english): "Main Phase"
         case (.mainPhase, .thai): "ช่วงหลัก"
         case (.mainPhase, .romanian): "Faza principală"

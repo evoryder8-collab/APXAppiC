@@ -71,6 +71,15 @@ struct PortalHomeView: View {
                     color: APEXColor.violet,
                     destination: .mainPhase
                 )
+                if session.data.programs.contains(where: { $0.slug == "custom" }) {
+                    PortalTile(
+                        title: language.text(.customWorkouts),
+                        subtitle: language.text(.customWorkoutsSubtitle),
+                        icon: "square.and.pencil",
+                        color: APEXColor.violet,
+                        destination: .customWorkouts
+                    )
+                }
                 PortalTile(
                     title: language.text(.orbit),
                     subtitle: language.text(.runIntelligence),
@@ -216,6 +225,7 @@ private extension PortalDestination {
         case .nutrition: "nutrition"
         case .transition: "transition"
         case .mainPhase: "main"
+        case .customWorkouts: "custom"
         case .orbit: "orbit"
         case .avatar: "avatar"
         case .visualProgress: "visual-progress"

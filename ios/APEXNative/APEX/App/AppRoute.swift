@@ -11,6 +11,7 @@ enum PortalDestination: Hashable {
     case nutrition
     case transition
     case mainPhase
+    case customWorkouts
     case orbit
     case avatar
     case visualProgress

@@ -45,6 +45,8 @@ struct PortalShellView: View {
         case .nutrition: NutritionView()
         case .transition: TrainingProgramView(slug: "transition", accent: APEXColor.teal)
         case .mainPhase: TrainingProgramView(slug: "main", accent: APEXColor.violet)
+        /* Web parity: custom workouts are the same section with its own programme. */
+        case .customWorkouts: TrainingProgramView(slug: "custom", accent: APEXColor.violet)
         case .orbit: OrbitHomeView()
         case .avatar: AvatarView()
         case .visualProgress: VisualProgressView()
