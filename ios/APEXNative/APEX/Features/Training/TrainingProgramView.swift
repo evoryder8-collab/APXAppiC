@@ -48,7 +48,7 @@ struct TrainingProgramView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 14)
 
-                HolographicBodyView(dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper", accent: accent)
+                MuscleMapView(dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper")
                     .frame(height: 340)
                     .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
                     .overlay(alignment: .topLeading) {
@@ -237,7 +237,7 @@ struct WorkoutDayView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 17) {
-                HolographicBodyView(dayType: day.dayType, accent: accent)
+                MuscleMapView(dayType: day.dayType)
                     .frame(height: 270)
                     .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
 
