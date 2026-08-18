@@ -90,6 +90,10 @@ struct MuscleMapView: UIViewRepresentable {
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.allowsInlineMediaPlayback = true
+        /* Served over a real scheme so the module graph and the FBX fetch are
+           not blocked by the opaque origin a file:// page gets. */
+        configuration.setURLSchemeHandler(context.coordinator.assetHandler,
+                                          forURLScheme: MuscleMapAssetHandler.scheme)
         let view = WKWebView(frame: .zero, configuration: configuration)
         view.isOpaque = false
         view.backgroundColor = .clear
@@ -127,11 +131,10 @@ struct MuscleMapView: UIViewRepresentable {
     private func load(into view: WKWebView, coordinator: Coordinator) {
         /* Xcode flattens bundled resources, so the widget and everything it
            imports sit side by side at the bundle root and every import is a
-           sibling path. */
-        guard let url = Bundle.main.url(forResource: "musclemap", withExtension: "html") else { return }
+           sibling path, resolved by the asset handler. */
         coordinator.renderKey = renderKey
         coordinator.pendingScript = script
-        view.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
+        view.load(URLRequest(url: MuscleMapAssetHandler.entryURL))
     }
 
     private var script: String {
@@ -154,6 +157,7 @@ struct MuscleMapView: UIViewRepresentable {
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
+        let assetHandler = MuscleMapAssetHandler()
         weak var webView: WKWebView?
         var renderKey: String?
         var loaded = false
