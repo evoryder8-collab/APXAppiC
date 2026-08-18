@@ -13,6 +13,41 @@ import WebKit
  * Group ids are the widget's own and are stable; only this mapping needs
  * revisiting when the exercise library changes.
  */
+/*
+ * Warm pool for the figure's web views.
+ *
+ * Parsing the 5 MB FBX and welding 367 meshes costs several seconds, and it
+ * is the page load that pays it, not the fetch. A fresh web view per visit
+ * meant that price was charged again every time the screen was opened.
+ * Finished views are parked here with their scene intact, so a second visit
+ * only re-applies the highlight, which is a single call.
+ */
+@MainActor
+enum MuscleMapWarmPool {
+    private struct Parked {
+        let webView: WKWebView
+        let isLoaded: Bool
+    }
+
+    /* Two, because a day sheet can sit above the phase screen. */
+    private static let capacity = 2
+    private static var parked: [Parked] = []
+
+    static func take() -> (view: WKWebView, isLoaded: Bool)? {
+        guard !parked.isEmpty else { return nil }
+        let next = parked.removeFirst()
+        next.webView.removeFromSuperview()
+        return (next.webView, next.isLoaded)
+    }
+
+    static func give(_ webView: WKWebView, isLoaded: Bool) {
+        guard parked.count < capacity else { return }
+        webView.removeFromSuperview()
+        webView.navigationDelegate = nil
+        parked.append(Parked(webView: webView, isLoaded: isLoaded))
+    }
+}
+
 struct MuscleMapView: UIViewRepresentable {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
 
@@ -87,6 +122,20 @@ struct MuscleMapView: UIViewRepresentable {
     func makeCoordinator() -> Coordinator { Coordinator() }
 
     func makeUIView(context: Context) -> WKWebView {
+        /* Reuse a parked view when one is free: its scene is already built,
+           so the highlight applies immediately instead of after a reload. */
+        if let warm = MuscleMapWarmPool.take() {
+            warm.view.navigationDelegate = context.coordinator
+            context.coordinator.webView = warm.view
+            context.coordinator.renderKey = renderKey
+            context.coordinator.pendingScript = script
+            if warm.isLoaded {
+                context.coordinator.loaded = true
+                apply(to: warm.view)
+            }
+            return warm.view
+        }
+
         let configuration = WKWebViewConfiguration()
         configuration.defaultWebpagePreferences.allowsContentJavaScript = true
         configuration.allowsInlineMediaPlayback = true
@@ -118,9 +167,10 @@ struct MuscleMapView: UIViewRepresentable {
     }
 
     static func dismantleUIView(_ view: WKWebView, coordinator: Coordinator) {
-        /* Stop the render loop the moment the view goes away. */
+        /* Park it with the scene intact rather than paying the parse again on
+           the next visit. The turntable stops so a hidden view costs nothing. */
         view.evaluateJavaScript("window.MuscleMap && MuscleMap.spin(false)")
-        view.stopLoading()
+        MuscleMapWarmPool.give(view, isLoaded: coordinator.loaded)
     }
 
     private var renderKey: String {
