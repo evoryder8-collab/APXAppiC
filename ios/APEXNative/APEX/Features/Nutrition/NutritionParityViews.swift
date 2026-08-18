@@ -503,8 +503,12 @@ struct APEXDaylineView: View {
     private func endReveal(_ entry: DaylineEntry, translation: CGFloat) {
         let base: CGFloat = revealedEntryID == entry.id ? -revealWidth : 0
         let settled = base + translation
+        /* A third of the way is enough to commit. Requiring half meant an
+           ordinary swipe fell back to closed and the delete button was never
+           reachable. Closing still needs a deliberate swipe back. */
+        let opensAt = -revealWidth / 3
         withAnimation(.spring(response: 0.3, dampingFraction: 0.85)) {
-            revealedEntryID = settled < -revealWidth / 2 ? entry.id : nil
+            revealedEntryID = settled < opensAt ? entry.id : nil
             swipingEntryID = nil
             liveRevealOffset = 0
         }
@@ -937,6 +941,11 @@ private struct DaylineEntryRow: View {
     @State private var language = LanguageState.shared
     /* A completed hold-and-drag must not also open the composer on release */
     @State private var dragConsumedTap = false
+    /* A finished sideways swipe must not also deliver a tap. The card is a
+       Button and the swipe is a simultaneousGesture, so on release SwiftUI
+       recognises both: the tap arrived a frame after the reveal opened and
+       closed it again, which read as the card refusing to stay open. */
+    @State private var swipeConsumedTap = false
     /* Which axis this touch committed to, decided once per gesture so a
        sideways swipe can never also nudge the meal's time. */
     @State private var axisLock: Axis?
@@ -1001,7 +1010,7 @@ private struct DaylineEntryRow: View {
                 }
 
                 Button {
-                    guard !dragConsumedTap else { return }
+                    guard !dragConsumedTap, !swipeConsumedTap else { return }
                     /* An open card closes on tap instead of opening the editor */
                     if revealOffset != 0 {
                         onSwipeEnded(revealWidth)
@@ -1066,12 +1075,19 @@ private struct DaylineEntryRow: View {
                         axisLock = dx > dy * 1.4 ? .horizontal : .vertical
                     }
                     guard axisLock == .horizontal else { return }
+                    swipeConsumedTap = true
                     onSwipeChanged(value.translation.width)
                 }
                 .onEnded { value in
                     defer { axisLock = nil }
                     guard entry.isLogged, axisLock == .horizontal else { return }
-                    onSwipeEnded(value.translation.width)
+                    /* Settle on where the finger was heading, so a quick flick
+                       opens the card instead of falling back to closed. */
+                    onSwipeEnded(min(value.translation.width, value.predictedEndTranslation.width))
+                    Task { @MainActor in
+                        try? await Task.sleep(for: .milliseconds(320))
+                        swipeConsumedTap = false
+                    }
                 }
         )
         /* simultaneousGesture instead of highPriorityGesture: a plain tap

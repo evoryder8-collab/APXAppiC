@@ -46,6 +46,7 @@
 		56B1F6FAA6E101011A01133E /* constantine.png in Resources */ = {isa = PBXBuildFile; fileRef = 116EADF08A0352441607F57F /* constantine.png */; };
 		5B5477F674796C1519BD5C24 /* AdaptiveMealPlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */; };
 		5DCAF6131CE80AC13D93C2EE /* OrbitRoutePosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88349C95EDDF2146EC6763DB /* OrbitRoutePosterView.swift */; };
+		6227F8BFC3310BF52BA17F2F /* DaylineSwipeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */; };
 		623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */ = {isa = PBXBuildFile; fileRef = 30B06C160134CB27687F7B35 /* APEXIcon.svg */; };
 		65016A753C50D66AE4789CC3 /* OrbitLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172120F69D75C87F5025756 /* OrbitLocationManager.swift */; };
 		65B5574345E07294F33F35B1 /* PortalHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */; };
@@ -218,6 +219,7 @@
 		7D5BCB187A0A27A97258B96D /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = th.lproj/Localizable.strings; sourceTree = "<group>"; };
 		7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainParityTests.swift; sourceTree = "<group>"; };
 		7E079A75C9AF4BCDAB514617 /* RunDebriefView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RunDebriefView.swift; sourceTree = "<group>"; };
+		7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = DaylineSwipeTests.swift; sourceTree = "<group>"; };
 		810780DA6BA555E5A02AC97F /* OrbitRunMetrics.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitRunMetrics.swift; sourceTree = "<group>"; };
 		8172120F69D75C87F5025756 /* OrbitLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitLocationManager.swift; sourceTree = "<group>"; };
 		82A68654DF6F4B4B04D4F51F /* ManualRouteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualRouteEditorView.swift; sourceTree = "<group>"; };
@@ -425,6 +427,7 @@
 			isa = PBXGroup;
 			children = (
 				8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */,
+				7FC1512A57154952F2B5701F /* DaylineSwipeTests.swift */,
 				E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */,
 				7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */,
 				2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */,
@@ -876,6 +879,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				5B5477F674796C1519BD5C24 /* AdaptiveMealPlanEngineTests.swift in Sources */,
+				6227F8BFC3310BF52BA17F2F /* DaylineSwipeTests.swift in Sources */,
 				886A675690E6502EB8A62CF9 /* EnergyEngineTests.swift in Sources */,
 				06DE4F94D67318117B35516E /* FitnessBrainParityTests.swift in Sources */,
 				EFE1D97D110D324BE6722A59 /* FoodPortionParityTests.swift in Sources */,
