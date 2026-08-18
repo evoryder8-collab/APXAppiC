@@ -54,7 +54,12 @@ struct NutritionView: View {
             .padding(.horizontal, 18)
 
             ScrollView {
-                LazyVStack(spacing: 22) {
+                /* Not lazy: the 900pt Dayline is taller than the viewport, and
+                   a lazy stack never materialised what follows it, so the page
+                   stopped scrolling at the timeline and the sections below were
+                   unreachable. The page holds a handful of cards, so building
+                   them all costs nothing. */
+                VStack(spacing: 22) {
                     if let targets {
                         NutritionGlanceCard(
                             date: selectedDate,
@@ -139,6 +144,7 @@ struct NutritionView: View {
                 .padding(.horizontal, 18)
                 .padding(.top, 4)
                 .padding(.bottom, 28)
+.dockClearance()
             }
             .refreshable { await session.refresh() }
         }
@@ -897,6 +903,9 @@ struct CollapsibleSection<Content: View>: View {
             }
             .buttonStyle(.plain)
             .accessibilityIdentifier("section-toggle-\(id)")
+            /* A disclosure control should say whether it is open, both for
+               VoiceOver and so a test can tell without guessing. */
+            .accessibilityValue(expanded ? "Expanded" : "Collapsed")
             .accessibilityHint(expanded ? "Collapse" : "Expand")
 
             if expanded {

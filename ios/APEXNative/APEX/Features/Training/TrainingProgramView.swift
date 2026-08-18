@@ -10,6 +10,8 @@ struct TrainingProgramView: View {
     let slug: String
     let accent: Color
     @State private var lite = false
+    @State private var showBuilder = false
+    @State private var savedFromBuilder = false
 
     private var program: Program? { session.data.programs.first { $0.slug == slug } }
     private var days: [ProgramDay] {
@@ -27,6 +29,28 @@ struct TrainingProgramView: View {
         )
     }
 
+    private var fallbackTitle: String {
+        switch slug {
+        case "main": return "Main Phase"
+        case "custom": return "Custom workouts"
+        default: return "Transition Phase"
+        }
+    }
+
+    private var headline: String {
+        switch slug {
+        case "main": return "Build what lasts."
+        case "custom": return "Your own sessions."
+        default: return "Prepare the system."
+        }
+    }
+
+    private var fallbackDescription: String {
+        slug == "custom"
+            ? "Search the movement library and assemble a session that belongs to you."
+            : "Your programme is syncing from APEX."
+    }
+
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 18) {
@@ -35,39 +59,73 @@ struct TrainingProgramView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 8) {
-                    Text(language.text(program?.name ?? (slug == "main" ? "Main Phase" : "Transition Phase")).uppercased(with: language.language.locale))
+                    Text(language.text(program?.name ?? fallbackTitle).uppercased(with: language.language.locale))
                         .font(APEXFont.mono(11))
                         .tracking(2)
                         .foregroundStyle(accent)
-                    Text(language.text(slug == "main" ? "Build what lasts." : "Prepare the system."))
+                    Text(language.text(headline))
                         .font(APEXFont.display(36))
-                    Text(language.text(program?.description ?? "Your programme is syncing from APEX."))
+                    Text(language.text(program?.description ?? fallbackDescription))
                         .font(APEXFont.body(15, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 14)
 
-                MuscleMapView(dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper")
-                    .frame(height: 340)
-                    .clipShape(RoundedRectangle(cornerRadius: 34, style: .continuous))
-                    .overlay(alignment: .topLeading) {
-                        VStack(alignment: .leading, spacing: 4) {
-                            Text("TODAY'S SIGNAL")
-                                .font(APEXFont.mono(9))
-                                .tracking(1.4)
-                            Text(language.text(muscleFocus))
-                                .font(APEXFont.display(18))
-                        }
-                        .foregroundStyle(.white)
-                        .padding(20)
-                    }
+                MuscleMapCard(
+                    dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper",
+                    height: 340,
+                    accent: accent,
+                    eyebrow: language.text("TODAY'S SIGNAL"),
+                    focus: language.text(muscleFocus)
+                )
 
-                Picker("Mode", selection: $lite) {
-                    Text("Full session").tag(false)
-                    Text("Minimum effective").tag(true)
+                if slug != "custom" {
+                    Picker("Mode", selection: $lite) {
+                        Text("Full session").tag(false)
+                        Text("Minimum effective").tag(true)
+                    }
+                    .pickerStyle(.segmented)
                 }
-                .pickerStyle(.segmented)
+
+                /* Web parity: the studio opens from any training screen, not
+                   only from the custom one, so a first session is reachable. */
+                GlassCard(radius: 26, padding: 18) {
+                    VStack(alignment: .leading, spacing: 12) {
+                        Text(language.text("APEX WORKOUT STUDIO"))
+                            .font(APEXFont.mono(9, weight: .bold))
+                            .tracking(1.6)
+                            .foregroundStyle(APEXColor.violet)
+                        Text(language.text("Create your own workout"))
+                            .font(APEXFont.display(22))
+                        Text(language.text("Search machines, free weights, calisthenics, street training, HIIT and mobility."))
+                            .font(APEXFont.body(12, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        Button {
+                            showBuilder = true
+                        } label: {
+                            HStack(spacing: 9) {
+                                Image(systemName: "plus.circle.fill")
+                                    .font(.system(size: 16, weight: .semibold))
+                                Text(language.text("Build a workout"))
+                                    .font(APEXFont.body(15, weight: .bold))
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 50)
+                            .foregroundStyle(.white)
+                            .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("custom-workout-build")
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+
+                if slug == "custom" && days.isEmpty {
+                    Text(language.text("Saving another workout on the same weekday replaces that day's custom plan."))
+                        .font(APEXFont.body(12, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                }
 
                 if todayIsDeload {
                     GlassCard(radius: 22, padding: 14) {
@@ -131,9 +189,20 @@ struct TrainingProgramView: View {
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .padding(.bottom, 28)
+            .dockClearance()
         }
         .navigationTitle(language.text(program?.name ?? "Training"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showBuilder, onDismiss: {
+            guard savedFromBuilder else { return }
+            savedFromBuilder = false
+            /* Saving from a prescribed programme lands on the custom section,
+               where the new session lives. */
+            if slug != "custom" { session.navigationPath.append(.customWorkouts) }
+        }) {
+            CustomWorkoutBuilder(didSave: $savedFromBuilder)
+                .environment(session)
+        }
     }
 
     private var muscleFocus: String {
@@ -237,9 +306,12 @@ struct WorkoutDayView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 17) {
-                MuscleMapView(dayType: day.dayType)
-                    .frame(height: 270)
-                    .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
+                MuscleMapCard(
+                    dayType: day.dayType,
+                    exerciseNames: exercises.map(\.name),
+                    height: 270,
+                    accent: accent
+                )
 
                 VStack(alignment: .leading, spacing: 7) {
                     Text(language.text(lite ? "MINIMUM EFFECTIVE" : "FULL SESSION"))
@@ -300,6 +372,7 @@ struct WorkoutDayView: View {
             }
             .padding(18)
             .padding(.bottom, 24)
+            .dockClearance()
         }
         .navigationTitle(language.text(day.name))
         .navigationBarTitleDisplayMode(.inline)

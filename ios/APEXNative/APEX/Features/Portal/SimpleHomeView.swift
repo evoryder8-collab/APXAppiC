@@ -202,6 +202,7 @@ struct SimpleHomeView: View {
                 .padding(.horizontal, 18)
                 .padding(.top, 2)
                 .padding(.bottom, 38)
+.dockClearance()
             }
             .refreshable { await session.refresh() }
         }

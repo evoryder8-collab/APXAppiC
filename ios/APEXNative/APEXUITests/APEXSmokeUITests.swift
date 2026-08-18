@@ -31,11 +31,17 @@ final class APEXSmokeUITests: XCTestCase {
         capture("nutrition-target-sheet")
         app.buttons["Done"].tap()
 
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Today's Activities"], in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily targets"], in: app))
+        /* Asserted in the order the screen lays them out, because the helper
+           only ever scrolls downward. The detail lives inside collapsed
+           sections now, so each one is opened before it is inspected. */
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Meals and training"], in: app))
         capture("nutrition-dayline")
+        XCTAssertTrue(expandSection("activities", in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Today's Activities"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily targets"], in: app))
+        XCTAssertTrue(expandSection("meal-timeline", in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Meal timeline"], in: app))
+        XCTAssertTrue(expandSection("supplements", in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Supplement stack"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily log"], in: app))
         tapBack(in: app)
@@ -113,9 +119,10 @@ final class APEXSmokeUITests: XCTestCase {
 
         let start = app.buttons["workout-start-session"]
         XCTAssertTrue(scrollUntilVisible(start, in: app))
-        start.tap()
+        app.swipeUp()
+        tapClearOfDock(start)
 
-        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 10))
         capture("workout-warmup")
         app.buttons["workout-skip-warmup"].tap()
 
@@ -143,6 +150,19 @@ final class APEXSmokeUITests: XCTestCase {
         return app
     }
 
+    /// Opens a collapsible section and leaves it open, so the assertions that
+    /// follow can look for what it holds.
+    @discardableResult
+    private func expandSection(_ id: String, in app: XCUIApplication) -> Bool {
+        let toggle = app.buttons["section-toggle-\(id)"]
+        guard scrollUntilVisible(toggle, in: app) else { return false }
+        /* The open/closed state persists between launches, so never blind-tap:
+           that would close a section a previous run left open. */
+        if toggle.value as? String == "Expanded" { return true }
+        tapClearOfDock(toggle)
+        return true
+    }
+
     private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 10) -> Bool {
         if element.exists && element.isHittable { return true }
         for _ in 0..<attempts {
@@ -150,6 +170,12 @@ final class APEXSmokeUITests: XCTestCase {
             if element.exists && element.isHittable { return true }
         }
         return element.exists
+    }
+
+    /// The profile dock floats over the bottom of every screen and takes any
+    /// tap that lands on it, so tap a control through its own upper half.
+    private func tapClearOfDock(_ element: XCUIElement) {
+        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
     }
 
     private func scrollToTop(in app: XCUIApplication) {

@@ -105,6 +105,7 @@ struct PortalHomeView: View {
             .padding(.horizontal, 18)
             .padding(.top, 10)
             .padding(.bottom, 30)
+.dockClearance()
         }
         .refreshable { await session.refresh() }
         .toolbar(.hidden, for: .navigationBar)

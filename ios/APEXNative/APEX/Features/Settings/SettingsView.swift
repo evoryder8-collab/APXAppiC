@@ -31,6 +31,7 @@ struct SettingsView: View {
             }
             .padding(18)
             .padding(.bottom, 30)
+.dockClearance()
         }
         .navigationTitle(language.text(.settings))
         .navigationBarTitleDisplayMode(.inline)

@@ -55,6 +55,18 @@ struct PortalShellView: View {
     }
 }
 
+/// The floating profile dock draws above every screen, so scrolling content
+/// has to leave room for it or the last card ends up underneath.
+enum APEXDock {
+    static let height: CGFloat = 58
+    static let clearance: CGFloat = 76
+}
+
+extension View {
+    /// Bottom room for the profile dock, on top of the screen's own padding.
+    func dockClearance() -> some View { padding(.bottom, APEXDock.clearance) }
+}
+
 private struct ProfileDockButton: View {
     @Environment(AppSession.self) private var session
     @Binding var showConfirmation: Bool

@@ -175,6 +175,7 @@ struct OrbitHomeView: View {
             }
             .padding(18)
             .padding(.bottom, 28)
+.dockClearance()
         }
         .navigationTitle("Orbit")
         .navigationBarTitleDisplayMode(.inline)

@@ -55,6 +55,8 @@ struct MuscleMapView: UIViewRepresentable {
     /// Optional exercise names, used to refine the mapping for a custom day.
     var exerciseNames: [String] = []
     var xray: Bool = true
+    /// Lets the surrounding card turn the figure and flip its modes.
+    var controller: MuscleMapController? = nil
 
     // MARK: - Session type to muscle groups
 
@@ -126,7 +128,9 @@ struct MuscleMapView: UIViewRepresentable {
            so the highlight applies immediately instead of after a reload. */
         if let warm = MuscleMapWarmPool.take() {
             warm.view.navigationDelegate = context.coordinator
+            warm.view.isUserInteractionEnabled = false
             context.coordinator.webView = warm.view
+            controller?.attach(warm.view)
             context.coordinator.renderKey = renderKey
             context.coordinator.pendingScript = script
             if warm.isLoaded {
@@ -148,11 +152,14 @@ struct MuscleMapView: UIViewRepresentable {
         view.backgroundColor = .clear
         view.scrollView.backgroundColor = .clear
         view.scrollView.isScrollEnabled = false
-        /* The figure is drag-to-orbit, so it must not fight the page scroll:
-           the widget only claims a touch once it is clearly a rotation. */
         view.scrollView.bounces = false
+        /* The web view renders and nothing more. WebKit consumes any touch it
+           is offered, which trapped the scroll of the card around it, so the
+           figure is turned from Swift instead. */
+        view.isUserInteractionEnabled = false
         view.navigationDelegate = context.coordinator
         context.coordinator.webView = view
+        controller?.attach(view)
         load(into: view, coordinator: context.coordinator)
         return view
     }

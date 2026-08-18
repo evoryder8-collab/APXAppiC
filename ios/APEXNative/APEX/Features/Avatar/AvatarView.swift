@@ -66,6 +66,7 @@ struct AvatarView: View {
             }
             .padding(18)
             .padding(.bottom, 34)
+.dockClearance()
         }
         .navigationTitle(session.profile?.displayName ?? language.text("Avatar"))
         .navigationBarTitleDisplayMode(.inline)

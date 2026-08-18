@@ -149,6 +149,7 @@ struct VisualProgressView: View {
             }
             .padding(18)
             .padding(.bottom, 28)
+.dockClearance()
         }
         .navigationTitle("Visual Progress")
         .navigationBarTitleDisplayMode(.inline)

@@ -36,6 +36,13 @@ final class AppSession {
 
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") {
+            /* Preferences outlive a relaunch, so one test could otherwise hand
+               the next a screen with different sections open. Start every run
+               from the same layout. */
+            let defaults = UserDefaults.standard
+            for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("apex.section.expanded.") {
+                defaults.removeObject(forKey: key)
+            }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
             selectedPersona = .constantine
@@ -1864,6 +1871,82 @@ final class AppSession {
         data.orbitCampaignSessions.append(contentsOf: sessions)
         await persistUpsert(campaign, table: "orbit_campaigns", onConflict: "user_id,client_idempotency_key")
         for item in sessions { await persistUpsert(item, table: "orbit_campaign_sessions") }
+    }
+
+    // Save a custom session. Saving the same weekday twice replaces that day
+    // rather than stacking a second one, matching the web builder.
+    func saveCustomWorkout(
+        name: String,
+        weekday: Int,
+        estimatedMinutes: Int,
+        picks: [CustomWorkoutBuilder.Pick]
+    ) async {
+        guard let profile else { return }
+        let userID = profile.userID
+
+        let program = data.programs.first { $0.slug == "custom" }
+            ?? Program(
+                id: UUID(),
+                userID: userID,
+                slug: "custom",
+                name: "Custom workouts",
+                description: "Your searchable exercise studio, saved privately."
+            )
+        let existingDay = data.programDays.first { $0.programID == program.id && $0.weekday == weekday }
+        let day = ProgramDay(
+            id: existingDay?.id ?? UUID(),
+            userID: userID,
+            programID: program.id,
+            weekday: weekday,
+            name: name,
+            dayType: "custom",
+            estimatedMinutes: estimatedMinutes,
+            warmupNote: "Five minutes of pain-free joint preparation",
+            sortOrder: weekday
+        )
+
+        let replaced = data.exercises.filter { $0.programDayID == day.id }
+        let rows = picks.enumerated().map { index, pick -> Exercise in
+            return Exercise(
+                id: UUID(),
+                userID: userID,
+                programDayID: day.id,
+                name: pick.item.name,
+                sets: min(max(pick.sets, 1), 12),
+                repMin: min(max(pick.reps, 1), 600),
+                repMax: min(max(pick.reps, 1), 600),
+                repUnit: pick.item.unit,
+                perSide: pick.item.perSide,
+                restSeconds: min(max(pick.rest, 0), 600),
+                tempoUp: 1,
+                tempoDown: 2,
+                tempoPause: 0,
+                tempoNote: "",
+                notes: "\(pick.item.equipment) · \(pick.item.muscles.joined(separator: ", "))",
+                incrementKG: pick.item.incrementKG,
+                isLite: false,
+                optional: false,
+                sortOrder: index
+            )
+        }
+
+        data.exercises.removeAll { $0.programDayID == day.id }
+        if let index = data.programs.firstIndex(where: { $0.id == program.id }) {
+            data.programs[index] = program
+        } else {
+            data.programs.append(program)
+        }
+        if let index = data.programDays.firstIndex(where: { $0.id == day.id }) {
+            data.programDays[index] = day
+        } else {
+            data.programDays.append(day)
+        }
+        data.exercises.append(contentsOf: rows)
+
+        for exercise in replaced { await persistDelete(table: "exercises", id: exercise.id) }
+        await persistUpsert(program, table: "programs")
+        await persistUpsert(day, table: "program_days")
+        for row in rows { await persistUpsert(row, table: "exercises") }
     }
 
     private func persistUpsert<T: Encodable & Sendable>(

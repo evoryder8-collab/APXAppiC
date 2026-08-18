@@ -1,0 +1,2788 @@
+{
+ "generated_note": "Generated from src/data/exerciseCatalog.ts. Do not edit by hand.",
+ "categories": [
+  {
+   "id": "all",
+   "label": "All styles"
+  },
+  {
+   "id": "machine",
+   "label": "Gym machines"
+  },
+  {
+   "id": "weights",
+   "label": "Free weights"
+  },
+  {
+   "id": "calisthenics",
+   "label": "Calisthenics"
+  },
+  {
+   "id": "street",
+   "label": "Street workout"
+  },
+  {
+   "id": "hiit",
+   "label": "HIIT & conditioning"
+  },
+  {
+   "id": "cardio",
+   "label": "Cardio machines"
+  },
+  {
+   "id": "mobility",
+   "label": "Mobility & recovery"
+  }
+ ],
+ "exercises": [
+  {
+   "id": "leg-press",
+   "name": "Leg Press",
+   "category": "machine",
+   "equipment": "Leg press",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 10,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Leg Press",
+    "ro": "Presă pentru picioare",
+    "th": "เลกเพรส"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hack-squat",
+   "name": "Hack Squat",
+   "category": "machine",
+   "equipment": "Hack squat machine",
+   "muscles": [
+    "quads",
+    "glutes"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 8,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Hack Squat",
+    "ro": "Genuflexiuni la hack squat",
+    "th": "แฮ็กสควอต"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "leg-extension",
+   "name": "Leg Extension",
+   "category": "machine",
+   "equipment": "Leg extension",
+   "muscles": [
+    "quads"
+   ],
+   "dayType": "legs_b",
+   "sets": 3,
+   "reps": 12,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Leg Extension",
+    "ro": "Extensii pentru picioare",
+    "th": "เหยียดขาด้วยเครื่อง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "lying-leg-curl",
+   "name": "Lying Leg Curl",
+   "category": "machine",
+   "equipment": "Leg curl",
+   "muscles": [
+    "hamstrings"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Lying Leg Curl",
+    "ro": "Flexii femurali din culcat",
+    "th": "นอนงอขาด้วยเครื่อง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "seated-leg-curl",
+   "name": "Seated Leg Curl",
+   "category": "machine",
+   "equipment": "Leg curl",
+   "muscles": [
+    "hamstrings"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Seated Leg Curl",
+    "ro": "Flexii femurali din șezut",
+    "th": "นั่งงอขาด้วยเครื่อง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "machine-chest-press",
+   "name": "Machine Chest Press",
+   "category": "machine",
+   "equipment": "Chest press",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Machine Chest Press",
+    "ro": "Împins la piept la aparat",
+    "th": "เครื่องดันอก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "pec-deck",
+   "name": "Pec Deck Fly",
+   "category": "machine",
+   "equipment": "Pec deck",
+   "muscles": [
+    "chest",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Pec Deck Fly",
+    "ro": "Fluturări la pec deck",
+    "th": "เครื่องบริหารอกเพ็กเด็ค"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "lat-pulldown",
+   "name": "Lat Pulldown",
+   "category": "machine",
+   "equipment": "Cable stack",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Lat Pulldown",
+    "ro": "Tracțiuni la helcometru",
+    "th": "ดึงข้อด้วยสายเคเบิล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "seated-cable-row",
+   "name": "Seated Cable Row",
+   "category": "machine",
+   "equipment": "Cable row",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "rearDelts",
+    "biceps"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Seated Cable Row",
+    "ro": "Ramat la cablu din șezut",
+    "th": "นั่งพายเคเบิล"
+   },
+   "aliases": {
+    "en": [
+     "machine row"
+    ],
+    "ro": [
+     "ramat",
+     "ramat cablu"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "chest-supported-machine-row",
+   "name": "Chest-Supported Machine Row",
+   "category": "machine",
+   "equipment": "Plate-loaded or selectorized row",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "rearDelts",
+    "biceps"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Chest-Supported Machine Row",
+    "ro": "Ramat la aparat cu pieptul sprijinit",
+    "th": "เครื่องพายพิงอก"
+   },
+   "aliases": {
+    "en": [
+     "back machine rows",
+     "machine rows"
+    ],
+    "ro": [
+     "ramat",
+     "ramat aparat",
+     "ramat spate"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "machine-shoulder-press",
+   "name": "Machine Shoulder Press",
+   "category": "machine",
+   "equipment": "Shoulder press",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Machine Shoulder Press",
+    "ro": "Împins pentru umeri la aparat",
+    "th": "เครื่องดันไหล่"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable-lateral-raise",
+   "name": "Cable Lateral Raise",
+   "category": "machine",
+   "equipment": "Cable stack",
+   "muscles": [
+    "sideDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 15,
+   "rest": 45,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Cable Lateral Raise",
+    "ro": "Ridicări laterale la cablu",
+    "th": "ยกแขนข้างด้วยเคเบิล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "face-pull-cable",
+   "name": "Cable Face Pull",
+   "category": "machine",
+   "equipment": "Rope cable",
+   "muscles": [
+    "rearDelts",
+    "upperBack",
+    "neckTraps"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Cable Face Pull",
+    "ro": "Trageri la față la cablu",
+    "th": "เฟซพูลด้วยเคเบิล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "trapez cablu",
+     "umeri posteriori"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "triceps-pushdown",
+   "name": "Triceps Pushdown",
+   "category": "machine",
+   "equipment": "Rope cable",
+   "muscles": [
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Triceps Pushdown",
+    "ro": "Extensii triceps la scripete",
+    "th": "กดไตรเซ็ปส์ด้วยเคเบิล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable-curl",
+   "name": "Cable Biceps Curl",
+   "category": "machine",
+   "equipment": "Cable stack",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Cable Biceps Curl",
+    "ro": "Flexii biceps la cablu",
+    "th": "เคเบิลเคิร์ล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "standing-calf-machine",
+   "name": "Standing Calf Machine",
+   "category": "machine",
+   "equipment": "Calf machine",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Standing Calf Machine",
+    "ro": "Gambe la aparat din picioare",
+    "th": "เครื่องยืนเขย่งน่อง"
+   },
+   "aliases": {
+    "en": [
+     "calves",
+     "calf raise"
+    ],
+    "ro": [
+     "gambe",
+     "ridicari pe varfuri",
+     "gamba"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "seated-calf-raise",
+   "name": "Seated Calf Raise",
+   "category": "machine",
+   "equipment": "Seated calf machine",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Seated Calf Raise",
+    "ro": "Gambe din șezut la aparat",
+    "th": "นั่งเขย่งน่องด้วยเครื่อง"
+   },
+   "aliases": {
+    "en": [
+     "calves",
+     "seated calves"
+    ],
+    "ro": [
+     "gambe",
+     "gambe sezut",
+     "gambe la aparat"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "calf-press-leg-press",
+   "name": "Calf Press on Leg Press",
+   "category": "machine",
+   "equipment": "Leg press",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Calf Press on Leg Press",
+    "ro": "Gambe la presă",
+    "th": "เขย่งน่องบนเลกเพรส"
+   },
+   "aliases": {
+    "en": [
+     "calves",
+     "leg press calf raise"
+    ],
+    "ro": [
+     "gambe",
+     "gambe presa",
+     "gambe la presa"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "hip-adduction",
+   "name": "Hip Adduction Machine",
+   "category": "machine",
+   "equipment": "Hip adduction machine",
+   "muscles": [
+    "adductors"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Hip Adduction Machine",
+    "ro": "Aductori la aparat",
+    "th": "เครื่องหุบสะโพก"
+   },
+   "aliases": {
+    "en": [
+     "adductors",
+     "inner thigh"
+    ],
+    "ro": [
+     "aductori",
+     "adductori",
+     "interior coapse"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "cable-hip-adduction",
+   "name": "Cable Hip Adduction",
+   "category": "machine",
+   "equipment": "Cable stack and ankle strap",
+   "muscles": [
+    "adductors"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 15,
+   "rest": 45,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Cable Hip Adduction",
+    "ro": "Aductori la cablu",
+    "th": "หุบขาด้วยเคเบิล"
+   },
+   "aliases": {
+    "en": [
+     "adductors",
+     "inner thigh cable"
+    ],
+    "ro": [
+     "aductori",
+     "adductori",
+     "aductori cablu"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "ab-crunch-machine",
+   "name": "Ab Crunch Machine",
+   "category": "machine",
+   "equipment": "Abdominal machine",
+   "muscles": [
+    "abs"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Ab Crunch Machine",
+    "ro": "Abdomene la aparat",
+    "th": "ครันช์หน้าท้องด้วยเครื่อง"
+   },
+   "aliases": {
+    "en": [
+     "abs",
+     "abdominals"
+    ],
+    "ro": [
+     "abdomene",
+     "abdomen",
+     "abdominali"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "cable-crunch",
+   "name": "Cable Crunch",
+   "category": "machine",
+   "equipment": "Rope cable",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Cable Crunch",
+    "ro": "Abdomene la cablu",
+    "th": "ครันช์หน้าท้องด้วยเคเบิล"
+   },
+   "aliases": {
+    "en": [
+     "abs",
+     "abdominals"
+    ],
+    "ro": [
+     "abdomene",
+     "abdomen",
+     "abdominali",
+     "abdomene cablu"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "glute-kickback-machine",
+   "name": "Glute Kickback Machine",
+   "category": "machine",
+   "equipment": "Glute machine",
+   "muscles": [
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Glute Kickback Machine",
+    "ro": "Extensii pentru fesieri la aparat",
+    "th": "เครื่องเตะขาไปด้านหลัง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hip-abduction",
+   "name": "Hip Abduction Machine",
+   "category": "machine",
+   "equipment": "Hip machine",
+   "muscles": [
+    "glutes"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Hip Abduction Machine",
+    "ro": "Abducții de șold la aparat",
+    "th": "เครื่องกางสะโพก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "back-squat",
+   "name": "Barbell Back Squat",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "abs",
+    "lowerBack"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 8,
+   "rest": 150,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Back Squat",
+    "ro": "Genuflexiuni cu bara la spate",
+    "th": "แบ็กสควอตด้วยบาร์เบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "front-squat",
+   "name": "Barbell Front Squat",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "abs",
+    "upperBack"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 8,
+   "rest": 150,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Front Squat",
+    "ro": "Genuflexiuni cu bara în față",
+    "th": "ฟรอนต์สควอตด้วยบาร์เบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "goblet-squat",
+   "name": "Goblet Squat",
+   "category": "weights",
+   "equipment": "Dumbbell or kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "abs"
+   ],
+   "dayType": "legs_b",
+   "sets": 3,
+   "reps": 12,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Goblet Squat",
+    "ro": "Genuflexiuni goblet",
+    "th": "กอบเล็ตสควอต"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "conventional-deadlift",
+   "name": "Conventional Deadlift",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "forearms",
+    "neckTraps"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 6,
+   "rest": 180,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Conventional Deadlift",
+    "ro": "Îndreptări convenționale",
+    "th": "เดดลิฟต์แบบปกติ"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "romanian-deadlift",
+   "name": "Romanian Deadlift",
+   "category": "weights",
+   "equipment": "Barbell or dumbbells",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "forearms"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 8,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Romanian Deadlift",
+    "ro": "Îndreptări românești",
+    "th": "โรมาเนียนเดดลิฟต์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hip-thrust",
+   "name": "Barbell Hip Thrust",
+   "category": "weights",
+   "equipment": "Barbell and bench",
+   "muscles": [
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 10,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Hip Thrust",
+    "ro": "Hip thrust cu bara",
+    "th": "ฮิปทรัสต์ด้วยบาร์เบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "bulgarian-split-squat",
+   "name": "Bulgarian Split Squat",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 3,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Bulgarian Split Squat",
+    "ro": "Genuflexiuni bulgărești",
+    "th": "บัลแกเรียนสปลิตสควอต"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "fandari bulgaresti"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "walking-lunge",
+   "name": "Walking Dumbbell Lunge",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 3,
+   "reps": 12,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Walking Dumbbell Lunge",
+    "ro": "Fandări din mers cu gantere",
+    "th": "เดินลันจ์ด้วยดัมเบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "fandari",
+     "fandari mers"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "reverse-lunge",
+   "name": "Reverse Dumbbell Lunge",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 3,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Reverse Dumbbell Lunge",
+    "ro": "Fandări inverse cu gantere",
+    "th": "ลันจ์ถอยหลังด้วยดัมเบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "fandari",
+     "fandari inverse"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell-bench",
+   "name": "Barbell Bench Press",
+   "category": "weights",
+   "equipment": "Barbell and bench",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 8,
+   "rest": 150,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Bench Press",
+    "ro": "Împins la piept cu bara",
+    "th": "เบนช์เพรสด้วยบาร์เบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "incline-dumbbell-press",
+   "name": "Incline Dumbbell Press",
+   "category": "weights",
+   "equipment": "Dumbbells and bench",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 10,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Incline Dumbbell Press",
+    "ro": "Împins înclinat cu gantere",
+    "th": "อินไคลน์ดัมเบลเพรส"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell-fly",
+   "name": "Dumbbell Fly",
+   "category": "weights",
+   "equipment": "Dumbbells and bench",
+   "muscles": [
+    "chest",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Dumbbell Fly",
+    "ro": "Fluturări cu gantere",
+    "th": "ดัมเบลฟลาย"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "overhead-press",
+   "name": "Barbell Overhead Press",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "triceps",
+    "abs"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 8,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Overhead Press",
+    "ro": "Împins deasupra capului cu bara",
+    "th": "โอเวอร์เฮดเพรสด้วยบาร์เบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "arnold-press",
+   "name": "Arnold Press",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Arnold Press",
+    "ro": "Împins Arnold",
+    "th": "อาร์โนลด์เพรส"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell-row",
+   "name": "Barbell Row",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "rearDelts",
+    "biceps",
+    "lowerBack"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 8,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Row",
+    "ro": "Ramat cu bara",
+    "th": "บาร์เบลโรว์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "ramat",
+     "ramat bara"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "one-arm-row",
+   "name": "One-Arm Dumbbell Row",
+   "category": "weights",
+   "equipment": "Dumbbell and bench",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "rearDelts",
+    "biceps"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 10,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "One-Arm Dumbbell Row",
+    "ro": "Ramat cu o ganteră",
+    "th": "ดัมเบลโรว์ข้างเดียว"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "ramat",
+     "ramat gantera"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell-lateral-raise",
+   "name": "Dumbbell Lateral Raise",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "sideDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 15,
+   "rest": 45,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Dumbbell Lateral Raise",
+    "ro": "Ridicări laterale cu gantere",
+    "th": "ยกแขนข้างด้วยดัมเบล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "rear-delt-fly",
+   "name": "Rear-Delt Dumbbell Fly",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "rearDelts",
+    "upperBack"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 15,
+   "rest": 45,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Rear-Delt Dumbbell Fly",
+    "ro": "Fluturări pentru deltoid posterior",
+    "th": "รีเวิร์สดัมเบลฟลาย"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell-curl",
+   "name": "Barbell Curl",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 10,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Curl",
+    "ro": "Flexii cu bara pentru biceps",
+    "th": "บาร์เบลเคิร์ล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hammer-curl",
+   "name": "Hammer Curl",
+   "category": "weights",
+   "equipment": "Dumbbells",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Hammer Curl",
+    "ro": "Flexii ciocan",
+    "th": "แฮมเมอร์เคิร์ล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "ciocane",
+     "flexii ciocane"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "preacher-curl-barbell",
+   "name": "Straight-Bar Preacher Curl",
+   "category": "weights",
+   "equipment": "Straight bar and preacher bench",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 10,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Straight-Bar Preacher Curl",
+    "ro": "Flexii la banca Scott cu bara dreaptă",
+    "th": "พรีชเชอร์เคิร์ลด้วยบาร์ตรง"
+   },
+   "aliases": {
+    "en": [
+     "preacher curls straight barbell"
+    ],
+    "ro": [
+     "flexii scott",
+     "biceps banca scott"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell-shrug",
+   "name": "Barbell Shrug",
+   "category": "weights",
+   "equipment": "Barbell",
+   "muscles": [
+    "neckTraps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 12,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Barbell Shrug",
+    "ro": "Ridicări din umeri cu bara",
+    "th": "ยักไหล่ด้วยบาร์เบล"
+   },
+   "aliases": {
+    "en": [
+     "trap shrug"
+    ],
+    "ro": [
+     "trapez",
+     "ridicari trapez"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "skull-crusher",
+   "name": "Dumbbell Skull Crusher",
+   "category": "weights",
+   "equipment": "Dumbbells and bench",
+   "muscles": [
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Dumbbell Skull Crusher",
+    "ro": "Extensii triceps culcat cu gantere",
+    "th": "ดัมเบลสกัลครัชเชอร์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "farmer-carry",
+   "name": "Farmer Carry",
+   "category": "weights",
+   "equipment": "Dumbbells or trap bar",
+   "muscles": [
+    "forearms",
+    "neckTraps",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 40,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Farmer Carry",
+    "ro": "Mersul fermierului",
+    "th": "ฟาร์เมอร์แคร์รี"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "trapez",
+     "mers fermier"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell-swing",
+   "name": "Kettlebell Swing",
+   "category": "weights",
+   "equipment": "Kettlebell",
+   "muscles": [
+    "glutes",
+    "hamstrings",
+    "lowerBack",
+    "abs",
+    "forearms"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Kettlebell Swing",
+    "ro": "Balans cu kettlebell",
+    "th": "เคตเทิลเบลสวิง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "elevated-calf-raise",
+   "name": "Elevated Calf Raise",
+   "category": "weights",
+   "equipment": "Step and dumbbells",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Elevated Calf Raise",
+    "ro": "Gambe cu elevație",
+    "th": "ยืนเขย่งน่องบนแท่น"
+   },
+   "aliases": {
+    "en": [
+     "calves",
+     "calf raise on step"
+    ],
+    "ro": [
+     "gambe",
+     "gambe elevatie",
+     "ridicari pe varfuri cu elevatie"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "push-up",
+   "name": "Push-Up",
+   "category": "calisthenics",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps",
+    "abs"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Push-Up",
+    "ro": "Flotări",
+    "th": "วิดพื้น"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "diamond-push-up",
+   "name": "Diamond Push-Up",
+   "category": "calisthenics",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Diamond Push-Up",
+    "ro": "Flotări diamant",
+    "th": "วิดพื้นไดมอนด์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "decline-push-up",
+   "name": "Decline Push-Up",
+   "category": "calisthenics",
+   "equipment": "Bench",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 12,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Decline Push-Up",
+    "ro": "Flotări declinate",
+    "th": "วิดพื้นยกเท้า"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "pike-push-up",
+   "name": "Pike Push-Up",
+   "category": "calisthenics",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 10,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Pike Push-Up",
+    "ro": "Flotări pike",
+    "th": "ไพก์พุชอัพ"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "pull-up",
+   "name": "Pull-Up",
+   "category": "calisthenics",
+   "equipment": "Pull-up bar",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 8,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Pull-Up",
+    "ro": "Tracțiuni la bară",
+    "th": "ดึงข้อ"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "tractiuni",
+     "tractiuni pronatie"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "chin-up",
+   "name": "Chin-Up",
+   "category": "calisthenics",
+   "equipment": "Pull-up bar",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 8,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Chin-Up",
+    "ro": "Tracțiuni cu priză inversă",
+    "th": "ชินอัพ"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "tractiuni",
+     "tractiuni supinatie"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "parallel-dip",
+   "name": "Parallel-Bar Dip",
+   "category": "calisthenics",
+   "equipment": "Dip bars",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Parallel-Bar Dip",
+    "ro": "Flotări la paralele",
+    "th": "ดิพบนบาร์คู่"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "inverted-row",
+   "name": "Inverted Row",
+   "category": "calisthenics",
+   "equipment": "Low bar or rings",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "rearDelts",
+    "biceps"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 12,
+   "rest": 75,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Inverted Row",
+    "ro": "Ramat invers",
+    "th": "อินเวิร์ทโรว์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "ramat",
+     "ramat la bara"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "pistol-squat",
+   "name": "Pistol Squat",
+   "category": "calisthenics",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "abs"
+   ],
+   "dayType": "legs_b",
+   "sets": 3,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Pistol Squat",
+    "ro": "Genuflexiuni pistol",
+    "th": "พิสตอลสควอต"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "nordic-curl",
+   "name": "Nordic Hamstring Curl",
+   "category": "calisthenics",
+   "equipment": "Bodyweight anchor",
+   "muscles": [
+    "hamstrings",
+    "glutes"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 6,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Nordic Hamstring Curl",
+    "ro": "Flexii nordice pentru femurali",
+    "th": "นอร์ดิกแฮมสตริงเคิร์ล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single-leg-glute-bridge",
+   "name": "Single-Leg Glute Bridge",
+   "category": "calisthenics",
+   "equipment": "Floor",
+   "muscles": [
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 15,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Single-Leg Glute Bridge",
+    "ro": "Podul fesier pe un picior",
+    "th": "สะพานก้นขาเดียว"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hanging-leg-raise",
+   "name": "Hanging Leg Raise",
+   "category": "calisthenics",
+   "equipment": "Pull-up bar",
+   "muscles": [
+    "abs",
+    "obliques",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Hanging Leg Raise",
+    "ro": "Ridicări de picioare la bară",
+    "th": "ยกขาห้อยบาร์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hollow-hold",
+   "name": "Hollow Body Hold",
+   "category": "calisthenics",
+   "equipment": "Floor",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 30,
+   "rest": 45,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Hollow Body Hold",
+    "ro": "Menținere hollow body",
+    "th": "ฮอลโลว์บอดี้โฮลด์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "side-plank",
+   "name": "Side Plank",
+   "category": "calisthenics",
+   "equipment": "Floor",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 35,
+   "rest": 30,
+   "unit": "seconds",
+   "perSide": true,
+   "names": {
+    "en": "Side Plank",
+    "ro": "Planșă laterală",
+    "th": "แพลงก์ด้านข้าง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "decline-sit-up",
+   "name": "Decline Sit-Up",
+   "category": "calisthenics",
+   "equipment": "Decline bench",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Decline Sit-Up",
+    "ro": "Abdomene pe bancă declinată",
+    "th": "ซิตอัพบนม้านั่งลาด"
+   },
+   "aliases": {
+    "en": [
+     "abs",
+     "abdominals"
+    ],
+    "ro": [
+     "abdomene",
+     "abdomen",
+     "abdomene banca"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "reverse-crunch",
+   "name": "Reverse Crunch",
+   "category": "calisthenics",
+   "equipment": "Floor or bench",
+   "muscles": [
+    "abs"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 15,
+   "rest": 45,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Reverse Crunch",
+    "ro": "Abdomene inverse",
+    "th": "รีเวิร์สครันช์"
+   },
+   "aliases": {
+    "en": [
+     "abs",
+     "abdominals"
+    ],
+    "ro": [
+     "abdomene",
+     "abdomen",
+     "abdomene inverse"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "ab-wheel-rollout",
+   "name": "Ab-Wheel Rollout",
+   "category": "calisthenics",
+   "equipment": "Ab wheel",
+   "muscles": [
+    "abs",
+    "obliques",
+    "lowerBack"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 10,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Ab-Wheel Rollout",
+    "ro": "Abdomene cu roata abdominală",
+    "th": "ลูกกลิ้งหน้าท้อง"
+   },
+   "aliases": {
+    "en": [
+     "abs",
+     "abdominals"
+    ],
+    "ro": [
+     "abdomene",
+     "abdomen",
+     "roata abdominala"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "copenhagen-plank",
+   "name": "Copenhagen Plank",
+   "category": "calisthenics",
+   "equipment": "Bench",
+   "muscles": [
+    "adductors",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 30,
+   "rest": 45,
+   "unit": "seconds",
+   "perSide": true,
+   "names": {
+    "en": "Copenhagen Plank",
+    "ro": "Planșă Copenhagen pentru aductori",
+    "th": "โคเปนเฮเกนแพลงก์"
+   },
+   "aliases": {
+    "en": [
+     "adductors",
+     "inner thigh"
+    ],
+    "ro": [
+     "aductori",
+     "adductori",
+     "plansa aductori"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "muscle-up",
+   "name": "Bar Muscle-Up",
+   "category": "street",
+   "equipment": "High bar",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "forearms",
+    "chest",
+    "triceps"
+   ],
+   "dayType": "upper",
+   "sets": 5,
+   "reps": 3,
+   "rest": 150,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Bar Muscle-Up",
+    "ro": "Muscle-up la bară",
+    "th": "บาร์มัสเซิลอัพ"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "front-lever-row",
+   "name": "Front Lever Row",
+   "category": "street",
+   "equipment": "High bar or rings",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "rearDelts",
+    "biceps",
+    "abs"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 6,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Front Lever Row",
+    "ro": "Ramat în front lever",
+    "th": "ฟรอนต์ลีเวอร์โรว์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [
+     "ramat front lever"
+    ],
+    "th": []
+   }
+  },
+  {
+   "id": "human-flag",
+   "name": "Human Flag Progression",
+   "category": "street",
+   "equipment": "Vertical bars",
+   "muscles": [
+    "lats",
+    "sideDelts",
+    "obliques",
+    "abs",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 15,
+   "rest": 90,
+   "unit": "seconds",
+   "perSide": true,
+   "names": {
+    "en": "Human Flag Progression",
+    "ro": "Progresie steagul uman",
+    "th": "ฝึกฮิวแมนแฟลก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "handstand-push-up",
+   "name": "Handstand Push-Up",
+   "category": "street",
+   "equipment": "Wall or freestanding",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "triceps",
+    "upperBack",
+    "abs"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 6,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Handstand Push-Up",
+    "ro": "Flotări în stând pe mâini",
+    "th": "วิดพื้นแฮนด์สแตนด์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "l-sit",
+   "name": "L-Sit Hold",
+   "category": "street",
+   "equipment": "Parallettes or bars",
+   "muscles": [
+    "abs",
+    "quads",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 20,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "L-Sit Hold",
+    "ro": "Menținere L-sit",
+    "th": "แอลซิตโฮลด์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "bar-dip",
+   "name": "Straight-Bar Dip",
+   "category": "street",
+   "equipment": "High bar",
+   "muscles": [
+    "chest",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Straight-Bar Dip",
+    "ro": "Flotări la bară dreaptă",
+    "th": "ดิพบนบาร์เดี่ยว"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "burpee",
+   "name": "Burpee",
+   "category": "hiit",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "abs",
+    "glutes",
+    "quads",
+    "calves"
+   ],
+   "dayType": "t25",
+   "sets": 5,
+   "reps": 12,
+   "rest": 30,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Burpee",
+    "ro": "Burpee",
+    "th": "เบอร์พี"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "mountain-climber",
+   "name": "Mountain Climber",
+   "category": "hiit",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "abs",
+    "obliques",
+    "frontDelts",
+    "quads"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 40,
+   "rest": 20,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Mountain Climber",
+    "ro": "Cățărătorul",
+    "th": "เมาน์เทนไคลม์เบอร์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "jump-squat",
+   "name": "Jump Squat",
+   "category": "hiit",
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "calves"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 15,
+   "rest": 30,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Jump Squat",
+    "ro": "Genuflexiuni cu săritură",
+    "th": "จัมป์สควอต"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "battle-rope-wave",
+   "name": "Battle Rope Waves",
+   "category": "hiit",
+   "equipment": "Battle ropes",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "forearms",
+    "abs"
+   ],
+   "dayType": "t25",
+   "sets": 6,
+   "reps": 30,
+   "rest": 30,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Battle Rope Waves",
+    "ro": "Valuri cu frânghiile",
+    "th": "แบทเทิลโรปเวฟ"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "rowing-erg",
+   "name": "Rowing Ergometer",
+   "category": "hiit",
+   "equipment": "Row ergometer",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "glutes",
+    "quads",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 5,
+   "reps": 2,
+   "rest": 90,
+   "unit": "minutes",
+   "perSide": false,
+   "names": {
+    "en": "Rowing Ergometer",
+    "ro": "Ergometru de vâslit",
+    "th": "เครื่องกรรเชียงบก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ski-erg",
+   "name": "SkiErg Interval",
+   "category": "hiit",
+   "equipment": "SkiErg",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "triceps",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "t25",
+   "sets": 6,
+   "reps": 60,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "SkiErg Interval",
+    "ro": "Intervale la SkiErg",
+    "th": "สกีเอิร์กอินเทอร์วัล"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "assault-bike",
+   "name": "Assault Bike Sprint",
+   "category": "hiit",
+   "equipment": "Air bike",
+   "muscles": [
+    "quads",
+    "hamstrings",
+    "glutes",
+    "calves",
+    "frontDelts"
+   ],
+   "dayType": "t25",
+   "sets": 8,
+   "reps": 20,
+   "rest": 70,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Assault Bike Sprint",
+    "ro": "Sprint la bicicleta Assault",
+    "th": "สปรินต์แอร์ไบค์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "box-jump",
+   "name": "Box Jump",
+   "category": "hiit",
+   "equipment": "Plyometric box",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "calves"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 8,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Box Jump",
+    "ro": "Sărituri pe cutie",
+    "th": "บ็อกซ์จัมป์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "sled-push",
+   "name": "Sled Push",
+   "category": "hiit",
+   "equipment": "Weighted sled",
+   "muscles": [
+    "quads",
+    "glutes",
+    "calves",
+    "frontDelts",
+    "triceps"
+   ],
+   "dayType": "t25",
+   "sets": 6,
+   "reps": 30,
+   "rest": 75,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Sled Push",
+    "ro": "Împins sania",
+    "th": "ดันสเลด"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "jump-rope",
+   "name": "Jump Rope",
+   "category": "hiit",
+   "equipment": "Skipping rope",
+   "muscles": [
+    "calves",
+    "forearms",
+    "frontDelts"
+   ],
+   "dayType": "t25",
+   "sets": 6,
+   "reps": 60,
+   "rest": 30,
+   "unit": "seconds",
+   "perSide": false,
+   "names": {
+    "en": "Jump Rope",
+    "ro": "Sărit coarda",
+    "th": "กระโดดเชือก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "treadmill-walk",
+   "name": "Treadmill Walk",
+   "category": "cardio",
+   "equipment": "Treadmill",
+   "muscles": [
+    "quads",
+    "hamstrings",
+    "glutes",
+    "calves"
+   ],
+   "dayType": "t25",
+   "sets": 1,
+   "reps": 25,
+   "rest": 0,
+   "unit": "minutes",
+   "perSide": false,
+   "names": {
+    "en": "Treadmill Walk",
+    "ro": "Mers la bandă",
+    "th": "เดินบนลู่วิ่ง"
+   },
+   "aliases": {
+    "en": [
+     "treadmill walking"
+    ],
+    "ro": [
+     "banda",
+     "mers banda",
+     "mers pe banda"
+    ],
+    "th": [
+     "ลู่วิ่ง",
+     "เดินลู่วิ่ง"
+    ]
+   }
+  },
+  {
+   "id": "treadmill-run",
+   "name": "Treadmill Run",
+   "category": "cardio",
+   "equipment": "Treadmill",
+   "muscles": [
+    "quads",
+    "hamstrings",
+    "glutes",
+    "calves"
+   ],
+   "dayType": "t25",
+   "sets": 1,
+   "reps": 25,
+   "rest": 0,
+   "unit": "minutes",
+   "perSide": false,
+   "names": {
+    "en": "Treadmill Run",
+    "ro": "Alergare la bandă",
+    "th": "วิ่งบนลู่วิ่ง"
+   },
+   "aliases": {
+    "en": [
+     "treadmill running"
+    ],
+    "ro": [
+     "banda",
+     "alergat la banda",
+     "alergare banda"
+    ],
+    "th": [
+     "ลู่วิ่ง",
+     "วิ่งลู่วิ่ง"
+    ]
+   }
+  },
+  {
+   "id": "world-greatest-stretch",
+   "name": "World's Greatest Stretch",
+   "category": "mobility",
+   "equipment": "Floor",
+   "muscles": [
+    "glutes",
+    "hamstrings",
+    "obliques",
+    "lowerBack"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 6,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "World's Greatest Stretch",
+    "ro": "Întinderea completă a corpului",
+    "th": "เวิลด์เกรเทสต์สเตรตช์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "couch-stretch",
+   "name": "Couch Stretch",
+   "category": "mobility",
+   "equipment": "Wall or bench",
+   "muscles": [
+    "quads",
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 45,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": true,
+   "names": {
+    "en": "Couch Stretch",
+    "ro": "Întindere couch",
+    "th": "คาวช์สเตรตช์"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "thoracic-rotation",
+   "name": "Thoracic Rotation",
+   "category": "mobility",
+   "equipment": "Floor",
+   "muscles": [
+    "upperBack",
+    "obliques"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 8,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Thoracic Rotation",
+    "ro": "Rotație toracică",
+    "th": "หมุนกระดูกสันหลังช่วงอก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "band-dislocate",
+   "name": "Band Shoulder Dislocate",
+   "category": "mobility",
+   "equipment": "Resistance band",
+   "muscles": [
+    "frontDelts",
+    "rearDelts",
+    "upperBack"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 12,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Band Shoulder Dislocate",
+    "ro": "Mobilizare umeri cu banda",
+    "th": "หมุนไหล่ด้วยยางยืด"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cat-cow",
+   "name": "Cat-Cow Flow",
+   "category": "mobility",
+   "equipment": "Floor",
+   "muscles": [
+    "lowerBack",
+    "abs",
+    "upperBack"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 10,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "Cat-Cow Flow",
+    "ro": "Mobilizare pisică-vacă",
+    "th": "ท่าแมวสลับวัว"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ninety-ninety",
+   "name": "90/90 Hip Switch",
+   "category": "mobility",
+   "equipment": "Floor",
+   "muscles": [
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 10,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "names": {
+    "en": "90/90 Hip Switch",
+    "ro": "Schimbare de șold 90/90",
+    "th": "สลับสะโพก 90/90"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ankle-rock",
+   "name": "Ankle Mobility Rock",
+   "category": "mobility",
+   "equipment": "Wall",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 12,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Ankle Mobility Rock",
+    "ro": "Mobilizare de gleznă",
+    "th": "โยกข้อเท้าเพิ่มความคล่องตัว"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dead-bug",
+   "name": "Dead Bug",
+   "category": "mobility",
+   "equipment": "Floor",
+   "muscles": [
+    "abs",
+    "obliques",
+    "lowerBack"
+   ],
+   "dayType": "fix",
+   "sets": 3,
+   "reps": 10,
+   "rest": 30,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Dead Bug",
+    "ro": "Dead bug",
+    "th": "เดดบั๊ก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "bird-dog",
+   "name": "Bird-Dog",
+   "category": "mobility",
+   "equipment": "Floor",
+   "muscles": [
+    "abs",
+    "obliques",
+    "lowerBack",
+    "glutes"
+   ],
+   "dayType": "fix",
+   "sets": 3,
+   "reps": 10,
+   "rest": 30,
+   "unit": "reps",
+   "perSide": true,
+   "names": {
+    "en": "Bird-Dog",
+    "ro": "Bird dog",
+    "th": "เบิร์ดด็อก"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "foam-roll-legs",
+   "name": "Lower-Body Foam Roll",
+   "category": "mobility",
+   "equipment": "Foam roller",
+   "muscles": [
+    "quads",
+    "hamstrings",
+    "glutes",
+    "calves"
+   ],
+   "dayType": "mobility",
+   "sets": 1,
+   "reps": 8,
+   "rest": 0,
+   "unit": "minutes",
+   "perSide": false,
+   "names": {
+    "en": "Lower-Body Foam Roll",
+    "ro": "Foam rolling pentru partea inferioară",
+    "th": "โฟมโรลช่วงล่าง"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  }
+ ]
+}

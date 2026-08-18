@@ -34499,9 +34499,16 @@ void main() {
     controls.enableDamping = true;
     controls.dampingFactor = 0.08;
     controls.enablePan = false;
+    /* APEX_UPRIGHT: spin on the vertical axis only. */
+    controls.minPolarAngle = Math.PI / 2 - 0.30;
+    controls.maxPolarAngle = Math.PI / 2 + 0.10;
     controls.minDistance = 0.9;
     controls.maxDistance = 6;
     controls.enabled = flag("interactive", true);
+    /* APEX_PAN_Y: OrbitControls stamps touch-action:none on the canvas in
+       its constructor, which swallows the vertical drag the host card
+       needs in order to scroll. Hand that axis back. */
+    renderer.domElement.style.touchAction = "pan-y";
     scene.add(new HemisphereLight(16777215, 9275265, 1.15));
     const key = new DirectionalLight(16777215, 1.9);
     key.position.set(2.4, 3.4, 3);

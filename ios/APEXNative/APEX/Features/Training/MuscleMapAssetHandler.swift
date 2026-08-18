@@ -17,7 +17,10 @@ final class MuscleMapAssetHandler: NSObject, WKURLSchemeHandler {
     static let scheme = "apexasset"
     /* labels=0: the surrounding card already names the session, and the
    widget's own tags overlapped that header. */
-    static let entryURL = URL(string: "\(scheme)://musclemap/musclemap.html?labels=0")!
+    /* labels/controls off and interaction off: the figure is drawn by the
+       widget but driven entirely from Swift, so the card scrolls normally
+       and its chrome matches the rest of the app. */
+    static let entryURL = URL(string: "\(scheme)://musclemap/musclemap.html?labels=0&controls=0&interactive=0")!
 
     private static let mimeTypes: [String: String] = [
         "html": "text/html",
