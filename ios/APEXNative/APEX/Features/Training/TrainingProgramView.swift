@@ -12,6 +12,7 @@ struct TrainingProgramView: View {
     @State private var lite = false
     @State private var showBuilder = false
     @State private var savedFromBuilder = false
+    @State private var selectedDay: CalendarDaySelection?
 
     private var program: Program? { session.data.programs.first { $0.slug == slug } }
     private var days: [ProgramDay] {
@@ -27,6 +28,13 @@ struct TrainingProgramView: View {
             on: Date().apexDateKey,
             marks: session.data.deloadMarks ?? []
         )
+    }
+
+    /// The date this weekday lands on in the current week, so a plan for it can
+    /// be resolved without asking the person to pick a date first.
+    private func dateOfNext(weekday: Int) -> String {
+        let today = Date().apexDateKey
+        return APEXDateMath.adding(days: weekday - todayWeekday, to: today)
     }
 
     private var fallbackTitle: String {
@@ -86,6 +94,16 @@ struct TrainingProgramView: View {
                         Text("Minimum effective").tag(true)
                     }
                     .pickerStyle(.segmented)
+                }
+
+                /* The month, as on the web: every planned day carries its type,
+                   and tapping one opens what that date actually prescribes. */
+                if slug != "custom" {
+                    GlassCard(radius: 26, padding: 16) {
+                        TrainingCalendarView(slug: slug, accent: accent) { day in
+                            selectedDay = CalendarDaySelection(date: day)
+                        }
+                    }
                 }
 
                 /* Web parity: the studio opens from any training screen, not
@@ -161,7 +179,9 @@ struct TrainingProgramView: View {
                             day: day,
                             accent: accent,
                             lite: lite,
-                            isDeload: day.weekday == todayWeekday && todayIsDeload
+                            isDeload: day.weekday == todayWeekday && todayIsDeload,
+                            date: dateOfNext(weekday: day.weekday),
+                            slug: slug
                         )
                     } label: {
                         DayCard(
@@ -193,6 +213,10 @@ struct TrainingProgramView: View {
         }
         .navigationTitle(language.text(program?.name ?? "Training"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(item: $selectedDay) { selection in
+            WorkoutDaySheet(date: selection.date, slug: slug, accent: accent)
+                .environment(session)
+        }
         .sheet(isPresented: $showBuilder, onDismiss: {
             guard savedFromBuilder else { return }
             savedFromBuilder = false
@@ -287,6 +311,12 @@ private struct DayCard: View {
     }
 }
 
+/// A date the calendar handed over, wrapped so a sheet can key off it.
+struct CalendarDaySelection: Identifiable, Hashable {
+    let date: String
+    var id: String { date }
+}
+
 struct WorkoutDayView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -294,13 +324,27 @@ struct WorkoutDayView: View {
     let accent: Color
     let lite: Bool
     let isDeload: Bool
+    /// Defaults to today; the calendar opens this view on any date.
+    var date: String = Date().apexDateKey
+    var slug: String = "main"
     @State private var showPlayer = false
 
-    private var exercises: [Exercise] {
-        let source = session.data.exercises
-            .filter { $0.programDayID == day.id && $0.isLite == lite }
-            .sorted { $0.sortOrder < $1.sortOrder }
-        return TrainingAdjustmentEngine.adjustedExercises(source, isDeload: isDeload)
+    /* The planner decides what today actually prescribes: event tapers, the
+       championship leg rule, scheduled and marked deloads, recovery micros. */
+    private var plan: PlannedDay {
+        TrainingPlanEngine.plan(session.data, slug: slug, date: date, lite: lite)
+    }
+
+    private var exercises: [PlannedExercise] {
+        let planned = plan
+        guard planned.programDay?.id == day.id, !planned.exercises.isEmpty else {
+            let source = session.data.exercises
+                .filter { $0.programDayID == day.id && $0.isLite == lite }
+                .sorted { $0.sortOrder < $1.sortOrder }
+            return TrainingAdjustmentEngine.adjustedExercises(source, isDeload: isDeload)
+                .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
+        }
+        return planned.exercises
     }
 
     var body: some View {
@@ -326,6 +370,29 @@ struct WorkoutDayView: View {
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
 
+                /* What the planner decided, in its own words: tapers, the
+                   championship rule, benchmark weeks, layoff deloads. */
+                if !plan.badges.isEmpty {
+                    VStack(alignment: .leading, spacing: 7) {
+                        ForEach(plan.badges, id: \.self) { badge in
+                            HStack(alignment: .top, spacing: 8) {
+                                Circle()
+                                    .fill(badgeTint(badge))
+                                    .frame(width: 6, height: 6)
+                                    .padding(.top, 5)
+                                Text(language.text(badge))
+                                    .font(APEXFont.body(12, weight: .semibold))
+                                    .foregroundStyle(APEXColor.ink)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                    .accessibilityIdentifier("workout-day-badges")
+                }
+
                 if isDeload {
                     Label(
                         language.text("Deload prescription: one fewer set, lighter load, 3 to 4 reps in reserve."),
@@ -338,13 +405,26 @@ struct WorkoutDayView: View {
                     .background(APEXColor.teal.opacity(0.09), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
                 }
 
-                ForEach(exercises) { exercise in
+                ForEach(exercises) { planned in
+                    let exercise = planned.exercise
                     GlassCard(radius: 24, padding: 16) {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 6) {
-                                Text(language.text(exercise.name))
-                                    .font(APEXFont.display(18))
-                                Text(prescription(exercise))
+                                HStack(spacing: 7) {
+                                    Text(language.text(exercise.name))
+                                        .font(APEXFont.display(18))
+                                    if planned.swapped {
+                                        Text(language.text("SWAP"))
+                                            .font(APEXFont.mono(8, weight: .bold))
+                                            .foregroundStyle(APEXColor.amberDeep)
+                                    }
+                                    if exercise.optional {
+                                        Text(language.text("OPTIONAL"))
+                                            .font(APEXFont.mono(8, weight: .bold))
+                                            .foregroundStyle(APEXColor.secondaryInk)
+                                    }
+                                }
+                                Text(prescription(planned))
                                     .font(APEXFont.mono(11))
                                     .foregroundStyle(accent)
                                 if !exercise.notes.isEmpty {
@@ -377,16 +457,41 @@ struct WorkoutDayView: View {
         .navigationTitle(language.text(day.name))
         .navigationBarTitleDisplayMode(.inline)
         .fullScreenCover(isPresented: $showPlayer) {
-            WorkoutPlayerView(day: day, exercises: exercises, accent: accent, lite: lite)
+            WorkoutPlayerView(
+                day: day,
+                exercises: exercises.map { row in
+                    var exercise = row.exercise
+                    /* The player counts what the planner prescribed, not what
+                       the programme row says. */
+                    exercise.sets = row.plannedSets
+                    return exercise
+                },
+                accent: accent,
+                lite: lite
+            )
         }
     }
 
-    private func prescription(_ exercise: Exercise) -> String {
+    /// Teal for recovery, amber for anything that removes work, accent otherwise,
+    /// matching how the web colours the same chips.
+    private func badgeTint(_ badge: String) -> Color {
+        if badge.hasPrefix("Deload") || badge.hasPrefix("Return") || badge.hasPrefix("Scheduled deload") {
+            return APEXColor.teal
+        }
+        if badge.contains("Taper") || badge.contains("Championship") || badge.contains("recovery") {
+            return APEXColor.amberDeep
+        }
+        return accent
+    }
+
+    /// Reads the planned set count, which a taper or deload may have reduced.
+    private func prescription(_ planned: PlannedExercise) -> String {
+        let exercise = planned.exercise
         let reps = exercise.repUnit == "max" ? language.text("MAX") : exercise.repMin == exercise.repMax ? "\(exercise.repMax)" : "\(exercise.repMin)–\(exercise.repMax)"
         let unit = language.text(exercise.repUnit.uppercased())
         return exercise.perSide
-            ? language.format("%d SETS · %@ %@ / SIDE", exercise.sets, reps, unit)
-            : language.format("%d SETS · %@ %@", exercise.sets, reps, unit)
+            ? language.format("%d SETS · %@ %@ / SIDE", planned.plannedSets, reps, unit)
+            : language.format("%d SETS · %@ %@", planned.plannedSets, reps, unit)
     }
 }
 

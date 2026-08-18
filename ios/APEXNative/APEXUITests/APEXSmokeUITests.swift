@@ -36,12 +36,12 @@ final class APEXSmokeUITests: XCTestCase {
            sections now, so each one is opened before it is inspected. */
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Meals and training"], in: app))
         capture("nutrition-dayline")
-        XCTAssertTrue(expandSection("activities", in: app))
+        XCTAssertTrue(expandSection("activities", revealing: app.staticTexts["Today's Activities"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Today's Activities"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily targets"], in: app))
-        XCTAssertTrue(expandSection("meal-timeline", in: app))
+        XCTAssertTrue(expandSection("meal-timeline", revealing: app.staticTexts["Meal timeline"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Meal timeline"], in: app))
-        XCTAssertTrue(expandSection("supplements", in: app))
+        XCTAssertTrue(expandSection("supplements", revealing: app.staticTexts["Supplement stack"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Supplement stack"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily log"], in: app))
         tapBack(in: app)
@@ -86,8 +86,10 @@ final class APEXSmokeUITests: XCTestCase {
         breakfast.tap()
 
         XCTAssertTrue(app.staticTexts["Build this meal"].waitForExistence(timeout: 3))
-        XCTAssertTrue(app.staticTexts["FAST STARTS"].exists)
-        XCTAssertTrue(app.buttons["Select"].waitForExistence(timeout: 3))
+        /* The presets card sits below the fold inside a lazy stack, so it is not
+           built until the sheet is scrolled to it. */
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["FAST STARTS"], in: app))
+        XCTAssertTrue(app.buttons["Select"].firstMatch.waitForExistence(timeout: 3))
         capture("meal-composer-compact")
 
         let displayControl = app.segmentedControls.firstMatch
@@ -150,32 +152,78 @@ final class APEXSmokeUITests: XCTestCase {
         return app
     }
 
-    /// Opens a collapsible section and leaves it open, so the assertions that
-    /// follow can look for what it holds.
+    /// Opens a collapsible section and leaves it open, waiting for the thing it
+    /// reveals so the assertions that follow do not race the animation.
     @discardableResult
-    private func expandSection(_ id: String, in app: XCUIApplication) -> Bool {
+    private func expandSection(
+        _ id: String,
+        revealing reveal: XCUIElement,
+        in app: XCUIApplication
+    ) -> Bool {
         let toggle = app.buttons["section-toggle-\(id)"]
-        guard scrollUntilVisible(toggle, in: app) else { return false }
+        guard scrollUntilVisible(toggle, in: app), isReachable(toggle) else { return false }
         /* The open/closed state persists between launches, so never blind-tap:
            that would close a section a previous run left open. */
         if toggle.value as? String == "Expanded" { return true }
         tapClearOfDock(toggle)
-        return true
+        return reveal.firstMatch.waitForExistence(timeout: 4)
     }
 
-    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 10) -> Bool {
-        if element.exists && element.isHittable { return true }
-        for _ in 0..<attempts {
-            app.swipeUp()
-            if element.exists && element.isHittable { return true }
+    /*
+     * Asking XCUITest about an element off the screen raises rather than
+     * answering, and so does asking about a query that matches more than one
+     * element. Resolve to a single match and check it has a real frame before
+     * asking anything else.
+     */
+    private func isReachable(_ element: XCUIElement) -> Bool {
+        let target = element.firstMatch
+        guard target.exists else { return false }
+        let frame = target.frame
+        guard frame.width > 0, frame.height > 0 else { return false }
+        return target.isHittable
+    }
+
+    /*
+     * A centred flick lands on whatever card happens to be mid-screen, and a
+     * card that runs its own gestures gives up less of the scroll. Alternate a
+     * plain flick with a drag along the left gutter, which on every screen is
+     * label space rather than anything interactive.
+     */
+    private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 14) -> Bool {
+        if isReachable(element) { return true }
+        for attempt in 0..<attempts {
+            if attempt.isMultiple(of: 2) {
+                app.swipeUp()
+            } else {
+                app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.78))
+                    .press(
+                        forDuration: 0.02,
+                        thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.28))
+                    )
+            }
+            if isReachable(element) { return true }
         }
-        return element.exists
+        return element.firstMatch.exists
     }
 
     /// The profile dock floats over the bottom of every screen and takes any
     /// tap that lands on it, so tap a control through its own upper half.
+    /// A flick keeps travelling after the swipe ends, so a tap issued straight
+    /// away lands wherever the content has drifted to. Wait for the frame to
+    /// stop moving, then aim at the control's upper half to clear the dock.
     private func tapClearOfDock(_ element: XCUIElement) {
-        element.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
+        let target = element.firstMatch
+        var previous = target.exists ? target.frame : .zero
+        for _ in 0..<10 {
+            let expectation = XCTestExpectation(description: "settle")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.1) { expectation.fulfill() }
+            _ = XCTWaiter().wait(for: [expectation], timeout: 1)
+            guard target.exists else { break }
+            let current = target.frame
+            if current == previous { break }
+            previous = current
+        }
+        target.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.25)).tap()
     }
 
     private func scrollToTop(in app: XCUIApplication) {
