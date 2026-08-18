@@ -108,9 +108,7 @@ final class APEXSmokeUITests: XCTestCase {
         firstFood.tap()
         XCTAssertTrue(app.buttons["Create preset"].isEnabled)
         /* The count label lands a frame after the button enables. */
-        let count = app.descendants(matching: .any)["meal-selection-count"]
-        XCTAssertTrue(count.waitForExistence(timeout: 2))
-        XCTAssertEqual(count.label, "1 selected")
+        XCTAssertTrue(app.staticTexts["1 selected"].waitForExistence(timeout: 3))
         capture("meal-composer-selection")
     }
 

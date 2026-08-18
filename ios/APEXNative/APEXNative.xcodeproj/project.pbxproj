@@ -20,6 +20,7 @@
 		0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */; };
 		120C3902EDDC837DDE52C8B2 /* APEXWaterComplication.swift in Sources */ = {isa = PBXBuildFile; fileRef = 793DAF31909EE0A26501EBB8 /* APEXWaterComplication.swift */; };
 		14088089CF6805A4D9336CB0 /* NutritionView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 946DC4125357F8D2D3ACEFE8 /* NutritionView.swift */; };
+		15D16AA8CE38DAF94FA5158D /* APEXSheetStyle.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0ABE36E97F7E7F03805B18A8 /* APEXSheetStyle.swift */; };
 		168AD385ACE1D45B04E1788C /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F60F21F488DA31129354FF26 /* Localizable.strings */; };
 		19D0AA967AD19A6A0915F5A1 /* june.png in Resources */ = {isa = PBXBuildFile; fileRef = D8B8413B240399C398084A2D /* june.png */; };
 		1AE709AFC44574DA123B88FC /* plan-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 018FB46EA0E562A118018CC0 /* plan-parity.json */; };
@@ -35,6 +36,7 @@
 		301BFE74256F187C1FA31DBE /* Supabase in Frameworks */ = {isa = PBXBuildFile; productRef = E80B52398390ADAC56801FB7 /* Supabase */; };
 		30CAB99C5259074A64EF3B4C /* OrbitIntegrationsTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 95409AE77B69B4A6848B009E /* OrbitIntegrationsTests.swift */; };
 		32D893E92DA3F60F1C311EC1 /* OrbitCampaignEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FCA69789408B0833425C9ADB /* OrbitCampaignEngineTests.swift */; };
+		3305E56000695DF251BDE392 /* HorizontalPan.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4D84691E267D4B0B08B9C9CA /* HorizontalPan.swift */; };
 		33A0833F2A4D153E9206F1FC /* RoutePlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C44BDDDDEA6D9B45DF19CAC8 /* RoutePlannerView.swift */; };
 		352AACC240CD4D66A83DD10E /* FitnessBrainTargets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */; };
 		355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */; };
@@ -204,6 +206,7 @@
 		06A527BACE95DC1F98A6D69D /* ManualWorkoutLoggerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualWorkoutLoggerView.swift; sourceTree = "<group>"; };
 		075B064EF7BC1D0506579361 /* QuickAddBurst.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = QuickAddBurst.swift; sourceTree = "<group>"; };
 		08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainService.swift; sourceTree = "<group>"; };
+		0ABE36E97F7E7F03805B18A8 /* APEXSheetStyle.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXSheetStyle.swift; sourceTree = "<group>"; };
 		0AD96EE9719E0D9D7C05FD9D /* MarathonInductionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonInductionView.swift; sourceTree = "<group>"; };
 		0DBA2DE3264926BAC649C781 /* OrbitRouteEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitRouteEngine.swift; sourceTree = "<group>"; };
 		0F22D3ABC94F97A0A6511460 /* ExerciseCatalog.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseCatalog.swift; sourceTree = "<group>"; };
@@ -249,6 +252,7 @@
 		4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusT25.swift; sourceTree = "<group>"; };
 		4CC9F7269E0FB7B2956A9322 /* InfoPlist.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = InfoPlist.strings; path = ro.lproj/InfoPlist.strings; sourceTree = "<group>"; };
 		4D65A340828BC773255E99E7 /* engine-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "engine-parity.json"; sourceTree = "<group>"; };
+		4D84691E267D4B0B08B9C9CA /* HorizontalPan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalPan.swift; sourceTree = "<group>"; };
 		51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityGuideSheet.swift; sourceTree = "<group>"; };
 		53A12AB559BCB32B420CC5D9 /* MarathonCampaignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonCampaignView.swift; sourceTree = "<group>"; };
 		59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainTargets.swift; sourceTree = "<group>"; };
@@ -557,7 +561,9 @@
 			isa = PBXGroup;
 			children = (
 				164418CABD783ED9B17E6A7D /* APEXLocalization.swift */,
+				0ABE36E97F7E7F03805B18A8 /* APEXSheetStyle.swift */,
 				1BBEDBBF651D57DA43AD5F4F /* APEXTheme.swift */,
+				4D84691E267D4B0B08B9C9CA /* HorizontalPan.swift */,
 			);
 			path = DesignSystem;
 			sourceTree = "<group>";
@@ -942,6 +948,7 @@
 				DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */,
 				B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */,
 				1EDB0BA3C3FE40F5B256B247 /* APEXModels.swift in Sources */,
+				15D16AA8CE38DAF94FA5158D /* APEXSheetStyle.swift in Sources */,
 				8E65B12988DD76BCCDF06E51 /* APEXStableID.swift in Sources */,
 				512B74F72960908BA58D57E0 /* APEXTheme.swift in Sources */,
 				F93650FBDEF08078139961E5 /* ActivityGuideSheet.swift in Sources */,
@@ -965,6 +972,7 @@
 				F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */,
 				6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */,
 				1BE4BAAFBF290CE5F184761A /* HolographicBodyView.swift in Sources */,
+				3305E56000695DF251BDE392 /* HorizontalPan.swift in Sources */,
 				708DCA6DB776A84982950FBE /* HydrationFigureWebView.swift in Sources */,
 				BD0BA71A490CB6D6DFB67907 /* LiveRunView.swift in Sources */,
 				F1365543A54BB3712F867003 /* LoginView.swift in Sources */,

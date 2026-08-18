@@ -1041,15 +1041,7 @@ private struct DaylineEntryRow: View {
                     .accessibilityIdentifier("meal-dayline-delete-\(entry.slot)")
                 }
 
-                Button {
-                    guard !dragConsumedTap, !swipeConsumedTap else { return }
-                    /* An open card closes on tap instead of opening the editor */
-                    if revealOffset != 0 {
-                        onSwipeEnded(revealWidth)
-                        return
-                    }
-                    action()
-                } label: {
+                Group {
                     HStack(spacing: 10) {
                         VStack(alignment: .leading, spacing: 4) {
                             Text(language.text(entry.title))
@@ -1085,80 +1077,61 @@ private struct DaylineEntryRow: View {
                 }
                 .buttonStyle(.plain)
                 .offset(x: revealOffset)
-                .accessibilityIdentifier("meal-dayline-\(entry.slot)")
             }
         }
         .contentShape(Rectangle())
         /*
-         * Horizontal swipe reveals delete. The axis is decided once, on the
-         * first meaningful movement, and held for the rest of the touch.
-         * Re-evaluating it every frame let a swipe flip between "reveal" and
-         * "move the meal" mid-gesture, which read as the card twitching and
-         * snapping shut.
+         * Tap, sideways swipe and hold-to-move live together in UIKit, where a
+         * gesture can refuse a touch instead of taking it and then ignoring it.
+         * A drag that starts vertical fails outright and the scroll view keeps
+         * the finger, so landing on a meal by accident never costs the scroll.
          */
-        .simultaneousGesture(
-            DragGesture(minimumDistance: 18)
-                .onChanged { value in
-                    guard entry.isLogged else { return }
-                    if axisLock == nil {
-                        let dx = abs(value.translation.width)
-                        let dy = abs(value.translation.height)
-                        guard max(dx, dy) > 18 else { return }
-                        axisLock = dx > dy * 1.4 ? .horizontal : .vertical
+        .overlay(
+            MealRowGestures(
+                onTap: {
+                    guard !dragConsumedTap, !swipeConsumedTap else { return }
+                    /* An open card closes on tap instead of opening the editor */
+                    if revealOffset != 0 {
+                        onSwipeEnded(revealWidth)
+                        return
                     }
-                    guard axisLock == .horizontal else { return }
+                    action()
+                },
+                onSwipeChanged: { translation in
+                    guard entry.isLogged else { return }
                     swipeConsumedTap = true
-                    onSwipeChanged(value.translation.width)
-                }
-                .onEnded { value in
-                    defer { axisLock = nil }
-                    guard entry.isLogged, axisLock == .horizontal else { return }
-                    /* Settle on where the finger was heading, so a quick flick
-                       opens the card instead of falling back to closed. */
-                    onSwipeEnded(min(value.translation.width, value.predictedEndTranslation.width))
+                    onSwipeChanged(translation)
+                },
+                onSwipeEnded: { translation, velocity in
+                    guard entry.isLogged else { return }
+                    /* Where the flick was heading, not where the finger stopped. */
+                    onSwipeEnded(min(translation, translation + velocity * 0.12))
                     Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(320))
                         swipeConsumedTap = false
                     }
-                }
-        )
-        /* simultaneousGesture instead of highPriorityGesture: a plain tap
-           must reach the meal button (it opens the composer), while the
-           deliberate hold-and-move gesture still adjusts the finish time.
-           The drag reports its absolute position inside the timeline's own
-           coordinate space: reading `translation` measured the finger against
-           the row, but the row moves as it is dragged, so each frame changed
-           the very number the next frame was derived from and the card
-           oscillated. An absolute position cannot chase itself. */
-        .simultaneousGesture(
-            /*
-             * A deliberate hold, not a pause. At 0.24 s simply resting a
-             * finger on a meal before scrolling satisfied the press, and the
-             * follow-on drag then owned the touch: the page stopped scrolling
-             * and the meal moved instead. A longer hold with a tight movement
-             * tolerance fails the moment the finger travels, so an ordinary
-             * scroll reaches the scroll view untouched.
-             */
-            LongPressGesture(minimumDuration: 0.55, maximumDistance: 6)
-                .sequenced(before: DragGesture(minimumDistance: 0, coordinateSpace: .named("apex-dayline")))
-                .onChanged { phase in
-                    if case .second(true, let drag?) = phase {
-                        /* A committed sideways swipe owns this touch */
-                        guard axisLock != .horizontal else { return }
-                        dragConsumedTap = true
-                        onDragChanged(drag.location.y)
-                    }
-                }
-                .onEnded { phase in
-                    if case .second(true, let drag?) = phase, axisLock != .horizontal {
-                        onDragEnded(drag.location.y)
-                    }
+                },
+                onHoldChanged: { y in
+                    dragConsumedTap = true
+                    onDragChanged(y)
+                },
+                onHoldEnded: { y in
+                    onDragEnded(y)
                     Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(280))
                         dragConsumedTap = false
                     }
                 }
+            )
         )
+        /* Contained rather than combined: combining turns the row into a single
+           accessibility element whose activation bypasses the touch layer the
+           gestures live in, so a tap would stop opening the meal. */
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("meal-dayline-\(entry.slot)")
+        .accessibilityLabel(Text(language.text(entry.title)))
+        .accessibilityAddTraits(.isButton)
+        .accessibilityAction(named: Text(language.text("Open"))) { action() }
     }
 
     private func clock(_ minute: Int) -> String {

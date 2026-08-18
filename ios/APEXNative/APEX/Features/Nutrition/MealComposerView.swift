@@ -486,29 +486,34 @@ struct MealComposerView: View {
                         .font(APEXFont.display(20))
                 }
                 Spacer()
-                if selectionMode {
-                    /* Three controls and a count do not fit one row on a phone;
-                       without this the count truncates to nothing readable. */
+                if !selectionMode {
+                    Button("Select") { selectionMode = true }
+                        .buttonStyle(.bordered)
+                        .disabled(draft.items.isEmpty)
+                }
+            }
+
+            /* A count and two buttons beside a title overflow a phone's width,
+               and a clipped view is no longer readable or reachable. Selection
+               gets its own line. */
+            if selectionMode {
+                HStack(spacing: 10) {
                     Text(language.format("%d selected", selectedItemIDs.count))
-                        .font(APEXFont.body(12, weight: .bold))
+                        .font(APEXFont.body(13, weight: .bold))
                         .foregroundStyle(APEXColor.amberDeep)
                         .fixedSize()
-                        .accessibilityIdentifier("meal-selection-count")
+                    Spacer(minLength: 6)
+                    Button("Cancel") {
+                        selectionMode = false
+                        selectedItemIDs.removeAll()
+                    }
+                    .buttonStyle(.bordered)
                     Button("Create preset") {
                         guard selectedItemIDs.isEmpty == false else { return }
                         showPresetCreator = true
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(APEXColor.amber)
-                    Button("Cancel") {
-                        selectionMode = false
-                        selectedItemIDs.removeAll()
-                    }
-                    .buttonStyle(.bordered)
-                } else {
-                    Button("Select") { selectionMode = true }
-                        .buttonStyle(.bordered)
-                        .disabled(draft.items.isEmpty)
                 }
             }
 

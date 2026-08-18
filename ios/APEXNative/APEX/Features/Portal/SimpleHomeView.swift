@@ -247,10 +247,10 @@ struct SimpleHomeView: View {
                 .presentationDetents([.large])
             case .supplements:
                 SupplementQuickSheet(date: selectedDate)
-                    .presentationDetents([.large])
+                    .apexTransientSheet()
             case .stats:
                 StatsQuickSheet(date: selectedDate)
-                    .presentationDetents([.medium])
+                    .apexTransientSheet()
             case .training:
                 TrainingQuickSheet(
                     day: todayProgramDay,
@@ -264,7 +264,7 @@ struct SimpleHomeView: View {
                     workoutIsLite = lite
                     showWorkout = true
                 }
-                .presentationDetents([.large])
+                .apexTransientSheet()
             }
         }
         .fullScreenCover(item: $composerRequest) { request in

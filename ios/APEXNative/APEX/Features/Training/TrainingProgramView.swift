@@ -347,10 +347,14 @@ struct TrainingProgramView: View {
         }
         .sheet(item: $exportURL) { report in
             ExportPreviewSheet(report: report, accent: accent)
+                .apexTransientSheet()
         }
         .sheet(item: $selectedDay) { selection in
+            /* A day is something to look at before deciding, so it opens part
+               height with the calendar still visible behind it. */
             WorkoutDaySheet(date: selection.date, slug: slug, accent: accent)
                 .environment(session)
+                .apexTransientSheet()
         }
         .sheet(isPresented: $showBuilder, onDismiss: {
             guard savedFromBuilder else { return }

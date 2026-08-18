@@ -158,22 +158,22 @@ struct NutritionView: View {
         }
         .sheet(isPresented: $showActivityGuide) {
             ActivityGuideSheet()
-                .presentationDetents([.large])
+                .apexTransientSheet()
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showTargetEditor) {
             NutritionTargetSheet(date: selectedDate)
-                .presentationDetents([.large])
+                .apexTransientSheet()
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showCalendar) {
             NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }
-                .presentationDetents([.large])
+                .apexTransientSheet()
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showMealSlotPicker) {
             MealSlotPickerSheet(date: selectedDate) { composerRequest = $0 }
-                .presentationDetents([.large])
+                .apexTransientSheet()
                 .presentationDragIndicator(.visible)
         }
         .fullScreenCover(item: $composerRequest) { request in
