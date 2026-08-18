@@ -251,7 +251,11 @@ struct SimpleHomeView: View {
                 StatsQuickSheet(date: selectedDate)
                     .presentationDetents([.medium])
             case .training:
-                TrainingQuickSheet(day: todayProgramDay) { lite in
+                TrainingQuickSheet(
+                    day: todayProgramDay,
+                    isDeload: todayIsDeload,
+                    completed: workoutDone
+                ) { lite in
                     guard todayProgramDay != nil else {
                         session.navigationPath.append(.transition)
                         return
@@ -259,7 +263,7 @@ struct SimpleHomeView: View {
                     workoutIsLite = lite
                     showWorkout = true
                 }
-                .presentationDetents([.medium])
+                .presentationDetents([.large])
             }
         }
         .fullScreenCover(item: $composerRequest) { request in
@@ -1169,21 +1173,259 @@ private struct StatsQuickSheet: View {
     }
 }
 
+/*
+ * Training preview, matching the web quick panel: today's session at a
+ * glance with both prescriptions side by side, so the choice between the
+ * full session and the short one is made before the player opens.
+ *
+ * Durations use the web's formulas exactly. Full is the authored estimate
+ * for the day; Light is derived from the session timeline, so it reflects
+ * the sets, rests and holds that will actually run.
+ */
 private struct TrainingQuickSheet: View {
+    @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+    @State private var lite = false
     let day: ProgramDay?
+    let isDeload: Bool
+    let completed: Bool
     let start: (Bool) -> Void
-    var body: some View {
-        VStack(spacing: 18) {
-            Image(systemName: "figure.strengthtraining.traditional").font(.system(size: 42)).foregroundStyle(APEXColor.teal)
-            Text(day?.name ?? "Recovery day").font(APEXFont.display(26))
-            Text(day.map { "\($0.estimatedMinutes) min planned" } ?? "No planned strength session today")
-                .font(APEXFont.body(12)).foregroundStyle(APEXColor.secondaryInk)
-            HStack {
-                Button("Open plan") { dismiss(); start(false) }.buttonStyle(.bordered)
-                if day != nil { Button("Quick start") { dismiss(); start(true) }.buttonStyle(.borderedProminent).tint(APEXColor.teal) }
+
+    private func exercises(lite wantsLite: Bool) -> [Exercise] {
+        guard let day else { return [] }
+        let requested = session.data.exercises
+            .filter { $0.programDayID == day.id && $0.isLite == wantsLite }
+            .sorted { $0.sortOrder < $1.sortOrder }
+        let source: [Exercise]
+        if requested.isEmpty, wantsLite {
+            source = Array(session.data.exercises
+                .filter { $0.programDayID == day.id && !$0.isLite }
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .prefix(3))
+        } else {
+            source = requested
+        }
+        return TrainingAdjustmentEngine.adjustedExercises(source, isDeload: isDeload)
+    }
+
+    private var fullExercises: [Exercise] { exercises(lite: false) }
+    private var liteExercises: [Exercise] { exercises(lite: true) }
+    private var shown: [Exercise] { lite ? liteExercises : fullExercises }
+
+    /* Web parity: est_minutes for the full day, timeline estimate for light */
+    private var fullMinutes: Int {
+        day?.estimatedMinutes ?? max(15, fullExercises.count * 8)
+    }
+    private var liteMinutes: Int { max(8, estimatedMinutes(liteExercises)) }
+    private var shownMinutes: Int { lite ? liteMinutes : fullMinutes }
+
+    private func estimatedMinutes(_ rows: [Exercise]) -> Int {
+        var seconds = 60.0 // warm-up block
+        for exercise in rows {
+            let sets = Double(max(1, exercise.sets))
+            let perRep = max(1.6, exercise.tempoUp + exercise.tempoDown + exercise.tempoPause + 0.4)
+            let work: Double
+            switch exercise.repUnit {
+            case "seconds": work = Double((exercise.repMin + exercise.repMax) / 2)
+            case "minutes": work = Double((exercise.repMin + exercise.repMax) / 2) * 60
+            case "check": work = 30
+            case "max": work = 12 * perRep
+            default: work = Double(max(1, (exercise.repMin + exercise.repMax) / 2)) * perRep
             }
-        }.padding(24).presentationBackground(.ultraThinMaterial)
+            seconds += sets * work
+            seconds += Double(max(0, sets - 1)) * Double(exercise.restSeconds)
+            seconds += 20 // logging
+        }
+        return max(1, Int((seconds / 60).rounded()))
+    }
+
+    private func prescription(_ exercise: Exercise) -> String {
+        let reps: String
+        switch exercise.repUnit {
+        case "max": reps = language.text("MAX")
+        case "seconds": reps = exercise.repMin == exercise.repMax ? "\(exercise.repMax)s" : "\(exercise.repMin)–\(exercise.repMax)s"
+        case "minutes": reps = "\(exercise.repMax) min"
+        case "check": reps = language.text("DONE")
+        default: reps = exercise.repMin == exercise.repMax ? "\(exercise.repMax)" : "\(exercise.repMin)–\(exercise.repMax)"
+        }
+        let base = "\(exercise.sets) × \(reps)"
+        return exercise.perSide ? base + " / " + language.text("side") : base
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            HStack(alignment: .top) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(language.text(completed ? "Completed training" : "Training preview"))
+                        .font(APEXFont.display(24))
+                    if day != nil {
+                        Text(language.format("%d exercises · %d min", shown.count, shownMinutes))
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                }
+                Spacer()
+                Button { dismiss() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 13, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .frame(width: 34, height: 34)
+                        .background(.white.opacity(0.7), in: Circle())
+                }
+                .buttonStyle(.plain)
+            }
+            .padding(.horizontal, 20)
+            .padding(.top, 18)
+
+            if let day {
+                /* Prescription switch */
+                HStack(spacing: 0) {
+                    ForEach([false, true], id: \.self) { wantsLite in
+                        Button {
+                            withAnimation(.snappy(duration: 0.2)) { lite = wantsLite }
+                        } label: {
+                            Text(language.text(wantsLite ? "LIGHT PRESCRIPTION" : "FULL PRESCRIPTION"))
+                                .font(APEXFont.mono(10, weight: .bold))
+                                .tracking(0.8)
+                                .foregroundStyle(lite == wantsLite ? .white : APEXColor.secondaryInk)
+                                .frame(maxWidth: .infinity)
+                                .frame(height: 42)
+                                .background(
+                                    lite == wantsLite
+                                        ? AnyShapeStyle(APEXColor.green.gradient)
+                                        : AnyShapeStyle(Color.clear),
+                                    in: Capsule()
+                                )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier(wantsLite ? "prescription-light" : "prescription-full")
+                    }
+                }
+                .padding(3)
+                .background(.white.opacity(0.6), in: Capsule())
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 12) {
+                        HStack(spacing: 12) {
+                            Image(systemName: "figure.strengthtraining.traditional")
+                                .font(.system(size: 17, weight: .bold))
+                                .foregroundStyle(.white)
+                                .frame(width: 44, height: 44)
+                                .background(APEXColor.teal.gradient, in: Circle())
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(language.text(day.name)).font(APEXFont.display(19))
+                                Text(language.format("%d min · %d exercises", shownMinutes, shown.count))
+                                    .font(APEXFont.mono(10))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                            }
+                            Spacer(minLength: 0)
+                        }
+
+                        Text(language.text(lite
+                            ? "The light prescription keeps the primary movements so a short day still counts."
+                            : "This list is the exact Full prescription."))
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.green)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .padding(12)
+                            .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
+
+                        if isDeload {
+                            Text(language.text("Deload week: one fewer set per exercise, 3 RIR, no tests or burnouts."))
+                                .font(APEXFont.body(11, weight: .semibold))
+                                .foregroundStyle(APEXColor.cyan)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(11)
+                                .background(APEXColor.cyan.opacity(0.1), in: RoundedRectangle(cornerRadius: 13))
+                        }
+
+                        Text(language.text("TODAY’S EXERCISES"))
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .tracking(1)
+                            .foregroundStyle(APEXColor.green)
+                            .padding(.top, 2)
+
+                        ForEach(Array(shown.enumerated()), id: \.element.id) { index, exercise in
+                            HStack(spacing: 11) {
+                                Text("\(index + 1)")
+                                    .font(APEXFont.mono(11, weight: .bold))
+                                    .foregroundStyle(APEXColor.green)
+                                    .frame(width: 26, height: 26)
+                                    .background(APEXColor.green.opacity(0.13), in: Circle())
+                                Text(language.text(exercise.name))
+                                    .font(APEXFont.body(14, weight: .bold))
+                                    .lineLimit(2)
+                                Spacer(minLength: 6)
+                                Text(prescription(exercise))
+                                    .font(APEXFont.mono(11))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    .fixedSize()
+                            }
+                            .padding(.horizontal, 13)
+                            .padding(.vertical, 11)
+                            .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 15))
+                        }
+                    }
+                    .padding(.horizontal, 20)
+                    .padding(.top, 14)
+                    .padding(.bottom, 8)
+                }
+
+                VStack(spacing: 9) {
+                    Button {
+                        dismiss(); start(false)
+                    } label: {
+                        Text(language.format("Start Full · %d min", fullMinutes))
+                            .font(APEXFont.body(15, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .background(APEXColor.green.gradient, in: RoundedRectangle(cornerRadius: 17))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("start-full")
+
+                    Button {
+                        dismiss(); start(true)
+                    } label: {
+                        Text(language.format("Start Light · %d min", liteMinutes))
+                            .font(APEXFont.body(14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 46)
+                            .background(APEXColor.cyan.gradient, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("start-light")
+                }
+                .padding(.horizontal, 20)
+                .padding(.bottom, 22)
+            } else {
+                VStack(spacing: 14) {
+                    Image(systemName: "moon.zzz.fill")
+                        .font(.system(size: 38))
+                        .foregroundStyle(APEXColor.teal.opacity(0.75))
+                    Text(language.text("Recovery day"))
+                        .font(APEXFont.display(21))
+                    Text(language.text("No planned strength session today. Rest is part of the plan."))
+                        .font(APEXFont.body(12))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    Button { dismiss(); start(false) } label: {
+                        Text(language.text("Open plan"))
+                            .font(APEXFont.body(14, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(APEXColor.teal.gradient, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(24)
+                Spacer(minLength: 0)
+            }
+        }
+        .presentationBackground(.ultraThinMaterial)
     }
 }
 
