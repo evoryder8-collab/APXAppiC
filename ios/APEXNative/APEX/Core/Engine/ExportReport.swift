@@ -122,6 +122,94 @@ enum ExportReport {
         }
         lines.append("")
 
+        /* Meal timing and its pre and post workout context. */
+        let timing = MealTimingEngine.analyze(
+            meals: data.loggedMeals.filter { $0.localDate >= from && $0.localDate <= to },
+            entries: data.loggedFoodEntries,
+            sessions: sessions,
+            timeZone: TimeZone.current.identifier
+        )
+        lines.append("## Meal timing and pre-workout context")
+        lines.append("Timezone: \(TimeZone.current.identifier).")
+        lines.append(
+            "Meal finishes recorded: \(timing.recordedMeals). "
+                + "Scheduled times without a recorded finish: \(timing.estimatedMeals)."
+        )
+        if let variation = timing.typicalVariationMinutes {
+            lines.append(
+                "Typical within-slot timing variation: \(variation) minutes. "
+                    + "Rhythm score: \(timing.rhythmScore.map(String.init) ?? "?") / 100."
+            )
+        }
+        if timing.workoutsWithContext > 0 {
+            lines.append(
+                "Workout starts with meal context: \(timing.workoutsWithContext). "
+                    + "Comfort window \(timing.readyStarts), "
+                    + "tradeoff window \(timing.transitionStarts), "
+                    + "settling window \(timing.settlingStarts)."
+            )
+            lines.append(
+                "Average interval from the latest completed meal to training: "
+                    + "\(timing.averageWaitMinutes.map(String.init) ?? "?") minutes."
+            )
+        }
+        lines.append("")
+
+        lines.append("### Workout timing relative to meals")
+        for relation in timing.workoutRelations {
+            if let name = relation.mealName, let waited = relation.waitedMinutes, let zone = relation.zone {
+                lines.append("- \(relation.date): started \(waited) minutes after \(name). Zone: \(zone.rawValue).")
+            } else {
+                lines.append("- \(relation.date): no reliably recorded earlier meal on this day.")
+            }
+        }
+        if timing.workoutRelations.isEmpty {
+            lines.append("- No workout start timestamps were available in this range.")
+        }
+        lines.append("")
+
+        lines.append("### Post-workout nutrition timing")
+        lines.append(
+            "Completed workouts with timestamps: \(timing.completedWorkouts). "
+                + "Post-workout meal finishes recorded: \(timing.recoveryMealsRecorded)."
+        )
+        if let score = timing.recoveryTimingScore {
+            lines.append(
+                "Average post-workout timing context: \(score) / 100. "
+                    + "Average workout-to-meal-finish gap: "
+                    + "\(timing.averageRecoveryGapMinutes.map(String.init) ?? "?") minutes."
+            )
+        }
+        for relation in timing.postWorkoutRelations {
+            if relation.source == "recorded_finish", let gap = relation.gapMinutes {
+                lines.append(
+                    "- \(relation.date): \(relation.mealName ?? "next meal") finished \(gap) minutes later; "
+                        + "timing context \(relation.timingScore.map(String.init) ?? "?") / 100."
+                )
+            } else {
+                lines.append("- \(relation.date): no post-workout meal finish was recorded.")
+            }
+        }
+        if timing.postWorkoutRelations.isEmpty {
+            lines.append("- No completed workout timestamps were available in this range.")
+        }
+        lines.append("")
+
+        /* What the watch said about the nights in this range. */
+        let checkins = RecoveryAssessment.history(from: data.settings?.addons)
+            .filter { $0.date >= from && $0.date <= to }
+        if !checkins.isEmpty {
+            lines.append("## Recovery readiness")
+            for checkin in checkins {
+                let verdict = RecoveryAssessment.assess(checkin)
+                let reading = checkin.source == "apple"
+                    ? "sleep score \(checkin.sleepScore.map(String.init) ?? "?")"
+                    : "recovery \(checkin.recoveryPercent.map(String.init) ?? "?")%"
+                lines.append("- \(checkin.date): \(reading) (\(checkin.source)) → \(verdict.state.rawValue). \(verdict.title).")
+            }
+            lines.append("")
+        }
+
         if let snapshot = data.snapshots.max(by: { $0.date < $1.date }) {
             lines.append("## Current RPG stats")
             lines.append("- Overall: \(number(snapshot.overall))")

@@ -43,6 +43,21 @@ struct TrainingProgramView: View {
         TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
     }
 
+    /// Last night, if the watch had something to say about it.
+    private var readiness: RecoveryAssessment.Verdict? {
+        RecoveryAssessment.todaysCheckin(session.data, date: Date().apexDateKey)
+            .map { RecoveryAssessment.assess($0) }
+    }
+
+    private func readinessTint(_ state: RecoveryAssessment.State) -> Color {
+        switch state {
+        case .strong: APEXColor.green
+        case .normal: accent
+        case .low: APEXColor.amberDeep
+        case .veryLow: APEXColor.danger
+        }
+    }
+
     /// What today asks for, before anything else on the screen.
     private var todayHero: some View {
         let plan = todayPlan
@@ -52,6 +67,30 @@ struct TrainingProgramView: View {
                     .font(APEXFont.mono(9, weight: .bold))
                     .tracking(1.6)
                     .foregroundStyle(APEXColor.secondaryInk)
+
+                /* The watch already knew how the night went; this is where it
+                   finally changes what the day asks for. */
+                if let readiness {
+                    HStack(alignment: .top, spacing: 8) {
+                        Circle()
+                            .fill(readinessTint(readiness.state))
+                            .frame(width: 7, height: 7)
+                            .padding(.top, 5)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(language.text(readiness.title))
+                                .font(APEXFont.body(12, weight: .bold))
+                                .foregroundStyle(readinessTint(readiness.state))
+                            Text(language.text(readiness.guidance))
+                                .font(APEXFont.body(11, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(11)
+                    .background(readinessTint(readiness.state).opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
+                    .accessibilityIdentifier("training-readiness")
+                }
                 Text(language.text(
                     plan.isRecoveryMicro ? "Recovery micro-session" : (plan.programDay?.name ?? "Rest day")
                 ))
