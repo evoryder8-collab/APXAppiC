@@ -1844,6 +1844,113 @@ def available(x, owned):
     return all(owned & set(g) for g in x["equip_any"])
 
 
+# ------------------------------------------------------------------- ROLES
+#
+# A dumbbell pullover is filed under vertical pull because that is the plane it
+# loads the lats in, and the generator promptly chose it over a pull-up for
+# someone who owns a bar. It was right by the letter of the data and wrong by
+# any coaching standard: a pullover is an accessory that happens to live in that
+# pattern, not the movement the pattern is really about.
+#
+# So a movement carries its role. Primaries fill a session's main slots;
+# accessories are what you add when there is time left over.
+
+_ACCESSORY = {
+    # Straight-arm lat work: loads the pattern, does not train the pull.
+    "floor_pullover", "dumbbell_pullover", "band_lat_pullover",
+    "straight_arm_pulldown", "towel_door_pulldown",
+    "band_straight_arm_pulldown", "pullover_machine", "prone_floor_row",
+    # Single-joint or very light work sitting inside a compound pattern.
+    "frog_pump", "glute_bridge", "svend_press", "front_raise",
+    "band_pull_apart", "scapular_pull_up", "dead_hang", "wall_sit",
+    "neck_isometric", "chin_tuck", "plate_pinch", "towel_hang",
+    "wrist_roller", "tibialis_raise", "heel_walk", "short_foot",
+    "dumbbell_side_bend", "shrug", "upright_row",
+}
+
+for _x in M:
+    if _x["id"] in _ACCESSORY:
+        _x["role"] = "accessory"
+    elif _x["pattern"].startswith("isolation_") or _x["pattern"] in ("calf", "mobility", "yoga_pose"):
+        _x["role"] = "accessory"
+    else:
+        _x["role"] = "primary"
+
+
+# --------------------------------------------------- CONTRAINDICATION VOCAB
+#
+# Two problems the generator exposed.
+#
+# First, synonyms. Later batches tagged "low_back_flexion" and "knee_flexion"
+# where the originals used "lumbar_flexion" and "knee_deep_flexion". A near-
+# duplicate tag does not throw, it just silently fails to exclude: a user who
+# flagged their lower back was still handed the bent-over dumbbell row.
+#
+# Second, and worse, the intake asks about six body areas and the library only
+# had tags for four. Anyone reporting hip or ankle pain was filtered on nothing
+# at all, which is the kind of gap that looks like it works.
+
+CONTRA_SYNONYMS = {
+    "low_back_flexion": "lumbar_flexion",
+    "knee_flexion": "knee_deep_flexion",
+}
+
+for _x in M:
+    _x["contra"] = sorted({CONTRA_SYNONYMS.get(c, c) for c in _x["contra"]})
+
+# Hip and ankle tags are derived from what a movement actually does, so they
+# stay consistent rather than becoming 300 more separate opinions.
+_DEEP_HIP = {
+    "barbell_back_squat", "barbell_front_squat", "goblet_squat", "pistol_squat",
+    "shrimp_squat", "cossack_squat", "garland_pose", "overhead_squat",
+    "heel_elevated_goblet_squat", "hack_squat", "leg_press", "pendulum_squat",
+    "bodyweight_squat", "wall_ball", "thruster", "sit_to_stand",
+}
+_HIP_END_RANGE = {
+    "pigeon_pose", "lizard_pose", "happy_baby", "butterfly_stretch",
+    "ninety_ninety_hip", "figure_four_stretch", "low_lunge", "couch_stretch",
+    "garland_pose", "eagle_pose", "seated_forward_fold",
+}
+_ANKLE_DORSIFLEXION = {
+    "barbell_back_squat", "barbell_front_squat", "goblet_squat", "pistol_squat",
+    "shrimp_squat", "cossack_squat", "garland_pose", "overhead_squat",
+    "bodyweight_squat", "downward_dog", "wall_ball", "thruster",
+}
+
+for _x in M:
+    _c = set(_x["contra"])
+    if _x["id"] in _DEEP_HIP:
+        _c.add("hip_deep_flexion")
+    if _x["id"] in _HIP_END_RANGE:
+        _c.add("hip_end_range")
+    if _x["id"] in _ANKLE_DORSIFLEXION:
+        _c.add("ankle_dorsiflexion")
+    # Anything that lands, hops or skips loads the ankle on impact, whatever
+    # else it is filed under.
+    if _x["etype"] == "plyometric" or _x["impact"] == "high" or _x["id"] in (
+            "single_under", "double_under", "jumping_jack", "high_knees",
+            "burpee", "burpee_broad_jump", "bounding", "mountain_climber"):
+        _c.add("ankle_impact")
+        _c.add("knee_impact")
+    # Calf work taken to end range is the other ankle provocation.
+    if _x["pattern"] == "calf":
+        _c.add("ankle_loaded")
+    _x["contra"] = sorted(_c)
+
+# Every body area the intake can report must map onto tags that exist, or the
+# question is decorative.
+PAIN_AREA_CONTRA = {
+    "shoulders": ["shoulder_overhead", "shoulder_press"],
+    "elbows": ["elbow"],
+    "wrists": ["wrist"],
+    "hips": ["hip_deep_flexion", "hip_end_range", "groin"],
+    "knees": ["knee_deep_flexion", "knee_impact"],
+    "ankles": ["ankle_impact", "ankle_dorsiflexion", "ankle_loaded", "achilles"],
+}
+
+ALL_CONTRA = sorted({c for _x in M for c in _x["contra"]})
+
+
 # --------------------------------------------------------- SAFETY DERIVATION
 #
 # The first pass hand-set a youth flag on every record, which produced 274
@@ -2236,7 +2343,7 @@ def emit():
                 str(m["adult_auto"]).lower(), str(m["coached_only"]).lower(),
                 str(m["youth_rep_floor"]) if m["youth_rep_floor"] is not None else "null",
                 jsonb(m["implementations"]), arr(m["sequence"]),
-                q(m["space"]),
+                q(m["space"]), q(m["role"]),
             ]) + ")"
         )
 
@@ -2280,7 +2387,7 @@ insert into public.movement_library (
   impact_level, is_overhead, is_axial_load, requires_bail_skill, prerequisites,
   family, variant, review_status, youth_auto_assignable, adult_auto_assignable,
   coached_only, youth_rep_floor, implementations, sequence_steps,
-  space_requirement
+  space_requirement, role
 ) values
 {joined_rows}
 on conflict (id) do update set
@@ -2319,7 +2426,7 @@ on conflict (id) do update set
   youth_rep_floor = excluded.youth_rep_floor,
   implementations = excluded.implementations,
   sequence_steps = excluded.sequence_steps,
-  space_requirement = excluded.space_requirement,
+  space_requirement = excluded.space_requirement, role = excluded.role,
   updated_at = now();
 
 insert into public.movement_aliases (alias, movement_id) values
@@ -2434,6 +2541,9 @@ def emit_ts():
         "  coachedOnly: boolean",
         "  youthRepFloor: number | null",
         "  spaceRequirement: string",
+        "  /* Primary fills a session's main slots; accessory is what you add",
+        "   * when there is time left over. */",
+        "  role: 'primary' | 'accessory'",
         "  reviewStatus: string",
         "}",
         "",
@@ -2473,6 +2583,7 @@ def emit_ts():
         lines.append(f"    youthAutoAssignable: {jb(m['youth_auto'])}, adultAutoAssignable: {jb(m['adult_auto'])},")
         lines.append(f"    coachedOnly: {jb(m['coached_only'])}, youthRepFloor: {m['youth_rep_floor'] if m['youth_rep_floor'] is not None else 'null'},")
         lines.append(f"    spaceRequirement: {js(m['space'])}, reviewStatus: {js(m['review'])},")
+        lines.append(f"    role: {js(m['role'])},")
         lines.append("  },")
     lines.append("]")
     lines.append("")

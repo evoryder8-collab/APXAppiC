@@ -53,6 +53,9 @@ export interface Movement {
   coachedOnly: boolean
   youthRepFloor: number | null
   spaceRequirement: string
+  /* Primary fills a session's main slots; accessory is what you add
+   * when there is time left over. */
+  role: 'primary' | 'accessory'
   reviewStatus: string
 }
 
@@ -90,6 +93,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dumbbell_romanian_deadlift', name: 'Dumbbell Romanian Deadlift', pattern: 'hip_hinge',
@@ -114,6 +118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_leg_romanian_deadlift', name: 'Single-Leg Romanian Deadlift', pattern: 'hip_hinge',
@@ -138,6 +143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'conventional_deadlift', name: 'Conventional Deadlift', pattern: 'hip_hinge',
@@ -162,6 +168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'trap_bar_deadlift', name: 'Trap Bar Deadlift', pattern: 'hip_hinge',
@@ -186,6 +193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hip_thrust_barbell', name: 'Barbell Hip Thrust', pattern: 'hip_hinge',
@@ -210,6 +218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hip_thrust_dumbbell', name: 'Dumbbell Hip Thrust', pattern: 'hip_hinge',
@@ -234,6 +243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'machine_hip_thrust', name: 'Machine Hip Thrust', pattern: 'hip_hinge',
@@ -258,6 +268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'b_stance_hip_thrust', name: 'B-Stance Hip Thrust', pattern: 'hip_hinge',
@@ -282,6 +293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'glute_bridge', name: 'Glute Bridge', pattern: 'hip_hinge',
@@ -306,6 +318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'frog_pump', name: 'Frog Pump', pattern: 'hip_hinge',
@@ -330,6 +343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'back_extension', name: 'Back Extension', pattern: 'hip_hinge',
@@ -354,6 +368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'kettlebell_swing', name: 'Kettlebell Swing', pattern: 'hip_hinge',
@@ -378,6 +393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'good_morning', name: 'Good Morning', pattern: 'hip_hinge',
@@ -402,6 +418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'backpack_rdl', name: 'Backpack Romanian Deadlift', pattern: 'hip_hinge',
@@ -426,6 +443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'barbell_back_squat', name: 'Barbell Back Squat', pattern: 'squat',
@@ -436,7 +454,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 90, repUnit: 'reps',
     repLow: 5, repHigh: 10,
     loadable: true, minIncrementKg: 2.5,
-    fatigueCost: 5, contraindications: ['knee_deep_flexion', 'lumbar_flexion'],
+    fatigueCost: 5, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion', 'lumbar_flexion'],
     substitutions: ['barbell_front_squat', 'hack_squat', 'goblet_squat', 'leg_press'], youthSafe: false,
     gluteEmphasis: true, notes: 'Needs safeties to be failed. Without a rack the generator must not prescribe it.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -450,6 +468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'barbell_front_squat', name: 'Barbell Front Squat', pattern: 'squat',
@@ -460,7 +479,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 90, repUnit: 'reps',
     repLow: 5, repHigh: 8,
     loadable: true, minIncrementKg: 2.5,
-    fatigueCost: 4, contraindications: ['knee_deep_flexion', 'wrist'],
+    fatigueCost: 4, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion', 'wrist'],
     substitutions: ['goblet_squat', 'hack_squat', 'barbell_back_squat'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -474,6 +493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'goblet_squat', name: 'Goblet Squat', pattern: 'squat',
@@ -484,7 +504,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 20, repUnit: 'reps',
     repLow: 8, repHigh: 15,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 3, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 3, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['heel_elevated_goblet_squat', 'bodyweight_squat', 'leg_press'], youthSafe: true,
     gluteEmphasis: true, notes: 'The safest loaded squat: you simply put it down.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -498,6 +518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'heel_elevated_goblet_squat', name: 'Heel-Elevated Goblet Squat', pattern: 'squat',
@@ -508,7 +529,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 30, repUnit: 'reps',
     repLow: 8, repHigh: 15,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 3, contraindications: [],
+    fatigueCost: 3, contraindications: ['hip_deep_flexion'],
     substitutions: ['goblet_squat', 'leg_press'], youthSafe: true,
     gluteEmphasis: false, notes: 'Elevating the heels lets a stiff ankle reach depth without the knee wandering.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -522,6 +543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hack_squat', name: 'Hack Squat', pattern: 'squat',
@@ -532,7 +554,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 45, repUnit: 'reps',
     repLow: 8, repHigh: 12,
     loadable: true, minIncrementKg: 5.0,
-    fatigueCost: 4, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['leg_press', 'barbell_back_squat'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -546,6 +568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'leg_press', name: 'Leg Press', pattern: 'squat',
@@ -556,7 +579,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 40, repUnit: 'reps',
     repLow: 10, repHigh: 15,
     loadable: true, minIncrementKg: 5.0,
-    fatigueCost: 3, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 3, contraindications: ['hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['hack_squat', 'goblet_squat'], youthSafe: true,
     gluteEmphasis: true, notes: 'Lowest skill loaded squat pattern. Good first exposure for a novice in a gym.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -570,6 +593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bodyweight_squat', name: 'Bodyweight Squat', pattern: 'squat',
@@ -580,7 +604,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'reps',
     repLow: 12, repHigh: 25,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: [],
+    fatigueCost: 2, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion'],
     substitutions: ['goblet_squat', 'sit_to_stand'], youthSafe: true,
     gluteEmphasis: true, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -594,6 +618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'sit_to_stand', name: 'Sit-to-Stand', pattern: 'squat',
@@ -604,7 +629,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 10, repUnit: 'reps',
     repLow: 6, repHigh: 12,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_deep_flexion'],
     substitutions: ['bodyweight_squat'], youthSafe: true,
     gluteEmphasis: true, notes: 'The capability version: getting out of a chair without hands.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -618,6 +643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pistol_squat', name: 'Pistol Squat', pattern: 'squat',
@@ -628,7 +654,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 3, repHigh: 8,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['bulgarian_split_squat', 'step_up'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -642,6 +668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'smith_machine_squat', name: 'Smith Machine Squat', pattern: 'squat',
@@ -666,6 +693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', pattern: 'lunge',
@@ -690,6 +718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'split_squat', name: 'Split Squat', pattern: 'lunge',
@@ -714,6 +743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'reverse_lunge', name: 'Reverse Lunge', pattern: 'lunge',
@@ -738,6 +768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'walking_lunge', name: 'Walking Lunge', pattern: 'lunge',
@@ -762,6 +793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'forward_lunge', name: 'Forward Lunge', pattern: 'lunge',
@@ -786,6 +818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'step_up', name: 'Step-Up', pattern: 'lunge',
@@ -810,6 +843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'smith_split_squat', name: 'Smith Machine Split Squat', pattern: 'lunge',
@@ -834,6 +868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'barbell_bench_press', name: 'Barbell Bench Press', pattern: 'horizontal_push',
@@ -858,6 +893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dumbbell_bench_press', name: 'Flat Dumbbell Press', pattern: 'horizontal_push',
@@ -882,6 +918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'incline_dumbbell_press', name: 'Incline Dumbbell Press', pattern: 'horizontal_push',
@@ -906,6 +943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dumbbell_floor_press', name: 'Dumbbell Floor Press', pattern: 'horizontal_push',
@@ -930,6 +968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'machine_chest_press', name: 'Machine Chest Press', pattern: 'horizontal_push',
@@ -954,6 +993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'incline_smith_press', name: 'Incline Smith Machine Press', pattern: 'horizontal_push',
@@ -978,6 +1018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'push_up', name: 'Push-Up', pattern: 'horizontal_push',
@@ -1002,6 +1043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'incline_push_up', name: 'Incline Push-Up', pattern: 'horizontal_push',
@@ -1026,6 +1068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'knee_push_up', name: 'Knee Push-Up', pattern: 'horizontal_push',
@@ -1050,6 +1093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'feet_elevated_push_up', name: 'Feet-Elevated Push-Up', pattern: 'horizontal_push',
@@ -1074,6 +1118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'weighted_push_up', name: 'Weighted Push-Up', pattern: 'horizontal_push',
@@ -1098,6 +1143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'diamond_push_up', name: 'Diamond Push-Up', pattern: 'horizontal_push',
@@ -1108,7 +1154,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'reps',
     repLow: 8, repHigh: 15,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: ['wrist', 'elbow'],
+    fatigueCost: 2, contraindications: ['elbow', 'wrist'],
     substitutions: ['push_up', 'triceps_pushdown'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -1122,6 +1168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dip', name: 'Parallel Bar Dip', pattern: 'horizontal_push',
@@ -1146,6 +1193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'cable_fly', name: 'Cable Fly', pattern: 'isolation_upper',
@@ -1170,6 +1218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'barbell_overhead_press', name: 'Barbell Overhead Press', pattern: 'vertical_push',
@@ -1194,6 +1243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dumbbell_overhead_press', name: 'Seated Dumbbell Press', pattern: 'vertical_push',
@@ -1218,6 +1268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'machine_shoulder_press', name: 'Machine Shoulder Press', pattern: 'vertical_push',
@@ -1242,6 +1293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'landmine_press', name: 'Landmine Press', pattern: 'vertical_push',
@@ -1266,6 +1318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pike_push_up', name: 'Pike Push-Up', pattern: 'vertical_push',
@@ -1290,6 +1343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'elevated_pike_push_up', name: 'Feet-Elevated Pike Push-Up', pattern: 'vertical_push',
@@ -1314,6 +1368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'handstand_push_up', name: 'Handstand Push-Up', pattern: 'vertical_push',
@@ -1338,6 +1393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'barbell_row', name: 'Barbell Row', pattern: 'horizontal_pull',
@@ -1362,6 +1418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'one_arm_dumbbell_row', name: 'One-Arm Dumbbell Row', pattern: 'horizontal_pull',
@@ -1386,6 +1443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'chest_supported_row', name: 'Chest-Supported Dumbbell Row', pattern: 'horizontal_pull',
@@ -1410,6 +1468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'machine_row', name: 'Chest-Supported Machine Row', pattern: 'horizontal_pull',
@@ -1434,6 +1493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 't_bar_row', name: 'Chest-Supported T-Bar Row', pattern: 'horizontal_pull',
@@ -1458,6 +1518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'cable_row', name: 'Seated Cable Row', pattern: 'horizontal_pull',
@@ -1482,6 +1543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_arm_cable_row', name: 'Single-Arm Cable Row', pattern: 'horizontal_pull',
@@ -1506,6 +1568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'inverted_row', name: 'Inverted Row', pattern: 'horizontal_pull',
@@ -1530,6 +1593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_row', name: 'Band Row', pattern: 'horizontal_pull',
@@ -1554,6 +1618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'backpack_row', name: 'Backpack Row', pattern: 'horizontal_pull',
@@ -1578,6 +1643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pull_up', name: 'Pull-Up', pattern: 'vertical_pull',
@@ -1602,6 +1668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'chin_up', name: 'Chin-Up', pattern: 'vertical_pull',
@@ -1626,6 +1693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_assisted_pull_up', name: 'Band-Assisted Pull-Up', pattern: 'vertical_pull',
@@ -1650,6 +1718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'lat_pulldown', name: 'Neutral-Grip Lat Pulldown', pattern: 'vertical_pull',
@@ -1674,6 +1743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_lat_pulldown', name: 'Band Lat Pulldown', pattern: 'vertical_pull',
@@ -1698,6 +1768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dead_hang', name: 'Dead Hang', pattern: 'vertical_pull',
@@ -1722,6 +1793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'scapular_pull_up', name: 'Scapular Pull-Up', pattern: 'vertical_pull',
@@ -1746,6 +1818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'muscle_up_practice', name: 'Muscle-Up Transition Practice', pattern: 'skill',
@@ -1770,6 +1843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'suitcase_carry', name: 'Suitcase Carry', pattern: 'carry',
@@ -1794,6 +1868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'farmers_carry', name: 'Farmer\'s Carry', pattern: 'carry',
@@ -1818,6 +1893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'plank', name: 'Plank', pattern: 'core_anti_extension',
@@ -1842,6 +1918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'rkc_plank', name: 'RKC Plank', pattern: 'core_anti_extension',
@@ -1866,6 +1943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'side_plank', name: 'Side Plank', pattern: 'core_anti_lateral_flexion',
@@ -1890,6 +1968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dead_bug', name: 'Dead Bug', pattern: 'core_anti_extension',
@@ -1914,6 +1993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bird_dog', name: 'Bird-Dog', pattern: 'core_anti_rotation',
@@ -1938,6 +2018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pallof_press', name: 'Pallof Press', pattern: 'core_anti_rotation',
@@ -1962,6 +2043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hanging_knee_raise', name: 'Hanging Knee Raise', pattern: 'core_flexion',
@@ -1986,6 +2068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hollow_body_hold', name: 'Hollow Body Hold', pattern: 'core_anti_extension',
@@ -2010,6 +2093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dumbbell_curl', name: 'Dumbbell Curl', pattern: 'isolation_upper',
@@ -2034,6 +2118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'incline_dumbbell_curl', name: 'Incline Dumbbell Curl', pattern: 'isolation_upper',
@@ -2058,6 +2143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'hammer_curl', name: 'Hammer Curl', pattern: 'isolation_upper',
@@ -2082,6 +2168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cable_curl', name: 'Cable Curl', pattern: 'isolation_upper',
@@ -2106,6 +2193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'band_curl', name: 'Band Curl', pattern: 'isolation_upper',
@@ -2130,6 +2218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'overhead_triceps_extension', name: 'Overhead Triceps Extension', pattern: 'isolation_upper',
@@ -2154,6 +2243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'lateral_raise', name: 'Lateral Raise', pattern: 'isolation_upper',
@@ -2178,6 +2268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cable_lateral_raise', name: 'Cable Lateral Raise', pattern: 'isolation_upper',
@@ -2202,6 +2293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'band_lateral_raise', name: 'Band Lateral Raise', pattern: 'isolation_upper',
@@ -2226,6 +2318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'face_pull', name: 'Cable Face Pull', pattern: 'isolation_upper',
@@ -2250,6 +2343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'band_face_pull', name: 'Band Face Pull', pattern: 'isolation_upper',
@@ -2274,6 +2368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'band_pull_apart', name: 'Band Pull-Apart', pattern: 'isolation_upper',
@@ -2298,6 +2393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'reverse_pec_deck', name: 'Reverse Pec Deck', pattern: 'isolation_upper',
@@ -2322,6 +2418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cable_external_rotation', name: 'Cable External Rotation', pattern: 'isolation_upper',
@@ -2346,6 +2443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'lying_leg_curl', name: 'Lying Leg Curl', pattern: 'isolation_lower',
@@ -2370,6 +2468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'seated_leg_curl', name: 'Seated Leg Curl', pattern: 'isolation_lower',
@@ -2394,6 +2493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'sliding_leg_curl', name: 'Sliding Leg Curl', pattern: 'isolation_lower',
@@ -2418,6 +2518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'nordic_curl', name: 'Nordic Hamstring Curl', pattern: 'isolation_lower',
@@ -2442,6 +2543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'leg_extension', name: 'Leg Extension', pattern: 'isolation_lower',
@@ -2466,6 +2568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'hip_abduction', name: 'Hip Abduction', pattern: 'isolation_lower',
@@ -2490,6 +2593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'standing_calf_raise', name: 'Standing Calf Raise', pattern: 'calf',
@@ -2500,7 +2604,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 30, repUnit: 'reps',
     repLow: 8, repHigh: 14,
     loadable: true, minIncrementKg: 5.0,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['ankle_loaded'],
     substitutions: ['single_leg_calf_raise', 'seated_calf_raise'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -2514,6 +2618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'seated_calf_raise', name: 'Seated Calf Raise', pattern: 'calf',
@@ -2524,7 +2629,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 30, repUnit: 'reps',
     repLow: 10, repHigh: 16,
     loadable: true, minIncrementKg: 2.5,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['ankle_loaded'],
     substitutions: ['standing_calf_raise'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -2538,6 +2643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'single_leg_calf_raise', name: 'Single-Leg Calf Raise', pattern: 'calf',
@@ -2548,7 +2654,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 12, repHigh: 20,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['ankle_loaded'],
     substitutions: ['standing_calf_raise'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -2562,6 +2668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'l_sit', name: 'L-Sit', pattern: 'skill',
@@ -2586,6 +2693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'tuck_planche_hold', name: 'Tuck Planche Hold', pattern: 'skill',
@@ -2596,7 +2704,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 10, repUnit: 'seconds',
     repLow: 5, repHigh: 20,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['wrist', 'shoulder_press'],
+    fatigueCost: 4, contraindications: ['shoulder_press', 'wrist'],
     substitutions: ['l_sit', 'plank'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'skill_drill', prescription: 'sets_duration_quality',
@@ -2610,6 +2718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'wall_handstand_hold', name: 'Wall Handstand Hold', pattern: 'skill',
@@ -2634,6 +2743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'archer_push_up', name: 'Archer Push-Up', pattern: 'horizontal_push',
@@ -2658,6 +2768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'ring_dip', name: 'Ring Dip', pattern: 'horizontal_push',
@@ -2682,6 +2793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'burpee', name: 'Burpee', pattern: 'conditioning',
@@ -2692,7 +2804,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 20, repHigh: 45,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_deep_flexion', 'wrist'],
+    fatigueCost: 4, contraindications: ['ankle_impact', 'knee_deep_flexion', 'knee_impact', 'wrist'],
     substitutions: ['squat_thrust', 'mountain_climber'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -2706,6 +2818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'squat_thrust', name: 'Squat Thrust', pattern: 'conditioning',
@@ -2730,6 +2843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'mountain_climber', name: 'Mountain Climber', pattern: 'conditioning',
@@ -2740,7 +2854,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 20, repHigh: 45,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['wrist'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact', 'wrist'],
     substitutions: ['high_knees'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -2754,6 +2868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'high_knees', name: 'High Knees', pattern: 'conditioning',
@@ -2764,7 +2879,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 20, repHigh: 45,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: [],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['marching_in_place'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -2778,6 +2893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'marching_in_place', name: 'Marching in Place', pattern: 'conditioning',
@@ -2802,6 +2918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'jumping_jack', name: 'Jumping Jack', pattern: 'conditioning',
@@ -2812,7 +2929,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: ['knee_impact'],
+    fatigueCost: 2, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['marching_in_place', 'high_knees'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -2826,6 +2943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'box_jump', name: 'Box Jump', pattern: 'plyometric',
@@ -2836,7 +2954,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 20, repUnit: 'reps',
     repLow: 3, repHigh: 6,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact', 'knee_deep_flexion'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_deep_flexion', 'knee_impact'],
     substitutions: ['squat_jump', 'step_up'], youthSafe: true,
     gluteEmphasis: false, notes: 'Stopped on landing quality, never on reps in reserve.',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -2850,6 +2968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'squat_jump', name: 'Squat Jump', pattern: 'plyometric',
@@ -2860,7 +2979,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'reps',
     repLow: 3, repHigh: 8,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['box_jump', 'bodyweight_squat'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -2874,6 +2993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'broad_jump', name: 'Broad Jump', pattern: 'plyometric',
@@ -2884,7 +3004,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'reps',
     repLow: 3, repHigh: 6,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['squat_jump'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -2898,6 +3018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'battle_ropes', name: 'Battle Ropes', pattern: 'conditioning',
@@ -2922,6 +3043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'downward_dog', name: 'Downward-Facing Dog', pattern: 'yoga_pose',
@@ -2932,7 +3054,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: ['wrist'],
+    fatigueCost: 1, contraindications: ['ankle_dorsiflexion', 'wrist'],
     substitutions: ['forward_fold', 'childs_pose'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -2946,6 +3068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'childs_pose', name: 'Child\'s Pose', pattern: 'yoga_pose',
@@ -2970,6 +3093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cat_cow', name: 'Cat-Cow', pattern: 'yoga_pose',
@@ -2994,6 +3118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cobra_pose', name: 'Cobra', pattern: 'yoga_pose',
@@ -3018,6 +3143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'warrior_two', name: 'Warrior II', pattern: 'yoga_pose',
@@ -3042,6 +3168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'triangle_pose', name: 'Triangle Pose', pattern: 'yoga_pose',
@@ -3066,6 +3193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pigeon_pose', name: 'Pigeon Pose', pattern: 'yoga_pose',
@@ -3076,7 +3204,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'seconds',
     repLow: 45, repHigh: 90,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 1, contraindications: ['hip_end_range', 'knee_deep_flexion'],
     substitutions: ['figure_four_stretch', 'ninety_ninety_hip'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -3090,6 +3218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'forward_fold', name: 'Standing Forward Fold', pattern: 'yoga_pose',
@@ -3114,6 +3243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'bridge_pose', name: 'Bridge Pose', pattern: 'yoga_pose',
@@ -3138,6 +3268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'sun_salutation', name: 'Sun Salutation', pattern: 'yoga_pose',
@@ -3162,6 +3293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'ninety_ninety_hip', name: '90/90 Hip Mobility', pattern: 'mobility',
@@ -3172,7 +3304,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 6, repHigh: 10,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['pigeon_pose', 'figure_four_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'mobility_drill', prescription: 'sets_duration_or_reps',
@@ -3186,6 +3318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'figure_four_stretch', name: 'Figure-Four Stretch', pattern: 'mobility',
@@ -3196,7 +3329,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['pigeon_pose'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'mobility_drill', prescription: 'sets_duration_or_reps',
@@ -3210,6 +3343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'couch_stretch', name: 'Couch Stretch', pattern: 'mobility',
@@ -3220,7 +3354,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 15, repUnit: 'seconds',
     repLow: 45, repHigh: 90,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 1, contraindications: ['hip_end_range', 'knee_deep_flexion'],
     substitutions: ['hip_flexor_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'mobility_drill', prescription: 'sets_duration_or_reps',
@@ -3234,6 +3368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'hip_flexor_stretch', name: 'Hip Flexor Stretch', pattern: 'mobility',
@@ -3258,6 +3393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'thoracic_extension', name: 'Thoracic Extension', pattern: 'mobility',
@@ -3282,6 +3418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'wall_slide', name: 'Wall Slide', pattern: 'mobility',
@@ -3306,6 +3443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'mobility_flow', name: 'Sun Salutation A', pattern: 'mobility',
@@ -3330,6 +3468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'diaphragmatic_breathing', name: 'Diaphragmatic Breathing', pattern: 'mobility',
@@ -3354,6 +3493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'joint_circles', name: 'Controlled Articular Rotations', pattern: 'mobility',
@@ -3378,6 +3518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pec_deck', name: 'Pec Deck', pattern: 'isolation_upper',
@@ -3402,6 +3543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'incline_chest_press_machine', name: 'Incline Chest Press Machine', pattern: 'horizontal_push',
@@ -3426,6 +3568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'converging_row_machine', name: 'Converging Row Machine', pattern: 'horizontal_pull',
@@ -3450,6 +3593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'straight_arm_pulldown', name: 'Straight-Arm Pulldown', pattern: 'isolation_upper',
@@ -3474,6 +3618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pullover_machine', name: 'Pullover Machine', pattern: 'isolation_upper',
@@ -3498,6 +3643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'assisted_pull_up_machine', name: 'Assisted Pull-Up Machine', pattern: 'vertical_pull',
@@ -3522,6 +3668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'preacher_curl_machine', name: 'Preacher Curl Machine', pattern: 'isolation_upper',
@@ -3546,6 +3693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'triceps_pushdown', name: 'Triceps Pushdown', pattern: 'isolation_upper',
@@ -3570,6 +3718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'dip_machine', name: 'Seated Dip Machine', pattern: 'isolation_upper',
@@ -3594,6 +3743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'shrug', name: 'Dumbbell Shrug', pattern: 'isolation_upper',
@@ -3618,6 +3768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'upright_row', name: 'Cable Upright Row', pattern: 'isolation_upper',
@@ -3642,6 +3793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'machine_lateral_raise', name: 'Machine Lateral Raise', pattern: 'isolation_upper',
@@ -3666,6 +3818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'hip_adduction', name: 'Hip Adduction Machine', pattern: 'isolation_lower',
@@ -3690,6 +3843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'copenhagen_plank', name: 'Copenhagen Plank', pattern: 'isolation_lower',
@@ -3714,6 +3868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cable_kickback', name: 'Cable Glute Kickback', pattern: 'isolation_lower',
@@ -3738,6 +3893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cable_pull_through', name: 'Cable Pull-Through', pattern: 'hip_hinge',
@@ -3762,6 +3918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'belt_squat', name: 'Belt Squat', pattern: 'squat',
@@ -3786,6 +3943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pendulum_squat', name: 'Pendulum Squat', pattern: 'squat',
@@ -3796,7 +3954,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 45, repUnit: 'reps',
     repLow: 8, repHigh: 12,
     loadable: true, minIncrementKg: 5.0,
-    fatigueCost: 4, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['hack_squat', 'leg_press'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -3810,6 +3968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'calf_press_leg_press', name: 'Calf Press on Leg Press', pattern: 'calf',
@@ -3820,7 +3979,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 35, repUnit: 'reps',
     repLow: 10, repHigh: 15,
     loadable: true, minIncrementKg: 5.0,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['ankle_loaded'],
     substitutions: ['standing_calf_raise', 'single_leg_calf_raise'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -3834,6 +3993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'machine_crunch', name: 'Machine Crunch', pattern: 'core_flexion',
@@ -3858,6 +4018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'cable_crunch', name: 'Cable Crunch', pattern: 'core_flexion',
@@ -3882,6 +4043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'back_extension_machine', name: 'Back Extension Machine', pattern: 'hip_hinge',
@@ -3906,6 +4068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hip_thrust_smith', name: 'Smith Machine Hip Thrust', pattern: 'hip_hinge',
@@ -3930,6 +4093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'landmine_row', name: 'Landmine Row', pattern: 'horizontal_pull',
@@ -3954,6 +4118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'landmine_squat', name: 'Landmine Squat', pattern: 'squat',
@@ -3978,6 +4143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_hundred', name: 'The Hundred', pattern: 'core_anti_extension',
@@ -4002,6 +4168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_roll_up', name: 'Roll-Up', pattern: 'core_flexion',
@@ -4026,6 +4193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_single_leg_circle', name: 'Single Leg Circles', pattern: 'mobility',
@@ -4050,6 +4218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pilates_single_leg_stretch', name: 'Single Leg Stretch', pattern: 'core_flexion',
@@ -4074,6 +4243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_double_leg_stretch', name: 'Double Leg Stretch', pattern: 'core_anti_extension',
@@ -4098,6 +4268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_scissors', name: 'Pilates Scissors', pattern: 'core_anti_extension',
@@ -4122,6 +4293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_teaser', name: 'Teaser', pattern: 'core_flexion',
@@ -4146,6 +4318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pilates_swan', name: 'Swan', pattern: 'mobility',
@@ -4170,6 +4343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pilates_saw', name: 'Saw', pattern: 'mobility',
@@ -4194,6 +4368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pilates_spine_stretch', name: 'Spine Stretch Forward', pattern: 'mobility',
@@ -4218,6 +4393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pilates_side_kick', name: 'Side Kick Series', pattern: 'isolation_lower',
@@ -4242,6 +4418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pilates_clam', name: 'Clam', pattern: 'isolation_lower',
@@ -4266,6 +4443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'pilates_swimming', name: 'Pilates Swimming', pattern: 'core_anti_extension',
@@ -4290,6 +4468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'reformer_footwork', name: 'Reformer Footwork', pattern: 'squat',
@@ -4314,6 +4493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'reformer_long_stretch', name: 'Reformer Long Stretch', pattern: 'core_anti_extension',
@@ -4338,6 +4518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'reformer_elephant', name: 'Reformer Elephant', pattern: 'mobility',
@@ -4362,6 +4543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'reformer_knee_stretch', name: 'Reformer Knee Stretch', pattern: 'core_flexion',
@@ -4386,6 +4568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'reformer_short_box', name: 'Reformer Short Box', pattern: 'core_flexion',
@@ -4410,6 +4593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'reformer_mermaid', name: 'Reformer Mermaid', pattern: 'mobility',
@@ -4434,6 +4618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'chair_pose', name: 'Chair Pose', pattern: 'yoga_pose',
@@ -4458,6 +4643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'tree_pose', name: 'Tree Pose', pattern: 'yoga_pose',
@@ -4482,6 +4668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'warrior_one', name: 'Warrior I', pattern: 'yoga_pose',
@@ -4506,6 +4693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'warrior_three', name: 'Warrior III', pattern: 'yoga_pose',
@@ -4530,6 +4718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'half_moon', name: 'Half Moon', pattern: 'yoga_pose',
@@ -4554,6 +4743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'extended_side_angle', name: 'Extended Side Angle', pattern: 'yoga_pose',
@@ -4578,6 +4768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'revolved_triangle', name: 'Revolved Triangle', pattern: 'yoga_pose',
@@ -4602,6 +4793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'crow_pose', name: 'Crow Pose', pattern: 'skill',
@@ -4626,6 +4818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'boat_pose', name: 'Boat Pose', pattern: 'core_anti_extension',
@@ -4650,6 +4843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'camel_pose', name: 'Camel Pose', pattern: 'yoga_pose',
@@ -4660,7 +4854,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 20, repHigh: 40,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: ['lumbar_extension', 'knee_deep_flexion'],
+    fatigueCost: 1, contraindications: ['knee_deep_flexion', 'lumbar_extension'],
     substitutions: ['cobra_pose', 'couch_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -4674,6 +4868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'bow_pose', name: 'Bow Pose', pattern: 'yoga_pose',
@@ -4698,6 +4893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'locust_pose', name: 'Locust Pose', pattern: 'yoga_pose',
@@ -4722,6 +4918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'seated_forward_fold', name: 'Seated Forward Fold', pattern: 'yoga_pose',
@@ -4732,7 +4929,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 45, repHigh: 90,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: ['lumbar_flexion'],
+    fatigueCost: 1, contraindications: ['hip_end_range', 'lumbar_flexion'],
     substitutions: ['forward_fold', 'pilates_spine_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -4746,6 +4943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'butterfly_stretch', name: 'Butterfly', pattern: 'mobility',
@@ -4756,7 +4954,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 45, repHigh: 90,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['ninety_ninety_hip'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'mobility_drill', prescription: 'sets_duration_or_reps',
@@ -4770,6 +4968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'happy_baby', name: 'Happy Baby', pattern: 'mobility',
@@ -4780,7 +4979,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['butterfly_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'mobility_drill', prescription: 'sets_duration_or_reps',
@@ -4794,6 +4993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'supine_twist', name: 'Supine Twist', pattern: 'mobility',
@@ -4818,6 +5018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'legs_up_wall', name: 'Legs Up the Wall', pattern: 'yoga_pose',
@@ -4842,6 +5043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'corpse_pose', name: 'Corpse Pose', pattern: 'yoga_pose',
@@ -4866,6 +5068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'chaturanga', name: 'Chaturanga', pattern: 'horizontal_push',
@@ -4890,6 +5093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'upward_dog', name: 'Upward-Facing Dog', pattern: 'yoga_pose',
@@ -4914,6 +5118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'low_lunge', name: 'Low Lunge', pattern: 'yoga_pose',
@@ -4924,7 +5129,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['hip_flexor_stretch', 'couch_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -4938,6 +5143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'lizard_pose', name: 'Lizard Pose', pattern: 'mobility',
@@ -4948,7 +5154,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['low_lunge', 'pigeon_pose'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'mobility_drill', prescription: 'sets_duration_or_reps',
@@ -4962,6 +5168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'garland_pose', name: 'Garland Pose', pattern: 'yoga_pose',
@@ -4972,7 +5179,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 30, repHigh: 60,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 1, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'hip_end_range', 'knee_deep_flexion'],
     substitutions: ['butterfly_stretch'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -4986,6 +5193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'eagle_pose', name: 'Eagle Pose', pattern: 'yoga_pose',
@@ -4996,7 +5204,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'seconds',
     repLow: 20, repHigh: 40,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 1, contraindications: [],
+    fatigueCost: 1, contraindications: ['hip_end_range'],
     substitutions: ['tree_pose'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'yoga_pose', prescription: 'hold_breaths_or_duration',
@@ -5010,6 +5218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'dancer_pose', name: 'Dancer Pose', pattern: 'yoga_pose',
@@ -5034,6 +5243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'sled_push', name: 'Sled Push', pattern: 'conditioning',
@@ -5058,6 +5268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'sled_pull', name: 'Sled Pull', pattern: 'conditioning',
@@ -5082,6 +5293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'burpee_broad_jump', name: 'Burpee Broad Jump', pattern: 'conditioning',
@@ -5092,7 +5304,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 10, repUnit: 'seconds',
     repLow: 45, repHigh: 120,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 5, contraindications: ['knee_impact', 'wrist'],
+    fatigueCost: 5, contraindications: ['ankle_impact', 'knee_impact', 'wrist'],
     substitutions: ['burpee', 'broad_jump'], youthSafe: true,
     gluteEmphasis: false, notes: 'Pacing here decides the race more than fitness does. Practised at a rhythm that can be held, never sprinted.',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -5106,6 +5318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'sandbag_lunge', name: 'Sandbag Lunge', pattern: 'lunge',
@@ -5130,6 +5343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'wall_ball', name: 'Wall Ball', pattern: 'squat',
@@ -5140,7 +5354,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 20, repUnit: 'reps',
     repLow: 15, repHigh: 30,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 4, contraindications: ['shoulder_overhead', 'knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion', 'shoulder_overhead'],
     substitutions: ['thruster', 'goblet_squat'], youthSafe: true,
     gluteEmphasis: true, notes: 'A squat and a press that never lets the shoulders rest. The last station of a Hyrox race for a reason.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -5154,6 +5368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'thruster', name: 'Thruster', pattern: 'squat',
@@ -5164,7 +5379,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 45, repUnit: 'reps',
     repLow: 6, repHigh: 12,
     loadable: true, minIncrementKg: 2.5,
-    fatigueCost: 5, contraindications: ['shoulder_overhead', 'knee_deep_flexion'],
+    fatigueCost: 5, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion', 'shoulder_overhead'],
     substitutions: ['wall_ball', 'goblet_squat'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -5178,6 +5393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'power_clean', name: 'Power Clean', pattern: 'hip_hinge',
@@ -5202,6 +5418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'power_snatch', name: 'Power Snatch', pattern: 'hip_hinge',
@@ -5226,6 +5443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'clean_and_jerk', name: 'Clean and Jerk', pattern: 'hip_hinge',
@@ -5250,6 +5468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'push_press', name: 'Push Press', pattern: 'vertical_push',
@@ -5274,6 +5493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'overhead_squat', name: 'Overhead Squat', pattern: 'squat',
@@ -5284,7 +5504,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 60, repUnit: 'reps',
     repLow: 3, repHigh: 8,
     loadable: true, minIncrementKg: 2.5,
-    fatigueCost: 4, contraindications: ['shoulder_overhead', 'knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion', 'shoulder_overhead'],
     substitutions: ['barbell_front_squat', 'goblet_squat'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -5298,6 +5518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'front_rack_lunge', name: 'Front Rack Lunge', pattern: 'lunge',
@@ -5322,6 +5543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'double_under', name: 'Double Under', pattern: 'conditioning',
@@ -5332,7 +5554,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 10, repUnit: 'seconds',
     repLow: 30, repHigh: 120,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['single_under', 'high_knees'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -5346,6 +5568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_under', name: 'Skipping', pattern: 'conditioning',
@@ -5356,7 +5579,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 10, repUnit: 'seconds',
     repLow: 45, repHigh: 180,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: ['knee_impact'],
+    fatigueCost: 2, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['high_knees', 'marching_in_place'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -5370,6 +5593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'toes_to_bar', name: 'Toes to Bar', pattern: 'core_flexion',
@@ -5394,6 +5618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'kettlebell_clean', name: 'Kettlebell Clean', pattern: 'hip_hinge',
@@ -5418,6 +5643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'turkish_get_up', name: 'Turkish Get-Up', pattern: 'skill',
@@ -5442,6 +5668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: false,
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'devils_press', name: 'Devil\'s Press', pattern: 'conditioning',
@@ -5452,7 +5679,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'seconds',
     repLow: 30, repHigh: 90,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 5, contraindications: ['shoulder_overhead', 'lumbar_flexion'],
+    fatigueCost: 5, contraindications: ['lumbar_flexion', 'shoulder_overhead'],
     substitutions: ['burpee', 'kettlebell_swing'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -5466,6 +5693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'man_maker', name: 'Man Maker', pattern: 'conditioning',
@@ -5476,7 +5704,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'seconds',
     repLow: 30, repHigh: 90,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 5, contraindications: ['shoulder_overhead', 'lumbar_flexion'],
+    fatigueCost: 5, contraindications: ['lumbar_flexion', 'shoulder_overhead'],
     substitutions: ['devils_press', 'burpee'], youthSafe: false,
     gluteEmphasis: false, notes: '',
     entityType: 'conditioning_complex', prescription: 'rounds_work_rest',
@@ -5490,6 +5718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'sandbag_clean', name: 'Sandbag Clean', pattern: 'hip_hinge',
@@ -5514,6 +5743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'tire_flip', name: 'Tire Flip', pattern: 'hip_hinge',
@@ -5538,6 +5768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bear_crawl', name: 'Bear Crawl', pattern: 'conditioning',
@@ -5562,6 +5793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'sled_drag', name: 'Sled Drag', pattern: 'conditioning',
@@ -5586,6 +5818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'overhead_carry', name: 'Overhead Carry', pattern: 'carry',
@@ -5610,6 +5843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'front_rack_carry', name: 'Front Rack Carry', pattern: 'carry',
@@ -5634,6 +5868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'sandbag_carry', name: 'Sandbag Carry', pattern: 'carry',
@@ -5658,6 +5893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'yoke_walk', name: 'Yoke Walk', pattern: 'carry',
@@ -5682,6 +5918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'zercher_carry', name: 'Zercher Carry', pattern: 'carry',
@@ -5706,6 +5943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'waiter_walk', name: 'Waiter Walk', pattern: 'carry',
@@ -5730,6 +5968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bottoms_up_carry', name: 'Bottoms-Up Carry', pattern: 'carry',
@@ -5754,6 +5993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'mixed_carry', name: 'Mixed Carry', pattern: 'carry',
@@ -5778,6 +6018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'depth_jump', name: 'Depth Jump', pattern: 'plyometric',
@@ -5788,7 +6029,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 25, repUnit: 'reps',
     repLow: 3, repHigh: 6,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_impact', 'knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['ankle_impact', 'knee_deep_flexion', 'knee_impact'],
     substitutions: ['box_jump', 'squat_jump'], youthSafe: false,
     gluteEmphasis: false, notes: 'The highest-force plyometric here. Needs a real base and a landing that has been coached.',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5802,6 +6043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bounding', name: 'Bounding', pattern: 'plyometric',
@@ -5812,7 +6054,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 15, repUnit: 'seconds',
     repLow: 15, repHigh: 40,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_impact'],
+    fatigueCost: 4, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['broad_jump', 'high_knees'], youthSafe: true,
     gluteEmphasis: true, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5826,6 +6068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'lateral_bound', name: 'Lateral Bound', pattern: 'plyometric',
@@ -5836,7 +6079,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 4, repHigh: 8,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['lateral_hop', 'squat_jump'], youthSafe: true,
     gluteEmphasis: true, notes: 'The only jumping in the library that trains the sideways direction, which is where a lot of knees are hurt.',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5850,6 +6093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'lateral_hop', name: 'Lateral Hop', pattern: 'plyometric',
@@ -5860,7 +6104,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'seconds',
     repLow: 15, repHigh: 30,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: ['knee_impact'],
+    fatigueCost: 2, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['pogo_hop', 'jumping_jack'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5874,6 +6118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'pogo_hop', name: 'Pogo Hop', pattern: 'plyometric',
@@ -5884,7 +6129,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'seconds',
     repLow: 15, repHigh: 40,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: ['knee_impact'],
+    fatigueCost: 2, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['single_under', 'lateral_hop'], youthSafe: true,
     gluteEmphasis: false, notes: 'Stiff ankles, quick ground contact. The gentlest entry into jumping and the best preparation for running.',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5898,6 +6143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'tuck_jump', name: 'Tuck Jump', pattern: 'plyometric',
@@ -5908,7 +6154,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 5, repUnit: 'reps',
     repLow: 4, repHigh: 8,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['squat_jump', 'high_knees'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5922,6 +6168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'split_jump', name: 'Split Jump', pattern: 'plyometric',
@@ -5932,7 +6179,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 5, repUnit: 'reps',
     repLow: 4, repHigh: 8,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['squat_jump', 'reverse_lunge'], youthSafe: true,
     gluteEmphasis: true, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5946,6 +6193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_leg_hop', name: 'Single-Leg Hop', pattern: 'plyometric',
@@ -5956,7 +6204,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 4, repHigh: 10,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['pogo_hop', 'lateral_hop'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5970,6 +6218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hurdle_hop', name: 'Hurdle Hop', pattern: 'plyometric',
@@ -5980,7 +6229,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 30, repUnit: 'reps',
     repLow: 5, repHigh: 10,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_impact'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['pogo_hop', 'box_jump'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -5994,6 +6243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'medicine_ball_slam', name: 'Medicine Ball Slam', pattern: 'plyometric',
@@ -6004,7 +6254,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'reps',
     repLow: 6, repHigh: 12,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 3, contraindications: ['lumbar_flexion'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact', 'lumbar_flexion'],
     substitutions: ['kettlebell_swing', 'battle_ropes'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -6018,6 +6268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'medicine_ball_chest_pass', name: 'Medicine Ball Chest Pass', pattern: 'plyometric',
@@ -6028,7 +6279,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'reps',
     repLow: 5, repHigh: 10,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 2, contraindications: [],
+    fatigueCost: 2, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['push_up', 'medicine_ball_slam'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -6042,6 +6293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'medicine_ball_rotational_throw', name: 'Rotational Throw', pattern: 'plyometric',
@@ -6052,7 +6304,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 15, repUnit: 'reps',
     repLow: 5, repHigh: 10,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 3, contraindications: ['lumbar_flexion'],
+    fatigueCost: 3, contraindications: ['ankle_impact', 'knee_impact', 'lumbar_flexion'],
     substitutions: ['cable_chop', 'pallof_press'], youthSafe: true,
     gluteEmphasis: false, notes: 'The only true rotational power movement here. Slow and controlled defeats the point.',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -6066,6 +6318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'broad_jump_repeat', name: 'Repeat Broad Jump', pattern: 'plyometric',
@@ -6076,7 +6329,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'reps',
     repLow: 3, repHigh: 6,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_impact'],
+    fatigueCost: 4, contraindications: ['ankle_impact', 'knee_impact'],
     substitutions: ['broad_jump', 'bounding'], youthSafe: true,
     gluteEmphasis: true, notes: '',
     entityType: 'plyometric', prescription: 'sets_reps_quality',
@@ -6090,6 +6343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'landmine_rotation', name: 'Landmine Rotation', pattern: 'core_anti_rotation',
@@ -6114,6 +6368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'cable_chop', name: 'Cable Chop', pattern: 'core_anti_rotation',
@@ -6138,6 +6393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'cable_lift', name: 'Cable Lift', pattern: 'core_anti_rotation',
@@ -6162,6 +6418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'renegade_row', name: 'Renegade Row', pattern: 'core_anti_rotation',
@@ -6186,6 +6443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'suitcase_deadlift', name: 'Suitcase Deadlift', pattern: 'core_anti_rotation',
@@ -6210,6 +6468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'half_kneeling_press', name: 'Half-Kneeling Press', pattern: 'core_anti_rotation',
@@ -6234,6 +6493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'plank_pull_through', name: 'Plank Pull-Through', pattern: 'core_anti_rotation',
@@ -6258,6 +6518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bird_dog_row', name: 'Bird-Dog Row', pattern: 'core_anti_rotation',
@@ -6282,6 +6543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_arm_dumbbell_press', name: 'Single-Arm Dumbbell Press', pattern: 'vertical_push',
@@ -6306,6 +6568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_arm_floor_press', name: 'Single-Arm Floor Press', pattern: 'horizontal_push',
@@ -6330,6 +6593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_arm_bench_press', name: 'Single-Arm Dumbbell Bench Press', pattern: 'horizontal_push',
@@ -6354,6 +6618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_arm_landmine_press', name: 'Single-Arm Landmine Press', pattern: 'vertical_push',
@@ -6378,6 +6643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_arm_machine_press', name: 'Single-Arm Machine Press', pattern: 'horizontal_push',
@@ -6402,6 +6668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'arnold_press', name: 'Arnold Press', pattern: 'vertical_push',
@@ -6426,6 +6693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'front_raise', name: 'Front Raise', pattern: 'isolation_upper',
@@ -6450,6 +6718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'svend_press', name: 'Svend Press', pattern: 'isolation_upper',
@@ -6474,6 +6743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'decline_press', name: 'Decline Press', pattern: 'horizontal_push',
@@ -6498,6 +6768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_leg_stand', name: 'Single-Leg Stand', pattern: 'balance',
@@ -6522,6 +6793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'tandem_stance', name: 'Tandem Stance', pattern: 'balance',
@@ -6546,6 +6818,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'heel_toe_walk', name: 'Heel-to-Toe Walk', pattern: 'balance',
@@ -6570,6 +6843,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_leg_reach', name: 'Single-Leg Reach', pattern: 'balance',
@@ -6594,6 +6868,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'airplane_balance', name: 'Airplane Balance', pattern: 'balance',
@@ -6618,6 +6893,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'eyes_closed_balance', name: 'Single-Leg Stand, Eyes Closed', pattern: 'balance',
@@ -6642,6 +6918,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'step_down_control', name: 'Controlled Step-Down', pattern: 'balance',
@@ -6666,6 +6943,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'bent_over_dumbbell_row', name: 'Bent-Over Dumbbell Row', pattern: 'horizontal_pull',
@@ -6676,7 +6954,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 20, repUnit: 'reps',
     repLow: 8, repHigh: 12,
     loadable: true, minIncrementKg: 2.0,
-    fatigueCost: 3, contraindications: ['low_back_flexion'],
+    fatigueCost: 3, contraindications: ['lumbar_flexion'],
     substitutions: ['one_arm_dumbbell_row', 'chest_supported_row'], youthSafe: true,
     gluteEmphasis: false, notes: 'Both dumbbells, hinged and held. Needs no bench, which is the entire point of it being here.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -6690,6 +6968,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'kettlebell_bent_over_row', name: 'Bent-Over Kettlebell Row', pattern: 'horizontal_pull',
@@ -6700,7 +6979,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'reps',
     repLow: 8, repHigh: 12,
     loadable: true, minIncrementKg: 4.0,
-    fatigueCost: 3, contraindications: ['low_back_flexion'],
+    fatigueCost: 3, contraindications: ['lumbar_flexion'],
     substitutions: ['bent_over_dumbbell_row'], youthSafe: true,
     gluteEmphasis: false, notes: '',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -6714,6 +6993,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_bent_over_row', name: 'Bent-Over Band Row', pattern: 'horizontal_pull',
@@ -6738,6 +7018,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'prone_floor_row', name: 'Prone Floor Row', pattern: 'horizontal_pull',
@@ -6762,6 +7043,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'table_row', name: 'Table Row', pattern: 'horizontal_pull',
@@ -6786,6 +7068,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'towel_door_row', name: 'Towel Door Row', pattern: 'horizontal_pull',
@@ -6810,6 +7093,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_lat_pullover', name: 'Band Lat Pullover', pattern: 'vertical_pull',
@@ -6834,6 +7118,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'dumbbell_pullover', name: 'Dumbbell Pullover', pattern: 'vertical_pull',
@@ -6858,6 +7143,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'floor_pullover', name: 'Floor Pullover', pattern: 'vertical_pull',
@@ -6882,6 +7168,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'towel_door_pulldown', name: 'Towel Door Pulldown', pattern: 'vertical_pull',
@@ -6906,6 +7193,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'band_straight_arm_pulldown', name: 'Band Straight-Arm Pulldown', pattern: 'vertical_pull',
@@ -6930,6 +7218,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'wall_sit', name: 'Wall Sit', pattern: 'squat',
@@ -6954,6 +7243,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'cossack_squat', name: 'Cossack Squat', pattern: 'squat',
@@ -6964,7 +7254,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 5, repHigh: 10,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 3, contraindications: ['knee_deep_flexion', 'groin'],
+    fatigueCost: 3, contraindications: ['ankle_dorsiflexion', 'groin', 'hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['lateral_lunge', 'split_squat'], youthSafe: true,
     gluteEmphasis: false, notes: 'The only common squat that trains the frontal plane, which is where most people have no strength at all.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -6978,6 +7268,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'lateral_lunge', name: 'Lateral Lunge', pattern: 'lunge',
@@ -7002,6 +7293,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'shrimp_squat', name: 'Shrimp Squat', pattern: 'squat',
@@ -7012,7 +7304,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: true, setupSeconds: 10, repUnit: 'reps',
     repLow: 3, repHigh: 8,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_deep_flexion'],
+    fatigueCost: 4, contraindications: ['ankle_dorsiflexion', 'hip_deep_flexion', 'knee_deep_flexion'],
     substitutions: ['bulgarian_split_squat', 'pistol_squat'], youthSafe: false,
     gluteEmphasis: false, notes: 'The single-leg squat that needs no balance beam and no ankle mobility miracle, unlike the pistol.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -7026,6 +7318,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'chair_step_up', name: 'Chair Step-Up', pattern: 'lunge',
@@ -7050,6 +7343,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'single_leg_glute_bridge', name: 'Single-Leg Glute Bridge', pattern: 'hip_hinge',
@@ -7074,6 +7368,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'nordic_eccentric', name: 'Nordic Curl, Eccentric', pattern: 'hip_hinge',
@@ -7084,7 +7379,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 30, repUnit: 'reps',
     repLow: 3, repHigh: 6,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 4, contraindications: ['knee_flexion'],
+    fatigueCost: 4, contraindications: ['knee_deep_flexion'],
     substitutions: ['hamstring_walkout', 'single_leg_romanian_deadlift'], youthSafe: false,
     gluteEmphasis: false, notes: 'The best-evidenced hamstring-injury reducer there is, and brutally hard on the first attempt. Lowered slowly, hands ready to catch.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -7098,6 +7393,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: false, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'hamstring_walkout', name: 'Hamstring Walkout', pattern: 'hip_hinge',
@@ -7122,6 +7418,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_good_morning', name: 'Band Good Morning', pattern: 'hip_hinge',
@@ -7132,7 +7429,7 @@ export const MOVEMENTS: Movement[] = [
     unilateral: false, setupSeconds: 15, repUnit: 'reps',
     repLow: 12, repHigh: 20,
     loadable: false, minIncrementKg: null,
-    fatigueCost: 2, contraindications: ['low_back_flexion'],
+    fatigueCost: 2, contraindications: ['lumbar_flexion'],
     substitutions: ['glute_bridge'], youthSafe: true,
     gluteEmphasis: false, notes: 'Band round the neck and under the feet. Teaches the hinge with the resistance in the right place and nothing to drop.',
     entityType: 'resistance_dynamic', prescription: 'sets_reps_load',
@@ -7146,6 +7443,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'band_overhead_press', name: 'Band Overhead Press', pattern: 'vertical_push',
@@ -7170,6 +7468,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'wall_walk', name: 'Wall Walk', pattern: 'vertical_push',
@@ -7194,6 +7493,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'backpack_carry', name: 'Loaded Backpack Carry', pattern: 'carry',
@@ -7218,6 +7518,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'suitcase_hold', name: 'Suitcase Hold', pattern: 'carry',
@@ -7242,6 +7543,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'tibialis_raise', name: 'Tibialis Raise', pattern: 'isolation_lower',
@@ -7266,6 +7568,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'heel_walk', name: 'Heel Walk', pattern: 'isolation_lower',
@@ -7290,6 +7593,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'short_foot', name: 'Short Foot Drill', pattern: 'isolation_lower',
@@ -7314,6 +7618,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'plate_pinch', name: 'Plate Pinch', pattern: 'isolation_upper',
@@ -7338,6 +7643,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'towel_hang', name: 'Towel Hang', pattern: 'isolation_upper',
@@ -7362,6 +7668,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'wrist_roller', name: 'Wrist Roller', pattern: 'isolation_upper',
@@ -7386,6 +7693,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'neck_isometric', name: 'Neck Isometric', pattern: 'isolation_upper',
@@ -7410,6 +7718,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'chin_tuck', name: 'Chin Tuck', pattern: 'isolation_upper',
@@ -7434,6 +7743,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
   {
     id: 'side_plank_knees', name: 'Side Plank from Knees', pattern: 'core_anti_lateral_flexion',
@@ -7458,6 +7768,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'primary',
   },
   {
     id: 'dumbbell_side_bend', name: 'Dumbbell Side Bend', pattern: 'core_anti_lateral_flexion',
@@ -7482,6 +7793,7 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
+    role: 'accessory',
   },
 ]
 
