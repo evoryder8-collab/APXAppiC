@@ -33,6 +33,7 @@
 		1EDB0BA3C3FE40F5B256B247 /* APEXModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86D28E97F232A4D446A7C4EF /* APEXModels.swift */; };
 		1FAE544A531915497096AEE3 /* musclemap.html in Resources */ = {isa = PBXBuildFile; fileRef = BAA3072D365C90BF052C5711 /* musclemap.html */; };
 		22113A8279C4CE646779A26D /* iulian.webp in Resources */ = {isa = PBXBuildFile; fileRef = 16EDB23CA552311D34D8B188 /* iulian.webp */; };
+		2219AE8253847A3B5DE9AB77 /* SeedVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */; };
 		22A8AD7876D6B713C2E13474 /* HydrationGaugeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687976EA3575F155FEE0785C /* HydrationGaugeTests.swift */; };
 		276AC64EAF45746C0E88285C /* ProgressDepthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7AFB3ADF98796F3341BF2F /* ProgressDepthTests.swift */; };
 		299721ACD1752C4F2B392967 /* strength-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = FE90D902B985B28E7751EE26 /* strength-parity.json */; };
@@ -144,6 +145,7 @@
 		C643CC39DC869012CA364630 /* torso_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 8B1D338388006FFDC7405C7B /* torso_bump.jpg */; };
 		C6A53F1DFA3F58EB593FD426 /* HealthHistoryReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E7828E22BB80EC824A0F3D /* HealthHistoryReader.swift */; };
 		C80416FA0BE7E74B2C4562E9 /* ProgressionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 393564C9A7237B2AE2880001 /* ProgressionEngine.swift */; };
+		C98E0A6032DE94CA060EDB8C /* SeedVersionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F70B84ADC205AAC35444B228 /* SeedVersionTests.swift */; };
 		CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D65A340828BC773255E99E7 /* engine-parity.json */; };
 		CC981A1BC1441EEE5769C013 /* OrbitPrivacyArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */; };
 		CD8B1FE6660C170BB63D95A2 /* ManualRouteEditorView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 82A68654DF6F4B4B04D4F51F /* ManualRouteEditorView.swift */; };
@@ -363,6 +365,7 @@
 		8BDCFCD44A40EFED71D0A623 /* ProgressCaptureBriefing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressCaptureBriefing.swift; sourceTree = "<group>"; };
 		8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngineTests.swift; sourceTree = "<group>"; };
 		8D471F877A5E7E72F1A31D06 /* hydration-male.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-male.html"; sourceTree = "<group>"; };
+		907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedVersion.swift; sourceTree = "<group>"; };
 		91D36C2E80B56012F830D74B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
 		946DC4125357F8D2D3ACEFE8 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		95409AE77B69B4A6848B009E /* OrbitIntegrationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitIntegrationsTests.swift; sourceTree = "<group>"; };
@@ -421,6 +424,7 @@
 		F40E903D44C28E09F0F689EE /* LiveRunView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LiveRunView.swift; sourceTree = "<group>"; };
 		F4FA38B5FE553198BEC0A229 /* PersonaSelectorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PersonaSelectorView.swift; sourceTree = "<group>"; };
 		F60F21F488DA31129354FF26 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = ro.lproj/Localizable.strings; sourceTree = "<group>"; };
+		F70B84ADC205AAC35444B228 /* SeedVersionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedVersionTests.swift; sourceTree = "<group>"; };
 		F7C1B48D78D9A7D0C7F3551A /* RecoveryAssessment.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryAssessment.swift; sourceTree = "<group>"; };
 		F9FA7F456BCA3A39E46A833E /* OrbitRunMetricsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitRunMetricsTests.swift; sourceTree = "<group>"; };
 		FAB2550085FA9EB994446FBC /* MealTimingAndRecoveryTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealTimingAndRecoveryTests.swift; sourceTree = "<group>"; };
@@ -641,6 +645,7 @@
 				05CB1AA98B9C36622C166748 /* ProgressionEngineTests.swift */,
 				CD51249FC67F5ACDBA5D956D /* ProgressParityTests.swift */,
 				88F252794ED5E0B0DE25795D /* ProgressPosterRenderTests.swift */,
+				F70B84ADC205AAC35444B228 /* SeedVersionTests.swift */,
 				20D9ABA6AE517DC03269E042 /* SimpleHomeLogicTests.swift */,
 				7F212F03DC5D6145E4F50236 /* StrengthProgressParityTests.swift */,
 				3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */,
@@ -820,6 +825,7 @@
 				393564C9A7237B2AE2880001 /* ProgressionEngine.swift */,
 				C60B17BD340219024A2F7711 /* ProgressPhotoEngine.swift */,
 				F7C1B48D78D9A7D0C7F3551A /* RecoveryAssessment.swift */,
+				907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */,
 				5190A21466A8A95661FAA6BA /* StrengthProgress.swift */,
 				6D5F4855EBFA6D7681E2FF1E /* TrainingInduction.swift */,
 				B64FC8D2C776DE0378E7E796 /* TrainingPlanEngine.swift */,
@@ -1164,6 +1170,7 @@
 				33A0833F2A4D153E9206F1FC /* RoutePlannerView.swift in Sources */,
 				93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */,
 				47B1968835CB764AAE8CB866 /* RunningShoesView.swift in Sources */,
+				2219AE8253847A3B5DE9AB77 /* SeedVersion.swift in Sources */,
 				E56AE4DFDCB1970EE8214CFE /* SettingsView.swift in Sources */,
 				4E8109D8E62DD0784BBFDF3A /* SimpleHomeView.swift in Sources */,
 				8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */,
@@ -1222,6 +1229,7 @@
 				BA11082E82BD711C420CB814 /* ProgressParityTests.swift in Sources */,
 				D70129BF2D88B35DF70F9382 /* ProgressPosterRenderTests.swift in Sources */,
 				EA0AE539E600E7BCE242BC5B /* ProgressionEngineTests.swift in Sources */,
+				C98E0A6032DE94CA060EDB8C /* SeedVersionTests.swift in Sources */,
 				376BEAEBCF7B7C3D48642471 /* SimpleHomeLogicTests.swift in Sources */,
 				9CE07DE926FB1F4D3357AD92 /* StrengthProgressParityTests.swift in Sources */,
 				EBF350EC7ADE89A83BCF504D /* TrainingAdjustmentEngineTests.swift in Sources */,
