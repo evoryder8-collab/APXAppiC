@@ -686,6 +686,402 @@ mv("joint_circles", "Pain-Free Joint Circles", "mobility", ["full_body"], [],
    fatigue=1, disciplines=("mobility",), subs=["mobility_flow"],
    notes="Named for its own rule: the range is whatever does not hurt.")
 
+# ------------------------------------------------------------- GYM MACHINES
+mv("pec_deck", "Pec Deck", "isolation_upper", ["chest"], [], ["pec_deck_machine"],
+   skill=1, stability=1, setup=30, low=10, high=15, increment=2.5, fatigue=2,
+   contra=["shoulder_press"], subs=["cable_fly", "machine_chest_press"])
+mv("cable_crossover", "Cable Crossover", "isolation_upper", ["chest"], [],
+   ["cable_stack"], skill=2, setup=45, low=10, high=15, increment=1.0,
+   fatigue=2, contra=["shoulder_press"], subs=["pec_deck", "cable_fly"])
+mv("incline_chest_press_machine", "Incline Chest Press Machine", "horizontal_push",
+   ["chest", "front_delts"], ["triceps"], ["chest_press_machine"], skill=1,
+   stability=1, setup=35, low=8, high=12, increment=2.5, fatigue=3,
+   subs=["machine_chest_press", "incline_dumbbell_press"])
+mv("converging_row_machine", "Converging Row Machine", "horizontal_pull",
+   ["lats", "upper_back"], ["biceps"], ["row_machine"], skill=1, stability=1,
+   setup=35, low=8, high=12, increment=2.5, fatigue=2, subs=["machine_row", "cable_row"])
+mv("straight_arm_pulldown", "Straight-Arm Pulldown", "isolation_upper",
+   ["lats"], [], ["cable_stack"], skill=2, setup=35, low=12, high=18,
+   increment=1.0, fatigue=2, subs=["pullover_machine", "lat_pulldown"])
+mv("pullover_machine", "Pullover Machine", "isolation_upper", ["lats"],
+   ["chest"], ["pullover_machine"], skill=1, stability=1, setup=35, low=10,
+   high=15, increment=2.5, fatigue=2, subs=["straight_arm_pulldown"])
+mv("assisted_pull_up_machine", "Assisted Pull-Up Machine", "vertical_pull",
+   ["lats"], ["biceps"], ["assisted_pull_up_machine"], skill=1, setup=35,
+   low=6, high=12, increment=2.5, fatigue=2,
+   subs=["band_assisted_pull_up", "lat_pulldown"],
+   notes="Counterweight rises as you get weaker, which is the opposite of what a band does. Both are honest bridges to a pull-up.")
+mv("preacher_curl_machine", "Preacher Curl Machine", "isolation_upper",
+   ["biceps"], [], ["preacher_curl_machine"], skill=1, stability=1, setup=30,
+   low=10, high=15, increment=2.5, fatigue=1, contra=["elbow"],
+   subs=["incline_dumbbell_curl", "cable_curl"])
+mv("triceps_pushdown", "Triceps Pushdown", "isolation_upper", ["triceps"], [],
+   ["cable_stack"], skill=1, setup=25, low=10, high=15, increment=1.0,
+   fatigue=1, contra=["elbow"], subs=["cable_triceps_extension", "diamond_push_up"])
+mv("dip_machine", "Seated Dip Machine", "isolation_upper", ["triceps"],
+   ["chest"], ["dip_machine"], skill=1, stability=1, setup=30, low=10,
+   high=15, increment=2.5, fatigue=2, subs=["triceps_pushdown", "dip"])
+mv("shrug", "Shrug", "isolation_upper", ["traps"], [], ["dumbbells"], skill=1,
+   setup=20, low=10, high=15, increment=2.0, fatigue=2, subs=["farmers_carry"])
+mv("upright_row", "Cable Upright Row", "isolation_upper", ["side_delts", "traps"],
+   [], ["cable_stack"], skill=2, setup=30, low=10, high=15, increment=1.0,
+   fatigue=2, contra=["shoulder_overhead"], subs=["lateral_raise", "face_pull"])
+mv("machine_lateral_raise", "Machine Lateral Raise", "isolation_upper",
+   ["side_delts"], [], ["lateral_raise_machine"], skill=1, stability=1,
+   setup=30, low=12, high=18, increment=2.5, fatigue=1,
+   contra=["shoulder_overhead"], subs=["cable_lateral_raise", "lateral_raise"])
+mv("machine_rear_delt", "Machine Rear Delt Fly", "isolation_upper",
+   ["rear_delts"], [], ["pec_deck_machine"], skill=1, stability=1, setup=30,
+   low=12, high=18, increment=2.5, fatigue=1, subs=["reverse_pec_deck", "face_pull"])
+mv("hip_adduction", "Hip Adduction Machine", "isolation_lower", ["adductors"],
+   [], ["adduction_machine"], skill=1, stability=1, setup=25, low=12,
+   high=20, increment=2.5, fatigue=1, subs=["copenhagen_plank"])
+mv("copenhagen_plank", "Copenhagen Plank", "isolation_lower", ["adductors"],
+   ["core"], ["bench"], skill=3, unilateral=True, setup=20,
+   rep_unit="seconds", low=15, high=30, loadable=False, fatigue=2,
+   subs=["hip_adduction", "side_plank"])
+mv("cable_kickback", "Cable Glute Kickback", "isolation_lower", ["glutes"], [],
+   ["cable_stack"], skill=2, unilateral=True, setup=40, low=12, high=18,
+   increment=1.0, fatigue=1, glute=True, subs=["glute_bridge", "hip_abduction"])
+mv("cable_pull_through", "Cable Pull-Through", "hip_hinge", ["glutes"],
+   ["hamstrings"], ["cable_stack"], skill=2, setup=35, low=12, high=18,
+   increment=2.5, fatigue=2, glute=True,
+   subs=["dumbbell_romanian_deadlift", "hip_thrust_dumbbell"],
+   notes="A hinge with the load pulling backwards rather than down, which spares the lower back.")
+mv("belt_squat", "Belt Squat", "squat", ["quadriceps", "glutes"], [],
+   ["belt_squat_machine"], skill=2, stability=1, setup=45, low=8, high=15,
+   increment=5.0, fatigue=3, subs=["leg_press", "hack_squat"],
+   notes="Loads the legs with nothing on the spine, so it survives most lumbar restrictions.")
+mv("pendulum_squat", "Pendulum Squat", "squat", ["quadriceps"], ["glutes"],
+   ["pendulum_squat_machine"], skill=1, stability=1, setup=45, low=8,
+   high=12, increment=5.0, fatigue=4, contra=["knee_deep_flexion"],
+   subs=["hack_squat", "leg_press"])
+mv("calf_press_leg_press", "Calf Press on Leg Press", "calf", ["calves"], [],
+   ["leg_press_machine"], skill=1, setup=35, low=10, high=15, increment=5.0,
+   fatigue=1, subs=["standing_calf_raise", "single_leg_calf_raise"])
+mv("machine_crunch", "Machine Crunch", "core_flexion", ["core"], [],
+   ["ab_machine"], skill=1, stability=1, setup=30, low=12, high=18,
+   increment=2.5, fatigue=1, contra=["lumbar_flexion"],
+   subs=["cable_crunch", "hanging_knee_raise"])
+mv("cable_crunch", "Cable Crunch", "core_flexion", ["core"], [],
+   ["cable_stack"], skill=2, setup=35, low=12, high=18, increment=2.5,
+   fatigue=1, contra=["lumbar_flexion"], subs=["hanging_knee_raise", "dead_bug"])
+mv("back_extension_machine", "Back Extension Machine", "hip_hinge",
+   ["erectors"], ["glutes"], ["back_extension_machine"], skill=1,
+   stability=1, setup=30, low=12, high=18, increment=2.5, fatigue=2,
+   subs=["back_extension", "bird_dog"])
+mv("hip_thrust_smith", "Smith Machine Hip Thrust", "hip_hinge", ["glutes"],
+   ["hamstrings"], ["smith_machine", "bench"], skill=2, setup=60, low=8,
+   high=12, increment=2.5, fatigue=3, glute=True,
+   subs=["hip_thrust_barbell", "machine_hip_thrust"])
+mv("landmine_row", "Landmine Row", "horizontal_pull", ["lats", "upper_back"],
+   ["biceps"], ["landmine", "barbell"], skill=2, setup=45, low=8, high=12,
+   increment=2.5, fatigue=3, subs=["t_bar_row", "chest_supported_row"])
+mv("landmine_squat", "Landmine Squat", "squat", ["quadriceps", "glutes"], [],
+   ["landmine", "barbell"], skill=2, setup=45, low=8, high=12, increment=2.5,
+   fatigue=3, subs=["goblet_squat", "leg_press"])
+
+# ------------------------------------------------------------------ PILATES
+mv("pilates_hundred", "The Hundred", "core_anti_extension", ["core"],
+   ["hip_flexors"], ["mat"], skill=2, setup=5, rep_unit="seconds", low=45,
+   high=100, loadable=False, fatigue=2, contra=["lumbar_flexion"],
+   disciplines=("pilates",), subs=["dead_bug", "hollow_body_hold"])
+mv("pilates_roll_up", "Roll-Up", "core_flexion", ["core"], [], ["mat"],
+   skill=3, setup=5, low=5, high=10, loadable=False, fatigue=2,
+   contra=["lumbar_flexion"], disciplines=("pilates",), subs=["dead_bug"])
+mv("pilates_single_leg_circle", "Single Leg Circles", "mobility", ["hips"],
+   ["core"], ["mat"], skill=2, unilateral=True, setup=5, low=5, high=8,
+   loadable=False, fatigue=1, disciplines=("pilates", "mobility"),
+   subs=["ninety_ninety_hip"])
+mv("pilates_single_leg_stretch", "Single Leg Stretch", "core_flexion",
+   ["core"], ["hip_flexors"], ["mat"], skill=2, unilateral=True, setup=5,
+   low=8, high=12, loadable=False, fatigue=2, contra=["lumbar_flexion"],
+   disciplines=("pilates",), subs=["dead_bug"])
+mv("pilates_double_leg_stretch", "Double Leg Stretch", "core_anti_extension",
+   ["core"], [], ["mat"], skill=3, setup=5, low=6, high=10, loadable=False,
+   fatigue=2, contra=["lumbar_flexion"], disciplines=("pilates",),
+   subs=["hollow_body_hold", "dead_bug"])
+mv("pilates_scissors", "Scissors", "core_anti_extension", ["core"],
+   ["hamstrings"], ["mat"], skill=2, unilateral=True, setup=5, low=6,
+   high=10, loadable=False, fatigue=2, disciplines=("pilates",),
+   subs=["dead_bug"])
+mv("pilates_teaser", "Teaser", "core_flexion", ["core"], ["hip_flexors"],
+   ["mat"], skill=4, setup=5, low=3, high=8, loadable=False, fatigue=3,
+   contra=["lumbar_flexion"], disciplines=("pilates",),
+   subs=["pilates_roll_up", "hollow_body_hold"])
+mv("pilates_swan", "Swan", "mobility", ["erectors"], ["chest"], ["mat"],
+   skill=2, setup=5, low=5, high=10, loadable=False, fatigue=1,
+   contra=["lumbar_extension"], disciplines=("pilates", "mobility"),
+   subs=["cobra_pose"])
+mv("pilates_saw", "Saw", "mobility", ["obliques", "hamstrings"], [], ["mat"],
+   skill=2, unilateral=True, setup=5, low=5, high=8, loadable=False,
+   fatigue=1, disciplines=("pilates", "mobility"), subs=["triangle_pose"])
+mv("pilates_spine_stretch", "Spine Stretch Forward", "mobility",
+   ["erectors", "hamstrings"], [], ["mat"], skill=1, setup=5, low=5, high=8,
+   loadable=False, fatigue=1, disciplines=("pilates", "mobility"),
+   subs=["forward_fold"])
+mv("pilates_side_kick", "Side Kick Series", "isolation_lower",
+   ["glute_medius"], ["core"], ["mat"], skill=2, unilateral=True, setup=5,
+   low=10, high=15, loadable=False, fatigue=1, glute=True,
+   disciplines=("pilates",), subs=["band_abduction", "hip_abduction"])
+mv("pilates_clam", "Clam", "isolation_lower", ["glute_medius"], [], ["mat"],
+   skill=1, unilateral=True, setup=5, low=12, high=20, loadable=False,
+   fatigue=1, glute=True, disciplines=("pilates",), subs=["band_abduction"])
+mv("pilates_swimming", "Swimming", "core_anti_extension",
+   ["erectors", "glutes"], [], ["mat"], skill=2, setup=5, rep_unit="seconds",
+   low=20, high=45, loadable=False, fatigue=2, contra=["lumbar_extension"],
+   disciplines=("pilates",), subs=["bird_dog"])
+mv("reformer_footwork", "Reformer Footwork", "squat",
+   ["quadriceps", "glutes"], ["calves"], ["reformer"], skill=2, stability=2,
+   setup=45, low=10, high=20, increment=None, fatigue=2,
+   disciplines=("pilates",), subs=["leg_press", "bodyweight_squat"])
+mv("reformer_long_stretch", "Reformer Long Stretch", "core_anti_extension",
+   ["core"], ["front_delts", "lats"], ["reformer"], skill=4, stability=4,
+   setup=45, low=5, high=10, loadable=False, fatigue=3,
+   disciplines=("pilates",), subs=["plank", "hollow_body_hold"])
+mv("reformer_elephant", "Reformer Elephant", "mobility",
+   ["hamstrings", "core"], ["lats"], ["reformer"], skill=3, setup=45, low=6,
+   high=12, loadable=False, fatigue=2, disciplines=("pilates", "mobility"),
+   subs=["downward_dog"])
+mv("reformer_knee_stretch", "Reformer Knee Stretch", "core_flexion",
+   ["core"], ["hip_flexors"], ["reformer"], skill=3, setup=45, low=8,
+   high=12, loadable=False, fatigue=2, disciplines=("pilates",),
+   subs=["mountain_climber", "hollow_body_hold"])
+mv("reformer_short_box", "Reformer Short Box", "core_flexion", ["core"],
+   ["erectors"], ["reformer"], skill=3, setup=50, low=6, high=10,
+   loadable=False, fatigue=2, contra=["lumbar_flexion"],
+   disciplines=("pilates",), subs=["pilates_roll_up"])
+mv("reformer_mermaid", "Reformer Mermaid", "mobility", ["obliques"], ["lats"],
+   ["reformer"], skill=2, unilateral=True, setup=40, rep_unit="seconds",
+   low=20, high=40, loadable=False, fatigue=1,
+   disciplines=("pilates", "mobility"), subs=["pilates_saw", "triangle_pose"])
+
+# ------------------------------------------------------------- MORE YOGA
+mv("chair_pose", "Chair Pose", "yoga_pose", ["quadriceps", "glutes"],
+   ["front_delts"], ["mat"], skill=1, setup=5, rep_unit="seconds", low=20,
+   high=45, loadable=False, fatigue=2, disciplines=("yoga",),
+   subs=["bodyweight_squat", "warrior_two"])
+mv("tree_pose", "Tree Pose", "yoga_pose", ["glute_medius"], ["core"], ["mat"],
+   skill=2, stability=4, unilateral=True, setup=5, rep_unit="seconds",
+   low=20, high=60, loadable=False, fatigue=1, disciplines=("yoga",),
+   subs=["warrior_two"])
+mv("warrior_one", "Warrior I", "yoga_pose", ["quadriceps", "hip_flexors"],
+   ["front_delts"], ["mat"], skill=2, unilateral=True, setup=5,
+   rep_unit="seconds", low=30, high=60, loadable=False, fatigue=2,
+   contra=["shoulder_overhead"], disciplines=("yoga",), subs=["warrior_two"])
+mv("warrior_three", "Warrior III", "yoga_pose", ["glutes", "hamstrings"],
+   ["core"], ["mat"], skill=3, stability=5, unilateral=True, setup=5,
+   rep_unit="seconds", low=15, high=40, loadable=False, fatigue=2,
+   glute=True, disciplines=("yoga",), subs=["single_leg_romanian_deadlift", "tree_pose"])
+mv("half_moon", "Half Moon", "yoga_pose", ["glute_medius", "obliques"],
+   ["hamstrings"], ["mat"], skill=4, stability=5, unilateral=True, setup=5,
+   rep_unit="seconds", low=15, high=40, loadable=False, fatigue=2,
+   disciplines=("yoga",), subs=["tree_pose", "triangle_pose"])
+mv("extended_side_angle", "Extended Side Angle", "yoga_pose",
+   ["obliques", "adductors"], ["quadriceps"], ["mat"], skill=2,
+   unilateral=True, setup=5, rep_unit="seconds", low=30, high=60,
+   loadable=False, fatigue=1, disciplines=("yoga",), subs=["triangle_pose"])
+mv("revolved_triangle", "Revolved Triangle", "yoga_pose",
+   ["hamstrings", "obliques"], ["thoracic_spine"], ["mat"], skill=3,
+   unilateral=True, setup=5, rep_unit="seconds", low=20, high=45,
+   loadable=False, fatigue=1, contra=["lumbar_flexion"],
+   disciplines=("yoga", "mobility"), subs=["triangle_pose", "supine_twist"])
+mv("crow_pose", "Crow Pose", "skill", ["front_delts", "core"], ["forearms"],
+   ["mat"], skill=4, stability=5, setup=10, rep_unit="seconds", low=5,
+   high=25, loadable=False, fatigue=2, contra=["wrist"],
+   disciplines=("yoga", "calisthenics"), subs=["plank", "hollow_body_hold"])
+mv("boat_pose", "Boat Pose", "core_anti_extension", ["core", "hip_flexors"],
+   [], ["mat"], skill=2, setup=5, rep_unit="seconds", low=20, high=45,
+   loadable=False, fatigue=2, disciplines=("yoga",), subs=["hollow_body_hold"])
+mv("camel_pose", "Camel Pose", "yoga_pose", ["hip_flexors", "chest"],
+   ["erectors"], ["mat"], skill=3, setup=5, rep_unit="seconds", low=20,
+   high=40, loadable=False, fatigue=1, contra=["lumbar_extension", "knee_deep_flexion"],
+   disciplines=("yoga", "mobility"), subs=["cobra_pose", "couch_stretch"])
+mv("bow_pose", "Bow Pose", "yoga_pose", ["hip_flexors", "chest"],
+   ["erectors"], ["mat"], skill=3, setup=5, rep_unit="seconds", low=15,
+   high=30, loadable=False, fatigue=2, contra=["lumbar_extension"],
+   disciplines=("yoga",), subs=["cobra_pose", "locust_pose"])
+mv("locust_pose", "Locust Pose", "yoga_pose", ["erectors", "glutes"],
+   ["rear_delts"], ["mat"], skill=2, setup=5, rep_unit="seconds", low=20,
+   high=40, loadable=False, fatigue=2, contra=["lumbar_extension"],
+   disciplines=("yoga",), subs=["bird_dog", "pilates_swimming"])
+mv("seated_forward_fold", "Seated Forward Fold", "yoga_pose", ["hamstrings"],
+   ["erectors"], ["mat"], skill=1, setup=5, rep_unit="seconds", low=45,
+   high=90, loadable=False, fatigue=1, contra=["lumbar_flexion"],
+   disciplines=("yoga", "mobility"), subs=["forward_fold", "pilates_spine_stretch"])
+mv("butterfly_stretch", "Butterfly", "mobility", ["adductors", "hips"], [],
+   ["mat"], skill=1, setup=5, rep_unit="seconds", low=45, high=90,
+   loadable=False, fatigue=1, disciplines=("yoga", "mobility"),
+   subs=["ninety_ninety_hip"])
+mv("happy_baby", "Happy Baby", "mobility", ["hips", "adductors"], [], ["mat"],
+   skill=1, setup=5, rep_unit="seconds", low=30, high=60, loadable=False,
+   fatigue=1, disciplines=("yoga", "mobility"), subs=["butterfly_stretch"])
+mv("supine_twist", "Supine Twist", "mobility", ["thoracic_spine", "obliques"],
+   [], ["mat"], skill=1, unilateral=True, setup=5, rep_unit="seconds",
+   low=30, high=60, loadable=False, fatigue=1,
+   disciplines=("yoga", "mobility"), subs=["thoracic_extension"])
+mv("legs_up_wall", "Legs Up the Wall", "yoga_pose", ["hamstrings"], [],
+   ["wall", "mat"], skill=1, setup=10, rep_unit="seconds", low=60, high=300,
+   loadable=False, fatigue=1, disciplines=("yoga", "mobility"),
+   subs=["diaphragmatic_breathing"],
+   notes="Often the right answer on a genuinely low-recovery day, when the honest prescription is to do very little.")
+mv("corpse_pose", "Corpse Pose", "yoga_pose", ["full_body"], [], ["mat"],
+   skill=1, setup=5, rep_unit="seconds", low=60, high=300, loadable=False,
+   fatigue=1, disciplines=("yoga",), subs=["diaphragmatic_breathing"])
+mv("chaturanga", "Chaturanga", "horizontal_push", ["triceps", "chest"],
+   ["core"], ["mat"], skill=4, setup=5, low=3, high=8, loadable=False,
+   fatigue=2, contra=["shoulder_press", "wrist"], disciplines=("yoga",),
+   subs=["push_up", "knee_push_up"])
+mv("upward_dog", "Upward-Facing Dog", "yoga_pose", ["chest", "hip_flexors"],
+   ["erectors"], ["mat"], skill=2, setup=5, rep_unit="seconds", low=15,
+   high=30, loadable=False, fatigue=1, contra=["lumbar_extension", "wrist"],
+   disciplines=("yoga",), subs=["cobra_pose"])
+mv("low_lunge", "Low Lunge", "yoga_pose", ["hip_flexors"], ["quadriceps"],
+   ["mat"], skill=1, unilateral=True, setup=5, rep_unit="seconds", low=30,
+   high=60, loadable=False, fatigue=1, disciplines=("yoga", "mobility"),
+   subs=["hip_flexor_stretch", "couch_stretch"])
+mv("lizard_pose", "Lizard Pose", "mobility", ["hips", "adductors"], [],
+   ["mat"], skill=2, unilateral=True, setup=5, rep_unit="seconds", low=30,
+   high=60, loadable=False, fatigue=1, disciplines=("yoga", "mobility"),
+   subs=["low_lunge", "pigeon_pose"])
+mv("garland_pose", "Garland Pose", "yoga_pose", ["hips", "adductors"],
+   ["quadriceps"], ["mat"], skill=2, setup=5, rep_unit="seconds", low=30,
+   high=60, loadable=False, fatigue=1, contra=["knee_deep_flexion"],
+   disciplines=("yoga", "mobility"), subs=["butterfly_stretch"])
+mv("eagle_pose", "Eagle Pose", "yoga_pose", ["glute_medius"],
+   ["rear_delts"], ["mat"], skill=3, stability=4, unilateral=True, setup=5,
+   rep_unit="seconds", low=20, high=40, loadable=False, fatigue=1,
+   disciplines=("yoga",), subs=["tree_pose"])
+mv("dancer_pose", "Dancer Pose", "yoga_pose", ["hip_flexors", "chest"],
+   ["glute_medius"], ["mat"], skill=4, stability=5, unilateral=True, setup=5,
+   rep_unit="seconds", low=15, high=35, loadable=False, fatigue=1,
+   contra=["lumbar_extension"], disciplines=("yoga",),
+   subs=["tree_pose", "couch_stretch"])
+
+# --------------------------------------------------------- HYROX STATIONS
+# The eight stations of a Hyrox race, in race order. Named descriptively: a
+# sled push is a sled push, and APEX ships no event branding.
+mv("sled_push", "Sled Push", "conditioning", ["quadriceps", "glutes"],
+   ["calves", "core"], ["sled", "turf_or_track"], skill=2, setup=60,
+   rep_unit="seconds", low=30, high=90, increment=10.0, fatigue=5,
+   disciplines=("conditioning", "hiit"), glute=True,
+   subs=["leg_press", "walking_lunge"],
+   notes="The station that ends most first races. Legs empty in seconds, and the run after it is the one that hurts.")
+mv("sled_pull", "Sled Pull", "conditioning", ["lats", "upper_back"],
+   ["glutes", "forearms"], ["sled", "rope", "turf_or_track"], skill=3,
+   setup=60, rep_unit="seconds", low=30, high=90, increment=10.0, fatigue=5,
+   disciplines=("conditioning", "hiit"), subs=["cable_row", "barbell_row"])
+mv("burpee_broad_jump", "Burpee Broad Jump", "conditioning", ["full_body"],
+   ["quadriceps", "chest"], ["floor_space"], skill=3, setup=10,
+   rep_unit="seconds", low=45, high=120, loadable=False, fatigue=5,
+   contra=["knee_impact", "wrist"], disciplines=("conditioning", "hiit"),
+   subs=["burpee", "broad_jump"],
+   notes="Pacing here decides the race more than fitness does. Practised at a rhythm that can be held, never sprinted.")
+mv("sandbag_lunge", "Sandbag Lunge", "lunge", ["quadriceps", "glutes"],
+   ["core", "upper_back"], ["sandbag", "floor_space"], skill=3, stability=3,
+   unilateral=True, setup=30, low=20, high=40, increment=5.0, fatigue=5,
+   contra=["knee_deep_flexion"], glute=True,
+   disciplines=("conditioning", "strength"),
+   subs=["walking_lunge", "reverse_lunge"])
+mv("wall_ball", "Wall Ball", "squat", ["quadriceps", "glutes", "front_delts"],
+   ["core"], ["medicine_ball", "wall"], skill=3, setup=20, low=15, high=30,
+   increment=2.0, fatigue=4, contra=["shoulder_overhead", "knee_deep_flexion"],
+   glute=True, disciplines=("conditioning", "hiit", "crossfit"),
+   subs=["thruster", "goblet_squat"],
+   notes="A squat and a press that never lets the shoulders rest. The last station of a Hyrox race for a reason.")
+
+# ------------------------------------------------- BARBELL SPORT AND METCON
+mv("thruster", "Thruster", "squat", ["quadriceps", "front_delts"],
+   ["glutes", "triceps"], ["barbell", "plates"], skill=4, setup=45, low=6,
+   high=12, increment=2.5, fatigue=5, contra=["shoulder_overhead", "knee_deep_flexion"],
+   youth=False, disciplines=("crossfit", "conditioning"),
+   subs=["wall_ball", "goblet_squat"])
+mv("power_clean", "Power Clean", "hip_hinge", ["glutes", "hamstrings", "traps"],
+   ["quadriceps"], ["barbell", "plates", "lifting_platform"], skill=5,
+   setup=60, low=2, high=5, increment=2.5, fatigue=4,
+   contra=["lumbar_flexion", "wrist"], youth=False,
+   disciplines=("crossfit", "strength"),
+   subs=["kettlebell_swing", "trap_bar_deadlift"],
+   notes="Stopped on bar speed and technical quality, never on reps in reserve.")
+mv("power_snatch", "Power Snatch", "hip_hinge",
+   ["glutes", "hamstrings", "traps"], ["front_delts"],
+   ["barbell", "plates", "lifting_platform"], skill=5, setup=60, low=2,
+   high=4, increment=2.5, fatigue=4,
+   contra=["lumbar_flexion", "shoulder_overhead", "wrist"], youth=False,
+   disciplines=("crossfit", "strength"), subs=["power_clean", "kettlebell_swing"])
+mv("clean_and_jerk", "Clean and Jerk", "hip_hinge",
+   ["glutes", "quadriceps", "front_delts"], ["traps", "triceps"],
+   ["barbell", "plates", "lifting_platform"], skill=5, setup=60, low=1,
+   high=3, increment=2.5, fatigue=5,
+   contra=["lumbar_flexion", "shoulder_overhead"], youth=False,
+   disciplines=("crossfit", "strength"), subs=["power_clean", "push_press"])
+mv("push_press", "Push Press", "vertical_push", ["front_delts"],
+   ["triceps", "quadriceps"], ["barbell", "plates", "rack"], skill=3,
+   setup=50, low=4, high=8, increment=2.5, fatigue=4,
+   contra=["shoulder_overhead"], disciplines=("crossfit", "strength"),
+   subs=["barbell_overhead_press", "dumbbell_overhead_press"])
+mv("overhead_squat", "Overhead Squat", "squat", ["quadriceps"],
+   ["front_delts", "core"], ["barbell", "plates", "rack"], skill=5,
+   stability=4, setup=60, low=3, high=8, increment=2.5, fatigue=4,
+   contra=["shoulder_overhead", "knee_deep_flexion"], youth=False,
+   disciplines=("crossfit",), subs=["barbell_front_squat", "goblet_squat"])
+mv("front_rack_lunge", "Front Rack Lunge", "lunge",
+   ["quadriceps", "glutes"], ["core", "upper_back"],
+   ["barbell", "plates", "rack"], skill=4, stability=3, unilateral=True,
+   setup=55, low=6, high=10, increment=2.5, fatigue=4,
+   contra=["knee_deep_flexion", "wrist"], glute=True,
+   disciplines=("crossfit", "strength"), subs=["walking_lunge", "reverse_lunge"])
+mv("double_under", "Double Under", "conditioning", ["calves"], ["forearms"],
+   ["skipping_rope"], skill=4, setup=10, rep_unit="seconds", low=30,
+   high=120, loadable=False, fatigue=3, contra=["knee_impact"],
+   disciplines=("crossfit", "hiit"), subs=["single_under", "high_knees"])
+mv("single_under", "Skipping", "conditioning", ["calves"], [],
+   ["skipping_rope"], skill=1, setup=10, rep_unit="seconds", low=45,
+   high=180, loadable=False, fatigue=2, contra=["knee_impact"],
+   disciplines=("crossfit", "hiit", "conditioning"), subs=["high_knees", "marching_in_place"])
+mv("toes_to_bar", "Toes to Bar", "core_flexion", ["core"],
+   ["lats", "hip_flexors"], ["pull_up_bar"], skill=4, setup=10, low=5,
+   high=12, loadable=False, fatigue=3, disciplines=("crossfit", "calisthenics"),
+   subs=["hanging_knee_raise", "hollow_body_hold"])
+mv("kettlebell_clean", "Kettlebell Clean", "hip_hinge",
+   ["glutes", "hamstrings"], ["traps", "forearms"], ["kettlebell"], skill=4,
+   unilateral=True, setup=20, low=5, high=10, increment=4.0, fatigue=3,
+   contra=["lumbar_flexion", "wrist"], disciplines=("crossfit", "strength"),
+   subs=["kettlebell_swing", "power_clean"])
+mv("turkish_get_up", "Turkish Get-Up", "skill", ["core", "front_delts"],
+   ["glutes", "obliques"], ["kettlebell"], skill=5, stability=5,
+   unilateral=True, setup=20, low=2, high=5, increment=4.0, fatigue=3,
+   contra=["shoulder_overhead"], disciplines=("crossfit", "strength"),
+   subs=["suitcase_carry", "pallof_press"])
+mv("devils_press", "Devil's Press", "conditioning", ["full_body"],
+   ["front_delts", "glutes"], ["dumbbells"], skill=4, setup=15,
+   rep_unit="seconds", low=30, high=90, increment=2.0, fatigue=5,
+   contra=["shoulder_overhead", "lumbar_flexion"], youth=False,
+   disciplines=("crossfit", "hiit"), subs=["burpee", "kettlebell_swing"])
+mv("man_maker", "Man Maker", "conditioning", ["full_body"], [], ["dumbbells"],
+   skill=4, setup=15, rep_unit="seconds", low=30, high=90, increment=2.0,
+   fatigue=5, contra=["shoulder_overhead", "lumbar_flexion"], youth=False,
+   disciplines=("crossfit", "hiit"), subs=["devils_press", "burpee"])
+mv("sandbag_clean", "Sandbag Clean", "hip_hinge", ["glutes", "hamstrings"],
+   ["upper_back", "core"], ["sandbag"], skill=3, setup=20, low=5, high=10,
+   increment=5.0, fatigue=4, contra=["lumbar_flexion"],
+   disciplines=("conditioning", "strength"), subs=["kettlebell_swing", "power_clean"])
+mv("tire_flip", "Tire Flip", "hip_hinge", ["glutes", "quadriceps"],
+   ["upper_back", "core"], ["tire", "outdoor_space"], skill=3, setup=30,
+   rep_unit="seconds", low=20, high=60, loadable=False, fatigue=5,
+   contra=["lumbar_flexion"], youth=False, disciplines=("conditioning",),
+   subs=["sandbag_clean", "sled_push"])
+mv("bear_crawl", "Bear Crawl", "conditioning", ["core", "front_delts"],
+   ["quadriceps"], ["floor_space"], skill=2, setup=5, rep_unit="seconds",
+   low=20, high=60, loadable=False, fatigue=3, contra=["wrist"],
+   disciplines=("calisthenics", "hiit", "conditioning"),
+   subs=["mountain_climber", "plank"])
+mv("sled_drag", "Sled Drag", "conditioning", ["quadriceps", "glutes"],
+   ["hamstrings"], ["sled", "turf_or_track"], skill=1, setup=45,
+   rep_unit="seconds", low=30, high=90, increment=10.0, fatigue=4,
+   glute=True, disciplines=("conditioning",), subs=["sled_push", "walking_lunge"],
+   notes="All concentric, so it builds legs with almost no soreness. Useful the week before a race.")
+
 # --------------------------------------------------------------------------
 # Aliases: the names already used in authored programmes, mapped onto canonical
 # movements. This is where "Pull-Ups (different grip than Wed)" stops being a
