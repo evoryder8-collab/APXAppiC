@@ -150,6 +150,29 @@ enum ProgressPhotoEngine {
         mode == .torso ? 4.0 / 5.0 : previewAspectRatio
     }
 
+    /* Parity: formatProgressPhotoMoment. "19 Aug 2026 at 06:37", from the
+       capture timestamp, falling back to midday on the local date when that
+       timestamp is unreadable. A raw ISO date is not a moment. */
+    static func moment(_ photo: ProgressPhoto, language: AppLanguage) -> String {
+        let locale: Locale
+        switch language {
+        case .romanian: locale = Locale(identifier: "ro_RO")
+        case .thai: locale = Locale(identifier: "th_TH")
+        case .english: locale = Locale(identifier: "en_GB")
+        }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        let captured = parser.date(from: photo.capturedAt)
+            ?? ISO8601DateFormatter().date(from: photo.capturedAt)
+            ?? APEXDateMath.date(from: photo.localDate)
+        guard let captured else { return photo.localDate }
+
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.setLocalizedDateFormatFromTemplate("d MMM yyyy HH:mm")
+        return formatter.string(from: captured)
+    }
+
     static func daysBetween(_ a: ProgressPhoto, _ b: ProgressPhoto) -> Int {
         guard let first = APEXDateMath.date(from: a.localDate),
               let second = APEXDateMath.date(from: b.localDate) else { return 0 }

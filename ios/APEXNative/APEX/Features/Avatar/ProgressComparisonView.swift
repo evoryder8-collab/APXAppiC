@@ -180,7 +180,7 @@ struct ProgressComparisonView: View {
 
     private func momentText(_ photo: ProgressPhoto) -> String {
         let pose = language.text(photo.pose.capitalized)
-        return "\(photo.localDate) · \(pose)"
+        return "\(ProgressPhotoEngine.moment(photo, language: language.language)) · \(pose)"
     }
 
     private var controls: some View {
@@ -287,15 +287,37 @@ struct ProgressComparisonView: View {
             return
         }
         isExporting = true
+        let strength = ProgressComparison.strength(
+            sessions: session.data.workoutSessions,
+            logs: session.data.workoutLogs,
+            firstDate: before.localDate,
+            secondDate: after.localDate
+        )
+        let bothTorso = ProgressPhotoEngine.framingMode(before) == .torso
+            && ProgressPhotoEngine.framingMode(after) == .torso
+        let input = ProgressPosterRenderer.Input(
+            before: beforeImage,
+            after: afterImage,
+            beforeMoment: ProgressPhotoEngine.moment(before, language: language.language),
+            afterMoment: ProgressPhotoEngine.moment(after, language: language.language),
+            beforePose: language.text(before.pose.capitalized).uppercased(),
+            afterPose: language.text(after.pose.capitalized).uppercased(),
+            views: views,
+            content: ProgressComparison.posterContent(exportMode),
+            /* Torso pairs get a shorter photo block, so the card does not
+               stretch two chest-height frames into a full-body shape. */
+            torsoLayout: bothTorso,
+            athleteName: session.profile?.displayName ?? "",
+            daysApart: daysApart,
+            workouts: workoutsBetween,
+            averageLoadDeltaKG: strength.averageLoadDeltaKG,
+            matchedExercises: strength.matchedExercises,
+            loadedSets: strength.loadedSets,
+            beforeWeightKG: before.weightKG,
+            afterWeightKG: after.weightKG
+        )
         Task {
-            let card = ProgressPosterRenderer.render(
-                before: beforeImage, after: afterImage,
-                beforeMoment: momentText(before), afterMoment: momentText(after),
-                views: views,
-                content: ProgressComparison.posterContent(exportMode),
-                daysApart: daysApart, workouts: workoutsBetween
-            )
-            exported = ProgressPosterRenderer.write(card)
+            exported = ProgressPosterRenderer.write(ProgressPosterRenderer.render(input))
             isExporting = false
         }
     }

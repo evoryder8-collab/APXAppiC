@@ -147,6 +147,7 @@
 		D3E5AA1EC12E5A00415697D1 /* CustomWorkoutBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8457F364ACF9911552863DB6 /* CustomWorkoutBuilderTests.swift */; };
 		D563974C02928CDF2507E1DC /* OrbitRunMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810780DA6BA555E5A02AC97F /* OrbitRunMetrics.swift */; };
 		D6E3A2C4EC98342E02B5BBCC /* MealMemoryParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */; };
+		D70129BF2D88B35DF70F9382 /* ProgressPosterRenderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88F252794ED5E0B0DE25795D /* ProgressPosterRenderTests.swift */; };
 		D93E34A4FC70F325479895B9 /* FoodHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01407BB294D6CEF9BD33078A /* FoodHydration.swift */; };
 		DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA785FB8ED5CCCEA551C98B /* APEXDebugFixture.swift */; };
 		DB76BD99603C52CEA9D38258 /* diaphragm_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3C588B0EDF217B6465E465A7 /* diaphragm_dif.jpg */; };
@@ -347,6 +348,7 @@
 		86D28E97F232A4D446A7C4EF /* APEXModels.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXModels.swift; sourceTree = "<group>"; };
 		88349C95EDDF2146EC6763DB /* OrbitRoutePosterView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitRoutePosterView.swift; sourceTree = "<group>"; };
 		88CE846D4F5B16E4B613ACBC /* FoodLoggingViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodLoggingViews.swift; sourceTree = "<group>"; };
+		88F252794ED5E0B0DE25795D /* ProgressPosterRenderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressPosterRenderTests.swift; sourceTree = "<group>"; };
 		88FC672B13DFB786889784E8 /* HolographicBodyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolographicBodyView.swift; sourceTree = "<group>"; };
 		8B1D338388006FFDC7405C7B /* torso_bump.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = torso_bump.jpg; sourceTree = "<group>"; };
 		8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionParityViews.swift; sourceTree = "<group>"; };
@@ -625,6 +627,7 @@
 				8B7AFB3ADF98796F3341BF2F /* ProgressDepthTests.swift */,
 				05CB1AA98B9C36622C166748 /* ProgressionEngineTests.swift */,
 				CD51249FC67F5ACDBA5D956D /* ProgressParityTests.swift */,
+				88F252794ED5E0B0DE25795D /* ProgressPosterRenderTests.swift */,
 				20D9ABA6AE517DC03269E042 /* SimpleHomeLogicTests.swift */,
 				7F212F03DC5D6145E4F50236 /* StrengthProgressParityTests.swift */,
 				3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */,
@@ -1197,6 +1200,7 @@
 				ABEFB6D91D508680F3FAC2D2 /* OrbitRunMetricsTests.swift in Sources */,
 				276AC64EAF45746C0E88285C /* ProgressDepthTests.swift in Sources */,
 				BA11082E82BD711C420CB814 /* ProgressParityTests.swift in Sources */,
+				D70129BF2D88B35DF70F9382 /* ProgressPosterRenderTests.swift in Sources */,
 				EA0AE539E600E7BCE242BC5B /* ProgressionEngineTests.swift in Sources */,
 				376BEAEBCF7B7C3D48642471 /* SimpleHomeLogicTests.swift in Sources */,
 				9CE07DE926FB1F4D3357AD92 /* StrengthProgressParityTests.swift in Sources */,
