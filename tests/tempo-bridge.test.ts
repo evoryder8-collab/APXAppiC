@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { MOVEMENTS, MOVEMENT_ALIASES, MOVEMENT_BY_ID } from '../src/data/movements.ts'
+import { MOVEMENTS, MOVEMENT_ALIASES, MOVEMENT_BY_ID, CARDIO_ALIASES } from '../src/data/movements.ts'
 import { resolveMovement, tempoFieldsFor } from '../src/lib/liftingTempo.ts'
 import { EXERCISE_CATALOG } from '../src/data/exerciseCatalog.ts'
 
@@ -55,13 +55,13 @@ test('authored programme names still resolve to their movement', () => {
   assert.equal(resolveMovement('Interpretive Dance', MOVEMENTS, MOVEMENT_ALIASES), null)
 })
 
-test('most of what a custom workout can contain gets a real tempo', () => {
-  const resolved = EXERCISE_CATALOG.filter(
-    (item) => resolveMovement(item.name, MOVEMENTS, MOVEMENT_ALIASES) !== null)
-  const share = resolved.length / EXERCISE_CATALOG.length
-  // Anything unresolved falls back to the old default rather than guessing,
-  // so this is a coverage measure and not a correctness one -- but a custom
-  // workout that mostly falls back has not gained anything.
-  assert.ok(share > 0.5,
-    `only ${Math.round(share * 100)}% of the custom catalogue maps onto a movement`)
+test('everything a custom workout can contain gets a real tempo', () => {
+  // Anything unresolved falls back to a generic cadence rather than guessing,
+  // which is safe but means the custom session gains nothing from the library.
+  // It was 55% before the missing movements and name variants were added.
+  const unresolved = EXERCISE_CATALOG.filter((item) =>
+    resolveMovement(item.name, MOVEMENTS, MOVEMENT_ALIASES) === null
+    && !CARDIO_ALIASES[item.name])
+  assert.deepEqual(unresolved.map((item) => item.name), [],
+    'custom workout options that fall back to a generic cadence')
 })

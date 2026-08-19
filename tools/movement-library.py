@@ -1442,6 +1442,56 @@ mv("decline_press", "Decline Press", "horizontal_push", ["chest"],
    low=8, high=12, increment=2.0, fatigue=3, subs=["dumbbell_bench_press", "dip"])
 
 
+# ------------------------------------------- CUSTOM CATALOGUE GAP CLOSERS
+#
+# The custom workout builder lets people pick these and the library had no
+# entry for any of them, so a custom session containing one fell back to a
+# generic cadence. Found by resolving every catalogue name against the library
+# rather than by guessing what might be missing.
+mv("ab_wheel_rollout", "Ab-Wheel Rollout", "core_anti_extension", ["core"],
+   ["lats", "front_delts"], ["ab_wheel"], skill=4, stability=3, setup=10,
+   low=5, high=10, loadable=False, fatigue=3,
+   contra=["lumbar_extension", "shoulder_overhead"],
+   subs=["plank", "hollow_body_hold"], prereqs=["plank"],
+   notes="The lower back gives out before the abs do if the range is rushed. Extend only as far as the ribs stay down.")
+mv("reverse_crunch", "Reverse Crunch", "core_flexion", ["core"],
+   ["hip_flexors"], ["mat"], skill=1, stability=2, setup=5, low=10, high=20,
+   loadable=False, fatigue=2, subs=["hanging_knee_raise", "dead_bug"],
+   notes="Curl the pelvis rather than swinging the legs, which is what turns this into hip flexor work.")
+mv("decline_sit_up", "Decline Sit-Up", "core_flexion", ["core"],
+   ["hip_flexors"], ["adjustable_bench"], skill=2, stability=2, setup=25,
+   low=8, high=15, loadable=True, increment=2.5, fatigue=3,
+   contra=["lumbar_flexion"], subs=["cable_crunch", "reverse_crunch"])
+mv("front_lever_row", "Front Lever Row", "horizontal_pull", ["lats", "core"],
+   ["biceps", "upper_back"], ["pull_up_bar"], skill=5, stability=4, setup=15,
+   low=3, high=6, loadable=False, fatigue=4,
+   disciplines=("calisthenics",), subs=["inverted_row", "pull_up"],
+   prereqs=["pull_up"],
+   notes="A straight-body pull that the core fails long before the back does.")
+mv("human_flag_progression", "Human Flag Progression", "skill",
+   ["obliques", "lats"], ["front_delts"], ["pull_up_bar"], skill=5,
+   stability=5, setup=20, rep_unit="seconds", low=5, high=20, loadable=False,
+   fatigue=4, etype="skill_drill", disciplines=("calisthenics",),
+   subs=["side_plank", "l_sit"], prereqs=["side_plank"])
+mv("worlds_greatest_stretch", "World's Greatest Stretch", "mobility",
+   ["hips", "thoracic_spine"], ["hamstrings", "adductors"], ["floor_space"],
+   skill=2, stability=3, setup=5, low=4, high=8, loadable=False, fatigue=1,
+   unilateral=True, etype="mobility_drill", disciplines=("mobility",),
+   subs=["lizard_pose", "hip_flexor_stretch"],
+   notes="Covers hip, thoracic spine and hamstring in one sequence, which is why it survives a warm-up nobody has time for.")
+mv("band_shoulder_dislocate", "Band Shoulder Dislocate", "mobility",
+   ["rotator_cuff", "front_delts"], [], ["bands"], skill=2, stability=2,
+   setup=10, low=8, high=12, loadable=False, fatigue=1,
+   contra=["shoulder_overhead"], etype="mobility_drill",
+   disciplines=("mobility",), subs=["wall_slide", "band_pull_apart"],
+   notes="Hands wide enough that the shoulders never shrug up to get around. Narrowing the grip is the progression.")
+mv("lower_body_foam_roll", "Lower-Body Foam Roll", "mobility",
+   ["quadriceps", "calves"], ["glutes"], ["foam_roller"], skill=1,
+   stability=1, setup=10, rep_unit="seconds", low=30, high=60,
+   loadable=False, fatigue=1, etype="mobility_drill",
+   disciplines=("mobility",), subs=["couch_stretch", "figure_four_stretch"],
+   notes="Useful for how it feels afterwards rather than for changing the tissue. Short and unhurried beats grinding.")
+
 # ------------------------------------------------- COVERAGE-DRIVEN ADDITIONS
 #
 # Every movement below closes a hole the intake coverage matrix measured, not a
@@ -1688,6 +1738,39 @@ mv("dumbbell_side_bend", "Dumbbell Side Bend", "core_anti_lateral_flexion",
 # movements. This is where "Pull-Ups (different grip than Wed)" stops being a
 # separate exercise and becomes a pull-up with a coaching note.
 ALIASES = {
+    # Names the custom workout builder offers for movements that already
+    # existed under a different label. Without these a custom session fell
+    # back to a generic cadence for more than half of what it could contain.
+    "Pec Deck Fly": "pec_deck",
+    "Cable Biceps Curl": "cable_curl",
+    "Barbell Curl": "dumbbell_curl",
+    "Standing Calf Machine": "standing_calf_raise",
+    "Elevated Calf Raise": "standing_calf_raise",
+    "Cable Hip Adduction": "hip_adduction",
+    "Ab Crunch Machine": "machine_crunch",
+    "Glute Kickback Machine": "cable_kickback",
+    "Hip Abduction Machine": "hip_abduction",
+    "Walking Dumbbell Lunge": "walking_lunge",
+    "Reverse Dumbbell Lunge": "reverse_lunge",
+    "Dumbbell Fly": "cable_fly",
+    "Dumbbell Lateral Raise": "lateral_raise",
+    "Rear-Delt Dumbbell Fly": "reverse_pec_deck",
+    "Straight-Bar Preacher Curl": "preacher_curl_machine",
+    "Barbell Shrug": "shrug",
+    "Dumbbell Skull Crusher": "overhead_triceps_extension",
+    "Farmer Carry": "farmers_carry",
+    "Decline Push-Up": "feet_elevated_push_up",
+    "Hanging Leg Raise": "hanging_knee_raise",
+    "L-Sit Hold": "l_sit",
+    "Jump Squat": "squat_jump",
+    "Battle Rope Waves": "battle_ropes",
+    "Jump Rope": "single_under",
+    "Cat-Cow Flow": "cat_cow",
+    "90/90 Hip Switch": "ninety_ninety_hip",
+    "Bar Muscle-Up": "muscle_up_practice",
+    "Straight-Bar Dip": "dip",
+    "Thoracic Rotation": "thoracic_extension",
+    "Ankle Mobility Rock": "joint_circles",
     "Pull-Up": "pull_up", "Pull-Ups": "pull_up",
     "Pull-Ups (different grip than Wed)": "pull_up",
     "Chin-Up": "chin_up",
@@ -2237,6 +2320,10 @@ CARDIO_ALIASES = {
     "Tempo Run": ("run_outdoor", "tempo"),
     "Threshold Run": ("run_outdoor", "threshold_intervals"),
     "Assault Bike Interval": ("air_bike", "vo2_short"),
+    "Rowing Ergometer": ("row_erg", "base_z2"),
+    "SkiErg Interval": ("ski_erg", "vo2_short"),
+    "Assault Bike Sprint": ("air_bike", "sprint_intervals"),
+    "Treadmill Walk": ("treadmill", "base_z2"),
     "Rowing Intervals": ("row_erg", "vo2_short"),
     "SkiErg 500 m Interval": ("ski_erg", "vo2_short"),
     "SkiErg 500 m Controlled Challenge": ("ski_erg", "threshold_intervals"),
