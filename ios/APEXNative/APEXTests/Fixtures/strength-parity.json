@@ -1,0 +1,548 @@
+{
+  "sessions": [
+    {
+      "id": "55555555-0000-4000-8000-000000000001",
+      "date": "2026-05-04",
+      "completed": true
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000005",
+      "date": "2026-05-18",
+      "completed": true
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000010",
+      "date": "2026-06-15",
+      "completed": true
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000015",
+      "date": "2026-06-20",
+      "completed": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000017",
+      "date": "2026-08-10",
+      "completed": true
+    }
+  ],
+  "logs": [
+    {
+      "id": "55555555-0000-4000-8000-000000000002",
+      "session_id": "55555555-0000-4000-8000-000000000001",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 1,
+      "weight_kg": 60,
+      "reps": 8,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000003",
+      "session_id": "55555555-0000-4000-8000-000000000001",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 2,
+      "weight_kg": 60,
+      "reps": 8,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000004",
+      "session_id": "55555555-0000-4000-8000-000000000001",
+      "exercise_id": "66666666-0000-4000-8000-000000000011",
+      "exercise_name": "Back squat",
+      "set_no": 1,
+      "weight_kg": 90,
+      "reps": 5,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000006",
+      "session_id": "55555555-0000-4000-8000-000000000005",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 1,
+      "weight_kg": 62.5,
+      "reps": 8,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000007",
+      "session_id": "55555555-0000-4000-8000-000000000005",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 2,
+      "weight_kg": 62.5,
+      "reps": 7,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000008",
+      "session_id": "55555555-0000-4000-8000-000000000005",
+      "exercise_id": "66666666-0000-4000-8000-000000000011",
+      "exercise_name": "Back squat",
+      "set_no": 1,
+      "weight_kg": 90,
+      "reps": 5,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000009",
+      "session_id": "55555555-0000-4000-8000-000000000005",
+      "exercise_id": null,
+      "exercise_name": "Ring dips",
+      "set_no": 1,
+      "weight_kg": 12,
+      "reps": 10,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000011",
+      "session_id": "55555555-0000-4000-8000-000000000010",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 1,
+      "weight_kg": 65,
+      "reps": 8,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000012",
+      "session_id": "55555555-0000-4000-8000-000000000010",
+      "exercise_id": "66666666-0000-4000-8000-000000000011",
+      "exercise_name": "Back squat",
+      "set_no": 1,
+      "weight_kg": 100,
+      "reps": 3,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000013",
+      "session_id": "55555555-0000-4000-8000-000000000010",
+      "exercise_id": "66666666-0000-4000-8000-000000000011",
+      "exercise_name": "Back squat",
+      "set_no": 2,
+      "weight_kg": 100,
+      "reps": 3,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000014",
+      "session_id": "55555555-0000-4000-8000-000000000010",
+      "exercise_id": null,
+      "exercise_name": "Ring dips",
+      "set_no": 1,
+      "weight_kg": 14,
+      "reps": 10,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000016",
+      "session_id": "55555555-0000-4000-8000-000000000015",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 1,
+      "weight_kg": 70,
+      "reps": 8,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000018",
+      "session_id": "55555555-0000-4000-8000-000000000017",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 1,
+      "weight_kg": 67.5,
+      "reps": 6,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000019",
+      "session_id": "55555555-0000-4000-8000-000000000017",
+      "exercise_id": "66666666-0000-4000-8000-000000000010",
+      "exercise_name": "Barbell bench press",
+      "set_no": 2,
+      "weight_kg": 67.5,
+      "reps": 5,
+      "skipped": true
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000020",
+      "session_id": "55555555-0000-4000-8000-000000000017",
+      "exercise_id": "66666666-0000-4000-8000-000000000011",
+      "exercise_name": "Back squat",
+      "set_no": 1,
+      "weight_kg": 102.5,
+      "reps": 3,
+      "skipped": false
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000021",
+      "session_id": "55555555-0000-4000-8000-000000000017",
+      "exercise_id": "66666666-0000-4000-8000-000000000011",
+      "exercise_name": "Back squat",
+      "set_no": 2,
+      "weight_kg": null,
+      "reps": 3,
+      "skipped": false
+    }
+  ],
+  "one_rep_max": [
+    {
+      "weight": 100,
+      "reps": 1,
+      "expected": 100
+    },
+    {
+      "weight": 100,
+      "reps": null,
+      "expected": 100
+    },
+    {
+      "weight": 100,
+      "reps": 5,
+      "expected": 116.7
+    },
+    {
+      "weight": 100,
+      "reps": 15,
+      "expected": 150
+    },
+    {
+      "weight": 100,
+      "reps": 30,
+      "expected": 150
+    },
+    {
+      "weight": 0,
+      "reps": 5,
+      "expected": 0
+    },
+    {
+      "weight": 62.5,
+      "reps": 8,
+      "expected": 79.2
+    }
+  ],
+  "series": [
+    {
+      "key": "id:66666666-0000-4000-8000-000000000011",
+      "name": "Back squat",
+      "points": [
+        {
+          "session_id": "55555555-0000-4000-8000-000000000001",
+          "date": "2026-05-04",
+          "top_weight": 90,
+          "estimated_1rm": 105,
+          "volume": 450
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000005",
+          "date": "2026-05-18",
+          "top_weight": 90,
+          "estimated_1rm": 105,
+          "volume": 450
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000010",
+          "date": "2026-06-15",
+          "top_weight": 100,
+          "estimated_1rm": 110,
+          "volume": 600
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000017",
+          "date": "2026-08-10",
+          "top_weight": 102.5,
+          "estimated_1rm": 112.8,
+          "volume": 307.5
+        }
+      ]
+    },
+    {
+      "key": "id:66666666-0000-4000-8000-000000000010",
+      "name": "Barbell bench press",
+      "points": [
+        {
+          "session_id": "55555555-0000-4000-8000-000000000001",
+          "date": "2026-05-04",
+          "top_weight": 60,
+          "estimated_1rm": 76,
+          "volume": 960
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000005",
+          "date": "2026-05-18",
+          "top_weight": 62.5,
+          "estimated_1rm": 79.2,
+          "volume": 937.5
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000010",
+          "date": "2026-06-15",
+          "top_weight": 65,
+          "estimated_1rm": 82.3,
+          "volume": 520
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000017",
+          "date": "2026-08-10",
+          "top_weight": 67.5,
+          "estimated_1rm": 81,
+          "volume": 405
+        }
+      ]
+    },
+    {
+      "key": "name:ring dips",
+      "name": "Ring dips",
+      "points": [
+        {
+          "session_id": "55555555-0000-4000-8000-000000000005",
+          "date": "2026-05-18",
+          "top_weight": 12,
+          "estimated_1rm": 16,
+          "volume": 120
+        },
+        {
+          "session_id": "55555555-0000-4000-8000-000000000010",
+          "date": "2026-06-15",
+          "top_weight": 14,
+          "estimated_1rm": 18.7,
+          "volume": 140
+        }
+      ]
+    }
+  ],
+  "insights": [
+    {
+      "session_id": "55555555-0000-4000-8000-000000000010",
+      "rows": [
+        {
+          "key": "id:66666666-0000-4000-8000-000000000011",
+          "name": "Back squat",
+          "days_compared": 42,
+          "load_delta": 10,
+          "estimated_1rm_delta": 5
+        },
+        {
+          "key": "id:66666666-0000-4000-8000-000000000010",
+          "name": "Barbell bench press",
+          "days_compared": 42,
+          "load_delta": 5,
+          "estimated_1rm_delta": 6.3
+        },
+        {
+          "key": "name:ring dips",
+          "name": "Ring dips",
+          "days_compared": 28,
+          "load_delta": 2,
+          "estimated_1rm_delta": 2.7
+        }
+      ]
+    },
+    {
+      "session_id": "55555555-0000-4000-8000-000000000017",
+      "rows": [
+        {
+          "key": "id:66666666-0000-4000-8000-000000000011",
+          "name": "Back squat",
+          "days_compared": 84,
+          "load_delta": 12.5,
+          "estimated_1rm_delta": 7.8
+        },
+        {
+          "key": "id:66666666-0000-4000-8000-000000000010",
+          "name": "Barbell bench press",
+          "days_compared": 84,
+          "load_delta": 5,
+          "estimated_1rm_delta": 1.8
+        }
+      ]
+    }
+  ],
+  "joint": [
+    {
+      "current": {
+        "id": "a",
+        "date": "2026-08-10",
+        "arms": 1,
+        "core": 1,
+        "legs": 1
+      },
+      "previous": null,
+      "expected": {
+        "state": "clear",
+        "affected": [],
+        "average": 1,
+        "highest": 1,
+        "rising": []
+      }
+    },
+    {
+      "current": {
+        "id": "b",
+        "date": "2026-08-10",
+        "arms": 5,
+        "core": 2,
+        "legs": 2
+      },
+      "previous": null,
+      "expected": {
+        "state": "watch",
+        "affected": [
+          "arms"
+        ],
+        "average": 3,
+        "highest": 5,
+        "rising": []
+      }
+    },
+    {
+      "current": {
+        "id": "c",
+        "date": "2026-08-10",
+        "arms": 7,
+        "core": 2,
+        "legs": 2
+      },
+      "previous": null,
+      "expected": {
+        "state": "regional_deload",
+        "affected": [
+          "arms"
+        ],
+        "average": 3.7,
+        "highest": 7,
+        "rising": []
+      }
+    },
+    {
+      "current": {
+        "id": "d",
+        "date": "2026-08-10",
+        "arms": 7,
+        "core": 7,
+        "legs": 2
+      },
+      "previous": null,
+      "expected": {
+        "state": "whole_deload",
+        "affected": [
+          "arms",
+          "core"
+        ],
+        "average": 5.3,
+        "highest": 7,
+        "rising": []
+      }
+    },
+    {
+      "current": {
+        "id": "e",
+        "date": "2026-08-10",
+        "arms": 6,
+        "core": 6,
+        "legs": 2
+      },
+      "previous": null,
+      "expected": {
+        "state": "whole_deload",
+        "affected": [
+          "arms",
+          "core"
+        ],
+        "average": 4.7,
+        "highest": 6,
+        "rising": []
+      }
+    },
+    {
+      "current": {
+        "id": "f",
+        "date": "2026-08-10",
+        "arms": 9,
+        "core": 2,
+        "legs": 2
+      },
+      "previous": null,
+      "expected": {
+        "state": "stop_and_review",
+        "affected": [
+          "arms"
+        ],
+        "average": 4.3,
+        "highest": 9,
+        "rising": []
+      }
+    },
+    {
+      "current": {
+        "id": "g",
+        "date": "2026-08-10",
+        "arms": 4,
+        "core": 2,
+        "legs": 2
+      },
+      "previous": {
+        "id": "h",
+        "date": "2026-08-03",
+        "arms": 1,
+        "core": 2,
+        "legs": 2
+      },
+      "expected": {
+        "state": "watch",
+        "affected": [],
+        "average": 2.7,
+        "highest": 4,
+        "rising": [
+          "arms"
+        ]
+      }
+    }
+  ],
+  "checkin_due": [
+    {
+      "today": "2026-08-17",
+      "expected": true
+    },
+    {
+      "today": "2026-08-16",
+      "expected": false
+    },
+    {
+      "today": "2026-08-10",
+      "expected": false
+    },
+    {
+      "today": "2026-08-17",
+      "empty": true,
+      "expected": true
+    }
+  ],
+  "checkins": [
+    {
+      "id": "55555555-0000-4000-8000-000000000022",
+      "date": "2026-07-27",
+      "arms": 2,
+      "core": 3,
+      "legs": 2
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000023",
+      "date": "2026-08-03",
+      "arms": 5,
+      "core": 3,
+      "legs": 4
+    },
+    {
+      "id": "55555555-0000-4000-8000-000000000024",
+      "date": "2026-08-10",
+      "arms": 7,
+      "core": 3,
+      "legs": 4
+    }
+  ]
+}
