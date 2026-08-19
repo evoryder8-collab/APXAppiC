@@ -1,0 +1,208 @@
+{
+  "user_id": "99999999-0000-4000-8000-000000000001",
+  "existing": {
+    "daily_logs": [
+      {
+        "id": "aaaa1111-0000-4000-8000-000000000001",
+        "user_id": "99999999-0000-4000-8000-000000000001",
+        "date": "2026-08-10",
+        "kcal": 2100,
+        "protein_g": 170,
+        "fat_g": 60,
+        "carbs_g": 210,
+        "water_l": 2.5,
+        "estimated_tdee": null,
+        "computed_pal": null,
+        "activity_mode": "quick",
+        "weight_kg": null
+      },
+      {
+        "id": "aaaa1111-0000-4000-8000-000000000002",
+        "user_id": "99999999-0000-4000-8000-000000000001",
+        "date": "2026-08-11",
+        "kcal": null,
+        "protein_g": 99,
+        "fat_g": null,
+        "carbs_g": null,
+        "water_l": 0.5,
+        "estimated_tdee": null,
+        "computed_pal": null,
+        "activity_mode": "quick",
+        "weight_kg": null
+      }
+    ],
+    "metrics": [
+      {
+        "id": "bbbb1111-0000-4000-8000-000000000001",
+        "user_id": "99999999-0000-4000-8000-000000000001",
+        "date": "2026-08-10",
+        "weight_kg": 72.4,
+        "vo2max": null,
+        "resting_hr": 52
+      }
+    ],
+    "activities": [
+      {
+        "id": "cccc1111-0000-4000-8000-000000000001",
+        "user_id": "99999999-0000-4000-8000-000000000001",
+        "date": "2026-08-10",
+        "kind": "strength",
+        "activity": "TraditionalStrengthTraining",
+        "duration_min": 55,
+        "source": "Apple Watch"
+      }
+    ]
+  },
+  "parsed": {
+    "nutrition": [
+      {
+        "date": "2026-08-10",
+        "kcal": 1800,
+        "protein": 120,
+        "fat": 50,
+        "carbs": 190
+      },
+      {
+        "date": "2026-08-11",
+        "kcal": 2400,
+        "protein": 180,
+        "fat": 70,
+        "carbs": 250
+      },
+      {
+        "date": "2026-08-12",
+        "kcal": 2200,
+        "protein": 165,
+        "fat": 62,
+        "carbs": 230
+      },
+      {
+        "date": "2026-08-13",
+        "kcal": 0,
+        "protein": 0,
+        "fat": 0,
+        "carbs": 0
+      }
+    ],
+    "water": [
+      {
+        "date": "2026-08-10",
+        "litres": 1.2
+      },
+      {
+        "date": "2026-08-11",
+        "litres": 2.13
+      },
+      {
+        "date": "2026-08-12",
+        "litres": 3
+      }
+    ],
+    "weight": [
+      {
+        "date": "2026-08-10",
+        "kg": 72.1
+      },
+      {
+        "date": "2026-08-12",
+        "kg": 71.9
+      }
+    ],
+    "vo2max": [
+      {
+        "date": "2026-08-12",
+        "value": 48.5
+      }
+    ],
+    "resting_hr": [
+      {
+        "date": "2026-08-12",
+        "value": 49
+      }
+    ],
+    "workouts": [
+      {
+        "date": "2026-08-10",
+        "activity": "TraditionalStrengthTraining",
+        "kind": "strength",
+        "durationMin": 55,
+        "source": "Apple Watch"
+      },
+      {
+        "date": "2026-08-12",
+        "activity": "Running",
+        "kind": "endurance",
+        "durationMin": 42,
+        "source": "Apple Watch"
+      },
+      {
+        "date": "2026-08-12",
+        "activity": "Yoga",
+        "kind": "mobility",
+        "durationMin": 20,
+        "source": "iPhone"
+      }
+    ]
+  },
+  "expected": {
+    "daily_logs": [
+      {
+        "date": "2026-08-11",
+        "kcal": 2400,
+        "protein_g": 99,
+        "fat_g": 70,
+        "carbs_g": 250,
+        "water_l": 2.25
+      },
+      {
+        "date": "2026-08-12",
+        "kcal": 2200,
+        "protein_g": 165,
+        "fat_g": 62,
+        "carbs_g": 230,
+        "water_l": 3
+      }
+    ],
+    "metrics": [
+      {
+        "date": "2026-08-10",
+        "weight_kg": 72.1,
+        "vo2max": null,
+        "resting_hr": 52
+      },
+      {
+        "date": "2026-08-12",
+        "weight_kg": 71.9,
+        "vo2max": 48.5,
+        "resting_hr": 49
+      }
+    ],
+    "activities": [
+      {
+        "date": "2026-08-12",
+        "kind": "endurance",
+        "activity": "Running",
+        "duration_min": 42,
+        "source": "Apple Watch"
+      },
+      {
+        "date": "2026-08-12",
+        "kind": "mobility",
+        "activity": "Yoga",
+        "duration_min": 20,
+        "source": "iPhone"
+      }
+    ],
+    "result": {
+      "dailyLogsTouched": 2,
+      "metricsTouched": 2,
+      "workoutsAdded": 2,
+      "latestWeight": 71.9,
+      "latestVo2max": 48.5,
+      "dateRange": [
+        "2026-08-10",
+        "2026-08-13"
+      ]
+    }
+  }
+}

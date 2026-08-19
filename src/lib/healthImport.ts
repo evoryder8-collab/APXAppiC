@@ -12,7 +12,7 @@ import type {
   ImportedActivity,
   ImportedActivityKind,
 } from './types'
-import { dailyLogId, healthMetricId } from './ids'
+import { dailyLogId, healthMetricId } from './ids.ts'
 
 export interface ParsedHealth {
   nutrition: Map<string, { kcal: number; protein: number; fat: number; carbs: number }>

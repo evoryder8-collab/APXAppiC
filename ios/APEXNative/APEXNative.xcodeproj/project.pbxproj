@@ -75,6 +75,7 @@
 		65016A753C50D66AE4789CC3 /* OrbitLocationManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8172120F69D75C87F5025756 /* OrbitLocationManager.swift */; };
 		65B5574345E07294F33F35B1 /* PortalHomeView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */; };
 		6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */ = {isa = PBXBuildFile; fileRef = B4545B8749346593913BC3AA /* HealthKitManager.swift */; };
+		6AA387D5264A024A9D5D5F30 /* HealthImport.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4A61351AEE44DB4AEC78BC36 /* HealthImport.swift */; };
 		6FAC6129B5C4704372DCCB33 /* arms_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 120870CB00AA18D20B3CC9C8 /* arms_dif.jpg */; };
 		708DCA6DB776A84982950FBE /* HydrationFigureWebView.swift in Sources */ = {isa = PBXBuildFile; fileRef = EFCE6313D2113D84E45897C7 /* HydrationFigureWebView.swift */; };
 		71A92756C908238A8531B60B /* WorkoutDaySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = C291C5F233756DE156CFB464 /* WorkoutDaySheet.swift */; };
@@ -96,6 +97,7 @@
 		8F8F28A4C1D48840624E3517 /* StrengthProgress.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5190A21466A8A95661FAA6BA /* StrengthProgress.swift */; };
 		93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E079A75C9AF4BCDAB514617 /* RunDebriefView.swift */; };
 		9632A64865B548AC3A1EB5F5 /* TrainingAdjustmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2EBA8504BDA79522C3269E /* TrainingAdjustmentEngine.swift */; };
+		97CA260C4CEF8966A48F7E55 /* health-import-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 530C9841C32436703E1AC31A /* health-import-parity.json */; };
 		9C75B87ABD33D10929397E0E /* FoodRegion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 12CA9E1AD0141A2A992E8E80 /* FoodRegion.swift */; };
 		9CE07DE926FB1F4D3357AD92 /* StrengthProgressParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7F212F03DC5D6145E4F50236 /* StrengthProgressParityTests.swift */; };
 		9D19D5CC5A3E3B9A185071CD /* MealMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A1160480AC757FD1D1C9DE /* MealMemory.swift */; };
@@ -121,7 +123,9 @@
 		C085A173776E040F97A913FD /* NutritionParityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */; };
 		C1492157925018A76B1F05CD /* arms_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2DCCC6DAAD90DC79C994C853 /* arms_bump.jpg */; };
 		C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
+		C363F0EC4FF9F04D9969ED89 /* HealthImportParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA197AD6E551099CA1068BC /* HealthImportParityTests.swift */; };
 		C643CC39DC869012CA364630 /* torso_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 8B1D338388006FFDC7405C7B /* torso_bump.jpg */; };
+		C6A53F1DFA3F58EB593FD426 /* HealthHistoryReader.swift in Sources */ = {isa = PBXBuildFile; fileRef = 57E7828E22BB80EC824A0F3D /* HealthHistoryReader.swift */; };
 		C80416FA0BE7E74B2C4562E9 /* ProgressionEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 393564C9A7237B2AE2880001 /* ProgressionEngine.swift */; };
 		CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 4D65A340828BC773255E99E7 /* engine-parity.json */; };
 		CC981A1BC1441EEE5769C013 /* OrbitPrivacyArchive.swift in Sources */ = {isa = PBXBuildFile; fileRef = DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */; };
@@ -253,6 +257,7 @@
 		23AEEB8E0AD3A0C9528B48E5 /* SupabaseService.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabaseService.swift; sourceTree = "<group>"; };
 		2402484CFB9ECDD04C1C9FF5 /* APEXStableID.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXStableID.swift; sourceTree = "<group>"; };
 		297741B62F81B0636B34F35C /* training-support-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "training-support-parity.json"; sourceTree = "<group>"; };
+		2AA197AD6E551099CA1068BC /* HealthImportParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthImportParityTests.swift; sourceTree = "<group>"; };
 		2BEE1685C3BD78ADAB767C5C /* PrivacyInfo.xcprivacy */ = {isa = PBXFileReference; path = PrivacyInfo.xcprivacy; sourceTree = "<group>"; };
 		2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodPortionParityTests.swift; sourceTree = "<group>"; };
 		2D7AC07E80FBE3B8D77C3D44 /* head_bump.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = head_bump.jpg; sourceTree = "<group>"; };
@@ -269,6 +274,7 @@
 		4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortalHomeView.swift; sourceTree = "<group>"; };
 		48785B712B6C1FBAD4D945AE /* exercise-catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "exercise-catalog.json"; sourceTree = "<group>"; };
 		49C75403495643D96C069C21 /* CustomWorkoutBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWorkoutBuilder.swift; sourceTree = "<group>"; };
+		4A61351AEE44DB4AEC78BC36 /* HealthImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthImport.swift; sourceTree = "<group>"; };
 		4AF48CCB29A2D4316F36F99B /* OrbitLibraryView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitLibraryView.swift; sourceTree = "<group>"; };
 		4B49E8F5F785351C11F1E042 /* AppRootView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AppRootView.swift; sourceTree = "<group>"; };
 		4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FocusT25.swift; sourceTree = "<group>"; };
@@ -277,7 +283,9 @@
 		4D84691E267D4B0B08B9C9CA /* HorizontalPan.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HorizontalPan.swift; sourceTree = "<group>"; };
 		5190A21466A8A95661FAA6BA /* StrengthProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthProgress.swift; sourceTree = "<group>"; };
 		51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityGuideSheet.swift; sourceTree = "<group>"; };
+		530C9841C32436703E1AC31A /* health-import-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "health-import-parity.json"; sourceTree = "<group>"; };
 		53A12AB559BCB32B420CC5D9 /* MarathonCampaignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonCampaignView.swift; sourceTree = "<group>"; };
+		57E7828E22BB80EC824A0F3D /* HealthHistoryReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthHistoryReader.swift; sourceTree = "<group>"; };
 		59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainTargets.swift; sourceTree = "<group>"; };
 		5B6D7EBC10E6E7795AFC4F41 /* OrbitIntegrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitIntegrations.swift; sourceTree = "<group>"; };
 		5C5DD87DC31AEF8E5A0A6905 /* APEXConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXConfiguration.swift; sourceTree = "<group>"; };
@@ -400,6 +408,7 @@
 		16242D822E15B0023ADFB4D4 /* Health */ = {
 			isa = PBXGroup;
 			children = (
+				57E7828E22BB80EC824A0F3D /* HealthHistoryReader.swift */,
 				B4545B8749346593913BC3AA /* HealthKitManager.swift */,
 			);
 			path = Health;
@@ -532,6 +541,7 @@
 			isa = PBXGroup;
 			children = (
 				4D65A340828BC773255E99E7 /* engine-parity.json */,
+				530C9841C32436703E1AC31A /* health-import-parity.json */,
 				AEA7213F1AC11A72D5A5743F /* meal-memory-parity.json */,
 				018FB46EA0E562A118018CC0 /* plan-parity.json */,
 				FE90D902B985B28E7751EE26 /* strength-parity.json */,
@@ -564,6 +574,7 @@
 				D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */,
 				2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */,
 				83CB8593ABFEA904B505BC65 /* FoodRegionTests.swift */,
+				2AA197AD6E551099CA1068BC /* HealthImportParityTests.swift */,
 				687976EA3575F155FEE0785C /* HydrationGaugeTests.swift */,
 				192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */,
 				39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */,
@@ -742,6 +753,7 @@
 				4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */,
 				01407BB294D6CEF9BD33078A /* FoodHydration.swift */,
 				12CA9E1AD0141A2A992E8E80 /* FoodRegion.swift */,
+				4A61351AEE44DB4AEC78BC36 /* HealthImport.swift */,
 				C8E4463683E46A0209E86AAB /* ManualWorkout.swift */,
 				7C2B0838F9D735BF37008FFE /* MealBlocks.swift */,
 				E6A1160480AC757FD1D1C9DE /* MealMemory.swift */,
@@ -979,6 +991,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */,
+				97CA260C4CEF8966A48F7E55 /* health-import-parity.json in Resources */,
 				54C057DC8588F6B62D0E81E5 /* meal-memory-parity.json in Resources */,
 				1AE709AFC44574DA123B88FC /* plan-parity.json in Resources */,
 				299721ACD1752C4F2B392967 /* strength-parity.json in Resources */,
@@ -1034,6 +1047,8 @@
 				D93E34A4FC70F325479895B9 /* FoodHydration.swift in Sources */,
 				F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */,
 				9C75B87ABD33D10929397E0E /* FoodRegion.swift in Sources */,
+				C6A53F1DFA3F58EB593FD426 /* HealthHistoryReader.swift in Sources */,
+				6AA387D5264A024A9D5D5F30 /* HealthImport.swift in Sources */,
 				6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */,
 				1BE4BAAFBF290CE5F184761A /* HolographicBodyView.swift in Sources */,
 				3305E56000695DF251BDE392 /* HorizontalPan.swift in Sources */,
@@ -1115,6 +1130,7 @@
 				09BBEC76744940807A58CA6A /* FoodHydrationTests.swift in Sources */,
 				EFE1D97D110D324BE6722A59 /* FoodPortionParityTests.swift in Sources */,
 				2B52272AF5BC8F9DCB1E4500 /* FoodRegionTests.swift in Sources */,
+				C363F0EC4FF9F04D9969ED89 /* HealthImportParityTests.swift in Sources */,
 				22A8AD7876D6B713C2E13474 /* HydrationGaugeTests.swift in Sources */,
 				BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */,
 				355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */,

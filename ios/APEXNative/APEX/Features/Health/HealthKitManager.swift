@@ -39,7 +39,9 @@ final class HealthKitManager {
     var lastSnapshot: HealthSnapshot?
     var message: String?
 
-    private let store = HKHealthStore()
+    /// Not private: the history reader lives in its own file to keep the
+    /// today-path and the backfill path separate.
+    let store = HKHealthStore()
     private var observerQueries: [HKObserverQuery] = []
     private var importHandler: (@MainActor @Sendable (HealthSnapshot) async -> Void)?
 
