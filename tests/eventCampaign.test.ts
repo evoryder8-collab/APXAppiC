@@ -65,14 +65,42 @@ test('an unprepared athlete gets a foundation phase first', () => {
   assert.equal(plan.weeks[0].phase, 'foundation')
 })
 
-test('an impossible runway is refused honestly rather than flattered', () => {
-  const rushed = buildCampaign({ ...base, raceDate: '2026-09-16' })
-  assert.equal(rushed.refusedTarget, true)
-  assert.match(rushed.timelineWarning ?? '', /next one|training day/i)
-  assert.ok(rushed.weeks.length > 0, 'a plan is still produced rather than a dead end')
+test('a short runway sets expectations rather than closing the door', () => {
+  const rushed = buildCampaign({ ...base, raceDate: '2026-09-16', ambition: 'compete' })
+  assert.ok(rushed.weeks.length > 0, 'the campaign is still built')
+  assert.equal(rushed.targetOutcome, 'finish_safely', 'aimed at what the runway actually buys')
+  assert.match(rushed.expectation, /arrive healthy and finish/i)
+  assert.match(rushed.ambitionGap ?? '', /weeks/, 'says what contending would have needed')
+  assert.match(rushed.ambitionGap ?? '', /do this one anyway/i, 'and never tells them not to go')
+})
 
-  const tri = buildCampaign({ ...base, kind: 'half_triathlon', raceDate: '2026-10-14', canSwimContinuously: true })
-  assert.equal(tri.refusedTarget, true, 'a half triathlon needs a longer runway than a Hyrox')
+test('ambition is honoured wherever the runway supports it', () => {
+  const long = buildCampaign({
+    ...base, raceDate: '2027-08-19', ambition: 'compete',
+    hasDoneOne: true, consistentMonths: 24, longestRunKm: 20,
+  })
+  assert.equal(long.targetOutcome, 'competitive')
+  assert.equal(long.ambitionGap, null, 'no gap to explain when the goal is reachable')
+  assert.match(long.expectation, /contend/i)
+})
+
+test('a long calendar on no base still does not promise a podium', () => {
+  const nobase = buildCampaign({
+    ...base, raceDate: '2027-08-19', ambition: 'compete',
+    consistentMonths: 0, longestRunKm: 2,
+  })
+  assert.equal(nobase.family, 'foundation_first')
+  assert.notEqual(nobase.targetOutcome, 'competitive', 'time alone does not buy a result')
+  assert.ok(nobase.ambitionGap, 'and the reason is stated')
+})
+
+test('modest ambition is never inflated by a generous calendar', () => {
+  const modest = buildCampaign({
+    ...base, raceDate: '2027-08-19', ambition: 'finish',
+    hasDoneOne: true, consistentMonths: 24,
+  })
+  assert.equal(modest.targetOutcome, 'finish_safely', 'wanting to finish is a valid goal, not a deficit')
+  assert.equal(modest.ambitionGap, null)
 })
 
 test('a race date in the past is caught rather than producing nonsense', () => {

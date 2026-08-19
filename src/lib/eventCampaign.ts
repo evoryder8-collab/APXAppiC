@@ -68,8 +68,21 @@ export const HALF_TRIATHLON_LEGS = {
   runKilometres: 21.1,
 } as const
 
+/* What the person is hoping for. Ambition is asked for, honoured where it is
+ * reachable, and reconciled out loud where it is not. */
+export type EventAmbition = 'finish' | 'solid_time' | 'compete'
+
+/* What this campaign is actually aimed at, once ambition meets the runway.
+ * Never a refusal: every combination produces a real target. */
+export type TargetOutcome =
+  | 'finish_safely'   // arrive healthy, complete it, enjoy it
+  | 'solid_finish'    // finish comfortably and respectably
+  | 'performance'     // chase a time worth being proud of
+  | 'competitive'     // genuinely contend
+
 export interface EventIntake {
   kind: EventKind
+  ambition?: EventAmbition
   raceDate: string
   today: string
   /* Longest continuous run in the last month, kilometres. */
@@ -106,10 +119,15 @@ export interface EventCampaignPlan {
   weeksAvailable: number
   weeks: CampaignWeek[]
   assignmentReason: string
+  /* What this plan is aimed at, once ambition met the runway. */
+  targetOutcome: TargetOutcome
+  /* One plain sentence about what race day realistically looks like. Said
+     upfront rather than discovered on the start line. */
+  expectation: string
+  /* Present only when ambition outruns the runway. It never blocks the
+     campaign; it says what the bigger goal would need. */
+  ambitionGap: string | null
   timelineWarning: string | null
-  /* Set when the honest answer is that this race should not be attempted on
-     this timeline. A campaign is still produced, aimed at the next one. */
-  refusedTarget: boolean
 }
 
 function daysBetween(from: string, to: string): number {
@@ -266,17 +284,10 @@ export function buildCampaign(intake: EventIntake): EventCampaignPlan {
   const { family, reason } = assignFamily(intake)
   const phases = phasePlan(weeks, family)
 
-  /* An honest refusal. Below these runways the event is not a training
-     problem, it is a timing one, and the plan aims at a later date. */
-  const minimumWeeks = intake.kind === 'half_triathlon' ? 12 : 6
-  const refusedTarget = weeks > 0 && weeks < minimumWeeks
+  const { outcome, expectation, ambitionGap } = reconcile(intake, family, weeks)
   const timelineWarning = weeks === 0
     ? 'That date is not in the future. Pick the race day and we will build back from it.'
-    : refusedTarget
-      ? intake.kind === 'half_triathlon'
-        ? `Twelve weeks is the least this distance deserves and there are ${weeks}. The plan below prepares you properly rather than pretending; treat this race as a training day, or move the target.`
-        : `Six weeks is the least a first Hyrox deserves and there are ${weeks}. The plan below still helps, but the honest advice is to enter the next one.`
-      : null
+    : null
 
   const built: CampaignWeek[] = phases.map((phase, index) => {
     const weekNumber = index + 1
@@ -303,9 +314,83 @@ export function buildCampaign(intake: EventIntake): EventCampaignPlan {
     weeksAvailable: weeks,
     weeks: built,
     assignmentReason: reason,
+    targetOutcome: outcome,
+    expectation,
+    ambitionGap,
     timelineWarning,
-    refusedTarget,
   }
+}
+
+/* Roughly what each outcome costs, in weeks of consistent training from a
+ * reasonable base. Used to answer "what would it take" rather than to gate
+ * anyone out of entering a race they have already paid for. */
+const WEEKS_FOR_OUTCOME: Record<EventKind, Record<TargetOutcome, number>> = {
+  hyrox: { finish_safely: 4, solid_finish: 10, performance: 20, competitive: 40 },
+  half_triathlon: { finish_safely: 10, solid_finish: 18, performance: 30, competitive: 52 },
+}
+
+/*
+ * Ambition meets the runway.
+ *
+ * Nobody is turned away from a race they want to do. What they get instead is
+ * the truth about what this particular runway buys, a plan aimed squarely at
+ * that, and a straight answer about what the bigger goal would have needed.
+ * Someone who wants to contend and has six weeks should hear that they can
+ * arrive healthy and finish well, and that contending is a year of work, not
+ * that they should not go.
+ */
+export function reconcile(
+  intake: EventIntake,
+  family: EventFamily,
+  weeks: number,
+): { outcome: TargetOutcome; expectation: string; ambitionGap: string | null } {
+  const kind = intake.kind
+  /* Hyrox is a proper noun; a half-distance triathlon is not. */
+  const event = kind === 'hyrox' ? 'Hyrox' : 'half-distance triathlon'
+  const table = WEEKS_FOR_OUTCOME[kind]
+  const ambition: EventAmbition = intake.ambition ?? 'solid_time'
+
+  /* The base matters as much as the calendar. A long runway from nothing
+     still does not buy a competitive result. */
+  const basePenalty = family === 'foundation_first' ? 2 : family === 'first_finish' ? 1 : 0
+  const reachable: TargetOutcome[] = (['competitive', 'performance', 'solid_finish', 'finish_safely'] as const)
+    .filter((level, index) => weeks >= table[level] && index >= basePenalty)
+  const best: TargetOutcome = reachable[0] ?? 'finish_safely'
+
+  const wanted: TargetOutcome = ambition === 'compete' ? 'competitive'
+    : ambition === 'solid_time' ? 'performance' : 'finish_safely'
+
+  const order: TargetOutcome[] = ['finish_safely', 'solid_finish', 'performance', 'competitive']
+  const outcome = order.indexOf(wanted) < order.indexOf(best) ? wanted : best
+
+  const expectations: Record<TargetOutcome, string> = {
+    finish_safely: `On this runway the goal is to arrive healthy and finish your ${event}. That is a real result, and it is the one this plan is built to deliver.`,
+    solid_finish: `There is enough time here to finish your ${event} comfortably and well inside the field, rather than merely surviving it.`,
+    performance: `There is enough runway to chase a time you will be pleased with, and the plan spends its later weeks on exactly that.`,
+    competitive: `There is enough runway and enough base to prepare to genuinely contend, so the plan is built around the specific weaknesses that cost places.`,
+  }
+
+  let ambitionGap: string | null = null
+  if (order.indexOf(wanted) > order.indexOf(outcome)) {
+    const needed = table[wanted]
+    const short = Math.max(0, needed - weeks)
+    const wantedLabel = wanted === 'competitive' ? 'contending' : 'a time you would chase'
+    ambitionGap = short > 0
+      ? `You said you want ${ambition === 'compete' ? 'to compete' : 'a strong time'}. Honestly: ${wantedLabel} from where you are now takes about ${needed} weeks of consistent work, and there are ${weeks}. Do this one anyway, aim at the target above, and you will be ${short} weeks better placed for the next.`
+      : `You said you want ${ambition === 'compete' ? 'to compete' : 'a strong time'}. The calendar allows it, but the base does not yet. Build this one properly and the next is a different conversation.`
+  }
+
+  return { outcome, expectation: expectations[outcome], ambitionGap }
+}
+
+export function outcomeLabel(outcome: TargetOutcome): string {
+  const labels: Record<TargetOutcome, string> = {
+    finish_safely: 'Arrive healthy and finish',
+    solid_finish: 'Finish strong',
+    performance: 'Race it',
+    competitive: 'Contend',
+  }
+  return labels[outcome]
 }
 
 export function eventLabel(kind: EventKind): string {
