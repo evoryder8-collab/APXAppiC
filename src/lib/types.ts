@@ -137,6 +137,10 @@ export interface Exercise {
   per_side: boolean
   rest_sec: number
   /* Structured tempo for the cadence engine */
+  /* Canonical movement this row performs, where it is known. Programme rows
+   * keep their own authored names, so this is what lets the player find the
+   * timing, cues and side-switch behaviour behind one. */
+  movement_id?: string | null
   tempo_up_s: number
   tempo_down_s: number
   tempo_pause_s: number

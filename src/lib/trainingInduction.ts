@@ -14,6 +14,10 @@ import type {
   TrainingVenue,
 } from './types'
 
+import { estimateSessionSeconds, followAlongFields } from './sessionShape.ts'
+import { GOAL_INTENT } from './planGenerator.ts'
+import type { TrainingIntent } from './liftingTempo.ts'
+
 export interface EquipmentOption {
   id: string
   en: string
@@ -356,6 +360,30 @@ export function generateTrainingPlan(
           : session.warmup,
         sort_order: sessionIndex,
       })
+      /* A generated plan is followed along with, so its pacing has to come
+       * from the movement rather than from one number per template. Anyone
+       * training under caution is timed like a rebuild block regardless of
+       * the goal they picked, because that is what the caution is for. */
+      const followAlong = (spec: ExerciseSpec) => {
+        const intent: TrainingIntent = assessment.caution === 'standard'
+          ? GOAL_INTENT[input.goal]
+          : 'rebuild'
+        const fields = followAlongFields(spec.name, intent, {
+          rest_sec: spec.rest ?? 60,
+          per_side: spec.perSide ?? false,
+          increment_kg: spec.increment ?? 0,
+        })
+        return {
+          movement_id: fields.movement_id,
+          per_side: fields.per_side,
+          rest_sec: fields.rest_sec,
+          tempo_up_s: fields.tempo_up_s,
+          tempo_down_s: fields.tempo_down_s,
+          tempo_pause_s: fields.tempo_pause_s,
+          tempo_note: fields.tempo_note,
+        }
+      }
+
       const addExercise = (spec: ExerciseSpec, index: number, lite: boolean): void => {
         const sets = Math.max(1, (spec.sets ?? 2) - (lite ? 1 : 0))
         exercises.push({
@@ -367,12 +395,7 @@ export function generateTrainingPlan(
           rep_min: spec.reps[0],
           rep_max: spec.reps[1],
           rep_unit: spec.unit ?? 'reps',
-          per_side: spec.perSide ?? false,
-          rest_sec: spec.rest ?? 60,
-          tempo_up_s: 1,
-          tempo_down_s: assessment.caution === 'standard' ? 2 : 3,
-          tempo_pause_s: 0,
-          tempo_note: '',
+          ...followAlong(spec),
           notes: spec.notes ?? (assessment.caution === 'cautious' ? 'Pain-free range. Stop with at least 3 reps in reserve.' : 'Progress only after every rep is controlled.'),
           increment_kg: spec.increment ?? 0,
           is_lite: lite,
@@ -382,6 +405,16 @@ export function generateTrainingPlan(
       }
       session.exercises.forEach((exercise, index) => addExercise(exercise, index, false))
       session.exercises.slice(0, 3).forEach((exercise, index) => addExercise(exercise, index, true))
+
+      const dayExercises = exercises.filter((e) => e.program_day_id === dayId && !e.is_lite)
+      const dayIndex = program_days.findIndex((d) => d.id === dayId)
+      if (dayIndex >= 0 && dayExercises.length > 0) {
+        program_days[dayIndex] = {
+          ...program_days[dayIndex],
+          est_minutes: Math.max(1, Math.round(
+            estimateSessionSeconds(dayExercises, 180) / 60)),
+        }
+      }
     })
   }
 

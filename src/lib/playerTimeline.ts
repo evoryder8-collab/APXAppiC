@@ -1,6 +1,12 @@
 /* Builds the guided player's block timeline from an adjusted plan. */
 import type { PlannedDay, PlannedExercise } from './plan'
 import { isConditioningFocusT25, isFocusT25Name } from './focusT25.ts'
+import {
+  movementForExercise,
+  shouldCaptureLoad,
+  sideSwitchSeconds,
+  transitionSeconds,
+} from './sessionShape.ts'
 
 export type Block =
   | { kind: 'warmup'; text: string; duration: number }
@@ -137,6 +143,7 @@ export function timedSeconds(e: PlannedExercise): number | null {
 }
 
 export function buildTimeline(plan: PlannedDay): Block[] {
+  const movementOf = (e: PlannedExercise) => movementForExercise(e)
   const blocks: Block[] = []
   if (plan.warmup && plan.warmupDuration > 0) {
     blocks.push({ kind: 'warmup', text: plan.warmup, duration: plan.warmupDuration })
@@ -160,16 +167,12 @@ export function buildTimeline(plan: PlannedDay): Block[] {
             repDuration: repDuration(e),
             timed: timedSeconds(e),
           })
-          if (
-            side === 'left'
-            && sideIndex < sides.length - 1
-            && /(?:bulgarian|split[\s-]?squat)/i.test(e.name)
-          ) {
+          if (side === 'left' && sideIndex < sides.length - 1) {
             blocks.push({
               kind: 'side_switch',
               exIdx,
               setNo,
-              duration: 3,
+              duration: sideSwitchSeconds(movementOf(e)),
               exercise: e,
               nextSide: 'right',
             })
@@ -184,19 +187,22 @@ export function buildTimeline(plan: PlannedDay): Block[] {
             duration: e.rest_sec,
             nextLabel: `${e.name}, set ${setNo + 1}`,
             exercise: e,
-            captureLoad: e.increment_kg > 0,
+            captureLoad: shouldCaptureLoad(e),
           })
         }
       }
       const next = plan.exercises[exIdx + 1]
-      if (next && e.rest_sec > 0) {
+      if (next) {
         blocks.push({
           kind: 'rest',
           exIdx,
           afterSet: e.planned_sets,
-          duration: e.rest_sec,
+          duration: transitionSeconds(movementOf(e), movementOf(next), e.rest_sec),
           nextLabel: next.name,
           exercise: e,
+          // The last set's load is confirmed in the exercise review this block
+          // renders, not in a per-set prompt, so asking here would be a second
+          // question about the same number.
           captureLoad: false,
           reviewExercise: true,
         })

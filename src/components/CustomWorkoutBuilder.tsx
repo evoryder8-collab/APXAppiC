@@ -16,8 +16,7 @@ import {
   type ExerciseCategory,
 } from '../data/exerciseCatalog'
 import { GhostButton, GradientButton, Sheet } from './ui'
-import { MOVEMENTS, MOVEMENT_ALIASES } from '../data/movements'
-import { resolveMovement, tempoFieldsFor } from '../lib/liftingTempo'
+import { followAlongFields, suggestedRestSeconds } from '../lib/sessionShape'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((module) => ({ default: module.HologramStage })),
@@ -99,7 +98,15 @@ export function CustomWorkoutBuilder({
   const addExercise = (item: ExerciseCatalogItem): void => {
     setSelected((current) => current.some((entry) => entry.id === item.id)
       ? current.filter((entry) => entry.id !== item.id)
-      : [...current, { id: item.id, sets: item.sets, reps: item.reps, rest: item.rest }])
+      : [...current, {
+          id: item.id,
+          sets: item.sets,
+          reps: item.reps,
+          // The picker starts on what the movement actually warrants -- a cuff
+          // drill and a heavy hinge do not want the same interval -- and the
+          // trainer can still change it to anything they like.
+          rest: suggestedRestSeconds(item.name, 'hypertrophy') ?? item.rest,
+        }])
   }
 
   const updateExercise = (id: string, patch: Partial<Omit<SelectedExercise, 'id'>>): void => {
@@ -133,11 +140,10 @@ export function CustomWorkoutBuilder({
    * is the blanket cadence the movement library exists to replace. Where the
    * chosen exercise maps onto a known movement, its own timing is used; where
    * it does not, the previous defaults stand rather than guessing. */
-  const tempoForCatalogItem = (name: string) => {
-    const movement = resolveMovement(name, MOVEMENTS, MOVEMENT_ALIASES)
-    if (!movement) return { tempo_up_s: 1, tempo_down_s: 2, tempo_pause_s: 0, tempo_note: '' }
-    return tempoFieldsFor(movement, 'hypertrophy')
-  }
+  const followAlongFor = (name: string, rest: number, perSide: boolean, increment: number) =>
+    followAlongFields(name, 'hypertrophy', {
+      rest_sec: rest, per_side: perSide, increment_kg: increment,
+    }, { keepAuthoredRest: true })
 
     const day: ProgramDay = {
       id: existingDay?.id ?? crypto.randomUUID(),
@@ -168,9 +174,11 @@ export function CustomWorkoutBuilder({
         rep_min: clamp(selection.reps, 1, 600),
         rep_max: clamp(selection.reps, 1, 600),
         rep_unit: item.unit,
-        per_side: item.perSide,
-        rest_sec: clamp(selection.rest, 0, 600),
-        ...tempoForCatalogItem(item.name),
+        ...(({ movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec }) => ({
+          movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec,
+        }))(followAlongFor(
+          item.name, clamp(selection.rest, 0, 600), item.perSide,
+          weighted ? 2.5 : 0)),
         notes: `${item.equipment} · ${item.muscles.join(', ')}`,
         increment_kg: weighted ? 2.5 : 0,
         is_lite: false,

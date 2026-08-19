@@ -37,7 +37,7 @@ test('bodyweight exercises do not ask for a meaningless kilogram entry', () => {
   assert.ok(rests.every((block) => !block.captureLoad))
 })
 
-test('Bulgarian split squats include a three-second leg-change block before the right side', () => {
+test('every single-sided exercise gets a leg-change block sized to the movement', () => {
   const plan: PlannedDay = {
     programDay: null,
     exercises: [exercise({ name: 'Bulgarian Split Squat', planned_sets: 1, sets: 1, per_side: true })],
@@ -46,6 +46,22 @@ test('Bulgarian split squats include a three-second leg-change block before the 
   const timeline = buildTimeline(plan)
   const left = timeline.findIndex((block) => block.kind === 'set' && block.side === 'left')
   assert.equal(timeline[left + 1]?.kind, 'side_switch')
-  assert.equal(timeline[left + 1]?.kind === 'side_switch' ? timeline[left + 1].duration : 0, 3)
+  const duration = timeline[left + 1]?.kind === 'side_switch' ? timeline[left + 1].duration : 0
+  // Three seconds was the old fixed guess for every switch. Resetting a rear
+  // foot on a bench takes longer than that on its own, and a split squat also
+  // leaves most people needing a breath before the second leg is worth
+  // training at all.
+  assert.ok(duration >= 20, `a split squat leg change was given ${duration}s`)
   assert.equal(timeline[left + 2]?.kind === 'set' ? timeline[left + 2].side : null, 'right')
+
+  // The block used to fire only for exercises whose name matched a regex for
+  // split squats, so every other single-sided movement had no switch at all.
+  const rowPlan: PlannedDay = {
+    ...plan,
+    exercises: [exercise({ name: 'One-Arm Dumbbell Row', planned_sets: 1, sets: 1, per_side: true })],
+  }
+  const rowTimeline = buildTimeline(rowPlan)
+  const rowLeft = rowTimeline.findIndex((block) => block.kind === 'set' && block.side === 'left')
+  assert.equal(rowTimeline[rowLeft + 1]?.kind, 'side_switch',
+    'a single-arm row sent the follower straight from one side to the other')
 })
