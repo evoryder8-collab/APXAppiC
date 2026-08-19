@@ -309,6 +309,7 @@ struct NutritionTargetSheet: View {
     @State private var pendingQuickLevel: ActivityLevel?
 
     let date: Date
+    var onClose: () -> Void = {}
 
     private var logs: [ActivityLog] {
         session.data.activityLogs.filter { $0.date == date.apexDateKey }
@@ -320,12 +321,14 @@ struct NutritionTargetSheet: View {
     }
 
     var body: some View {
-        NavigationStack {
-            VStack(alignment: .leading, spacing: 14) {
+        /* Card content: goal and activity level are a glance and a tap, not a
+           screen that has to be dismissed. */
+        VStack(alignment: .leading, spacing: 12) {
+                    APEXPopoverHeader(title: language.text("Daily calorie target"), onClose: onClose)
                     if let targets {
                         HStack(alignment: .firstTextBaseline) {
                             Text("\(targets.targetCalories)")
-                                .font(APEXFont.display(40))
+                                .font(APEXFont.display(32))
                                 .contentTransition(.numericText())
                             Text("kcal")
                                 .font(APEXFont.body(15, weight: .bold))
@@ -385,16 +388,6 @@ struct NutritionTargetSheet: View {
                         }
                     }
             }
-            .padding(18)
-            .background(APEXBackground())
-            .navigationTitle(language.text("Daily calorie target"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .confirmationAction) {
-                    Button("Done") { dismiss() }
-                        .font(APEXFont.body(14, weight: .bold))
-                }
-            }
             .confirmationDialog(
                 language.text("Switch to Quick Mode?"),
                 isPresented: Binding(
@@ -415,7 +408,6 @@ struct NutritionTargetSheet: View {
             } message: {
                 Text(language.text("This removes today's precise activity blocks so the selected activity level becomes active."))
             }
-        }
     }
 
     private func targetGroup<Content: View>(title: String, @ViewBuilder content: () -> Content) -> some View {

@@ -161,10 +161,9 @@ struct NutritionView: View {
                 .apexTransientSheet()
                 .presentationDragIndicator(.visible)
         }
-        .sheet(isPresented: $showTargetEditor) {
-            NutritionTargetSheet(date: selectedDate)
-                .apexTransientSheet()
-                .presentationDragIndicator(.visible)
+        .apexPopover(isPresented: $showTargetEditor) {
+            NutritionTargetSheet(date: selectedDate, onClose: { showTargetEditor = false })
+                .environment(session)
         }
         .sheet(isPresented: $showCalendar) {
             NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }

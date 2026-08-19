@@ -218,10 +218,9 @@ struct SimpleHomeView: View {
                 )
             }
         }
-        .sheet(isPresented: $showTargetEditor) {
-            NutritionTargetSheet(date: selectedDate)
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+        .apexPopover(isPresented: $showTargetEditor) {
+            NutritionTargetSheet(date: selectedDate, onClose: { showTargetEditor = false })
+                .environment(session)
         }
         .sheet(isPresented: $showCalendar) {
             NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }

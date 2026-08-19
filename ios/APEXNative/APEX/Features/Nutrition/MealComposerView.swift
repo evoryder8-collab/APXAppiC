@@ -1032,8 +1032,12 @@ private struct MealFoodPicker: View {
                     showScanner = false
                 }
             }
-            .sheet(item: $configuring) { food in
-                FoodAmountSheet(food: food, preference: preference(for: food)) { amount, unit in
+            .apexPopover(item: $configuring) { food in
+                FoodAmountSheet(
+                    food: food,
+                    preference: preference(for: food),
+                    onClose: { configuring = nil }
+                ) { amount, unit in
                     onAdd(food, amount, unit)
                 }
             }

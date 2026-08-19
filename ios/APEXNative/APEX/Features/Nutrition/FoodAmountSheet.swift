@@ -109,6 +109,7 @@ struct FoodAmountSheet: View {
 
     let food: Food
     let preference: FoodPreference?
+    var onClose: () -> Void = {}
     let onConfirm: (Double, String) -> Void
 
     @State private var quantity: Double = 100
@@ -123,19 +124,14 @@ struct FoodAmountSheet: View {
     private var basisLabel: String { food.nutritionBasis == "per_100ml" ? "ml" : "g" }
 
     var body: some View {
-        ScrollView {
-            VStack(alignment: .leading, spacing: 18) {
-                header
-                nutritionPanel
-                amountControls
-                portionPreview
-                actions
-            }
-            .padding(20)
+        /* Card content: choosing an amount is a glance, not a screen. */
+        VStack(alignment: .leading, spacing: 13) {
+            header
+            nutritionPanel
+            amountControls
+            portionPreview
+            actions
         }
-        .background(APEXBackground())
-        .presentationDetents([.large])
-        .presentationDragIndicator(.visible)
         .onAppear {
             let start = FoodPortionMath.defaultSelection(food, preference: preference)
             quantity = start.quantity
@@ -152,7 +148,7 @@ struct FoodAmountSheet: View {
                     .tracking(1.8)
                     .foregroundStyle(APEXColor.amberDeep)
                 Text(food.name)
-                    .font(APEXFont.display(26))
+                    .font(APEXFont.display(20))
                     .foregroundStyle(APEXColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
                 if let brand = food.brand, !brand.isEmpty {
@@ -162,7 +158,7 @@ struct FoodAmountSheet: View {
                 }
             }
             Spacer(minLength: 0)
-            Button { dismiss() } label: {
+            Button { onClose() } label: {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(APEXColor.secondaryInk)
@@ -226,10 +222,10 @@ struct FoodAmountSheet: View {
                 TextField("", text: $quantityText)
                     .keyboardType(.decimalPad)
                     .focused($quantityFocused)
-                    .font(APEXFont.mono(22, weight: .bold))
+                    .font(APEXFont.mono(18, weight: .bold))
                     .foregroundStyle(APEXColor.ink)
                     .padding(.horizontal, 14)
-                    .frame(height: 56)
+                    .frame(height: 46)
                     .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                     .onChange(of: quantityText) { _, value in
                         let normalized = value.replacingOccurrences(of: ",", with: ".")
@@ -265,7 +261,7 @@ struct FoodAmountSheet: View {
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
                     .padding(.horizontal, 14)
-                    .frame(height: 56)
+                    .frame(height: 46)
                     .background(.white.opacity(0.9), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 }
                 .accessibilityIdentifier("food-amount-unit")
@@ -300,18 +296,18 @@ struct FoodAmountSheet: View {
                 .foregroundStyle(APEXColor.secondaryInk)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
-        .padding(16)
+        .padding(12)
         .background(APEXColor.amber.opacity(0.1), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityIdentifier("food-amount-preview")
     }
 
     private var actions: some View {
         HStack(spacing: 10) {
-            Button(language.text("Cancel")) { dismiss() }
-                .font(APEXFont.body(15, weight: .bold))
+            Button(language.text("Cancel")) { onClose() }
+                .font(APEXFont.body(13, weight: .bold))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .padding(.horizontal, 22)
-                .frame(height: 56)
+                .frame(height: 46)
                 .background(.white.opacity(0.85), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 .buttonStyle(.plain)
 
@@ -320,13 +316,13 @@ struct FoodAmountSheet: View {
                 onConfirm(quantity, unit.rawValue)
                 UINotificationFeedbackGenerator().notificationOccurred(.success)
                 _ = portion
-                dismiss()
+                onClose()
             } label: {
                 Text(portion.map { language.format("Add food · %d kcal", Int($0.kcal)) } ?? language.text("Add food"))
                     .font(APEXFont.body(17, weight: .bold))
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 56)
+                    .frame(height: 46)
                     .background(APEXColor.amber.gradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)
