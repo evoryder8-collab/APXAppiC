@@ -1,0 +1,6088 @@
+{
+  "cases": [
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 18
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 18
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 62
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 19
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 19
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 18
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 18
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 60
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 2
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 18
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 18
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 58
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "protein",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "carbs",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 46
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "constantine",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 56
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 17
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "june",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "matthew",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 48
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "recomp",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 14
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 54
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "bulk",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 16
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 0,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 33.9,
+      "target": 40,
+      "expected": {
+        "state": "below",
+        "completion": 0.8474999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 34,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.85,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 39.9,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 0.9974999999999999,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 40,
+      "target": 40,
+      "expected": {
+        "state": "reached",
+        "completion": 1,
+        "overBy": 0,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 44,
+      "target": 40,
+      "expected": {
+        "state": "above",
+        "completion": 1.1,
+        "overBy": 4,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 56,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.4,
+        "overBy": 16,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 57,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.425,
+        "overBy": 17,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 70,
+      "target": 40,
+      "expected": {
+        "state": "high",
+        "completion": 1.75,
+        "overBy": 30,
+        "upperGuide": 50
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 10,
+      "target": 0,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 10,
+      "target": -5,
+      "expected": {
+        "state": "high",
+        "completion": 10,
+        "overBy": 9,
+        "upperGuide": 1
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 9.94,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8283333333333333,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    },
+    {
+      "macro": "fat",
+      "persona": "iulian",
+      "goal": "maintain",
+      "value": 9.95,
+      "target": 12,
+      "expected": {
+        "state": "below",
+        "completion": 0.8291666666666666,
+        "overBy": 0,
+        "upperGuide": 15
+      }
+    }
+  ]
+}
