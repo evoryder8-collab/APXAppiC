@@ -235,6 +235,11 @@ interface ClassSpec {
   /* Multiplies the rest computed from role and fatigue. A cuff drill does not
    * need three minutes; a heavy hinge does. */
   restScale: number
+  /* What "a good rep" means here. Full range beats partial range for
+   * hypertrophy, and the advantage comes from the lengthened end, so this is
+   * where execution genuinely differs between movements -- more so than tempo,
+   * which is why it is stated per class rather than invented per exercise. */
+  rom: string
 }
 
 export const TEMPO_CLASSES: Record<string, ClassSpec> = {
@@ -245,6 +250,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 3, pause: 1, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [8, 15], hypertrophy: [6, 12], strength: [4, 6], endurance: [15, 25], power: [3, 5] },
     restScale: 1,
+    rom: 'Full range every rep. Partial range costs growth, and the part usually skipped is the stretched half, which is the half that matters most.',
   },
   calf_soleus: {
     label: 'Soleus, bent knee',
@@ -253,6 +259,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 2, pause: 2, concentric: 1, pauseIsMechanism: true,
     reps: { rebuild: [12, 20], hypertrophy: [12, 25], strength: [10, 15], endurance: [25, 40], power: [8, 12] },
     restScale: 0.6,
+    rom: 'All the way down until the heel is below the step and the calf is genuinely long, then all the way up. Half-range calf raises are why calves are thought not to respond.',
   },
   calf_gastroc: {
     label: 'Gastrocnemius, straight knee',
@@ -261,6 +268,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 2, pause: 2, concentric: 1, pauseIsMechanism: true,
     reps: { rebuild: [10, 15], hypertrophy: [10, 20], strength: [8, 12], endurance: [20, 30], power: [6, 10] },
     restScale: 0.7,
+    rom: 'Full stretch at the bottom with a straight knee, full contraction at the top. No bouncing: the tendon will happily do the work the muscle should be doing.',
   },
   hamstring_eccentric: {
     label: 'Hamstring, eccentric-led',
@@ -269,6 +277,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 4, pause: 1, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [8, 12], hypertrophy: [6, 12], strength: [4, 8], endurance: [12, 20], power: [3, 6] },
     restScale: 1,
+    rom: 'Push the hips back until the hamstring is genuinely long, and stop the moment the lower back starts to round rather than chasing another inch.',
   },
   glute_lockout: {
     label: 'Hip extension to lockout',
@@ -277,6 +286,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 2, pause: 2, concentric: 1, pauseIsMechanism: true,
     reps: { rebuild: [10, 15], hypertrophy: [8, 15], strength: [5, 8], endurance: [15, 25], power: [4, 6] },
     restScale: 0.9,
+    rom: 'Finish with the hips fully extended and the ribs down. Arching the lower back to fake the last few degrees moves the work off the glutes.',
   },
   spinal_erector: {
     label: 'Spinal erectors',
@@ -285,6 +295,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 3, pause: 0, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [10, 15], hypertrophy: [10, 20], strength: [8, 12], endurance: [15, 25], power: [6, 10] },
     restScale: 0.8,
+    rom: 'Move through a comfortable range and stop level with the torso. There is nothing to gain past neutral and that is where the risk sits.',
   },
   single_joint: {
     label: 'Single-joint work',
@@ -293,6 +304,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 3, pause: 1, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [10, 15], hypertrophy: [8, 15], strength: [6, 10], endurance: [15, 25], power: [6, 10] },
     restScale: 0.7,
+    rom: 'Control the lengthened end rather than cutting it short. Where the muscle crosses two joints, an overhead or inclined position is what actually lengthens it.',
   },
   lateral_delt: {
     label: 'Lateral deltoid',
@@ -301,6 +313,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 3, pause: 1, concentric: 1, pauseIsMechanism: true,
     reps: { rebuild: [12, 18], hypertrophy: [12, 20], strength: [10, 15], endurance: [20, 30], power: [8, 12] },
     restScale: 0.6,
+    rom: 'Lead with the elbow to about shoulder height. Swinging higher recruits the traps and takes the work off the muscle being trained.',
   },
   rotator_cuff: {
     label: 'Rotator cuff',
@@ -309,6 +322,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 2, pause: 1, concentric: 1, pauseIsMechanism: true,
     reps: { rebuild: [12, 20], hypertrophy: [12, 20], strength: [12, 20], endurance: [15, 25], power: [12, 20] },
     restScale: 0.5,
+    rom: 'Small, precise range with the elbow pinned to the side. Load light enough that nothing else joins in.',
   },
   grip_and_small: {
     label: 'Grip, neck and lower leg',
@@ -317,6 +331,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 2, pause: 1, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [12, 20], hypertrophy: [15, 25], strength: [10, 15], endurance: [20, 35], power: [10, 15] },
     restScale: 0.5,
+    rom: 'Through the full available range, held briefly at the end. These respond to time and frequency rather than to load.',
   },
   adductor: {
     label: 'Adductors',
@@ -325,6 +340,16 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 3, pause: 1, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [10, 15], hypertrophy: [10, 15], strength: [8, 12], endurance: [15, 25], power: [6, 10] },
     restScale: 0.7,
+    rom: 'Into a real stretch without forcing it, and back under control. The range is the training effect here.',
+  },
+  loaded_carry: {
+    label: 'Loaded carry',
+    evidence: 'moderate',
+    why: 'Bracing under load while staying upright. The limit is grip and posture rather than the muscle being loaded, and both recover quickly, so these are held for time and rested briefly.',
+    eccentric: 2, pause: 0, concentric: 1, pauseIsMechanism: false,
+    reps: { rebuild: [20, 40], hypertrophy: [30, 60], strength: [20, 40], endurance: [45, 90], power: [15, 30] },
+    restScale: 0.6,
+    rom: 'Tall and square with the ribs down. There is no range to move through here; the work is refusing to bend.',
   },
   core_braced: {
     label: 'Braced trunk',
@@ -333,6 +358,7 @@ export const TEMPO_CLASSES: Record<string, ClassSpec> = {
     eccentric: 2, pause: 1, concentric: 1, pauseIsMechanism: false,
     reps: { rebuild: [8, 15], hypertrophy: [8, 15], strength: [8, 12], endurance: [15, 25], power: [6, 10] },
     restScale: 0.6,
+    rom: 'Nothing moves except what is supposed to. The set ends when the position changes, not when the count does.',
   },
 }
 
@@ -342,7 +368,127 @@ export function repRangeFor(m: Movement, intent: TrainingIntent): [number, numbe
 }
 
 /** Why this class is prescribed the way it is, and how well supported that is. */
-export function classRationale(m: Movement): { label: string; evidence: Evidence; why: string } {
+const MODE_ROM: Partial<Record<Movement['prescriptionMode'], string>> = {
+  contacts: 'Land quietly through the whole foot with the knee tracking the toes. Height is not the goal; a landing you can control is.',
+  breath: 'Paced by the breath rather than by a count. Move to the first point of real resistance and stay there, not past it.',
+  quality: 'Stopped on quality. The last good repetition is the end of the set, whatever the target said.',
+  quality_reps: 'Judged on speed, not on effort. When the bar slows noticeably the set is finished, regardless of reps left.',
+  interval: 'Held at a pace that survives the last round. Going out hard on the first round is how these get abandoned.',
+  distance: 'Through the full available range, unhurried.',
+  hold: 'Held in one position, so the work is resisting the change rather than moving through a range. The set ends when the shape does.',
+}
+
+/* Classes whose own cue already speaks about holding, so the mode should not
+ * overwrite something more specific with something more generic. */
+const HOLD_NATIVE_CLASSES = new Set(['core_braced', 'loaded_carry'])
+
+export function classRationale(m: Movement): {
+  label: string; evidence: Evidence; why: string; rom: string
+} {
   const spec = TEMPO_CLASSES[m.tempoClass] ?? TEMPO_CLASSES.standard_compound
-  return { label: spec.label, evidence: spec.evidence, why: spec.why }
+  // A static hold has no range to move through, and a jump is judged on the
+  // landing, so how the movement is dosed overrides its muscle group here.
+  return {
+    label: spec.label,
+    evidence: spec.evidence,
+    why: spec.why,
+    rom: HOLD_NATIVE_CLASSES.has(m.tempoClass)
+      ? spec.rom
+      : MODE_ROM[m.prescriptionMode] ?? spec.rom,
+  }
+}
+
+/* --------------------------------------------------------------- HOLDS
+ *
+ * A third of the library is not sets of reps, and it was being dosed as though
+ * it were: a farmer's carry was given a compound lift's two and a half minute
+ * rest after a thirty second effort.
+ *
+ * Isometric work does build muscle, and the useful finding is that it does so
+ * best at long muscle lengths with meaningful accumulated time under tension
+ * (Oranchuk et al., 2019). Braced trunk work is the exception that proves it:
+ * a plank held until it sags trains sagging, so those are prescribed short and
+ * repeated rather than long and degrading.
+ */
+export interface HoldPrescription {
+  seconds: number
+  restSeconds: number
+  cue: string
+}
+
+export function holdFor(m: Movement, intent: TrainingIntent): HoldPrescription | null {
+  if (m.prescriptionMode !== 'hold' && m.prescriptionMode !== 'carry') return null
+  const low = m.repLow ?? 20
+  const high = m.repHigh ?? 45
+  const braced = m.tempoClass === 'core_braced'
+
+  // Longer holds for work capacity, shorter and harder for everything else.
+  // Braced trunk work never chases duration, because the failing rep of a
+  // plank is a worse position rather than a deeper one.
+  const seconds = intent === 'endurance' ? high
+    : braced ? Math.max(low, Math.round(high * 0.6))
+      : Math.round((low + high) / 2)
+
+  // A carry or a hold is limited by grip and bracing, which recover quickly.
+  // Nothing here needs three minutes.
+  const restSeconds = intent === 'endurance' ? 45
+    : intent === 'strength' ? 120
+      : m.prescriptionMode === 'carry' ? 90 : 60
+
+  const cue = m.prescriptionMode === 'carry'
+    ? 'Tall and square, ribs down. The set ends when the posture goes, not when the grip does.'
+    : braced
+      ? 'Hold the shape rather than the clock. Stop the moment the position starts to sag.'
+      : 'Hold the loaded position, breathing steadily. Length under tension is what is being trained.'
+
+  return { seconds, restSeconds, cue }
+}
+
+/* ------------------------------------------------------------ GROUND CONTACTS
+ *
+ * Plyometrics are dosed in landings, not in sets, and the limit is a volume
+ * one rather than a fatigue one: the reason to stop is that the landings stop
+ * being sharp. Beginners are held well below the commonly cited ceilings
+ * because the tissue tolerance, not the effort, is what is being built.
+ */
+export const CONTACT_CAPS: Record<'novice' | 'intermediate' | 'advanced', number> = {
+  novice: 40,
+  intermediate: 80,
+  advanced: 120,
+}
+
+export function contactCue(m: Movement): string {
+  return m.impact === 'high'
+    ? 'Stopped on landing quality. The moment a landing gets noisy or slow, the set is over regardless of the number.'
+    : 'Quick off the ground. Reset fully between reps rather than rushing them together.'
+}
+
+/**
+ * The rep range for a movement whose load cannot be changed.
+ *
+ * Fixing this exposed a real gap: a push-up was prescribed 10-20 reps whether
+ * the goal was hypertrophy or work capacity, because the rule said the
+ * movement's own range wins when there is no load to adjust. That is right for
+ * strength -- there is no way to make a push-up heavy enough for a set of five,
+ * and the honest answer is a harder variation -- but wrong for everything else,
+ * because more reps is always available.
+ */
+export function bodyweightRange(m: Movement, intent: TrainingIntent): {
+  range: [number, number]; note: string
+} {
+  const own: [number, number] = [m.repLow ?? 8, m.repHigh ?? 15]
+  const cls = repRangeFor(m, intent)
+
+  if (intent === 'strength' || intent === 'power') {
+    return {
+      range: own,
+      note: `Load cannot be added here, so progress by moving to a harder variation rather than by adding reps.${m.substitutions.length ? '' : ''}`,
+    }
+  }
+  // Reps are always available, so the goal is allowed to raise the target --
+  // never to lower it below what the movement can actually deliver.
+  return {
+    range: [Math.max(own[0], cls[0]), Math.max(own[1], cls[1])],
+    note: '',
+  }
 }

@@ -28,6 +28,9 @@ import {
   tempoRationale,
   repRangeFor,
   classRationale,
+  holdFor,
+  bodyweightRange,
+  contactCue,
   type TrainingIntent,
   type Tempo,
 } from './liftingTempo.ts'
@@ -103,6 +106,8 @@ export interface Prescription {
   tempoClass: string
   evidence: 'strong' | 'moderate' | 'extrapolated'
   rationale: string
+  /* What counts as a good rep on this movement specifically. */
+  rangeCue: string
   note: string
 }
 
@@ -297,6 +302,7 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
   const youth = intake.age < 18
   const unit = m.repUnit
 
+  const note: string[] = []
   let repLow = m.repLow ?? scheme.repLow
   let repHigh = m.repHigh ?? scheme.repHigh
   if (unit === 'reps' && m.loadable) {
@@ -304,9 +310,13 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     // from one blanket scheme. A soleus raise and a barbell squat are both
     // hypertrophy work and they are not the same prescription.
     ;[repLow, repHigh] = repRangeFor(m, intent)
+  } else if (unit === 'reps') {
+    // No load to adjust, but reps are still available -- so the goal may raise
+    // the target and never lower it past what the movement can deliver.
+    const bodyweight = bodyweightRange(m, intent)
+    ;[repLow, repHigh] = bodyweight.range
+    if (bodyweight.note) note.push(bodyweight.note)
   }
-  // When the load cannot be changed the movement's own range wins, because
-  // there is no way to make a push-up heavy enough for a set of five.
   // Under-18s are never given maximal singles, whatever the goal asks for.
   if (youth && m.youthRepFloor !== null && repLow < m.youthRepFloor) {
     repLow = m.youthRepFloor
@@ -315,7 +325,6 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
 
   // Reps in reserve is where "cannot be failed alone" actually shows up.
   let rir = scheme.rir
-  const note: string[] = []
   if (!failureSafe(m, intake)) {
     rir = Math.max(rir, 3)
     note.push('Leave three reps in reserve: this one cannot be failed safely on your setup.')
@@ -327,6 +336,13 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
 
   const tempo = tempoFor(m, intent)
   if (tempo) note.unshift(tempo.cue)
+  const hold = holdFor(m, intent)
+  if (hold) {
+    repLow = hold.seconds
+    repHigh = hold.seconds
+    note.unshift(hold.cue)
+  }
+  if (m.prescriptionMode === 'contacts') note.unshift(contactCue(m))
   const cls = classRationale(m)
   const sets = m.entityType === 'balance_drill' ? 2 : scheme.sets
   return {
@@ -338,7 +354,7 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     repHigh,
     unit,
     perSide: m.unilateral,
-    restSeconds: restSecondsFor(m, intent),
+    restSeconds: hold ? hold.restSeconds : restSecondsFor(m, intent),
     incrementKg: m.minIncrementKg,
     repsInReserve: rir,
     estimatedSeconds: estimateSeconds(m, sets, repHigh, unit, intent),
@@ -348,6 +364,7 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     tempoClass: cls.label,
     evidence: cls.evidence,
     rationale: cls.why,
+    rangeCue: cls.rom,
     note: note.join(' '),
   }
 }

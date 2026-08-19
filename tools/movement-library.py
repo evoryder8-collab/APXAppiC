@@ -2129,6 +2129,10 @@ def _tempo_class(x):
             else "calf_gastroc"
     if pattern.startswith("core_"):
         return "core_braced"
+    # Bracing under a load while staying upright is its own mechanism, and it
+    # was being told to use a full range of motion it does not have.
+    if pattern == "carry":
+        return "loaded_carry"
 
     # --- single-joint work, where the muscle really does decide ------------
     if pattern in ("isolation_upper", "isolation_lower"):
@@ -2181,19 +2185,38 @@ for _x in M:
     _x["tempo_class"] = _tempo_class(_x)
 
 
+# --------------------------------------------------------- PRESCRIPTION MODE
+#
+# How a movement is dosed. Two thirds of the library is not sets of timed reps,
+# and treating it as though it were left real gaps: a plank and a farmer's
+# carry were being handed a compound lift's rest interval, which is two and a
+# half minutes of standing around after a thirty second effort.
+
+def _prescription_mode(x):
+    if x["etype"] == "plyometric":
+        return "contacts"          # dosed in ground contacts, capped per session
+    if x["etype"] in ("yoga_pose", "movement_sequence", "breathing_recovery"):
+        return "breath"            # paced by breathing, not by a clock
+    if x["etype"] in ("mobility_drill", "skill_drill", "balance_drill"):
+        return "quality"           # stopped on quality, never on a rep count
+    if x["etype"] == "resistance_isometric":
+        return "carry" if x["pattern"] == "carry" else "hold"
+    # Burpees and bear crawls are timed work against timed rest, not sets of
+    # reps. They were falling through to the rep model and picking up a tempo.
+    if x["etype"] == "conditioning_complex":
+        return "interval"
+    if x["rep_unit"] in ("steps", "rounds", "minutes"):
+        return "distance"
+    if x["ballistic"]:
+        return "quality_reps"      # stopped on bar speed, not on reps in reserve
+    return "tempo_reps"
+
+
 # Whether a prescribed tempo is meaningful at all. A depth jump lives or dies on
 # a short ground contact, an Olympic lift is caught rather than lowered, and a
 # plank has no rep to time. Putting a "3-1-1" on any of them would be worse than
 # saying nothing. This has to run after the safety pass, which is what decides
 # whether a movement is ballistic.
-for _x in M:
-    _x["tempo_applies"] = (
-        _x["etype"] == "resistance_dynamic"
-        and not _x["ballistic"]
-        and _x["rep_unit"] == "reps"
-    )
-
-
 # Cardio names already used in authored programmes, resolved to the modality and
 # prescription they always meant. Keeping these lets existing history and the
 # generator speak about the same session.
@@ -2313,6 +2336,18 @@ def _collapse_groups(groups):
         if not any(g <= set(k) for k in out):
             out.append(sorted(g))
     return out
+
+
+# Derived from entity_type, so it has to run after the merge pass above, which
+# retypes the mobility flow as a sequence. Deriving it earlier left the library
+# source disagreeing with the database on exactly one row.
+for _x in M:
+    _x["prescription_mode"] = _prescription_mode(_x)
+    _x["tempo_applies"] = (
+        _x["etype"] == "resistance_dynamic"
+        and not _x["ballistic"]
+        and _x["rep_unit"] == "reps"
+    )
 
 
 for _x in M:
@@ -2500,6 +2535,7 @@ def emit():
                 jsonb(m["implementations"]), arr(m["sequence"]),
                 q(m["space"]), q(m["role"]), q(m["peak_tension"]),
                 str(m["tempo_applies"]).lower(), q(m["tempo_class"]),
+                q(m["prescription_mode"]),
             ]) + ")"
         )
 
@@ -2543,7 +2579,8 @@ insert into public.movement_library (
   impact_level, is_overhead, is_axial_load, requires_bail_skill, prerequisites,
   family, variant, review_status, youth_auto_assignable, adult_auto_assignable,
   coached_only, youth_rep_floor, implementations, sequence_steps,
-  space_requirement, role, peak_tension, tempo_applies, tempo_class
+  space_requirement, role, peak_tension, tempo_applies, tempo_class,
+  prescription_mode
 ) values
 {joined_rows}
 on conflict (id) do update set
@@ -2585,6 +2622,7 @@ on conflict (id) do update set
   space_requirement = excluded.space_requirement, role = excluded.role,
   peak_tension = excluded.peak_tension, tempo_applies = excluded.tempo_applies,
   tempo_class = excluded.tempo_class,
+  prescription_mode = excluded.prescription_mode,
   updated_at = now();
 
 insert into public.movement_aliases (alias, movement_id) values
@@ -2711,6 +2749,10 @@ def emit_ts():
         "  /* Which muscle group and mechanism this movement belongs to, which",
         "   * is what decides its tempo and rep range rather than one global rule. */",
         "  tempoClass: TempoClassId",
+        "  /* How the movement is dosed. Two thirds of the library is not sets",
+        "   * of timed reps, and pretending otherwise mis-prescribes it. */",
+        "  prescriptionMode: 'tempo_reps' | 'quality_reps' | 'hold' | 'carry'",
+        "    | 'contacts' | 'breath' | 'quality' | 'distance' | 'interval'",
         "  reviewStatus: string",
         "}",
         "",
@@ -2755,6 +2797,7 @@ def emit_ts():
         lines.append(f"    spaceRequirement: {js(m['space'])}, reviewStatus: {js(m['review'])},")
         lines.append(f"    role: {js(m['role'])}, peakTension: {js(m['peak_tension'])},")
         lines.append(f"    tempoApplies: {jb(m['tempo_applies'])}, tempoClass: {js(m['tempo_class'])},")
+        lines.append(f"    prescriptionMode: {js(m['prescription_mode'])},")
         lines.append("  },")
     lines.append("]")
     lines.append("")

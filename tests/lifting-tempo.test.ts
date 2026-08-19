@@ -7,6 +7,11 @@ import {
   setSeconds,
   tempoFor,
   TEMPO_CLASSES,
+  holdFor,
+  bodyweightRange,
+  contactCue,
+  CONTACT_CAPS,
+  classRationale,
   type TrainingIntent,
 } from '../src/lib/liftingTempo.ts'
 import { generateWeek, type GeneratorIntake } from '../src/lib/planGenerator.ts'
@@ -235,5 +240,145 @@ test('rest reflects what the set is limited by, class included', () => {
   // The hypertrophy-versus-endurance ordering still holds inside every class.
   for (const m of [cuff, squat, soleus]) {
     assert.ok(restSecondsFor(m, 'hypertrophy') > restSecondsFor(m, 'endurance'), m.id)
+  }
+})
+
+test('every movement is dosed by a mode that suits it', () => {
+  for (const m of MOVEMENTS) {
+    switch (m.prescriptionMode) {
+      case 'tempo_reps':
+        assert.equal(m.entityType, 'resistance_dynamic', m.id)
+        assert.equal(m.ballistic, false, m.id)
+        assert.equal(m.repUnit, 'reps', m.id)
+        assert.ok(tempoFor(m, 'hypertrophy'), `${m.id} is dosed in timed reps but carries no tempo`)
+        break
+      case 'hold':
+      case 'carry':
+        assert.equal(m.entityType, 'resistance_isometric', m.id)
+        assert.ok(holdFor(m, 'hypertrophy'), `${m.id} is a hold with no duration`)
+        assert.equal(tempoFor(m, 'hypertrophy'), null, `${m.id} has no rep to time`)
+        break
+      case 'contacts':
+        assert.equal(m.entityType, 'plyometric', m.id)
+        assert.equal(tempoFor(m, 'hypertrophy'), null, m.id)
+        break
+      case 'quality_reps':
+        assert.equal(m.ballistic, true, m.id)
+        assert.equal(tempoFor(m, 'hypertrophy'), null,
+          `${m.id} is ballistic and must not be given a lowering tempo`)
+        break
+      case 'interval':
+        assert.equal(m.entityType, 'conditioning_complex', m.id)
+        break
+    }
+  }
+  // The mode and the tempo flag must never disagree.
+  const timed = MOVEMENTS.filter((m) => m.tempoApplies).length
+  const repMode = MOVEMENTS.filter((m) => m.prescriptionMode === 'tempo_reps').length
+  assert.equal(timed, repMode)
+})
+
+test('a hold is not rested like a heavy compound', () => {
+  // A thirty second carry followed by two and a half minutes of standing
+  // around is a warm-up wearing a workout's clothes.
+  for (const id of ['farmers_carry', 'suitcase_carry', 'plank', 'dead_hang']) {
+    const m = MOVEMENT_BY_ID.get(id)!
+    const hold = holdFor(m, 'hypertrophy')!
+    assert.ok(hold.restSeconds <= 90, `${id} rests ${hold.restSeconds}s after a hold`)
+    assert.ok(hold.seconds > 0 && hold.seconds <= 120, `${id} holds for ${hold.seconds}s`)
+    assert.ok(hold.cue.length > 30, `${id} has no useful cue`)
+  }
+  // Braced trunk work is held shorter than it could be, because the failing
+  // rep of a plank is a worse position rather than a deeper one.
+  const plank = MOVEMENT_BY_ID.get('plank')!
+  assert.ok(holdFor(plank, 'hypertrophy')!.seconds < (plank.repHigh ?? 60))
+})
+
+test('work capacity lengthens holds and shortens their rest', () => {
+  for (const id of ['plank', 'farmers_carry', 'wall_sit']) {
+    const m = MOVEMENT_BY_ID.get(id)!
+    const endurance = holdFor(m, 'endurance')!
+    const hypertrophy = holdFor(m, 'hypertrophy')!
+    assert.ok(endurance.seconds >= hypertrophy.seconds, id)
+    assert.ok(endurance.restSeconds < hypertrophy.restSeconds, id)
+  }
+})
+
+test('a bodyweight movement still responds to the goal', () => {
+  const pushUp = MOVEMENT_BY_ID.get('push_up')!
+  const endurance = bodyweightRange(pushUp, 'endurance')
+  const hypertrophy = bodyweightRange(pushUp, 'hypertrophy')
+  // More reps is always available even when more load is not.
+  assert.ok(endurance.range[1] > hypertrophy.range[1],
+    'a push-up is prescribed identically for size and for work capacity')
+  // But a set of five push-ups is not strength work, so it says so instead.
+  const strength = bodyweightRange(pushUp, 'strength')
+  assert.deepEqual(strength.range, [pushUp.repLow, pushUp.repHigh])
+  assert.match(strength.note, /harder variation/)
+  // And the movement's own floor is never undercut.
+  for (const intent of INTENTS) {
+    assert.ok(bodyweightRange(pushUp, intent).range[0] >= pushUp.repLow!)
+  }
+})
+
+test('every class says what a good rep looks like on it', () => {
+  const seen = new Set<string>()
+  for (const id of Object.keys(TEMPO_CLASSES)) {
+    const { rom } = TEMPO_CLASSES[id]
+    assert.ok(rom.length > 50, `class "${id}" has no usable range cue`)
+    assert.ok(!seen.has(rom), `class "${id}" repeats another class's cue verbatim`)
+    seen.add(rom)
+  }
+})
+
+test('plyometric volume is capped by what the tissue can take', () => {
+  assert.ok(CONTACT_CAPS.novice < CONTACT_CAPS.intermediate)
+  assert.ok(CONTACT_CAPS.intermediate < CONTACT_CAPS.advanced)
+  for (const m of MOVEMENTS.filter((x) => x.prescriptionMode === 'contacts')) {
+    assert.ok(contactCue(m).length > 30, `${m.id} has no landing cue`)
+    // A jump prescribed for twenty reps is a conditioning circuit wearing a
+    // plyometric's name.
+    if (m.impact === 'high' && m.repUnit === 'reps') {
+      assert.ok((m.repHigh ?? 0) <= 12, `${m.id} prescribes ${m.repHigh} landings a set`)
+    }
+  }
+})
+
+test('execution guidance matches how the movement is dosed', () => {
+  for (const m of MOVEMENTS) {
+    const { rom } = classRationale(m)
+    if (m.prescriptionMode === 'tempo_reps') continue
+    // A static hold has no range to move through, and telling someone to use
+    // a full range of motion on a plank is guidance that cannot be followed.
+    assert.doesNotMatch(rom, /every rep|Partial range/,
+      `${m.id} is dosed as "${m.prescriptionMode}" and is given rep-based range guidance`)
+  }
+  // Carries are their own mechanism rather than whichever muscle is listed first.
+  for (const m of MOVEMENTS.filter((x) => x.pattern === 'carry')) {
+    assert.equal(m.tempoClass, 'loaded_carry', m.id)
+  }
+})
+
+test('derived fields agree with the values they are derived from', () => {
+  // Twice now a field has been computed before the thing it reads was final:
+  // a power clean kept a lowering tempo because the ballistic flag was set
+  // later, and the mobility flow kept a drill's dosing because the merge pass
+  // retyped it afterwards. Deriving the answer again here catches the next one.
+  for (const m of MOVEMENTS) {
+    const expected = m.entityType === 'plyometric' ? 'contacts'
+      : ['yoga_pose', 'movement_sequence', 'breathing_recovery'].includes(m.entityType) ? 'breath'
+        : ['mobility_drill', 'skill_drill', 'balance_drill'].includes(m.entityType) ? 'quality'
+          : m.entityType === 'resistance_isometric'
+            ? (m.pattern === 'carry' ? 'carry' : 'hold')
+            : m.entityType === 'conditioning_complex' ? 'interval'
+              : ['steps', 'rounds', 'minutes'].includes(m.repUnit) ? 'distance'
+                : m.ballistic ? 'quality_reps'
+                  : 'tempo_reps'
+    assert.equal(m.prescriptionMode, expected,
+      `${m.id} is dosed as "${m.prescriptionMode}" but its properties say "${expected}"`)
+    assert.equal(
+      m.tempoApplies,
+      m.entityType === 'resistance_dynamic' && !m.ballistic && m.repUnit === 'reps',
+      `${m.id} tempo eligibility disagrees with its own properties`)
   }
 })
