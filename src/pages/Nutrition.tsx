@@ -1,3 +1,4 @@
+import { estimateWaterContent } from '../lib/hydration.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -245,6 +246,9 @@ export function Nutrition() {
         package_quantity: '1 planned meal', nutrition_basis: 'per_100g', preparation_state: 'prepared',
         kcal_100: meal.kcal, protein_100: meal.protein_g, carbs_100: meal.carbs_g, fat_100: meal.fat_g,
         fibre_100: null, sugar_100: null, saturated_fat_100: null, salt_100: null,
+        /* A plan placeholder stands for a meal not yet chosen, so it must not
+           claim hydration the user has not actually eaten. */
+        water_ml_100: null,
         serving_amount: 1, serving_unit: 'serving', serving_grams_or_ml: 100, piece_grams_or_ml: null,
         provider_updated_at: null, confidence: 'user_entered',
       })
@@ -297,6 +301,16 @@ export function Nutrition() {
       provider_product_id: null,
       external_image_url: null,
       package_quantity: null,
+      water_ml_100: entry.snapshot_water_ml_100 ?? estimateWaterContent({
+        name: entry.snapshot_name,
+        nutrition_basis: entry.snapshot_nutrition_basis,
+        kcal_100: entry.snapshot_kcal_100,
+        protein_100: entry.snapshot_protein_100,
+        carbs_100: entry.snapshot_carbs_100,
+        fat_100: entry.snapshot_fat_100,
+        fibre_100: entry.snapshot_fibre_100,
+        salt_100: entry.snapshot_salt_100,
+      })?.water_ml_100 ?? null,
       nutrition_basis: entry.snapshot_nutrition_basis,
       preparation_state: entry.snapshot_preparation_state,
       kcal_100: entry.snapshot_kcal_100,

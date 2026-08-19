@@ -1,3 +1,4 @@
+import { portionWater } from './hydration.ts'
 import type { IntroLanguage } from './introLanguage'
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack'
@@ -28,6 +29,7 @@ export interface FoodRecord {
   sugar_100: number | null
   saturated_fat_100: number | null
   salt_100: number | null
+  water_ml_100: number | null
   serving_amount: number | null
   serving_unit: FoodUnit | null
   serving_grams_or_ml: number | null
@@ -65,6 +67,7 @@ export interface PortionNutrition {
   sugar_g: number | null
   saturated_fat_g: number | null
   salt_g: number | null
+  water_ml: number | null
 }
 
 export interface ComposerFoodItem {
@@ -245,6 +248,7 @@ export interface LoggedFoodEntry {
   snapshot_sugar_100: number | null
   snapshot_saturated_fat_100: number | null
   snapshot_salt_100: number | null
+  snapshot_water_ml_100: number | null
   quantity: number
   unit: FoodUnit
   equivalent_amount: number
@@ -256,6 +260,7 @@ export interface LoggedFoodEntry {
   sugar_g: number | null
   saturated_fat_g: number | null
   salt_g: number | null
+  water_ml: number | null
   created_at: string
 }
 
@@ -306,6 +311,7 @@ export function foodFromLoggedEntry(entry: LoggedFoodEntry): FoodRecord {
     sugar_100: entry.snapshot_sugar_100,
     saturated_fat_100: entry.snapshot_saturated_fat_100,
     salt_100: entry.snapshot_salt_100,
+    water_ml_100: entry.snapshot_water_ml_100,
     serving_amount: entry.unit === 'serving' ? 1 : null,
     serving_unit: entry.unit === 'serving' ? 'serving' : null,
     serving_grams_or_ml: entry.unit === 'serving' ? entry.equivalent_amount / Math.max(1, entry.quantity) : null,
@@ -805,6 +811,7 @@ export function calculatePortion(food: FoodRecord, quantity: number, unit: FoodU
     sugar_g: scaled(food.sugar_100, factor),
     saturated_fat_g: scaled(food.saturated_fat_100, factor),
     salt_g: scaled(food.salt_100, factor),
+    water_ml: portionWater(food.water_ml_100, equivalent),
   }
 }
 
@@ -847,6 +854,7 @@ export function snapshotEntry(
     snapshot_sugar_100: item.food.sugar_100,
     snapshot_saturated_fat_100: item.food.saturated_fat_100,
     snapshot_salt_100: item.food.salt_100,
+    snapshot_water_ml_100: item.food.water_ml_100,
     quantity: item.quantity,
     unit: item.unit,
     ...portion,

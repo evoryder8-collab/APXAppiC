@@ -1,3 +1,4 @@
+import { estimateWaterContent } from '../lib/hydration.ts'
 import {
   createContext,
   useCallback,
@@ -165,10 +166,14 @@ async function searchPublicFoodCatalog(query: string): Promise<FoodRecord[]> {
       const code = normalizeBarcode(String(product.code ?? ''))
       if (!code) return []
       const normalized = normalizeOpenFoodFactsProduct({ status: 1, product }, code)
+      /* Open Food Facts almost never publishes water, so a barcode food would
+         otherwise contribute nothing to hydration. Estimate from what it does
+         publish, and keep a provider figure whenever one exists. */
       return normalized ? [{
         id: `off:${code}`,
         owner_user_id: null,
         ...normalized,
+        water_ml_100: estimateWaterContent(normalized, normalized.water_ml_100)?.water_ml_100 ?? null,
         piece_grams_or_ml: null,
         created_at: now,
         updated_at: now,

@@ -1,3 +1,4 @@
+import { estimateWaterContent } from '../lib/hydration.ts'
 import type { FoodRecord } from '../lib/food'
 import { EXPANDED_FOOD_SPECS, type CatalogFoodSpec } from './foodCatalogExpansion.ts'
 
@@ -102,7 +103,47 @@ interface FoodOptions {
   sugar?: number
   saturatedFat?: number
   salt?: number
+  /** Grams of water per 100 g, measured. Omit and it is estimated. */
+  water?: number
   confidence?: FoodRecord['confidence']
+}
+
+/* Water content of the curated catalogue, per 100 g. Measured values from the
+   Swiss Food Composition Database V7.1 (FSVO) and USDA FoodData Central; the
+   rest derived by difference. Kept beside the seeds so the local catalogue and
+   migration 010 cannot drift apart. */
+const CURATED_WATER: Record<string, number> = {
+  '10000000-0000-4000-8000-000000000001': 8.7,
+  '10000000-0000-4000-8000-000000000002': 12.3,
+  '10000000-0000-4000-8000-000000000003': 68.5,
+  '10000000-0000-4000-8000-000000000004': 9.0,
+  '10000000-0000-4000-8000-000000000005': 77.8,
+  '10000000-0000-4000-8000-000000000006': 81.4,
+  '10000000-0000-4000-8000-000000000007': 76.0,
+  '10000000-0000-4000-8000-000000000008': 65.3,
+  '10000000-0000-4000-8000-000000000009': 73.2,
+  '10000000-0000-4000-8000-000000000010': 90.4,
+  '10000000-0000-4000-8000-000000000011': 78.6,
+  '10000000-0000-4000-8000-000000000012': 4.0,
+  '10000000-0000-4000-8000-000000000013': 74.8,
+  '10000000-0000-4000-8000-000000000014': 73.2,
+  '10000000-0000-4000-8000-000000000015': 66.9,
+  '10000000-0000-4000-8000-000000000016': 65.3,
+  '10000000-0000-4000-8000-000000000017': 79.7,
+  '10000000-0000-4000-8000-000000000018': 71.0,
+  '10000000-0000-4000-8000-000000000019': 71.0,
+  '10000000-0000-4000-8000-000000000020': 66.7,
+  '10000000-0000-4000-8000-000000000021': 6.4,
+  '10000000-0000-4000-8000-000000000022': 8.6,
+  '10000000-0000-4000-8000-000000000023': 5.3,
+  '10000000-0000-4000-8000-000000000024': 7.3,
+  '10000000-0000-4000-8000-000000000025': 7.0,
+  '10000000-0000-4000-8000-000000000026': 10.8,
+  '10000000-0000-4000-8000-000000000027': 76.8,
+  '10000000-0000-4000-8000-000000000028': 71.1,
+  '10000000-0000-4000-8000-000000000029': 73.2,
+  '10000000-0000-4000-8000-000000000030': 76.2,
+  '10000000-0000-4000-8000-000000000031': 74.6,
 }
 
 function food(
@@ -139,6 +180,11 @@ function food(
     sugar_100: options.sugar ?? null,
     saturated_fat_100: options.saturatedFat ?? null,
     salt_100: options.salt ?? null,
+    water_ml_100: options.water ?? CURATED_WATER[id] ?? estimateWaterContent({
+      name, nutrition_basis: options.nutritionBasis ?? 'per_100g',
+      kcal_100: kcal, protein_100: protein, carbs_100: carbs,
+      fat_100: fat, fibre_100: options.fibre ?? null, salt_100: options.salt ?? null,
+    })?.water_ml_100 ?? null,
     serving_amount: options.servingAmount ?? options.servingGrams ?? null,
     serving_unit: options.servingUnit ?? (options.servingGrams ? 'g' : null),
     serving_grams_or_ml: options.servingAmount ?? options.servingGrams ?? null,

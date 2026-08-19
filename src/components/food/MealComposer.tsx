@@ -1,3 +1,4 @@
+import { estimateWaterContent } from '../../lib/hydration.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
@@ -343,6 +344,7 @@ export function MealComposer({
       brand: food.brand,
       barcode: food.barcode,
       provider_product_id: food.provider_product_id,
+      water_ml_100: food.water_ml_100,
       external_image_url: food.external_image_url,
       package_quantity: food.package_quantity,
       nutrition_basis: food.nutrition_basis,
@@ -549,6 +551,11 @@ export function MealComposer({
       nutrition_basis: 'per_100g', preparation_state: manual.preparation,
       kcal_100: values[0], protein_100: values[1], carbs_100: values[2], fat_100: values[3],
       fibre_100: null, sugar_100: null, saturated_fat_100: null, salt_100: null,
+      water_ml_100: estimateWaterContent({
+        name: manual.name.trim(), nutrition_basis: 'per_100g',
+        kcal_100: values[0], protein_100: values[1],
+        carbs_100: values[2], fat_100: values[3],
+      })?.water_ml_100 ?? null,
       serving_amount: null, serving_unit: null, serving_grams_or_ml: null, piece_grams_or_ml: null,
       provider_updated_at: null, confidence: 'user_entered',
     })

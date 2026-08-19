@@ -518,7 +518,7 @@ test('olive oil seed facts use a liquid basis and sensible label portions', () =
   assert.deepEqual(beginFoodSelection(generic), { food: generic, quantity: 100, unit: 'ml' })
   assert.deepEqual(
     calculatePortion(generic, 15, 'ml'),
-    { equivalent_amount: 15, kcal: 124, protein_g: 0, carbs_g: 0, fat_g: 13.8, fibre_g: 0, sugar_g: 0, saturated_fat_g: 2.1, salt_g: 0 },
+    { equivalent_amount: 15, kcal: 124, protein_g: 0, carbs_g: 0, fat_g: 13.8, fibre_g: 0, sugar_g: 0, saturated_fat_g: 2.1, salt_g: 0, water_ml: 0 },
   )
   assert.ok(expandFoodSearchQueries('ulei de măsline extravirgin', 'ro').includes('extra virgin olive oil'))
   assert.ok(expandFoodSearchQueries('น้ำมันมะกอกบริสุทธิ์พิเศษ', 'th').includes('extra virgin olive oil'))

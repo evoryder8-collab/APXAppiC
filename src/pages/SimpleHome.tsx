@@ -1,3 +1,4 @@
+import { estimateWaterContent, hydrationBreakdown, portionWater } from '../lib/hydration.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import {
@@ -272,6 +273,19 @@ export function SimpleHome() {
   const workoutDone = completedWorkoutSessions.length > 0
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
+  /* Water eaten rather than drunk. EFSA puts food at roughly a fifth to a
+     third of total intake, but it is not a substitute for drinking, so it is
+     reported beside the drink figure and never folded into the target. */
+  const foodWaterMl = useMemo(() => {
+    const mealIds = new Set(dateFoodMeals.map((meal) => meal.id))
+    if (!mealIds.size) return 0
+    return foodStore.entries.reduce((total, entry) => {
+      if (!mealIds.has(entry.meal_id)) return total
+      const measured = entry.water_ml ?? portionWater(entry.snapshot_water_ml_100, entry.equivalent_amount)
+      return total + Math.max(0, measured ?? 0)
+    }, 0)
+  }, [dateFoodMeals, foodStore.entries])
+  const hydration = hydrationBreakdown(water, foodWaterMl)
   const waterDone = targets ? simpleWaterTargetComplete(water, targets.water_l) : false
 
   useEffect(() => {
@@ -376,6 +390,9 @@ export function SimpleHome() {
         package_quantity: '1 planned meal', nutrition_basis: 'per_100g', preparation_state: 'prepared',
         kcal_100: meal.kcal, protein_100: meal.protein_g, carbs_100: meal.carbs_g, fat_100: meal.fat_g,
         fibre_100: null, sugar_100: null, saturated_fat_100: null, salt_100: null,
+        /* A plan placeholder stands for a meal not yet chosen, so it must not
+           claim hydration the user has not actually eaten. */
+        water_ml_100: null,
         serving_amount: 1, serving_unit: 'serving', serving_grams_or_ml: 100, piece_grams_or_ml: null,
         provider_updated_at: null, confidence: 'user_entered',
       })
@@ -405,6 +422,7 @@ export function SimpleHome() {
         sugar_100: entry.snapshot_sugar_100,
         saturated_fat_100: entry.snapshot_saturated_fat_100,
         salt_100: entry.snapshot_salt_100,
+        water_ml_100: entry.snapshot_water_ml_100 ?? existing.water_ml_100,
         serving_grams_or_ml: entry.unit === 'serving' ? frozenUnitSize : existing.serving_grams_or_ml,
         piece_grams_or_ml: entry.unit === 'piece' ? frozenUnitSize : existing.piece_grams_or_ml,
       }
@@ -417,6 +435,16 @@ export function SimpleHome() {
       carbs_100: entry.snapshot_carbs_100, fat_100: entry.snapshot_fat_100,
       fibre_100: entry.snapshot_fibre_100, sugar_100: entry.snapshot_sugar_100,
       saturated_fat_100: entry.snapshot_saturated_fat_100, salt_100: entry.snapshot_salt_100,
+      water_ml_100: entry.snapshot_water_ml_100 ?? estimateWaterContent({
+        name: entry.snapshot_name,
+        nutrition_basis: entry.snapshot_nutrition_basis,
+        kcal_100: entry.snapshot_kcal_100,
+        protein_100: entry.snapshot_protein_100,
+        carbs_100: entry.snapshot_carbs_100,
+        fat_100: entry.snapshot_fat_100,
+        fibre_100: entry.snapshot_fibre_100,
+        salt_100: entry.snapshot_salt_100,
+      })?.water_ml_100 ?? null,
       serving_amount: entry.unit === 'serving' ? 1 : null,
       serving_unit: entry.unit === 'serving' ? 'serving' : null,
       serving_grams_or_ml: entry.unit === 'serving' ? frozenUnitSize : null,
@@ -1212,7 +1240,7 @@ export function SimpleHome() {
               aria-label={quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L${hydration.foodL > 0 ? ` · +${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 

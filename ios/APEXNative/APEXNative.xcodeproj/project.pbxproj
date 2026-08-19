@@ -15,6 +15,7 @@
 		06DE4F94D67318117B35516E /* FitnessBrainParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */; };
 		076D90E875EC34BBD94517C8 /* PortalShellView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 758FD0E991B148EBA20CC451 /* PortalShellView.swift */; };
 		09109A906D755E3898C0E3A9 /* OrbitAnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187FABCA64C67402E716B2DB /* OrbitAnalysisEngine.swift */; };
+		09BBEC76744940807A58CA6A /* FoodHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */; };
 		0E7CA728851DF93D279B1AA0 /* WorkoutLogOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76E2757FE379C6EA33A59F5 /* WorkoutLogOrder.swift */; };
 		0EA74FD3C3F993F87B9D16DD /* FitnessBrainService.swift in Sources */ = {isa = PBXBuildFile; fileRef = 08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */; };
 		0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */; };
@@ -121,6 +122,7 @@
 		D3E5AA1EC12E5A00415697D1 /* CustomWorkoutBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8457F364ACF9911552863DB6 /* CustomWorkoutBuilderTests.swift */; };
 		D563974C02928CDF2507E1DC /* OrbitRunMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810780DA6BA555E5A02AC97F /* OrbitRunMetrics.swift */; };
 		D6E3A2C4EC98342E02B5BBCC /* MealMemoryParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */; };
+		D93E34A4FC70F325479895B9 /* FoodHydration.swift in Sources */ = {isa = PBXBuildFile; fileRef = 01407BB294D6CEF9BD33078A /* FoodHydration.swift */; };
 		DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA785FB8ED5CCCEA551C98B /* APEXDebugFixture.swift */; };
 		DB76BD99603C52CEA9D38258 /* diaphragm_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3C588B0EDF217B6465E465A7 /* diaphragm_dif.jpg */; };
 		DF3478A9C300AF976ACBB43E /* head_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2D7AC07E80FBE3B8D77C3D44 /* head_bump.jpg */; };
@@ -209,6 +211,7 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		01407BB294D6CEF9BD33078A /* FoodHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydration.swift; sourceTree = "<group>"; };
 		018FB46EA0E562A118018CC0 /* plan-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "plan-parity.json"; sourceTree = "<group>"; };
 		05CB1AA98B9C36622C166748 /* ProgressionEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionEngineTests.swift; sourceTree = "<group>"; };
 		06A527BACE95DC1F98A6D69D /* ManualWorkoutLoggerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualWorkoutLoggerView.swift; sourceTree = "<group>"; };
@@ -339,6 +342,7 @@
 		C8E4463683E46A0209E86AAB /* ManualWorkout.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualWorkout.swift; sourceTree = "<group>"; };
 		CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealProtocolGuideTests.swift; sourceTree = "<group>"; };
 		CF248DED2EE048A28CD25CC8 /* OfflineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineStore.swift; sourceTree = "<group>"; };
+		D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydrationTests.swift; sourceTree = "<group>"; };
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
 		DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchive.swift; sourceTree = "<group>"; };
@@ -537,6 +541,7 @@
 				E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */,
 				6236B0A5E1B4CD351DE95983 /* ExportReportTests.swift */,
 				7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */,
+				D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */,
 				2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */,
 				687976EA3575F155FEE0785C /* HydrationGaugeTests.swift */,
 				192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */,
@@ -711,6 +716,7 @@
 				08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */,
 				59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */,
 				4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */,
+				01407BB294D6CEF9BD33078A /* FoodHydration.swift */,
 				C8E4463683E46A0209E86AAB /* ManualWorkout.swift */,
 				7C2B0838F9D735BF37008FFE /* MealBlocks.swift */,
 				E6A1160480AC757FD1D1C9DE /* MealMemory.swift */,
@@ -995,6 +1001,7 @@
 				352AACC240CD4D66A83DD10E /* FitnessBrainTargets.swift in Sources */,
 				B8C52E30ADA7E0154708CE81 /* FocusT25.swift in Sources */,
 				8959C5F43634727949ECA305 /* FoodAmountSheet.swift in Sources */,
+				D93E34A4FC70F325479895B9 /* FoodHydration.swift in Sources */,
 				F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */,
 				6836AF7F2CAF7B263186A177 /* HealthKitManager.swift in Sources */,
 				1BE4BAAFBF290CE5F184761A /* HolographicBodyView.swift in Sources */,
@@ -1072,6 +1079,7 @@
 				886A675690E6502EB8A62CF9 /* EnergyEngineTests.swift in Sources */,
 				BA44B87871075ED4F428B4A5 /* ExportReportTests.swift in Sources */,
 				06DE4F94D67318117B35516E /* FitnessBrainParityTests.swift in Sources */,
+				09BBEC76744940807A58CA6A /* FoodHydrationTests.swift in Sources */,
 				EFE1D97D110D324BE6722A59 /* FoodPortionParityTests.swift in Sources */,
 				22A8AD7876D6B713C2E13474 /* HydrationGaugeTests.swift in Sources */,
 				BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */,

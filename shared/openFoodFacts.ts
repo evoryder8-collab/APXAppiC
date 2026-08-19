@@ -41,6 +41,7 @@ export interface NormalizedProviderFood {
   carbs_100: number | null
   fat_100: number | null
   fibre_100: number | null
+  water_ml_100: number | null
   sugar_100: number | null
   saturated_fat_100: number | null
   salt_100: number | null
@@ -153,6 +154,9 @@ export function normalizeOpenFoodFactsProduct(
     sugar_100: safeNutrient(nutriments.sugars_100g),
     saturated_fat_100: safeNutrient(nutriments['saturated-fat_100g']),
     salt_100: safeNutrient(nutriments.salt_100g, 50),
+    /* Open Food Facts rarely publishes water, so this is usually null and the
+       hydration estimator fills it from the composition instead. */
+    water_ml_100: safeNutrient(nutriments.water_100g, 100),
     serving_amount: servingQuantity,
     serving_unit: servingQuantity == null ? null : basis === 'per_100ml' ? 'ml' : 'g',
     serving_grams_or_ml: servingQuantity,

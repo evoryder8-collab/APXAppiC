@@ -696,13 +696,22 @@ final class AppSession {
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
+    /* A provider almost never publishes water, so it is estimated on the way in.
+       Without this a scanned food silently contributes nothing to hydration. */
     func lookupFood(barcode: String) async throws -> FoodLookupEnvelope {
-        try await service.lookupFood(barcode: barcode)
+        let envelope = try await service.lookupFood(barcode: barcode)
+        return FoodLookupEnvelope(
+            state: envelope.state,
+            source: envelope.source,
+            food: envelope.food.map(FoodHydration.resolved),
+            results: envelope.results?.map(FoodHydration.resolved),
+            message: envelope.message
+        )
     }
 
     func searchFoods(query: String) async throws -> [Food] {
         let remote = try await service.searchFoods(query: query)
-        return remote.results ?? []
+        return (remote.results ?? []).map(FoodHydration.resolved)
     }
 
     /// Saves a complete meal in one atomic Supabase operation. The same RPC is
