@@ -1323,7 +1323,10 @@ struct NutritionCalendarSheet: View {
                     }
 
                     LazyVGrid(columns: Array(repeating: GridItem(.flexible()), count: 7), spacing: 10) {
-                        ForEach(weekdaySymbols, id: \.self) { symbol in
+                        /* Keyed by position, not by the letter: Tuesday and
+                           Thursday are both "T", and identical ids made one of
+                           them disappear from the header. */
+                        ForEach(Array(weekdaySymbols.enumerated()), id: \.offset) { _, symbol in
                             Text(symbol)
                                 .font(APEXFont.mono(9))
                                 .foregroundStyle(APEXColor.secondaryInk)
@@ -1372,7 +1375,8 @@ struct NutritionCalendarSheet: View {
                 }
             }
             .background(APEXBackground())
-            .navigationTitle(language.text("Calendar"))
+            /* No navigation title: the month name is the heading, and an inline
+               bar title lands straight on top of it in a sheet this short. */
             .navigationBarTitleDisplayMode(.inline)
             .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
             .animation(.snappy, value: workflow)

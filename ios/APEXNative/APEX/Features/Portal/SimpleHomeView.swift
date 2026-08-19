@@ -224,8 +224,9 @@ struct SimpleHomeView: View {
         }
         .sheet(isPresented: $showCalendar) {
             NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }
-                .presentationDetents([.large])
-                .presentationDragIndicator(.visible)
+                /* A month grid is six rows tall, so full height left the bottom
+                   third of the sheet empty. */
+                .apexTransientSheet(.fraction(0.74))
         }
         .sheet(isPresented: $showMealSlotPicker) {
             MealSlotPickerSheet(date: selectedDate) { composerRequest = $0 }
@@ -1570,30 +1571,130 @@ private struct WearableActivityEditor: View {
 private struct RecoveryMorningCard: View {
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
+    @State private var language = LanguageState.shared
     @State private var sleep = ""
     @State private var recovery = ""
+    @State private var expanded = false
     let date: Date
     private var source: String { session.data.settings?.addons["recovery_data_source"]?.stringValue ?? "apple" }
     private var context: [String: JSONValue]? { session.data.settings?.addons["apple_recovery_context"]?.objectValue }
     private var isToday: Bool { date.apexDateKey == Date().apexDateKey }
 
+    /* Today's check-in, whether the watch supplied it or it was typed in. */
+    private var checkin: RecoveryAssessment.Checkin? {
+        RecoveryAssessment.todaysCheckin(session.data, date: date.apexDateKey)
+    }
+
+    private var verdict: RecoveryAssessment.Verdict? {
+        checkin.map { RecoveryAssessment.assess($0) }
+    }
+
+    private var headlineScore: Int? {
+        guard let checkin else { return nil }
+        return source == "athlytic" ? checkin.recoveryPercent : checkin.sleepScore
+    }
+
+    private var statusTint: Color {
+        switch verdict?.state {
+        case .strong: APEXColor.green
+        case .normal: APEXColor.cyan
+        case .low: APEXColor.amberDeep
+        case .veryLow: APEXColor.danger
+        case nil: APEXColor.secondaryInk
+        }
+    }
+
     var body: some View {
-        GlassCard(radius: 25, padding: 16) {
-            VStack(alignment: .leading, spacing: 10) {
-                HStack { Text(source == "athlytic" ? "Athlytic morning check" : "Apple morning check").font(APEXFont.display(18)); Spacer(); Text(health.isAuthorized ? "AUTO + MANUAL" : "MANUAL").font(APEXFont.mono(8)).foregroundStyle(APEXColor.green) }
-                if isToday, let hours = context?["sleep_duration_hours"]?.numberValue {
-                    Text(String(format: "Apple Health sleep: %.1f h", hours)).font(APEXFont.body(10, weight: .semibold)).foregroundStyle(APEXColor.secondaryInk)
-                }
-                HStack {
-                    scoreField("Sleep", text: $sleep)
-                    if source == "athlytic" { scoreField("Recovery", text: $recovery) }
-                }
-                Text(source == "athlytic" ? "Athlytic’s proprietary score is entered manually; Apple Health context is imported automatically." : "Apple Health sleep context imports automatically. Add the 0–100 score when your watch does not expose one.")
-                    .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
-                Button("Save morning check") { save() }.buttonStyle(.borderedProminent).tint(APEXColor.green)
+        /* Once the morning is answered the card collapses to a single line.
+           It is the first thing on the page every day, and a solved question
+           should not cost half the first screen. */
+        GlassCard(radius: 22, padding: headlineScore == nil || expanded ? 15 : 11) {
+            VStack(alignment: .leading, spacing: 9) {
+                summary
+                if expanded || headlineScore == nil { editor }
             }
         }
         .onAppear { load() }
+        .animation(.snappy(duration: 0.22), value: expanded)
+    }
+
+    private var summary: some View {
+        Button {
+            guard headlineScore != nil else { return }
+            expanded.toggle()
+        } label: {
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 2) {
+                    Text("Morning check")
+                        .font(APEXFont.display(headlineScore == nil || expanded ? 17 : 14))
+                        .foregroundStyle(APEXColor.ink)
+                    Text(collapsedSubtitle)
+                        .font(APEXFont.body(9, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .lineLimit(1)
+                }
+                Spacer(minLength: 6)
+                if let headlineScore {
+                    Text("\(headlineScore)")
+                        .font(APEXFont.mono(17, weight: .bold))
+                        .foregroundStyle(statusTint)
+                    if let state = verdict?.state {
+                        /* One word at a glance. The full verdict sentence keeps
+                           its place in the body signals panel. */
+                        Text(language.text(stateLabel(state)).uppercased())
+                            .font(APEXFont.mono(8))
+                            .tracking(0.9)
+                            .foregroundStyle(statusTint)
+                            .padding(.horizontal, 7)
+                            .padding(.vertical, 3)
+                            .background(statusTint.opacity(0.12), in: Capsule())
+                    }
+                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                        .font(.system(size: 10, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                } else {
+                    Text(health.isAuthorized ? "AUTO + MANUAL" : "MANUAL")
+                        .font(APEXFont.mono(8))
+                        .foregroundStyle(APEXColor.green)
+                }
+            }
+            .contentShape(Rectangle())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("morning-check-summary")
+        .accessibilityLabel(headlineScore.map { language.format("Morning check, %d", $0) } ?? language.text("Morning check"))
+        .accessibilityHint(headlineScore == nil ? "" : language.text(expanded ? "Collapse" : "Edit the score"))
+    }
+
+    private func stateLabel(_ state: RecoveryAssessment.State) -> String {
+        switch state {
+        case .strong: "Strong"
+        case .normal: "Steady"
+        case .low: "Low"
+        case .veryLow: "Very low"
+        }
+    }
+
+    private var collapsedSubtitle: String {
+        if let hours = context?["sleep_duration_hours"]?.numberValue, isToday {
+            return String(format: language.text("%@ Health sleep: %.1f h"), source == "athlytic" ? "Athlytic" : "Apple", hours)
+        }
+        return language.text(source == "athlytic" ? "Athlytic recovery" : "Apple Health sleep")
+    }
+
+    private var editor: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            HStack {
+                scoreField("Sleep", text: $sleep)
+                if source == "athlytic" { scoreField("Recovery", text: $recovery) }
+            }
+            Text(source == "athlytic" ? "Athlytic’s proprietary score is entered manually; Apple Health context is imported automatically." : "Apple Health sleep context imports automatically. Add the 0–100 score when your watch does not expose one.")
+                .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
+            Button("Save morning check") { save(); expanded = false }
+                .buttonStyle(.borderedProminent)
+                .tint(APEXColor.green)
+                .controlSize(.small)
+        }
     }
     private func scoreField(_ title: String, text: Binding<String>) -> some View {
         VStack(alignment: .leading) { Text(title).font(APEXFont.body(9, weight: .bold)); TextField("%", text: text).keyboardType(.numberPad).font(APEXFont.mono(15)).multilineTextAlignment(.center).padding(11).background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 14)) }

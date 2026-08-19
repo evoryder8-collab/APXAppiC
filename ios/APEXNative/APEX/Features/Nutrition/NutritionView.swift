@@ -45,6 +45,15 @@ struct NutritionView: View {
                 .padding(.horizontal, 18)
                 .padding(.top, 10)
 
+            /* The web renders its top bar once for every page, so the mode
+               switch is reachable from nutrition too. Native only had it on
+               the two portal screens. */
+            HStack {
+                PortalModeSwitcher()
+                Spacer()
+            }
+            .padding(.horizontal, 18)
+
             APEXDateNavigator(
                 date: selectedDate,
                 onPrevious: { changeDate(-1) },
@@ -167,7 +176,9 @@ struct NutritionView: View {
         }
         .sheet(isPresented: $showCalendar) {
             NutritionCalendarSheet(selectedDate: selectedDate) { selectedDate = $0 }
-                .apexTransientSheet()
+                /* A month grid is six rows tall, so opening at full height left
+                   the bottom third empty. */
+                .apexTransientSheet(.fraction(0.74))
                 .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showMealSlotPicker) {
