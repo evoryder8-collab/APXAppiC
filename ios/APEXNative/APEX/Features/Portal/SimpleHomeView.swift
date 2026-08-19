@@ -1310,14 +1310,14 @@ private struct TrainingQuickSheet: View {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(language.text(completed ? "Completed training" : "Training preview"))
-                        .font(APEXFont.display(24))
+                        .font(APEXFont.display(20))
                     if day != nil {
                         Text(language.format("%d exercises · %d min", shown.count, shownMinutes))
                             .font(APEXFont.body(12, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
                 }
-                Spacer()
+                Spacer(minLength: 6)
                 Button { onClose() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .bold))
@@ -1340,7 +1340,7 @@ private struct TrainingQuickSheet: View {
                                 .tracking(0.8)
                                 .foregroundStyle(lite == wantsLite ? .white : APEXColor.secondaryInk)
                                 .frame(maxWidth: .infinity)
-                                .frame(height: 42)
+                                .frame(height: 34)
                                 .background(
                                     lite == wantsLite
                                         ? AnyShapeStyle(APEXColor.green.gradient)
@@ -1357,15 +1357,15 @@ private struct TrainingQuickSheet: View {
                 .padding(.top, 14)
 
                 Group {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack(spacing: 12) {
+                    VStack(alignment: .leading, spacing: 9) {
+                        HStack(spacing: 9) {
                             Image(systemName: "figure.strengthtraining.traditional")
-                                .font(.system(size: 17, weight: .bold))
+                                .font(.system(size: 14, weight: .bold))
                                 .foregroundStyle(.white)
-                                .frame(width: 44, height: 44)
+                                .frame(width: 36, height: 36)
                                 .background(APEXColor.teal.gradient, in: Circle())
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(language.text(day.name)).font(APEXFont.display(19))
+                                Text(language.text(day.name)).font(APEXFont.display(16))
                                 Text(language.format("%d min · %d exercises", shownMinutes, shown.count))
                                     .font(APEXFont.mono(10))
                                     .foregroundStyle(APEXColor.secondaryInk)
@@ -1379,7 +1379,7 @@ private struct TrainingQuickSheet: View {
                             .font(APEXFont.body(12, weight: .semibold))
                             .foregroundStyle(APEXColor.green)
                             .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(12)
+                            .padding(10)
                             .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 14))
 
                         if isDeload {
@@ -1402,10 +1402,10 @@ private struct TrainingQuickSheet: View {
                                 Text("\(index + 1)")
                                     .font(APEXFont.mono(11, weight: .bold))
                                     .foregroundStyle(APEXColor.green)
-                                    .frame(width: 26, height: 26)
+                                    .frame(width: 22, height: 22)
                                     .background(APEXColor.green.opacity(0.13), in: Circle())
                                 Text(language.text(exercise.name))
-                                    .font(APEXFont.body(14, weight: .bold))
+                                    .font(APEXFont.body(12, weight: .bold))
                                     .lineLimit(2)
                                 Spacer(minLength: 6)
                                 Text(prescription(exercise))
@@ -1420,7 +1420,6 @@ private struct TrainingQuickSheet: View {
                     }
                     .padding(.horizontal, 20)
                     .padding(.top, 14)
-                    .padding(.bottom, 8)
                 }
 
                 VStack(spacing: 9) {
@@ -1440,7 +1439,7 @@ private struct TrainingQuickSheet: View {
                         dismiss(); start(true)
                     } label: {
                         Text(language.format("Start Light · %d min", liteMinutes))
-                            .font(APEXFont.body(14, weight: .bold))
+                            .font(APEXFont.body(12, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 46)
                             .background(APEXColor.cyan.gradient, in: RoundedRectangle(cornerRadius: 16))
@@ -1448,8 +1447,6 @@ private struct TrainingQuickSheet: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("start-light")
                 }
-                .padding(.horizontal, 20)
-                .padding(.bottom, 22)
             } else {
                 VStack(spacing: 14) {
                     Image(systemName: "moon.zzz.fill")
@@ -1463,18 +1460,16 @@ private struct TrainingQuickSheet: View {
                         .foregroundStyle(APEXColor.secondaryInk)
                     Button { dismiss(); start(false) } label: {
                         Text(language.text("Open plan"))
-                            .font(APEXFont.body(14, weight: .bold))
+                            .font(APEXFont.body(12, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 48)
                             .background(APEXColor.teal.gradient, in: RoundedRectangle(cornerRadius: 16))
                     }
                     .buttonStyle(.plain)
                 }
-                .padding(24)
-                Spacer(minLength: 0)
+                .padding(.vertical, 8)
             }
         }
-        .presentationBackground(.ultraThinMaterial)
     }
 }
 

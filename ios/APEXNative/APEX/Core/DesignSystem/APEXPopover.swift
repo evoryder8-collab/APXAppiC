@@ -32,7 +32,7 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
                             .transition(.opacity)
 
                         card(maxHeight: proxy.size.height * maxHeightFraction)
-                            .frame(maxWidth: min(proxy.size.width - 36, 460))
+                            .frame(maxWidth: min(proxy.size.width - 64, 372))
                             .transition(.scale(scale: 0.94).combined(with: .opacity))
                     }
                     .frame(width: proxy.size.width, height: proxy.size.height)
@@ -48,15 +48,23 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
         /* Hugs its content, and only becomes scrollable once it would outgrow
            the screen. A plain ScrollView would always claim the full height and
            leave the card half empty. */
+        /*
+         * The cap belongs to the scrolling branch alone. Applying it to both
+         * handed the hugging branch the whole allowance as its proposal, and it
+         * took it: the card came out full height with the content stranded in
+         * the middle of it.
+         */
         ViewThatFits(in: .vertical) {
-            popover().padding(18)
+            popover()
+                .padding(15)
+                .fixedSize(horizontal: false, vertical: true)
             ScrollView {
-                popover().padding(18)
+                popover().padding(15)
             }
             .scrollBounceBehavior(.basedOnSize)
+            .frame(maxHeight: maxHeight)
         }
-        .frame(maxHeight: maxHeight)
-        .background(APEXColor.canvas, in: RoundedRectangle(cornerRadius: 30, style: .continuous))
+        .background(APEXColor.canvas, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(
             RoundedRectangle(cornerRadius: 30, style: .continuous)
                 .stroke(.white.opacity(0.7), lineWidth: 1)
@@ -109,7 +117,7 @@ struct APEXPopoverHeader: View {
         HStack(alignment: .top, spacing: 12) {
             VStack(alignment: .leading, spacing: 3) {
                 Text(title)
-                    .font(APEXFont.display(24))
+                    .font(APEXFont.display(20))
                     .foregroundStyle(APEXColor.ink)
                 if let subtitle {
                     Text(subtitle)
