@@ -233,30 +233,39 @@ struct SimpleHomeView: View {
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
         }
-        .sheet(item: $quickPanel) { panel in
+        /* Water is a task with its own interface and keeps the sheet. The rest
+           are glances, and a glance belongs in a card over the page. */
+        .sheet(isPresented: Binding(
+            get: { quickPanel == .water },
+            set: { if !$0, quickPanel == .water { quickPanel = nil } }
+        )) {
+            WaterQuickAddSheet(
+                drinkLiters: drinkWaterL,
+                foodLiters: foodWaterL,
+                targetLiters: waterTargetL,
+                sex: profile?.sex ?? "male"
+            ) { liters in
+                addWater(liters)
+            }
+            .presentationDetents([.large])
+        }
+        .apexPopover(item: Binding(
+            get: { quickPanel == .water ? nil : quickPanel },
+            set: { quickPanel = $0 }
+        )) { panel in
             switch panel {
-            case .water:
-                WaterQuickAddSheet(
-                    drinkLiters: drinkWaterL,
-                    foodLiters: foodWaterL,
-                    targetLiters: waterTargetL,
-                    sex: profile?.sex ?? "male"
-                ) { liters in
-                    addWater(liters)
-                }
-                .presentationDetents([.large])
             case .supplements:
-                SupplementQuickSheet(date: selectedDate)
-                    .apexTransientSheet()
+                SupplementQuickSheet(date: selectedDate, onClose: { quickPanel = nil })
             case .stats:
-                StatsQuickSheet(date: selectedDate)
-                    .apexTransientSheet()
+                StatsQuickSheet(date: selectedDate, onClose: { quickPanel = nil })
             case .training:
                 TrainingQuickSheet(
                     day: todayProgramDay,
                     isDeload: todayIsDeload,
-                    completed: workoutDone
+                    completed: workoutDone,
+                    onClose: { quickPanel = nil }
                 ) { lite in
+                    quickPanel = nil
                     guard todayProgramDay != nil else {
                         session.navigationPath.append(.transition)
                         return
@@ -264,7 +273,8 @@ struct SimpleHomeView: View {
                     workoutIsLite = lite
                     showWorkout = true
                 }
-                .apexTransientSheet()
+            case .water:
+                EmptyView()
             }
         }
         .fullScreenCover(item: $composerRequest) { request in
@@ -1134,23 +1144,48 @@ private struct SupplementQuickSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let date: Date
+    var onClose: () -> Void = {}
+
+    private var taken: Int {
+        session.data.supplements.filter { supplement in
+            session.data.supplementLogs.contains { $0.date == date.apexDateKey && $0.supplementID == supplement.id }
+        }.count
+    }
 
     var body: some View {
-        NavigationStack {
-            List(session.data.supplements.sorted { $0.sortOrder < $1.sortOrder }) { supplement in
-                let done = session.data.supplementLogs.contains { $0.date == date.apexDateKey && $0.supplementID == supplement.id }
-                Button { Task { await session.toggleSupplement(supplement, on: date) } } label: {
-                    HStack {
-                        Image(systemName: done ? "checkmark.circle.fill" : "circle").foregroundStyle(done ? APEXColor.green : APEXColor.secondaryInk)
-                        VStack(alignment: .leading) {
-                            Text(supplement.name).font(APEXFont.body(14, weight: .bold))
-                            Text("\(supplement.dose) · \(supplement.groupLabel)").font(APEXFont.body(10)).foregroundStyle(APEXColor.secondaryInk)
-                        }
+        /* Card content, not a screen: no stack, no bar, no scrolling to see
+           what is a short list. */
+        VStack(alignment: .leading, spacing: 14) {
+            APEXPopoverHeader(
+                title: "Supplement stack",
+                subtitle: "\(taken) of \(session.data.supplements.count) taken",
+                onClose: onClose
+            )
+            VStack(spacing: 8) {
+                ForEach(session.data.supplements.sorted { $0.sortOrder < $1.sortOrder }) { supplement in
+                    let done = session.data.supplementLogs.contains {
+                        $0.date == date.apexDateKey && $0.supplementID == supplement.id
                     }
-                }.buttonStyle(.plain)
+                    Button { Task { await session.toggleSupplement(supplement, on: date) } } label: {
+                        HStack(spacing: 11) {
+                            Image(systemName: done ? "checkmark.circle.fill" : "circle")
+                                .font(.system(size: 19))
+                                .foregroundStyle(done ? APEXColor.green : APEXColor.secondaryInk)
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(supplement.name).font(APEXFont.body(14, weight: .bold))
+                                Text("\(supplement.dose) · \(supplement.groupLabel)")
+                                    .font(APEXFont.body(10))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                            }
+                            Spacer(minLength: 0)
+                        }
+                        .padding(.horizontal, 13)
+                        .padding(.vertical, 11)
+                        .background(.white.opacity(done ? 0.85 : 0.6), in: RoundedRectangle(cornerRadius: 15))
+                    }
+                    .buttonStyle(.plain)
+                }
             }
-            .navigationTitle("Supplement stack")
-            .toolbar { ToolbarItem(placement: .confirmationAction) { Button("Done") { dismiss() } } }
         }
     }
 }
@@ -1159,18 +1194,33 @@ private struct StatsQuickSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let date: Date
+    var onClose: () -> Void = {}
     private var snapshot: RPGSnapshot? { session.data.snapshots.filter { $0.date <= date.apexDateKey }.max { $0.date < $1.date } }
 
     var body: some View {
-        VStack(spacing: 16) {
-            Text("Body signals").font(APEXFont.display(26))
+        VStack(alignment: .leading, spacing: 14) {
+            APEXPopoverHeader(title: "Body signals", onClose: onClose)
             if let snapshot {
-                Text(String(Int(snapshot.overall.rounded()))).font(APEXFont.mono(54)).foregroundStyle(APEXColor.green)
-                Text("Overall Fitness Level").font(APEXFont.body(13, weight: .bold))
-            } else { ContentUnavailableView("No stats yet", systemImage: "chart.xyaxis.line") }
-            Button("Open full Avatar") { dismiss(); session.navigationPath.append(.avatar) }
-                .buttonStyle(.borderedProminent).tint(APEXColor.green)
-        }.padding(24).presentationBackground(.ultraThinMaterial)
+                VStack(spacing: 3) {
+                    Text(String(Int(snapshot.overall.rounded())))
+                        .font(APEXFont.mono(52))
+                        .foregroundStyle(APEXColor.green)
+                    Text("Overall Fitness Level").font(APEXFont.body(12, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                .frame(maxWidth: .infinity)
+            } else {
+                Text("No stats yet")
+                    .font(APEXFont.body(13, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .frame(maxWidth: .infinity)
+            }
+            Button("Open full Avatar") {
+                onClose()
+                session.navigationPath.append(.avatar)
+            }
+            .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.green))
+        }
     }
 }
 
@@ -1191,6 +1241,7 @@ private struct TrainingQuickSheet: View {
     let day: ProgramDay?
     let isDeload: Bool
     let completed: Bool
+    var onClose: () -> Void = {}
     let start: (Bool) -> Void
 
     private func exercises(lite wantsLite: Bool) -> [Exercise] {
@@ -1267,7 +1318,7 @@ private struct TrainingQuickSheet: View {
                     }
                 }
                 Spacer()
-                Button { dismiss() } label: {
+                Button { onClose() } label: {
                     Image(systemName: "xmark")
                         .font(.system(size: 13, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
@@ -1276,8 +1327,6 @@ private struct TrainingQuickSheet: View {
                 }
                 .buttonStyle(.plain)
             }
-            .padding(.horizontal, 20)
-            .padding(.top, 18)
 
             if let day {
                 /* Prescription switch */
@@ -1305,10 +1354,9 @@ private struct TrainingQuickSheet: View {
                 }
                 .padding(3)
                 .background(.white.opacity(0.6), in: Capsule())
-                .padding(.horizontal, 20)
                 .padding(.top, 14)
 
-                ScrollView {
+                Group {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack(spacing: 12) {
                             Image(systemName: "figure.strengthtraining.traditional")

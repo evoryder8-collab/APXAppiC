@@ -541,52 +541,60 @@ struct APEXDaylineView: View {
         return calendar
     }
 
+    /*
+     * The day's rows come from the configured meal blocks, exactly as the web
+     * builds them, and a logged meal is matched into the block it belongs to.
+     *
+     * The native version had been reading the planned-meals table instead. That
+     * table is the meal timeline's source, not the Dayline's, and when it was
+     * empty the Dayline had nothing to draw: a day arrived with no blocks at
+     * all, where the web still showed every slot waiting to be filled.
+     */
     private var entries: [DaylineEntry] {
-        let planned = session.data.meals.sorted { $0.sortOrder < $1.sortOrder }
         let logged = session.data.loggedMeals
             .filter { $0.localDate == date.apexDateKey }
             .sorted { parsedTimestamp($0.loggedAt) < parsedTimestamp($1.loggedAt) }
         var claimed: Set<UUID> = []
-        var rows: [DaylineEntry] = planned.map { meal in
-            let slot = slot(for: meal)
+
+        var rows = MealBlocks.enabled(session.data.settings?.addons["meal_blocks"]).map { block -> DaylineEntry in
             let match = logged.first { candidate in
-                if let source = candidate.sourcePlannedMealID, source == meal.id { return true }
-                return normalize(candidate.mealSlot) == normalize(slot) && !claimed.contains(candidate.id)
+                normalize(candidate.mealSlot) == normalize(block.kind) && !claimed.contains(candidate.id)
             }
             if let match { claimed.insert(match.id) }
+            /* A saved schedule can move a block's time; the block keeps its
+               place either way. */
+            let plannedTime = session.data.meals
+                .first { normalize(slot(for: $0)) == normalize(block.kind) }?
+                .time
             return DaylineEntry(
-                id: "planned-\(meal.id)",
-                minute: match.map { minute(of: $0.loggedAt) } ?? minute(ofClock: meal.time),
-                slot: slot,
-                title: match?.displayName ?? meal.name,
-                plannedMeal: meal,
+                id: "block-\(block.id)",
+                minute: match.map { minute(of: $0.loggedAt) } ?? minute(ofClock: plannedTime ?? block.time),
+                slot: block.kind,
+                title: match?.displayName ?? language.text(block.label),
+                plannedMeal: nil,
                 loggedMeal: match
             )
         }
-        rows.append(contentsOf: logged.filter { !claimed.contains($0.id) }.map { meal in
-            DaylineEntry(
-                id: "logged-\(meal.id)",
-                minute: minute(of: meal.loggedAt),
-                slot: meal.mealSlot,
-                title: meal.displayName,
-                plannedMeal: nil,
-                loggedMeal: meal
-            )
-        })
-        return rows.sorted {
-            if lineMinute($0.minute) == lineMinute($1.minute) { return $0.title < $1.title }
-            return lineMinute($0.minute) < lineMinute($1.minute)
-        }
+
+        /* Anything eaten that no block accounts for still belongs on the day. */
+        rows.append(
+            contentsOf: logged
+                .filter { !claimed.contains($0.id) }
+                .map { meal in
+                    DaylineEntry(
+                        id: "logged-\(meal.id)",
+                        minute: minute(of: meal.loggedAt),
+                        slot: normalize(meal.mealSlot),
+                        title: meal.displayName,
+                        plannedMeal: nil,
+                        loggedMeal: meal
+                    )
+                }
+        )
+        return rows.sorted { lineMinute($0.minute) < lineMinute($1.minute) }
     }
 
-    private var visibleEntries: [DaylineEntry] {
-        guard compact, entries.count > 4 else { return entries }
-        let now = currentLineMinute
-        let completed = entries.filter { $0.isLogged }.suffix(1)
-        let upcoming = entries.filter { !$0.isLogged && lineMinute($0.minute) >= now }.prefix(3)
-        let combined = Array(completed) + Array(upcoming)
-        return combined.isEmpty ? Array(entries.prefix(4)) : Array(Dictionary(uniqueKeysWithValues: combined.map { ($0.id, $0) }).values).sorted { lineMinute($0.minute) < lineMinute($1.minute) }
-    }
+    private var visibleEntries: [DaylineEntry] { entries }
 
     private var currentMinute: Int {
         let components = daylineCalendar.dateComponents([.hour, .minute], from: .now)
@@ -749,6 +757,7 @@ struct APEXDaylineView: View {
                                    neighbour, but it still states its own time. */
                                 displayedMinute: dragPreview[entry.id] ?? entry.minute,
                                 isDragging: dragPreview[entry.id] != nil,
+                                timelineOriginY: proxy.frame(in: .global).minY,
                                 revealOffset: revealOffset(for: entry),
                                 action: { open(entry) },
                                 /* Absolute Y inside the timeline, so the meal
@@ -893,12 +902,21 @@ struct APEXDaylineView: View {
      * just far enough to stay its own target.
      */
     private func separated(_ entries: [DaylineEntry], height: CGFloat) -> [String: CGFloat] {
-        let minimumGap: CGFloat = 104
+        let minimumGap: CGFloat = 84
+        let cardHalf: CGFloat = 38
         var placed: [String: CGFloat] = [:]
         var lastY: CGFloat?
-        for entry in entries.sorted(by: { $0.minute < $1.minute }) {
+        let ordered = entries.sorted { $0.minute < $1.minute }
+        /* Nudging down can only go so far: the last card has to stay on the
+           rail rather than spill past its end into the controls below, so each
+           card reserves room for the ones still to come. */
+        let ceiling = max(cardHalf, height - cardHalf)
+        for (index, entry) in ordered.enumerated() {
+            let remaining = CGFloat(ordered.count - 1 - index)
+            let limit = max(cardHalf, ceiling - remaining * minimumGap)
             let wanted = yPosition(for: lineMinute(dragPreview[entry.id] ?? entry.minute), height: height)
-            let y = lastY.map { max(wanted, $0 + minimumGap) } ?? wanted
+            let stepped = lastY.map { max(wanted, $0 + minimumGap) } ?? wanted
+            let y = min(limit, max(cardHalf, stepped))
             placed[entry.id] = y
             lastY = y
         }
@@ -984,6 +1002,9 @@ private struct DaylineEntryRow: View {
     let entry: DaylineEntry
     let displayedMinute: Int
     let isDragging: Bool
+    /// Where the timeline starts on screen, so a hold reported in window
+    /// coordinates can be read as a position along the rail.
+    let timelineOriginY: CGFloat
     /* Owned by the parent so a data refresh cannot discard it mid-swipe */
     let revealOffset: CGFloat
     let action: () -> Void
@@ -1079,6 +1100,13 @@ private struct DaylineEntryRow: View {
                 .offset(x: revealOffset)
             }
         }
+        /*
+         * The row states its own height before the gesture layer goes on top.
+         * A UIViewRepresentable has no intrinsic size and takes whatever it is
+         * offered, so without this the overlay stretched each row to the full
+         * height of the timeline and the cards disappeared into one another.
+         */
+        .frame(height: 72)
         .contentShape(Rectangle())
         /*
          * Tap, sideways swipe and hold-to-move live together in UIKit, where a
@@ -1113,10 +1141,10 @@ private struct DaylineEntryRow: View {
                 },
                 onHoldChanged: { y in
                     dragConsumedTap = true
-                    onDragChanged(y)
+                    onDragChanged(y - timelineOriginY)
                 },
                 onHoldEnded: { y in
-                    onDragEnded(y)
+                    onDragEnded(y - timelineOriginY)
                     Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(280))
                         dragConsumedTap = false

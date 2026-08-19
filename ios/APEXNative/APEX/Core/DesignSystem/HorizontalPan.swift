@@ -158,9 +158,14 @@ struct MealRowGestures: UIViewRepresentable {
         }
 
         @objc func handleHold(_ recognizer: UILongPressGestureRecognizer) {
-            /* Absolute position inside the timeline: measuring the finger
-               against the row makes the row chase itself as it moves. */
-            let y = recognizer.location(in: recognizer.view?.superview).y
+            /*
+             * Window coordinates, converted by the timeline against its own
+             * frame. Reporting against the recogniser's superview measured the
+             * finger inside the row, which is not where the timeline thinks it
+             * is, so the meal leapt hours away the instant the hold began.
+             * Absolute also means the row cannot chase itself as it moves.
+             */
+            let y = recognizer.location(in: nil).y
             switch recognizer.state {
             case .began:
                 holding = true
