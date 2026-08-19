@@ -134,13 +134,21 @@ enum FoodHydration {
         if perML && fat >= 20 { return nil }
         let ash = estimateAsh(input)
         let fibre = input.fibre100 ?? 0
-        let withoutFibre = 100 - (protein + carbs + fat + ash)
-        let withFibre = withoutFibre - fibre
-        /* A row storing carbohydrate excluding fibre leaves a gap only fibre
-           fills; one storing total carbohydrate is already complete. */
-        let candidate = fibre > 0 && withFibre >= 0 && withoutFibre > 100 - ash - 0.5
-            ? withFibre
-            : withoutFibre
+        /* Europe reports available carbohydrate with fibre listed separately;
+           the USDA reports carbohydrate by difference, fibre included. Both
+           conventions appear in one catalogue, so the row's own energy decides
+           which it uses: score it against Atwater under each and keep the
+           closer reading. Without an energy figure, assume fibre is separate,
+           which is both the commoner case here and the reading that never
+           overstates hydration. */
+        var carbsExcludeFibre = fibre > 0
+        if fibre > 0, let kcal = input.kcal100, kcal > 0 {
+            let asExcluded = 4 * protein + 4 * carbs + 9 * fat + 2 * fibre
+            let asIncluded = 4 * protein + 4 * (carbs - fibre) + 9 * fat + 2 * fibre
+            carbsExcludeFibre = abs(asExcluded - kcal) <= abs(asIncluded - kcal)
+        }
+        let solids = protein + carbs + fat + ash + (carbsExcludeFibre ? fibre : 0)
+        let candidate = 100 - solids
         guard candidate.isFinite else { return nil }
         return min(100, max(0, (candidate * 10).rounded() / 10))
     }

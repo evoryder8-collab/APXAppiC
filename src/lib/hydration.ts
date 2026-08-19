@@ -98,13 +98,21 @@ export function waterByDifference(input: WaterEstimateInput): number | null {
   if (perMl && fat >= 20) return null
   const ash = estimateAsh(input)
   const fibre = input.fibre_100 ?? 0
-  const withoutFibre = 100 - (protein + carbs + fat + ash)
-  const withFibre = withoutFibre - fibre
-  /* A row storing carbohydrate excluding fibre leaves a gap that only the
-     fibre fills; one storing total carbohydrate is already complete. */
-  const candidate = fibre > 0 && withFibre >= 0 && withoutFibre > 100 - ash - 0.5
-    ? withFibre
-    : withoutFibre
+  /* Europe reports available carbohydrate with fibre listed separately; the
+     USDA reports carbohydrate by difference, fibre included. Both conventions
+     appear in one catalogue, so the row's own energy decides which it uses:
+     score it against Atwater under each and keep the closer reading. Without
+     an energy figure, assume fibre is separate, which is both the commoner
+     case here and the reading that never overstates hydration. */
+  const carbsExcludeFibre = fibre > 0 && (() => {
+    const kcal = input.kcal_100
+    if (kcal == null || !(kcal > 0)) return true
+    const asExcluded = 4 * protein + 4 * carbs + 9 * fat + 2 * fibre
+    const asIncluded = 4 * protein + 4 * (carbs - fibre) + 9 * fat + 2 * fibre
+    return Math.abs(asExcluded - kcal) <= Math.abs(asIncluded - kcal)
+  })()
+  const solids = protein + carbs + fat + ash + (carbsExcludeFibre ? fibre : 0)
+  const candidate = 100 - solids
   if (!Number.isFinite(candidate)) return null
   return Math.min(100, Math.max(0, Math.round(candidate * 10) / 10))
 }
