@@ -112,6 +112,7 @@ enum FoodPortionMath {
 }
 
 struct FoodAmountSheet: View {
+    @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
 
@@ -127,6 +128,7 @@ struct FoodAmountSheet: View {
     @State private var quantityText = "100"
     @FocusState private var quantityFocused: Bool
 
+    private var region: FoodRegion { FoodRegion.resolved(session.data.settings) }
     private var units: [FoodUnitKind] { FoodPortionMath.availableUnits(food) }
     private var portion: FoodPortionResult? {
         FoodPortionMath.portion(food, quantity: quantity, unit: unit)
@@ -292,6 +294,12 @@ struct FoodAmountSheet: View {
         VStack(alignment: .leading, spacing: 6) {
             HStack(spacing: 16) {
                 Text("\(portion.map { formatted($0.kcal) } ?? language.text("N/A")) kcal")
+                /* EU labelling leads with kilojoules, so European users see the
+                   figure their packets show alongside the one they track. */
+                if region.presentation.showsKilojoules, let portion {
+                    Text("\(FoodRegion.kilojoules(portion.kcal)) kJ")
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
                 Text("P \(portion.map { formatted($0.proteinG) } ?? language.text("N/A"))g")
                 Text("C \(portion.map { formatted($0.carbsG) } ?? language.text("N/A"))g")
                 Text("F \(portion.map { formatted($0.fatG) } ?? language.text("N/A"))g")

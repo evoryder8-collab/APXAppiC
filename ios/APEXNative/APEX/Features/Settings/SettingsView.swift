@@ -144,6 +144,24 @@ struct SettingsView: View {
                         setAddon("meal_dayline_density", .string($0))
                     }
                 }
+                /* Detected from the device, never asked. The override is here
+                   for what detection cannot see: someone who moved and kept
+                   their old App Store country, or who shops across a border. */
+                settingGroup(
+                    title: "Food region",
+                    subtitle: language.format(
+                        "Detected: %@. Sets units, energy display and which products rank first.",
+                        language.text(FoodRegion.detected().title)
+                    ),
+                    tint: APEXColor.violet
+                ) {
+                    choiceRow(
+                        options: FoodRegion.allCases.map { (language.text($0.title), $0.rawValue) },
+                        selected: FoodRegion.resolved(settings).rawValue
+                    ) {
+                        setAddon("food_region", .string($0))
+                    }
+                }
                 settingGroup(title: "Meal-specific food memory", subtitle: "Daily prioritizes recent foods. Weekly prioritizes the same weekday.", tint: APEXColor.amber) {
                     choiceRow(options: [("Daily", "daily"), ("Weekly", "weekly")], selected: addonString("meal_memory_mode", default: "daily")) {
                         setAddon("meal_memory_mode", .string($0))
