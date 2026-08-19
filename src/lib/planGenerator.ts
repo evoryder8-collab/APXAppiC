@@ -21,6 +21,23 @@ import {
   type Movement,
 } from '../data/movements.ts'
 import type { TrainingGoal, TrainingPainArea } from './types.ts'
+import {
+  restSecondsFor,
+  setSeconds,
+  tempoFor,
+  tempoRationale,
+  type TrainingIntent,
+  type Tempo,
+} from './liftingTempo.ts'
+
+/* The questionnaire offers three goals; the generator understands five. Mapping
+ * rather than widening the shared union means adding an intent here can never
+ * change what the existing web questionnaire renders. */
+export const GOAL_INTENT: Record<TrainingGoal, TrainingIntent> = {
+  rebuild: 'rebuild',
+  muscle: 'hypertrophy',
+  strength: 'strength',
+}
 
 /* Which movement restrictions each reported body area rules out. The intake
  * asks about six areas, so all six must map onto tags the library actually
@@ -38,6 +55,9 @@ export type Experience = 'novice' | 'intermediate' | 'advanced'
 
 export interface GeneratorIntake {
   goal: TrainingGoal
+  /* Overrides the goal mapping when the user wants work capacity or power,
+   * which the three-option questionnaire cannot express. */
+  intent?: TrainingIntent
   sessionsPerWeek: 2 | 3 | 4
   minutesPerSession: number
   equipment: string[]
@@ -67,6 +87,15 @@ export interface Prescription {
    * be failed safely, which is a real constraint rather than a caution. */
   repsInReserve: number
   estimatedSeconds: number
+  /* A main slot fills one of the session's pillars; accessory work is what
+   * gets added when there is time left after the pillars are covered. */
+  slot: 'main' | 'accessory'
+  /* Movements sharing a group are alternated. Each one still gets its full
+   * rest, because the other one is what fills it. */
+  supersetGroup: number | null
+  /* How the rep itself is performed. Null where timing a rep is meaningless:
+   * a jump, an Olympic lift, a plank, a breath-paced flow. */
+  tempo: Tempo | null
   note: string
 }
 
@@ -84,6 +113,8 @@ export interface Limitation {
 }
 
 export interface GeneratedWeek {
+  /* Why the reps are timed the way they are, so the plan can defend itself. */
+  tempoRationale: string
   sessions: GeneratedSession[]
   limitations: Limitation[]
   /* Movements excluded and why, so the plan can explain itself rather than
@@ -94,12 +125,20 @@ export interface GeneratedWeek {
 /* Set and rep schemes by goal. Rebuild deliberately sits in a rep range where
  * technique survives fatigue; strength sits low enough to actually be strength
  * work; muscle sits where most of the evidence for hypertrophy lives. */
-const SCHEMES: Record<TrainingGoal, {
-  sets: number; repLow: number; repHigh: number; rest: number; rir: number
+const SCHEMES: Record<TrainingIntent, {
+  sets: number; repLow: number; repHigh: number; rir: number
 }> = {
-  rebuild: { sets: 2, repLow: 8, repHigh: 15, rest: 75, rir: 4 },
-  muscle: { sets: 3, repLow: 8, repHigh: 12, rest: 105, rir: 2 },
-  strength: { sets: 4, repLow: 4, repHigh: 6, rest: 180, rir: 3 },
+  rebuild: { sets: 2, repLow: 8, repHigh: 15, rir: 4 },
+  hypertrophy: { sets: 3, repLow: 8, repHigh: 12, rir: 2 },
+  strength: { sets: 4, repLow: 4, repHigh: 6, rir: 3 },
+  // Work capacity lives in higher reps against a shorter clock.
+  endurance: { sets: 3, repLow: 15, repHigh: 25, rir: 3 },
+  // Quality per rep, so the set ends long before form does.
+  power: { sets: 4, repLow: 3, repHigh: 5, rir: 4 },
+}
+
+function intentOf(intake: GeneratorIntake): TrainingIntent {
+  return intake.intent ?? GOAL_INTENT[intake.goal]
 }
 
 /* Which pillars each session covers. Two sessions a week means both must be
@@ -206,12 +245,18 @@ function score(
   if (rank >= 0) s -= rank * 2
   // Progress needs somewhere for the load to go.
   if (m.loadable) s += intake.goal === 'rebuild' ? 2 : 4
+
   // A small increment means the next session can actually be heavier.
   if (m.minIncrementKg !== null && m.minIncrementKg <= 2.5) s += 2
   // Prefer what suits the goal.
-  if (intake.goal === 'strength' && m.technicalComplexity >= 2 && m.loadable) s += 2
-  if (intake.goal === 'rebuild' && m.technicalComplexity <= 2) s += 3
-  if (intake.goal === 'rebuild' && m.stabilityDemand >= 4) s -= 2
+  const intent = intentOf(intake)
+  if (intent === 'strength' && m.technicalComplexity >= 2 && m.loadable) s += 2
+  if (intent === 'rebuild' && m.technicalComplexity <= 2) s += 3
+  if (intent === 'rebuild' && m.stabilityDemand >= 4) s -= 2
+  // Work capacity wants movements that can be repeated for twenty honest reps,
+  // which rules out the ones limited by balance or by a slow setup.
+  if (intent === 'endurance' && m.stabilityDemand >= 4) s -= 3
+  if (intent === 'power' && !m.ballistic && m.entityType !== 'plyometric') s -= 2
   // Setup time is real time. A ninety-second setup in a twenty-minute session
   // is a quarter of the session spent moving benches.
   s -= (m.setupSeconds / 60) * (minutesLeft < 30 ? 2 : 1)
@@ -227,27 +272,34 @@ function score(
 }
 
 /** Seconds a prescription costs, setup included, so session length is honest. */
-function estimateSeconds(m: Movement, sets: number, repHigh: number, unit: string): number {
-  const workPerSet = unit === 'seconds' ? repHigh
-    : unit === 'minutes' ? repHigh * 60
-      : repHigh * 3.5 // roughly three and a half seconds a rep under control
+function estimateSeconds(
+  m: Movement, sets: number, repHigh: number, unit: string, intent: TrainingIntent,
+): number {
   const perSide = m.unilateral ? 2 : 1
-  const rest = SCHEMES.muscle.rest
-  return m.setupSeconds + sets * (workPerSet * perSide + rest)
+  // A tempo makes the work half of a set exact rather than a guess: three
+  // seconds down plus a pause plus a second up is a number, not an estimate.
+  const workPerSet = unit === 'seconds' ? repHigh * perSide
+    : unit === 'minutes' ? repHigh * 60
+      : setSeconds(m, repHigh, intent)
+  return m.setupSeconds + sets * (workPerSet + restSecondsFor(m, intent))
 }
 
 function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
-  const scheme = SCHEMES[intake.goal]
+  const intent = intentOf(intake)
+  const scheme = SCHEMES[intent]
   const youth = intake.age < 18
   const unit = m.repUnit
 
   let repLow = m.repLow ?? scheme.repLow
   let repHigh = m.repHigh ?? scheme.repHigh
   if (unit === 'reps' && m.loadable) {
-    // The goal sets the rep range, but never outside what the movement supports.
-    repLow = Math.max(scheme.repLow, m.repLow ?? scheme.repLow)
-    repHigh = Math.max(repLow + 2, Math.min(scheme.repHigh, m.repHigh ?? scheme.repHigh))
+    // When the load can be changed, the goal decides the rep range: the ranges
+    // on each movement were authored as sensible defaults, not as ceilings.
+    repLow = scheme.repLow
+    repHigh = scheme.repHigh
   }
+  // When the load cannot be changed the movement's own range wins, because
+  // there is no way to make a push-up heavy enough for a set of five.
   // Under-18s are never given maximal singles, whatever the goal asks for.
   if (youth && m.youthRepFloor !== null && repLow < m.youthRepFloor) {
     repLow = m.youthRepFloor
@@ -266,6 +318,8 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
   }
   if (m.notes) note.push(m.notes)
 
+  const tempo = tempoFor(m, intent)
+  if (tempo) note.unshift(tempo.cue)
   const sets = m.entityType === 'balance_drill' ? 2 : scheme.sets
   return {
     movementId: m.id,
@@ -276,12 +330,53 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     repHigh,
     unit,
     perSide: m.unilateral,
-    restSeconds: unit === 'seconds' ? Math.round(scheme.rest * 0.6) : scheme.rest,
+    restSeconds: restSecondsFor(m, intent),
     incrementKg: m.minIncrementKg,
     repsInReserve: rir,
-    estimatedSeconds: estimateSeconds(m, sets, repHigh, unit),
+    estimatedSeconds: estimateSeconds(m, sets, repHigh, unit, intent),
+    supersetGroup: null,
+    slot: 'main',
+    tempo,
     note: note.join(' '),
   }
+}
+
+/* Which part of the body a pattern taxes, so the generator can tell whether
+ * two movements genuinely compete for recovery or only for the clock. */
+function region(pattern: string): string {
+  if (pattern === 'horizontal_push' || pattern === 'vertical_push') return 'upper_push'
+  if (pattern === 'horizontal_pull' || pattern === 'vertical_pull') return 'upper_pull'
+  if (['squat', 'lunge', 'hip_hinge', 'calf', 'isolation_lower'].includes(pattern)) return 'lower'
+  if (pattern.startsWith('core_')) return 'core'
+  return 'other'
+}
+
+/* Two movements can share a rest interval when they do not tax the same thing
+ * and neither is systemically brutal on its own. */
+function pairable(a: Movement, b: Movement): boolean {
+  if (region(a.pattern) === region(b.pattern)) return false
+  if (a.fatigueCost >= 4 && b.fatigueCost >= 4) return false
+  const aMuscles = new Set([...a.primaryMuscles, ...a.secondaryMuscles])
+  return !b.primaryMuscles.some((muscle) => aMuscles.has(muscle))
+}
+
+const TRANSITION_SECONDS = 15
+
+/**
+ * What a pair costs when alternated. This is the honest way to fit a balanced
+ * session into a short window: the rest is not shortened, it is spent doing the
+ * other movement. Each lift still gets its full interval before it repeats, and
+ * where the partner does not fill that interval the shortfall is waited out.
+ */
+function pairSeconds(a: Prescription, b: Prescription, ma: Movement, mb: Movement,
+  intent: TrainingIntent): number {
+  const sets = Math.max(a.sets, b.sets)
+  const workA = setSeconds(ma, a.repHigh, intent)
+  const workB = setSeconds(mb, b.repHigh, intent)
+  const perRound = workA + workB + TRANSITION_SECONDS * 2
+  const needed = Math.max(a.restSeconds, b.restSeconds)
+  const shortfall = Math.max(0, needed - perRound)
+  return ma.setupSeconds + mb.setupSeconds + sets * (perRound + shortfall)
 }
 
 /**
@@ -303,8 +398,11 @@ export function generateWeek(intake: GeneratorIntake, kitName?: string): Generat
 
   for (const template of TEMPLATES[intake.sessionsPerWeek]) {
     const blocks: Prescription[] = []
-    let secondsLeft = intake.minutesPerSession * 60
+    const chosen: { p: Prescription; m: Movement }[] = []
 
+    // Choose the best movement for each pillar first, without worrying about
+    // the clock. Fitting comes next, and dropping a pattern is the last resort
+    // rather than the first thing time pressure does.
     for (const pillar of template.pillars) {
       const candidates = byPillar.get(pillar) ?? []
       if (candidates.length === 0) {
@@ -318,33 +416,83 @@ export function generateWeek(intake: GeneratorIntake, kitName?: string): Generat
         }
         continue
       }
-
-      const minutesLeft = secondsLeft / 60
       const patterns = TRAINING_PILLARS[pillar] ?? []
       const ranked: Eligible[] = candidates
-        .map((m) => ({ movement: m, score: score(m, intake, usedFamilies, minutesLeft, patterns) }))
+        .map((m) => ({ movement: m, score: score(m, intake, usedFamilies, intake.minutesPerSession, patterns) }))
         .sort((a, b) => b.score - a.score || a.movement.id.localeCompare(b.movement.id))
+      const best = ranked[0].movement
+      if (chosen.some((c) => c.m.family === best.family)) continue
+      chosen.push({ p: prescribe(best, intake), m: best })
+      usedFamilies.add(best.family)
+    }
 
-      // Take the best option that still fits the time that is left.
-      let chosen: Prescription | null = null
-      for (const candidate of ranked) {
-        const p = prescribe(candidate.movement, intake)
-        if (p.estimatedSeconds <= secondsLeft) { chosen = p; break }
-      }
-      // Nothing fits: drop a set from the best option rather than the pattern.
-      if (!chosen && ranked.length > 0) {
-        const p = prescribe(ranked[0].movement, intake)
-        if (p.sets > 1) {
-          const trimmed = { ...p, sets: p.sets - 1 }
-          trimmed.estimatedSeconds = Math.round(p.estimatedSeconds * (trimmed.sets / p.sets))
-          if (trimmed.estimatedSeconds <= secondsLeft) chosen = trimmed
+    let secondsLeft = intake.minutesPerSession * 60
+    const sequential = chosen.reduce((sum, c) => sum + c.p.estimatedSeconds, 0)
+
+    if (sequential <= secondsLeft) {
+      for (const c of chosen) blocks.push(c.p)
+      secondsLeft -= sequential
+    } else {
+      // Too long run back to back. Alternate what does not compete, which buys
+      // the time back without taking a second off anyone's recovery.
+      const remaining = [...chosen]
+      let group = 0
+      while (remaining.length > 0) {
+        const first = remaining.shift()!
+        const partnerIndex = remaining.findIndex((c) => pairable(first.m, c.m))
+        if (partnerIndex === -1) {
+          if (first.p.estimatedSeconds <= secondsLeft) {
+            blocks.push(first.p)
+            secondsLeft -= first.p.estimatedSeconds
+          } else if (first.p.sets > 1) {
+            const trimmed = { ...first.p, sets: first.p.sets - 1 }
+            trimmed.estimatedSeconds = Math.round(
+              first.p.estimatedSeconds * (trimmed.sets / first.p.sets))
+            if (trimmed.estimatedSeconds <= secondsLeft) {
+              blocks.push(trimmed)
+              secondsLeft -= trimmed.estimatedSeconds
+            }
+          }
+          continue
+        }
+        const second = remaining.splice(partnerIndex, 1)[0]
+        const cost = pairSeconds(first.p, second.p, first.m, second.m, intentOf(intake))
+        if (cost <= secondsLeft) {
+          group += 1
+          blocks.push({ ...first.p, supersetGroup: group, estimatedSeconds: Math.round(cost / 2) })
+          blocks.push({ ...second.p, supersetGroup: group, estimatedSeconds: Math.round(cost / 2) })
+          secondsLeft -= cost
+        } else if (first.p.sets > 1) {
+          const sets = first.p.sets - 1
+          const trimmed = Math.round(cost * (sets / first.p.sets))
+          if (trimmed <= secondsLeft) {
+            group += 1
+            blocks.push({ ...first.p, sets, supersetGroup: group, estimatedSeconds: Math.round(trimmed / 2) })
+            blocks.push({ ...second.p, sets, supersetGroup: group, estimatedSeconds: Math.round(trimmed / 2) })
+            secondsLeft -= trimmed
+          }
         }
       }
-      if (!chosen) continue
+    }
 
-      blocks.push(chosen)
-      usedFamilies.add(MOVEMENT_BY_ID.get(chosen.movementId)!.family)
-      secondsLeft -= chosen.estimatedSeconds
+    // Shorter rest and shorter sets can leave real time on the table. Fill it
+    // with accessory work rather than handing back a half-length session or
+    // padding the main lifts past the point where they are still quality.
+    if (secondsLeft > 5 * 60) {
+      const already = new Set(blocks.map((b) => b.movementId))
+      const accessories = eligible
+        .filter((m) => m.role === 'accessory' && !already.has(m.id)
+          && !usedFamilies.has(m.family) && m.repUnit === 'reps')
+        .map((m) => ({ movement: m, score: -m.setupSeconds / 60 - m.fatigueCost * 0.5 }))
+        .sort((a, b) => b.score - a.score || a.movement.id.localeCompare(b.movement.id))
+      for (const candidate of accessories) {
+        if (secondsLeft <= 4 * 60) break
+        const p = prescribe(candidate.movement, intake)
+        if (p.estimatedSeconds > secondsLeft) continue
+        blocks.push({ ...p, slot: 'accessory' })
+        usedFamilies.add(candidate.movement.family)
+        secondsLeft -= p.estimatedSeconds
+      }
     }
 
     sessions.push({
@@ -357,7 +505,7 @@ export function generateWeek(intake: GeneratorIntake, kitName?: string): Generat
     })
   }
 
-  return { sessions, limitations, excluded }
+  return { tempoRationale: tempoRationale(intentOf(intake)), sessions, limitations, excluded }
 }
 
 /** Patterns the finished week actually trains, for checking it against itself. */

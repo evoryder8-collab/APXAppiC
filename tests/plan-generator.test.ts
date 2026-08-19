@@ -8,6 +8,7 @@ import {
   type GeneratorIntake,
 } from '../src/lib/planGenerator.ts'
 import { MOVEMENT_BY_ID, MOVEMENTS } from '../src/data/movements.ts'
+import { restSecondsFor } from '../src/lib/liftingTempo.ts'
 import type { TrainingGoal, TrainingPainArea } from '../src/lib/types.ts'
 
 const KITS: Record<string, string[]> = {
@@ -152,10 +153,43 @@ test('what cannot be failed alone is prescribed further from failure', () => {
 
 test('the main slots get primary movements, not accessories', () => {
   const week = generateWeek(intake({ equipment: KITS.commercial_gym }), 'commercial_gym')
-  const accessories = week.sessions.flatMap((s) => s.blocks)
-    .filter((b) => MOVEMENT_BY_ID.get(b.movementId)!.role === 'accessory')
-  assert.equal(accessories.length, 0,
-    `accessories filled main slots: ${accessories.map((b) => b.movementId).join(', ')}`)
+  const wrong = week.sessions.flatMap((s) => s.blocks)
+    .filter((b) => b.slot === 'main' && MOVEMENT_BY_ID.get(b.movementId)!.role === 'accessory')
+  assert.equal(wrong.length, 0,
+    `accessories filled main slots: ${wrong.map((b) => b.movementId).join(', ')}`)
+  // Accessory work is welcome, but only after the pillars are covered.
+  for (const session of week.sessions) {
+    const firstAccessory = session.blocks.findIndex((b) => b.slot === 'accessory')
+    if (firstAccessory === -1) continue
+    assert.ok(session.blocks.slice(firstAccessory).every((b) => b.slot === 'accessory'),
+      'accessory work is interleaved with the main lifts instead of following them')
+  }
+})
+
+test('a superset alternates movements that do not compete for recovery', () => {
+  const week = generateWeek(intake({ minutesPerSession: 20 }), 'home_gym')
+  for (const session of week.sessions) {
+    const groups = new Map<number, typeof session.blocks>()
+    for (const block of session.blocks) {
+      if (block.supersetGroup === null) continue
+      const list = groups.get(block.supersetGroup) ?? []
+      list.push(block)
+      groups.set(block.supersetGroup, list)
+    }
+    for (const [group, blocks] of groups) {
+      assert.equal(blocks.length, 2, `superset ${group} is not a pair`)
+      const [a, b] = blocks.map((x) => MOVEMENT_BY_ID.get(x.movementId)!)
+      const shared = a.primaryMuscles.filter((muscle) => b.primaryMuscles.includes(muscle))
+      assert.equal(shared.length, 0,
+        `${a.id} and ${b.id} are paired but both work ${shared.join(', ')}`)
+      // Pairing buys time by using the rest, never by cutting it.
+      for (const block of blocks) {
+        const m = MOVEMENT_BY_ID.get(block.movementId)!
+        assert.equal(block.restSeconds, restSecondsFor(m, 'hypertrophy'),
+          `${m.id} had its rest cut to fit rather than filled by its partner`)
+      }
+    }
+  }
 })
 
 test('a kit that cannot fill a pattern says so rather than going quiet', () => {

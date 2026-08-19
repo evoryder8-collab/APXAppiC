@@ -1844,6 +1844,60 @@ def available(x, owned):
     return all(owned & set(g) for g in x["equip_any"])
 
 
+# ----------------------------------------------------------- PEAK TENSION
+#
+# Where along the range the movement actually loads the muscle hardest. This is
+# the property that makes a pause mean something, and it is genuinely per
+# movement rather than a universal cue.
+#
+# The popular instruction is "squeeze hard at the top". For a hip thrust that is
+# correct: peak hip-extension torque occurs at lockout, so the top is where the
+# glutes are working hardest. For a squat, a row or a pull-up the top is the
+# rest position and a pause there loads nothing at all. The current evidence
+# (Maeo 2021, Pedrosa 2022, Kassiano 2023) points the other way for most
+# movements: training at long muscle lengths drives more hypertrophy, so the
+# pause that earns its place is usually the one in the stretched position.
+#
+# So the rule is "pause where the movement loads the muscle", and the library
+# has to record where that is.
+
+_PEAK_SHORTENED = {
+    # Hip extension against a horizontal load: hardest at lockout.
+    "hip_thrust_barbell", "hip_thrust_dumbbell", "machine_hip_thrust",
+    "hip_thrust_smith", "b_stance_hip_thrust", "glute_bridge",
+    "single_leg_glute_bridge", "frog_pump", "bridge_pose", "cable_kickback",
+    "cable_pull_through", "back_extension", "back_extension_machine",
+    # Abduction and adduction load hardest away from neutral.
+    "hip_abduction", "hip_adduction",
+    # Raises and rear-delt work: the lever is longest near the top.
+    "lateral_raise", "cable_lateral_raise", "band_lateral_raise",
+    "machine_lateral_raise", "front_raise", "band_pull_apart", "face_pull",
+    "band_face_pull", "reverse_pec_deck", "leg_extension", "shrug",
+    "svend_press", "prone_floor_row",
+}
+# Constant-tension cable and band work, and elbow flexion, peak around mid range.
+_PEAK_MID = {
+    "dumbbell_curl", "hammer_curl", "cable_curl", "band_curl",
+    "preacher_curl_machine", "triceps_pushdown", "cable_row",
+    "single_arm_cable_row", "band_row", "band_bent_over_row", "cable_fly",
+    "pec_deck", "straight_arm_pulldown", "pallof_press", "cable_chop",
+    "cable_lift", "upright_row", "wrist_roller", "band_lateral_raise",
+}
+
+for _x in M:
+    if _x["id"] in _PEAK_SHORTENED:
+        _x["peak_tension"] = "shortened"
+    elif _x["id"] in _PEAK_MID:
+        _x["peak_tension"] = "mid"
+    elif _x["etype"] in ("resistance_isometric", "balance_drill", "skill_drill",
+                         "mobility_drill", "yoga_pose", "movement_sequence",
+                         "breathing_recovery"):
+        _x["peak_tension"] = "held"
+    else:
+        # Most compound movements load hardest in the stretched position, which
+        # is also where the hypertrophy evidence is strongest.
+        _x["peak_tension"] = "lengthened"
+
 # ------------------------------------------------------------------- ROLES
 #
 # A dumbbell pullover is filed under vertical pull because that is the plane it
@@ -2037,6 +2091,18 @@ def _derive_safety(x):
 DERIVATION_DIFFS = []
 for _x in M:
     _derive_safety(_x)
+
+# Whether a prescribed tempo is meaningful at all. A depth jump lives or dies on
+# a short ground contact, an Olympic lift is caught rather than lowered, and a
+# plank has no rep to time. Putting a "3-1-1" on any of them would be worse than
+# saying nothing. This has to run after the safety pass, which is what decides
+# whether a movement is ballistic.
+for _x in M:
+    _x["tempo_applies"] = (
+        _x["etype"] == "resistance_dynamic"
+        and not _x["ballistic"]
+        and _x["rep_unit"] == "reps"
+    )
 
 
 # Cardio names already used in authored programmes, resolved to the modality and
@@ -2343,7 +2409,8 @@ def emit():
                 str(m["adult_auto"]).lower(), str(m["coached_only"]).lower(),
                 str(m["youth_rep_floor"]) if m["youth_rep_floor"] is not None else "null",
                 jsonb(m["implementations"]), arr(m["sequence"]),
-                q(m["space"]), q(m["role"]),
+                q(m["space"]), q(m["role"]), q(m["peak_tension"]),
+                str(m["tempo_applies"]).lower(),
             ]) + ")"
         )
 
@@ -2387,7 +2454,7 @@ insert into public.movement_library (
   impact_level, is_overhead, is_axial_load, requires_bail_skill, prerequisites,
   family, variant, review_status, youth_auto_assignable, adult_auto_assignable,
   coached_only, youth_rep_floor, implementations, sequence_steps,
-  space_requirement, role
+  space_requirement, role, peak_tension, tempo_applies
 ) values
 {joined_rows}
 on conflict (id) do update set
@@ -2427,6 +2494,7 @@ on conflict (id) do update set
   implementations = excluded.implementations,
   sequence_steps = excluded.sequence_steps,
   space_requirement = excluded.space_requirement, role = excluded.role,
+  peak_tension = excluded.peak_tension, tempo_applies = excluded.tempo_applies,
   updated_at = now();
 
 insert into public.movement_aliases (alias, movement_id) values
@@ -2544,6 +2612,12 @@ def emit_ts():
         "  /* Primary fills a session's main slots; accessory is what you add",
         "   * when there is time left over. */",
         "  role: 'primary' | 'accessory'",
+        "  /* Where along the range the movement actually loads the muscle",
+        "   * hardest, which is what decides whether a pause means anything. */",
+        "  peakTension: 'lengthened' | 'mid' | 'shortened' | 'held'",
+        "  /* False where a prescribed tempo would be meaningless or harmful:",
+        "   * plyometrics, ballistic lifts, isometrics, breath-paced work. */",
+        "  tempoApplies: boolean",
         "  reviewStatus: string",
         "}",
         "",
@@ -2583,7 +2657,8 @@ def emit_ts():
         lines.append(f"    youthAutoAssignable: {jb(m['youth_auto'])}, adultAutoAssignable: {jb(m['adult_auto'])},")
         lines.append(f"    coachedOnly: {jb(m['coached_only'])}, youthRepFloor: {m['youth_rep_floor'] if m['youth_rep_floor'] is not None else 'null'},")
         lines.append(f"    spaceRequirement: {js(m['space'])}, reviewStatus: {js(m['review'])},")
-        lines.append(f"    role: {js(m['role'])},")
+        lines.append(f"    role: {js(m['role'])}, peakTension: {js(m['peak_tension'])},")
+        lines.append(f"    tempoApplies: {jb(m['tempo_applies'])},")
         lines.append("  },")
     lines.append("]")
     lines.append("")
