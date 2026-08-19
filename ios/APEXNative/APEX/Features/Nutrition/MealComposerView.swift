@@ -61,6 +61,19 @@ struct MealComposerView: View {
     @State private var guideDraft: [String] = []
     @State private var guideQuery: MealProtocolGuide.Query?
 
+    /* Food Memory scores history against the block and clock this meal sits in,
+       so a 07:00 breakfast start is not ranked by a 22:00 one. */
+    private var memoryBlockID: String? {
+        request.existingMeal.flatMap(MealMemory.markedBlock)
+    }
+
+    private var memoryTargetTime: String {
+        let formatter = DateFormatter()
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "HH:mm"
+        return formatter.string(from: draft.finishedAt)
+    }
+
     init(request: MealComposerRequest) {
         self.request = request
         let finished = request.existingMeal.flatMap { Self.parseTimestamp($0.loggedAt) }
@@ -146,13 +159,26 @@ struct MealComposerView: View {
                 saveBar
             }
             .sheet(item: $guideQuery) { query in
-                MealFoodPicker(date: request.date, initialQuery: query.search) { food, amount, unit in
+                MealFoodPicker(
+                    date: request.date,
+                    initialQuery: query.search,
+                    slot: draft.mealSlot,
+                    blockID: memoryBlockID,
+                    targetTime: memoryTargetTime,
+                    excludeMealID: draft.replaceMealID
+                ) { food, amount, unit in
                     add(food, amount: amount, unit: unit)
                 }
                 .environment(session)
             }
             .sheet(isPresented: $showFoodPicker) {
-                MealFoodPicker(date: request.date) { food, amount, unit in
+                MealFoodPicker(
+                    date: request.date,
+                    slot: draft.mealSlot,
+                    blockID: memoryBlockID,
+                    targetTime: memoryTargetTime,
+                    excludeMealID: draft.replaceMealID
+                ) { food, amount, unit in
                     add(food, amount: amount, unit: unit)
                 }
                 .presentationDetents([.large])
@@ -917,6 +943,11 @@ private struct MealFoodPicker: View {
     let date: Date
     /// Opens already searching, when a guide line said what to look for.
     var initialQuery: String = ""
+    /* Food Memory ranks against the meal being built, not the whole day. */
+    var slot: String = "lunch"
+    var blockID: String?
+    var targetTime: String?
+    var excludeMealID: UUID?
     let onAdd: (Food, Double, String) -> Void
 
     @State private var query = ""
@@ -929,24 +960,77 @@ private struct MealFoodPicker: View {
     @State private var configuring: Food?
     @State private var burstCounts: [String: Int] = [:]
 
-    private var displayedFoods: [Food] {
-        let source = remoteResults.isEmpty ? session.data.foods : remoteResults
-        let filtered = query.isEmpty || remoteResults.isEmpty == false ? source : source.filter {
-            $0.name.localizedCaseInsensitiveContains(query)
-                || ($0.brand?.localizedCaseInsensitiveContains(query) ?? false)
-        }
+    private var memoryMode: MealMemory.Mode {
+        MealMemory.normalizeMode(session.data.settings?.addons["meal_memory_mode"])
+    }
+
+    /* Repeatable starts for this slot, ranked out of logged history: recency,
+       same weekday, matching block, time of day and how often it repeats. */
+    private var history: MealMemory.Recommendations {
+        MealMemory.rank(
+            context: MealMemory.Context(
+                date: APEXDateMath.key(from: date),
+                slot: slot,
+                mode: memoryMode,
+                blockID: blockID,
+                targetTime: targetTime,
+                excludeMealID: excludeMealID
+            ),
+            meals: session.data.loggedMeals,
+            entries: session.data.loggedFoodEntries,
+            foods: session.data.foods,
+            presets: session.data.mealPresets,
+            foodLimit: 12
+        )
+    }
+
+    private func displayedFoods(_ history: MealMemory.Recommendations) -> [Food] {
         let prefs = Dictionary(uniqueKeysWithValues: session.data.foodPreferences.map { ($0.foodID.uuidString.lowercased(), $0) })
-        return filtered.filter { prefs[$0.id.lowercased()]?.hidden != true }.sorted { lhs, rhs in
-            let left = prefs[lhs.id.lowercased()]
-            let right = prefs[rhs.id.lowercased()]
-            if (left?.favourite ?? false) != (right?.favourite ?? false) { return left?.favourite == true }
-            if (left?.usageCount ?? 0) != (right?.usageCount ?? 0) { return (left?.usageCount ?? 0) > (right?.usageCount ?? 0) }
-            return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+        func visible(_ foods: [Food]) -> [Food] {
+            foods.filter { prefs[$0.id.lowercased()]?.hidden != true }
         }
+        if remoteResults.isEmpty == false { return visible(remoteResults) }
+        let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty == false {
+            return visible(session.data.foods.filter {
+                $0.name.localizedCaseInsensitiveContains(trimmed)
+                    || ($0.brand?.localizedCaseInsensitiveContains(trimmed) ?? false)
+            })
+        }
+        let ranked = visible(history.foods)
+        /* Weekly memory means "what I eat on this weekday", so a populated
+           history is not diluted by generally-used foods. */
+        let backfill = memoryMode == .weekly && ranked.isEmpty == false
+            ? []
+            : visible(session.data.foods).filter { food in
+                let preference = prefs[food.id.lowercased()]
+                return preference?.favourite == true || (preference?.usageCount ?? 0) > 0
+            }.sorted { lhs, rhs in
+                let left = prefs[lhs.id.lowercased()]
+                let right = prefs[rhs.id.lowercased()]
+                if (left?.favourite ?? false) != (right?.favourite ?? false) { return left?.favourite == true }
+                if (left?.usageCount ?? 0) != (right?.usageCount ?? 0) { return (left?.usageCount ?? 0) > (right?.usageCount ?? 0) }
+                return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
+            }
+        var seen: Set<String> = []
+        let memory = (ranked + backfill).filter { seen.insert($0.id.lowercased()).inserted }
+        /* A brand-new account has no history to rank, so the catalogue stays
+           browsable instead of showing an empty list before the first search. */
+        if memory.isEmpty {
+            return visible(session.data.foods)
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+        }
+        return memory
     }
 
     var body: some View {
-        NavigationStack {
+        /* Rank once per render; every row reads the same remembered amounts. */
+        let history = self.history
+        let remembered: [String: MealMemory.Selection] = Dictionary(
+            history.selections.map { ($0.foodID.lowercased(), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        return NavigationStack {
             ScrollView {
                 LazyVStack(spacing: 10) {
                     HStack(spacing: 10) {
@@ -971,7 +1055,7 @@ private struct MealFoodPicker: View {
                             .background(APEXColor.amber.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
                     }
 
-                    ForEach(displayedFoods) { food in
+                    ForEach(displayedFoods(history)) { food in
                         HStack(spacing: 12) {
                             /* Tapping the food opens the amount configurator,
                                matching the web composer. Only + quick-adds. */
@@ -981,7 +1065,7 @@ private struct MealFoodPicker: View {
                                         .font(APEXFont.body(15, weight: .bold))
                                         .foregroundStyle(APEXColor.ink)
                                         .lineLimit(1)
-                                    Text(foodSubtitle(food))
+                                    Text(foodSubtitle(food, remembered: remembered[food.id.lowercased()]))
                                         .font(APEXFont.body(10, weight: .medium))
                                         .foregroundStyle(APEXColor.secondaryInk)
                                 }
@@ -991,7 +1075,7 @@ private struct MealFoodPicker: View {
                             .accessibilityIdentifier("food-row-\(food.id)")
                             .accessibilityHint(language.text("Configure amount"))
 
-                            Button { quickAdd(food) } label: {
+                            Button { quickAdd(food, remembered: remembered[food.id.lowercased()]) } label: {
                                 ZStack {
                                     Image(systemName: "plus")
                                         .font(.system(size: 18, weight: .bold))
@@ -1036,6 +1120,7 @@ private struct MealFoodPicker: View {
                 FoodAmountSheet(
                     food: food,
                     preference: preference(for: food),
+                    remembered: remembered[food.id.lowercased()],
                     onClose: { configuring = nil }
                 ) { amount, unit in
                     onAdd(food, amount, unit)
@@ -1053,18 +1138,44 @@ private struct MealFoodPicker: View {
     /* + adds the remembered portion straight away. The default now comes
        from the same beginFoodSelection rules the web uses, so the quantity
        shown in the configurator and the quantity + adds are the same. */
-    private func quickAdd(_ food: Food) {
-        let start = FoodPortionMath.defaultSelection(food, preference: preference(for: food))
+    private func quickAdd(_ food: Food, remembered: MealMemory.Selection?) {
+        let start = FoodPortionMath.defaultSelection(food, preference: preference(for: food), remembered: remembered)
         onAdd(food, start.quantity, start.unit.rawValue)
         burstCounts[food.id, default: 0] += 1
         UINotificationFeedbackGenerator().notificationOccurred(.success)
     }
 
-    private func foodSubtitle(_ food: Food) -> String {
-        [food.brand, language.format("%d kcal / 100", Int((food.kcal100 ?? 0).rounded()))]
-            .compactMap { $0 }
-            .filter { !$0.isEmpty }
-            .joined(separator: " · ")
+    /* The row states the amount the + button will actually log: the grams this
+       food was last confirmed at, not an abstract per-100 figure. */
+    private func foodSubtitle(_ food: Food, remembered: MealMemory.Selection?) -> String {
+        let preference = preference(for: food)
+        let start = FoodPortionMath.defaultSelection(food, preference: preference, remembered: remembered)
+        let usedBefore = (preference?.usageCount ?? 0) > 0
+            && preference?.usualAmount != nil
+            && preference?.usualUnit != nil
+        let saved = remembered != nil || usedBefore
+        let lead = language.text(saved ? "Last used" : "Suggested portion")
+        var parts = [lead + " · " + describeAmount(food, start.quantity, start.unit)]
+        if let portion = FoodPortionMath.portion(food, quantity: start.quantity, unit: start.unit) {
+            parts.append(language.format("%d kcal", Int(portion.kcal.rounded())))
+        }
+        if let brand = food.brand, !brand.isEmpty { parts.append(brand) }
+        return parts.joined(separator: " · ")
+    }
+
+    private func describeAmount(_ food: Food, _ quantity: Double, _ unit: FoodUnitKind) -> String {
+        let rounded = (quantity * 10).rounded() / 10
+        let number = rounded == rounded.rounded() ? String(Int(rounded)) : String(rounded)
+        switch unit {
+        case .serving, .piece:
+            let equivalent = FoodPortionMath.equivalentAmount(food, quantity: quantity, unit: unit)
+            let basis = food.nutritionBasis == "per_100ml" ? "ml" : "g"
+            let label = language.text(unit == .piece ? "piece" : "serving")
+            guard let equivalent else { return "\(number) × \(label)" }
+            return "\(number) × \(label) · \(Int(equivalent.rounded())) \(basis)"
+        default:
+            return "\(number) \(unit.rawValue)"
+        }
     }
 
     @MainActor

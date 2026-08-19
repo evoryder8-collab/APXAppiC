@@ -1,0 +1,307 @@
+import Foundation
+
+/* Port of src/lib/mealExperience.ts — the Food Memory ranking. Repeatable
+   starts are read out of immutable logged history rather than the mutable
+   preference table, so the amount a food opens with is the amount that food
+   was last confirmed at, on any device, even when preferences never synced. */
+enum MealMemory {
+    enum Mode: String, Sendable {
+        case daily
+        case weekly
+    }
+
+    /// Anything that is not the literal 'weekly' string stays on daily, matching the web.
+    static func normalizeMode(_ value: JSONValue?) -> Mode {
+        if case .string(let raw) = value, raw == "weekly" { return .weekly }
+        return .daily
+    }
+
+    struct Selection: Hashable, Sendable {
+        let foodID: String
+        let quantity: Double
+        let unit: String
+    }
+
+    struct Context: Sendable {
+        var date: String
+        var slot: String
+        var mode: Mode = .daily
+        var blockID: String?
+        var targetTime: String?
+        var sequenceIndex: Int?
+        var excludeMealID: UUID?
+
+        init(
+            date: String,
+            slot: String,
+            mode: Mode = .daily,
+            blockID: String? = nil,
+            targetTime: String? = nil,
+            sequenceIndex: Int? = nil,
+            excludeMealID: UUID? = nil
+        ) {
+            self.date = date
+            self.slot = slot
+            self.mode = mode
+            self.blockID = blockID
+            self.targetTime = targetTime
+            self.sequenceIndex = sequenceIndex
+            self.excludeMealID = excludeMealID
+        }
+    }
+
+    struct Recommendations: Sendable {
+        var meals: [LoggedMeal] = []
+        var foods: [Food] = []
+        var selections: [Selection] = []
+        var presets: [MealPreset] = []
+
+        /// Last confirmed amount for a food, or nil when history has never seen it.
+        func selection(for foodID: String) -> Selection? {
+            selections.first { $0.foodID == foodID }
+        }
+    }
+
+    // MARK: - Date and clock helpers
+
+    private static func dateMs(_ value: String) -> Double {
+        guard let date = APEXDateMath.date(from: value) else { return 0 }
+        return date.timeIntervalSince1970 * 1000
+    }
+
+    /// Sunday = 0, matching the web's getUTCDay so both sides bucket alike.
+    private static func weekday(_ value: String) -> Int {
+        guard let date = APEXDateMath.date(from: value) else { return 0 }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "UTC") ?? .gmt
+        return calendar.component(.weekday, from: date) - 1
+    }
+
+    private static func clockMinutes(_ value: String?) -> Int? {
+        guard let value, value.count >= 5 else { return nil }
+        let characters = Array(value)
+        guard characters[2] == ":" else { return nil }
+        guard let hours = Int(String(characters[0...1])), let minutes = Int(String(characters[3...4])) else { return nil }
+        return hours * 60 + minutes
+    }
+
+    private static func mealClock(_ meal: LoggedMeal) -> String? {
+        guard let marker = meal.loggedAt.firstIndex(of: "T") else { return nil }
+        let after = meal.loggedAt[meal.loggedAt.index(after: marker)...]
+        guard after.count >= 5 else { return nil }
+        return String(after.prefix(5))
+    }
+
+    /// The dayline block a meal was logged into, recovered from its idempotency key.
+    static func markedBlock(_ meal: LoggedMeal) -> String? {
+        let token = "apex-meal-block="
+        guard let marker = meal.clientIdempotencyKey.range(of: token, options: .backwards) else { return nil }
+        let value = meal.clientIdempotencyKey[marker.upperBound...].split(separator: "|", maxSplits: 1).first
+        guard let value, !value.isEmpty else { return nil }
+        return String(value)
+    }
+
+    /// Position of a meal within its own day, so "the second thing I eat" repeats.
+    private static func sequenceIndexes(_ meals: [LoggedMeal]) -> [UUID: Int] {
+        var byDate: [String: [LoggedMeal]] = [:]
+        for meal in meals { byDate[meal.localDate, default: []].append(meal) }
+        var result: [UUID: Int] = [:]
+        for dayMeals in byDate.values {
+            let ordered = dayMeals.sorted {
+                $0.loggedAt == $1.loggedAt
+                    ? $0.id.uuidString.lowercased() < $1.id.uuidString.lowercased()
+                    : $0.loggedAt < $1.loggedAt
+            }
+            for (index, meal) in ordered.enumerated() { result[meal.id] = index }
+        }
+        return result
+    }
+
+    private static func recommendationIdentity(_ meal: LoggedMeal) -> String {
+        if let preset = meal.sourcePresetID { return "preset:\(preset.uuidString.lowercased())" }
+        let name = meal.displayName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased()
+        return "meal:\(meal.mealSlot):\(name)"
+    }
+
+    /// Rebuild a catalogue row from its meal snapshot, so history stays usable
+    /// after a catalogue release drops or renames the original food.
+    static func food(from entry: LoggedFoodEntry) -> Food {
+        let signature = [
+            entry.snapshotName,
+            entry.snapshotBrand ?? "",
+            entry.snapshotPreparationState,
+            entry.snapshotNutritionBasis,
+            String(entry.snapshotKcal100),
+            String(entry.snapshotProtein100),
+            String(entry.snapshotCarbs100),
+            String(entry.snapshotFat100),
+        ].joined(separator: "|")
+        let divisor = max(1, entry.quantity)
+        return Food(
+            id: entry.foodID?.uuidString.lowercased() ?? "history:\(signature)",
+            ownerUserID: nil,
+            name: entry.snapshotName,
+            namesI18n: [:],
+            brand: entry.snapshotBrand,
+            barcode: nil,
+            source: "apex_cache",
+            providerProductID: "apex-protocol:history:\(signature)",
+            externalImageURL: nil,
+            packageQuantity: nil,
+            nutritionBasis: entry.snapshotNutritionBasis,
+            preparationState: entry.snapshotPreparationState,
+            kcal100: entry.snapshotKcal100,
+            protein100: entry.snapshotProtein100,
+            carbs100: entry.snapshotCarbs100,
+            fat100: entry.snapshotFat100,
+            fibre100: entry.snapshotFibre100,
+            sugar100: entry.snapshotSugar100,
+            saturatedFat100: entry.snapshotSaturatedFat100,
+            salt100: entry.snapshotSalt100,
+            waterML100: entry.snapshotWaterML100,
+            servingAmount: entry.unit == "serving" ? 1 : nil,
+            servingUnit: entry.unit == "serving" ? "serving" : nil,
+            servingGramsOrML: entry.unit == "serving" ? entry.equivalentAmount / divisor : nil,
+            pieceGramsOrML: entry.unit == "piece" ? entry.equivalentAmount / divisor : nil,
+            confidence: "complete"
+        )
+    }
+
+    // MARK: - Ranking
+
+    static func rank(
+        context: Context,
+        meals: [LoggedMeal],
+        entries: [LoggedFoodEntry],
+        foods: [Food],
+        presets: [MealPreset] = [],
+        mealLimit: Int = 5,
+        foodLimit: Int = 10,
+        presetLimit: Int = 5
+    ) -> Recommendations {
+        let targetMs = dateMs(context.date)
+        let targetWeekday = weekday(context.date)
+        let targetMinutes = clockMinutes(context.targetTime)
+        var foodByID: [String: Food] = [:]
+        for food in foods { foodByID[food.id.lowercased()] = food }
+        var entriesByMeal: [UUID: [LoggedFoodEntry]] = [:]
+        for entry in entries { entriesByMeal[entry.mealID, default: []].append(entry) }
+
+        /* Planned prescriptions are written into history as meals so the dayline
+           can show them, but they were never a choice the user made. */
+        func isSyntheticPlannedMeal(_ meal: LoggedMeal) -> Bool {
+            (entriesByMeal[meal.id] ?? []).contains { entry in
+                if entry.snapshotBrand == "APEX plan" { return true }
+                if entry.snapshotName.lowercased().contains("planned prescription") { return true }
+                guard let foodID = entry.foodID?.uuidString.lowercased(),
+                      let provider = foodByID[foodID]?.providerProductID else { return false }
+                return provider.hasPrefix("apex-plan:")
+            }
+        }
+
+        let eligibleSlotMeals = meals.filter { meal in
+            meal.id != context.excludeMealID
+                && meal.localDate <= context.date
+                && meal.mealSlot == context.slot
+                && !isSyntheticPlannedMeal(meal)
+        }
+        let sameWeekdayMeals = eligibleSlotMeals.filter { weekday($0.localDate) == targetWeekday }
+        /* Weekly memory stays strict when matching history exists, but a new
+           user still receives useful recent starts instead of an empty list. */
+        let candidateMeals = context.mode == .weekly && !sameWeekdayMeals.isEmpty
+            ? sameWeekdayMeals
+            : eligibleSlotMeals
+        let indexes = sequenceIndexes(candidateMeals)
+        var frequencyByIdentity: [String: Int] = [:]
+        var weekdayFrequencyByIdentity: [String: Int] = [:]
+        for meal in candidateMeals {
+            let identity = recommendationIdentity(meal)
+            frequencyByIdentity[identity, default: 0] += 1
+            if weekday(meal.localDate) == targetWeekday {
+                weekdayFrequencyByIdentity[identity, default: 0] += 1
+            }
+        }
+
+        var scoreByMeal: [UUID: Double] = [:]
+        for meal in candidateMeals {
+            let ageDays = max(0, ((targetMs - dateMs(meal.localDate)) / 86_400_000).rounded())
+            var score = max(0, 260 - ageDays * 3)
+            score += 260
+            if let blockID = context.blockID, markedBlock(meal) == blockID { score += 320 }
+            if weekday(meal.localDate) == targetWeekday { score += 90 }
+            if let sequence = context.sequenceIndex, indexes[meal.id] == sequence { score += 120 }
+            if let targetMinutes, let loggedMinutes = clockMinutes(mealClock(meal)) {
+                let raw = abs(loggedMinutes - targetMinutes)
+                let delta = min(raw, 1440 - raw)
+                score += max(0, 130 - Double(delta) / 2)
+            }
+            if meal.sourcePresetID != nil { score += 35 }
+            let identity = recommendationIdentity(meal)
+            score += min(560, Double(max(0, (frequencyByIdentity[identity] ?? 1) - 1)) * 80)
+            score += min(180, Double(max(0, (weekdayFrequencyByIdentity[identity] ?? 0) - 1)) * 45)
+            scoreByMeal[meal.id] = score
+        }
+
+        let rankedMeals = candidateMeals.sorted { left, right in
+            let leftScore = scoreByMeal[left.id] ?? 0
+            let rightScore = scoreByMeal[right.id] ?? 0
+            if leftScore != rightScore { return leftScore > rightScore }
+            if left.localDate != right.localDate { return left.localDate > right.localDate }
+            return left.loggedAt > right.loggedAt
+        }
+
+        var foodScores: [String: Double] = [:]
+        /* First-seen order breaks score ties exactly as the web's insertion-ordered
+           Map does, so both platforms rank identical history identically. */
+        var foodOrder: [String: Int] = [:]
+        var recommendationFoods: [String: Food] = [:]
+        var latestSelectionByFood: [String: (selection: Selection, usedAt: String)] = [:]
+        var presetScores: [UUID: Double] = [:]
+        /* Eighty high-signal meals cover months of repetition without turning a
+           blank-search render into a quadratic scan of a full history. */
+        for meal in rankedMeals.prefix(80) {
+            let mealScore = scoreByMeal[meal.id] ?? 0
+            if let preset = meal.sourcePresetID { presetScores[preset, default: 0] += mealScore }
+            for entry in entriesByMeal[meal.id] ?? [] {
+                let food = entry.foodID.flatMap { foodByID[$0.uuidString.lowercased()] } ?? Self.food(from: entry)
+                let foodID = food.id
+                recommendationFoods[foodID] = food
+                if foodOrder[foodID] == nil { foodOrder[foodID] = foodOrder.count }
+                foodScores[foodID, default: 0] += mealScore + 45
+                let usedAt = meal.loggedAt.isEmpty ? meal.localDate : meal.loggedAt
+                if let previous = latestSelectionByFood[foodID], usedAt <= previous.usedAt { continue }
+                latestSelectionByFood[foodID] = (
+                    Selection(foodID: foodID, quantity: entry.quantity, unit: entry.unit),
+                    usedAt
+                )
+            }
+        }
+
+        var uniqueMeals: [LoggedMeal] = []
+        var seenMealStarts: Set<String> = []
+        for meal in rankedMeals where seenMealStarts.insert(recommendationIdentity(meal)).inserted {
+            uniqueMeals.append(meal)
+        }
+
+        let rankedFoodIDs = foodScores
+            .sorted {
+                $0.value == $1.value
+                    ? (foodOrder[$0.key] ?? 0) < (foodOrder[$1.key] ?? 0)
+                    : $0.value > $1.value
+            }
+            .map(\.key)
+            .prefix(foodLimit)
+
+        return Recommendations(
+            meals: Array(uniqueMeals.prefix(mealLimit)),
+            foods: rankedFoodIDs.compactMap { recommendationFoods[$0] ?? foodByID[$0.lowercased()] },
+            selections: rankedFoodIDs.compactMap { latestSelectionByFood[$0]?.selection },
+            presets: Array(
+                presets
+                    .filter { !$0.archived && ($0.mealSlot == context.slot || presetScores[$0.id] != nil) }
+                    .sorted { (presetScores[$0.id] ?? 0) > (presetScores[$1.id] ?? 0) }
+                    .prefix(presetLimit)
+            )
+        )
+    }
+}

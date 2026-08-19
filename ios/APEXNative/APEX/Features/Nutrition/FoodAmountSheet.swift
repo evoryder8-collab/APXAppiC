@@ -74,11 +74,19 @@ enum FoodPortionMath {
     }
 
     /* Parity: beginFoodSelection defaults */
+    /* Parity: beginFoodSelection. The amount confirmed in history wins over the
+       preference row, so a food reopens at the grams it was last logged at even
+       when preferences never reached this device. */
     static func defaultSelection(
         _ food: Food,
-        preference: FoodPreference?
+        preference: FoodPreference?,
+        remembered: MealMemory.Selection? = nil
     ) -> (quantity: Double, unit: FoodUnitKind) {
         let units = availableUnits(food)
+        if let remembered, remembered.quantity > 0,
+           let unit = FoodUnitKind(rawValue: remembered.unit), units.contains(unit) {
+            return (remembered.quantity, unit)
+        }
         if let amount = preference?.usualAmount, amount > 0,
            let rawUnit = preference?.usualUnit,
            let unit = FoodUnitKind(rawValue: rawUnit), units.contains(unit) {
@@ -109,6 +117,8 @@ struct FoodAmountSheet: View {
 
     let food: Food
     let preference: FoodPreference?
+    /// Last amount this food was confirmed at, read from logged history.
+    var remembered: MealMemory.Selection?
     var onClose: () -> Void = {}
     let onConfirm: (Double, String) -> Void
 
@@ -133,7 +143,7 @@ struct FoodAmountSheet: View {
             actions
         }
         .onAppear {
-            let start = FoodPortionMath.defaultSelection(food, preference: preference)
+            let start = FoodPortionMath.defaultSelection(food, preference: preference, remembered: remembered)
             quantity = start.quantity
             unit = start.unit
             quantityText = formatted(start.quantity)

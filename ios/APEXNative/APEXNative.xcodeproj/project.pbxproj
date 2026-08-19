@@ -59,6 +59,7 @@
 		5179CE96D30A5E7676A5D37C /* AppSession.swift in Sources */ = {isa = PBXBuildFile; fileRef = 60170C01AE471FFE7A710F8E /* AppSession.swift */; };
 		5196E4E94B9FEB846353E19F /* APEXWatch.app in Embed Watch Content */ = {isa = PBXBuildFile; fileRef = 19CCE3BAA0DACC16E351652C /* APEXWatch.app */; settings = {ATTRIBUTES = (RemoveHeadersOnCopy, ); }; };
 		52CF4E5E604428674E9C3985 /* PrivacyInfo.xcprivacy in Resources */ = {isa = PBXBuildFile; fileRef = 2BEE1685C3BD78ADAB767C5C /* PrivacyInfo.xcprivacy */; };
+		54C057DC8588F6B62D0E81E5 /* meal-memory-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = AEA7213F1AC11A72D5A5743F /* meal-memory-parity.json */; };
 		56B1F6FAA6E101011A01133E /* constantine.png in Resources */ = {isa = PBXBuildFile; fileRef = 116EADF08A0352441607F57F /* constantine.png */; };
 		5B5477F674796C1519BD5C24 /* AdaptiveMealPlanEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */; };
 		5DCAF6131CE80AC13D93C2EE /* OrbitRoutePosterView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88349C95EDDF2146EC6763DB /* OrbitRoutePosterView.swift */; };
@@ -88,6 +89,7 @@
 		8E65B12988DD76BCCDF06E51 /* APEXStableID.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2402484CFB9ECDD04C1C9FF5 /* APEXStableID.swift */; };
 		93D6192DFFA8B8A5BFB274F1 /* RunDebriefView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7E079A75C9AF4BCDAB514617 /* RunDebriefView.swift */; };
 		9632A64865B548AC3A1EB5F5 /* TrainingAdjustmentEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7A2EBA8504BDA79522C3269E /* TrainingAdjustmentEngine.swift */; };
+		9D19D5CC5A3E3B9A185071CD /* MealMemory.swift in Sources */ = {isa = PBXBuildFile; fileRef = E6A1160480AC757FD1D1C9DE /* MealMemory.swift */; };
 		9EEED55F9769ADB756BDB9AF /* MuscleMapView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9D7B65E53B361387C9EFF120 /* MuscleMapView.swift */; };
 		A1D8E7517E94A16EF7750243 /* legs_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 83C81170E47FE2EB52032F4E /* legs_bump.jpg */; };
 		A22FF4B2C6F9F70894245D15 /* WatchHydrationStore.swift in Sources */ = {isa = PBXBuildFile; fileRef = A30EF9B38F05590E84DA2E6D /* WatchHydrationStore.swift */; };
@@ -118,6 +120,7 @@
 		CDB733EA8C3A51BA86957A2A /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = 7D5BCB187A0A27A97258B96D /* Localizable.strings */; };
 		D3E5AA1EC12E5A00415697D1 /* CustomWorkoutBuilderTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8457F364ACF9911552863DB6 /* CustomWorkoutBuilderTests.swift */; };
 		D563974C02928CDF2507E1DC /* OrbitRunMetrics.swift in Sources */ = {isa = PBXBuildFile; fileRef = 810780DA6BA555E5A02AC97F /* OrbitRunMetrics.swift */; };
+		D6E3A2C4EC98342E02B5BBCC /* MealMemoryParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */; };
 		DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */ = {isa = PBXBuildFile; fileRef = 1AA785FB8ED5CCCEA551C98B /* APEXDebugFixture.swift */; };
 		DB76BD99603C52CEA9D38258 /* diaphragm_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 3C588B0EDF217B6465E465A7 /* diaphragm_dif.jpg */; };
 		DF3478A9C300AF976ACBB43E /* head_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2D7AC07E80FBE3B8D77C3D44 /* head_bump.jpg */; };
@@ -289,6 +292,7 @@
 		8172120F69D75C87F5025756 /* OrbitLocationManager.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitLocationManager.swift; sourceTree = "<group>"; };
 		823ED9B3330B37611FD366A2 /* TrainingPlanParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingPlanParityTests.swift; sourceTree = "<group>"; };
 		82A68654DF6F4B4B04D4F51F /* ManualRouteEditorView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualRouteEditorView.swift; sourceTree = "<group>"; };
+		833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealMemoryParityTests.swift; sourceTree = "<group>"; };
 		83C81170E47FE2EB52032F4E /* legs_bump.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = legs_bump.jpg; sourceTree = "<group>"; };
 		840094548F0DA24D2ADA77C0 /* legs_dif.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = legs_dif.jpg; sourceTree = "<group>"; };
 		8457F364ACF9911552863DB6 /* CustomWorkoutBuilderTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWorkoutBuilderTests.swift; sourceTree = "<group>"; };
@@ -312,6 +316,7 @@
 		A6F726BF795538B01541803E /* bundle.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = bundle.js; sourceTree = "<group>"; };
 		A7FE32BA4B8A7F3E8E4FC71D /* APEXWatchWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = APEXWatchWidgets.entitlements; sourceTree = "<group>"; };
 		A80A4616A724F251A3020AE1 /* MuscleMapAssetHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleMapAssetHandler.swift; sourceTree = "<group>"; };
+		AEA7213F1AC11A72D5A5743F /* meal-memory-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "meal-memory-parity.json"; sourceTree = "<group>"; };
 		AF3317DF4780AB6304BCF6DC /* OrbitHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitHomeView.swift; sourceTree = "<group>"; };
 		AF4FB2647B0249740E926616 /* TrainingInductionPanel.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingInductionPanel.swift; sourceTree = "<group>"; };
 		B0DA96A7365B60399FE5D265 /* ExportReport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExportReport.swift; sourceTree = "<group>"; };
@@ -337,6 +342,7 @@
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
 		DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchive.swift; sourceTree = "<group>"; };
+		E6A1160480AC757FD1D1C9DE /* MealMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealMemory.swift; sourceTree = "<group>"; };
 		E6EA5B3B7A38534303CC9A5B /* TrainingCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingCalendarView.swift; sourceTree = "<group>"; };
 		E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyEngineTests.swift; sourceTree = "<group>"; };
 		E95C814C0119931140528180 /* SettingsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SettingsView.swift; sourceTree = "<group>"; };
@@ -504,6 +510,7 @@
 			isa = PBXGroup;
 			children = (
 				4D65A340828BC773255E99E7 /* engine-parity.json */,
+				AEA7213F1AC11A72D5A5743F /* meal-memory-parity.json */,
 				018FB46EA0E562A118018CC0 /* plan-parity.json */,
 			);
 			path = Fixtures;
@@ -535,6 +542,7 @@
 				192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */,
 				39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */,
 				1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */,
+				833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */,
 				CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */,
 				FAB2550085FA9EB994446FBC /* MealTimingAndRecoveryTests.swift */,
 				FCA69789408B0833425C9ADB /* OrbitCampaignEngineTests.swift */,
@@ -705,6 +713,7 @@
 				4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */,
 				C8E4463683E46A0209E86AAB /* ManualWorkout.swift */,
 				7C2B0838F9D735BF37008FFE /* MealBlocks.swift */,
+				E6A1160480AC757FD1D1C9DE /* MealMemory.swift */,
 				13557A81963363E286A7705D /* MealProtocolGuide.swift */,
 				7601EE1C7E9A7AE48F0E81C6 /* MealTimingEngine.swift */,
 				393564C9A7237B2AE2880001 /* ProgressionEngine.swift */,
@@ -937,6 +946,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */,
+				54C057DC8588F6B62D0E81E5 /* meal-memory-parity.json in Resources */,
 				1AE709AFC44574DA123B88FC /* plan-parity.json in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
@@ -999,6 +1009,7 @@
 				E227F2278FD58892015DA6B1 /* MarathonInductionView.swift in Sources */,
 				2A61FDD8CF11B5B70A53165C /* MealBlocks.swift in Sources */,
 				48303D0F50307649C7299C9C /* MealComposerView.swift in Sources */,
+				9D19D5CC5A3E3B9A185071CD /* MealMemory.swift in Sources */,
 				F31B84CD7B344A4CE1A5591B /* MealProtocolGuide.swift in Sources */,
 				85115AA3394E20C0EA86F5C0 /* MealTimingEngine.swift in Sources */,
 				42ED8A7CB4EA88FE1941CF09 /* MuscleMapAssetHandler.swift in Sources */,
@@ -1066,6 +1077,7 @@
 				BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */,
 				355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */,
 				0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */,
+				D6E3A2C4EC98342E02B5BBCC /* MealMemoryParityTests.swift in Sources */,
 				8E2A71F45ACBC6FA812BA569 /* MealProtocolGuideTests.swift in Sources */,
 				42E86BB09FB92823D375B95F /* MealTimingAndRecoveryTests.swift in Sources */,
 				32D893E92DA3F60F1C311EC1 /* OrbitCampaignEngineTests.swift in Sources */,
