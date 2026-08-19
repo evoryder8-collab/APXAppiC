@@ -38,8 +38,12 @@ export interface HyroxStation {
   order: number
   id: string
   name: string
-  /* Movement library id, so a session can prescribe the real thing. */
-  movementId: string
+  /* Two of the eight stations are a distance on an erg, which is a cardio
+   * modality under a prescription rather than a movement. The rest are
+   * movements. A station carries whichever it actually is, so a session can
+   * prescribe the real thing instead of a record invented to fit one field. */
+  movementId?: string
+  cardio?: { modality: string; prescription: string }
   measure: string
   openMen: string
   openWomen: string
@@ -48,11 +52,11 @@ export interface HyroxStation {
 /* Race order is fixed and identical at every event, with a kilometre of
  * running before each station. */
 export const HYROX_STATIONS: HyroxStation[] = [
-  { order: 1, id: 'ski', name: 'SkiErg', movementId: 'skierg_interval', measure: '1000 m', openMen: 'no load', openWomen: 'no load' },
+  { order: 1, id: 'ski', name: 'SkiErg', cardio: { modality: 'ski_erg', prescription: 'race_pace' }, measure: '1000 m', openMen: 'no load', openWomen: 'no load' },
   { order: 2, id: 'sled_push', name: 'Sled Push', movementId: 'sled_push', measure: '50 m', openMen: '152 kg', openWomen: '102 kg' },
   { order: 3, id: 'sled_pull', name: 'Sled Pull', movementId: 'sled_pull', measure: '50 m', openMen: '103 kg', openWomen: '78 kg' },
   { order: 4, id: 'burpee_broad_jump', name: 'Burpee Broad Jump', movementId: 'burpee_broad_jump', measure: '80 m', openMen: 'bodyweight', openWomen: 'bodyweight' },
-  { order: 5, id: 'row', name: 'Row', movementId: 'rower_interval', measure: '1000 m', openMen: 'no load', openWomen: 'no load' },
+  { order: 5, id: 'row', name: 'Row', cardio: { modality: 'row_erg', prescription: 'race_pace' }, measure: '1000 m', openMen: 'no load', openWomen: 'no load' },
   { order: 6, id: 'farmers_carry', name: "Farmer's Carry", movementId: 'farmers_carry', measure: '200 m', openMen: '2 x 24 kg', openWomen: '2 x 16 kg' },
   { order: 7, id: 'sandbag_lunge', name: 'Sandbag Lunges', movementId: 'sandbag_lunge', measure: '100 m', openMen: '20 kg', openWomen: '10 kg' },
   { order: 8, id: 'wall_balls', name: 'Wall Balls', movementId: 'wall_ball', measure: '100 reps', openMen: '9 kg to 10 ft', openWomen: '6 kg to 9 ft' },

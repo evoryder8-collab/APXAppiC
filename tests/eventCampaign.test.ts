@@ -8,7 +8,7 @@ import {
   weeksUntil,
   type EventIntake,
 } from '../src/lib/eventCampaign.ts'
-import { MOVEMENT_BY_ID } from '../src/data/movements.ts'
+import { CARDIO_MODALITIES, CARDIO_PRESCRIPTIONS, MOVEMENT_BY_ID } from '../src/data/movements.ts'
 
 const base: EventIntake = {
   kind: 'hyrox', raceDate: '2027-02-19', today: '2026-08-19',
@@ -24,11 +24,24 @@ test('the race format is complete and points at real movements', () => {
     [1, 2, 3, 4, 5, 6, 7, 8],
     'stations are in race order, which never changes',
   )
+  const modalities = new Set(CARDIO_MODALITIES.map((c) => c.id))
+  const prescriptions = new Set(CARDIO_PRESCRIPTIONS.map((c) => c.id))
   for (const station of HYROX_STATIONS) {
-    assert.ok(
-      MOVEMENT_BY_ID.has(station.movementId),
-      `${station.name} points at a movement that does not exist: ${station.movementId}`,
+    // A station is a movement or an erg effort, and never both or neither.
+    assert.notEqual(
+      Boolean(station.movementId),
+      Boolean(station.cardio),
+      `${station.name} must be either a movement or a cardio effort`,
     )
+    if (station.movementId) {
+      assert.ok(
+        MOVEMENT_BY_ID.has(station.movementId),
+        `${station.name} points at a movement that does not exist: ${station.movementId}`,
+      )
+    } else {
+      assert.ok(modalities.has(station.cardio!.modality), `${station.name} modality`)
+      assert.ok(prescriptions.has(station.cardio!.prescription), `${station.name} prescription`)
+    }
     assert.ok(station.openMen.length > 0 && station.openWomen.length > 0, station.name)
   }
 })
