@@ -22,9 +22,15 @@ final class ProgressCameraController: NSObject {
     nonisolated(unsafe) let session = AVCaptureSession()
     nonisolated private let sessionQueue = DispatchQueue(label: "ch.apexperformance.progress-camera")
     nonisolated(unsafe) private let output = AVCapturePhotoOutput()
+    nonisolated(unsafe) private let videoOutput = AVCaptureVideoDataOutput()
+    nonisolated(unsafe) private let depthOutput = AVCaptureDepthDataOutput()
+    nonisolated(unsafe) private var synchronizer: AVCaptureDataOutputSynchronizer?
     nonisolated(unsafe) private var input: AVCaptureDeviceInput?
+    nonisolated private let analyzer = ProgressFrameAnalyzer()
     private(set) var position: AVCaptureDevice.Position = .front
     private(set) var isReady = false
+    /// Live distance and subject reading, when the device can measure it.
+    let reading = ProgressDepthAnalyzer()
     private var captured: ((UIImage) -> Void)?
 
     func start(position: AVCaptureDevice.Position = .front) async {
@@ -60,15 +66,45 @@ final class ProgressCameraController: NSObject {
         if let input { session.removeInput(input) }
         /* Video only. The microphone is never requested, which is what lets
            the screen promise camera only, microphone off. */
-        guard let device = AVCaptureDevice.default(
-            .builtInWideAngleCamera, for: .video, position: position
-        ), let next = try? AVCaptureDeviceInput(device: device) else { return }
+        /* Prefer a camera that can measure depth: LiDAR on the back of a Pro
+           device, TrueDepth on the front. A plain wide-angle still works, it
+           simply reports no distance rather than a made-up one. */
+        let preferred: [AVCaptureDevice.DeviceType] = position == .back
+            ? [.builtInLiDARDepthCamera, .builtInDualCamera, .builtInWideAngleCamera]
+            : [.builtInTrueDepthCamera, .builtInWideAngleCamera]
+        let discovery = AVCaptureDevice.DiscoverySession(
+            deviceTypes: preferred, mediaType: .video, position: position
+        )
+        guard let device = discovery.devices.first,
+              let next = try? AVCaptureDeviceInput(device: device) else { return }
         if session.canAddInput(next) {
             session.addInput(next)
             input = next
         }
-        if session.outputs.isEmpty, session.canAddOutput(output) {
+        if !session.outputs.contains(output), session.canAddOutput(output) {
             session.addOutput(output)
+        }
+        if !session.outputs.contains(videoOutput), session.canAddOutput(videoOutput) {
+            videoOutput.alwaysDiscardsLateVideoFrames = true
+            session.addOutput(videoOutput)
+        }
+        if !session.outputs.contains(depthOutput), session.canAddOutput(depthOutput) {
+            depthOutput.isFilteringEnabled = true
+            session.addOutput(depthOutput)
+        }
+        configureAnalysis()
+    }
+
+    nonisolated private func configureAnalysis() {
+        let depthConnected = depthOutput.connection(with: .depthData)?.isEnabled ?? false
+        let outputs: [AVCaptureOutput] = depthConnected ? [videoOutput, depthOutput] : [videoOutput]
+        let sync = AVCaptureDataOutputSynchronizer(dataOutputs: outputs)
+        sync.setDelegate(self, queue: sessionQueue)
+        synchronizer = sync
+        analyzer.onReading = { [weak self] distance, subject, hasDepth in
+            Task { @MainActor [weak self] in
+                self?.reading.update(distance: distance, subject: subject, hasDepth: hasDepth)
+            }
         }
     }
 
@@ -77,6 +113,20 @@ final class ProgressCameraController: NSObject {
         sessionQueue.async { [self] in
             output.capturePhoto(with: AVCapturePhotoSettings(), delegate: self)
         }
+    }
+}
+
+extension ProgressCameraController: AVCaptureDataOutputSynchronizerDelegate {
+    nonisolated func dataOutputSynchronizer(
+        _ synchronizer: AVCaptureDataOutputSynchronizer,
+        didOutput collection: AVCaptureSynchronizedDataCollection
+    ) {
+        guard let video = collection.synchronizedData(for: videoOutput) as? AVCaptureSynchronizedSampleBufferData,
+              !video.sampleBufferWasDropped,
+              let buffer = CMSampleBufferGetImageBuffer(video.sampleBuffer) else { return }
+        let depth = (collection.synchronizedData(for: depthOutput) as? AVCaptureSynchronizedDepthData)
+            .flatMap { $0.depthDataWasDropped ? nil : $0.depthData }
+        analyzer.analyze(pixelBuffer: buffer, depth: depth)
     }
 }
 
@@ -136,21 +186,24 @@ struct ProgressCameraView: View {
 
     var intent: ProgressCaptureIntent
     /// The previous photo in the same pose, shown underneath for alignment.
-    var referenceImage: UIImage?
+    var reference: ProgressPhoto?
     var onClose: () -> Void
     var onCaptured: (UIImage, ProgressCaptureIntent) -> Void
+
+    @Environment(AppSession.self) private var session
+    @State private var referenceImage: UIImage?
 
     @State private var pose: String
     @State private var framing: ProgressPhotoEngine.FramingMode
 
     init(
         intent: ProgressCaptureIntent,
-        referenceImage: UIImage? = nil,
+        reference: ProgressPhoto? = nil,
         onClose: @escaping () -> Void,
         onCaptured: @escaping (UIImage, ProgressCaptureIntent) -> Void
     ) {
         self.intent = intent
-        self.referenceImage = referenceImage
+        self.reference = reference
         self.onClose = onClose
         self.onCaptured = onCaptured
         _pose = State(initialValue: intent.pose)
@@ -174,6 +227,7 @@ struct ProgressCameraView: View {
 
             guides
             chrome
+            liveReading
 
             if let countdown {
                 Text("\(countdown)")
@@ -184,6 +238,12 @@ struct ProgressCameraView: View {
             }
         }
         .task { await controller.start() }
+        .task(id: reference?.id) {
+            guard let reference,
+                  let url = try? await session.signedProgressURL(for: reference, thumbnail: false),
+                  let (data, _) = try? await URLSession.shared.data(from: url) else { return }
+            referenceImage = UIImage(data: data)
+        }
         .onDisappear { controller.stop() }
         .animation(.snappy(duration: 0.2), value: countdown)
         .sheet(isPresented: $showLibrary) {
@@ -193,6 +253,51 @@ struct ProgressCameraView: View {
             guard let image else { return }
             onCaptured(image, resolvedIntent)
         }
+    }
+
+    /* The one number that makes two photos comparable, and what the camera
+       can actually see. Placed high and out of the guide so it never sits
+       over the body being framed. */
+    private var liveReading: some View {
+        let reading = controller.reading
+        return VStack {
+            Spacer().frame(height: 108)
+            HStack(spacing: 8) {
+                if let distance = reading.distanceText {
+                    HStack(spacing: 6) {
+                        Image(systemName: "ruler")
+                            .font(.system(size: 10, weight: .bold))
+                        Text(distance)
+                            .font(APEXFont.mono(12, weight: .bold))
+                        if let hint = reading.placementHint {
+                            Text(language.text(hint).uppercased())
+                                .font(APEXFont.mono(8, weight: .bold))
+                                .tracking(0.8)
+                        }
+                    }
+                    .foregroundStyle(reading.isWellPlaced ? APEXColor.green : Color(red: 0.99, green: 0.90, blue: 0.54))
+                    .padding(.horizontal, 11)
+                    .frame(height: 30)
+                    .background(.black.opacity(0.45), in: Capsule())
+                }
+                if reading.subject != .none {
+                    HStack(spacing: 6) {
+                        Image(systemName: reading.subject.systemImage)
+                            .font(.system(size: 10, weight: .bold))
+                        Text(language.text(reading.subject.label).uppercased())
+                            .font(APEXFont.mono(8, weight: .bold))
+                            .tracking(0.8)
+                    }
+                    .foregroundStyle(.white.opacity(0.85))
+                    .padding(.horizontal, 11)
+                    .frame(height: 30)
+                    .background(.black.opacity(0.45), in: Capsule())
+                }
+            }
+            Spacer()
+        }
+        .allowsHitTesting(false)
+        .animation(.snappy(duration: 0.2), value: reading.subject)
     }
 
     private var resolvedIntent: ProgressCaptureIntent {

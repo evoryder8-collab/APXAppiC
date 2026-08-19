@@ -18,6 +18,13 @@ struct VisualProgressView: View {
     @State private var captureIntent: ProgressCaptureIntent?
     @State private var showComparison = false
 
+    /* The ghost is the last photo in the same pose. Without it the overlay
+       has nothing to align to, which is most of why the camera exists. */
+    private func referencePhoto(for pose: String) -> ProgressPhoto? {
+        let sorted = session.data.progressPhotos.sorted { $0.localDate > $1.localDate }
+        return sorted.first { $0.pose == pose } ?? sorted.first
+    }
+
     /// The two chosen photos, oldest first so BEFORE really is before.
     private var comparisonPair: (before: ProgressPhoto, after: ProgressPhoto)? {
         let chosen = comparisonSelection.compactMap { id in
@@ -195,7 +202,7 @@ struct VisualProgressView: View {
         .fullScreenCover(item: $captureIntent) { intent in
             ProgressCameraView(
                 intent: intent,
-                referenceImage: nil,
+                reference: referencePhoto(for: intent.pose),
                 onClose: { captureIntent = nil },
                 onCaptured: { image, resolved in
                     selectedImage = image
@@ -209,7 +216,6 @@ struct VisualProgressView: View {
             if let pair = comparisonPair {
                 ProgressComparisonView(
                     before: pair.before, after: pair.after,
-                    beforeImage: nil, afterImage: nil,
                     onClose: { showComparison = false }
                 )
                 .environment(session)

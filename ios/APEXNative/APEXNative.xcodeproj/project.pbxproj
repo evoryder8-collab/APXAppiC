@@ -34,6 +34,7 @@
 		1FAE544A531915497096AEE3 /* musclemap.html in Resources */ = {isa = PBXBuildFile; fileRef = BAA3072D365C90BF052C5711 /* musclemap.html */; };
 		22113A8279C4CE646779A26D /* iulian.webp in Resources */ = {isa = PBXBuildFile; fileRef = 16EDB23CA552311D34D8B188 /* iulian.webp */; };
 		22A8AD7876D6B713C2E13474 /* HydrationGaugeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687976EA3575F155FEE0785C /* HydrationGaugeTests.swift */; };
+		276AC64EAF45746C0E88285C /* ProgressDepthTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B7AFB3ADF98796F3341BF2F /* ProgressDepthTests.swift */; };
 		299721ACD1752C4F2B392967 /* strength-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = FE90D902B985B28E7751EE26 /* strength-parity.json */; };
 		2A61FDD8CF11B5B70A53165C /* MealBlocks.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7C2B0838F9D735BF37008FFE /* MealBlocks.swift */; };
 		2AE730DE0EF104F7DDDA1520 /* ExerciseCatalog.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0F22D3ABC94F97A0A6511460 /* ExerciseCatalog.swift */; };
@@ -120,6 +121,7 @@
 		B0AA988F6D009C1FDEE5C924 /* EnergyEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 79AFBB1AFAB9939A56CD5D5A /* EnergyEngine.swift */; };
 		B4BF6E3B81DB4637133F3964 /* WatchHydrationView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9EA63CF243F8658739BDAAB9 /* WatchHydrationView.swift */; };
 		B4DEFD97649C463825AECC4E /* APEXLocalization.swift in Sources */ = {isa = PBXBuildFile; fileRef = 164418CABD783ED9B17E6A7D /* APEXLocalization.swift */; };
+		B57A3503D275D888D863C3D6 /* ProgressDepthAnalyzer.swift in Sources */ = {isa = PBXBuildFile; fileRef = D6DA60EFC278F24B01067C29 /* ProgressDepthAnalyzer.swift */; };
 		B71C19C7366753A84F73BE7C /* MuscleMapCard.swift in Sources */ = {isa = PBXBuildFile; fileRef = FBFC41CAA72D609132D9F23C /* MuscleMapCard.swift */; };
 		B8C52E30ADA7E0154708CE81 /* FocusT25.swift in Sources */ = {isa = PBXBuildFile; fileRef = 4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */; };
 		B8CD544B73B80EB85057D2D0 /* RecoveryAssessment.swift in Sources */ = {isa = PBXBuildFile; fileRef = F7C1B48D78D9A7D0C7F3551A /* RecoveryAssessment.swift */; };
@@ -348,6 +350,7 @@
 		88FC672B13DFB786889784E8 /* HolographicBodyView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HolographicBodyView.swift; sourceTree = "<group>"; };
 		8B1D338388006FFDC7405C7B /* torso_bump.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = torso_bump.jpg; sourceTree = "<group>"; };
 		8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionParityViews.swift; sourceTree = "<group>"; };
+		8B7AFB3ADF98796F3341BF2F /* ProgressDepthTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDepthTests.swift; sourceTree = "<group>"; };
 		8BDCFCD44A40EFED71D0A623 /* ProgressCaptureBriefing.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressCaptureBriefing.swift; sourceTree = "<group>"; };
 		8D382D6F0068D1BB92C060D0 /* AdaptiveMealPlanEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AdaptiveMealPlanEngineTests.swift; sourceTree = "<group>"; };
 		8D471F877A5E7E72F1A31D06 /* hydration-male.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-male.html"; sourceTree = "<group>"; };
@@ -388,6 +391,7 @@
 		CB1B8829B779CC0DD5CA6D4C /* MealProtocolGuideTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealProtocolGuideTests.swift; sourceTree = "<group>"; };
 		CD51249FC67F5ACDBA5D956D /* ProgressParityTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressParityTests.swift; sourceTree = "<group>"; };
 		CF248DED2EE048A28CD25CC8 /* OfflineStore.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OfflineStore.swift; sourceTree = "<group>"; };
+		D6DA60EFC278F24B01067C29 /* ProgressDepthAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDepthAnalyzer.swift; sourceTree = "<group>"; };
 		D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydrationTests.swift; sourceTree = "<group>"; };
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
@@ -446,6 +450,7 @@
 				8BDCFCD44A40EFED71D0A623 /* ProgressCaptureBriefing.swift */,
 				6412A8B24ED423BC9AA71932 /* ProgressCaptureGuides.swift */,
 				57258905C757B4949A5AC5C6 /* ProgressComparisonView.swift */,
+				D6DA60EFC278F24B01067C29 /* ProgressDepthAnalyzer.swift */,
 				7607FFCA6B676ADC1A667F41 /* ProgressPosterRenderer.swift */,
 				1DBD3EB027AC7801F7A33F9B /* VisualProgressView.swift */,
 			);
@@ -617,6 +622,7 @@
 				95409AE77B69B4A6848B009E /* OrbitIntegrationsTests.swift */,
 				120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */,
 				F9FA7F456BCA3A39E46A833E /* OrbitRunMetricsTests.swift */,
+				8B7AFB3ADF98796F3341BF2F /* ProgressDepthTests.swift */,
 				05CB1AA98B9C36622C166748 /* ProgressionEngineTests.swift */,
 				CD51249FC67F5ACDBA5D956D /* ProgressParityTests.swift */,
 				20D9ABA6AE517DC03269E042 /* SimpleHomeLogicTests.swift */,
@@ -1128,6 +1134,7 @@
 				6882E8D5DDC2F72D68736899 /* ProgressCaptureGuides.swift in Sources */,
 				7FE25997D68A85FA565DDDD4 /* ProgressComparison.swift in Sources */,
 				45BE0D50A0425BD755629822 /* ProgressComparisonView.swift in Sources */,
+				B57A3503D275D888D863C3D6 /* ProgressDepthAnalyzer.swift in Sources */,
 				002E4BE70CF5D1D92C5D4094 /* ProgressPhotoEngine.swift in Sources */,
 				AF4E8F4AB8D7467F66FC6DB7 /* ProgressPosterRenderer.swift in Sources */,
 				C80416FA0BE7E74B2C4562E9 /* ProgressionEngine.swift in Sources */,
@@ -1188,6 +1195,7 @@
 				30CAB99C5259074A64EF3B4C /* OrbitIntegrationsTests.swift in Sources */,
 				F4A7EDE2DD1D8B5D176AF23A /* OrbitPrivacyArchiveTests.swift in Sources */,
 				ABEFB6D91D508680F3FAC2D2 /* OrbitRunMetricsTests.swift in Sources */,
+				276AC64EAF45746C0E88285C /* ProgressDepthTests.swift in Sources */,
 				BA11082E82BD711C420CB814 /* ProgressParityTests.swift in Sources */,
 				EA0AE539E600E7BCE242BC5B /* ProgressionEngineTests.swift in Sources */,
 				376BEAEBCF7B7C3D48642471 /* SimpleHomeLogicTests.swift in Sources */,

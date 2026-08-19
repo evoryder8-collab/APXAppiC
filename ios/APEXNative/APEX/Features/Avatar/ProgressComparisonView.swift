@@ -21,9 +21,14 @@ struct ProgressComparisonView: View {
 
     let before: ProgressPhoto
     let after: ProgressPhoto
-    let beforeImage: UIImage?
-    let afterImage: UIImage?
     var onClose: () -> Void
+
+    /* The screen loads its own photos. Passing them in was how it ended up
+       showing two black panels with an export button that had nothing to
+       export. */
+    @State private var beforeImage: UIImage?
+    @State private var afterImage: UIImage?
+    @State private var loadFailed = false
 
     private var daysApart: Int { ProgressPhotoEngine.daysBetween(before, after) }
 
@@ -54,6 +59,18 @@ struct ProgressComparisonView: View {
         .sheet(item: $exported) { url in
             ShareSheet(items: [url])
         }
+        .task(id: before.id) { beforeImage = await load(before) }
+        .task(id: after.id) { afterImage = await load(after) }
+    }
+
+    private func load(_ photo: ProgressPhoto) async -> UIImage? {
+        guard let url = try? await session.signedProgressURL(for: photo, thumbnail: false),
+              let (data, _) = try? await URLSession.shared.data(from: url),
+              let image = UIImage(data: data) else {
+            loadFailed = true
+            return nil
+        }
+        return image
     }
 
     private var header: some View {
@@ -120,6 +137,16 @@ struct ProgressComparisonView: View {
                     .scaledToFill()
                     .scaleEffect(view.scale)
                     .offset(x: view.x, y: view.y)
+            } else if loadFailed {
+                VStack(spacing: 6) {
+                    Image(systemName: "photo.badge.exclamationmark")
+                        .font(.system(size: 26, weight: .light))
+                    Text(language.text("Preview unavailable"))
+                        .font(APEXFont.body(10, weight: .semibold))
+                }
+                .foregroundStyle(.white.opacity(0.4))
+            } else {
+                ProgressView().tint(.white.opacity(0.6))
             }
             HStack {
                 if side == .right { Spacer() }
@@ -253,7 +280,12 @@ struct ProgressComparisonView: View {
     }
 
     private func export() {
-        guard let beforeImage, let afterImage else { return }
+        /* Silence was the bug: the button did nothing when the photos had not
+           loaded, with no way to tell that from a failed export. */
+        guard let beforeImage, let afterImage else {
+            loadFailed = true
+            return
+        }
         isExporting = true
         Task {
             let card = ProgressPosterRenderer.render(
