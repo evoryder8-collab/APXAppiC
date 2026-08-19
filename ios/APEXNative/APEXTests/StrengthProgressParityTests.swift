@@ -115,8 +115,16 @@ final class StrengthProgressParityTests: XCTestCase {
             for (row, want) in zip(rows, scenario.rows) {
                 XCTAssertEqual(row.key, want.key)
                 XCTAssertEqual(row.daysCompared, want.days_compared, want.name)
-                XCTAssertEqual(row.loadDelta ?? .nan, want.load_delta ?? .nan, accuracy: 0.0001, want.name)
-                XCTAssertEqual(row.estimated1RMDelta ?? .nan, want.estimated_1rm_delta ?? .nan, accuracy: 0.0001, want.name)
+                /* Same reason as the weight trend: two nils compared through
+                   NaN prove nothing, so absence is asserted as absence. */
+                XCTAssertEqual(row.loadDelta == nil, want.load_delta == nil, want.name)
+                XCTAssertEqual(row.estimated1RMDelta == nil, want.estimated_1rm_delta == nil, want.name)
+                if let expected = want.load_delta {
+                    XCTAssertEqual(row.loadDelta ?? .nan, expected, accuracy: 0.0001, want.name)
+                }
+                if let expected = want.estimated_1rm_delta {
+                    XCTAssertEqual(row.estimated1RMDelta ?? .nan, expected, accuracy: 0.0001, want.name)
+                }
             }
         }
     }

@@ -88,19 +88,22 @@ const CUES: Array<{ match: RegExp; cue: Cue }> = [
     },
   },
   {
-    match: /curl|flexii|ciocan|ไบเซป|เคิร์ล/i,
-    cue: {
-      en: 'Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range.',
-      ro: 'Ține brațul superior stabil și flexează fără impuls. Coboară controlat în amplitudinea confortabilă a cotului.',
-      th: 'ตรึงต้นแขน งอศอกโดยไม่เหวี่ยง และลดน้ำหนักอย่างควบคุมในช่วงที่ข้อศอกสบาย',
-    },
-  },
-  {
+    /* Before the generic curl: "leg curl" contains "curl", so the specific
+       machine has to be tested first or a hamstring exercise is handed a
+       biceps cue about keeping the upper arm stable. */
     match: /leg curl|flexii femurali|งอขา/i,
     cue: {
       en: 'Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly.',
       ro: 'Ține șoldurile fixate, flexează lin și contractă scurt fără să ridici bazinul. Revino lent.',
       th: 'ตรึงสะโพก งอขาอย่างนุ่มนวล บีบสั้น ๆ โดยไม่ยกเชิงกราน แล้วกลับช้า ๆ',
+    },
+  },
+  {
+    match: /curl|flexii|ciocan|ไบเซป|เคิร์ล/i,
+    cue: {
+      en: 'Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range.',
+      ro: 'Ține brațul superior stabil și flexează fără impuls. Coboară controlat în amplitudinea confortabilă a cotului.',
+      th: 'ตรึงต้นแขน งอศอกโดยไม่เหวี่ยง และลดน้ำหนักอย่างควบคุมในช่วงที่ข้อศอกสบาย',
     },
   },
   {
