@@ -13,6 +13,20 @@ struct VisualProgressView: View {
     @State private var isSaving = false
     @State private var saveError: String?
     @State private var comparisonSelection: [UUID] = []
+    /* The capture flow, in the order the web runs it: brief, frame, save. */
+    @State private var showBriefing = false
+    @State private var captureIntent: ProgressCaptureIntent?
+    @State private var showComparison = false
+
+    /// The two chosen photos, oldest first so BEFORE really is before.
+    private var comparisonPair: (before: ProgressPhoto, after: ProgressPhoto)? {
+        let chosen = comparisonSelection.compactMap { id in
+            session.data.progressPhotos.first { $0.id == id }
+        }
+        guard chosen.count == 2 else { return nil }
+        let ordered = chosen.sorted { $0.localDate < $1.localDate }
+        return (ordered[0], ordered[1])
+    }
 
     var body: some View {
         ScrollView {
@@ -66,9 +80,10 @@ struct VisualProgressView: View {
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .multilineTextAlignment(.center)
                             HStack {
-                                Button { showCamera = true } label: {
-                                    Label("Camera", systemImage: "camera.fill")
+                                Button { showBriefing = true } label: {
+                                    Label("Take progress photo", systemImage: "camera.fill")
                                 }
+                                .accessibilityIdentifier("progress-take-photo")
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.violet)
                                 PhotosPicker(selection: $selectedItem, matching: .images) {
@@ -100,6 +115,10 @@ struct VisualProgressView: View {
                             Text("Before and after")
                                 .font(APEXFont.display(25))
                             Spacer()
+                            Button(language.text("Compare")) { showComparison = true }
+                                .font(APEXFont.body(12, weight: .bold))
+                                .foregroundStyle(APEXColor.violet)
+                                .accessibilityIdentifier("progress-compare")
                             Button("Clear") { comparisonSelection = [] }
                                 .font(APEXFont.body(12, weight: .bold))
                         }
@@ -158,6 +177,42 @@ struct VisualProgressView: View {
                 guard let data = try? await item?.loadTransferable(type: Data.self),
                       let image = UIImage(data: data) else { return }
                 selectedImage = image
+            }
+        }
+        /* A card, not a screen: the briefing is four rules and two choices. */
+        .apexPopover(isPresented: $showBriefing) {
+            ProgressCaptureBriefing(
+                initial: ProgressCaptureIntent(pose: pose),
+                onCancel: { showBriefing = false },
+                onConfirm: { intent in
+                    showBriefing = false
+                    pose = intent.pose
+                    note = intent.note
+                    captureIntent = intent
+                }
+            )
+        }
+        .fullScreenCover(item: $captureIntent) { intent in
+            ProgressCameraView(
+                intent: intent,
+                referenceImage: nil,
+                onClose: { captureIntent = nil },
+                onCaptured: { image, resolved in
+                    selectedImage = image
+                    pose = resolved.pose
+                    note = resolved.note
+                    captureIntent = nil
+                }
+            )
+        }
+        .fullScreenCover(isPresented: $showComparison) {
+            if let pair = comparisonPair {
+                ProgressComparisonView(
+                    before: pair.before, after: pair.after,
+                    beforeImage: nil, afterImage: nil,
+                    onClose: { showComparison = false }
+                )
+                .environment(session)
             }
         }
         .sheet(isPresented: $showCamera) {

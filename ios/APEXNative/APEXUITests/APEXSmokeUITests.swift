@@ -153,6 +153,60 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
     }
 
+    /// A finished session used to save and vanish. The receipt is the only
+    /// place the load reported during the workout is handed back.
+    func testFinishingAWorkoutShowsTheReceipt() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
+        app.buttons["portal.transition"].tap()
+
+        let trainingDay = app.buttons["training-day-2"]
+        XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
+        trainingDay.tap()
+
+        let start = app.buttons["workout-start-session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUntilVisible(start, in: app))
+        app.swipeUp()
+        tapClearOfDock(start)
+
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 10))
+        app.buttons["workout-skip-warmup"].tap()
+
+        /* Work through every set the plan holds, however many that is, rather
+           than hard-coding a count that a plan change would silently break. */
+        var guardRail = 0
+        while guardRail < 40 {
+            guardRail += 1
+            if app.descendants(matching: .any)["workout-phase-complete"].exists { break }
+            if app.buttons["workout-end-set"].exists {
+                app.buttons["workout-end-set"].tap()
+                continue
+            }
+            if app.buttons["workout-skip-rest"].exists {
+                app.buttons["workout-skip-rest"].tap()
+                continue
+            }
+            break
+        }
+
+        let complete = app.descendants(matching: .any)["workout-phase-complete"]
+        XCTAssertTrue(complete.waitForExistence(timeout: 6), "the player should reach its complete phase")
+        capture("workout-complete")
+
+        let save = app.buttons["Save workout"]
+        XCTAssertTrue(scrollUntilVisible(save, in: app))
+        tapClearOfDock(save)
+
+        let done = app.buttons["workout-receipt-done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "the receipt should appear after saving")
+        XCTAssertTrue(app.staticTexts["Stats at a glance"].exists, "the receipt should be titled")
+        capture("workout-receipt")
+        done.tap()
+    }
+
     private func configuredApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-apex-ui-test", "-AppleLanguages", "(en)"]

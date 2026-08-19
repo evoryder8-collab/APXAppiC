@@ -144,6 +144,35 @@ struct SettingsView: View {
                         setAddon("meal_dayline_density", .string($0))
                     }
                 }
+                settingGroup(
+                    title: "Camera & comparison",
+                    subtitle: "Choose what appears on exported progress comparisons.",
+                    tint: APEXColor.violet
+                ) {
+                    VStack(alignment: .leading, spacing: 13) {
+                        settingToggle(
+                            "Allow front camera for food scanning",
+                            subtitle: "Off keeps every new scan on the rear camera. Turn this on only when you need a camera switch.",
+                            value: addonBool("allow_front_camera_scanning", default: false)
+                        ) { setAddon("allow_front_camera_scanning", .bool($0)) }
+
+                        VStack(alignment: .leading, spacing: 6) {
+                            Text(language.text("Comparison export stats"))
+                                .font(APEXFont.body(12, weight: .bold))
+                                .foregroundStyle(APEXColor.ink)
+                            choiceRow(
+                                options: [("Minimal", "minimal"), ("Detailed", "detailed")],
+                                selected: addonString("comparison_export_mode", default: "detailed")
+                            ) {
+                                setAddon("comparison_export_mode", .string($0))
+                            }
+                            Text(language.text("Minimal exports show only APEX, Before/After, and each photo's date and time."))
+                                .font(APEXFont.body(9))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
                 /* Detected from the device, never asked. The override is here
                    for what detection cannot see: someone who moved and kept
                    their old App Store country, or who shops across a border. */

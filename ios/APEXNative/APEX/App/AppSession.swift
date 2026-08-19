@@ -1303,13 +1303,15 @@ final class AppSession {
         await completeWorkout(day: day, setInputs: inputs, lite: lite, startedAt: .now)
     }
 
+    /// Returns the finished session's id so the caller can show its receipt.
+    @discardableResult
     func completeWorkout(
         day: ProgramDay,
         setInputs: [WorkoutSetInput],
         lite: Bool,
         startedAt: Date
-    ) async {
-        guard let profile else { return }
+    ) async -> UUID? {
+        guard let profile else { return nil }
         let now = Date().ISO8601Format()
         let isDeload = TrainingAdjustmentEngine.isDeload(
             on: Date().apexDateKey,
@@ -1340,6 +1342,7 @@ final class AppSession {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
             await addActivity(type: activityType, date: .now, durationMinutes: elapsed)
         }
+        return workout.id
     }
 
     func toggleDeload(on date: Date = .now) async {

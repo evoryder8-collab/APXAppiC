@@ -1,0 +1,110 @@
+/*
+ * The receipt numbers, matching the web's WorkoutStatsSheet:
+ *   volume = sum of weight x reps over non-skipped strength sets
+ *   working sets = non-skipped strength sets
+ *   movements = every exercise performed, conditioning included
+ */
+import XCTest
+@testable import APEX
+
+final class WorkoutReceiptTests: XCTestCase {
+    private func log(
+        _ name: String, set: Int, weight: Double?, reps: Int?,
+        skipped: Bool = false, session: UUID = UUID()
+    ) -> WorkoutLog {
+        WorkoutLog(
+            id: UUID(), userID: UUID(), sessionID: session, exerciseID: nil,
+            exerciseName: name, setNumber: set, weightKG: weight, reps: reps,
+            rir: 2, skipped: skipped, overrideFlag: false,
+            createdAt: "2026-08-19T10:00:00.000Z"
+        )
+    }
+
+    func testVolumeIsWeightTimesReps() {
+        let summary = WorkoutReceipt.summarize([
+            log("Back squat", set: 1, weight: 100, reps: 5),
+            log("Back squat", set: 2, weight: 100, reps: 5),
+            log("Bench press", set: 1, weight: 60, reps: 8),
+        ])
+        // 100x5 + 100x5 + 60x8 = 1480
+        XCTAssertEqual(summary.loadedVolumeKG, 1480, accuracy: 0.0001)
+        XCTAssertEqual(summary.workingSets, 3)
+        XCTAssertEqual(summary.movements, 2)
+        XCTAssertTrue(summary.hasLoad)
+    }
+
+    func testASkippedSetContributesNothing() {
+        let summary = WorkoutReceipt.summarize([
+            log("Back squat", set: 1, weight: 100, reps: 5),
+            log("Back squat", set: 2, weight: 100, reps: 5, skipped: true),
+        ])
+        XCTAssertEqual(summary.loadedVolumeKG, 500, accuracy: 0.0001)
+        XCTAssertEqual(summary.workingSets, 1)
+        XCTAssertEqual(summary.movements, 1, "a skipped set is still a movement performed")
+    }
+
+    /// A bodyweight conditioning episode has no load to report, and counting
+    /// it would read as a session of zero effort.
+    func testConditioningIsExcludedFromLoadButNotFromMovements() {
+        let summary = WorkoutReceipt.summarize([
+            log("Back squat", set: 1, weight: 100, reps: 5),
+            log("Focus T25 Alpha Cardio", set: 1, weight: nil, reps: nil),
+        ])
+        XCTAssertEqual(summary.loadedVolumeKG, 500, accuracy: 0.0001)
+        XCTAssertEqual(summary.workingSets, 1, "conditioning is not a working set")
+        XCTAssertEqual(summary.movements, 2, "but it was still performed")
+    }
+
+    func testAMissingWeightOrRepCountsAsNothing() {
+        let summary = WorkoutReceipt.summarize([
+            log("Pull-up", set: 1, weight: nil, reps: 8),
+            log("Plank", set: 1, weight: 0, reps: nil),
+        ])
+        XCTAssertEqual(summary.loadedVolumeKG, 0, accuracy: 0.0001)
+        XCTAssertFalse(summary.hasLoad)
+        XCTAssertEqual(summary.workingSets, 2)
+    }
+
+    func testGroupingKeepsThePerformedOrder() {
+        let grouped = WorkoutReceipt.grouped([
+            log("Bench press", set: 1, weight: 60, reps: 8),
+            log("Back squat", set: 1, weight: 100, reps: 5),
+            log("Bench press", set: 2, weight: 60, reps: 8),
+        ])
+        XCTAssertEqual(grouped.map(\.name), ["Bench press", "Back squat"])
+        XCTAssertEqual(grouped.first?.logs.count, 2)
+    }
+
+    func testInsightTextReportsDirection() {
+        let point = StrengthProgress.Point(
+            sessionID: UUID(), date: "2026-08-19", topWeight: 70,
+            estimated1RM: 84, volume: 700, setWeights: [1: 70]
+        )
+        let reference = StrengthProgress.Point(
+            sessionID: UUID(), date: "2026-07-19", topWeight: 65,
+            estimated1RM: 78, volume: 650, setWeights: [1: 65]
+        )
+        let up = StrengthProgress.SessionInsight(
+            key: "id:bench", name: "Bench press", current: point,
+            previous: reference, reference: reference, daysCompared: 31,
+            loadDelta: 5, estimated1RMDelta: 6
+        )
+        XCTAssertTrue(WorkoutReceipt.insightText(up, language: .english).contains("increased"))
+        XCTAssertTrue(WorkoutReceipt.insightText(up, language: .english).contains("5 kg"))
+
+        let flat = StrengthProgress.SessionInsight(
+            key: "id:bench", name: "Bench press", current: point,
+            previous: reference, reference: reference, daysCompared: 31,
+            loadDelta: 0, estimated1RMDelta: 0
+        )
+        XCTAssertTrue(WorkoutReceipt.insightText(flat, language: .english).contains("held steady"))
+
+        /* Nothing to compare against yet: say so rather than claim a change. */
+        let baseline = StrengthProgress.SessionInsight(
+            key: "id:bench", name: "Bench press", current: point,
+            previous: nil, reference: nil, daysCompared: nil,
+            loadDelta: nil, estimated1RMDelta: nil
+        )
+        XCTAssertTrue(WorkoutReceipt.insightText(baseline, language: .english).contains("baseline"))
+    }
+}

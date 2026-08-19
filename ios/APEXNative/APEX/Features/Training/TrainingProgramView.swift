@@ -759,6 +759,7 @@ struct WorkoutPlayerView: View {
     @State private var startedAt = Date()
     @State private var showExit = false
     @State private var isSaving = false
+    @State private var completedSession: FinishedSession?
 
     /* Automatic rep cadence, ported from the web player (playerTimeline.ts):
        APEX counts and paces every rep from the exercise's prescribed tempo.
@@ -832,6 +833,15 @@ struct WorkoutPlayerView: View {
             Button(language.text("Keep training"), role: .cancel) {}
         } message: {
             Text(language.text("Sets completed in this unfinished session have not been saved."))
+        }
+        /* The receipt is the task now, not a glance, so it takes the screen
+           and closing it closes the finished session with it. */
+        .fullScreenCover(item: $completedSession) { finished in
+            WorkoutReceiptSheet(sessionID: finished.id) {
+                completedSession = nil
+                dismiss()
+            }
+            .environment(session)
         }
     }
 
@@ -1296,12 +1306,21 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    /* The session used to save and vanish. Showing the receipt is the only
+       moment the work reported during the workout is handed back. */
     private func finishWorkout() {
         guard !isSaving else { return }
         isSaving = true
         Task {
-            await session.completeWorkout(day: day, setInputs: setInputs, lite: lite, startedAt: startedAt)
-            dismiss()
+            let finished = await session.completeWorkout(
+                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt
+            )
+            isSaving = false
+            if let finished {
+                completedSession = FinishedSession(id: finished)
+            } else {
+                dismiss()
+            }
         }
     }
 
