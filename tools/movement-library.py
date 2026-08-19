@@ -1873,7 +1873,7 @@ _PEAK_SHORTENED = {
     "lateral_raise", "cable_lateral_raise", "band_lateral_raise",
     "machine_lateral_raise", "front_raise", "band_pull_apart", "face_pull",
     "band_face_pull", "reverse_pec_deck", "leg_extension", "shrug",
-    "svend_press", "prone_floor_row",
+    "svend_press", "prone_floor_row", "cable_external_rotation",
 }
 # Constant-tension cable and band work, and elbow flexion, peak around mid range.
 _PEAK_MID = {
@@ -2091,6 +2091,95 @@ def _derive_safety(x):
 DERIVATION_DIFFS = []
 for _x in M:
     _derive_safety(_x)
+
+# ------------------------------------------------------------ TEMPO CLASSES
+#
+# Which muscle a movement trains changes how it should be trained, but not in
+# every respect and not by the same amount everywhere. Two honest constraints
+# shape this table.
+#
+# Where the evidence differentiates, it is followed. The soleus is roughly 80
+# per cent type I fibre, the most fatigue-resistant major muscle in the body,
+# and it earns higher reps for hypertrophy rather than being pushed toward
+# endurance work. The calf has a powerful stretch-shortening cycle, so bouncing
+# out of the bottom replaces muscle work with elastic recoil. Eccentric-emphasis
+# hamstring work has the strongest injury-reduction evidence of any single
+# exercise. The triceps long head grows more from overhead work than from
+# pushdowns because only the overhead position lengthens it.
+#
+# Where the evidence does not differentiate, one profile is used and that is
+# said plainly. For ordinary multi-joint pressing, pulling and squatting there
+# is no good evidence that tempo should differ by muscle, so inventing a
+# different number for each would be decoration rather than science.
+
+def _tempo_class(x):
+    """Muscle decides the class only once the mechanics have had their say.
+
+    Reading primary muscles first put push-ups in with the arm work, because
+    the triceps are in the list, and the conventional deadlift in with back
+    extensions. A movement is a compound before it is the sum of its muscles.
+    """
+    primary = set(x["primary"])
+    pattern = x["pattern"]
+    pid = x["id"]
+
+    # --- mechanics first ---------------------------------------------------
+    if pattern == "calf":
+        return "calf_soleus" if ("soleus" in primary or pid == "seated_calf_raise") \
+            else "calf_gastroc"
+    if pattern.startswith("core_"):
+        return "core_braced"
+
+    # --- single-joint work, where the muscle really does decide ------------
+    if pattern in ("isolation_upper", "isolation_lower"):
+        if "rotator_cuff" in primary:
+            return "rotator_cuff"
+        if "side_delts" in primary:
+            return "lateral_delt"
+        if primary & {"neck", "deep_neck_flexors", "foot_intrinsics", "tibialis"} \
+                or primary == {"forearms"}:
+            return "grip_and_small"
+        if primary & {"biceps", "triceps"}:
+            return "single_joint"
+        if "adductors" in primary:
+            return "adductor"
+        if "erectors" in primary:
+            return "spinal_erector"
+        if primary & {"glutes", "glute_medius"}:
+            return "glute_lockout"
+        if "hamstrings" in primary:
+            return "hamstring_eccentric"
+        # Everything else single-joint: flyes, pullovers, leg extensions,
+        # rear-delt work. One class, because the mechanism they share is that
+        # a single joint moves and the load can be kept light and controlled.
+        return "single_joint"
+
+    # --- compounds with a genuinely muscle-specific mechanism --------------
+    # Back extensions are spinal-erector work whether or not a plate is held;
+    # a loaded deadlift is not, because there the erectors brace rather than
+    # produce the movement. This has to precede the glute check, or the glutes
+    # in its muscle list get it timed as a hip thrust.
+    if pid in ("back_extension", "back_extension_machine"):
+        return "spinal_erector"
+    # Hip extension loaded horizontally: peak torque sits at lockout.
+    if x["peak_tension"] == "shortened" and primary & {"glutes", "glute_medius"}:
+        return "glute_lockout"
+    # Hinges and knee-flexion work led by the hamstrings, where the eccentric
+    # is the half with the evidence behind it.
+    if pattern == "hip_hinge" and "hamstrings" in primary and "erectors" not in primary:
+        return "hamstring_eccentric"
+    # Back extensions are spinal-erector work whether or not a plate is held;
+    # a loaded deadlift is not, because the erectors are bracing rather than
+    # producing the movement.
+    if "erectors" in primary and pattern == "hip_hinge" and not x["loadable"]:
+        return "spinal_erector"
+
+    return "standard_compound"
+
+
+for _x in M:
+    _x["tempo_class"] = _tempo_class(_x)
+
 
 # Whether a prescribed tempo is meaningful at all. A depth jump lives or dies on
 # a short ground contact, an Olympic lift is caught rather than lowered, and a
@@ -2410,7 +2499,7 @@ def emit():
                 str(m["youth_rep_floor"]) if m["youth_rep_floor"] is not None else "null",
                 jsonb(m["implementations"]), arr(m["sequence"]),
                 q(m["space"]), q(m["role"]), q(m["peak_tension"]),
-                str(m["tempo_applies"]).lower(),
+                str(m["tempo_applies"]).lower(), q(m["tempo_class"]),
             ]) + ")"
         )
 
@@ -2454,7 +2543,7 @@ insert into public.movement_library (
   impact_level, is_overhead, is_axial_load, requires_bail_skill, prerequisites,
   family, variant, review_status, youth_auto_assignable, adult_auto_assignable,
   coached_only, youth_rep_floor, implementations, sequence_steps,
-  space_requirement, role, peak_tension, tempo_applies
+  space_requirement, role, peak_tension, tempo_applies, tempo_class
 ) values
 {joined_rows}
 on conflict (id) do update set
@@ -2495,6 +2584,7 @@ on conflict (id) do update set
   sequence_steps = excluded.sequence_steps,
   space_requirement = excluded.space_requirement, role = excluded.role,
   peak_tension = excluded.peak_tension, tempo_applies = excluded.tempo_applies,
+  tempo_class = excluded.tempo_class,
   updated_at = now();
 
 insert into public.movement_aliases (alias, movement_id) values
@@ -2618,6 +2708,9 @@ def emit_ts():
         "  /* False where a prescribed tempo would be meaningless or harmful:",
         "   * plyometrics, ballistic lifts, isometrics, breath-paced work. */",
         "  tempoApplies: boolean",
+        "  /* Which muscle group and mechanism this movement belongs to, which",
+        "   * is what decides its tempo and rep range rather than one global rule. */",
+        "  tempoClass: TempoClassId",
         "  reviewStatus: string",
         "}",
         "",
@@ -2627,6 +2720,9 @@ def emit_ts():
         "  equipAny: string[][]",
         "  setupSeconds: number",
         "}",
+        "",
+        "export type TempoClassId =",
+        "".join("  " + " | ".join(js(k) for k in sorted({x["tempo_class"] for x in M}))),
         "",
         "export type EntityType =",
         "".join("  " + " | ".join(js(k) for k in sorted(ENTITY_PRESCRIPTION))),
@@ -2658,7 +2754,7 @@ def emit_ts():
         lines.append(f"    coachedOnly: {jb(m['coached_only'])}, youthRepFloor: {m['youth_rep_floor'] if m['youth_rep_floor'] is not None else 'null'},")
         lines.append(f"    spaceRequirement: {js(m['space'])}, reviewStatus: {js(m['review'])},")
         lines.append(f"    role: {js(m['role'])}, peakTension: {js(m['peak_tension'])},")
-        lines.append(f"    tempoApplies: {jb(m['tempo_applies'])},")
+        lines.append(f"    tempoApplies: {jb(m['tempo_applies'])}, tempoClass: {js(m['tempo_class'])},")
         lines.append("  },")
     lines.append("]")
     lines.append("")

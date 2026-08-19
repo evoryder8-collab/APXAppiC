@@ -3,8 +3,10 @@ import test from 'node:test'
 import { MOVEMENTS, MOVEMENT_BY_ID } from '../src/data/movements.ts'
 import {
   restSecondsFor,
+  repRangeFor,
   setSeconds,
   tempoFor,
+  TEMPO_CLASSES,
   type TrainingIntent,
 } from '../src/lib/liftingTempo.ts'
 import { generateWeek, type GeneratorIntake } from '../src/lib/planGenerator.ts'
@@ -140,4 +142,98 @@ test('the cue reads as an instruction, not as a code', () => {
   assert.doesNotMatch(t.cue, /\d-\d/)
   assert.match(t.cue, /second/)
   assert.doesNotMatch(t.cue, /1 seconds/)
+})
+
+test('calves get high reps for hypertrophy, not as an endurance compromise', () => {
+  const soleus = MOVEMENT_BY_ID.get('seated_calf_raise')!
+  const gastroc = MOVEMENT_BY_ID.get('standing_calf_raise')!
+  const squat = MOVEMENT_BY_ID.get('barbell_back_squat')!
+
+  // The soleus is around eighty per cent slow-twitch, the most fatigue
+  // resistant major muscle there is. High reps here are the hypertrophy
+  // prescription rather than a concession.
+  const [, soleusHigh] = repRangeFor(soleus, 'hypertrophy')
+  const [, squatHigh] = repRangeFor(squat, 'hypertrophy')
+  assert.ok(soleusHigh >= 25, `soleus hypertrophy tops out at ${soleusHigh} reps`)
+  assert.ok(soleusHigh > squatHigh * 2,
+    'the soleus is being prescribed like a squat')
+  // Bent knee takes the gastrocnemius out, so the soleus goes higher still.
+  assert.ok(soleusHigh > repRangeFor(gastroc, 'hypertrophy')[1])
+})
+
+test('a pause that is the mechanism survives every goal', () => {
+  // Bouncing a calf raise is not a faster calf raise, it is a worse exercise:
+  // the stretch-shortening cycle does the work instead of the muscle.
+  for (const id of ['seated_calf_raise', 'standing_calf_raise', 'hip_thrust_barbell']) {
+    const m = MOVEMENT_BY_ID.get(id)!
+    for (const intent of INTENTS) {
+      const tempo = tempoFor(m, intent)!
+      assert.ok(tempo.pauseSeconds > 0,
+        `${id} lost its pause under ${intent}, which is the point of the movement`)
+    }
+  }
+  // Where the pause is a refinement rather than the mechanism, chasing load
+  // or speed is allowed to drop it.
+  assert.equal(tempoFor(MOVEMENT_BY_ID.get('barbell_back_squat')!, 'strength')!.pauseSeconds, 0)
+})
+
+test('muscle groups are genuinely timed differently', () => {
+  const tempoOf = (id: string) => tempoFor(MOVEMENT_BY_ID.get(id)!, 'hypertrophy')!
+  // Eccentric hamstring work has the strongest injury-reduction evidence of
+  // any single exercise, and the lowering is where it lives.
+  assert.ok(tempoOf('barbell_romanian_deadlift').eccentricSeconds
+    > tempoOf('barbell_back_squat').eccentricSeconds)
+  // Hip extension peaks at lockout; a squat peaks in the hole.
+  assert.equal(tempoOf('hip_thrust_barbell').pausePosition, 'shortened')
+  assert.equal(tempoOf('barbell_back_squat').pausePosition, 'lengthened')
+  // Holding end-range spinal extension is where the risk is, not the stimulus.
+  assert.equal(tempoOf('back_extension').pauseSeconds, 0)
+  // Enough classes actually differ that this is not one rule wearing hats.
+  const shapes = new Set(MOVEMENTS.filter((m) => m.tempoApplies).map((m) => {
+    const t = tempoFor(m, 'hypertrophy')!
+    return `${t.eccentricSeconds}-${t.pauseSeconds}-${t.concentricSeconds}-${t.pausePosition}`
+  }))
+  assert.ok(shapes.size >= 6, `only ${shapes.size} distinct tempos across the library`)
+})
+
+test('every class states its evidence and can be questioned', () => {
+  const classes = new Set(MOVEMENTS.map((m) => m.tempoClass))
+  for (const id of classes) {
+    const spec = TEMPO_CLASSES[id]
+    assert.ok(spec, `class "${id}" has no specification`)
+    assert.ok(['strong', 'moderate', 'extrapolated'].includes(spec.evidence))
+    assert.ok(spec.why.length > 60, `class "${id}" does not justify itself`)
+    // Every goal must have a rep range, or the class silently falls back.
+    for (const intent of INTENTS) {
+      const [low, high] = spec.reps[intent]
+      assert.ok(low > 0 && high > low, `${id}/${intent} range is ${low}-${high}`)
+    }
+    // Endurance is always more reps than strength for the same movement.
+    assert.ok(spec.reps.endurance[0] > spec.reps.strength[0], `${id}`)
+  }
+})
+
+test('a movement is classed by its mechanics before its muscle list', () => {
+  // A push-up has the triceps in its muscle list and is not arm isolation.
+  assert.equal(MOVEMENT_BY_ID.get('push_up')!.tempoClass, 'standard_compound')
+  // A deadlift has the erectors in its list and is not a back extension.
+  assert.equal(MOVEMENT_BY_ID.get('conventional_deadlift')!.tempoClass, 'standard_compound')
+  // A Cossack squat has the adductors in its list and is not adductor work.
+  assert.equal(MOVEMENT_BY_ID.get('cossack_squat')!.tempoClass, 'standard_compound')
+  // A back extension does have the glutes in its list and is still erector work.
+  assert.equal(MOVEMENT_BY_ID.get('back_extension')!.tempoClass, 'spinal_erector')
+})
+
+test('rest reflects what the set is limited by, class included', () => {
+  const cuff = MOVEMENT_BY_ID.get('cable_external_rotation')!
+  const squat = MOVEMENT_BY_ID.get('barbell_back_squat')!
+  const soleus = MOVEMENT_BY_ID.get('seated_calf_raise')!
+  // A cuff drill does not need three minutes; a heavy squat does.
+  assert.ok(restSecondsFor(cuff, 'hypertrophy') < 90)
+  assert.ok(restSecondsFor(squat, 'hypertrophy') >= 150)
+  assert.ok(restSecondsFor(soleus, 'hypertrophy') < restSecondsFor(squat, 'hypertrophy'))
+  // The hypertrophy-versus-endurance ordering still holds inside every class.
+  for (const m of [cuff, squat, soleus]) {
+    assert.ok(restSecondsFor(m, 'hypertrophy') > restSecondsFor(m, 'endurance'), m.id)
+  }
 })

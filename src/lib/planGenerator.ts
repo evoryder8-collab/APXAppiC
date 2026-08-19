@@ -26,6 +26,8 @@ import {
   setSeconds,
   tempoFor,
   tempoRationale,
+  repRangeFor,
+  classRationale,
   type TrainingIntent,
   type Tempo,
 } from './liftingTempo.ts'
@@ -96,6 +98,11 @@ export interface Prescription {
   /* How the rep itself is performed. Null where timing a rep is meaningless:
    * a jump, an Olympic lift, a plank, a breath-paced flow. */
   tempo: Tempo | null
+  /* Which muscle-group mechanism this is timed by, and how well supported
+   * that choice is, so the prescription can be questioned rather than trusted. */
+  tempoClass: string
+  evidence: 'strong' | 'moderate' | 'extrapolated'
+  rationale: string
   note: string
 }
 
@@ -293,10 +300,10 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
   let repLow = m.repLow ?? scheme.repLow
   let repHigh = m.repHigh ?? scheme.repHigh
   if (unit === 'reps' && m.loadable) {
-    // When the load can be changed, the goal decides the rep range: the ranges
-    // on each movement were authored as sensible defaults, not as ceilings.
-    repLow = scheme.repLow
-    repHigh = scheme.repHigh
+    // The rep range comes from the movement's own class under this goal, not
+    // from one blanket scheme. A soleus raise and a barbell squat are both
+    // hypertrophy work and they are not the same prescription.
+    ;[repLow, repHigh] = repRangeFor(m, intent)
   }
   // When the load cannot be changed the movement's own range wins, because
   // there is no way to make a push-up heavy enough for a set of five.
@@ -320,6 +327,7 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
 
   const tempo = tempoFor(m, intent)
   if (tempo) note.unshift(tempo.cue)
+  const cls = classRationale(m)
   const sets = m.entityType === 'balance_drill' ? 2 : scheme.sets
   return {
     movementId: m.id,
@@ -337,6 +345,9 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     supersetGroup: null,
     slot: 'main',
     tempo,
+    tempoClass: cls.label,
+    evidence: cls.evidence,
+    rationale: cls.why,
     note: note.join(' '),
   }
 }

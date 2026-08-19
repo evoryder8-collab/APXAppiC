@@ -62,6 +62,9 @@ export interface Movement {
   /* False where a prescribed tempo would be meaningless or harmful:
    * plyometrics, ballistic lifts, isometrics, breath-paced work. */
   tempoApplies: boolean
+  /* Which muscle group and mechanism this movement belongs to, which
+   * is what decides its tempo and rep range rather than one global rule. */
+  tempoClass: TempoClassId
   reviewStatus: string
 }
 
@@ -71,6 +74,9 @@ export interface Implementation {
   equipAny: string[][]
   setupSeconds: number
 }
+
+export type TempoClassId =
+  'adductor' | 'calf_gastroc' | 'calf_soleus' | 'core_braced' | 'glute_lockout' | 'grip_and_small' | 'hamstring_eccentric' | 'lateral_delt' | 'rotator_cuff' | 'single_joint' | 'spinal_erector' | 'standard_compound'
 
 export type EntityType =
   'balance_drill' | 'breathing_recovery' | 'cardio_modality' | 'conditioning_complex' | 'mobility_drill' | 'movement_sequence' | 'plyometric' | 'power_throw' | 'resistance_dynamic' | 'resistance_isometric' | 'skill_drill' | 'yoga_pose'
@@ -100,7 +106,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'dumbbell_romanian_deadlift', name: 'Dumbbell Romanian Deadlift', pattern: 'hip_hinge',
@@ -126,7 +132,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'single_leg_romanian_deadlift', name: 'Single-Leg Romanian Deadlift', pattern: 'hip_hinge',
@@ -152,7 +158,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'conventional_deadlift', name: 'Conventional Deadlift', pattern: 'hip_hinge',
@@ -178,7 +184,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'trap_bar_deadlift', name: 'Trap Bar Deadlift', pattern: 'hip_hinge',
@@ -204,7 +210,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'hip_thrust_barbell', name: 'Barbell Hip Thrust', pattern: 'hip_hinge',
@@ -230,7 +236,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'hip_thrust_dumbbell', name: 'Dumbbell Hip Thrust', pattern: 'hip_hinge',
@@ -256,7 +262,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'machine_hip_thrust', name: 'Machine Hip Thrust', pattern: 'hip_hinge',
@@ -282,7 +288,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'b_stance_hip_thrust', name: 'B-Stance Hip Thrust', pattern: 'hip_hinge',
@@ -308,7 +314,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'glute_bridge', name: 'Glute Bridge', pattern: 'hip_hinge',
@@ -334,7 +340,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'frog_pump', name: 'Frog Pump', pattern: 'hip_hinge',
@@ -360,7 +366,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'back_extension', name: 'Back Extension', pattern: 'hip_hinge',
@@ -386,7 +392,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'spinal_erector',
   },
   {
     id: 'kettlebell_swing', name: 'Kettlebell Swing', pattern: 'hip_hinge',
@@ -412,7 +418,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'good_morning', name: 'Good Morning', pattern: 'hip_hinge',
@@ -438,7 +444,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'backpack_rdl', name: 'Backpack Romanian Deadlift', pattern: 'hip_hinge',
@@ -464,7 +470,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'barbell_back_squat', name: 'Barbell Back Squat', pattern: 'squat',
@@ -490,7 +496,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'barbell_front_squat', name: 'Barbell Front Squat', pattern: 'squat',
@@ -516,7 +522,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'goblet_squat', name: 'Goblet Squat', pattern: 'squat',
@@ -542,7 +548,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'heel_elevated_goblet_squat', name: 'Heel-Elevated Goblet Squat', pattern: 'squat',
@@ -568,7 +574,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'hack_squat', name: 'Hack Squat', pattern: 'squat',
@@ -594,7 +600,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'leg_press', name: 'Leg Press', pattern: 'squat',
@@ -620,7 +626,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'bodyweight_squat', name: 'Bodyweight Squat', pattern: 'squat',
@@ -646,7 +652,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'sit_to_stand', name: 'Sit-to-Stand', pattern: 'squat',
@@ -672,7 +678,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'pistol_squat', name: 'Pistol Squat', pattern: 'squat',
@@ -698,7 +704,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'smith_machine_squat', name: 'Smith Machine Squat', pattern: 'squat',
@@ -724,7 +730,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'bulgarian_split_squat', name: 'Bulgarian Split Squat', pattern: 'lunge',
@@ -750,7 +756,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'split_squat', name: 'Split Squat', pattern: 'lunge',
@@ -776,7 +782,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'reverse_lunge', name: 'Reverse Lunge', pattern: 'lunge',
@@ -802,7 +808,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'walking_lunge', name: 'Walking Lunge', pattern: 'lunge',
@@ -828,7 +834,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'forward_lunge', name: 'Forward Lunge', pattern: 'lunge',
@@ -854,7 +860,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'step_up', name: 'Step-Up', pattern: 'lunge',
@@ -880,7 +886,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'smith_split_squat', name: 'Smith Machine Split Squat', pattern: 'lunge',
@@ -906,7 +912,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'barbell_bench_press', name: 'Barbell Bench Press', pattern: 'horizontal_push',
@@ -932,7 +938,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'dumbbell_bench_press', name: 'Flat Dumbbell Press', pattern: 'horizontal_push',
@@ -958,7 +964,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'incline_dumbbell_press', name: 'Incline Dumbbell Press', pattern: 'horizontal_push',
@@ -984,7 +990,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'dumbbell_floor_press', name: 'Dumbbell Floor Press', pattern: 'horizontal_push',
@@ -1010,7 +1016,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'machine_chest_press', name: 'Machine Chest Press', pattern: 'horizontal_push',
@@ -1036,7 +1042,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'incline_smith_press', name: 'Incline Smith Machine Press', pattern: 'horizontal_push',
@@ -1062,7 +1068,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'push_up', name: 'Push-Up', pattern: 'horizontal_push',
@@ -1088,7 +1094,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'incline_push_up', name: 'Incline Push-Up', pattern: 'horizontal_push',
@@ -1114,7 +1120,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'knee_push_up', name: 'Knee Push-Up', pattern: 'horizontal_push',
@@ -1140,7 +1146,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'feet_elevated_push_up', name: 'Feet-Elevated Push-Up', pattern: 'horizontal_push',
@@ -1166,7 +1172,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'weighted_push_up', name: 'Weighted Push-Up', pattern: 'horizontal_push',
@@ -1192,7 +1198,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'diamond_push_up', name: 'Diamond Push-Up', pattern: 'horizontal_push',
@@ -1218,7 +1224,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'dip', name: 'Parallel Bar Dip', pattern: 'horizontal_push',
@@ -1244,7 +1250,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'cable_fly', name: 'Cable Fly', pattern: 'isolation_upper',
@@ -1270,7 +1276,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'barbell_overhead_press', name: 'Barbell Overhead Press', pattern: 'vertical_push',
@@ -1296,7 +1302,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'dumbbell_overhead_press', name: 'Seated Dumbbell Press', pattern: 'vertical_push',
@@ -1322,7 +1328,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'machine_shoulder_press', name: 'Machine Shoulder Press', pattern: 'vertical_push',
@@ -1348,7 +1354,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'landmine_press', name: 'Landmine Press', pattern: 'vertical_push',
@@ -1374,7 +1380,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'pike_push_up', name: 'Pike Push-Up', pattern: 'vertical_push',
@@ -1400,7 +1406,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'elevated_pike_push_up', name: 'Feet-Elevated Pike Push-Up', pattern: 'vertical_push',
@@ -1426,7 +1432,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'handstand_push_up', name: 'Handstand Push-Up', pattern: 'vertical_push',
@@ -1452,7 +1458,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'barbell_row', name: 'Barbell Row', pattern: 'horizontal_pull',
@@ -1478,7 +1484,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'one_arm_dumbbell_row', name: 'One-Arm Dumbbell Row', pattern: 'horizontal_pull',
@@ -1504,7 +1510,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'chest_supported_row', name: 'Chest-Supported Dumbbell Row', pattern: 'horizontal_pull',
@@ -1530,7 +1536,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'machine_row', name: 'Chest-Supported Machine Row', pattern: 'horizontal_pull',
@@ -1556,7 +1562,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 't_bar_row', name: 'Chest-Supported T-Bar Row', pattern: 'horizontal_pull',
@@ -1582,7 +1588,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'cable_row', name: 'Seated Cable Row', pattern: 'horizontal_pull',
@@ -1608,7 +1614,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_arm_cable_row', name: 'Single-Arm Cable Row', pattern: 'horizontal_pull',
@@ -1634,7 +1640,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'inverted_row', name: 'Inverted Row', pattern: 'horizontal_pull',
@@ -1660,7 +1666,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'band_row', name: 'Band Row', pattern: 'horizontal_pull',
@@ -1686,7 +1692,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'backpack_row', name: 'Backpack Row', pattern: 'horizontal_pull',
@@ -1712,7 +1718,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'pull_up', name: 'Pull-Up', pattern: 'vertical_pull',
@@ -1738,7 +1744,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'chin_up', name: 'Chin-Up', pattern: 'vertical_pull',
@@ -1764,7 +1770,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'band_assisted_pull_up', name: 'Band-Assisted Pull-Up', pattern: 'vertical_pull',
@@ -1790,7 +1796,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'lat_pulldown', name: 'Neutral-Grip Lat Pulldown', pattern: 'vertical_pull',
@@ -1816,7 +1822,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'band_lat_pulldown', name: 'Band Lat Pulldown', pattern: 'vertical_pull',
@@ -1842,7 +1848,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'dead_hang', name: 'Dead Hang', pattern: 'vertical_pull',
@@ -1868,7 +1874,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'scapular_pull_up', name: 'Scapular Pull-Up', pattern: 'vertical_pull',
@@ -1894,7 +1900,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'muscle_up_practice', name: 'Muscle-Up Transition Practice', pattern: 'skill',
@@ -1920,7 +1926,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'suitcase_carry', name: 'Suitcase Carry', pattern: 'carry',
@@ -1946,7 +1952,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'farmers_carry', name: 'Farmer\'s Carry', pattern: 'carry',
@@ -1972,7 +1978,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'plank', name: 'Plank', pattern: 'core_anti_extension',
@@ -1998,7 +2004,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'rkc_plank', name: 'RKC Plank', pattern: 'core_anti_extension',
@@ -2024,7 +2030,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'side_plank', name: 'Side Plank', pattern: 'core_anti_lateral_flexion',
@@ -2050,7 +2056,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'dead_bug', name: 'Dead Bug', pattern: 'core_anti_extension',
@@ -2076,7 +2082,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'bird_dog', name: 'Bird-Dog', pattern: 'core_anti_rotation',
@@ -2102,7 +2108,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'pallof_press', name: 'Pallof Press', pattern: 'core_anti_rotation',
@@ -2128,7 +2134,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'hanging_knee_raise', name: 'Hanging Knee Raise', pattern: 'core_flexion',
@@ -2154,7 +2160,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'hollow_body_hold', name: 'Hollow Body Hold', pattern: 'core_anti_extension',
@@ -2180,7 +2186,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'dumbbell_curl', name: 'Dumbbell Curl', pattern: 'isolation_upper',
@@ -2206,7 +2212,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'incline_dumbbell_curl', name: 'Incline Dumbbell Curl', pattern: 'isolation_upper',
@@ -2232,7 +2238,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'hammer_curl', name: 'Hammer Curl', pattern: 'isolation_upper',
@@ -2258,7 +2264,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'cable_curl', name: 'Cable Curl', pattern: 'isolation_upper',
@@ -2284,7 +2290,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'band_curl', name: 'Band Curl', pattern: 'isolation_upper',
@@ -2310,7 +2316,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'overhead_triceps_extension', name: 'Overhead Triceps Extension', pattern: 'isolation_upper',
@@ -2336,7 +2342,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'lateral_raise', name: 'Lateral Raise', pattern: 'isolation_upper',
@@ -2362,7 +2368,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'lateral_delt',
   },
   {
     id: 'cable_lateral_raise', name: 'Cable Lateral Raise', pattern: 'isolation_upper',
@@ -2388,7 +2394,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'lateral_delt',
   },
   {
     id: 'band_lateral_raise', name: 'Band Lateral Raise', pattern: 'isolation_upper',
@@ -2414,7 +2420,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'lateral_delt',
   },
   {
     id: 'face_pull', name: 'Cable Face Pull', pattern: 'isolation_upper',
@@ -2440,7 +2446,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'band_face_pull', name: 'Band Face Pull', pattern: 'isolation_upper',
@@ -2466,7 +2472,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'band_pull_apart', name: 'Band Pull-Apart', pattern: 'isolation_upper',
@@ -2492,7 +2498,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'reverse_pec_deck', name: 'Reverse Pec Deck', pattern: 'isolation_upper',
@@ -2518,7 +2524,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'cable_external_rotation', name: 'Cable External Rotation', pattern: 'isolation_upper',
@@ -2543,8 +2549,8 @@ export const MOVEMENTS: Movement[] = [
     youthAutoAssignable: true, adultAutoAssignable: true,
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
-    role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    role: 'accessory', peakTension: 'shortened',
+    tempoApplies: true, tempoClass: 'rotator_cuff',
   },
   {
     id: 'lying_leg_curl', name: 'Lying Leg Curl', pattern: 'isolation_lower',
@@ -2570,7 +2576,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'seated_leg_curl', name: 'Seated Leg Curl', pattern: 'isolation_lower',
@@ -2596,7 +2602,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'sliding_leg_curl', name: 'Sliding Leg Curl', pattern: 'isolation_lower',
@@ -2622,7 +2628,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'nordic_curl', name: 'Nordic Hamstring Curl', pattern: 'isolation_lower',
@@ -2648,7 +2654,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'leg_extension', name: 'Leg Extension', pattern: 'isolation_lower',
@@ -2674,7 +2680,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'hip_abduction', name: 'Hip Abduction', pattern: 'isolation_lower',
@@ -2700,7 +2706,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'standing_calf_raise', name: 'Standing Calf Raise', pattern: 'calf',
@@ -2726,7 +2732,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'calf_gastroc',
   },
   {
     id: 'seated_calf_raise', name: 'Seated Calf Raise', pattern: 'calf',
@@ -2752,7 +2758,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'calf_soleus',
   },
   {
     id: 'single_leg_calf_raise', name: 'Single-Leg Calf Raise', pattern: 'calf',
@@ -2778,7 +2784,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'calf_gastroc',
   },
   {
     id: 'l_sit', name: 'L-Sit', pattern: 'skill',
@@ -2804,7 +2810,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'tuck_planche_hold', name: 'Tuck Planche Hold', pattern: 'skill',
@@ -2830,7 +2836,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'wall_handstand_hold', name: 'Wall Handstand Hold', pattern: 'skill',
@@ -2856,7 +2862,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'archer_push_up', name: 'Archer Push-Up', pattern: 'horizontal_push',
@@ -2882,7 +2888,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'ring_dip', name: 'Ring Dip', pattern: 'horizontal_push',
@@ -2908,7 +2914,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'burpee', name: 'Burpee', pattern: 'conditioning',
@@ -2934,7 +2940,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'squat_thrust', name: 'Squat Thrust', pattern: 'conditioning',
@@ -2960,7 +2966,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'mountain_climber', name: 'Mountain Climber', pattern: 'conditioning',
@@ -2986,7 +2992,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'high_knees', name: 'High Knees', pattern: 'conditioning',
@@ -3012,7 +3018,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'marching_in_place', name: 'Marching in Place', pattern: 'conditioning',
@@ -3038,7 +3044,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'jumping_jack', name: 'Jumping Jack', pattern: 'conditioning',
@@ -3064,7 +3070,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'box_jump', name: 'Box Jump', pattern: 'plyometric',
@@ -3090,7 +3096,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'squat_jump', name: 'Squat Jump', pattern: 'plyometric',
@@ -3116,7 +3122,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'broad_jump', name: 'Broad Jump', pattern: 'plyometric',
@@ -3142,7 +3148,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'battle_ropes', name: 'Battle Ropes', pattern: 'conditioning',
@@ -3168,7 +3174,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'downward_dog', name: 'Downward-Facing Dog', pattern: 'yoga_pose',
@@ -3194,7 +3200,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'childs_pose', name: 'Child\'s Pose', pattern: 'yoga_pose',
@@ -3220,7 +3226,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'cat_cow', name: 'Cat-Cow', pattern: 'yoga_pose',
@@ -3246,7 +3252,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'cobra_pose', name: 'Cobra', pattern: 'yoga_pose',
@@ -3272,7 +3278,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'warrior_two', name: 'Warrior II', pattern: 'yoga_pose',
@@ -3298,7 +3304,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'triangle_pose', name: 'Triangle Pose', pattern: 'yoga_pose',
@@ -3324,7 +3330,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pigeon_pose', name: 'Pigeon Pose', pattern: 'yoga_pose',
@@ -3350,7 +3356,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'forward_fold', name: 'Standing Forward Fold', pattern: 'yoga_pose',
@@ -3376,7 +3382,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'bridge_pose', name: 'Bridge Pose', pattern: 'yoga_pose',
@@ -3402,7 +3408,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'glute_lockout',
   },
   {
     id: 'sun_salutation', name: 'Sun Salutation', pattern: 'yoga_pose',
@@ -3428,7 +3434,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'ninety_ninety_hip', name: '90/90 Hip Mobility', pattern: 'mobility',
@@ -3454,7 +3460,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'figure_four_stretch', name: 'Figure-Four Stretch', pattern: 'mobility',
@@ -3480,7 +3486,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'couch_stretch', name: 'Couch Stretch', pattern: 'mobility',
@@ -3506,7 +3512,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'hip_flexor_stretch', name: 'Hip Flexor Stretch', pattern: 'mobility',
@@ -3532,7 +3538,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'thoracic_extension', name: 'Thoracic Extension', pattern: 'mobility',
@@ -3558,7 +3564,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'wall_slide', name: 'Wall Slide', pattern: 'mobility',
@@ -3584,7 +3590,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'mobility_flow', name: 'Sun Salutation A', pattern: 'mobility',
@@ -3610,7 +3616,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'diaphragmatic_breathing', name: 'Diaphragmatic Breathing', pattern: 'mobility',
@@ -3636,7 +3642,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'joint_circles', name: 'Controlled Articular Rotations', pattern: 'mobility',
@@ -3662,7 +3668,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pec_deck', name: 'Pec Deck', pattern: 'isolation_upper',
@@ -3688,7 +3694,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'incline_chest_press_machine', name: 'Incline Chest Press Machine', pattern: 'horizontal_push',
@@ -3714,7 +3720,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'converging_row_machine', name: 'Converging Row Machine', pattern: 'horizontal_pull',
@@ -3740,7 +3746,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'straight_arm_pulldown', name: 'Straight-Arm Pulldown', pattern: 'isolation_upper',
@@ -3766,7 +3772,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'pullover_machine', name: 'Pullover Machine', pattern: 'isolation_upper',
@@ -3792,7 +3798,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'assisted_pull_up_machine', name: 'Assisted Pull-Up Machine', pattern: 'vertical_pull',
@@ -3818,7 +3824,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'preacher_curl_machine', name: 'Preacher Curl Machine', pattern: 'isolation_upper',
@@ -3844,7 +3850,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'triceps_pushdown', name: 'Triceps Pushdown', pattern: 'isolation_upper',
@@ -3870,7 +3876,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'dip_machine', name: 'Seated Dip Machine', pattern: 'isolation_upper',
@@ -3896,7 +3902,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'shrug', name: 'Dumbbell Shrug', pattern: 'isolation_upper',
@@ -3922,7 +3928,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'upright_row', name: 'Cable Upright Row', pattern: 'isolation_upper',
@@ -3948,7 +3954,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'lateral_delt',
   },
   {
     id: 'machine_lateral_raise', name: 'Machine Lateral Raise', pattern: 'isolation_upper',
@@ -3974,7 +3980,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'lateral_delt',
   },
   {
     id: 'hip_adduction', name: 'Hip Adduction Machine', pattern: 'isolation_lower',
@@ -4000,7 +4006,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'adductor',
   },
   {
     id: 'copenhagen_plank', name: 'Copenhagen Plank', pattern: 'isolation_lower',
@@ -4026,7 +4032,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'adductor',
   },
   {
     id: 'cable_kickback', name: 'Cable Glute Kickback', pattern: 'isolation_lower',
@@ -4052,7 +4058,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'cable_pull_through', name: 'Cable Pull-Through', pattern: 'hip_hinge',
@@ -4078,7 +4084,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'belt_squat', name: 'Belt Squat', pattern: 'squat',
@@ -4104,7 +4110,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'pendulum_squat', name: 'Pendulum Squat', pattern: 'squat',
@@ -4130,7 +4136,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'calf_press_leg_press', name: 'Calf Press on Leg Press', pattern: 'calf',
@@ -4156,7 +4162,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'calf_gastroc',
   },
   {
     id: 'machine_crunch', name: 'Machine Crunch', pattern: 'core_flexion',
@@ -4182,7 +4188,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'cable_crunch', name: 'Cable Crunch', pattern: 'core_flexion',
@@ -4208,7 +4214,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'back_extension_machine', name: 'Back Extension Machine', pattern: 'hip_hinge',
@@ -4234,7 +4240,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'spinal_erector',
   },
   {
     id: 'hip_thrust_smith', name: 'Smith Machine Hip Thrust', pattern: 'hip_hinge',
@@ -4260,7 +4266,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'landmine_row', name: 'Landmine Row', pattern: 'horizontal_pull',
@@ -4286,7 +4292,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'landmine_squat', name: 'Landmine Squat', pattern: 'squat',
@@ -4312,7 +4318,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'pilates_hundred', name: 'The Hundred', pattern: 'core_anti_extension',
@@ -4338,7 +4344,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'pilates_roll_up', name: 'Roll-Up', pattern: 'core_flexion',
@@ -4364,7 +4370,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'pilates_single_leg_circle', name: 'Single Leg Circles', pattern: 'mobility',
@@ -4390,7 +4396,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pilates_single_leg_stretch', name: 'Single Leg Stretch', pattern: 'core_flexion',
@@ -4416,7 +4422,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'pilates_double_leg_stretch', name: 'Double Leg Stretch', pattern: 'core_anti_extension',
@@ -4442,7 +4448,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'pilates_scissors', name: 'Pilates Scissors', pattern: 'core_anti_extension',
@@ -4468,7 +4474,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'pilates_teaser', name: 'Teaser', pattern: 'core_flexion',
@@ -4494,7 +4500,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'pilates_swan', name: 'Swan', pattern: 'mobility',
@@ -4520,7 +4526,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pilates_saw', name: 'Saw', pattern: 'mobility',
@@ -4546,7 +4552,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pilates_spine_stretch', name: 'Spine Stretch Forward', pattern: 'mobility',
@@ -4572,7 +4578,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pilates_side_kick', name: 'Side Kick Series', pattern: 'isolation_lower',
@@ -4598,7 +4604,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'pilates_clam', name: 'Clam', pattern: 'isolation_lower',
@@ -4624,7 +4630,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'pilates_swimming', name: 'Pilates Swimming', pattern: 'core_anti_extension',
@@ -4650,7 +4656,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'reformer_footwork', name: 'Reformer Footwork', pattern: 'squat',
@@ -4676,7 +4682,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'reformer_long_stretch', name: 'Reformer Long Stretch', pattern: 'core_anti_extension',
@@ -4702,7 +4708,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'reformer_elephant', name: 'Reformer Elephant', pattern: 'mobility',
@@ -4728,7 +4734,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'reformer_knee_stretch', name: 'Reformer Knee Stretch', pattern: 'core_flexion',
@@ -4754,7 +4760,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'reformer_short_box', name: 'Reformer Short Box', pattern: 'core_flexion',
@@ -4780,7 +4786,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'reformer_mermaid', name: 'Reformer Mermaid', pattern: 'mobility',
@@ -4806,7 +4812,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'chair_pose', name: 'Chair Pose', pattern: 'yoga_pose',
@@ -4832,7 +4838,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'tree_pose', name: 'Tree Pose', pattern: 'yoga_pose',
@@ -4858,7 +4864,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'warrior_one', name: 'Warrior I', pattern: 'yoga_pose',
@@ -4884,7 +4890,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'warrior_three', name: 'Warrior III', pattern: 'yoga_pose',
@@ -4910,7 +4916,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'half_moon', name: 'Half Moon', pattern: 'yoga_pose',
@@ -4936,7 +4942,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'extended_side_angle', name: 'Extended Side Angle', pattern: 'yoga_pose',
@@ -4962,7 +4968,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'revolved_triangle', name: 'Revolved Triangle', pattern: 'yoga_pose',
@@ -4988,7 +4994,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'crow_pose', name: 'Crow Pose', pattern: 'skill',
@@ -5014,7 +5020,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'boat_pose', name: 'Boat Pose', pattern: 'core_anti_extension',
@@ -5040,7 +5046,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'camel_pose', name: 'Camel Pose', pattern: 'yoga_pose',
@@ -5066,7 +5072,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'bow_pose', name: 'Bow Pose', pattern: 'yoga_pose',
@@ -5092,7 +5098,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'locust_pose', name: 'Locust Pose', pattern: 'yoga_pose',
@@ -5118,7 +5124,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'seated_forward_fold', name: 'Seated Forward Fold', pattern: 'yoga_pose',
@@ -5144,7 +5150,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'butterfly_stretch', name: 'Butterfly', pattern: 'mobility',
@@ -5170,7 +5176,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'happy_baby', name: 'Happy Baby', pattern: 'mobility',
@@ -5196,7 +5202,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'supine_twist', name: 'Supine Twist', pattern: 'mobility',
@@ -5222,7 +5228,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'legs_up_wall', name: 'Legs Up the Wall', pattern: 'yoga_pose',
@@ -5248,7 +5254,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'corpse_pose', name: 'Corpse Pose', pattern: 'yoga_pose',
@@ -5274,7 +5280,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'chaturanga', name: 'Chaturanga', pattern: 'horizontal_push',
@@ -5300,7 +5306,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'upward_dog', name: 'Upward-Facing Dog', pattern: 'yoga_pose',
@@ -5326,7 +5332,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'low_lunge', name: 'Low Lunge', pattern: 'yoga_pose',
@@ -5352,7 +5358,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'lizard_pose', name: 'Lizard Pose', pattern: 'mobility',
@@ -5378,7 +5384,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'garland_pose', name: 'Garland Pose', pattern: 'yoga_pose',
@@ -5404,7 +5410,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'eagle_pose', name: 'Eagle Pose', pattern: 'yoga_pose',
@@ -5430,7 +5436,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'dancer_pose', name: 'Dancer Pose', pattern: 'yoga_pose',
@@ -5456,7 +5462,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'sled_push', name: 'Sled Push', pattern: 'conditioning',
@@ -5482,7 +5488,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'sled_pull', name: 'Sled Pull', pattern: 'conditioning',
@@ -5508,7 +5514,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'burpee_broad_jump', name: 'Burpee Broad Jump', pattern: 'conditioning',
@@ -5534,7 +5540,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'sandbag_lunge', name: 'Sandbag Lunge', pattern: 'lunge',
@@ -5560,7 +5566,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'wall_ball', name: 'Wall Ball', pattern: 'squat',
@@ -5586,7 +5592,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'thruster', name: 'Thruster', pattern: 'squat',
@@ -5612,7 +5618,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'power_clean', name: 'Power Clean', pattern: 'hip_hinge',
@@ -5638,7 +5644,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'power_snatch', name: 'Power Snatch', pattern: 'hip_hinge',
@@ -5664,7 +5670,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'clean_and_jerk', name: 'Clean and Jerk', pattern: 'hip_hinge',
@@ -5690,7 +5696,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'push_press', name: 'Push Press', pattern: 'vertical_push',
@@ -5716,7 +5722,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'overhead_squat', name: 'Overhead Squat', pattern: 'squat',
@@ -5742,7 +5748,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'front_rack_lunge', name: 'Front Rack Lunge', pattern: 'lunge',
@@ -5768,7 +5774,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'double_under', name: 'Double Under', pattern: 'conditioning',
@@ -5794,7 +5800,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'single_under', name: 'Skipping', pattern: 'conditioning',
@@ -5820,7 +5826,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'toes_to_bar', name: 'Toes to Bar', pattern: 'core_flexion',
@@ -5846,7 +5852,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'kettlebell_clean', name: 'Kettlebell Clean', pattern: 'hip_hinge',
@@ -5872,7 +5878,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'turkish_get_up', name: 'Turkish Get-Up', pattern: 'skill',
@@ -5898,7 +5904,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: true, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'devils_press', name: 'Devil\'s Press', pattern: 'conditioning',
@@ -5924,7 +5930,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'man_maker', name: 'Man Maker', pattern: 'conditioning',
@@ -5950,7 +5956,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'sandbag_clean', name: 'Sandbag Clean', pattern: 'hip_hinge',
@@ -5976,7 +5982,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'tire_flip', name: 'Tire Flip', pattern: 'hip_hinge',
@@ -6002,7 +6008,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'bear_crawl', name: 'Bear Crawl', pattern: 'conditioning',
@@ -6028,7 +6034,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'sled_drag', name: 'Sled Drag', pattern: 'conditioning',
@@ -6054,7 +6060,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'overhead_carry', name: 'Overhead Carry', pattern: 'carry',
@@ -6080,7 +6086,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'front_rack_carry', name: 'Front Rack Carry', pattern: 'carry',
@@ -6106,7 +6112,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'sandbag_carry', name: 'Sandbag Carry', pattern: 'carry',
@@ -6132,7 +6138,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'yoke_walk', name: 'Yoke Walk', pattern: 'carry',
@@ -6158,7 +6164,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'zercher_carry', name: 'Zercher Carry', pattern: 'carry',
@@ -6184,7 +6190,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'waiter_walk', name: 'Waiter Walk', pattern: 'carry',
@@ -6210,7 +6216,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'bottoms_up_carry', name: 'Bottoms-Up Carry', pattern: 'carry',
@@ -6236,7 +6242,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'mixed_carry', name: 'Mixed Carry', pattern: 'carry',
@@ -6262,7 +6268,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'depth_jump', name: 'Depth Jump', pattern: 'plyometric',
@@ -6288,7 +6294,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'bounding', name: 'Bounding', pattern: 'plyometric',
@@ -6314,7 +6320,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'lateral_bound', name: 'Lateral Bound', pattern: 'plyometric',
@@ -6340,7 +6346,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'lateral_hop', name: 'Lateral Hop', pattern: 'plyometric',
@@ -6366,7 +6372,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'pogo_hop', name: 'Pogo Hop', pattern: 'plyometric',
@@ -6392,7 +6398,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'tuck_jump', name: 'Tuck Jump', pattern: 'plyometric',
@@ -6418,7 +6424,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'split_jump', name: 'Split Jump', pattern: 'plyometric',
@@ -6444,7 +6450,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'single_leg_hop', name: 'Single-Leg Hop', pattern: 'plyometric',
@@ -6470,7 +6476,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'hurdle_hop', name: 'Hurdle Hop', pattern: 'plyometric',
@@ -6496,7 +6502,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'medicine_ball_slam', name: 'Medicine Ball Slam', pattern: 'plyometric',
@@ -6522,7 +6528,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'medicine_ball_chest_pass', name: 'Medicine Ball Chest Pass', pattern: 'plyometric',
@@ -6548,7 +6554,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'medicine_ball_rotational_throw', name: 'Rotational Throw', pattern: 'plyometric',
@@ -6574,7 +6580,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'broad_jump_repeat', name: 'Repeat Broad Jump', pattern: 'plyometric',
@@ -6600,7 +6606,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'landmine_rotation', name: 'Landmine Rotation', pattern: 'core_anti_rotation',
@@ -6626,7 +6632,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'cable_chop', name: 'Cable Chop', pattern: 'core_anti_rotation',
@@ -6652,7 +6658,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'cable_lift', name: 'Cable Lift', pattern: 'core_anti_rotation',
@@ -6678,7 +6684,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'renegade_row', name: 'Renegade Row', pattern: 'core_anti_rotation',
@@ -6704,7 +6710,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'suitcase_deadlift', name: 'Suitcase Deadlift', pattern: 'core_anti_rotation',
@@ -6730,7 +6736,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'half_kneeling_press', name: 'Half-Kneeling Press', pattern: 'core_anti_rotation',
@@ -6756,7 +6762,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'plank_pull_through', name: 'Plank Pull-Through', pattern: 'core_anti_rotation',
@@ -6782,7 +6788,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'bird_dog_row', name: 'Bird-Dog Row', pattern: 'core_anti_rotation',
@@ -6808,7 +6814,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
   {
     id: 'single_arm_dumbbell_press', name: 'Single-Arm Dumbbell Press', pattern: 'vertical_push',
@@ -6834,7 +6840,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_arm_floor_press', name: 'Single-Arm Floor Press', pattern: 'horizontal_push',
@@ -6860,7 +6866,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_arm_bench_press', name: 'Single-Arm Dumbbell Bench Press', pattern: 'horizontal_push',
@@ -6886,7 +6892,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_arm_landmine_press', name: 'Single-Arm Landmine Press', pattern: 'vertical_push',
@@ -6912,7 +6918,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_arm_machine_press', name: 'Single-Arm Machine Press', pattern: 'horizontal_push',
@@ -6938,7 +6944,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'arnold_press', name: 'Arnold Press', pattern: 'vertical_push',
@@ -6964,7 +6970,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'front_raise', name: 'Front Raise', pattern: 'isolation_upper',
@@ -6990,7 +6996,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'svend_press', name: 'Svend Press', pattern: 'isolation_upper',
@@ -7016,7 +7022,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'single_joint',
   },
   {
     id: 'decline_press', name: 'Decline Press', pattern: 'horizontal_push',
@@ -7042,7 +7048,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_leg_stand', name: 'Single-Leg Stand', pattern: 'balance',
@@ -7068,7 +7074,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'tandem_stance', name: 'Tandem Stance', pattern: 'balance',
@@ -7094,7 +7100,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'heel_toe_walk', name: 'Heel-to-Toe Walk', pattern: 'balance',
@@ -7120,7 +7126,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'single_leg_reach', name: 'Single-Leg Reach', pattern: 'balance',
@@ -7146,7 +7152,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'airplane_balance', name: 'Airplane Balance', pattern: 'balance',
@@ -7172,7 +7178,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'eyes_closed_balance', name: 'Single-Leg Stand, Eyes Closed', pattern: 'balance',
@@ -7198,7 +7204,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'step_down_control', name: 'Controlled Step-Down', pattern: 'balance',
@@ -7224,7 +7230,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'bent_over_dumbbell_row', name: 'Bent-Over Dumbbell Row', pattern: 'horizontal_pull',
@@ -7250,7 +7256,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'kettlebell_bent_over_row', name: 'Bent-Over Kettlebell Row', pattern: 'horizontal_pull',
@@ -7276,7 +7282,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'band_bent_over_row', name: 'Bent-Over Band Row', pattern: 'horizontal_pull',
@@ -7302,7 +7308,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'mid',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'prone_floor_row', name: 'Prone Floor Row', pattern: 'horizontal_pull',
@@ -7328,7 +7334,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'table_row', name: 'Table Row', pattern: 'horizontal_pull',
@@ -7354,7 +7360,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'towel_door_row', name: 'Towel Door Row', pattern: 'horizontal_pull',
@@ -7380,7 +7386,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'band_lat_pullover', name: 'Band Lat Pullover', pattern: 'vertical_pull',
@@ -7406,7 +7412,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'dumbbell_pullover', name: 'Dumbbell Pullover', pattern: 'vertical_pull',
@@ -7432,7 +7438,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'floor_pullover', name: 'Floor Pullover', pattern: 'vertical_pull',
@@ -7458,7 +7464,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'towel_door_pulldown', name: 'Towel Door Pulldown', pattern: 'vertical_pull',
@@ -7484,7 +7490,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'band_straight_arm_pulldown', name: 'Band Straight-Arm Pulldown', pattern: 'vertical_pull',
@@ -7510,7 +7516,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'wall_sit', name: 'Wall Sit', pattern: 'squat',
@@ -7536,7 +7542,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'cossack_squat', name: 'Cossack Squat', pattern: 'squat',
@@ -7562,7 +7568,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'lateral_lunge', name: 'Lateral Lunge', pattern: 'lunge',
@@ -7588,7 +7594,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'shrimp_squat', name: 'Shrimp Squat', pattern: 'squat',
@@ -7614,7 +7620,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'chair_step_up', name: 'Chair Step-Up', pattern: 'lunge',
@@ -7640,7 +7646,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'single_leg_glute_bridge', name: 'Single-Leg Glute Bridge', pattern: 'hip_hinge',
@@ -7666,7 +7672,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'shortened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'glute_lockout',
   },
   {
     id: 'nordic_eccentric', name: 'Nordic Curl, Eccentric', pattern: 'hip_hinge',
@@ -7692,7 +7698,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'hamstring_walkout', name: 'Hamstring Walkout', pattern: 'hip_hinge',
@@ -7718,7 +7724,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'band_good_morning', name: 'Band Good Morning', pattern: 'hip_hinge',
@@ -7744,7 +7750,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'hamstring_eccentric',
   },
   {
     id: 'band_overhead_press', name: 'Band Overhead Press', pattern: 'vertical_push',
@@ -7770,7 +7776,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'wall_walk', name: 'Wall Walk', pattern: 'vertical_push',
@@ -7796,7 +7802,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'standard_compound',
   },
   {
     id: 'backpack_carry', name: 'Loaded Backpack Carry', pattern: 'carry',
@@ -7822,7 +7828,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'suitcase_hold', name: 'Suitcase Hold', pattern: 'carry',
@@ -7848,7 +7854,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'standard_compound',
   },
   {
     id: 'tibialis_raise', name: 'Tibialis Raise', pattern: 'isolation_lower',
@@ -7874,7 +7880,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'grip_and_small',
   },
   {
     id: 'heel_walk', name: 'Heel Walk', pattern: 'isolation_lower',
@@ -7900,7 +7906,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'short_foot', name: 'Short Foot Drill', pattern: 'isolation_lower',
@@ -7926,7 +7932,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'plate_pinch', name: 'Plate Pinch', pattern: 'isolation_upper',
@@ -7952,7 +7958,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'towel_hang', name: 'Towel Hang', pattern: 'isolation_upper',
@@ -7978,7 +7984,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'wrist_roller', name: 'Wrist Roller', pattern: 'isolation_upper',
@@ -8004,7 +8010,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'mid',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'neck_isometric', name: 'Neck Isometric', pattern: 'isolation_upper',
@@ -8030,7 +8036,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'chin_tuck', name: 'Chin Tuck', pattern: 'isolation_upper',
@@ -8056,7 +8062,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'grip_and_small',
   },
   {
     id: 'side_plank_knees', name: 'Side Plank from Knees', pattern: 'core_anti_lateral_flexion',
@@ -8082,7 +8088,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: null,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'primary', peakTension: 'held',
-    tempoApplies: false,
+    tempoApplies: false, tempoClass: 'core_braced',
   },
   {
     id: 'dumbbell_side_bend', name: 'Dumbbell Side Bend', pattern: 'core_anti_lateral_flexion',
@@ -8108,7 +8114,7 @@ export const MOVEMENTS: Movement[] = [
     coachedOnly: false, youthRepFloor: 6,
     spaceRequirement: 'minimal', reviewStatus: 'internally_reviewed',
     role: 'accessory', peakTension: 'lengthened',
-    tempoApplies: true,
+    tempoApplies: true, tempoClass: 'core_braced',
   },
 ]
 
