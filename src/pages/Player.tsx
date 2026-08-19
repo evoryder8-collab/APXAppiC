@@ -22,6 +22,7 @@ import {
   speechAnnouncementFallbackMs,
   type Block,
 } from '../lib/playerTimeline'
+import { buildSessionRecords } from '../lib/workoutSession'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
 import { speak, stopSpeech, tick } from '../lib/audio'
 import { currentStreak } from '../lib/streak'
@@ -440,44 +441,43 @@ export function Player() {
 
     const sessionId = crypto.randomUUID()
     const completedAt = new Date().toISOString()
-    upsert('workout_sessions', {
-      id: sessionId,
-      user_id: data.profile?.user_id ?? '',
+    // Built by the same function the tracked list view uses, so a set logged
+    // here and a set typed in there are stored identically.
+    const { session, logs } = buildSessionRecords({
+      sessionId,
+      userId: data.profile?.user_id ?? '',
       date,
-      program_day_id: plan.programDay.id,
-      is_lite: lite,
-      is_deload: plan.isDeload,
-      is_event_recovery: plan.isRecoveryMicro,
-      completed: true,
-      quality_score: Math.round(quality * 100) / 100,
-      started_at: state.startedAt,
-      completed_at: completedAt,
-      notes: '',
-    })
-    const workoutLogCreatedAt = Date.now()
-    let workoutLogOrder = 0
-    plan.exercises.forEach((e, exIdx) => {
-      const r = state.results[exIdx]
-      const isRealExercise = data.exercises.some((x) => x.id === e.id)
-      const setCount = e.planned_sets
-      for (let setNo = 1; setNo <= setCount; setNo++) {
-        const sr = r?.sets[setNo - 1]
-        upsert('workout_logs', {
-          id: crypto.randomUUID(),
-          user_id: data.profile?.user_id ?? '',
-          session_id: sessionId,
-          exercise_id: isRealExercise ? e.id : null,
-          exercise_name: e.name,
-          set_no: setNo,
-          weight_kg: r?.skippedAll ? null : (sr?.weight ?? r?.weight ?? null),
-          reps: r?.skippedAll ? null : (sr?.reps ?? countedRepsForSet(state.countedReps, exIdx, setNo, e.per_side) ?? null),
-          rir: r?.skippedAll ? null : (sr?.rir ?? null),
+      programDayId: plan.programDay.id,
+      isLite: lite,
+      isDeload: plan.isDeload,
+      isEventRecovery: plan.isRecoveryMicro,
+      qualityScore: quality,
+      startedAt: state.startedAt,
+      completedAt,
+      exercises: plan.exercises.map((e, exIdx) => {
+        const r = state.results[exIdx]
+        const isRealExercise = data.exercises.some((x) => x.id === e.id)
+        return {
+          exerciseId: isRealExercise ? e.id : null,
+          name: e.name,
+          plannedSets: e.planned_sets,
           skipped: r?.skippedAll ?? !r,
-          override_flag: r?.override ?? false,
-          created_at: new Date(workoutLogCreatedAt + workoutLogOrder++).toISOString(),
-        })
-      }
+          override: r?.override ?? false,
+          sets: Array.from({ length: e.planned_sets }, (_unused, index) => {
+            const sr = r?.sets[index]
+            return {
+              weight: sr?.weight ?? r?.weight ?? null,
+              reps: sr?.reps
+                ?? countedRepsForSet(state.countedReps, exIdx, index + 1, e.per_side)
+                ?? null,
+              rir: sr?.rir ?? null,
+            }
+          }),
+        }
+      }),
     })
+    upsert('workout_sessions', session)
+    logs.forEach((log) => upsert('workout_logs', log))
 
     const completedFocusT25 = plan.exercises.some((exercise, index) =>
       isConditioningFocusT25(exercise.name) && state.results[index] && !state.results[index].skippedAll,

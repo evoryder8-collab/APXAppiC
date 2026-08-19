@@ -35,6 +35,7 @@ const WorkoutSection = lazy(() => import('./pages/WorkoutSection').then((module)
 const AvatarPage = lazy(() => import('./pages/AvatarPage').then((module) => ({ default: module.AvatarPage })))
 const Settings = lazy(() => import('./pages/Settings').then((module) => ({ default: module.Settings })))
 const Player = lazy(() => import('./pages/Player').then((module) => ({ default: module.Player })))
+const TrackedSession = lazy(() => import('./pages/TrackedSession').then((module) => ({ default: module.TrackedSession })))
 const Login = lazy(() => import('./pages/Login').then((module) => ({ default: module.Login })))
 const VisualProgress = lazy(() => import('./pages/VisualProgress').then((module) => ({ default: module.VisualProgress })))
 const NeutralEntry = lazy(() => import('./components/NeutralEntry').then((module) => ({ default: module.NeutralEntry })))
@@ -114,6 +115,7 @@ function AnimatedRoutes() {
         <Route path="/orbit/science" element={<Page><OrbitScience /></Page>} />
         <Route path="/settings" element={<Page><Settings /></Page>} />
         <Route path="/player/:slug/:date" element={<Page immersive><Player /></Page>} />
+        <Route path="/log/:slug/:date" element={<Page><TrackedSession /></Page>} />
         <Route path="*" element={<Navigate to="/" replace />} />
       </Routes>
     </AnimatePresence>

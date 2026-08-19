@@ -6,6 +6,7 @@ import type {
   ProgramDay,
   ProgramSlug,
   RepUnit,
+  SessionMode,
   TrainingGoal,
   TrainingInactivity,
   TrainingInductionProfile,
@@ -330,6 +331,16 @@ export function generateTrainingPlan(
     }
   }
   const programs = [programFor('transition'), programFor('main')]
+  /* Someone already training who wants size or strength is running their own
+   * progressive overload, and a paced follow-along gets in the way of that.
+   * Anyone rebuilding after a layoff is the opposite case: the pacing is most
+   * of the value. Either way the other mode is one tap away, so this is a
+   * starting point rather than a verdict. */
+  const sessionMode: SessionMode =
+    input.inactivity === 'currently_training' && input.goal !== 'rebuild'
+      ? 'tracked'
+      : 'guided'
+
   const program_days: ProgramDay[] = []
   const exercises: Exercise[] = []
   const dayIds: Record<'transition' | 'main', string[]> = { transition: [], main: [] }
@@ -359,6 +370,7 @@ export function generateTrainingPlan(
           ? `${session.warmup} Start with 3-4 reps in reserve and keep every movement pain-free.`
           : session.warmup,
         sort_order: sessionIndex,
+        session_mode: sessionMode,
       })
       /* A generated plan is followed along with, so its pacing has to come
        * from the movement rather than from one number per template. Anyone

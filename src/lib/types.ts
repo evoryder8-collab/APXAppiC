@@ -111,6 +111,8 @@ export type DayType =
   | 't25'
   | 'custom'
 
+export type SessionMode = 'guided' | 'tracked'
+
 export interface ProgramDay {
   id: string
   user_id: string
@@ -121,6 +123,11 @@ export interface ProgramDay {
   est_minutes: number
   warmup_note: string
   sort_order: number
+  /* How this day is trained. "guided" runs the follow-along player, which
+   * paces the session and counts reps aloud. "tracked" shows the list and
+   * lets the lifter enter weight, reps and reps-in-reserve themselves, which
+   * is what anyone running their own progressive overload actually wants. */
+  session_mode?: SessionMode | null
 }
 
 export type RepUnit = 'reps' | 'seconds' | 'minutes' | 'max' | 'check'

@@ -4,7 +4,7 @@ import type { IntroLanguage } from '../lib/introLanguage'
 import { useLanguage } from '../lib/i18n'
 import type { Accent } from '../lib/theme'
 import { ACCENTS } from '../lib/theme'
-import type { Exercise, Program, ProgramDay } from '../lib/types'
+import type { Exercise, Program, ProgramDay, SessionMode } from '../lib/types'
 import { useOrbitText } from '../orbit/ui/i18n'
 import { useStore } from '../store/AppStore'
 import {
@@ -79,6 +79,10 @@ export function CustomWorkoutBuilder({
   const t = useOrbitText()
   const { language } = useLanguage()
   const [name, setName] = useState('')
+  /* A trainer building a plan for somebody else knows which of the two this
+   * is meant to be. Guided paces the session and counts the reps aloud;
+   * tracked shows the list and lets the lifter record what they actually did. */
+  const [sessionMode, setSessionMode] = useState<SessionMode>('guided')
   const [weekday, setWeekday] = useState(() => getISODay(new Date()))
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<'all' | ExerciseCategory>('all')
@@ -152,6 +156,7 @@ export function CustomWorkoutBuilder({
       weekday,
       name: name.trim(),
       day_type: 'custom',
+      session_mode: sessionMode,
       est_minutes: estimatedMinutes(selected, byId),
       warmup_note: 'Five minutes of pain-free joint preparation',
       sort_order: weekday,
@@ -215,6 +220,29 @@ export function CustomWorkoutBuilder({
             <span className="mb-1.5 block text-xs font-bold text-ink-soft">{t('Workout name')}</span>
             <input value={name} onChange={(event) => setName(event.target.value)} className={inputClass} placeholder={t('e.g. Full-body power')} maxLength={56} />
           </label>
+          <div>
+            <span className="mb-1.5 block text-xs font-bold text-ink-soft">{t('How it is trained')}</span>
+            <div className="flex gap-1.5">
+              {([
+                ['guided', t('Follow along'), t('Paced, counts the reps')],
+                ['tracked', t('Track it'), t('A list you fill in')],
+              ] as Array<[SessionMode, string, string]>).map(([mode, label, hint]) => (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => setSessionMode(mode)}
+                  className={`flex-1 rounded-2xl border px-3 py-2.5 text-left transition ${
+                    sessionMode === mode
+                      ? 'border-violet-300 bg-violet-50'
+                      : 'border-slate-100 bg-slate-50'
+                  }`}
+                >
+                  <span className="block text-xs font-black text-ink">{label}</span>
+                  <span className="mt-0.5 block text-[10px] font-semibold text-ink-soft">{hint}</span>
+                </button>
+              ))}
+            </div>
+          </div>
           <div>
             <span className="mb-1.5 block text-xs font-bold text-ink-soft">{t('Training day')}</span>
             <div className="flex gap-1.5 overflow-x-auto pb-1">

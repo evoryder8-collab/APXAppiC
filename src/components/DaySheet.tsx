@@ -264,21 +264,35 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
         </button>
       </div>
 
-      {!done && plan.exercises.length > 0 && isPastOrToday && (
-        <div className="mt-4">
-          <GradientButton
-            accent={accent}
-            breathe
-            className="w-full py-4 text-base tracking-wide"
-            onClick={() => {
-              onClose()
-              navigate(`/player/${slug}/${dateIso}${lite ? '?lite=1' : ''}`)
-            }}
-          >
-            START {plan.isRecoveryMicro ? 'RECOVERY' : 'SESSION'}
-          </GradientButton>
-        </div>
-      )}
+      {!done && plan.exercises.length > 0 && isPastOrToday && (() => {
+        /* Two ways to train the same session. The day carries which one it was
+         * built for, and the other is always one tap away rather than buried:
+         * a follow-along is wrong for someone running their own overload, and
+         * a bare list is wrong for someone who wanted to be paced. */
+        const query = lite ? '?lite=1' : ''
+        const tracked = plan.programDay?.session_mode === 'tracked'
+        const primary = tracked ? `/log/${slug}/${dateIso}${query}` : `/player/${slug}/${dateIso}${query}`
+        const secondary = tracked ? `/player/${slug}/${dateIso}${query}` : `/log/${slug}/${dateIso}${query}`
+        return (
+          <div className="mt-4">
+            <GradientButton
+              accent={accent}
+              breathe
+              className="w-full py-4 text-base tracking-wide"
+              onClick={() => { onClose(); navigate(primary) }}
+            >
+              {tracked ? 'LOG SESSION' : `START ${plan.isRecoveryMicro ? 'RECOVERY' : 'SESSION'}`}
+            </GradientButton>
+            <button
+              type="button"
+              onClick={() => { onClose(); navigate(secondary) }}
+              className="mt-2 w-full rounded-2xl px-4 py-2.5 text-[11px] font-bold text-ink-soft underline underline-offset-2"
+            >
+              {tracked ? 'Follow along instead' : 'Just track it instead'}
+            </button>
+          </div>
+        )
+      })()}
     </Sheet>
     <WorkoutStatsSheet open={statsOpen} onClose={() => setStatsOpen(false)} sessionId={done?.id ?? null} accent={accent} />
     </>

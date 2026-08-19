@@ -12,6 +12,7 @@ import {
 } from '../src/lib/sessionShape.ts'
 import { MOVEMENT_BY_ID } from '../src/data/movements.ts'
 import type { PlannedDay, PlannedExercise } from '../src/lib/plan.ts'
+import { buildSessionRecords, sessionQuality } from '../src/lib/workoutSession.ts'
 import type { Exercise, TrainingGoal, TrainingInductionInput } from '../src/lib/types.ts'
 
 function planFrom(exercises: Exercise[]): PlannedDay {
@@ -211,4 +212,81 @@ test('the shared estimator and the player agree on the same session', () => {
     assert.ok(Math.abs(shared - player) <= 1,
       `${day.name}: estimator says ${shared}, player says ${player}`)
   }
+})
+
+test('both ways of training write identical history', () => {
+  // A set counted by the guided player and a set typed into the tracked list
+  // must be indistinguishable afterwards, or progressive overload, the workout
+  // receipt and every strength comparison quietly depend on which screen
+  // somebody happened to open.
+  const draft = {
+    sessionId: 'session-1', userId: 'user-1', date: '2026-08-19',
+    programDayId: 'day-1', isLite: false, isDeload: false, isEventRecovery: false,
+    qualityScore: 0.8333333, startedAt: '2026-08-19T09:00:00.000Z',
+    completedAt: '2026-08-19T10:00:00.000Z',
+    exercises: [
+      {
+        exerciseId: 'ex-1', name: 'Barbell Back Squat', plannedSets: 3,
+        skipped: false, override: false,
+        sets: [
+          { weight: 80, reps: 10, rir: 2 },
+          { weight: 80, reps: 9, rir: 1 },
+          { weight: 80, reps: 8, rir: 0 },
+        ],
+      },
+      {
+        exerciseId: null, name: 'Push-Up', plannedSets: 2,
+        skipped: true, override: false, sets: [],
+      },
+    ],
+  }
+  let counter = 0
+  const ids = () => `log-${counter++}`
+  const first = buildSessionRecords(draft, ids)
+  counter = 0
+  const second = buildSessionRecords(draft, ids)
+  assert.deepEqual(first, second)
+
+  // Every planned set is written even when the exercise was skipped, because
+  // an absent row and a skipped row mean different things.
+  assert.equal(first.logs.length, 5)
+  const skipped = first.logs.filter((l) => l.exercise_name === 'Push-Up')
+  assert.equal(skipped.length, 2)
+  assert.ok(skipped.every((l) => l.skipped && l.reps === null && l.weight_kg === null))
+
+  // Reps in reserve survives, which is the number progressive overload runs on.
+  assert.deepEqual(first.logs.slice(0, 3).map((l) => l.rir), [2, 1, 0])
+  // And the stored order is pinned rather than left to the database.
+  const times = first.logs.map((l) => Date.parse(l.created_at))
+  assert.deepEqual(times, [...times].sort((a, b) => a - b))
+  assert.equal(new Set(times).size, times.length)
+})
+
+test('session quality means the same thing in both modes', () => {
+  const full = sessionQuality([
+    { exerciseId: null, name: 'a', plannedSets: 3, skipped: false, override: false,
+      sets: [{ weight: 1, reps: 8, rir: 1 }, { weight: 1, reps: 8, rir: 1 }, { weight: 1, reps: 8, rir: 1 }] },
+  ])
+  assert.equal(full, 1)
+  const half = sessionQuality([
+    { exerciseId: null, name: 'a', plannedSets: 4, skipped: false, override: false,
+      sets: [{ weight: 1, reps: 8, rir: 1 }, { weight: 1, reps: 8, rir: 1 }] },
+  ])
+  assert.equal(half, 0.5)
+  // A skipped exercise counts as planned but not performed.
+  assert.equal(sessionQuality([
+    { exerciseId: null, name: 'a', plannedSets: 2, skipped: true, override: false, sets: [] },
+  ]), 0)
+})
+
+test('the questionnaire picks a starting mode that suits the person', () => {
+  const trained = generateTrainingPlan('u', intake('muscle', { inactivity: 'currently_training' }))
+  const returning = generateTrainingPlan('u', intake('muscle', { inactivity: 'over_one_year' }))
+  // Somebody already training and chasing size runs their own overload.
+  assert.ok(trained.program_days.every((d) => d.session_mode === 'tracked'))
+  // Somebody coming back after a year needs the pacing more than the autonomy.
+  assert.ok(returning.program_days.every((d) => d.session_mode === 'guided'))
+  // Rebuilding is guided regardless, because that is what the mode is for.
+  const rebuilding = generateTrainingPlan('u', intake('rebuild', { inactivity: 'currently_training' }))
+  assert.ok(rebuilding.program_days.every((d) => d.session_mode === 'guided'))
 })
