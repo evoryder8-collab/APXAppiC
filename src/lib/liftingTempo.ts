@@ -492,3 +492,94 @@ export function bodyweightRange(m: Movement, intent: TrainingIntent): {
     note: '',
   }
 }
+
+/* --------------------------------------------------- BRIDGE TO THE PLAYER
+ *
+ * The app already counts reps aloud from three fields on each exercise row:
+ * tempo_down_s, tempo_pause_s and tempo_up_s. Until now the generator, the
+ * custom workout builder and every seeded programme wrote 2-0-1 into them by
+ * hand, which is why 301 of 439 live exercises share one cadence across 78
+ * different movements -- the blanket rule all of the class work exists to
+ * replace. None of it reached the person actually following along.
+ *
+ * These translate a movement and a goal into those fields, so the cadence the
+ * user hears is the one the library reasoned about.
+ */
+export interface TempoFields {
+  tempo_down_s: number
+  tempo_pause_s: number
+  tempo_up_s: number
+  tempo_note: string
+}
+
+/* Short enough to be read mid-set or spoken by the cadence engine. */
+const SHORT_POSITION: Record<'lengthened' | 'shortened' | 'mid', string> = {
+  lengthened: 'in the stretch',
+  shortened: 'squeeze at the top',
+  mid: 'at the hardest point',
+}
+
+export function tempoFieldsFor(m: Movement, intent: TrainingIntent): TempoFields {
+  const tempo = tempoFor(m, intent)
+  if (!tempo) {
+    // Holds, carries, jumps and ballistic lifts are not counted in phases.
+    // Zeroing the cadence is what stops the player timing a rep that has none.
+    const hold = holdFor(m, intent)
+    return {
+      tempo_down_s: 0,
+      tempo_pause_s: 0,
+      tempo_up_s: 0,
+      tempo_note: hold ? hold.cue : uncountedCue(m),
+    }
+  }
+  const position = m.peakTension === 'held' ? 'mid' : m.peakTension
+  const note = tempo.pauseSeconds > 0
+    ? `${tempo.pauseSeconds}s ${SHORT_POSITION[position]}`
+    : tempo.concentricIntent === 'maximal' ? 'Drive up as fast as you can'
+      : ''
+  return {
+    tempo_down_s: tempo.eccentricSeconds,
+    tempo_pause_s: tempo.pauseSeconds,
+    tempo_up_s: tempo.concentricSeconds,
+    tempo_note: note,
+  }
+}
+
+/* What governs a set that has no counted rep. Every mode needs one, or someone
+ * following along is shown a blank where the instruction should be -- which is
+ * how twenty-eight yoga poses reached the player saying nothing at all. */
+function uncountedCue(m: Movement): string {
+  switch (m.prescriptionMode) {
+    case 'contacts': return 'Stopped on landing quality'
+    // A clean is judged on bar speed, so counting a lowering phase would be
+    // timing a part of the lift that does not exist.
+    case 'quality_reps': return 'Stopped when the bar slows'
+    case 'quality': return 'Stopped on quality, not on the count'
+    case 'breath': return 'Paced by the breath, not by a count'
+    case 'interval': return 'Hold a pace that survives the last round'
+    case 'distance': return 'Full range, unhurried'
+    default: return 'Stopped on quality, not on the count'
+  }
+}
+
+/* Programme rows carry their own names -- "Pull-Ups (different grip than Wed)",
+ * "Bulgarian Split Squat (backpack)" -- so resolving one to a movement has to
+ * survive the parenthetical. */
+export function resolveMovement(
+  name: string,
+  movements: Movement[],
+  aliases: Record<string, string>,
+): Movement | null {
+  const byAlias = aliases[name]
+  if (byAlias) {
+    const hit = movements.find((m) => m.id === byAlias)
+    if (hit) return hit
+  }
+  const normalise = (value: string) =>
+    value.toLowerCase().replace(/\(.*?\)/g, '').replace(/[^a-z]/g, '')
+  const target = normalise(name)
+  if (!target) return null
+  return movements.find((m) => normalise(m.name) === target)
+    ?? movements.find((m) => normalise(m.id) === target)
+    ?? null
+}

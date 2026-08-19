@@ -31,6 +31,8 @@ import {
   holdFor,
   bodyweightRange,
   contactCue,
+  tempoFieldsFor,
+  type TempoFields,
   type TrainingIntent,
   type Tempo,
 } from './liftingTempo.ts'
@@ -108,6 +110,9 @@ export interface Prescription {
   rationale: string
   /* What counts as a good rep on this movement specifically. */
   rangeCue: string
+  /* The three fields the live cadence engine counts from, so the timing the
+   * user hears is the one the library reasoned about rather than a default. */
+  tempoFields: TempoFields
   note: string
 }
 
@@ -365,6 +370,7 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     evidence: cls.evidence,
     rationale: cls.why,
     rangeCue: cls.rom,
+    tempoFields: tempoFieldsFor(m, intent),
     note: note.join(' '),
   }
 }

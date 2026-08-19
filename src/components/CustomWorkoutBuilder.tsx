@@ -16,6 +16,8 @@ import {
   type ExerciseCategory,
 } from '../data/exerciseCatalog'
 import { GhostButton, GradientButton, Sheet } from './ui'
+import { MOVEMENTS, MOVEMENT_ALIASES } from '../data/movements'
+import { resolveMovement, tempoFieldsFor } from '../lib/liftingTempo'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((module) => ({ default: module.HologramStage })),
@@ -127,6 +129,16 @@ export function CustomWorkoutBuilder({
       description: 'Your searchable exercise studio, saved privately.',
     }
     const existingDay = data.program_days.find((day) => day.program_id === program.id && day.weekday === weekday)
+  /* A custom workout was writing 2-0-1 onto everything the user picked, which
+   * is the blanket cadence the movement library exists to replace. Where the
+   * chosen exercise maps onto a known movement, its own timing is used; where
+   * it does not, the previous defaults stand rather than guessing. */
+  const tempoForCatalogItem = (name: string) => {
+    const movement = resolveMovement(name, MOVEMENTS, MOVEMENT_ALIASES)
+    if (!movement) return { tempo_up_s: 1, tempo_down_s: 2, tempo_pause_s: 0, tempo_note: '' }
+    return tempoFieldsFor(movement, 'hypertrophy')
+  }
+
     const day: ProgramDay = {
       id: existingDay?.id ?? crypto.randomUUID(),
       user_id: profile.user_id,
@@ -158,10 +170,7 @@ export function CustomWorkoutBuilder({
         rep_unit: item.unit,
         per_side: item.perSide,
         rest_sec: clamp(selection.rest, 0, 600),
-        tempo_up_s: 1,
-        tempo_down_s: 2,
-        tempo_pause_s: 0,
-        tempo_note: '',
+        ...tempoForCatalogItem(item.name),
         notes: `${item.equipment} · ${item.muscles.join(', ')}`,
         increment_kg: weighted ? 2.5 : 0,
         is_lite: false,
