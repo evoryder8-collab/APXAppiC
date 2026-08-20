@@ -405,6 +405,12 @@ final class AppSession {
     }
 
     func setInterfaceMode(_ mode: PortalUIMode) async {
+        /* Simple and Advanced swap the *root* of the navigation stack, so
+           switching while somewhere pushed -- Nutrition, Training, anywhere --
+           changed the screen underneath and left the pushed one on top. From
+           the outside the toggle simply did nothing. Returning to the root is
+           what the switch is asking for: show me that mode. */
+        navigationPath = []
         await updateSettings { settings in
             settings.addons["uiMode"] = .string(mode.rawValue)
         }

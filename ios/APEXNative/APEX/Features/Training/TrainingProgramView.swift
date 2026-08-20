@@ -794,8 +794,25 @@ struct WorkoutPlayerView: View {
         return nil
     }
 
-    private func tempoLine(_ exercise: Exercise) -> String {
+    /* What governs this set, or nothing at all.
+     *
+     * This used to always claim "APEX paces you: 1s up, 2s down", which is
+     * true of a barbell row and meaningless on an eleven minute stretch flow,
+     * a plank, a loaded carry or a box jump. None of those have a repetition
+     * whose halves can be timed, and printing a cadence on them is worse than
+     * printing nothing: it tells the follower to do something the movement
+     * does not contain. */
+    /* What this movement's unit of work is called, so the controls stop
+       saying "set" for things that have none. */
+    private func skipNoun(_ exercise: Exercise) -> String {
+        let noun = MovementTiming.movement(named: exercise.name)?.setNoun ?? "set"
+        return language.text(noun)
+    }
+
+    private func tempoLine(_ exercise: Exercise) -> String? {
         if !exercise.tempoNote.isEmpty { return language.text(exercise.tempoNote) }
+        let movement = MovementTiming.movement(named: exercise.name)
+        guard movement?.countsReps ?? (exercise.repUnit == "reps") else { return nil }
         let up = exercise.tempoUp.formatted(.number.precision(.fractionLength(0...1)))
         let down = exercise.tempoDown.formatted(.number.precision(.fractionLength(0...1)))
         return language.format("APEX paces you: %@s up, %@s down", up, down)
@@ -1020,13 +1037,20 @@ struct WorkoutPlayerView: View {
                     }
 
                     HStack {
-                        Button(language.text("Skip set")) { endCurrentSet(skipped: true) }
+                        /* "Skip set" is wrong on a stretch flow you hold once
+                           and on a carry you walk once. The movement says what
+                           its unit of work is called. */
+                        Button(language.format("Skip %@", skipNoun(current))) {
+                            endCurrentSet(skipped: true)
+                        }
                             .buttonStyle(.plain)
                             .foregroundStyle(APEXColor.secondaryInk)
                         Spacer()
-                        Text(tempoLine(current))
-                            .font(APEXFont.body(10, weight: .medium))
-                            .foregroundStyle(APEXColor.secondaryInk)
+                        if let line = tempoLine(current) {
+                            Text(line)
+                                .font(APEXFont.body(10, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
                     }
                 }
             }
@@ -1057,23 +1081,43 @@ struct WorkoutPlayerView: View {
                 }
                 .frame(width: 180, height: 180)
 
+                /* Only ask about what the movement actually has. A stretch
+                   flow was being asked how many repetitions and how many
+                   kilograms it took, which has no answer -- and offering zero
+                   as the default made the question look answered. A hold is
+                   asked nothing; a bodyweight movement is asked for reps but
+                   not for load. */
                 if let last = setInputs.last {
-                    VStack(alignment: .leading, spacing: 13) {
-                        Text(language.text("LOG THIS SET DURING THE BREAK"))
-                            .font(APEXFont.mono(10))
-                            .tracking(1.5)
-                            .foregroundStyle(APEXColor.violet)
-                        Text(language.format("%@ · Set %d", language.text(last.exerciseName), last.setNumber))
-                            .font(APEXFont.display(19))
-                        restMetricRow(title: "Actual reps", value: Double(last.reps ?? 0), step: 1, unit: "") { delta in
-                            adjustLastInput(repsDelta: Int(delta), weightDelta: 0)
+                    let movement = MovementTiming.movement(named: last.exerciseName)
+                    let asksReps = movement?.countsReps ?? true
+                    let asksLoad = movement?.recordsLoad ?? ((current?.incrementKG ?? 0) > 0)
+                    if asksReps || asksLoad {
+                        VStack(alignment: .leading, spacing: 13) {
+                            Text(language.text("LOG THIS SET DURING THE BREAK"))
+                                .font(APEXFont.mono(10))
+                                .tracking(1.5)
+                                .foregroundStyle(APEXColor.violet)
+                            Text(language.format(
+                                "%@ · %@ %d",
+                                language.text(last.exerciseName),
+                                language.text(movement?.setNoun.capitalized ?? "Set"),
+                                last.setNumber
+                            ))
+                                .font(APEXFont.display(19))
+                            if asksReps {
+                                restMetricRow(title: "Actual reps", value: Double(last.reps ?? 0), step: 1, unit: "") { delta in
+                                    adjustLastInput(repsDelta: Int(delta), weightDelta: 0)
+                                }
+                            }
+                            if asksLoad {
+                                restMetricRow(title: "Weight used", value: last.weightKG ?? 0, step: current?.incrementKG ?? 1, unit: "kg") { delta in
+                                    adjustLastInput(repsDelta: 0, weightDelta: delta)
+                                }
+                            }
                         }
-                        restMetricRow(title: "Weight used", value: last.weightKG ?? 0, step: current?.incrementKG ?? 1, unit: "kg") { delta in
-                            adjustLastInput(repsDelta: 0, weightDelta: delta)
-                        }
+                        .padding(16)
+                        .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
                     }
-                    .padding(16)
-                    .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
                 }
 
                 HStack(spacing: 12) {

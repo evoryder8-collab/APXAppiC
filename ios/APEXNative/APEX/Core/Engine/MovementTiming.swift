@@ -22,11 +22,36 @@ enum MovementTiming {
         /// Kit that has to be moved, re-pinned or walked around before the
         /// second side can start.
         let repositioning: Bool
+        /// How the movement is dosed: timed reps, a hold, a carry, ground
+        /// contacts, breath-paced work, and so on.
+        let prescriptionMode: String
+        let loadable: Bool
 
         private enum CodingKeys: String, CodingKey {
-            case id, name, unilateral, repositioning
+            case id, name, unilateral, repositioning, loadable
             case setupSeconds = "setup_seconds"
             case fatigueCost = "fatigue_cost"
+            case prescriptionMode = "prescription_mode"
+        }
+
+        /// Whether counting a rep cadence means anything here. A stretch flow,
+        /// a plank, a carry and a jump are all dosed by something other than
+        /// the tempo of a repetition.
+        var countsReps: Bool { prescriptionMode == "tempo_reps" }
+
+        /// Whether asking what was lifted makes sense afterwards. A mobility
+        /// drill has no weight, and asking for one is noise at best.
+        var recordsLoad: Bool { loadable && prescriptionMode != "breath" }
+
+        /// What the unit of work is called, so the controls can say it.
+        var setNoun: String {
+            switch prescriptionMode {
+            case "hold", "carry": return "hold"
+            case "breath", "quality": return "exercise"
+            case "contacts": return "round"
+            case "interval": return "round"
+            default: return "set"
+            }
         }
     }
 

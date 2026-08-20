@@ -35,7 +35,11 @@ const movements = MOVEMENTS.map((m) => ({
   unilateral: m.unilateral,
   repositioning: [...m.equipment, ...m.equipmentAnyOf.flat()]
     .some((item) => REPOSITIONING.has(item)),
-  tempo_down_s: m.tempoApplies ? null : 0,
+  /* How the movement is dosed. The player was treating everything as sets of
+   * timed reps, so a stretch flow held for eleven minutes was told "APEX paces
+   * you: 1s up, 2s down" and then asked how many reps and kilograms it took. */
+  prescription_mode: m.prescriptionMode,
+  loadable: m.loadable,
 }))
 
 writeFileSync(out, JSON.stringify({
