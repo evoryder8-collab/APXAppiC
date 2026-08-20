@@ -495,6 +495,7 @@
    "evidence": "moderate",
    "summary": "Root-only extracts are the ones used in most strength and anxiety trials, and are the higher-withanolide, daytime-marketed form. Thyroid and hormonal activity; not for use in pregnancy.",
    "timing": "Morning",
+   "femaleWarning": "Traditionally used to induce miscarriage, and avoided in pregnancy for that reason. It also alters thyroid hormone, which is a more common issue in women.",
    "adultOnly": true,
    "restriction": "Hormonal and thyroid activity, and not trialled in adolescents."
   },
@@ -515,6 +516,7 @@
    "evidence": "limited",
    "summary": "Root-and-leaf extracts carry more withaferin A and are marketed for calm and sleep rather than for training. Fewer trials than the root-only form, at lower doses.",
    "timing": "Evening",
+   "femaleWarning": "Avoided in pregnancy, as with all ashwagandha preparations. It also alters thyroid hormone, which is a more common issue in women.",
    "adultOnly": true,
    "restriction": "Hormonal and thyroid activity, and not trialled in adolescents."
   },
@@ -700,7 +702,7 @@
    ],
    "unit": "billion CFU",
    "evidence": "limited",
-   "summary": "Effects are strain-specific, so the count on the label says little on its own. Best evidence is for antibiotic-associated and travellers\\u2019 diarrhoea.",
+   "summary": "Effects are strain-specific, so the count on the label says little on its own. Best evidence is for antibiotic-associated and travellers' diarrhoea.",
    "timing": "With food"
   },
   {
@@ -967,6 +969,7 @@
    "evidence": "limited",
    "summary": "Some small trials on stress hormones and libido. Testosterone effects, where present, are modest and mostly in stressed or deficient men.",
    "timing": "Morning",
+   "femaleWarning": "Sold to raise testosterone, and studied almost entirely in men. There is no female safety data, and androgenic effects are the mechanism it is marketed on.",
    "adultOnly": true,
    "restriction": "Marketed for hormonal effects, with no adolescent data at all."
   },
@@ -986,6 +989,7 @@
    "evidence": "insufficient",
    "summary": "Repeatedly tested and repeatedly found not to raise testosterone in humans. Listed so a stack can be recorded honestly, not because it works.",
    "timing": "Any time",
+   "femaleWarning": "Marketed on androgenic effects it does not reliably produce, and untested in women. Some preparations have been linked to cycle disruption.",
    "adultOnly": true,
    "restriction": "Sold for hormonal effects it does not have, and untested in adolescents."
   },
@@ -1351,6 +1355,7 @@
    "evidence": "limited",
    "summary": "A GLA source studied for cyclical breast pain and eczema, with mixed results in both.",
    "timing": "With food",
+   "femaleWarning": "Avoided in late pregnancy because it can affect the timing of labour, and it adds to the effect of blood thinners.",
    "adultOnly": true,
    "restriction": "Hormonal use and no adolescent data."
   },
@@ -1557,6 +1562,7 @@
    "evidence": "moderate",
    "summary": "Genuinely effective for mild to moderate depression, and one of the most dangerous interaction profiles of any supplement: it disables hormonal contraception and many prescriptions.",
    "timing": "Morning",
+   "femaleWarning": "Induces the liver enzymes that clear hormonal contraception, which is a documented cause of breakthrough bleeding and unintended pregnancy. This applies to the pill, the patch, the ring and the implant.",
    "adultOnly": true,
    "restriction": "Severe drug interactions, including hormonal contraception."
   },
@@ -1831,6 +1837,7 @@
    "evidence": "limited",
    "summary": "The red-wine compound. Human trials have largely not reproduced the animal findings, and high doses may blunt training adaptations.",
    "timing": "With food",
+   "femaleWarning": "Has oestrogen-like activity, so it is generally avoided with hormone-sensitive conditions such as endometriosis or oestrogen-receptor-positive breast cancer.",
    "adultOnly": true,
    "restriction": "Oestrogenic activity and no adolescent data."
   },
@@ -2039,6 +2046,7 @@
    "evidence": "limited",
    "summary": "A precursor hormone, not a nutrient. Banned in most sport, and it converts to both oestrogen and testosterone.",
    "timing": "Morning",
+   "femaleWarning": "An androgen precursor. In women it is documented to cause acne, unwanted hair growth, scalp hair loss, a deeper voice and disrupted cycles, and some of those changes do not reverse.",
    "adultOnly": true,
    "restriction": "A hormone precursor, banned in sport and unsuitable for anyone still developing."
   },
@@ -2058,6 +2066,7 @@
    "evidence": "limited",
    "summary": "A broccoli-derived compound that shifts oestrogen metabolism. Sold for hormonal balance on early evidence.",
    "timing": "With food",
+   "femaleWarning": "Works by changing how oestrogen is metabolised. That is the point of it, which also makes it the reason to be careful with any hormone-sensitive condition.",
    "adultOnly": true,
    "restriction": "Alters oestrogen metabolism; unsuitable during adolescence."
   },
@@ -2077,6 +2086,7 @@
    "evidence": "limited",
    "summary": "Small trials showing shifts in free testosterone and oestrogen at higher doses. A trace mineral with a narrow useful range.",
    "timing": "With food",
+   "femaleWarning": "At supplemental doses it measurably shifts free testosterone and oestradiol. Fine as a trace mineral from food; less predictable as a hormone-shifting dose.",
    "adultOnly": true,
    "restriction": "Hormonal activity at supplemental doses."
   },
@@ -2259,7 +2269,8 @@
    "unit": "IU",
    "evidence": "moderate",
    "summary": "Fat-soluble and stored, so excess accumulates. Retinol is teratogenic at high doses in pregnancy.",
-   "timing": "With food"
+   "timing": "With food",
+   "femaleWarning": "Retinol is teratogenic. High doses in early pregnancy cause birth defects, often before a pregnancy is known about. Beta-carotene does not carry this risk."
   },
   {
    "id": "biotin",

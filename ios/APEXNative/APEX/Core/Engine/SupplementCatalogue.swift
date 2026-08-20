@@ -31,6 +31,16 @@ enum SupplementCatalogue {
         let adultOnly: Bool?
         let restriction: String?
         let youthNote: String?
+        /// A documented, sex-specific reason for caution. Deliberately rare:
+        /// most supplements have none, and warning women about creatine or
+        /// iron would be both wrong and patronising.
+        let femaleWarning: String?
+
+        /// At most two ready-made sizes, because the third pill is the one
+        /// that matters: whatever is actually printed on the tub the user
+        /// bought. Brands vary enough that a fixed list is always wrong for
+        /// somebody, and asking for the brand name would be worse.
+        var presetDoses: [Double] { Array(doses.prefix(2)) }
 
         /// How well supported this is, said plainly. A catalogue that presents
         /// tribulus and creatine identically is not being straight with anyone.

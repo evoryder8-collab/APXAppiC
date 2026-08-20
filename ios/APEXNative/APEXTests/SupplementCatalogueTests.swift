@@ -169,3 +169,77 @@ extension SupplementCatalogueTests {
         XCTAssertTrue(teen?.youthNote?.contains("100") ?? false)
     }
 }
+
+extension SupplementCatalogueTests {
+
+    /// Every user-facing string in the catalogue has to resolve in both
+    /// languages, or a Romanian or Thai user reads English in the middle of an
+    /// otherwise translated screen.
+    func testEverySupplementStringIsTranslated() {
+        for language in ["ro", "th"] {
+            guard let url = Bundle.main.url(forResource: "Localizable", withExtension: "strings",
+                                            subdirectory: nil, localization: language),
+                  let table = NSDictionary(contentsOf: url) as? [String: String]
+            else {
+                XCTFail("no \(language) strings table")
+                continue
+            }
+            var missing: [String] = []
+            for entry in SupplementCatalogue.all {
+                for text in [entry.name, entry.summary, entry.category,
+                             entry.restriction, entry.femaleWarning, entry.youthNote].compactMap({ $0 }) {
+                    if table[text] == nil { missing.append(text) }
+                }
+            }
+            XCTAssertEqual(missing.count, 0,
+                           "\(language) is missing \(missing.count): \(missing.prefix(3))")
+        }
+    }
+
+    func testTranslationsAvoidEmDashes() {
+        // Prose em dashes were asked to stay out of the interface.
+        for language in ["ro", "th"] {
+            guard let url = Bundle.main.url(forResource: "Localizable", withExtension: "strings",
+                                            subdirectory: nil, localization: language),
+                  let table = NSDictionary(contentsOf: url) as? [String: String]
+            else { continue }
+            for entry in SupplementCatalogue.all {
+                for key in [entry.summary, entry.restriction, entry.femaleWarning].compactMap({ $0 }) {
+                    guard let translated = table[key] else { continue }
+                    XCTAssertFalse(translated.contains("\u{2014}"),
+                                   "\(language) translation of \(entry.id) contains an em dash")
+                }
+            }
+        }
+    }
+
+    func testDosePresetsLeaveRoomForTheUsersOwn() {
+        // Two ready-made sizes, because the third pill is the one that takes
+        // whatever is printed on the tub the user actually bought.
+        for entry in SupplementCatalogue.all {
+            XCTAssertLessThanOrEqual(entry.presetDoses.count, 2, entry.id)
+            XCTAssertGreaterThan(entry.presetDoses.count, 0, entry.id)
+        }
+    }
+
+    func testWomenAreWarnedOnlyWhereThereIsAReason() {
+        // Over-warning is its own failure: a caution on everything teaches
+        // people to ignore the ones that matter.
+        let warned = SupplementCatalogue.all.filter { $0.femaleWarning != nil }
+        XCTAssertGreaterThan(warned.count, 5, "no sex-specific cautions at all")
+        XCTAssertLessThan(warned.count, 25, "so many cautions that none of them read as important")
+
+        for id in ["st_johns_wort", "dhea", "vitamin_a", "tribulus", "tongkat_ali"] {
+            XCTAssertNotNil(SupplementCatalogue.all.first { $0.id == id }?.femaleWarning, id)
+        }
+        // Things women more often need more of, not less, carry no warning.
+        for id in ["creatine_monohydrate", "iron", "whey_protein", "vitamin_d3", "folate"] {
+            XCTAssertNil(SupplementCatalogue.all.first { $0.id == id }?.femaleWarning,
+                         "\(id) warns women off something they may well need")
+        }
+        // And every warning says why rather than just flagging.
+        for entry in warned {
+            XCTAssertGreaterThan(entry.femaleWarning?.count ?? 0, 60, entry.id)
+        }
+    }
+}

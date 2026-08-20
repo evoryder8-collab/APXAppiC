@@ -1810,8 +1810,6 @@ private struct SupplementPickerSheet: View {
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     @State private var query = ""
-    @State private var expanded: String?
-    @State private var chosenDose: [String: Double] = [:]
     let onAdd: (SupplementCatalogue.Entry, Double) -> Void
 
     private var results: [SupplementCatalogue.Entry] {
@@ -1822,92 +1820,15 @@ private struct SupplementPickerSheet: View {
         NavigationStack {
             List {
                 ForEach(results) { entry in
-                    VStack(alignment: .leading, spacing: 9) {
-                        HStack(spacing: 8) {
-                            VStack(alignment: .leading, spacing: 2) {
-                                Text(entry.name).font(APEXFont.body(15, weight: .bold))
-                                Text(entry.category)
-                                    .font(APEXFont.body(10))
-                                    .foregroundStyle(APEXColor.secondaryInk)
-                            }
-                            /* The evidence is behind an icon rather than on the
-                               row, so the list stays scannable, but it is one
-                               tap away rather than absent. */
-                            Button {
-                                expanded = expanded == entry.id ? nil : entry.id
-                            } label: {
-                                Image(systemName: expanded == entry.id
-                                      ? "info.circle.fill" : "info.circle")
-                                    .font(.system(size: 17))
-                                    .foregroundStyle(APEXColor.secondaryInk)
-                            }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel(language.format("What %@ does", entry.name))
-                            Spacer(minLength: 0)
+                    SupplementPickerRow(
+                        entry: entry,
+                        isFemale: (session.profile?.sex ?? "").lowercased().hasPrefix("f"),
+                        isUnderEighteen: (session.profile?.age ?? 0) > 0 && (session.profile?.age ?? 0) < 18,
+                        onAdd: { dose in
+                            onAdd(entry, dose)
+                            dismiss()
                         }
-
-                        if expanded == entry.id {
-                            VStack(alignment: .leading, spacing: 6) {
-                                Text(entry.evidenceLabel)
-                                    .font(APEXFont.mono(9))
-                                    .tracking(1.1)
-                                    .foregroundStyle(evidenceColor(entry.evidence))
-                                Text(entry.summary)
-                                    .font(APEXFont.body(12))
-                                    .foregroundStyle(APEXColor.secondaryInk)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                if let note = entry.youthNote,
-                                   let age = session.profile?.age, age > 0, age < 18 {
-                                    Text(note)
-                                        .font(APEXFont.body(11, weight: .semibold))
-                                        .foregroundStyle(.orange)
-                                        .fixedSize(horizontal: false, vertical: true)
-                                }
-                            }
-                            .padding(11)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 13))
-                        }
-
-                        /* Sizes these are actually sold and studied in, so a
-                           stack records 600 mg of Alpha-GPC rather than "some". */
-                        HStack(spacing: 7) {
-                            ForEach(entry.doses, id: \.self) { dose in
-                                let selected = (chosenDose[entry.id] ?? entry.doses.first) == dose
-                                Button {
-                                    chosenDose[entry.id] = dose
-                                } label: {
-                                    Text(entry.formattedDose(dose))
-                                        .font(APEXFont.mono(10))
-                                        .padding(.horizontal, 10)
-                                        .padding(.vertical, 7)
-                                        .background(
-                                            selected ? APEXColor.green.opacity(0.16) : .white.opacity(0.55),
-                                            in: Capsule()
-                                        )
-                                        .overlay(Capsule().stroke(
-                                            selected ? APEXColor.green.opacity(0.5) : APEXColor.ink.opacity(0.07)
-                                        ))
-                                        .foregroundStyle(selected ? APEXColor.green : APEXColor.secondaryInk)
-                                }
-                                .buttonStyle(.plain)
-                            }
-                            Spacer(minLength: 0)
-                            Button {
-                                onAdd(entry, chosenDose[entry.id] ?? entry.doses.first ?? 0)
-                                dismiss()
-                            } label: {
-                                Text(language.text("Add"))
-                                    .font(APEXFont.body(12, weight: .bold))
-                                    .padding(.horizontal, 15)
-                                    .padding(.vertical, 7)
-                                    .background(APEXColor.green, in: Capsule())
-                                    .foregroundStyle(.white)
-                            }
-                            .buttonStyle(.plain)
-                        }
-                    }
-                    .padding(.vertical, 5)
+                    )
                     .listRowBackground(Color.clear)
                 }
 
@@ -1931,9 +1852,197 @@ private struct SupplementPickerSheet: View {
             }
         }
     }
+}
 
-    private func evidenceColor(_ evidence: String) -> Color {
-        switch evidence {
+/*
+ * One supplement in the picker.
+ *
+ * Its own view because the row carries a lot: the name, an information icon,
+ * a sex-specific caution where one is genuinely documented, two ready-made
+ * doses and a third that takes whatever is printed on the tub.
+ */
+private struct SupplementPickerRow: View {
+    @State private var language = LanguageState.shared
+    let entry: SupplementCatalogue.Entry
+    let isFemale: Bool
+    let isUnderEighteen: Bool
+    let onAdd: (Double) -> Void
+
+    @State private var showInfo = false
+    @State private var showWarning = false
+    @State private var chosen: Double?
+    @State private var custom = ""
+    @State private var typingCustom = false
+    @FocusState private var customFocused: Bool
+
+    private var warning: String? { isFemale ? entry.femaleWarning : nil }
+
+    private var dose: Double {
+        if typingCustom, let value = Double(custom), value > 0 { return value }
+        return chosen ?? entry.presetDoses.first ?? 0
+    }
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            header
+            if showInfo { infoPanel }
+            if showWarning, let warning { warningPanel(warning) }
+            doseRow
+            if typingCustom { customField }
+        }
+        .padding(.vertical, 5)
+    }
+
+    private var header: some View {
+        HStack(spacing: 8) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(language.text(entry.name)).font(APEXFont.body(15, weight: .bold))
+                Text(language.text(entry.category))
+                    .font(APEXFont.body(10))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            Button {
+                showInfo.toggle()
+            } label: {
+                Image(systemName: showInfo ? "info.circle.fill" : "info.circle")
+                    .font(.system(size: 17))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(language.format("What %@ does", language.text(entry.name)))
+
+            /* Shown only where there is a documented, sex-specific reason.
+               Most supplements have none, and a warning on everything would
+               be noise that teaches people to ignore the ones that matter. */
+            if warning != nil {
+                Button {
+                    showWarning.toggle()
+                } label: {
+                    Image(systemName: "exclamationmark.triangle.fill")
+                        .font(.system(size: 15))
+                        .foregroundStyle(.yellow)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(language.text("Caution for women"))
+            }
+            Spacer(minLength: 0)
+        }
+    }
+
+    private var infoPanel: some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(language.text(entry.evidenceLabel))
+                .font(APEXFont.mono(9))
+                .tracking(1.1)
+                .foregroundStyle(evidenceColor)
+            Text(language.text(entry.summary))
+                .font(APEXFont.body(12))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+            if let note = entry.youthNote, isUnderEighteen {
+                Text(language.text(note))
+                    .font(APEXFont.body(11, weight: .semibold))
+                    .foregroundStyle(.orange)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 13))
+    }
+
+    private func warningPanel(_ text: String) -> some View {
+        VStack(alignment: .leading, spacing: 5) {
+            Text(language.text("Caution for women"))
+                .font(APEXFont.mono(9))
+                .tracking(1.1)
+                .foregroundStyle(.orange)
+            Text(language.text(text))
+                .font(APEXFont.body(12))
+                .foregroundStyle(APEXColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .background(Color.yellow.opacity(0.16), in: RoundedRectangle(cornerRadius: 13))
+    }
+
+    private var doseRow: some View {
+        HStack(spacing: 7) {
+            ForEach(entry.presetDoses, id: \.self) { value in
+                dosePill(
+                    label: entry.formattedDose(value),
+                    selected: !typingCustom && (chosen ?? entry.presetDoses.first) == value
+                ) {
+                    chosen = value
+                    typingCustom = false
+                }
+            }
+            /* The third pill is a way in rather than a size. Brands differ
+               enough that a fixed list is always wrong for somebody, and
+               asking for the brand name to get a number would be worse. */
+            dosePill(
+                label: typingCustom && !custom.isEmpty ? "\(custom) \(entry.unit)" : language.text("Yours"),
+                selected: typingCustom
+            ) {
+                typingCustom = true
+                customFocused = true
+            }
+            Spacer(minLength: 0)
+            Button {
+                onAdd(dose)
+            } label: {
+                Text(language.text("Add"))
+                    .font(APEXFont.body(12, weight: .bold))
+                    .padding(.horizontal, 15)
+                    .padding(.vertical, 7)
+                    .background(APEXColor.green, in: Capsule())
+                    .foregroundStyle(.white)
+            }
+            .buttonStyle(.plain)
+            .disabled(dose <= 0)
+        }
+    }
+
+    private var customField: some View {
+        HStack(spacing: 8) {
+            TextField(language.format("Amount in %@", entry.unit), text: $custom)
+                .keyboardType(.decimalPad)
+                .focused($customFocused)
+                .font(APEXFont.mono(13))
+                .padding(10)
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 12))
+            Button(language.text("Clear")) {
+                custom = ""
+                typingCustom = false
+                customFocused = false
+            }
+            .font(APEXFont.body(11, weight: .semibold))
+            .buttonStyle(.plain)
+            .foregroundStyle(APEXColor.secondaryInk)
+        }
+    }
+
+    private func dosePill(label: String, selected: Bool, tap: @escaping () -> Void) -> some View {
+        Button(action: tap) {
+            Text(label)
+                .font(APEXFont.mono(10))
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(
+                    selected ? APEXColor.green.opacity(0.16) : .white.opacity(0.55),
+                    in: Capsule()
+                )
+                .overlay(Capsule().stroke(
+                    selected ? APEXColor.green.opacity(0.5) : APEXColor.ink.opacity(0.07)
+                ))
+                .foregroundStyle(selected ? APEXColor.green : APEXColor.secondaryInk)
+        }
+        .buttonStyle(.plain)
+    }
+
+    private var evidenceColor: Color {
+        switch entry.evidence {
         case "strong": return APEXColor.green
         case "moderate": return APEXColor.ink
         case "limited": return APEXColor.secondaryInk

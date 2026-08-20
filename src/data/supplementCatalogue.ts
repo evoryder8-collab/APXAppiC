@@ -49,6 +49,14 @@ export interface SupplementEntry {
   /* Shown alongside anything that is visible under eighteen but should not be
    * taken the way an adult would take it. */
   youthNote?: string
+  /* A documented, sex-specific reason for caution.
+   *
+   * Deliberately rare. Most supplements have no such reason, and warning women
+   * about creatine or iron -- which women more often need more of, not less --
+   * would be both wrong and patronising. This is for the handful with real
+   * evidence behind a sex-specific concern: contraceptive failure, androgenic
+   * side effects, and teratogenicity. */
+  femaleWarning?: string
 }
 
 export const SUPPLEMENT_CATEGORIES = [
@@ -113,9 +121,9 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'rhodiola', name: 'Rhodiola Rosea', aliases: ['rhodiola', 'rodiola', 'golden root', 'arctic root'], category: 'Cognition', doses: [100, 200, 300, 600], unit: 'mg', evidence: 'limited',
     summary: 'An adaptogen with reasonable evidence for fatigue and perceived stress, weaker evidence for performance. Standardised extracts vary widely in strength.', timing: 'Morning', adultOnly: true, restriction: 'An active botanical with no paediatric safety data.' },
   { id: 'ashwagandha_root', name: 'Ashwagandha (root extract)', aliases: ['ashwaganda', 'ashwagandha', 'withania', 'ksm66', 'ksm 66', 'root extract'], category: 'Cognition', doses: [300, 600], unit: 'mg', evidence: 'moderate',
-    summary: 'Root-only extracts are the ones used in most strength and anxiety trials, and are the higher-withanolide, daytime-marketed form. Thyroid and hormonal activity; not for use in pregnancy.', timing: 'Morning', adultOnly: true, restriction: 'Hormonal and thyroid activity, and not trialled in adolescents.' },
+    summary: 'Root-only extracts are the ones used in most strength and anxiety trials, and are the higher-withanolide, daytime-marketed form. Thyroid and hormonal activity; not for use in pregnancy.', timing: 'Morning', femaleWarning: 'Traditionally used to induce miscarriage, and avoided in pregnancy for that reason. It also alters thyroid hormone, which is a more common issue in women.', adultOnly: true, restriction: 'Hormonal and thyroid activity, and not trialled in adolescents.' },
   { id: 'ashwagandha_root_leaf', name: 'Ashwagandha (root and leaf extract)', aliases: ['sensoril', 'root and leaf', 'withanolide a'], category: 'Sleep', doses: [125, 250], unit: 'mg', evidence: 'limited',
-    summary: 'Root-and-leaf extracts carry more withaferin A and are marketed for calm and sleep rather than for training. Fewer trials than the root-only form, at lower doses.', timing: 'Evening', adultOnly: true, restriction: 'Hormonal and thyroid activity, and not trialled in adolescents.' },
+    summary: 'Root-and-leaf extracts carry more withaferin A and are marketed for calm and sleep rather than for training. Fewer trials than the root-only form, at lower doses.', timing: 'Evening', femaleWarning: 'Avoided in pregnancy, as with all ashwagandha preparations. It also alters thyroid hormone, which is a more common issue in women.', adultOnly: true, restriction: 'Hormonal and thyroid activity, and not trialled in adolescents.' },
   { id: 'bacopa', name: 'Bacopa Monnieri', aliases: ['bacopa', 'brahmi'], category: 'Cognition', doses: [300, 600], unit: 'mg', evidence: 'moderate',
     summary: 'Improves memory formation over eight to twelve weeks rather than acutely. Commonly causes stomach upset if taken without food.', timing: 'With food', adultOnly: true, restriction: 'No paediatric safety data, and it interacts with thyroid medication.' },
   { id: 'lions_mane', name: "Lion's Mane", aliases: ['lions mane', 'lion mane', 'hericium'], category: 'Cognition', doses: [500, 1000, 3000], unit: 'mg', evidence: 'limited',
@@ -141,7 +149,7 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'psyllium', name: 'Psyllium Husk', aliases: ['psyllium', 'fibre', 'fiber', 'husk'], category: 'Gut', doses: [5, 10], unit: 'g', evidence: 'strong',
     summary: 'Well-evidenced for stool consistency and cholesterol. Needs plenty of water taken with it.', timing: 'With food' },
   { id: 'probiotic', name: 'Probiotic', aliases: ['probiotics', 'lactobacillus', 'bifidobacterium'], category: 'Gut', doses: [1, 10, 25, 50], unit: 'billion CFU', evidence: 'limited',
-    summary: 'Effects are strain-specific, so the count on the label says little on its own. Best evidence is for antibiotic-associated and travellers\\u2019 diarrhoea.', timing: 'With food' },
+    summary: 'Effects are strain-specific, so the count on the label says little on its own. Best evidence is for antibiotic-associated and travellers\' diarrhoea.', timing: 'With food' },
 
   // --------------------------------------------------------------- VITAMINS
   { id: 'vitamin_b12', name: 'Vitamin B12', aliases: ['b12', 'cobalamin', 'methylcobalamin'], category: 'Vitamins', doses: [500, 1000, 2500], unit: 'mcg', evidence: 'strong',
@@ -175,9 +183,9 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'coq10', name: 'CoQ10', aliases: ['coq10', 'coenzyme q10', 'ubiquinol'], category: 'Other', doses: [100, 200, 300], unit: 'mg', evidence: 'limited',
     summary: 'Most useful for people on statins, which deplete it. Performance benefits in healthy trainees are not well supported.', timing: 'With food' },
   { id: 'tongkat_ali', name: 'Tongkat Ali', aliases: ['tongkat', 'longjack', 'eurycoma'], category: 'Other', doses: [200, 400, 600], unit: 'mg', evidence: 'limited',
-    summary: 'Some small trials on stress hormones and libido. Testosterone effects, where present, are modest and mostly in stressed or deficient men.', timing: 'Morning', adultOnly: true, restriction: 'Marketed for hormonal effects, with no adolescent data at all.' },
+    summary: 'Some small trials on stress hormones and libido. Testosterone effects, where present, are modest and mostly in stressed or deficient men.', timing: 'Morning', femaleWarning: 'Sold to raise testosterone, and studied almost entirely in men. There is no female safety data, and androgenic effects are the mechanism it is marketed on.', adultOnly: true, restriction: 'Marketed for hormonal effects, with no adolescent data at all.' },
   { id: 'tribulus', name: 'Tribulus Terrestris', aliases: ['tribulus', 'tribulis'], category: 'Other', doses: [500, 1000], unit: 'mg', evidence: 'insufficient',
-    summary: 'Repeatedly tested and repeatedly found not to raise testosterone in humans. Listed so a stack can be recorded honestly, not because it works.', timing: 'Any time', adultOnly: true, restriction: 'Sold for hormonal effects it does not have, and untested in adolescents.' },
+    summary: 'Repeatedly tested and repeatedly found not to raise testosterone in humans. Listed so a stack can be recorded honestly, not because it works.', timing: 'Any time', femaleWarning: 'Marketed on androgenic effects it does not reliably produce, and untested in women. Some preparations have been linked to cycle disruption.', adultOnly: true, restriction: 'Sold for hormonal effects it does not have, and untested in adolescents.' },
 
   // --------------------------------------------------- GUT: PRE, PRO, POST
   { id: 'inulin', name: 'Inulin (prebiotic fibre)', aliases: ['inulin', 'chicory fibre', 'prebiotic'], category: 'Gut', doses: [3, 5, 10], unit: 'g', evidence: 'moderate',
@@ -223,7 +231,7 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'algae_omega3', name: 'Algae Omega-3', aliases: ['algal oil', 'algae oil', 'vegan omega'], category: 'Foundational', doses: [500, 1000], unit: 'mg', evidence: 'moderate',
     summary: 'The original source fish get their omega-3 from, so the only complete option on a vegan diet.', timing: 'With food' },
   { id: 'evening_primrose', name: 'Evening Primrose Oil', aliases: ['evening primrose', 'epo', 'gla'], category: 'Other', doses: [500, 1000], unit: 'mg', evidence: 'limited',
-    summary: 'A GLA source studied for cyclical breast pain and eczema, with mixed results in both.', timing: 'With food', adultOnly: true, restriction: 'Hormonal use and no adolescent data.' },
+    summary: 'A GLA source studied for cyclical breast pain and eczema, with mixed results in both.', timing: 'With food', femaleWarning: 'Avoided in late pregnancy because it can affect the timing of labour, and it adds to the effect of blood thinners.', adultOnly: true, restriction: 'Hormonal use and no adolescent data.' },
   { id: 'black_seed_oil', name: 'Black Seed Oil', aliases: ['black seed', 'nigella', 'thymoquinone', 'kalonji'], category: 'Other', doses: [500, 1000, 2000], unit: 'mg', evidence: 'limited',
     summary: 'Early trials on blood pressure and lipids. Widely sold well ahead of what has actually been demonstrated.', timing: 'With food', adultOnly: true, restriction: 'An active botanical with no adolescent safety data.' },
 
@@ -245,7 +253,7 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'milk_thistle', name: 'Milk Thistle', aliases: ['milk thistle', 'silymarin', 'silybum'], category: 'Other', doses: [200, 400, 600], unit: 'mg', evidence: 'limited',
     summary: 'Studied for liver protection with mostly neutral results in good trials. Popular as a hangover or liver aid on thin evidence.', timing: 'With food', adultOnly: true, restriction: 'An active botanical with no adolescent safety data.' },
   { id: 'st_johns_wort', name: "St John's Wort", aliases: ['st johns wort', 'saint johns wort', 'hypericum'], category: 'Other', doses: [300, 600, 900], unit: 'mg', evidence: 'moderate',
-    summary: 'Genuinely effective for mild to moderate depression, and one of the most dangerous interaction profiles of any supplement: it disables hormonal contraception and many prescriptions.', timing: 'Morning', adultOnly: true, restriction: 'Severe drug interactions, including hormonal contraception.' },
+    summary: 'Genuinely effective for mild to moderate depression, and one of the most dangerous interaction profiles of any supplement: it disables hormonal contraception and many prescriptions.', timing: 'Morning', femaleWarning: 'Induces the liver enzymes that clear hormonal contraception, which is a documented cause of breakthrough bleeding and unintended pregnancy. This applies to the pill, the patch, the ring and the implant.', adultOnly: true, restriction: 'Severe drug interactions, including hormonal contraception.' },
   { id: 'cordyceps', name: 'Cordyceps', aliases: ['cordyceps', 'cs4'], category: 'Performance', doses: [1000, 2000, 3000], unit: 'mg', evidence: 'limited',
     summary: 'Small trials on oxygen uptake, mostly in older or untrained people. Effects in trained athletes are not established.', timing: 'Pre-workout', adultOnly: true, restriction: 'An active botanical with no adolescent safety data.' },
   { id: 'reishi', name: 'Reishi', aliases: ['reishi', 'ganoderma', 'lingzhi'], category: 'Other', doses: [1000, 2000], unit: 'mg', evidence: 'limited',
@@ -277,7 +285,7 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'nr', name: 'Nicotinamide Riboside', aliases: ['nr', 'nicotinamide riboside', 'niagen'], category: 'Other', doses: [250, 300, 500], unit: 'mg', evidence: 'limited',
     summary: 'The better-trialled NAD+ precursor, which still means it reliably raises a blood marker without a demonstrated benefit.', timing: 'Morning', adultOnly: true, restriction: 'Raises a blood marker with no demonstrated outcome, and no adolescent data.' },
   { id: 'resveratrol', name: 'Resveratrol', aliases: ['resveratrol', 'resveratol'], category: 'Other', doses: [150, 250, 500], unit: 'mg', evidence: 'limited',
-    summary: 'The red-wine compound. Human trials have largely not reproduced the animal findings, and high doses may blunt training adaptations.', timing: 'With food', adultOnly: true, restriction: 'Oestrogenic activity and no adolescent data.' },
+    summary: 'The red-wine compound. Human trials have largely not reproduced the animal findings, and high doses may blunt training adaptations.', timing: 'With food', femaleWarning: 'Has oestrogen-like activity, so it is generally avoided with hormone-sensitive conditions such as endometriosis or oestrogen-receptor-positive breast cancer.', adultOnly: true, restriction: 'Oestrogenic activity and no adolescent data.' },
   { id: 'quercetin', name: 'Quercetin', aliases: ['quercetin', 'quercitin'], category: 'Other', doses: [500, 1000], unit: 'mg', evidence: 'limited',
     summary: 'A flavonoid with small endurance and immune effects. Absorbed poorly on its own.', timing: 'With food' },
   { id: 'fisetin', name: 'Fisetin', aliases: ['fisetin'], category: 'Other', doses: [100, 500], unit: 'mg', evidence: 'insufficient',
@@ -301,11 +309,11 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'garcinia', name: 'Garcinia Cambogia', aliases: ['garcinia', 'hydroxycitric', 'hca'], category: 'Other', doses: [500, 1000], unit: 'mg', evidence: 'insufficient',
     summary: 'Trials show no meaningful weight loss, and it has been associated with liver injury. Listed because it is still sold everywhere.', timing: 'With food', adultOnly: true, restriction: 'Liver-injury case reports and no demonstrated benefit.' },
   { id: 'dhea', name: 'DHEA', aliases: ['dhea', 'dehydroepiandrosterone'], category: 'Other', doses: [25, 50], unit: 'mg', evidence: 'limited',
-    summary: 'A precursor hormone, not a nutrient. Banned in most sport, and it converts to both oestrogen and testosterone.', timing: 'Morning', adultOnly: true, restriction: 'A hormone precursor, banned in sport and unsuitable for anyone still developing.' },
+    summary: 'A precursor hormone, not a nutrient. Banned in most sport, and it converts to both oestrogen and testosterone.', timing: 'Morning', femaleWarning: 'An androgen precursor. In women it is documented to cause acne, unwanted hair growth, scalp hair loss, a deeper voice and disrupted cycles, and some of those changes do not reverse.', adultOnly: true, restriction: 'A hormone precursor, banned in sport and unsuitable for anyone still developing.' },
   { id: 'dim', name: 'DIM', aliases: ['dim', 'diindolylmethane'], category: 'Other', doses: [100, 200], unit: 'mg', evidence: 'limited',
-    summary: 'A broccoli-derived compound that shifts oestrogen metabolism. Sold for hormonal balance on early evidence.', timing: 'With food', adultOnly: true, restriction: 'Alters oestrogen metabolism; unsuitable during adolescence.' },
+    summary: 'A broccoli-derived compound that shifts oestrogen metabolism. Sold for hormonal balance on early evidence.', timing: 'With food', femaleWarning: 'Works by changing how oestrogen is metabolised. That is the point of it, which also makes it the reason to be careful with any hormone-sensitive condition.', adultOnly: true, restriction: 'Alters oestrogen metabolism; unsuitable during adolescence.' },
   { id: 'boron', name: 'Boron', aliases: ['boron'], category: 'Minerals', doses: [3, 6, 10], unit: 'mg', evidence: 'limited',
-    summary: 'Small trials showing shifts in free testosterone and oestrogen at higher doses. A trace mineral with a narrow useful range.', timing: 'With food', adultOnly: true, restriction: 'Hormonal activity at supplemental doses.' },
+    summary: 'Small trials showing shifts in free testosterone and oestrogen at higher doses. A trace mineral with a narrow useful range.', timing: 'With food', femaleWarning: 'At supplemental doses it measurably shifts free testosterone and oestradiol. Fine as a trace mineral from food; less predictable as a hormone-shifting dose.', adultOnly: true, restriction: 'Hormonal activity at supplemental doses.' },
 
   // ---------------------------------------------- PERFORMANCE AND PROTEIN
   { id: 'betaine', name: 'Betaine Anhydrous (TMG)', aliases: ['betaine', 'tmg', 'trimethylglycine'], category: 'Performance', doses: [1250, 2500], unit: 'mg', evidence: 'moderate',
@@ -329,7 +337,7 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'vitamin_e', name: 'Vitamin E', aliases: ['vitamin e', 'tocopherol'], category: 'Vitamins', doses: [100, 200, 400], unit: 'IU', evidence: 'limited',
     summary: 'High-dose supplementation has not delivered the benefits expected of it, and taken around training may blunt adaptation.', timing: 'With food' },
   { id: 'vitamin_a', name: 'Vitamin A', aliases: ['vitamin a', 'retinol', 'beta carotene'], category: 'Vitamins', doses: [2500, 5000, 10000], unit: 'IU', evidence: 'moderate',
-    summary: 'Fat-soluble and stored, so excess accumulates. Retinol is teratogenic at high doses in pregnancy.', timing: 'With food' },
+    summary: 'Fat-soluble and stored, so excess accumulates. Retinol is teratogenic at high doses in pregnancy.', timing: 'With food', femaleWarning: 'Retinol is teratogenic. High doses in early pregnancy cause birth defects, often before a pregnancy is known about. Beta-carotene does not carry this risk.' },
   { id: 'biotin', name: 'Biotin', aliases: ['biotin', 'b7', 'vitamin h'], category: 'Vitamins', doses: [1000, 5000, 10000], unit: 'mcg', evidence: 'limited',
     summary: 'Deficiency is rare, and supplementing without one does little for hair or nails. High doses interfere with thyroid and troponin blood tests.', timing: 'Morning' },
   { id: 'choline', name: 'Choline', aliases: ['choline', 'bitartrate'], category: 'Vitamins', doses: [250, 500], unit: 'mg', evidence: 'moderate',
