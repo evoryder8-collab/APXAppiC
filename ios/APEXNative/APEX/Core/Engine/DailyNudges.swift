@@ -99,6 +99,28 @@ enum DailyNudges {
     static let eveningHour = 19
     static let eveningMinute = 30
 
+    /// The next time the evening slot comes round.
+    ///
+    /// Today's slot if it is still ahead, otherwise tomorrow's. Pinning the
+    /// date to today produced a trigger in the past every time the app was
+    /// opened after 19:30, which is most evenings, since that is when people
+    /// log dinner. A calendar trigger whose moment has gone is accepted and
+    /// then never delivered, so the reminder was not late, it was silently
+    /// dead.
+    static func nextEveningSlot(after now: Date, calendar: Calendar = .current) -> DateComponents {
+        var slot = calendar.dateComponents([.year, .month, .day], from: now)
+        slot.hour = eveningHour
+        slot.minute = eveningMinute
+        if let date = calendar.date(from: slot), date <= now {
+            let tomorrow = calendar.date(byAdding: .day, value: 1, to: date) ?? date
+            var next = calendar.dateComponents([.year, .month, .day], from: tomorrow)
+            next.hour = eveningHour
+            next.minute = eveningMinute
+            return next
+        }
+        return slot
+    }
+
     private static func today() -> String {
         let formatter = DateFormatter()
         formatter.dateFormat = "yyyy-MM-dd"

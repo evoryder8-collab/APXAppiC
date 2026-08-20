@@ -57,6 +57,7 @@ struct EmailAuthView: View {
                 GlassCard(radius: 28, padding: 20) {
                     VStack(spacing: 15) {
                         field(title: language.text(.email), icon: "envelope", text: $email, secure: false)
+                            .onChange(of: email) { _, _ in clearConfirmationNotice() }
                             .focused($focus, equals: .email)
                             .textContentType(.emailAddress)
                             .keyboardType(.emailAddress)
@@ -67,7 +68,27 @@ struct EmailAuthView: View {
                             .focused($focus, equals: .password)
                             .textContentType(isSignUp ? .newPassword : .password)
 
-                        if passwordTooShort {
+                        /* The account exists but nobody is signed in yet. Said here,
+                   because a button that appears to do nothing is how someone
+                   decides the app is broken and signs up twice. */
+                if let address = session.awaitingConfirmationFor {
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(language.text("Check your email"))
+                            .font(APEXFont.body(14, weight: .bold))
+                        Text(language.format(
+                            "We sent a confirmation link to %@. Open it, then sign in here.",
+                            address
+                        ))
+                        .font(APEXFont.body(12))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(12)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(APEXColor.cyan.opacity(0.12), in: RoundedRectangle(cornerRadius: 14))
+                }
+
+                if passwordTooShort {
                             Text(language.text("Use at least 6 characters."))
                                 .font(APEXFont.body(11))
                                 .foregroundStyle(.orange)
@@ -94,6 +115,7 @@ struct EmailAuthView: View {
                 }
 
                 Button {
+                    clearConfirmationNotice()
                     withAnimation(.snappy) { isSignUp.toggle() }
                 } label: {
                     HStack(spacing: 5) {
@@ -109,6 +131,12 @@ struct EmailAuthView: View {
             }
             .padding(24)
         }
+    }
+
+    /// Cleared whenever the form changes, so a notice from one attempt does
+    /// not sit above a different address.
+    private func clearConfirmationNotice() {
+        session.awaitingConfirmationFor = nil
     }
 
     private func submit() {

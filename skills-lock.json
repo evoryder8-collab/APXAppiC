@@ -1,0 +1,53 @@
+{
+  "version": 1,
+  "skills": {
+    "context7": {
+      "source": "intellectronica/agent-skills",
+      "sourceType": "github",
+      "skillPath": "skills/context7/SKILL.md",
+      "computedHash": "fccbea654f8e35824a8bdce3e059e206efeb6c1fab9f6c096c3867e761081983"
+    },
+    "plugin-lifecycle": {
+      "source": "glittercowboy/plugin-freedom-system",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/plugin-lifecycle/SKILL.md",
+      "computedHash": "3752e7f2e219ee8683d22136a9188f4c7bf29ed905c512b97d5f3443e462be8a"
+    },
+    "plugin-packaging": {
+      "source": "glittercowboy/plugin-freedom-system",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/plugin-packaging/SKILL.md",
+      "computedHash": "cf6e6f37c00435fa0c0bf204f2ccb5e1ef42c26360b5ee25515e69978714709c"
+    },
+    "sentry-setup-ai-monitoring": {
+      "source": "getsentry/sentry-for-ai",
+      "sourceType": "github",
+      "skillPath": "skills-legacy/sentry-setup-ai-monitoring/SKILL.md",
+      "computedHash": "fd763e7d5cada2ed0ea56a27dbe54c9faacb2c361cb525a06bf7c214072fb4a7"
+    },
+    "swift-concurrency-pro": {
+      "source": "twostraws/Swift-Concurrency-Agent-Skill",
+      "sourceType": "github",
+      "skillPath": "swift-concurrency-pro/SKILL.md",
+      "computedHash": "db6c88d8da1a264188a2ad826a0ed73d227384315b27e47f3bb6b78ca1a3df40"
+    },
+    "swiftdata-pro": {
+      "source": "twostraws/swiftdata-agent-skill",
+      "sourceType": "github",
+      "skillPath": "swiftdata-pro/SKILL.md",
+      "computedHash": "2f979bad98ea3a6744084c5f93e27897f02e8d0ffe15dd03042e88aaae4da14c"
+    },
+    "swiftui-pro": {
+      "source": "twostraws/swiftui-agent-skill",
+      "sourceType": "github",
+      "skillPath": "swiftui-pro/SKILL.md",
+      "computedHash": "07033426e384295a4b49cf0b2ffdefd4098cae4af53fef16bc1f2d9281118c41"
+    },
+    "system-setup": {
+      "source": "glittercowboy/plugin-freedom-system",
+      "sourceType": "github",
+      "skillPath": ".claude/skills/system-setup/SKILL.md",
+      "computedHash": "45823e4c918b926382677ea5e25c4936a8bb6985d40b927b3a6540263055597d"
+    }
+  }
+}

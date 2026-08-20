@@ -76,3 +76,47 @@ final class DailyNudgesTests: XCTestCase {
         XCTAssertLessThanOrEqual(DailyNudges.eveningHour, 20)
     }
 }
+
+extension DailyNudgesTests {
+
+    /// A calendar trigger whose moment has passed is accepted by the system and
+    /// then never delivered, so a slot pinned to today is not a late reminder,
+    /// it is no reminder at all.
+    func testTheEveningSlotIsNeverScheduledInThePast() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Zurich")!
+
+        func slot(hour: Int, minute: Int) -> Date {
+            let now = calendar.date(from: DateComponents(
+                year: 2026, month: 8, day: 21, hour: hour, minute: minute
+            ))!
+            let components = DailyNudges.nextEveningSlot(after: now, calendar: calendar)
+            let date = calendar.date(from: components)!
+            XCTAssertGreaterThan(date, now, "scheduled a reminder that can never fire")
+            return date
+        }
+
+        // Morning: today's slot is still ahead.
+        XCTAssertEqual(calendar.component(.day, from: slot(hour: 9, minute: 0)), 21)
+        // A minute before: still today.
+        XCTAssertEqual(calendar.component(.day, from: slot(hour: 19, minute: 29)), 21)
+        // Dinner time, which is when the app is actually opened: tomorrow.
+        XCTAssertEqual(calendar.component(.day, from: slot(hour: 20, minute: 15)), 22)
+        // Late night: tomorrow, not a dead trigger for tonight.
+        XCTAssertEqual(calendar.component(.day, from: slot(hour: 23, minute: 50)), 22)
+    }
+
+    func testTheSlotKeepsItsHourWhenItRollsOver() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: "Europe/Zurich")!
+        let now = calendar.date(from: DateComponents(
+            year: 2026, month: 8, day: 31, hour: 22, minute: 0
+        ))!
+        let components = DailyNudges.nextEveningSlot(after: now, calendar: calendar)
+        XCTAssertEqual(components.hour, DailyNudges.eveningHour)
+        XCTAssertEqual(components.minute, DailyNudges.eveningMinute)
+        // And crosses the month boundary rather than landing on the 32nd.
+        XCTAssertEqual(components.month, 9)
+        XCTAssertEqual(components.day, 1)
+    }
+}

@@ -3975,3 +3975,5 @@
 "Sign in again to continue." = "กรุณาเข้าสู่ระบบอีกครั้งเพื่อดำเนินการต่อ";
 "Manual workout" = "การฝึกที่บันทึกเอง";
 "APEX plan" = "แผน APEX";
+"Check your email" = "ตรวจสอบอีเมลของคุณ";
+"We sent a confirmation link to %@. Open it, then sign in here." = "เราส่งลิงก์ยืนยันไปที่ %@ แล้ว เปิดลิงก์ จากนั้นกลับมาเข้าสู่ระบบที่นี่";

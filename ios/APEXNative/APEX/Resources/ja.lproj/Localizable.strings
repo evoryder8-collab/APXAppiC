@@ -1716,3 +1716,5 @@
 "The previous run was harder than intended, so the next demanding session is reduced instead of stacking fatigue." = "前回のランが予定より苦しかったため、疲労を重ねずに次のきつい練習を軽くします。";
 "Recent workload supports easy aerobic volume without compromising your strength plan." = "最近の負荷なら、筋力の計画を崩さずに軽い有酸素の量を足せます。";
 "Recent frequency, volume, long-run exposure and consistency support entry into a marathon-specific campaign." = "最近の頻度、走行量、ロングランの経験、継続性から、マラソン特化のキャンペーンに入れます。";
+"Check your email" = "メールを確認してください";
+"We sent a confirmation link to %@. Open it, then sign in here." = "%@ に確認リンクを送りました。リンクを開いてから、ここでログインしてください。";

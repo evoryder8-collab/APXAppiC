@@ -9,6 +9,9 @@ final class AppSession {
     var selectedPersona: Persona?
     /// Shown briefly after a bespoke account signs in by email.
     var greetingPersona: Persona?
+    /// The address a confirmation link was just sent to, if any. Held so the
+    /// sign-up screen can say what happened rather than appear to do nothing.
+    var awaitingConfirmationFor: String?
     var data: DashboardData = .empty {
         didSet { recomputeBrain() }
     }
@@ -146,16 +149,27 @@ final class AppSession {
         }
     }
 
-    /// Create an account, then send it straight into the questionnaire: there
-    /// is nothing to show a new account until it has answered.
+    /// Create an account, then send it into the questionnaire only if the
+    /// account is actually signed in.
+    ///
+    /// Supabase returns a user with no session when the address needs
+    /// confirming, and again when the address was already registered, which it
+    /// does deliberately so signing up cannot be used to discover who has an
+    /// account. Taking the user id as proof of a session walked people through
+    /// all six questions and then discarded the answers at the end, because
+    /// saving them needs an authenticated request.
     func signUp(email: String, password: String) async {
         isBusy = true
         defer { isBusy = false }
         do {
-            _ = try await service.signUp(email: email, password: password)
-            selectedPersona = nil
-            data = .empty
-            route = .induction
+            switch try await service.signUp(email: email, password: password) {
+            case .signedIn:
+                selectedPersona = nil
+                data = .empty
+                route = .induction
+            case .awaitingEmailConfirmation:
+                awaitingConfirmationFor = email
+            }
         } catch {
             alertMessage = error.localizedDescription
         }

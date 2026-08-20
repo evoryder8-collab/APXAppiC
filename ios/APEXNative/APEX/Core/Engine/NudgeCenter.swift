@@ -111,9 +111,7 @@ final class NudgeCenter {
 
         // Past the evening slot the day is effectively over; a reminder at
         // midnight helps nobody, so it waits for tomorrow.
-        var components = Calendar.current.dateComponents([.year, .month, .day], from: Date())
-        components.hour = DailyNudges.eveningHour
-        components.minute = DailyNudges.eveningMinute
+        let components = DailyNudges.nextEveningSlot(after: Date())
 
         for nudge in nudges {
             let content = UNMutableNotificationContent()

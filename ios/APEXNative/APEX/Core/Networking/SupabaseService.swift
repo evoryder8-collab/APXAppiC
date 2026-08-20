@@ -39,10 +39,23 @@ actor SupabaseService {
     }
 
     /// Create an account with an email and a password.
-    func signUp(email: String, password: String) async throws -> UUID {
+    /// What happened when an account was created.
+    ///
+    /// Supabase returns a user either way, so the user id alone cannot tell
+    /// these apart. Only the session can: it is nil when the address still has
+    /// to be confirmed, and nil again when the address was already registered,
+    /// which Supabase does deliberately so that signing up cannot be used to
+    /// discover who has an account.
+    enum SignUpOutcome {
+        case signedIn(UUID)
+        case awaitingEmailConfirmation
+    }
+
+    func signUp(email: String, password: String) async throws -> SignUpOutcome {
         guard let client else { throw APEXServiceError.configurationMissing }
         let response = try await client.auth.signUp(email: email, password: password)
-        return response.user.id
+        guard response.session != nil else { return .awaitingEmailConfirmation }
+        return .signedIn(response.user.id)
     }
 
     /// Sign in with Apple, using the identity token the system hands back.

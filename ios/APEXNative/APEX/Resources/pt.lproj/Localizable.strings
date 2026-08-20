@@ -1716,3 +1716,5 @@
 "The previous run was harder than intended, so the next demanding session is reduced instead of stacking fatigue." = "A corrida anterior foi mais dura do que o previsto, por isso a próxima sessão exigente é reduzida em vez de acumular fadiga.";
 "Recent workload supports easy aerobic volume without compromising your strength plan." = "A carga recente permite volume aeróbico fácil sem comprometer o teu plano de força.";
 "Recent frequency, volume, long-run exposure and consistency support entry into a marathon-specific campaign." = "A frequência, o volume, as corridas longas e a consistência recentes permitem entrar numa campanha específica de maratona.";
+"Check your email" = "Verifica o teu email";
+"We sent a confirmation link to %@. Open it, then sign in here." = "Enviámos um link de confirmação para %@. Abre-o e depois inicia sessão aqui.";

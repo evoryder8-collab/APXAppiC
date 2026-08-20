@@ -27,6 +27,8 @@
     "three": "^0.185.1"
   },
   "devDependencies": {
+    "@playwright/mcp": "^0.0.79",
+    "@playwright/test": "^1.62.1",
     "@tailwindcss/vite": "^4.3.2",
     "@types/leaflet": "^1.9.21",
     "@types/react": "^19.2.17",
