@@ -5,6 +5,7 @@ import SwiftUI
 /// log used only as the backward-compatible fallback for older/manual days.
 struct NutritionGlanceCard: View {
     @Environment(AppSession.self) private var session
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var language = LanguageState.shared
 
     let date: Date
@@ -75,6 +76,10 @@ struct NutritionGlanceCard: View {
                             HStack(spacing: 7) {
                                 Text(language.text("Nutrition at a glance"))
                                     .font(APEXFont.display(26))
+                                    /* Wraps rather than truncates once the text
+                                       is large: a clipped heading tells the
+                                       reader less than a two-line one. */
+                                    .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
                                     /* Romanian and Thai run longer than the
                                        English this was sized for. Shrinking a
                                        little is better than wrapping, and far
@@ -150,6 +155,11 @@ struct NutritionGlanceCard: View {
                     VStack(spacing: 3) {
                         Text("\(meals.count)/\(configuredMealCount)")
                             .font(APEXFont.display(29))
+                            /* One token: at accessibility sizes this split into
+                               "1/" and "4" on two lines, which reads as a
+                               different number entirely. */
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.5)
                         Text(language.text("Meals").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.secondaryInk)

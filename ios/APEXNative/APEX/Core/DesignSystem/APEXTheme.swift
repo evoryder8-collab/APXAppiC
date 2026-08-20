@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 
 enum APEXColor {
     static let ink = Color(red: 0.075, green: 0.073, blue: 0.11)
@@ -15,16 +16,30 @@ enum APEXColor {
 }
 
 enum APEXFont {
-    static func display(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
-        .system(size: size, weight: weight, design: .rounded)
+    /* Every font in the app comes from here, and until now every one was a
+       fixed point size, so a person who turns text size up in Accessibility
+       settings saw no change anywhere. Scaling in this one place fixes all 874
+       call sites at once, which is the reason the helper exists.
+
+       The sizes are scaled against a text style rather than swapped for one,
+       because the layouts are built around these specific sizes and a heading
+       that jumps from 26pt to .largeTitle would reflow every screen. */
+    private static func scaled(_ size: CGFloat, _ style: UIFont.TextStyle) -> CGFloat {
+        UIFontMetrics(forTextStyle: style).scaledValue(for: size)
     }
 
+    static func display(_ size: CGFloat, weight: Font.Weight = .bold) -> Font {
+        .system(size: scaled(size, .title2), weight: weight, design: .rounded)
+    }
+
+    /* Monospaced text is mostly numbers in tight columns, so it scales against
+       a caption, which grows more gently than body. */
     static func mono(_ size: CGFloat, weight: Font.Weight = .semibold) -> Font {
-        .system(size: size, weight: weight, design: .monospaced)
+        .system(size: scaled(size, .caption1), weight: weight, design: .monospaced)
     }
 
     static func body(_ size: CGFloat = 16, weight: Font.Weight = .regular) -> Font {
-        .system(size: size, weight: weight, design: .rounded)
+        .system(size: scaled(size, .body), weight: weight, design: .rounded)
     }
 }
 
@@ -110,6 +125,7 @@ struct APEXMark: View {
 }
 
 struct APEXTopBar: View {
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     var profile: Profile?
     var onSettings: (() -> Void)?
     /* The bell appears only when there is something to read. An always-present
@@ -133,7 +149,11 @@ struct APEXTopBar: View {
                 .lineLimit(1)
                 .fixedSize()
             Spacer(minLength: 6)
-            if let profile {
+            /* Dropped outright at accessibility text sizes rather than merely
+               yielding. Squeezed to nothing it left an empty white capsule
+               beside the logo, which reads as a rendering fault rather than as
+               a name that did not fit. */
+            if let profile, !dynamicTypeSize.isAccessibilitySize {
                 Text(profile.displayName.uppercased())
                     .font(APEXFont.mono(10))
                     .tracking(2)
