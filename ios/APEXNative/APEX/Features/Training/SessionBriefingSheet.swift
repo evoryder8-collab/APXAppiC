@@ -91,3 +91,55 @@ struct SessionBriefingSheet: View {
         }
     }
 }
+
+/// A slow swell of light behind the figure.
+///
+/// Deliberately dim and slow: it should register as depth rather than as
+/// something happening. Anything faster competes with the model for attention,
+/// which is the opposite of the point.
+struct ModelAura: View {
+    var accent: Color = APEXColor.violet
+    let animated: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 20, paused: !animated)) { timeline in
+            let elapsed = timeline.date.timeIntervalSinceReferenceDate
+            let swell = animated ? 1 + 0.09 * sin(elapsed / 5.2 * .pi * 2) : 1
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [accent.opacity(0.20), accent.opacity(0.06), .clear],
+                        center: .center, startRadius: 4, endRadius: 190
+                    )
+                )
+                .frame(width: 380, height: 380)
+                .scaleEffect(swell)
+                .blur(radius: 26)
+        }
+        .allowsHitTesting(false)
+    }
+}
+
+/// A gleam that crosses the tooltip glyph every few seconds.
+struct TooltipGleam: View {
+    let active: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: !active)) { timeline in
+            let elapsed = timeline.date.timeIntervalSinceReferenceDate
+            /* Most of the cycle is spent off-glyph, so it catches the eye
+               occasionally instead of shimmering constantly. */
+            let cycle = elapsed.truncatingRemainder(dividingBy: 4.5) / 4.5
+            let travel = cycle * 2.4 - 0.7
+            LinearGradient(
+                colors: [.clear, .white.opacity(0.9), .clear],
+                startPoint: .topLeading, endPoint: .bottomTrailing
+            )
+            .frame(width: 18)
+            .rotationEffect(.degrees(22))
+            .offset(x: travel * 34)
+            .blendMode(.plusLighter)
+        }
+        .allowsHitTesting(false)
+    }
+}

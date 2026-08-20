@@ -220,7 +220,7 @@ struct TrainingProgramView: View {
 
                 MuscleMapCard(
                     dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper",
-                    height: 340,
+                    height: 442,
                     accent: accent,
                     eyebrow: language.text("TODAY'S SIGNAL"),
                     focus: language.text(muscleFocus)

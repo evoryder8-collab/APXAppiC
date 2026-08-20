@@ -14,23 +14,26 @@ struct WelcomeView: View {
     @State private var language = LanguageState.shared
     @State private var currentNonce: String?
     @State private var appeared = false
+    @State private var modelController = MuscleMapController()
 
     var body: some View {
         ZStack {
             AuroraField(animated: !reduceMotion)
                 .ignoresSafeArea()
 
-            ScrollView {
-                VStack(spacing: 0) {
-                    Spacer(minLength: 54)
-                    brand
-                    Spacer(minLength: 46)
-                    actions
-                    signUpLink
-                }
-                .padding(.horizontal, 26)
-                .frame(maxWidth: .infinity)
+            /* Figure at the top, words under it, the way in at the bottom
+               where a thumb already rests. */
+            VStack(spacing: 0) {
+                Spacer(minLength: 6)
+                figure
+                brand
+                Spacer(minLength: 16)
+                actions
+                signUpLink
+                    .padding(.bottom, 6)
             }
+            .padding(.horizontal, 26)
+            .frame(maxWidth: .infinity)
         }
         .overlay(alignment: .topTrailing) {
             PortalLanguagePicker()
@@ -45,11 +48,43 @@ struct WelcomeView: View {
         }
     }
 
+    // MARK: - Figure
+
+    /// The real anatomical figure, turning, with nothing highlighted.
+    ///
+    /// It is a 5 MB mesh in a web view and takes a moment to weld, so the rest
+    /// of the screen is laid out and usable before it arrives and it fades in
+    /// when it is ready. Nothing waits on it. The primitive figure used
+    /// elsewhere loads instantly but reads as a mannequin, which is the wrong
+    /// first impression for the one screen everybody sees.
+    private var figure: some View {
+        MuscleMapView(
+            dayType: "welcome",
+            xray: false,
+            transparentBackground: true,
+            controller: modelController
+        )
+        .frame(height: 320)
+        .background {
+            ModelAura(accent: APEXColor.cyan, animated: !reduceMotion)
+        }
+        .allowsHitTesting(false)
+        .opacity(appeared ? 1 : 0)
+        .animation(.smooth(duration: 1.3).delay(0.2), value: appeared)
+        .onAppear {
+            /* Set before the web view attaches: the controller pushes both
+               flags on attach, so assigning here beats calling a toggle that
+               would immediately be overwritten. */
+            modelController.spinning = !reduceMotion
+            modelController.xray = false
+        }
+    }
+
     // MARK: - Brand
 
     private var brand: some View {
-        VStack(spacing: 17) {
-            APEXMark(size: 78)
+        VStack(spacing: 14) {
+            APEXMark(size: 54)
                 .shadow(color: APEXColor.violet.opacity(0.35), radius: 26, y: 10)
                 .scaleEffect(appeared ? 1 : 0.86)
                 .opacity(appeared ? 1 : 0)
@@ -76,7 +111,7 @@ struct WelcomeView: View {
                 .mask(Text("APEX").font(APEXFont.display(42)).tracking(11))
                 .rise(appeared, delay: 0.10)
 
-            Text(language.text("Training, food and recovery that adapt to the week you actually had."))
+            Text(language.text("Your body, measured. Your plan, rewritten every week."))
                 .font(APEXFont.body(15))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .multilineTextAlignment(.center)

@@ -34486,14 +34486,18 @@ void main() {
     const params = new URLSearchParams(location.search);
     const flag = (k, dflt) => params.has(k) ? !/^(0|false|no)$/i.test(params.get(k)) : dflt;
     const list = (k) => (params.get(k) || "").split(",").map((s) => s.trim()).filter(Boolean);
-    const renderer = new WebGLRenderer({ antialias: true, alpha: false, powerPreference: "high-performance" });
+    const transparentStage = params.get("bg") === "transparent";
+    const renderer = new WebGLRenderer({ antialias: true, alpha: transparentStage, powerPreference: "high-performance" });
     renderer.setPixelRatio(Math.min(devicePixelRatio, 2));
     renderer.outputColorSpace = SRGBColorSpace;
     renderer.toneMapping = ACESFilmicToneMapping;
     renderer.toneMappingExposure = 1.06;
     wrap.appendChild(renderer.domElement);
     const scene = new Scene();
-    scene.background = new Color(params.get("bg") || "#f3f2f2");
+    /* bg=transparent leaves the canvas clear so the figure composites onto
+       whatever the host draws behind it. Any other value is a solid colour,
+       exactly as before. */
+    scene.background = transparentStage ? null : new Color(params.get("bg") || "#f3f2f2");
     const camera = new PerspectiveCamera(30, 1, 0.05, 60);
     const controls = new OrbitControls(camera, renderer.domElement);
     controls.enableDamping = true;

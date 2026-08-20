@@ -22,6 +22,10 @@ final class MuscleMapAssetHandler: NSObject, WKURLSchemeHandler {
        and its chrome matches the rest of the app. */
     static let entryURL = URL(string: "\(scheme)://musclemap/musclemap.html?labels=0&controls=0&interactive=0")!
 
+    /* Same page, clear stage. Used where the figure has to sit on the app's own
+       background rather than inside a pale rectangle. */
+    static let transparentEntryURL = URL(string: "\(scheme)://musclemap/musclemap.html?labels=0&controls=0&interactive=0&bg=transparent")!
+
     private static let mimeTypes: [String: String] = [
         "html": "text/html",
         "js": "text/javascript",

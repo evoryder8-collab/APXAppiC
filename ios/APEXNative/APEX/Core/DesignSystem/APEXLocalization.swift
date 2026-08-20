@@ -333,18 +333,39 @@ struct PortalLanguagePicker: View {
                 }
             }
         } label: {
-            HStack(spacing: 8) {
+            HStack(spacing: 9) {
+                /* The flag sits on its own disc rather than loose in the row.
+                   At this size a bare emoji reads as a sticker; a seated one
+                   reads as part of the control. */
                 Text(state.language.flag)
+                    .font(.system(size: 15))
+                    .frame(width: 26, height: 26)
+                    .background(.white.opacity(0.9), in: Circle())
+                    .overlay(Circle().stroke(.black.opacity(0.06), lineWidth: 0.5))
+
                 Text(state.language.nativeName)
                     .font(APEXFont.body(13, weight: .semibold))
-                Image(systemName: "chevron.up.chevron.down")
-                    .font(.system(size: 10, weight: .bold))
+                    .lineLimit(1)
+
+                Image(systemName: "chevron.down")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(APEXColor.secondaryInk)
             }
             .foregroundStyle(APEXColor.ink)
-            .padding(.horizontal, 13)
-            .padding(.vertical, 10)
-            .background(.white.opacity(0.65), in: Capsule())
-            .overlay(Capsule().stroke(.white.opacity(0.85)))
+            .padding(.leading, 7)
+            .padding(.trailing, 14)
+            .padding(.vertical, 7)
+            .background(.ultraThinMaterial.opacity(0.98), in: Capsule())
+            .overlay(
+                Capsule().stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.95), .white.opacity(0.45)],
+                        startPoint: .topLeading, endPoint: .bottomTrailing
+                    ),
+                    lineWidth: 1
+                )
+            )
+            .shadow(color: .black.opacity(0.10), radius: 14, y: 5)
         }
     }
 }

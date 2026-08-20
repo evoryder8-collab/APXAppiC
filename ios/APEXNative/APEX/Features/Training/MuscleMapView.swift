@@ -55,6 +55,10 @@ struct MuscleMapView: UIViewRepresentable {
     /// Optional exercise names, used to refine the mapping for a custom day.
     var exerciseNames: [String] = []
     var xray: Bool = true
+    /* The page paints its own pale background, which becomes a hard rectangle
+       on any screen that is not also pale. Overriding the variable lets the
+       figure sit directly on whatever is behind it. */
+    var transparentBackground = false
     /// Lets the surrounding card turn the figure and flip its modes.
     var controller: MuscleMapController? = nil
 
@@ -79,6 +83,10 @@ struct MuscleMapView: UIViewRepresentable {
         case "upper":
             return (["chest", "shoulders", "triceps", "lats", "upperback", "biceps"],
                     ["traps", "forearms", "abs"])
+        case "welcome":
+            /* Nothing has been trained yet, so nothing lights up. The figure is
+               there to be looked at, not read. */
+            return ([], [])
         case "mobility":
             /* Recovery and posture: hips and thoracic spine, gently */
             return (["hipflexors", "lowerback", "upperback"],
@@ -126,7 +134,10 @@ struct MuscleMapView: UIViewRepresentable {
     func makeUIView(context: Context) -> WKWebView {
         /* Reuse a parked view when one is free: its scene is already built,
            so the highlight applies immediately instead of after a reload. */
-        if let warm = MuscleMapWarmPool.take() {
+        /* The pool parks views that already loaded the opaque page, so a
+           transparent screen must not borrow one: it would inherit the pale
+           rectangle this flag exists to avoid. */
+        if !transparentBackground, let warm = MuscleMapWarmPool.take() {
             warm.view.navigationDelegate = context.coordinator
             warm.view.isUserInteractionEnabled = false
             context.coordinator.webView = warm.view
@@ -177,6 +188,7 @@ struct MuscleMapView: UIViewRepresentable {
         /* Park it with the scene intact rather than paying the parse again on
            the next visit. The turntable stops so a hidden view costs nothing. */
         view.evaluateJavaScript("window.MuscleMap && MuscleMap.spin(false)")
+        guard !coordinator.isTransparent else { return }
         MuscleMapWarmPool.give(view, isLoaded: coordinator.loaded)
     }
 
@@ -191,15 +203,27 @@ struct MuscleMapView: UIViewRepresentable {
            sibling path, resolved by the asset handler. */
         coordinator.renderKey = renderKey
         coordinator.pendingScript = script
-        view.load(URLRequest(url: MuscleMapAssetHandler.entryURL))
+        coordinator.isTransparent = transparentBackground
+        view.load(URLRequest(
+            url: transparentBackground
+                ? MuscleMapAssetHandler.transparentEntryURL
+                : MuscleMapAssetHandler.entryURL
+        ))
     }
 
     private var script: String {
         let sets = Self.groups(for: dayType, exercises: exerciseNames)
         let primary = sets.primary.map { "'\($0)'" }.joined(separator: ",")
         let secondary = sets.secondary.map { "'\($0)'" }.joined(separator: ",")
+        /* Set on the document rather than in the file, so the shared page stays
+           one page and only the screens that need it go transparent. */
+        let background = transparentBackground
+            ? "document.documentElement.style.setProperty('--mm-bg', 'transparent');"
+              + "document.body.style.background = 'transparent';"
+            : ""
         return """
         (function(){
+          \(background)
           if (!window.MuscleMap) { return 'pending'; }
           MuscleMap.set([\(primary)], [\(secondary)]);
           MuscleMap.xray(\(xray ? "true" : "false"));
@@ -219,6 +243,10 @@ struct MuscleMapView: UIViewRepresentable {
         var renderKey: String?
         var loaded = false
         var pendingScript: String?
+        /* Only opaque views may be parked: the pool has no way to tell the two
+           pages apart afterwards, and handing a transparent one to the training
+           screen would put the figure on nothing. */
+        var isTransparent = false
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) {
             loaded = true

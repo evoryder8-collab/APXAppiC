@@ -53,7 +53,10 @@ final class MuscleMapController {
 struct MuscleMapCard: View {
     let dayType: String
     var exerciseNames: [String] = []
-    var height: CGFloat = 340
+    /* 30% taller than it was. The session title sat across the figure's neck,
+       because the label and the model were competing for the same band of the
+       card. The extra height is headroom for the title and the tooltip. */
+    var height: CGFloat = 442
     var accent: Color = APEXColor.violet
     var eyebrow: String?
     var focus: String?
@@ -93,6 +96,11 @@ struct MuscleMapCard: View {
             controller: controller
         )
         .frame(height: height)
+        /* Behind the figure, never in front of it: the model has to stay the
+           brightest thing in the card. */
+        .background(alignment: .center) {
+            ModelAura(accent: accent, animated: !reduceMotion)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         .simultaneousGesture(turnGesture)
@@ -124,9 +132,24 @@ struct MuscleMapCard: View {
                 showBriefing = true
             } label: {
                 Image(systemName: "info.circle.fill")
-                    .font(.system(size: 21))
+                    .font(.system(size: 22))
                     .symbolRenderingMode(.palette)
                     .foregroundStyle(.white, accent)
+                    /* A halo and a slow gleam across the glyph. A flat icon in a
+                       corner reads as decoration; this reads as a control. */
+                    .background {
+                        Circle()
+                            .fill(accent.opacity(0.28))
+                            .frame(width: 42, height: 42)
+                            .blur(radius: 9)
+                    }
+                    .overlay {
+                        TooltipGleam(active: !reduceMotion)
+                            .mask(
+                                Image(systemName: "info.circle.fill")
+                                    .font(.system(size: 22))
+                            )
+                    }
                     .padding(16)
             }
             .buttonStyle(.plain)

@@ -96,7 +96,21 @@ struct SimpleHomeView: View {
     }
 
     private var completedMealCount: Int { meals.filter(mealDone).count }
+    /* Groups, for the day's completion ring: a group is a block of the day,
+       like everything taken at breakfast. */
     private var completedSupplementCount: Int { supplementGroups.filter(groupDone).count }
+
+    /* Individual supplements, for the tile. The tile opens a list of
+       supplements with ticks against them, so it has to count the same things
+       that list does. Showing "1/3" over a popup with three of seven ticked
+       was two different questions wearing one answer. */
+    private var takenSupplementCount: Int {
+        session.activeSupplements.filter { supplement in
+            session.data.supplementLogs.contains {
+                $0.date == today && $0.supplementID == supplement.id
+            }
+        }.count
+    }
     private var totalTasks: Int {
         meals.count + supplementGroups.count + 1 + (todayProgramDay == nil ? 0 : 1)
     }
@@ -329,9 +343,10 @@ struct SimpleHomeView: View {
             )
             SimpleMetric(
                 icon: "sparkles",
-                value: "\(completedSupplementCount)/\(supplementGroups.count)",
+                value: "\(takenSupplementCount)/\(session.activeSupplements.count)",
                 label: "Supps",
-                done: !supplementGroups.isEmpty && completedSupplementCount == supplementGroups.count,
+                done: !session.activeSupplements.isEmpty
+                    && takenSupplementCount == session.activeSupplements.count,
                 color: APEXColor.violet,
                 action: { quickPanel = .supplements }
             )

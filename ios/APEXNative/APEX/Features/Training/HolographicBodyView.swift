@@ -6,6 +6,12 @@ struct HolographicBodyView: UIViewRepresentable {
 
     let dayType: String
     let accent: Color
+    /* The welcome screen sits on a pale drifting field, so the figure has to
+       composite onto it rather than bring its own dark box. */
+    var transparent = false
+    /* Faster than the training figure's fifteen seconds: on the first screen
+       the rotation is the thing showing the app is alive. */
+    var revolutionSeconds: Double = 15
 
     final class Coordinator {
         var renderKey: String?
@@ -17,7 +23,10 @@ struct HolographicBodyView: UIViewRepresentable {
 
     func makeUIView(context: Context) -> SCNView {
         let view = SCNView()
-        view.backgroundColor = UIColor(red: 0.025, green: 0.035, blue: 0.075, alpha: 1)
+        view.backgroundColor = transparent
+            ? .clear
+            : UIColor(red: 0.025, green: 0.035, blue: 0.075, alpha: 1)
+        view.isOpaque = !transparent
         view.scene = buildScene(animate: !reduceMotion)
         view.autoenablesDefaultLighting = false
         view.allowsCameraControl = true
@@ -48,7 +57,11 @@ struct HolographicBodyView: UIViewRepresentable {
         var blue: CGFloat = 0
         var alpha: CGFloat = 0
         UIColor(accent).getRed(&red, green: &green, blue: &blue, alpha: &alpha)
-        return String(format: "%@|%.4f|%.4f|%.4f|%.4f|%@", dayType, red, green, blue, alpha, reduceMotion.description)
+        return String(
+            format: "%@|%.4f|%.4f|%.4f|%.4f|%@|%@|%.1f",
+            dayType, red, green, blue, alpha, reduceMotion.description,
+            transparent.description, revolutionSeconds
+        )
     }
 
     private func buildScene(animate: Bool) -> SCNScene {
@@ -81,7 +94,7 @@ struct HolographicBodyView: UIViewRepresentable {
         body.addChildNode(ringNode)
 
         if animate {
-            body.runAction(.repeatForever(.rotateBy(x: 0, y: .pi * 2, z: 0, duration: 15)))
+            body.runAction(.repeatForever(.rotateBy(x: 0, y: .pi * 2, z: 0, duration: revolutionSeconds)))
         }
 
         let camera = SCNNode()
@@ -110,6 +123,7 @@ struct HolographicBodyView: UIViewRepresentable {
         case "upper": ["torso", "upper", "arms"]
         case "t25": ["torso", "legs"]
         case "mobility", "fix": ["torso"]
+        case "clean": []
         default: ["torso", "legs", "arms"]
         }
     }
