@@ -106,6 +106,35 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    /// A language may not be offered to users until its table is complete.
+    ///
+    /// This is the check that stops the readiness flag from being a claim. A
+    /// language marked ready must actually have every key, because the person
+    /// who suffers a half-finished translation is the one who reads it: they
+    /// see a native sentence beside an English one and cannot tell an
+    /// unfinished string from a broken app.
+    func testNoLanguageIsOfferedBeforeItIsFinished() {
+        guard let reference = table("ro").map({ Set($0.keys) }) else {
+            return XCTFail("no Romanian table to compare against")
+        }
+        for language in AppLanguage.allCases where language.isReleaseReady {
+            guard language != .english else { continue }
+            guard let keys = table(language.rawValue).map({ Set($0.keys) }) else {
+                return XCTFail("\(language.rawValue) is offered but has no table")
+            }
+            let missing = reference.subtracting(keys)
+            XCTAssertTrue(
+                missing.isEmpty,
+                """
+                \(language.rawValue) is marked release ready but is missing \
+                \(missing.count) strings. Either finish it or set isReleaseReady \
+                to false, because shipping it half done is worse for the people \
+                who read it than shipping English.
+                """
+            )
+        }
+    }
+
     /// Records how far each language has got. Not a pass or fail on its own:
     /// it is here so the number is printed by the suite rather than being
     /// anybody's recollection.

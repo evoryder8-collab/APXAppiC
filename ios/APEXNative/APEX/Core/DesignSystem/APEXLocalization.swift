@@ -59,6 +59,23 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         }
     }
 
+    /// Whether this language is finished enough to be offered to the people
+    /// who actually read it.
+    ///
+    /// A partly translated interface is not a smaller version of a translated
+    /// one. To someone who reads the language, an English sentence beside a
+    /// native one looks like a fault, and they cannot tell an unfinished string
+    /// from a broken one. English throughout is honest; half of each is not.
+    ///
+    /// The unfinished languages stay reachable behind the beta code, so they
+    /// can be reviewed by someone who reads them before anyone is shown them.
+    var isReleaseReady: Bool {
+        switch self {
+        case .english, .thai, .romanian: true
+        case .german, .swissGerman, .italian, .spanish, .japanese, .portuguese: false
+        }
+    }
+
     /* German compounds and Portuguese run long: "Nahrungsergänzungsmittel" is
        three times the width of "Supplements". Screens that are tight in English
        get a little more room to shrink before they truncate. */
@@ -380,9 +397,21 @@ enum LocalizedKey: CaseIterable {
 struct PortalLanguagePicker: View {
     @State private var state = LanguageState.shared
 
+    /* Finished languages, plus the unfinished ones once a beta code is in play,
+       so they can be checked by someone who reads them. A language already
+       selected stays listed, so nobody is stranded in a menu that no longer
+       offers the language they are currently reading. */
+    private var offered: [AppLanguage] {
+        AppLanguage.allCases.filter {
+            $0.isReleaseReady
+                || $0 == state.language
+                || EntitlementStore.shared.developerCodeRedeemed
+        }
+    }
+
     var body: some View {
         Menu {
-            ForEach(AppLanguage.allCases) { language in
+            ForEach(offered) { language in
                 Button {
                     withAnimation(.easeInOut(duration: 0.25)) { state.language = language }
                 } label: {
