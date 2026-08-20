@@ -22,6 +22,15 @@ enum SupplementCatalogue {
         let evidence: String
         let summary: String
         let timing: String
+        /* Hidden from accounts under eighteen. Not a claim that these are
+           poisons: pharmacologically active botanicals are almost never
+           trialled in adolescents, so there is no safety basis to put one in
+           front of a sixteen year old, and several carry real interaction,
+           bleeding, hormonal or liver risk that makes that absence matter.
+           Nutrients a diet already contains are never restricted. */
+        let adultOnly: Bool?
+        let restriction: String?
+        let youthNote: String?
 
         /// How well supported this is, said plainly. A catalogue that presents
         /// tribulus and creatine identically is not being straight with anyone.
@@ -57,6 +66,18 @@ enum SupplementCatalogue {
     }()
 
     static var all: [Entry] { payload.supplements }
+
+    /// The catalogue as it should appear to someone of this age.
+    ///
+    /// The app already holds sixteen as its floor, so the population this
+    /// affects is sixteen and seventeen year olds who can otherwise use
+    /// everything. They keep creatine, protein, vitamins, minerals, fibre and
+    /// caffeine -- with caffeine carrying the paediatric guidance rather than
+    /// being hidden -- and lose the botanicals nobody has tested on them.
+    static func visible(forAge age: Int) -> [Entry] {
+        guard age > 0, age < 18 else { return all }
+        return all.filter { $0.adultOnly != true }
+    }
     static var categories: [String] { payload.categories }
 
     private static func normalise(_ value: String) -> String {
@@ -97,7 +118,8 @@ enum SupplementCatalogue {
         }
     }
 
-    static func search(_ raw: String, limit: Int = 40) -> [Entry] {
+    static func search(_ raw: String, age: Int = 0, limit: Int = 40) -> [Entry] {
+        let all = visible(forAge: age)
         let query = normalise(raw)
         guard !query.isEmpty else {
             return Array(all.sorted { $0.name < $1.name }.prefix(limit))

@@ -1806,6 +1806,7 @@ private struct SimpleTextButtonStyle: ButtonStyle {
  * supported it is -- including for the ones that are not.
  */
 private struct SupplementPickerSheet: View {
+    @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     @State private var query = ""
@@ -1814,7 +1815,7 @@ private struct SupplementPickerSheet: View {
     let onAdd: (SupplementCatalogue.Entry, Double) -> Void
 
     private var results: [SupplementCatalogue.Entry] {
-        SupplementCatalogue.search(query)
+        SupplementCatalogue.search(query, age: session.profile?.age ?? 0)
     }
 
     var body: some View {
@@ -1855,6 +1856,13 @@ private struct SupplementPickerSheet: View {
                                     .font(APEXFont.body(12))
                                     .foregroundStyle(APEXColor.secondaryInk)
                                     .fixedSize(horizontal: false, vertical: true)
+                                if let note = entry.youthNote,
+                                   let age = session.profile?.age, age > 0, age < 18 {
+                                    Text(note)
+                                        .font(APEXFont.body(11, weight: .semibold))
+                                        .foregroundStyle(.orange)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                }
                             }
                             .padding(11)
                             .frame(maxWidth: .infinity, alignment: .leading)
