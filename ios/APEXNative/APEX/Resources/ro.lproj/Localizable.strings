@@ -3961,3 +3961,17 @@
 "What you can lift, over time" = "Ce poți ridica, în timp";
 "Built from the loads and reps you recorded, one line per exercise." = "Construit din greutățile și repetările pe care le-ai notat, câte o linie per exercițiu.";
 "Effective minimum" = "Minimul eficient";
+
+/* Phase guidance, capture guides, session sources */
+"Add one controlled aerobic session that preserves the surrounding strength and recovery work." = "Adaugă o singură sesiune aerobă controlată, care să nu strice munca de forță și recuperarea din jur.";
+"Building phase. Turn good days into a system" = "Faza de construcție. Transformă zilele bune într-un sistem";
+"High-performance phase. Protect consistency and durability" = "Faza de performanță ridicată. Protejează consecvența și rezistența";
+"Performance phase. Refine the limiting signal" = "Faza de performanță. Rafinează semnalul limitativ";
+"Keep two clean upper-body exposures and progress only after the top of the rep range is repeatable." = "Păstrează două expuneri curate pentru trenul superior și crește doar după ce vârful intervalului de repetări devine repetabil.";
+"Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "Protejează ambele expuneri săptămânale pentru trenul inferior, ținând oboseala sub control și tehnica curată.";
+"Two short mobility exposures this week are a higher-return choice than one exhausting stretch session." = "Două sesiuni scurte de mobilitate în această săptămână aduc mai mult decât una lungă și epuizantă.";
+"HEAD AND FEET INSIDE THE GUIDE" = "CAPUL ȘI TĂLPILE ÎN INTERIORUL GHIDAJULUI";
+"HEAD, SHOULDERS AND WAIST INSIDE THE GUIDE" = "CAPUL, UMERII ȘI TALIA ÎN INTERIORUL GHIDAJULUI";
+"Sign in again to continue." = "Autentifică-te din nou pentru a continua.";
+"Manual workout" = "Antrenament introdus manual";
+"APEX plan" = "Plan APEX";

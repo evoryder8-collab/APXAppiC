@@ -3961,3 +3961,17 @@
 "What you can lift, over time" = "สิ่งที่คุณยกได้ ตามช่วงเวลา";
 "Built from the loads and reps you recorded, one line per exercise." = "สร้างจากน้ำหนักและจำนวนครั้งที่คุณบันทึก หนึ่งเส้นต่อหนึ่งท่า";
 "Effective minimum" = "ขั้นต่ำที่ได้ผล";
+
+/* Phase guidance, capture guides, session sources */
+"Add one controlled aerobic session that preserves the surrounding strength and recovery work." = "เพิ่มคาร์ดิโอแบบควบคุมหนึ่งครั้ง โดยไม่กระทบงานความแข็งแรงและการฟื้นตัวรอบข้าง";
+"Building phase. Turn good days into a system" = "ช่วงสร้างฐาน เปลี่ยนวันที่ดีให้เป็นระบบ";
+"High-performance phase. Protect consistency and durability" = "ช่วงประสิทธิภาพสูง รักษาความสม่ำเสมอและความทนทาน";
+"Performance phase. Refine the limiting signal" = "ช่วงประสิทธิภาพ ปรับจุดที่เป็นข้อจำกัด";
+"Keep two clean upper-body exposures and progress only after the top of the rep range is repeatable." = "คงการฝึกร่างกายส่วนบนที่สะอาดสองครั้ง และเพิ่มระดับเมื่อทำถึงปลายช่วงจำนวนครั้งได้ซ้ำ ๆ";
+"Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "รักษาการฝึกขาทั้งสองครั้งต่อสัปดาห์ โดยคุมความล้าและรักษาฟอร์มให้ถูกต้อง";
+"Two short mobility exposures this week are a higher-return choice than one exhausting stretch session." = "การฝึกความคล่องตัวสั้น ๆ สองครั้งในสัปดาห์นี้ ให้ผลดีกว่าการยืดยาวจนหมดแรงหนึ่งครั้ง";
+"HEAD AND FEET INSIDE THE GUIDE" = "ให้ศีรษะและเท้าอยู่ในกรอบ";
+"HEAD, SHOULDERS AND WAIST INSIDE THE GUIDE" = "ให้ศีรษะ ไหล่ และเอวอยู่ในกรอบ";
+"Sign in again to continue." = "กรุณาเข้าสู่ระบบอีกครั้งเพื่อดำเนินการต่อ";
+"Manual workout" = "การฝึกที่บันทึกเอง";
+"APEX plan" = "แผน APEX";

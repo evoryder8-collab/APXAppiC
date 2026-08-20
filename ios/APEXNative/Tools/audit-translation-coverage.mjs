@@ -23,6 +23,11 @@ const ROOT = new URL('../APEX', import.meta.url).pathname
 const ALLOWED = new Set([
   'APEX', 'Orbit', 'Europe/Zurich', 'kcal', 'km', 'kg', 'g', 'ml', 'CHF',
   'HealthKit', 'Apple', 'Localizable', 'lproj',
+  /* Names of people, which are not translated in any language. */
+  'Constantine', 'June', 'Matthew Hua', 'Iulian-Andrei',
+  /* Language names, written in their own language by definition. */
+  'English', 'Deutsch', 'Schweizerdeutsch', 'Italiano', 'Español',
+  'Português', 'Română',
 ])
 
 /* Not interface: transport, storage and test scaffolding. */
@@ -49,6 +54,10 @@ function strip(source) {
     .replace(/system(?:Image|Name):\s*"(?:[^"\\\n]|\\.)*"/g, ' ')
     .replace(/String\(format:\s*"(?:[^"\\\n]|\\.)*"/g, ' ')
     .replace(/#"(?:[^"\\\n]|\\.)*"#/g, ' ')
+    /* Scripts injected into the figure's web view are code, not copy. */
+    .replace(/"[^"\n]*(?:document\.|window\.|getElementById|style\.)[^"\n]*"/g, ' ')
+    /* Date and time format patterns are read by the formatter, not by a person. */
+    .replace(/"[A-Za-z]{0,6}(?:EEEE|LLLL|MMM|HH:mm|yyyy)[A-Za-z ,:.]*"/g, ' ')
 }
 
 function isProse(text) {
