@@ -125,11 +125,11 @@ test('Watch activity thresholds recommend a whole-day mode and never auto-apply 
 test('source-tagged recovery history remains valid across source changes', () => {
   const history = normalizeRecoveryHistory([
     { date: '2026-07-25', source: 'apple', sleep_score: 86, sleep_pct: null, recovery_pct: null, updated_at: '2026-07-25T07:00:00Z' },
-    { date: '2026-07-26', source: 'athlytic', sleep_score: null, sleep_pct: 91, recovery_pct: 74, updated_at: '2026-07-26T07:00:00Z' },
-    { date: 'bad', source: 'athlytic', sleep_pct: 80, recovery_pct: null, updated_at: '2026-07-26T07:00:00Z' },
+    { date: '2026-07-26', source: 'other', sleep_score: null, sleep_pct: 91, recovery_pct: 74, updated_at: '2026-07-26T07:00:00Z' },
+    { date: 'bad', source: 'other', sleep_pct: 80, recovery_pct: null, updated_at: '2026-07-26T07:00:00Z' },
   ])
   assert.equal(history.length, 2)
-  assert.equal(history[0].source, 'athlytic')
+  assert.equal(history[0].source, 'other')
   assert.equal(history[1].source, 'apple')
   assert.equal(assessRecovery(history[1]).state, 'strong')
   assert.equal(assessRecovery(history[0]).state, 'strong')

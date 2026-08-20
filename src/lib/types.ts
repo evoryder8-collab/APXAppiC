@@ -269,10 +269,10 @@ export interface HealthMetric {
   resting_hr: number | null
 }
 
-export type RecoveryDataSource = 'apple' | 'athlytic'
+export type RecoveryDataSource = 'apple' | 'other'
 
 /* Source-tagged values are retained when the recovery source changes, so
-   trends never reinterpret an old Apple Sleep Score as Athlytic Recovery. */
+   trends never reinterpret an old Apple Sleep Score as Recovery score. */
 export interface RecoveryCheckin {
   date: string
   source: RecoveryDataSource

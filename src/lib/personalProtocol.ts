@@ -218,7 +218,7 @@ export function assessRecovery(
        61-80 OK, 81-95 High and 96+ Very High. Sleep Score is not HRV. */
     state = score <= 40 ? 'very_low' : score <= 60 ? 'low' : score <= 80 ? 'normal' : 'strong'
   } else {
-    /* Athlytic Recovery is the readiness input. Sleep is supporting context.
+    /* Recovery score is the readiness input. Sleep is supporting context.
        0-33, 34-66 and 67-100 follow its red, yellow and green presentation. */
     state = score <= 20 ? 'very_low' : score <= 33 ? 'low' : score <= 66 ? 'normal' : 'strong'
     if ((entry.sleep_pct ?? 100) <= 40 && state === 'strong') state = 'normal'
@@ -241,7 +241,7 @@ export function assessRecovery(
 }
 
 export function normalizeRecoverySource(value: unknown): RecoveryDataSource {
-  return value === 'athlytic' ? 'athlytic' : 'apple'
+  return value === 'other' ? 'other' : 'apple'
 }
 
 function validPercent(value: unknown): number | null {
@@ -261,13 +261,13 @@ export function normalizeRecoveryHistory(value: unknown): RecoveryCheckin[] {
     const sleepPct = validPercent(raw.sleep_pct)
     const recoveryPct = validPercent(raw.recovery_pct)
     if (source === 'apple' && sleepScore == null) return []
-    if (source === 'athlytic' && (sleepPct == null || recoveryPct == null)) return []
+    if (source === 'other' && (sleepPct == null || recoveryPct == null)) return []
     return [{
       date: raw.date,
       source,
       sleep_score: source === 'apple' ? sleepScore : null,
-      sleep_pct: source === 'athlytic' ? sleepPct : null,
-      recovery_pct: source === 'athlytic' ? recoveryPct : null,
+      sleep_pct: source === 'other' ? sleepPct : null,
+      recovery_pct: source === 'other' ? recoveryPct : null,
       updated_at: raw.updated_at,
     }]
   }).sort((left, right) => right.date.localeCompare(left.date)).slice(0, 730)

@@ -16,8 +16,8 @@ const copy = {
   en: {
     apple: 'Apple Sleep Score',
     appleHelp: 'Sleep quality context, not an HRV measurement.',
-    athlytic: 'Athlytic morning check',
-    athlyticHelp: 'Recovery is readiness. Sleep supports the context.',
+    other: 'Morning check',
+    otherHelp: 'Recovery is readiness. Sleep supports the context.',
     sleepScore: 'Sleep Score',
     sleep: 'Sleep',
     recovery: 'Recovery',
@@ -32,8 +32,8 @@ const copy = {
   ro: {
     apple: 'Scor de somn Apple',
     appleHelp: 'Context pentru calitatea somnului, nu o măsurătoare HRV.',
-    athlytic: 'Verificare Athlytic de dimineață',
-    athlyticHelp: 'Recuperarea indică pregătirea. Somnul completează contextul.',
+    other: 'Verificarea de dimineață',
+    otherHelp: 'Recuperarea indică pregătirea. Somnul completează contextul.',
     sleepScore: 'Scor de somn',
     sleep: 'Somn',
     recovery: 'Recuperare',
@@ -48,8 +48,8 @@ const copy = {
   th: {
     apple: 'คะแนนการนอน Apple',
     appleHelp: 'ใช้เป็นบริบทคุณภาพการนอน ไม่ใช่การวัด HRV',
-    athlytic: 'เช็ก Athlytic ตอนเช้า',
-    athlyticHelp: 'Recovery คือความพร้อม ส่วน Sleep เป็นบริบทเสริม',
+    other: 'เช็กอินตอนเช้า',
+    otherHelp: 'Recovery คือความพร้อม ส่วน Sleep เป็นบริบทเสริม',
     sleepScore: 'คะแนนการนอน',
     sleep: 'การนอน',
     recovery: 'การฟื้นตัว',
@@ -102,7 +102,7 @@ function consecutiveLowMornings(
 export function RecoveryCheckinCard({ date, settings, onSettingsChange, detailed = false }: Props) {
   const { language } = useLanguage()
   const words = copy[language]
-  const source: RecoveryDataSource = settings.addons.recovery_data_source === 'athlytic' ? 'athlytic' : 'apple'
+  const source: RecoveryDataSource = settings.addons.recovery_data_source === 'other' ? 'other' : 'apple'
   const history = useMemo(() => normalizeRecoveryHistory(settings.addons.recovery_history), [settings.addons.recovery_history])
   const existing = history.find((entry) => entry.date === date && entry.source === source)
   const [sleepScore, setSleepScore] = useState(() => percentDraft(existing?.sleep_score))
@@ -146,8 +146,8 @@ export function RecoveryCheckinCard({ date, settings, onSettingsChange, detailed
     <GlassCard accent={ACCENTS.violet} className="p-3.5">
       <div className="flex items-start justify-between gap-3">
         <div>
-          <p className="font-display text-sm font-black text-ink">{source === 'apple' ? words.apple : words.athlytic}</p>
-          {detailed && <p className="mt-0.5 text-[9px] font-semibold text-ink-faint">{source === 'apple' ? words.appleHelp : words.athlyticHelp}</p>}
+          <p className="font-display text-sm font-black text-ink">{source === 'apple' ? words.apple : words.other}</p>
+          {detailed && <p className="mt-0.5 text-[9px] font-semibold text-ink-faint">{source === 'apple' ? words.appleHelp : words.otherHelp}</p>}
         </div>
         {assessment && (
           <span className={`shrink-0 rounded-full px-2 py-1 font-mono text-[8px] font-black uppercase ${
@@ -157,7 +157,7 @@ export function RecoveryCheckinCard({ date, settings, onSettingsChange, detailed
           }`}>{words.states[assessment.state]}</span>
         )}
       </div>
-      <div className={`mt-3 grid gap-2 ${source === 'athlytic' ? 'grid-cols-2' : 'grid-cols-1'}`}>
+      <div className={`mt-3 grid gap-2 ${source === 'other' ? 'grid-cols-2' : 'grid-cols-1'}`}>
         {source === 'apple' ? (
           <label>
             <span className="mb-1 block text-[9px] font-black text-ink-soft">{words.sleepScore}</span>

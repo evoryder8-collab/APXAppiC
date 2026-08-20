@@ -232,10 +232,10 @@ struct SettingsView: View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 17) {
                 sectionTitle("Recovery data source", subtitle: "Apple Health sleep, HRV and resting heart rate import automatically. Earlier history keeps its source and is never reinterpreted.")
-                choiceRow(options: [("Apple", "apple"), ("Athlytic", "athlytic")], selected: addonString("recovery_data_source", default: "apple")) {
+                choiceRow(options: [("Apple", "apple"), ("Other", "other")], selected: addonString("recovery_data_source", default: "apple")) {
                     setAddon("recovery_data_source", .string($0))
                 }
-                Text(language.text("Athlytic does not publish its proprietary Recovery score through HealthKit. APEX imports the Apple Health context automatically and keeps a fast manual fallback for that score."))
+                Text(language.text("Apple Health context is imported automatically. Choose Other to enter a 0 to 100 recovery score from any watch or app that does not publish one to HealthKit."))
                     .font(APEXFont.body(10, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                 /* Switching this on shows a generated beginner block instead

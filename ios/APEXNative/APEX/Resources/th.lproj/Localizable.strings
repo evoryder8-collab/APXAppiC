@@ -3166,7 +3166,6 @@
 "%@ settling" = "%@ กำลังย่อย";
 "trade-off at %@" = "จุดแลกเปลี่ยนที่ %@";
 "ready at %@" = "พร้อมเวลา %@";
-"Athlytic does not publish its proprietary Recovery score through HealthKit. APEX imports the Apple Health context automatically and keeps a fast manual fallback for that score." = "Athlytic ไม่ได้เผยแพร่คะแนน Recovery ของตนผ่าน HealthKit APEX จะนำเข้าบริบทจาก Apple Health โดยอัตโนมัติ และมีทางเลือกกรอกเองอย่างรวดเร็วสำหรับคะแนนนั้น";
 
 /* Supplement picker interface */
 "Add supplement" = "เพิ่มอาหารเสริม";
@@ -3598,3 +3597,14 @@
 
 /* Creatine, revised */
 "The most replicated performance supplement there is. Raises muscle phosphocreatine, which adds reps at high intensity and, over time, size and strength. Monohydrate is the studied form, and the exotic ones such as HCl or buffered are not better than it. Purity is a separate question: a Creapure mark certifies tested limits on manufacturing by-products, whoever packs it." = "อาหารเสริมด้านสมรรถภาพที่มีงานวิจัยรองรับมากที่สุด ช่วยเพิ่มฟอสโฟครีเอทีนในกล้ามเนื้อ ทำให้ทำซ้ำได้มากขึ้นในความหนักสูง และเมื่อสะสมไปเรื่อย ๆ ก็ได้ทั้งขนาดและความแข็งแรง โมโนไฮเดรตคือรูปแบบที่ถูกศึกษา และรูปแบบแปลกใหม่อย่าง HCl หรือแบบบัฟเฟอร์ก็ไม่ได้ดีกว่า ส่วนความบริสุทธิ์เป็นอีกเรื่องหนึ่ง เครื่องหมาย Creapure รับรองว่ามีการตรวจควบคุมสารตกค้างจากการผลิต ไม่ว่าใครจะเป็นผู้บรรจุ";
+
+/* Recovery source */
+"Your device" = "อุปกรณ์ของคุณ";
+"Recovery score" = "คะแนนการฟื้นตัว";
+"Apple Health context is imported automatically. Choose Other to enter a 0 to 100 recovery score from any watch or app that does not publish one to HealthKit." = "บริบทจาก Apple Health จะถูกนำเข้าอัตโนมัติ เลือก อื่น ๆ เพื่อกรอกคะแนนการฟื้นตัว 0 ถึง 100 จากนาฬิกาหรือแอปใดก็ได้ที่ไม่ส่งค่านี้เข้า HealthKit";
+"Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." = "กรอกคะแนน 0 ถึง 100 ที่นาฬิกาหรือแอปของคุณให้มา บริบทจาก Apple Health ยังถูกนำเข้าอัตโนมัติเช่นเดิม";
+"Apple Health sleep context imports automatically. Add the 0 to 100 score when your watch does not expose one." = "บริบทการนอนจาก Apple Health จะนำเข้าอัตโนมัติ เพิ่มคะแนน 0 ถึง 100 เมื่อนาฬิกาของคุณไม่ได้ให้ค่านี้";
+
+/* Water in food facts */
+"WATER" = "น้ำ";
+"W" = "น";

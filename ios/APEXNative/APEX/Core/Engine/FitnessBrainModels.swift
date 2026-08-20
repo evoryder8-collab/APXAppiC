@@ -220,7 +220,7 @@ public struct FBImportedActivity: Codable, Sendable {
 }
 
 public enum FBRecoverySource: String, Codable, Sendable {
-    case apple, athlytic
+    case apple, other
 }
 
 public struct FBRecoveryCheckin: Codable, Sendable {

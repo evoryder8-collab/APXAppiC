@@ -447,7 +447,7 @@ public enum FitnessBrainEngine {
                         healthFed = true
                         synergies.append(FBSynergyEvent(
                             date: date, kind: .recoverySignal,
-                            label: "\(source == .apple ? "Apple Sleep Score" : "Athlytic Recovery") \(Int(FitnessBrainTargets.jsRound(score))) supported the planned training day"))
+                            label: "\(source == .apple ? "Apple Sleep Score" : "Recovery score") \(Int(FitnessBrainTargets.jsRound(score))) supported the planned training day"))
                     } else if score >= normalThreshold {
                         s.health += 0.35 * headroom(s.health)
                         healthFed = true

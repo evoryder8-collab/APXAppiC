@@ -20,6 +20,10 @@ struct FoodPortionResult: Equatable {
     let proteinG: Double
     let carbsG: Double
     let fatG: Double
+    /* Food is where most people get a third of their water, and the tracker
+       already counts it once the entry is logged. Showing it here means the
+       number stops appearing from nowhere afterwards. */
+    let waterML: Double?
 }
 
 enum FoodPortionMath {
@@ -69,7 +73,9 @@ enum FoodPortionMath {
             kcal: ((food.kcal100 ?? 0) * factor).rounded(.toNearestOrAwayFromZero),
             proteinG: round1((food.protein100 ?? 0) * factor),
             carbsG: round1((food.carbs100 ?? 0) * factor),
-            fatG: round1((food.fat100 ?? 0) * factor)
+            fatG: round1((food.fat100 ?? 0) * factor),
+            waterML: FoodHydration.portionWater(food.waterML100, equivalentAmount: equivalent)
+                .map { ($0).rounded(.toNearestOrAwayFromZero) }
         )
     }
 
@@ -202,6 +208,9 @@ struct FoodAmountSheet: View {
                 macroTile(value: food.protein100, label: "PROTEIN", suffix: "g")
                 macroTile(value: food.carbs100, label: "CARBS", suffix: "g")
                 macroTile(value: food.fat100, label: "FAT", suffix: "g")
+                if food.waterML100 != nil {
+                    macroTile(value: food.waterML100, label: "WATER", suffix: "ml")
+                }
             }
         }
         .padding(15)
@@ -303,6 +312,10 @@ struct FoodAmountSheet: View {
                 Text("P \(portion.map { formatted($0.proteinG) } ?? language.text("N/A"))g")
                 Text("C \(portion.map { formatted($0.carbsG) } ?? language.text("N/A"))g")
                 Text("F \(portion.map { formatted($0.fatG) } ?? language.text("N/A"))g")
+                if let water = portion?.waterML, water > 0 {
+                    Text("\(language.text("W")) \(formatted(water))ml")
+                        .foregroundStyle(APEXColor.cyan)
+                }
             }
             .font(APEXFont.mono(13, weight: .bold))
             .foregroundStyle(APEXColor.ink)
@@ -338,6 +351,11 @@ struct FoodAmountSheet: View {
             } label: {
                 Text(portion.map { language.format("Add food · %d kcal", Int($0.kcal)) } ?? language.text("Add food"))
                     .font(APEXFont.body(17, weight: .bold))
+                    /* Romanian and Thai run longer than the English this was
+                       sized for. One line that shrinks slightly beats a label
+                       reaching the edges of its own button. */
+                    .lineLimit(1)
+                    .minimumScaleFactor(0.7)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
                     .frame(height: 46)

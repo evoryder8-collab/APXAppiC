@@ -10,36 +10,36 @@ const COPY = {
   en: {
     eyebrow: 'SOURCE-AWARE AVATAR SIGNAL',
     title: 'Sleep & recovery trend',
-    subtitle: 'Apple Sleep Score and Athlytic Recovery retain their original meaning when you change source.',
+    subtitle: 'Apple Sleep Score and Recovery score retain their original meaning when you change source.',
     apple: 'Apple Sleep Score',
-    athlytic: 'Athlytic Recovery',
-    sleep: 'Athlytic Sleep',
+    other: 'Recovery score',
+    sleep: 'Other Sleep',
     noData: 'Enter a morning score in Simple Mode to begin the trend.',
     latest: 'Latest',
   },
   ro: {
     eyebrow: 'SEMNAL AVATAR CU SURSĂ PĂSTRATĂ',
     title: 'Evoluția somnului și recuperării',
-    subtitle: 'Scorul de somn Apple și recuperarea Athlytic își păstrează sensul original când schimbi sursa.',
+    subtitle: 'Scorul de somn Apple și recuperarea Other își păstrează sensul original când schimbi sursa.',
     apple: 'Scor de somn Apple',
-    athlytic: 'Recuperare Athlytic',
-    sleep: 'Somn Athlytic',
+    other: 'Recuperare Other',
+    sleep: 'Somn Other',
     noData: 'Introdu un scor de dimineață în Modul Simplu pentru a porni evoluția.',
     latest: 'Ultimul',
   },
   th: {
     eyebrow: 'สัญญาณอวตารที่คงแหล่งข้อมูล',
     title: 'แนวโน้มการนอนและการฟื้นตัว',
-    subtitle: 'คะแนนการนอน Apple และ Recovery ของ Athlytic ยังคงความหมายเดิมเมื่อเปลี่ยนแหล่งข้อมูล',
+    subtitle: 'คะแนนการนอน Apple และ Recovery ของ Other ยังคงความหมายเดิมเมื่อเปลี่ยนแหล่งข้อมูล',
     apple: 'คะแนนการนอน Apple',
-    athlytic: 'การฟื้นตัว Athlytic',
-    sleep: 'การนอน Athlytic',
+    other: 'การฟื้นตัว Other',
+    sleep: 'การนอน Other',
     noData: 'กรอกคะแนนตอนเช้าในโหมดเรียบง่ายเพื่อเริ่มดูแนวโน้ม',
     latest: 'ล่าสุด',
   },
 } as const
 
-type Point = { date: string; value: number; supporting: number | null; source: 'apple' | 'athlytic' }
+type Point = { date: string; value: number; supporting: number | null; source: 'apple' | 'other' }
 
 function pointsPath(points: Point[], valueOf: (point: Point) => number | null): string {
   if (!points.length) return ''
@@ -69,7 +69,7 @@ export function RecoveryTrendPanel() {
     .map((entry) => ({
       date: entry.date,
       value: entry.source === 'apple' ? entry.sleep_score ?? 0 : entry.recovery_pct ?? 0,
-      supporting: entry.source === 'athlytic' ? entry.sleep_pct : null,
+      supporting: entry.source === 'other' ? entry.sleep_pct : null,
       source: entry.source,
     })), [history, range])
   const latest = points.at(-1)
@@ -116,7 +116,7 @@ export function RecoveryTrendPanel() {
             </div>
             <div className="mt-3 flex flex-wrap items-center gap-2 text-[9px] font-bold">
               <span className="rounded-full bg-white/8 px-2.5 py-1 text-violet-100">
-                {words.latest}: {latest?.value ?? '·'} · {latest?.source === 'apple' ? words.apple : words.athlytic}
+                {words.latest}: {latest?.value ?? '·'} · {latest?.source === 'apple' ? words.apple : words.other}
               </span>
               {points.some((point) => point.supporting != null) && <span className="rounded-full bg-cyan-300/10 px-2.5 py-1 text-cyan-100">{words.sleep}</span>}
             </div>

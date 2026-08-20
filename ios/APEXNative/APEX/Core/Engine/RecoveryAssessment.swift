@@ -8,7 +8,7 @@ import Foundation
  * number sat in settings doing no work. This is the part that reads it.
  *
  * The two sources are not interchangeable. Apple's Sleep Score measures the
- * night; Athlytic's Recovery measures readiness and treats sleep as supporting
+ * night; a wearable's own recovery score measures readiness and treats sleep as supporting
  * context. Their bands are different and are kept different here.
  */
 enum RecoveryAssessment {
@@ -32,7 +32,7 @@ enum RecoveryAssessment {
 
     struct Checkin: Equatable, Sendable {
         let date: String
-        /// "apple" or "athlytic".
+        /// "apple" or "other".
         let source: String
         let sleepScore: Int?
         let sleepPercent: Int?
@@ -84,7 +84,7 @@ enum RecoveryAssessment {
                61-80 OK, 81-95 High and 96+ Very High. Sleep Score is not HRV. */
             state = score <= 40 ? .veryLow : (score <= 60 ? .low : (score <= 80 ? .normal : .strong))
         } else {
-            /* Athlytic Recovery is the readiness input and follows its own red,
+            /* A wearable's recovery score is the readiness input and follows its own red,
                yellow and green presentation. */
             state = score <= 20 ? .veryLow : (score <= 33 ? .low : (score <= 66 ? .normal : .strong))
             if (entry.sleepPercent ?? 100) <= 40, state == .strong { state = .normal }
@@ -136,18 +136,18 @@ enum RecoveryAssessment {
                   let date = row["date"]?.stringValue,
                   let updatedAt = row["updated_at"]?.stringValue
             else { return nil }
-            let source = row["source"]?.stringValue == "athlytic" ? "athlytic" : "apple"
+            let source = row["source"]?.stringValue == "other" ? "other" : "apple"
             let sleepScore = percent(row["sleep_score"])
             let sleepPercent = percent(row["sleep_pct"])
             let recoveryPercent = percent(row["recovery_pct"])
             if source == "apple", sleepScore == nil { return nil }
-            if source == "athlytic", sleepPercent == nil || recoveryPercent == nil { return nil }
+            if source == "other", sleepPercent == nil || recoveryPercent == nil { return nil }
             return Checkin(
                 date: date,
                 source: source,
                 sleepScore: source == "apple" ? sleepScore : nil,
-                sleepPercent: source == "athlytic" ? sleepPercent : nil,
-                recoveryPercent: source == "athlytic" ? recoveryPercent : nil,
+                sleepPercent: source == "other" ? sleepPercent : nil,
+                recoveryPercent: source == "other" ? recoveryPercent : nil,
                 updatedAt: updatedAt
             )
         }

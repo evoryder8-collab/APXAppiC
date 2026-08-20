@@ -1668,7 +1668,7 @@ private struct RecoveryMorningCard: View {
 
     private var headlineScore: Int? {
         guard let checkin else { return nil }
-        return source == "athlytic" ? checkin.recoveryPercent : checkin.sleepScore
+        return source == "other" ? checkin.recoveryPercent : checkin.sleepScore
     }
 
     private var statusTint: Color {
@@ -1754,18 +1754,18 @@ private struct RecoveryMorningCard: View {
 
     private var collapsedSubtitle: String {
         if let hours = context?["sleep_duration_hours"]?.numberValue, isToday {
-            return String(format: language.text("%@ Health sleep: %.1f h"), source == "athlytic" ? "Athlytic" : "Apple", hours)
+            return String(format: language.text("%@ Health sleep: %.1f h"), source == "other" ? language.text("Your device") : "Apple", hours)
         }
-        return language.text(source == "athlytic" ? "Athlytic recovery" : "Apple Health sleep")
+        return language.text(source == "other" ? "Recovery score" : "Apple Health sleep")
     }
 
     private var editor: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
                 scoreField(language.text("Sleep"), text: $sleep)
-                if source == "athlytic" { scoreField("Recovery", text: $recovery) }
+                if source == "other" { scoreField("Recovery", text: $recovery) }
             }
-            Text(source == "athlytic" ? "Athlytic’s proprietary score is entered manually; Apple Health context is imported automatically." : "Apple Health sleep context imports automatically. Add the 0–100 score when your watch does not expose one.")
+            Text(language.text(source == "other" ? "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." : "Apple Health sleep context imports automatically. Add the 0 to 100 score when your watch does not expose one."))
                 .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
             Button(language.text("Save morning check")) { save(); expanded = false }
                 .buttonStyle(.borderedProminent)

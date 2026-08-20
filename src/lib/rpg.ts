@@ -154,7 +154,7 @@ interface DayActivity {
   importMobilityMin: number
   vo2: number | null
   recoveryScore: number | null
-  recoverySource: 'apple' | 'athlytic' | null
+  recoverySource: 'apple' | 'other' | null
   mealRhythmScore: number | null
   mealCompletionScore: number | null
   mealRhythmVerdict: MealRhythmVerdict | null
@@ -466,7 +466,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
             synergies.push({
               date,
               kind: 'recovery_signal',
-              label: `${a.recoverySource === 'apple' ? 'Apple Sleep Score' : 'Athlytic Recovery'} ${Math.round(a.recoveryScore)} supported the planned training day`,
+              label: `${a.recoverySource === 'apple' ? 'Apple Sleep Score' : 'Recovery score'} ${Math.round(a.recoveryScore)} supported the planned training day`,
             })
           } else if (a.recoveryScore >= normalThreshold) {
             s.health += 0.35 * headroom(s.health)

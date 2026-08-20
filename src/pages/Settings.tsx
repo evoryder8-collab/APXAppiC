@@ -198,8 +198,8 @@ export function Settings() {
         body: 'Alege valorile pe care le copiezi dimineața. Istoricul vechi își păstrează sursa și nu este reinterpretat.',
         apple: 'Apple',
         appleBody: 'Un singur Scor de somn, 0-100. Este context de somn, nu HRV.',
-        athlytic: 'Athlytic',
-        athlyticBody: 'Somn și Recuperare, 0-100%. Recuperarea este valoarea principală de pregătire.',
+        other: 'Other',
+        otherBody: 'Somn și Recuperare, 0-100%. Recuperarea este valoarea principală de pregătire.',
       }
     : language === 'th'
       ? {
@@ -207,16 +207,16 @@ export function Settings() {
           body: 'เลือกค่าที่คุณกรอกตอนเช้า ประวัติเก่าจะเก็บแหล่งข้อมูลเดิมไว้และไม่ถูกตีความใหม่',
           apple: 'Apple',
           appleBody: 'กรอกคะแนนการนอน 0-100 เพียงค่าเดียว ใช้เป็นบริบทการนอน ไม่ใช่ HRV',
-          athlytic: 'Athlytic',
-          athlyticBody: 'กรอก Sleep และ Recovery 0-100% โดย Recovery เป็นค่าความพร้อมหลัก',
+          other: 'Other',
+          otherBody: 'กรอก Sleep และ Recovery 0-100% โดย Recovery เป็นค่าความพร้อมหลัก',
         }
       : {
           title: 'Recovery data source',
           body: 'Choose the values you copy each morning. Earlier history keeps its source and is never reinterpreted.',
           apple: 'Apple',
           appleBody: 'One Sleep Score from 0-100. It is sleep context, not HRV.',
-          athlytic: 'Athlytic',
-          athlyticBody: 'Sleep and Recovery from 0-100%. Recovery is the main readiness value.',
+          other: 'Other',
+          otherBody: 'Sleep and Recovery from 0-100%. Recovery is the main readiness value.',
         }
 
   const commitCustomBmr = (): void => {
@@ -572,7 +572,7 @@ export function Settings() {
             <h2 className="font-display text-lg font-bold text-ink">{recoverySourceCopy.title}</h2>
             <p className={`${sub} mt-1 leading-relaxed`}>{recoverySourceCopy.body}</p>
             <div className="mt-4 grid grid-cols-2 gap-2 rounded-2xl bg-ink/5 p-1.5">
-              {(['apple', 'athlytic'] as const).map((source) => {
+              {(['apple', 'other'] as const).map((source) => {
                 const active = (settings.addons.recovery_data_source ?? 'apple') === source
                 return (
                   <button
@@ -582,8 +582,8 @@ export function Settings() {
                     onClick={() => setSettings({ addons: { ...settings.addons, recovery_data_source: source } })}
                     className={`rounded-2xl px-3 py-3 text-left transition ${active ? 'bg-white shadow-sm ring-1 ring-violet-200' : 'text-ink-soft'}`}
                   >
-                    <span className="block text-sm font-black">{source === 'apple' ? recoverySourceCopy.apple : recoverySourceCopy.athlytic}</span>
-                    <span className="mt-1 block text-[9px] font-semibold leading-relaxed">{source === 'apple' ? recoverySourceCopy.appleBody : recoverySourceCopy.athlyticBody}</span>
+                    <span className="block text-sm font-black">{source === 'apple' ? recoverySourceCopy.apple : recoverySourceCopy.other}</span>
+                    <span className="mt-1 block text-[9px] font-semibold leading-relaxed">{source === 'apple' ? recoverySourceCopy.appleBody : recoverySourceCopy.otherBody}</span>
                   </button>
                 )
               })}

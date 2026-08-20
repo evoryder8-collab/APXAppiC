@@ -197,7 +197,7 @@
 "Add another" = "Adaugă altul";
 "Add at least one exercise and give the workout a name." = "Adaugă cel puțin un exercițiu și denumește antrenamentul.";
 "Add at least one exercise." = "Adaugă cel puțin un exercițiu.";
-"Add food" = "Adaugă alimentul";
+"Add food" = "Adaugă";
 "Add food or use a saved meal" = "Adaugă un aliment sau folosește o masă salvată";
 "Add frequent activity" = "Adaugă activitatea frecventă";
 "Add lap" = "Adaugă tur";
@@ -3141,7 +3141,7 @@
 "QUANTITY" = "CANTITATE";
 "SERVING TYPE" = "TIP DE PORȚIE";
 "NUTRITION PER 100 %@" = "NUTRIȚIE LA 100 %@";
-"Add food · %d kcal" = "Adaugă alimentul · %d kcal";
+"Add food · %d kcal" = "Adaugă · %d kcal";
 "Quick add %@" = "Adăugare rapidă %@";
 "N/A" = "Indisponibil";
 "No stats yet" = "Încă nu există statistici";
@@ -3166,7 +3166,6 @@
 "%@ settling" = "%@ se așază";
 "trade-off at %@" = "compromis la %@";
 "ready at %@" = "gata la %@";
-"Athlytic does not publish its proprietary Recovery score through HealthKit. APEX imports the Apple Health context automatically and keeps a fast manual fallback for that score." = "Athlytic nu publică scorul său Recovery prin HealthKit. APEX importă automat contextul din Apple Health și păstrează o alternativă manuală rapidă pentru acel scor.";
 
 /* Supplement picker interface */
 "Add supplement" = "Adaugă supliment";
@@ -3598,3 +3597,14 @@
 
 /* Creatine, revised */
 "The most replicated performance supplement there is. Raises muscle phosphocreatine, which adds reps at high intensity and, over time, size and strength. Monohydrate is the studied form, and the exotic ones such as HCl or buffered are not better than it. Purity is a separate question: a Creapure mark certifies tested limits on manufacturing by-products, whoever packs it." = "Cel mai bine studiat supliment pentru performanță. Crește fosfocreatina din mușchi, ceea ce înseamnă repetări în plus la intensitate mare și, în timp, forța și masă musculară. Monohidratul este forma studiată, iar variantele exotice precum HCl sau tamponată nu sunt mai bune decât el. Puritatea este o chestiune separată: marca Creapure certifică limite testate pentru reziduurile de fabricație, indiferent cine îl ambalează.";
+
+/* Recovery source */
+"Your device" = "Dispozitivul tău";
+"Recovery score" = "Scor de recuperare";
+"Apple Health context is imported automatically. Choose Other to enter a 0 to 100 recovery score from any watch or app that does not publish one to HealthKit." = "Contextul din Apple Health este importat automat. Alege Altul pentru a introduce un scor de recuperare de la 0 la 100 din orice ceas sau aplicație care nu îl publică în HealthKit.";
+"Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." = "Introdu scorul de la 0 la 100 pe care ți-l dă ceasul sau aplicația ta. Contextul din Apple Health este importat în continuare automat.";
+"Apple Health sleep context imports automatically. Add the 0 to 100 score when your watch does not expose one." = "Contextul de somn din Apple Health se importă automat. Adaugă scorul de la 0 la 100 când ceasul tău nu îl oferă.";
+
+/* Water in food facts */
+"WATER" = "APĂ";
+"W" = "A";
