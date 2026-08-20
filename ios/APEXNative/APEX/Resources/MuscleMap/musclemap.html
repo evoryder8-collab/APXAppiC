@@ -76,6 +76,20 @@
     </div>
   </div>
 
+<script>
+  /* loader=0 hides the progress panel before it can paint. The welcome screen
+     holds the app's own launch identity over this whole wait, so a second
+     progress indicator underneath it would flash through as the app opens.
+
+     Hidden rather than removed: bundle.js later calls loader.remove() on a
+     reference it captured at start-up, and deleting the element here made that
+     throw, which killed the widget entirely. No model, and the controls it
+     hides on load stayed on screen. */
+  if (new URLSearchParams(location.search).get("loader") === "0") {
+    const panel = document.getElementById("loader");
+    if (panel) { panel.style.display = "none"; }
+  }
+</script>
 <script src="bundle.js" defer></script>
 </body>
 </html>

@@ -143,10 +143,6 @@ struct SimpleHomeView: View {
                 HStack {
                     PortalModeSwitcher()
                     Spacer()
-                    Text(language.text("ONE TAP FLOW"))
-                        .font(APEXFont.mono(9))
-                        .tracking(1.1)
-                        .foregroundStyle(APEXColor.secondaryInk)
                 }
             }
             .padding(.horizontal, 18)
@@ -312,16 +308,19 @@ struct SimpleHomeView: View {
     }
 
     private var simpleHeader: some View {
-        HStack(alignment: .bottom, spacing: 14) {
-            VStack(alignment: .leading, spacing: 5) {
-                Text(language.format("Today, %@.", profile?.displayName.components(separatedBy: " ").first ?? "APEX"))
-                    .font(APEXFont.display(31))
-                    .minimumScaleFactor(0.8)
-            }
+        HStack(alignment: .center, spacing: 14) {
+            Text(language.format("Today, %@.", profile?.displayName.components(separatedBy: " ").first ?? "APEX"))
+                .font(APEXFont.display(23))
+                .minimumScaleFactor(0.75)
+                .lineLimit(1)
             Spacer(minLength: 4)
             CompletionRing(value: completion)
+                .scaleEffect(0.78)
+                .frame(width: 58, height: 58)
         }
-        .padding(.vertical, 17)
+        /* Trimmed from 17. The greeting is the least useful thing on this
+           screen and it was taking the most room at the top of it. */
+        .padding(.vertical, 6)
     }
 
     private func changeDate(_ offset: Int) {
@@ -1712,13 +1711,15 @@ private struct RecoveryMorningCard: View {
     }
 
     var body: some View {
-        /* Once the morning is answered the card collapses to a single line.
-           It is the first thing on the page every day, and a solved question
-           should not cost half the first screen. */
-        GlassCard(radius: 22, padding: headlineScore == nil || expanded ? 15 : 11) {
+        /* Always a single thin line until it is asked to open. It is the first
+           thing on the page every day, and an unanswered question was costing
+           half the first screen: the editor used to force itself open whenever
+           no score had arrived yet, which is most mornings before the watch
+           syncs. The arrow is how you get to it instead. */
+        GlassCard(radius: 18, padding: expanded ? 14 : 9) {
             VStack(alignment: .leading, spacing: 9) {
                 summary
-                if expanded || headlineScore == nil { editor }
+                if expanded { editor }
             }
         }
         .onAppear { load() }
@@ -1727,23 +1728,31 @@ private struct RecoveryMorningCard: View {
 
     private var summary: some View {
         Button {
-            guard headlineScore != nil else { return }
             expanded.toggle()
         } label: {
-            HStack(spacing: 10) {
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(language.text("Morning check"))
-                        .font(APEXFont.display(headlineScore == nil || expanded ? 17 : 14))
-                        .foregroundStyle(APEXColor.ink)
+            HStack(spacing: 9) {
+                Text(language.text("Morning check"))
+                    .font(APEXFont.display(expanded ? 17 : 14))
+                    .foregroundStyle(APEXColor.ink)
+                    .lineLimit(1)
+                    .fixedSize()
+
+                /* Collapsed, the line carries only what it can prove: the
+                   score if the watch supplied one, and nothing at all if it
+                   did not. The subtitle moves inside the editor, where there
+                   is room for it. */
+                if expanded {
                     Text(collapsedSubtitle)
                         .font(APEXFont.body(9, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .lineLimit(1)
                 }
+
                 Spacer(minLength: 6)
+
                 if let headlineScore {
                     Text("\(headlineScore)")
-                        .font(APEXFont.mono(17, weight: .bold))
+                        .font(APEXFont.mono(15, weight: .bold))
                         .foregroundStyle(statusTint)
                     if let state = verdict?.state {
                         /* One word at a glance. The full verdict sentence keeps
@@ -1756,14 +1765,18 @@ private struct RecoveryMorningCard: View {
                             .padding(.vertical, 3)
                             .background(statusTint.opacity(0.12), in: Capsule())
                     }
-                    Image(systemName: expanded ? "chevron.up" : "chevron.down")
-                        .font(.system(size: 10, weight: .bold))
-                        .foregroundStyle(APEXColor.secondaryInk)
                 } else {
-                    Text(health.isAuthorized ? "AUTO + MANUAL" : "MANUAL")
+                    /* No score yet. Say so in one word rather than opening a
+                       form nobody asked for. */
+                    Text(language.text(health.isAuthorized ? "Waiting" : "Tap to add"))
                         .font(APEXFont.mono(8))
-                        .foregroundStyle(APEXColor.green)
+                        .tracking(0.9)
+                        .foregroundStyle(APEXColor.secondaryInk)
                 }
+
+                Image(systemName: expanded ? "chevron.up" : "chevron.down")
+                    .font(.system(size: 10, weight: .bold))
+                    .foregroundStyle(APEXColor.secondaryInk)
             }
             .contentShape(Rectangle())
         }

@@ -203,6 +203,7 @@
 		F1CFF97090C5AAA714F36C9C /* FoodLoggingViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88CE846D4F5B16E4B613ACBC /* FoodLoggingViews.swift */; };
 		F31B84CD7B344A4CE1A5591B /* MealProtocolGuide.swift in Sources */ = {isa = PBXBuildFile; fileRef = 13557A81963363E286A7705D /* MealProtocolGuide.swift */; };
 		F4A7EDE2DD1D8B5D176AF23A /* OrbitPrivacyArchiveTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 120CF927811A30162EB58FFF /* OrbitPrivacyArchiveTests.swift */; };
+		F4BC5E90AC4A06215FD55041 /* iulian.png in Resources */ = {isa = PBXBuildFile; fileRef = 481B738EDEEFD02137F0A1D3 /* iulian.png */; };
 		F4FB65B7C724511A5AC2889E /* AddActivitySheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2DCBD44E63C4ADAA7603EFD2 /* AddActivitySheet.swift */; };
 		F51077D8FF8673F38D33FA65 /* ConsentView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 546D39EB90030A612FF78CF7 /* ConsentView.swift */; };
 		F76CE2A4FF09A75EB68BD666 /* FitnessBrainModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7757182FAE315C42B5918CBC /* FitnessBrainModels.swift */; };
@@ -326,6 +327,7 @@
 		3C588B0EDF217B6465E465A7 /* diaphragm_dif.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = diaphragm_dif.jpg; sourceTree = "<group>"; };
 		4211E4F924B1006E215C67A3 /* hydration-female.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-female.html"; sourceTree = "<group>"; };
 		4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortalHomeView.swift; sourceTree = "<group>"; };
+		481B738EDEEFD02137F0A1D3 /* iulian.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = iulian.png; sourceTree = "<group>"; };
 		48785B712B6C1FBAD4D945AE /* exercise-catalog.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "exercise-catalog.json"; sourceTree = "<group>"; };
 		49C75403495643D96C069C21 /* CustomWorkoutBuilder.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CustomWorkoutBuilder.swift; sourceTree = "<group>"; };
 		4A61351AEE44DB4AEC78BC36 /* HealthImport.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthImport.swift; sourceTree = "<group>"; };
@@ -778,6 +780,7 @@
 				48785B712B6C1FBAD4D945AE /* exercise-catalog.json */,
 				4CC9F7269E0FB7B2956A9322 /* InfoPlist.strings */,
 				BA29BEC6ED52DB3A785F85E6 /* InfoPlist.strings */,
+				481B738EDEEFD02137F0A1D3 /* iulian.png */,
 				16EDB23CA552311D34D8B188 /* iulian.webp */,
 				D8B8413B240399C398084A2D /* june.png */,
 				F60F21F488DA31129354FF26 /* Localizable.strings */,
@@ -1142,6 +1145,7 @@
 				7631520A295EB29752C35053 /* head_dif.jpg in Resources */,
 				E17507E2B0EF745D03AD6DC9 /* hydration-female.html in Resources */,
 				8BC10A8062BBE646E6EA45DF /* hydration-male.html in Resources */,
+				F4BC5E90AC4A06215FD55041 /* iulian.png in Resources */,
 				22113A8279C4CE646779A26D /* iulian.webp in Resources */,
 				19D0AA967AD19A6A0915F5A1 /* june.png in Resources */,
 				A1D8E7517E94A16EF7750243 /* legs_bump.jpg in Resources */,

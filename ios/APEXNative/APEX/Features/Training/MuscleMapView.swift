@@ -61,6 +61,10 @@ struct MuscleMapView: UIViewRepresentable {
     var transparentBackground = false
     /// Lets the surrounding card turn the figure and flip its modes.
     var controller: MuscleMapController? = nil
+    /* Fires once the mesh is welded and the figure is actually on screen, so a
+       host can hold its own artwork over the wait instead of showing an empty
+       frame. */
+    var onReady: (() -> Void)? = nil
 
     // MARK: - Session type to muscle groups
 
@@ -204,6 +208,7 @@ struct MuscleMapView: UIViewRepresentable {
         coordinator.renderKey = renderKey
         coordinator.pendingScript = script
         coordinator.isTransparent = transparentBackground
+        coordinator.onReady = onReady
         view.load(URLRequest(
             url: transparentBackground
                 ? MuscleMapAssetHandler.transparentEntryURL
@@ -247,6 +252,14 @@ struct MuscleMapView: UIViewRepresentable {
            pages apart afterwards, and handing a transparent one to the training
            screen would put the figure on nothing. */
         var isTransparent = false
+        var onReady: (() -> Void)?
+        private var reportedReady = false
+
+        func markReady() {
+            guard !reportedReady else { return }
+            reportedReady = true
+            onReady?()
+        }
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) {
             loaded = true
@@ -255,9 +268,19 @@ struct MuscleMapView: UIViewRepresentable {
                briefly rather than dropping the first highlight on the floor. */
             var attempts = 0
             func push() {
-                webView.evaluateJavaScript(pendingScript) { result, _ in
+                webView.evaluateJavaScript(pendingScript) { [weak self] result, _ in
                     let ready = (result as? String) == "ok"
-                    if ready || attempts > 40 { return }
+                    if ready {
+                        self?.markReady()
+                        return
+                    }
+                    if attempts > 40 {
+                        /* Gave up waiting. Tell the host anyway: holding a
+                           launch screen forever over a figure that will never
+                           arrive is worse than showing the screen without it. */
+                        self?.markReady()
+                        return
+                    }
                     attempts += 1
                     DispatchQueue.main.asyncAfter(deadline: .now() + 0.25) { push() }
                 }

@@ -15,6 +15,10 @@ struct WelcomeView: View {
     @State private var currentNonce: String?
     @State private var appeared = false
     @State private var modelController = MuscleMapController()
+    /* The figure needs a moment to weld 5 MB of mesh. Rather than show an
+       empty frame where it will be, the app's own opening identity stays up
+       and hands over once it is genuinely there. */
+    @State private var figureReady = false
 
     var body: some View {
         ZStack {
@@ -41,6 +45,27 @@ struct WelcomeView: View {
                 .padding(.top, 8)
                 .opacity(appeared ? 1 : 0)
         }
+        .overlay {
+            /* Held over everything until the figure is welded, so the icon the
+               user tapped on the home screen simply stays, and the app appears
+               to open into itself rather than into a half-built screen. */
+            if !figureReady {
+                ZStack {
+                    APEXColor.canvas
+                    AuroraField(animated: !reduceMotion)
+                    VStack(spacing: 18) {
+                        APEXMark(size: 84)
+                            .background { BreathingGlow(active: !reduceMotion) }
+                        Text("APEX")  // brand name, never translated
+                            .font(APEXFont.display(34))
+                            .tracking(9)
+                            .foregroundStyle(APEXColor.ink)
+                    }
+                }
+                .ignoresSafeArea()
+                .transition(.opacity)
+            }
+        }
         .onAppear {
             /* One orchestrated entrance rather than five things each doing
                their own thing, which is what makes it read as designed. */
@@ -62,7 +87,10 @@ struct WelcomeView: View {
             dayType: "welcome",
             xray: false,
             transparentBackground: true,
-            controller: modelController
+            controller: modelController,
+            onReady: {
+                withAnimation(.smooth(duration: 0.65)) { figureReady = true }
+            }
         )
         .frame(height: 320)
         .background {
@@ -111,7 +139,7 @@ struct WelcomeView: View {
                 .mask(Text("APEX").font(APEXFont.display(42)).tracking(11))
                 .rise(appeared, delay: 0.10)
 
-            Text(language.text("Your body, measured. Your plan, rewritten every week."))
+            Text(language.text("Every session, meal and night of sleep quietly rewrites what tomorrow asks of you."))
                 .font(APEXFont.body(15))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .multilineTextAlignment(.center)

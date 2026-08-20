@@ -89,27 +89,12 @@ struct NutritionGlanceCard: View {
                         .buttonStyle(.plain)
                         .foregroundStyle(APEXColor.ink)
                     }
+                    /* The "private" badge said nothing: every screen in the app
+                       is private, so a label claiming it on one card is noise.
+                       The date went with it, because the navigator at the top of
+                       the page already carries the date and stays there however
+                       far down you scroll. */
                     Spacer(minLength: 4)
-                    VStack(alignment: .trailing, spacing: 8) {
-                        Text(language.text("Private").uppercased(with: language.language.locale))
-                            .font(APEXFont.mono(9))
-                            .tracking(1.2)
-                            .foregroundStyle(APEXColor.amberDeep)
-                            .padding(.horizontal, 11)
-                            .padding(.vertical, 7)
-                            .overlay(Capsule().stroke(APEXColor.amber.opacity(0.45)))
-                        Button {
-                            onOpenCalendar?()
-                        } label: {
-                            HStack(spacing: 6) {
-                                Image(systemName: "calendar")
-                                Text(date.formatted(.dateTime.day().month(.abbreviated).locale(language.language.locale)))
-                            }
-                            .font(APEXFont.mono(9))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                        }
-                        .buttonStyle(.plain)
-                    }
                 }
 
                 HStack(spacing: 15) {

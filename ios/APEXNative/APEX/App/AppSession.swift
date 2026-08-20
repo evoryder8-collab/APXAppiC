@@ -81,7 +81,8 @@ final class AppSession {
                 return
             } catch {
                 if data.profile?.userID == userID {
-                    alertMessage = "APEX is offline. Your last synced data and new entries remain available."
+                    /* No alert: the sync indicator already shows this, and a modal on
+                       every launch without signal trains people to dismiss modals. */
                     return
                 }
             }
@@ -285,7 +286,8 @@ final class AppSession {
         } catch let error as URLError where error.code == .cancelled {
             // URLSession reports the same benign cancellation separately.
         } catch {
-            alertMessage = "APEX is using its last local view. \(error.localizedDescription)"
+            /* Falling back to the cache is the designed behaviour, and the
+               underlying error is a developer detail, not a user message. */
         }
     }
 
@@ -1436,7 +1438,7 @@ final class AppSession {
                 )
                 try await offlineStore.enqueue(operation, for: profile.userID)
                 pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-                alertMessage = "Meal removal is queued and will sync automatically."
+                /* Queued, and silent for the same reason a queued save is. */
             } catch {
                 alertMessage = error.localizedDescription
             }
@@ -2391,7 +2393,8 @@ final class AppSession {
                 let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
                 try await offlineStore.enqueue(operation, for: userID)
                 pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
-                alertMessage = "Saved on this iPhone. APEX will sync it automatically when the connection returns."
+                /* Silent, like the other offline saves. Working without a
+                   connection is the feature, not an incident report. */
             } catch {
                 alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
             }
@@ -2408,7 +2411,8 @@ final class AppSession {
             do {
                 try await offlineStore.enqueue(.delete(table: table, id: id), for: userID)
                 pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
-                alertMessage = "Saved on this iPhone. APEX will sync it automatically when the connection returns."
+                /* Silent, like the other offline saves. Working without a
+                   connection is the feature, not an incident report. */
             } catch {
                 alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
             }
