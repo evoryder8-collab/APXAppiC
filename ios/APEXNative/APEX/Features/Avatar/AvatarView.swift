@@ -223,13 +223,16 @@ struct AvatarView: View {
         return VStack(alignment: .leading, spacing: 17) {
             HStack {
                 VStack(alignment: .leading, spacing: 5) {
-                    Text(language.text("AVATAR INPUT SIGNAL")).font(APEXFont.mono(9)).tracking(2)
-                    Text(language.text("Metabolic rhythm")).font(APEXFont.display(28))
+                    Text(language.text("EATING PATTERN")).font(APEXFont.mono(9)).tracking(2)
+                    /* "Metabolic rhythm" under "avatar input signal" told
+                       nobody what this measures. It measures how regularly you
+                       eat, so it says that. */
+                    Text(language.text("How regularly you eat")).font(APEXFont.display(26))
                 }
                 Spacer(); periodPicker(dark: true)
             }
-            Text(language.text("Meal completion and recorded finish times shape this signal. The score describes logging rhythm, not digestion."))
-                .font(APEXFont.body(12, weight: .medium)).foregroundStyle(.white.opacity(0.58)).lineSpacing(4)
+            Text(language.text("Based on how many days you logged meals and how close to the same times. It is about the pattern of your eating, not what was in the food."))
+                .font(APEXFont.body(12, weight: .medium)).foregroundStyle(.white.opacity(0.66)).lineSpacing(4)
             if let score = rhythm.score {
                 HStack(spacing: 18) {
                     ZStack {
@@ -237,7 +240,7 @@ struct AvatarView: View {
                         Circle().trim(from: 0, to: score / 100).stroke(APEXColor.green.gradient, style: StrokeStyle(lineWidth: 15, lineCap: .round)).rotationEffect(.degrees(-90))
                         VStack(spacing: 1) {
                             Text("\(Int(score.rounded()))").font(APEXFont.mono(34, weight: .bold))
-                            Text(language.text("RHYTHM SCORE")).font(APEXFont.mono(7)).tracking(1)
+                            Text(language.text("OUT OF 100")).font(APEXFont.mono(7)).tracking(1)
                         }
                     }.frame(width: 142, height: 142)
                     VStack(alignment: .leading, spacing: 9) {
@@ -246,10 +249,10 @@ struct AvatarView: View {
                         darkDataRow("Typical timing variation", rhythm.timingVariation.map { "\(Int($0.rounded())) min" } ?? "—")
                     }
                 }
-                Text(language.text("Rhythm combines day coverage with timing consistency. Open Settings to change the Dayline timezone."))
-                    .font(APEXFont.body(10, weight: .medium)).foregroundStyle(.white.opacity(0.43))
+                Text(language.text("Logging on more days raises it. Eating at wildly different times lowers it. Change your timezone in Settings if the hours look wrong."))
+                    .font(APEXFont.body(10, weight: .medium)).foregroundStyle(.white.opacity(0.55))
             } else {
-                Label(language.text("At least three structured meals are needed before APEX shows a rhythm score."), systemImage: "waveform.path.ecg")
+                Label(language.text("Log three meals and this starts working."), systemImage: "waveform.path.ecg")
                     .font(APEXFont.body(13, weight: .semibold)).foregroundStyle(.white.opacity(0.72)).padding(.vertical, 22)
             }
         }
@@ -851,8 +854,8 @@ private struct StrengthHistoryCard: View {
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 15) {
                 Text(language.text("STRENGTH HISTORY")).font(APEXFont.mono(10)).tracking(2).foregroundStyle(APEXColor.violet)
-                Text(language.text("Progress you can actually see")).font(APEXFont.display(25))
-                Text(language.text("Every curve comes from the loads and reps recorded during your workouts."))
+                Text(language.text("What you can lift, over time")).font(APEXFont.display(25))
+                Text(language.text("Built from the loads and reps you recorded, one line per exercise."))
                     .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 if names.isEmpty {
                     Text(language.text("Complete a workout with recorded reps or load to begin strength history."))
@@ -866,10 +869,62 @@ private struct StrengthHistoryCard: View {
                         historyMetric("Estimated strength", points.map(\.value).max().map { "\($0.formatted(.number.precision(.fractionLength(1))))" } ?? "—")
                         historyMetric("Sessions", "\(Set(points.map(\.date)).count)")
                     }
+                    /* A curve with weight under it rather than a hairline on
+                       white. The gradient gives the line something to sit on,
+                       the glow lifts it off the card, and the last point is
+                       marked because the newest number is the one being looked
+                       for. */
                     Chart(Array(points.suffix(days))) { point in
-                        LineMark(x: .value("Date", point.date), y: .value("Strength", point.value)).foregroundStyle(APEXColor.violet).interpolationMethod(.catmullRom)
-                        PointMark(x: .value("Date", point.date), y: .value("Strength", point.value)).foregroundStyle(APEXColor.teal)
-                    }.chartYAxis(.hidden).frame(height: 145)
+                        AreaMark(
+                            x: .value("Date", point.date),
+                            y: .value("Strength", point.value)
+                        )
+                        .foregroundStyle(
+                            .linearGradient(
+                                colors: [APEXColor.violet.opacity(0.34), APEXColor.violet.opacity(0.02)],
+                                startPoint: .top, endPoint: .bottom
+                            )
+                        )
+                        .interpolationMethod(.catmullRom)
+
+                        LineMark(
+                            x: .value("Date", point.date),
+                            y: .value("Strength", point.value)
+                        )
+                        .foregroundStyle(
+                            .linearGradient(
+                                colors: [APEXColor.cyan, APEXColor.violet],
+                                startPoint: .leading, endPoint: .trailing
+                            )
+                        )
+                        .lineStyle(StrokeStyle(lineWidth: 3, lineCap: .round, lineJoin: .round))
+                        .interpolationMethod(.catmullRom)
+                        .shadow(color: APEXColor.violet.opacity(0.45), radius: 7, y: 3)
+
+                        if point.date == points.suffix(days).last?.date {
+                            PointMark(
+                                x: .value("Date", point.date),
+                                y: .value("Strength", point.value)
+                            )
+                            .symbolSize(150)
+                            .foregroundStyle(.white)
+                            PointMark(
+                                x: .value("Date", point.date),
+                                y: .value("Strength", point.value)
+                            )
+                            .symbolSize(60)
+                            .foregroundStyle(APEXColor.violet)
+                        }
+                    }
+                    .chartYAxis(.hidden)
+                    .chartXAxis {
+                        AxisMarks(values: .automatic(desiredCount: 3)) { _ in
+                            AxisValueLabel()
+                                .font(APEXFont.mono(8))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                    }
+                    .frame(height: 165)
                 }
             }
         }

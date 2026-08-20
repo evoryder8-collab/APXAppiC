@@ -155,6 +155,10 @@ struct FoodPortionSheet: View {
     @State private var unit: String
     @State private var mealSlot: String
     @State private var isSaving = false
+    /// The hour the sheet was opened at, so the slot can be recomputed once the
+    /// user preference is readable.
+    @State private var slotHour = 12
+    @State private var slotResolved = false
     @State private var errorMessage: String?
 
     init(food: Food, date: Date, onAdd: ((Food, Double, String) -> Void)? = nil) {
@@ -172,7 +176,11 @@ struct FoodPortionSheet: View {
             _unit = State(initialValue: food.nutritionBasis == "per_100ml" ? "ml" : "g")
         }
         let hour = Calendar.current.component(.hour, from: date)
-        _mealSlot = State(initialValue: hour < 11 ? "breakfast" : hour < 16 ? "lunch" : hour < 21 ? "dinner" : "snack")
+        /* The clock's answer. Corrected once the environment exists, because
+           the user's late-dinner preference lives in settings and this
+           initialiser runs before those are reachable. */
+        _mealSlot = State(initialValue: MealSlotDefault.slot(hour: hour, adaptiveLateDinner: false))
+        _slotHour = State(initialValue: hour)
     }
 
     private var availableUnits: [String] {
@@ -256,6 +264,16 @@ struct FoodPortionSheet: View {
                 .padding(18)
             }
             .background(APEXBackground())
+            .task {
+                /* The user's late-dinner preference decides whether a 22:00
+                   entry is a snack or a real dinner. Applied here rather than
+                   in the initialiser, and only once, so it never overrides a
+                   slot the user has since chosen by hand. */
+                guard !slotResolved else { return }
+                slotResolved = true
+                let adaptive = session.data.settings?.addons["adaptive_post_workout_dinner"]?.boolValue ?? true
+                mealSlot = MealSlotDefault.slot(hour: slotHour, adaptiveLateDinner: adaptive)
+            }
             .navigationTitle(language.text("Confirm food"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {

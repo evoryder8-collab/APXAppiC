@@ -20,6 +20,13 @@ struct SimpleHomeView: View {
     private let waterTargetL = 2.75
 
     private var today: String { selectedDate.apexDateKey }
+
+    /* Clean hides the explanatory lines under each card; detailed keeps them.
+       The setting has existed since Simple mode did and nothing had ever read
+       it, so both choices produced the same screen. */
+    private var showsGuidance: Bool {
+        (session.data.settings?.addons["interface_mode"]?.stringValue ?? "clean") == "detailed"
+    }
     private var profile: Profile? { session.profile }
     private var meals: [Meal] { session.data.meals.sorted { $0.sortOrder < $1.sortOrder } }
     private var activities: [ActivityLog] { session.data.activityLogs.filter { $0.date == today } }
@@ -450,9 +457,14 @@ struct SimpleHomeView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(language.text(day.name))
                         .font(APEXFont.display(17))
-                    Text(language.text("Start directly. Skip calendar and setup."))
-                        .font(APEXFont.body(10, weight: .medium))
-                        .foregroundStyle(APEXColor.secondaryInk)
+                    /* Guidance, which Clean mode hides. The card is a button
+                       with a name on it: what it does is not a mystery that
+                       needs a sentence under it every day. */
+                    if showsGuidance {
+                        Text(language.text("Start directly. Skip calendar and setup."))
+                            .font(APEXFont.body(10, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
                 }
                 Spacer(minLength: 2)
                 VStack(spacing: 6) {
@@ -825,7 +837,14 @@ private struct SimpleChecklistRow: View {
 }
 
 private struct SimpleShortcutCard: View {
+    @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
+
+    /// Clean hides the explanatory line; Detailed keeps it.
+    private var showsGuidance: Bool {
+        (session.data.settings?.addons["interface_mode"]?.stringValue ?? "clean") == "detailed"
+    }
+
     let icon: String
     let title: String
     let subtitle: String
@@ -842,11 +861,13 @@ private struct SimpleShortcutCard: View {
             VStack(alignment: .leading, spacing: 3) {
                 Text(language.text(title))
                     .font(APEXFont.display(17))
-                Text(language.text(subtitle))
-                    .font(APEXFont.body(10, weight: .medium))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .lineLimit(2)
-                    .multilineTextAlignment(.leading)
+                if showsGuidance {
+                    Text(language.text(subtitle))
+                        .font(APEXFont.body(10, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.leading)
+                }
             }
             Spacer(minLength: 4)
             Text(language.text(trailing))
