@@ -285,6 +285,9 @@ struct InductionView: View {
         .buttonStyle(PressShrink())
         .animation(.spring(response: 0.34, dampingFraction: 0.7), value: selected)
         .rise(shown, delay: 0.14 + Double(index) * 0.035)
+        /* Each card drifts on its own phase, so the list breathes instead of
+           sitting flat on the glass. */
+        .floating(index: index, active: !reduceMotion)
     }
 
     private func toggleRow(label: String, isOn: Binding<Bool>) -> some View {

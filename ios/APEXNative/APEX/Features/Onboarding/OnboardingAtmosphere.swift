@@ -25,15 +25,21 @@ struct AuroraField: View {
         let phase: Double
     }
 
+    /* Drift is a quarter wider than it first was, and the periods are shorter,
+       so the movement is legible without ever becoming a thing you watch. The
+       radii breathe on their own cycle, which is what stops four circles on
+       fixed paths from reading as four circles on fixed paths. */
     private let blobs: [Blob] = [
         Blob(color: APEXColor.violet, radius: 300, origin: CGPoint(x: 0.18, y: 0.16),
-             drift: CGSize(width: 0.16, height: 0.10), period: 19, phase: 0),
+             drift: CGSize(width: 0.20, height: 0.13), period: 15, phase: 0),
         Blob(color: APEXColor.cyan, radius: 340, origin: CGPoint(x: 0.86, y: 0.24),
-             drift: CGSize(width: -0.18, height: 0.13), period: 23, phase: 1.1),
+             drift: CGSize(width: -0.23, height: 0.16), period: 18, phase: 1.1),
         Blob(color: APEXColor.amber, radius: 260, origin: CGPoint(x: 0.74, y: 0.82),
-             drift: CGSize(width: -0.12, height: -0.15), period: 27, phase: 2.3),
+             drift: CGSize(width: -0.15, height: -0.19), period: 21, phase: 2.3),
         Blob(color: APEXColor.violet, radius: 240, origin: CGPoint(x: 0.16, y: 0.88),
-             drift: CGSize(width: 0.20, height: -0.09), period: 31, phase: 3.4),
+             drift: CGSize(width: 0.25, height: -0.11), period: 25, phase: 3.4),
+        Blob(color: APEXColor.cyan, radius: 210, origin: CGPoint(x: 0.50, y: 0.50),
+             drift: CGSize(width: 0.17, height: 0.21), period: 29, phase: 4.6),
     ]
 
     var body: some View {
@@ -45,17 +51,22 @@ struct AuroraField: View {
                     let angle = animated ? (time / blob.period + blob.phase) * .pi * 2 : blob.phase
                     let x = (blob.origin.x + blob.drift.width * CGFloat(sin(angle))) * size.width
                     let y = (blob.origin.y + blob.drift.height * CGFloat(cos(angle * 0.8))) * size.height
+                    /* Each blob swells and shrinks slightly out of step with its
+                       own travel, so the colour behind the screen feels like it
+                       is alive rather than being panned across. */
+                    let breath = animated ? 1 + 0.14 * CGFloat(sin(angle * 0.55 + blob.phase)) : 1
+                    let radius = blob.radius * breath
                     let rect = CGRect(
-                        x: x - blob.radius, y: y - blob.radius,
-                        width: blob.radius * 2, height: blob.radius * 2
+                        x: x - radius, y: y - radius,
+                        width: radius * 2, height: radius * 2
                     )
                     context.fill(
                         Circle().path(in: rect),
                         with: .radialGradient(
-                            Gradient(colors: [blob.color.opacity(0.34), blob.color.opacity(0)]),
+                            Gradient(colors: [blob.color.opacity(0.42), blob.color.opacity(0)]),
                             center: CGPoint(x: x, y: y),
                             startRadius: 0,
-                            endRadius: blob.radius
+                            endRadius: radius
                         )
                     )
                 }
@@ -63,6 +74,42 @@ struct AuroraField: View {
         }
         .background(APEXColor.canvas)
         .drawingGroup()
+    }
+}
+
+/// A halo that breathes, behind the mark.
+///
+/// Two rings rather than one, expanding on slightly different cycles, because a
+/// single circle pulsing on its own is a heartbeat monitor and this should read
+/// as light.
+struct BreathingGlow: View {
+    let active: Bool
+
+    var body: some View {
+        TimelineView(.animation(minimumInterval: 1 / 30, paused: !active)) { timeline in
+            let elapsed = timeline.date.timeIntervalSinceReferenceDate
+            ZStack {
+                ring(scale: 1 + 0.10 * sin(elapsed / 3.1 * .pi * 2),
+                     opacity: 0.30 + 0.10 * sin(elapsed / 3.1 * .pi * 2),
+                     size: 250, colour: APEXColor.violet)
+                ring(scale: 1 + 0.07 * sin(elapsed / 4.4 * .pi * 2 + 1.2),
+                     opacity: 0.22 + 0.08 * sin(elapsed / 4.4 * .pi * 2 + 1.2),
+                     size: 190, colour: APEXColor.cyan)
+            }
+        }
+    }
+
+    private func ring(scale: Double, opacity: Double, size: CGFloat, colour: Color) -> some View {
+        Circle()
+            .fill(
+                RadialGradient(
+                    colors: [colour.opacity(opacity), .clear],
+                    center: .center, startRadius: 2, endRadius: size / 2
+                )
+            )
+            .frame(width: size, height: size)
+            .blur(radius: 14)
+            .scaleEffect(active ? scale : 1)
     }
 }
 
@@ -100,7 +147,35 @@ struct PressShrink: ButtonStyle {
     }
 }
 
+/// A slow vertical drift, out of phase per element.
+///
+/// The point is that no two things rise and fall together: a whole screen
+/// moving as one block reads as a bug, while a few degrees of independence
+/// reads as depth.
+struct Floating: ViewModifier {
+    let index: Int
+    let active: Bool
+    @State private var start = Date()
+
+    func body(content: Content) -> some View {
+        if active {
+            TimelineView(.animation(minimumInterval: 1 / 30)) { timeline in
+                let elapsed = timeline.date.timeIntervalSince(start)
+                let phase = Double(index) * 0.7
+                let period = 4.6 + Double(index % 3) * 0.9
+                content.offset(y: CGFloat(sin(elapsed / period * .pi * 2 + phase)) * 2.6)
+            }
+        } else {
+            content
+        }
+    }
+}
+
 extension View {
+    func floating(index: Int, active: Bool = true) -> some View {
+        modifier(Floating(index: index, active: active))
+    }
+
     /// The staggered entrance, so the screen assembles instead of appearing.
     func rise(_ appeared: Bool, delay: Double) -> some View {
         opacity(appeared ? 1 : 0)

@@ -27,8 +27,6 @@ struct WelcomeView: View {
                     Spacer(minLength: 46)
                     actions
                     signUpLink
-                    Spacer(minLength: 26)
-                    bespokeLink
                 }
                 .padding(.horizontal, 26)
                 .frame(maxWidth: .infinity)
@@ -60,18 +58,11 @@ struct WelcomeView: View {
                    layout and leaves a hole under the logo. As a background it
                    glows past the edges and costs no space at all. */
                 .background {
-                    Circle()
-                        .fill(
-                            RadialGradient(
-                                colors: [APEXColor.violet.opacity(0.34), .clear],
-                                center: .center, startRadius: 2, endRadius: 118
-                            )
-                        )
-                        .frame(width: 236, height: 236)
-                        .blur(radius: 12)
+                    BreathingGlow(active: appeared && !reduceMotion)
                         .scaleEffect(appeared ? 1 : 0.7)
                         .opacity(appeared ? 1 : 0)
                 }
+                .floating(index: 0, active: !reduceMotion)
 
             Text("APEX")  // brand name, never translated
                 .font(APEXFont.display(42))
@@ -116,7 +107,7 @@ struct WelcomeView: View {
             Button {
                 session.route = .emailAuth(signUp: false)
             } label: {
-                Text(language.text("Continue with email"))
+                Text(language.text("Continue with eMail"))
                     .font(APEXFont.body(16, weight: .semibold))
                     .foregroundStyle(APEXColor.ink)
                     .frame(maxWidth: .infinity)
@@ -149,22 +140,6 @@ struct WelcomeView: View {
         .buttonStyle(PressShrink())
         .padding(.top, 24)
         .rise(appeared, delay: 0.40)
-    }
-
-    /* The bespoke accounts keep their portrait entrance. It is not the front
-       door of a public app, but it is not worth losing. */
-    private var bespokeLink: some View {
-        Button {
-            session.route = .persona
-        } label: {
-            Text(language.text("Bespoke account"))
-                .font(APEXFont.mono(10))
-                .tracking(1.3)
-                .foregroundStyle(APEXColor.secondaryInk)
-        }
-        .buttonStyle(PressShrink())
-        .padding(.bottom, 20)
-        .rise(appeared, delay: 0.48)
     }
 
     // MARK: - Apple

@@ -63,6 +63,7 @@ struct MuscleMapCard: View {
     @State private var isTurning = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
+    @State private var showBriefing = false
 
     /// A drag only turns the figure once it is clearly sideways, so a scroll
     /// that happens to start on the figure still scrolls.
@@ -114,6 +115,29 @@ struct MuscleMapCard: View {
                 }
                 .padding(20)
             }
+        }
+        /* Top right, opposite the session title, so the figure itself stays
+           clear. The model shows which muscles light up but never says why they
+           were chosen; this is that half. */
+        .overlay(alignment: .topTrailing) {
+            Button {
+                showBriefing = true
+            } label: {
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 21))
+                    .symbolRenderingMode(.palette)
+                    .foregroundStyle(.white, accent)
+                    .padding(16)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(language.text("What this session trains"))
+        }
+        .sheet(isPresented: $showBriefing) {
+            SessionBriefingSheet(
+                briefing: SessionBriefing.briefing(dayType: dayType, exercises: exerciseNames),
+                accent: accent
+            ) { showBriefing = false }
+            .apexTransientSheet(.fraction(0.66))
         }
         .overlay(alignment: .bottomTrailing) {
             HStack(spacing: 7) {

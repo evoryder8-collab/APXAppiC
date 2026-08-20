@@ -440,7 +440,9 @@ final class AppSession {
                 let payload = StructuredMealRPCPayload(pMeal: request, pEntries: [entry])
                 try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
                 pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-                alertMessage = "Food saved on this iPhone and queued for Supabase."
+                /* Saved offline and queued. Deliberately silent: this is the app
+                   working, not an event, and pendingSyncCount already shows it.
+                   Naming the backend on a user's screen helps nobody. */
             } catch {
                 alertMessage = error.localizedDescription
             }
@@ -1023,7 +1025,9 @@ final class AppSession {
             let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
             try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
             pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-            alertMessage = "Meal saved on this iPhone and queued for Supabase."
+            /* Saved offline and queued. Deliberately silent: this is the app
+               working, not an event, and pendingSyncCount already shows it.
+               Naming the backend on a user's screen helps nobody. */
         }
     }
 
@@ -1239,7 +1243,9 @@ final class AppSession {
             )
             try await offlineStore.enqueue(.rpc("save_meal_preset", params: payload), for: profile.userID)
             pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-            alertMessage = "Preset saved on this iPhone and queued for Supabase."
+            /* Saved offline and queued. Deliberately silent: this is the app
+               working, not an event, and pendingSyncCount already shows it.
+               Naming the backend on a user's screen helps nobody. */
             return presetID
         }
     }
@@ -1407,7 +1413,9 @@ final class AppSession {
             let operation = try OfflineOperation.rpc("log_structured_meal", params: payload)
             try await offlineStore.enqueue(operation, for: profile.userID)
             pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-            alertMessage = "Food saved on this iPhone and queued for Supabase."
+            /* Saved offline and queued. Deliberately silent: this is the app
+               working, not an event, and pendingSyncCount already shows it.
+               Naming the backend on a user's screen helps nobody. */
         }
     }
 
