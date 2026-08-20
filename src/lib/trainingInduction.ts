@@ -331,15 +331,12 @@ export function generateTrainingPlan(
     }
   }
   const programs = [programFor('transition'), programFor('main')]
-  /* Someone already training who wants size or strength is running their own
-   * progressive overload, and a paced follow-along gets in the way of that.
-   * Anyone rebuilding after a layoff is the opposite case: the pacing is most
-   * of the value. Either way the other mode is one tap away, so this is a
-   * starting point rather than a verdict. */
-  const sessionMode: SessionMode =
-    input.inactivity === 'currently_training' && input.goal !== 'rebuild'
-      ? 'tracked'
-      : 'guided'
+  /* Deliberately not inferred from the questionnaire. Whether somebody wants
+   * to be paced through a session or to track it themselves is a preference,
+   * not a conclusion to be drawn from their layoff length or their goal, and
+   * guessing it makes the behaviour unpredictable. Every generated day is
+   * offered both ways, equally, at the point of starting one. */
+  const sessionMode: SessionMode = 'guided'
 
   const program_days: ProgramDay[] = []
   const exercises: Exercise[] = []

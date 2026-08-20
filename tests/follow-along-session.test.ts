@@ -6,6 +6,8 @@ import {
   estimateSessionSeconds,
   followAlongFields,
   movementForExercise,
+  preferredSessionMode,
+  rememberSessionMode,
   sideSwitchSeconds,
   suggestedRestSeconds,
   transitionSeconds,
@@ -279,14 +281,47 @@ test('session quality means the same thing in both modes', () => {
   ]), 0)
 })
 
-test('the questionnaire picks a starting mode that suits the person', () => {
-  const trained = generateTrainingPlan('u', intake('muscle', { inactivity: 'currently_training' }))
-  const returning = generateTrainingPlan('u', intake('muscle', { inactivity: 'over_one_year' }))
-  // Somebody already training and chasing size runs their own overload.
-  assert.ok(trained.program_days.every((d) => d.session_mode === 'tracked'))
-  // Somebody coming back after a year needs the pacing more than the autonomy.
-  assert.ok(returning.program_days.every((d) => d.session_mode === 'guided'))
-  // Rebuilding is guided regardless, because that is what the mode is for.
-  const rebuilding = generateTrainingPlan('u', intake('rebuild', { inactivity: 'currently_training' }))
-  assert.ok(rebuilding.program_days.every((d) => d.session_mode === 'guided'))
+test('how a session is trained never depends on questionnaire answers', () => {
+  // This was briefly inferred -- already training and chasing size meant the
+  // list, coming back from a layoff meant the paced player. That made the app
+  // decide something about the user that the user is better placed to decide,
+  // and made the behaviour unpredictable from the outside. Both are offered on
+  // every session instead.
+  const combinations: TrainingInductionInput[] = []
+  for (const goal of ['rebuild', 'muscle', 'strength'] as TrainingGoal[]) {
+    for (const inactivity of ['currently_training', 'under_1_month', 'over_one_year'] as const) {
+      for (const venue of ['home', 'gym'] as const) {
+        combinations.push(intake(goal, { inactivity, venue }))
+      }
+    }
+  }
+  const modes = new Set(combinations.flatMap(
+    (input) => generateTrainingPlan('u', input).program_days.map((d) => d.session_mode)))
+  assert.deepEqual([...modes], ['guided'],
+    'the questionnaire varies how the session is trained based on the answers')
+})
+
+test('the mode a session opens on is the one chosen last time', () => {
+  const store = new Map<string, string>()
+  const original = globalThis.localStorage
+  Object.defineProperty(globalThis, 'localStorage', {
+    value: {
+      getItem: (k: string) => store.get(k) ?? null,
+      setItem: (k: string, v: string) => { store.set(k, v) },
+    },
+    configurable: true,
+  })
+  try {
+    // Nothing chosen yet, so the day's own mode stands.
+    assert.equal(preferredSessionMode('tracked'), 'tracked')
+    assert.equal(preferredSessionMode(null), 'guided')
+    // Once somebody has chosen, that is what every session opens on, whatever
+    // the day was built as.
+    rememberSessionMode('tracked')
+    assert.equal(preferredSessionMode('guided'), 'tracked')
+    rememberSessionMode('guided')
+    assert.equal(preferredSessionMode('tracked'), 'guided')
+  } finally {
+    Object.defineProperty(globalThis, 'localStorage', { value: original, configurable: true })
+  }
 })

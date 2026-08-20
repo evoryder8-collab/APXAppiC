@@ -4,11 +4,12 @@ import { format } from 'date-fns'
 import { useNavigate } from 'react-router-dom'
 import type { Accent } from '../lib/theme'
 import { ACCENTS } from '../lib/theme'
-import type { AppData, ProgramSlug, WorkoutSession } from '../lib/types'
+import type { AppData, ProgramSlug, SessionMode, WorkoutSession } from '../lib/types'
+import { preferredSessionMode, rememberSessionMode } from '../lib/sessionShape'
 import { planForDate, todayIso } from '../lib/plan'
 import { recommendLoad } from '../lib/progression'
 import { useStore } from '../store/AppStore'
-import { AccentChip, GradientButton, Sheet, Stepper } from './ui'
+import { AccentChip, Sheet, Stepper } from './ui'
 import { DropletIcon } from './Icons'
 import { dailyLogId } from '../lib/ids'
 import { WorkoutStatsSheet } from './workout/WorkoutStatsSheet'
@@ -265,31 +266,50 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
       </div>
 
       {!done && plan.exercises.length > 0 && isPastOrToday && (() => {
-        /* Two ways to train the same session. The day carries which one it was
-         * built for, and the other is always one tap away rather than buried:
-         * a follow-along is wrong for someone running their own overload, and
-         * a bare list is wrong for someone who wanted to be paced. */
+        /* Both ways of training the same session, shown as what they are.
+         * Neither is a fallback hidden under the other, and neither is picked
+         * for the user by anything they answered in a questionnaire. The one
+         * they chose last time is marked so the choice is predictable rather
+         * than merely available. */
         const query = lite ? '?lite=1' : ''
-        const tracked = plan.programDay?.session_mode === 'tracked'
-        const primary = tracked ? `/log/${slug}/${dateIso}${query}` : `/player/${slug}/${dateIso}${query}`
-        const secondary = tracked ? `/player/${slug}/${dateIso}${query}` : `/log/${slug}/${dateIso}${query}`
+        const preferred = preferredSessionMode(plan.programDay?.session_mode)
+        const go = (mode: SessionMode): void => {
+          rememberSessionMode(mode)
+          onClose()
+          navigate(mode === 'tracked'
+            ? `/log/${slug}/${dateIso}${query}`
+            : `/player/${slug}/${dateIso}${query}`)
+        }
+        const options: Array<[SessionMode, string, string]> = [
+          ['guided', plan.isRecoveryMicro ? 'Follow recovery' : 'Follow along',
+            'Paced, counts your reps'],
+          ['tracked', 'Track it', 'A list you fill in'],
+        ]
         return (
-          <div className="mt-4">
-            <GradientButton
-              accent={accent}
-              breathe
-              className="w-full py-4 text-base tracking-wide"
-              onClick={() => { onClose(); navigate(primary) }}
-            >
-              {tracked ? 'LOG SESSION' : `START ${plan.isRecoveryMicro ? 'RECOVERY' : 'SESSION'}`}
-            </GradientButton>
-            <button
-              type="button"
-              onClick={() => { onClose(); navigate(secondary) }}
-              className="mt-2 w-full rounded-2xl px-4 py-2.5 text-[11px] font-bold text-ink-soft underline underline-offset-2"
-            >
-              {tracked ? 'Follow along instead' : 'Just track it instead'}
-            </button>
+          <div className="mt-4 grid grid-cols-2 gap-2">
+            {options.map(([mode, label, hint]) => {
+              const active = preferred === mode
+              return (
+                <button
+                  key={mode}
+                  type="button"
+                  onClick={() => go(mode)}
+                  className={`rounded-2xl border px-3 py-3.5 text-left transition active:scale-[.98] ${
+                    active
+                      ? 'border-white/40 bg-white/80 shadow-[0_12px_26px_-16px_rgba(0,0,0,.55)]'
+                      : 'border-white/15 bg-white/35'
+                  }`}
+                >
+                  <span className="block text-sm font-black tracking-wide text-ink">{label}</span>
+                  <span className="mt-0.5 block text-[10px] font-semibold text-ink-soft">{hint}</span>
+                  {active && (
+                    <span className="mt-1.5 block text-[9px] font-black uppercase tracking-[0.14em] text-ink-soft/70">
+                      Last used
+                    </span>
+                  )}
+                </button>
+              )
+            })}
           </div>
         )
       })()}

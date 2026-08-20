@@ -14,6 +14,7 @@
  */
 
 import { MOVEMENTS, MOVEMENT_ALIASES, type Movement } from '../data/movements.ts'
+import type { SessionMode } from './types.ts'
 import {
   holdFor,
   resolveMovement,
@@ -218,4 +219,43 @@ export function estimateSessionSeconds(
     }
   })
   return total
+}
+
+/* ------------------------------------------------------- MODE PREFERENCE
+ *
+ * Which of the two ways to train somebody wants is a preference, not something
+ * to be inferred. It was briefly derived from the questionnaire -- already
+ * training and chasing size meant the list, coming back from a layoff meant
+ * the paced player -- which made the app decide something about the user that
+ * the user is better placed to decide, and made the behaviour unpredictable
+ * from the outside.
+ *
+ * So both are offered on every session, equally, and the last choice is
+ * remembered so the option that is about to happen is the one that happened
+ * last time. The day's own mode is only the starting point for someone who
+ * has never chosen.
+ */
+
+const MODE_KEY = 'apex.session-mode'
+
+export function rememberedSessionMode(): SessionMode | null {
+  try {
+    const stored = globalThis.localStorage?.getItem(MODE_KEY)
+    return stored === 'guided' || stored === 'tracked' ? stored : null
+  } catch {
+    return null
+  }
+}
+
+export function rememberSessionMode(mode: SessionMode): void {
+  try {
+    globalThis.localStorage?.setItem(MODE_KEY, mode)
+  } catch {
+    /* A private window that refuses storage is not a reason to fail a workout. */
+  }
+}
+
+/** What a given day should open on: the last choice, then the day's own. */
+export function preferredSessionMode(dayMode: SessionMode | null | undefined): SessionMode {
+  return rememberedSessionMode() ?? dayMode ?? 'guided'
 }
