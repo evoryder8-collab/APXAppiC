@@ -43,15 +43,38 @@ enum MovementTiming {
         /// drill has no weight, and asking for one is noise at best.
         var recordsLoad: Bool { loadable && prescriptionMode != "breath" }
 
-        /// What the unit of work is called, so the controls can say it.
+        /// What the unit of work is called, so the whole player can say it
+        /// rather than calling everything a set. A stretch flow is held once,
+        /// a carry is walked once, a jump is a round of ground contacts.
         var setNoun: String {
             switch prescriptionMode {
             case "hold", "carry": return "hold"
             case "breath", "quality": return "exercise"
-            case "contacts": return "round"
-            case "interval": return "round"
+            case "contacts", "interval": return "round"
             default: return "set"
             }
+        }
+
+        var setNounPlural: String {
+            switch setNoun {
+            case "hold": return "holds"
+            case "exercise": return "exercises"
+            case "round": return "rounds"
+            default: return "sets"
+            }
+        }
+
+        /// Whether the total is worth stating at all. "1 of 1" on something
+        /// performed once is noise dressed as progress.
+        var showsSetCount: Bool { prescriptionMode != "breath" }
+    }
+
+    /// The noun for an exercise the library does not know, falling back to how
+    /// the row itself is written rather than assuming repetitions.
+    static func fallbackNoun(repUnit: String) -> String {
+        switch repUnit {
+        case "seconds", "minutes": return "hold"
+        default: return "set"
         }
     }
 

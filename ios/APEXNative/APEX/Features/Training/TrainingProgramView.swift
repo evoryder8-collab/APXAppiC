@@ -709,9 +709,20 @@ struct WorkoutDayView: View {
         let exercise = planned.exercise
         let reps = exercise.repUnit == "max" ? language.text("MAX") : exercise.repMin == exercise.repMax ? "\(exercise.repMax)" : "\(exercise.repMin)–\(exercise.repMax)"
         let unit = language.text(exercise.repUnit.uppercased())
+        let movement = MovementTiming.movement(named: exercise.name)
+        let noun = language.text(
+            (planned.plannedSets == 1
+                ? movement?.setNoun
+                : movement?.setNounPlural)
+            ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)
+        ).uppercased(with: language.language.locale)
+        // Something performed once does not need a count in front of it.
+        let lead = planned.plannedSets == 1 && movement?.showsSetCount == false
+            ? noun
+            : "\(planned.plannedSets) \(noun)"
         return exercise.perSide
-            ? language.format("%d SETS · %@ %@ / SIDE", planned.plannedSets, reps, unit)
-            : language.format("%d SETS · %@ %@", planned.plannedSets, reps, unit)
+            ? language.format("%@ · %@ %@ / SIDE", lead, reps, unit)
+            : language.format("%@ · %@ %@", lead, reps, unit)
     }
 }
 
@@ -804,6 +815,29 @@ struct WorkoutPlayerView: View {
      * does not contain. */
     /* What this movement's unit of work is called, so the controls stop
        saying "set" for things that have none. */
+    /* "SET 1 OF 1" above something performed once is noise dressed as
+       progress, and "SET" is the wrong word for a hold or a flow anyway. */
+    /* Counting "total reps" across a session that included a stretch flow, a
+       plank and a carry reported a number none of them contributed to. Only
+       what was actually counted is summarised. */
+    private var completionSummary: String {
+        let recorded = setInputs.filter { !$0.skipped }
+        let reps = recorded.compactMap(\.reps).reduce(0, +)
+        if reps > 0 {
+            return language.format("%d recorded · %d total reps", recorded.count, reps)
+        }
+        return language.format("%d recorded", recorded.count)
+    }
+
+    private func setCounterLine(_ exercise: Exercise) -> String? {
+        let movement = MovementTiming.movement(named: exercise.name)
+        if movement?.showsSetCount == false && exercise.sets <= 1 { return nil }
+        let noun = language.text(
+            movement?.setNoun ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)
+        ).uppercased(with: language.language.locale)
+        return language.format("%@ %d OF %d", noun, currentSet, exercise.sets)
+    }
+
     private func skipNoun(_ exercise: Exercise) -> String {
         let noun = MovementTiming.movement(named: exercise.name)?.setNoun ?? "set"
         return language.text(noun)
@@ -910,23 +944,74 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    /* The strip used to only report where you were. If the doorbell went and
+       the set ran on without you, there was no way back to it -- the workout
+       simply carried on past. Every pill is now a way in, so anything already
+       reached can be returned to and redone. */
     private var progressStrip: some View {
-        ScrollView(.horizontal, showsIndicators: false) {
-            HStack(spacing: 8) {
-                progressPill(label: "W", selected: phase == .warmup, complete: phase != .warmup)
-                ForEach(Array(exercises.enumerated()), id: \.element.id) { exerciseIndex, exercise in
-                    ForEach(1...max(1, exercise.sets), id: \.self) { set in
-                        let done = setInputs.contains { $0.exerciseID == exercise.id && $0.setNumber == set }
-                        progressPill(
-                            label: exercise.perSide ? "\(exerciseIndex + 1)·\(set)" : "\(exerciseIndex + 1)\(set > 1 ? ".\(set)" : "")",
-                            selected: phase != .warmup && exerciseIndex == currentIndex && set == currentSet,
-                            complete: done
-                        )
+        ScrollViewReader { proxy in
+            ScrollView(.horizontal, showsIndicators: false) {
+                HStack(spacing: 8) {
+                    progressPill(
+                        label: "W",
+                        selected: phase == .warmup,
+                        complete: phase != .warmup,
+                        accessibilityName: language.text("Warm-up")
+                    ) { returnToWarmup() }
+                        .id("warmup")
+
+                    ForEach(Array(exercises.enumerated()), id: \.element.id) { exerciseIndex, exercise in
+                        ForEach(1...max(1, exercise.sets), id: \.self) { set in
+                            let done = setInputs.contains { $0.exerciseID == exercise.id && $0.setNumber == set }
+                            let noun = language.text(
+                                MovementTiming.movement(named: exercise.name)?.setNoun
+                                ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)
+                            )
+                            progressPill(
+                                label: exercise.perSide ? "\(exerciseIndex + 1)·\(set)" : "\(exerciseIndex + 1)\(set > 1 ? ".\(set)" : "")",
+                                selected: phase != .warmup && exerciseIndex == currentIndex && set == currentSet,
+                                complete: done,
+                                accessibilityName: language.format(
+                                    "%@, %@ %d", language.text(exercise.name), noun, set
+                                )
+                            ) { jump(toExercise: exerciseIndex, set: set) }
+                                .id("\(exerciseIndex)-\(set)")
+                        }
                     }
                 }
+                .padding(.vertical, 2)
             }
-            .padding(.vertical, 2)
+            .onChange(of: currentIndex) { _, _ in scrollToCurrent(proxy) }
+            .onChange(of: currentSet) { _, _ in scrollToCurrent(proxy) }
         }
+    }
+
+    private func scrollToCurrent(_ proxy: ScrollViewProxy) {
+        withAnimation(.snappy) { proxy.scrollTo("\(currentIndex)-\(currentSet)", anchor: .center) }
+    }
+
+    /// Go back to a set that was missed, or forward to one being skipped.
+    ///
+    /// Anything already recorded for the destination is cleared, because
+    /// returning to a set means doing it again rather than viewing it: leaving
+    /// the old numbers would silently double-count it on completion.
+    private func jump(toExercise index: Int, set: Int) {
+        guard exercises.indices.contains(index) else { return }
+        let exercise = exercises[index]
+        guard set >= 1, set <= max(1, exercise.sets) else { return }
+        guard phase != .complete else { return }
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        setInputs.removeAll { $0.exerciseID == exercise.id && $0.setNumber == set }
+        currentIndex = index
+        currentSet = set
+        beginActiveSet()
+    }
+
+    private func returnToWarmup() {
+        guard phase != .complete else { return }
+        UIImpactFeedbackGenerator(style: .soft).impactOccurred()
+        paused = false
+        phase = .warmup
     }
 
     @ViewBuilder
@@ -978,10 +1063,12 @@ struct WorkoutPlayerView: View {
         GlassCard(radius: 34, padding: 22) {
             VStack(spacing: 17) {
                 if let current {
-                    Text(language.format("SET %d OF %d", currentSet, current.sets))
-                        .font(APEXFont.mono(12))
-                        .tracking(2)
-                        .foregroundStyle(APEXColor.secondaryInk)
+                    if let counter = setCounterLine(current) {
+                        Text(counter)
+                            .font(APEXFont.mono(12))
+                            .tracking(2)
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
                     Text(language.text(current.name))
                         .font(APEXFont.display(32))
                         .multilineTextAlignment(.center)
@@ -1146,7 +1233,7 @@ struct WorkoutPlayerView: View {
                     .foregroundStyle(accent)
                 Text(language.text("Session complete"))
                     .font(APEXFont.display(31))
-                Text(language.format("%d sets recorded · %d total reps", setInputs.filter { !$0.skipped }.count, setInputs.compactMap(\.reps).reduce(0, +)))
+                Text(completionSummary)
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
                 Button {
@@ -1182,13 +1269,25 @@ struct WorkoutPlayerView: View {
             .first?.weightKG ?? 0
     }
 
-    private func progressPill(label: String, selected: Bool, complete: Bool) -> some View {
-        Text(label)
-            .font(APEXFont.mono(10))
-            .foregroundStyle(selected ? .white : complete ? accent : APEXColor.secondaryInk)
-            .frame(minWidth: 38, minHeight: 38)
-            .background(selected ? accent : complete ? accent.opacity(0.12) : .white.opacity(0.55), in: Circle())
-            .overlay(Circle().stroke(complete ? accent.opacity(0.3) : APEXColor.ink.opacity(0.06)))
+    private func progressPill(
+        label: String,
+        selected: Bool,
+        complete: Bool,
+        accessibilityName: String,
+        tap: @escaping () -> Void
+    ) -> some View {
+        Button(action: tap) {
+            Text(label)
+                .font(APEXFont.mono(10))
+                .foregroundStyle(selected ? .white : complete ? accent : APEXColor.secondaryInk)
+                .frame(minWidth: 38, minHeight: 38)
+                .background(selected ? accent : complete ? accent.opacity(0.12) : .white.opacity(0.55), in: Circle())
+                .overlay(Circle().stroke(complete ? accent.opacity(0.3) : APEXColor.ink.opacity(0.06)))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(accessibilityName)
+        .accessibilityHint(language.text("Go to this part of the session"))
+        .accessibilityAddTraits(selected ? .isSelected : [])
     }
 
     private func restMetricRow(
@@ -1287,7 +1386,14 @@ struct WorkoutPlayerView: View {
         currentWeight = suggestedWeight
         phase = .active
         WorkoutAudioCoach.shared.say(
-            language.format("%@. Set %d of %d.", language.text(exercise.name), currentSet, exercise.sets),
+            language.format(
+                "%@. %@ %d of %d.",
+                language.text(exercise.name),
+                language.text(MovementTiming.movement(named: exercise.name)?.setNoun
+                    ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)).capitalized,
+                currentSet,
+                exercise.sets
+            ),
             enabled: voiceOn
         )
     }
