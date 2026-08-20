@@ -76,6 +76,36 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    /// A translation must not carry script from an unrelated language.
+    ///
+    /// A Cyrillic fragment once ended up glued to the front of a Japanese
+    /// string. It renders, it is not an error, and nobody who does not read
+    /// Japanese would ever notice, which is precisely why a machine should be
+    /// the one checking.
+    func testTranslationsDoNotMixUnrelatedScripts() {
+        let cyrillic = CharacterSet(charactersIn: "\u{0400}"..."\u{04FF}")
+        let thaiRange = CharacterSet(charactersIn: "\u{0E00}"..."\u{0E7F}")
+        for language in languages {
+            guard let table = table(language) else { continue }
+            for (key, value) in table {
+                /* A key that already carries foreign script is a string about
+                   languages, such as the list of language names, where every
+                   script belongs on purpose. */
+                if key.rangeOfCharacter(from: thaiRange) != nil { continue }
+                XCTAssertNil(
+                    value.rangeOfCharacter(from: cyrillic),
+                    "\(language) has Cyrillic in \"\(key)\": \(value)"
+                )
+                if language != "th" {
+                    XCTAssertNil(
+                        value.rangeOfCharacter(from: thaiRange),
+                        "\(language) has Thai script in \"\(key)\": \(value)"
+                    )
+                }
+            }
+        }
+    }
+
     /// Records how far each language has got. Not a pass or fail on its own:
     /// it is here so the number is printed by the suite rather than being
     /// anybody's recollection.
