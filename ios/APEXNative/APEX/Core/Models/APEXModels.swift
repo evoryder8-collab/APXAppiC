@@ -121,10 +121,22 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     var calibrationK: Double
     var calibrationHistory: [CalibrationHistoryEntry]
     var updatedAt: String
+    /* All optional, because a synthesised Decodable throws on a missing key
+       even when the property has a default. An offline cache written by an
+       earlier build has none of these, and losing the whole dashboard over an
+       absent entitlement flag is far worse than not knowing the flag. */
+    var foundingMember: Bool?
+    var trialStartedAt: String?
+    var subscriptionTier: String?
+    var subscriptionExpiresAt: String?
 
     enum CodingKeys: String, CodingKey {
         case id
         case userID = "user_id"
+        case foundingMember = "founding_member"
+        case trialStartedAt = "trial_started_at"
+        case subscriptionTier = "subscription_tier"
+        case subscriptionExpiresAt = "subscription_expires_at"
         case persona
         case displayName = "display_name"
         case sex

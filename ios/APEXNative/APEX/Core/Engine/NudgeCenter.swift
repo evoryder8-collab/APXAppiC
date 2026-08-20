@@ -34,20 +34,35 @@ final class NudgeCenter {
 
     func markAllRead() { readIDs.formUnion(pending.map(\.id)) }
 
-    /// Ask once, and only when there is something worth sending. Prompting on
-    /// first launch, before the app has done anything for anyone, is how an app
-    /// earns a permanent no.
-    func requestPermissionIfNeeded() async {
+    /// Turn on evening delivery from an explicit tap, and schedule immediately
+    /// so the first reminder is not lost to the gap before the next refresh.
+    func enableEveningDelivery() async {
+        guard await requestPermission() else { return }
+        await reschedule(pending)
+    }
+
+    /// Whether the system prompt has never been shown, so the sheet knows to
+    /// offer it rather than silently doing nothing.
+    private(set) var canAskForPermission = false
+
+    /// Read the current state without prompting for anything.
+    func readPermission() async {
+        let status = await UNUserNotificationCenter.current().notificationSettings().authorizationStatus
+        authorised = [.authorized, .provisional, .ephemeral].contains(status)
+        canAskForPermission = status == .notDetermined
+    }
+
+    /// Ask, only ever from an explicit tap.
+    ///
+    /// Prompting on first launch, before the app has done anything for anyone,
+    /// is how an app earns a permanent no. The bell works either way; the
+    /// system prompt only buys the evening delivery.
+    @discardableResult
+    func requestPermission() async -> Bool {
         let centre = UNUserNotificationCenter.current()
-        let settings = await centre.notificationSettings()
-        switch settings.authorizationStatus {
-        case .notDetermined:
-            authorised = (try? await centre.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
-        case .authorized, .provisional, .ephemeral:
-            authorised = true
-        default:
-            authorised = false
-        }
+        authorised = (try? await centre.requestAuthorization(options: [.alert, .sound, .badge])) ?? false
+        canAskForPermission = false
+        return authorised
     }
 
     /// Recompute the day and re-register the evening reminder.
@@ -80,7 +95,10 @@ final class NudgeCenter {
             await clearScheduled()
             return
         }
-        await requestPermissionIfNeeded()
+        /* Only ever schedules against permission the user has already given.
+           Nothing here can raise the system prompt, so opening the app never
+           costs the user a dialog they did not ask for. */
+        await readPermission()
         guard authorised else { return }
         await reschedule(nudges)
     }

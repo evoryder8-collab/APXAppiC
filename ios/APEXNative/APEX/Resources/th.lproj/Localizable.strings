@@ -3621,3 +3621,37 @@
 "Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "ขาดหนึ่งวันแทบไม่เปลี่ยนอะไร แต่ถ้าขาดเกือบทุกวัน ก็เท่ากับไม่ได้กินเลย ไม่ต้องกินเพิ่มเป็นสองเท่าในวันพรุ่งนี้ กินปริมาณปกติแล้วทำต่อไป";
 "Today only" = "เฉพาะวันนี้";
 "Nothing to flag today." = "วันนี้ไม่มีอะไรต้องแจ้ง";
+
+/* Membership and tiers */
+"For one person" = "สำหรับคนเดียว";
+"For trainers" = "สำหรับเทรนเนอร์";
+"Premium" = "พรีเมียม";
+"Coach" = "โค้ช";
+"per month" = "ต่อเดือน";
+"per year" = "ต่อปี";
+"Save %d%%" = "ประหยัด %d%%";
+"CHF %@" = "CHF %@";
+"%d clients included, then CHF %@ each per month" = "รวมลูกค้า %d คน จากนั้นคนละ CHF %@ ต่อเดือน";
+"%d days left in your trial" = "เหลือช่วงทดลองอีก %d วัน";
+"Your trial has ended" = "ช่วงทดลองสิ้นสุดแล้ว";
+"Your trial has ended." = "ช่วงทดลองสิ้นสุดแล้ว";
+"Adaptive plans built from your own training history" = "แผนที่ปรับตามประวัติการฝึกของคุณเอง";
+"The follow-along player, with pacing and rest built in" = "ตัวเล่นแบบทำตาม พร้อมจังหวะและเวลาพักในตัว";
+"Food, water, supplements and recovery in one day view" = "อาหาร น้ำ อาหารเสริม และการฟื้นตัว ในมุมมองวันเดียว";
+"Predefined meal lists you can reuse" = "รายการมื้ออาหารสำเร็จรูปที่ใช้ซ้ำได้";
+"Everything in Premium, for yourself" = "ทุกอย่างใน Premium สำหรับตัวคุณเอง";
+"A client roster with their targets and history" = "รายชื่อลูกค้า พร้อมเป้าหมายและประวัติของแต่ละคน";
+"Write and assign plans to the people you train" = "เขียนและมอบหมายแผนให้คนที่คุณฝึก";
+"Predefined meal lists you can hand to clients" = "รายการมื้ออาหารสำเร็จรูปที่ส่งต่อให้ลูกค้าได้";
+"Have a beta code?" = "มีรหัสเบต้าไหม";
+"Code" = "รหัส";
+"Redeem" = "ใช้รหัส";
+"That code was not recognised." = "ไม่รู้จักรหัสนี้";
+"Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "การซื้อจะเปิดพร้อมกับการลงใน App Store จนกว่าจะถึงตอนนั้น รหัสเบต้าปลดล็อกได้ทั้งหมด";
+"Membership" = "สมาชิก";
+"See the plans" = "ดูแผน";
+"Founding account. Full access, permanently, with nothing to pay." = "บัญชีผู้ร่วมก่อตั้ง เข้าถึงได้เต็มที่ตลอดไป โดยไม่ต้องจ่าย";
+"Unlocked with a beta code." = "ปลดล็อกด้วยรหัสเบต้า";
+"Subscribed to %@." = "สมัครใช้งาน %@ แล้ว";
+"Trial, %d days left. Everything is unlocked until then." = "ช่วงทดลอง เหลือ %d วัน ทุกอย่างปลดล็อกจนถึงตอนนั้น";
+"Send these to my lock screen" = "ส่งไปที่หน้าจอล็อกของฉัน";

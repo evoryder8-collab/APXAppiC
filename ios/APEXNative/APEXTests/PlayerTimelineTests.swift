@@ -56,14 +56,29 @@ final class PlayerTimelineTests: XCTestCase {
         XCTAssertEqual(blocks.last, .done)
     }
 
-    /// The rear foot needs resetting; other per-side work does not.
-    func testOnlySplitSquatsGetASideSwitch() {
-        let split = PlayerTimeline.build(plan([exercise("Bulgarian split squat", sets: 1, perSide: true)]))
-        XCTAssertTrue(split.contains { if case .sideSwitch = $0 { return true } else { return false } })
+    /// Every per-side movement gets a switch, and it lasts as long as that
+    /// movement makes it last. Resetting a rear foot on a bench is not the same
+    /// job as stepping off and swapping feet, so the two are not the same pause.
+    func testEveryPerSideMovementGetsASwitchScaledToTheMovement() {
+        func switchSeconds(_ blocks: [PlayerTimeline.Block]) -> Int? {
+            for block in blocks {
+                if case .sideSwitch(_, _, let duration) = block { return duration }
+            }
+            return nil
+        }
 
+        let split = PlayerTimeline.build(plan([exercise("Bulgarian split squat", sets: 1, perSide: true)]))
         let raise = PlayerTimeline.build(plan([exercise("Single-leg calf raise", sets: 1, perSide: true)]))
-        XCTAssertFalse(raise.contains { if case .sideSwitch = $0 { return true } else { return false } })
+
+        guard let splitSwitch = switchSeconds(split), let raiseSwitch = switchSeconds(raise) else {
+            return XCTFail("per-side work needs a moment to change sides")
+        }
+        XCTAssertGreaterThan(
+            splitSwitch, raiseSwitch,
+            "resetting a rear foot takes longer than swapping which foot is on the step"
+        )
         XCTAssertEqual(raise.filter(\.isSet).count, 2, "per-side work is still two sets")
+        XCTAssertEqual(split.filter(\.isSet).count, 2)
     }
 
     func testTimedAndMaxSetsCarryTheRightShape() {

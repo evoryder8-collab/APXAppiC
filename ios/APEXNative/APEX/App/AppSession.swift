@@ -135,6 +135,21 @@ final class AppSession {
             pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? 0
         }
         await considerWeeklyCalibration()
+        await resolveEntitlements()
+    }
+
+    /// Work out what this account may use, and start the trial clock on the
+    /// first open rather than at account creation, so an account made in
+    /// advance does not expire sitting unopened.
+    func resolveEntitlements() async {
+        guard var profile else { return }
+        if profile.foundingMember != true, profile.trialStartedAt == nil {
+            profile.trialStartedAt = Date().ISO8601Format()
+            profile.updatedAt = Date().ISO8601Format()
+            data.profile = profile
+            await persistUpsert(profile, table: "profile", onConflict: "user_id")
+        }
+        EntitlementStore.shared.resolve(profile: profile)
     }
 
     /*

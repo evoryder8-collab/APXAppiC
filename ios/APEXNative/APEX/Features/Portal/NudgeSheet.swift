@@ -34,10 +34,27 @@ struct NudgeSheet: View {
                     }
                 }
                 .frame(height: min(CGFloat(nudges.pending.count) * 168, 420))
+
+                if nudges.canAskForPermission {
+                    Button {
+                        Task { await nudges.enableEveningDelivery() }
+                    } label: {
+                        Label(
+                            language.text("Send these to my lock screen"),
+                            systemImage: "bell.badge"
+                        )
+                        .font(APEXFont.body(13, weight: .semibold))
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(APEXColor.amber)
+                }
             }
         }
         .padding(17)
-        .onAppear { nudges.markAllRead() }
+        .task {
+            nudges.markAllRead()
+            await nudges.readPermission()
+        }
     }
 }
 

@@ -3621,3 +3621,37 @@
 "Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "O zi ratată schimbă foarte puțin. Ratate majoritatea zilelor, e la fel ca și cum nu ai lua deloc. Nu e nevoie să dublezi mâine: ia doza obișnuită și mergi mai departe.";
 "Today only" = "Doar azi";
 "Nothing to flag today." = "Nimic de semnalat azi.";
+
+/* Membership and tiers */
+"For one person" = "Pentru o persoană";
+"For trainers" = "Pentru antrenori";
+"Premium" = "Premium";
+"Coach" = "Coach";
+"per month" = "pe lună";
+"per year" = "pe an";
+"Save %d%%" = "Economisești %d%%";
+"CHF %@" = "CHF %@";
+"%d clients included, then CHF %@ each per month" = "%d clienți incluși, apoi CHF %@ pentru fiecare, pe lună";
+"%d days left in your trial" = "Mai ai %d zile de probă";
+"Your trial has ended" = "Perioada de probă s-a încheiat";
+"Your trial has ended." = "Perioada de probă s-a încheiat.";
+"Adaptive plans built from your own training history" = "Planuri adaptive construite din propriul tău istoric de antrenament";
+"The follow-along player, with pacing and rest built in" = "Playerul de urmărit, cu ritm și pauze incluse";
+"Food, water, supplements and recovery in one day view" = "Mâncare, apă, suplimente și recuperare într-o singură zi";
+"Predefined meal lists you can reuse" = "Liste de mese predefinite pe care le poți refolosi";
+"Everything in Premium, for yourself" = "Tot ce e în Premium, pentru tine";
+"A client roster with their targets and history" = "O listă de clienți cu țintele și istoricul lor";
+"Write and assign plans to the people you train" = "Scrii și atribui planuri celor pe care îi antrenezi";
+"Predefined meal lists you can hand to clients" = "Liste de mese predefinite pe care le poți da clienților";
+"Have a beta code?" = "Ai un cod de beta?";
+"Code" = "Cod";
+"Redeem" = "Activează";
+"That code was not recognised." = "Codul nu a fost recunoscut.";
+"Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "Cumpărarea se deschide odată cu listarea în App Store. Până atunci, un cod de beta deblochează tot.";
+"Membership" = "Abonament";
+"See the plans" = "Vezi planurile";
+"Founding account. Full access, permanently, with nothing to pay." = "Cont fondator. Acces complet, permanent, fără nimic de plată.";
+"Unlocked with a beta code." = "Deblocat cu un cod de beta.";
+"Subscribed to %@." = "Abonat la %@.";
+"Trial, %d days left. Everything is unlocked until then." = "Probă, mai ai %d zile. Totul e deblocat până atunci.";
+"Send these to my lock screen" = "Trimite-le pe ecranul de blocare";

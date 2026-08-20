@@ -3,6 +3,7 @@ import SwiftUI
 struct AppRootView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
+    @State private var entitlements = EntitlementStore.shared
 
     var body: some View {
         ZStack {
@@ -22,6 +23,16 @@ struct AppRootView: View {
                 PortalShellView()
                     .transition(.opacity)
             }
+        }
+        /* Only once the trial is actually over, and never over the sign-in
+           screen: being asked to pay before you have seen anything is how an
+           app gets deleted. */
+        .sheet(isPresented: Binding(
+            get: { session.route == .portal && !entitlements.isUnlocked },
+            set: { _ in }
+        )) {
+            PaywallView()
+                .interactiveDismissDisabled()
         }
         .animation(.snappy(duration: 0.42, extraBounce: 0.04), value: session.route)
         .alert("APEX", isPresented: Binding(

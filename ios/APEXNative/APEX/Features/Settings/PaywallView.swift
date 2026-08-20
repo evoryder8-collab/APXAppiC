@@ -1,0 +1,191 @@
+import SwiftUI
+
+/// The two tiers, shown when the trial ends and whenever someone asks.
+///
+/// Prices are stated in full, including what the yearly plan actually saves and
+/// what a fourth client costs a coach. A tier sheet that hides the second
+/// number until checkout is the reason people distrust these screens.
+struct PaywallView: View {
+    @Environment(AppSession.self) private var session
+    @State private var language = LanguageState.shared
+    @State private var entitlements = EntitlementStore.shared
+    @State private var code = ""
+    @State private var codeRejected = false
+    var onClose: (() -> Void)?
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 18) {
+                headline
+
+                tierCard(
+                    tier: .premium,
+                    audience: language.text("For one person"),
+                    features: [
+                        "Adaptive plans built from your own training history",
+                        "The follow-along player, with pacing and rest built in",
+                        "Food, water, supplements and recovery in one day view",
+                        "Predefined meal lists you can reuse"
+                    ]
+                )
+
+                tierCard(
+                    tier: .coach,
+                    audience: language.text("For trainers"),
+                    features: [
+                        "Everything in Premium, for yourself",
+                        "A client roster with their targets and history",
+                        "Write and assign plans to the people you train",
+                        "Predefined meal lists you can hand to clients"
+                    ]
+                )
+
+                betaCode
+
+                Text(language.text("Purchasing opens with the App Store listing. Until then, a beta code unlocks everything."))
+                    .font(APEXFont.body(11))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(20)
+        }
+    }
+
+    // MARK: - Pieces
+
+    private var headline: some View {
+        VStack(spacing: 7) {
+            Text(language.text("APEX"))
+                .font(APEXFont.display(30))
+                .tracking(6)
+            if let days = entitlements.trialDaysRemaining {
+                Text(language.format("%d days left in your trial", days))
+                    .font(APEXFont.body(14, weight: .semibold))
+                    .foregroundStyle(APEXColor.amber)
+            } else {
+                Text(language.text("Your trial has ended"))
+                    .font(APEXFont.body(14, weight: .semibold))
+                    .foregroundStyle(APEXColor.amber)
+            }
+        }
+        .padding(.top, 6)
+    }
+
+    private func tierCard(
+        tier: Entitlement.Tier,
+        audience: String,
+        features: [String]
+    ) -> some View {
+        let price = Entitlement.price(tier)
+        return GlassCard(radius: 26, padding: 19) {
+            VStack(alignment: .leading, spacing: 13) {
+                HStack(alignment: .firstTextBaseline) {
+                    Text(language.text(tier == .premium ? "Premium" : "Coach"))
+                        .font(APEXFont.display(23))
+                    Spacer(minLength: 8)
+                    Text(audience.uppercased(with: language.language.locale))
+                        .font(APEXFont.mono(9))
+                        .tracking(1.2)
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+
+                VStack(alignment: .leading, spacing: 5) {
+                    priceRow(
+                        amount: price.monthlyRappen,
+                        period: language.text("per month"),
+                        emphasised: price.yearlyRappen == nil
+                    )
+                    if let yearly = price.yearlyRappen {
+                        HStack(spacing: 8) {
+                            priceRow(amount: yearly, period: language.text("per year"), emphasised: true)
+                            if let saving = price.yearlySavingPercent {
+                                Text(language.format("Save %d%%", saving))
+                                    .font(APEXFont.mono(9))
+                                    .tracking(0.8)
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(APEXColor.amber.opacity(0.18), in: Capsule())
+                                    .foregroundStyle(APEXColor.amber)
+                            }
+                        }
+                    }
+                    if tier == .coach {
+                        Text(language.format(
+                            "%d clients included, then CHF %@ each per month",
+                            Entitlement.coachIncludedSeats,
+                            Self.francs(Entitlement.coachExtraSeatRappen)
+                        ))
+                        .font(APEXFont.body(11))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    }
+                }
+
+                VStack(alignment: .leading, spacing: 7) {
+                    ForEach(features, id: \.self) { feature in
+                        HStack(alignment: .top, spacing: 8) {
+                            Image(systemName: "checkmark")
+                                .font(.system(size: 10, weight: .bold))
+                                .foregroundStyle(APEXColor.amber)
+                                .padding(.top, 3)
+                            Text(language.text(feature))
+                                .font(APEXFont.body(12))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func priceRow(amount: Int, period: String, emphasised: Bool) -> some View {
+        HStack(alignment: .firstTextBaseline, spacing: 5) {
+            Text(language.format("CHF %@", Self.francs(amount)))
+                .font(APEXFont.display(emphasised ? 21 : 17))
+            Text(period)
+                .font(APEXFont.body(11))
+                .foregroundStyle(APEXColor.secondaryInk)
+        }
+    }
+
+    private var betaCode: some View {
+        GlassCard(radius: 22, padding: 17) {
+            VStack(alignment: .leading, spacing: 11) {
+                Text(language.text("Have a beta code?"))
+                    .font(APEXFont.body(14, weight: .bold))
+                HStack(spacing: 9) {
+                    TextField(language.text("Code"), text: $code)
+                        .textInputAutocapitalization(.characters)
+                        .autocorrectionDisabled()
+                        .font(APEXFont.mono(13))
+                        .padding(.horizontal, 12)
+                        .padding(.vertical, 11)
+                        .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 13))
+                    Button(language.text("Redeem")) {
+                        codeRejected = !entitlements.redeem(code: code)
+                        if !codeRejected {
+                            entitlements.resolve(profile: session.profile)
+                            onClose?()
+                        }
+                    }
+                    .font(APEXFont.body(13, weight: .bold))
+                    .disabled(code.isEmpty)
+                }
+                if codeRejected {
+                    Text(language.text("That code was not recognised."))
+                        .font(APEXFont.body(11))
+                        .foregroundStyle(.red)
+                }
+            }
+        }
+    }
+
+    /// Swiss francs, written the way a Swiss price tag writes them.
+    private static func francs(_ rappen: Int) -> String {
+        rappen % 100 == 0
+            ? "\(rappen / 100).–"
+            : String(format: "%d.%02d", rappen / 100, rappen % 100)
+    }
+}

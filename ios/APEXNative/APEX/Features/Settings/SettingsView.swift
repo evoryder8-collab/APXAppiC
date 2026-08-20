@@ -4,6 +4,8 @@ struct SettingsView: View {
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
     @State private var language = LanguageState.shared
+    @State private var entitlements = EntitlementStore.shared
+    @State private var showPaywall = false
     @State private var showLogout = false
     @State private var pendingNewbieMode = false
     @State private var confirmRestorePlan = false
@@ -26,6 +28,7 @@ struct SettingsView: View {
                 playerCard
                 cameraCard
                 addOnCard
+                membershipCard
                 healthCard
                 accountCard
             }
@@ -42,6 +45,46 @@ struct SettingsView: View {
         .confirmationDialog(language.text(.logoutWarning), isPresented: $showLogout, titleVisibility: .visible) {
             Button(language.text(.yesLogout), role: .destructive) { Task { await session.signOut() } }
             Button(language.text(.cancel), role: .cancel) {}
+        }
+    }
+
+    /// What this account is entitled to, in plain words, and a way to see the
+    /// tiers without waiting for the trial to run out.
+    private var membershipCard: some View {
+        GlassCard(radius: 31, padding: 20) {
+            VStack(alignment: .leading, spacing: 12) {
+                Text(language.text("Membership"))
+                    .font(APEXFont.body(17, weight: .bold))
+                Text(membershipStatus)
+                    .font(APEXFont.body(13))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                /* A founding account has nothing to buy, so it is not shown a
+                   price list it can never need. */
+                if entitlements.access != .founding {
+                    Button(language.text("See the plans")) { showPaywall = true }
+                        .font(APEXFont.body(14, weight: .bold))
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView { showPaywall = false }
+        }
+    }
+
+    private var membershipStatus: String {
+        switch entitlements.access {
+        case .founding:
+            language.text("Founding account. Full access, permanently, with nothing to pay.")
+        case .developerCode:
+            language.text("Unlocked with a beta code.")
+        case .subscribed(let tier):
+            language.format("Subscribed to %@.", language.text(tier == .premium ? "Premium" : "Coach"))
+        case .trial(let days):
+            language.format("Trial, %d days left. Everything is unlocked until then.", days)
+        case .expired:
+            language.text("Your trial has ended.")
         }
     }
 
