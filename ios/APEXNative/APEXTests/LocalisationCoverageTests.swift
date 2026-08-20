@@ -146,6 +146,11 @@ final class LocalisationCoverageTests: XCTestCase {
     /// makes them read as headings rather than as sentences. A translation that
     /// quietly drops to sentence case looks like a different kind of element on
     /// the screen. Latin scripts only: Japanese and Thai have no letter case.
+    /// Abbreviations that a translation may legitimately spell out in full.
+    private static let acronyms: Set<String> = [
+        "TDEE", "BMR", "EVOO", "RPE", "RIR", "PAL", "HRV", "KCAL", "REPS", "SEC",
+    ]
+
     func testShoutedLabelsStayShouted() {
         for language in ["de", "de-CH", "it", "es", "pt", "ro"] {
             guard let table = table(language) else { continue }
@@ -156,6 +161,12 @@ final class LocalisationCoverageTests: XCTestCase {
                 /* Keys marked SHORT hold weekday abbreviations, where the
                    language decides the casing: Romanian writes "Mi", not "MI". */
                 guard !key.contains("SHORT") else { continue }
+                /* Acronyms are not shouted labels, they are abbreviations, and
+                   a language may spell one out: TDEE properly becomes
+                   "Gesamtumsatz" and EVOO "ulei de masline extravirgin".
+                   Listed rather than guessed at, because no rule separates an
+                   initialism from a capitalised word reliably. */
+                guard !Self.acronyms.contains(key) else { continue }
                 let valueLetters = value.filter(\.isLetter)
                 guard !valueLetters.isEmpty else { continue }
                 /* An acronym spelled out is a translation, not a casing slip:
