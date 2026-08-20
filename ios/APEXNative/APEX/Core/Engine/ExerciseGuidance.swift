@@ -17,9 +17,12 @@ enum ExerciseGuidance {
 
         func text(_ language: AppLanguage) -> String {
             switch language {
-            case .english: en
             case .romanian: ro
             case .thai: th
+            /* English for the rest until their cues are written. A coaching cue
+               is a sentence, not a label, and a machine-shaped one would be
+               worse than reading it in English. */
+            default: en
             }
         }
     }

@@ -3901,3 +3901,22 @@
 "Championship rule: no leg training in the final 7 days" = "กฎการแข่งขัน: ไม่ฝึกขาใน 7 วันสุดท้าย";
 "Keep the priority strength work, reduce optional volume and prefer Stretch over optional conditioning." = "คงงานความแข็งแรงหลักไว้ ลดปริมาณเสริม และเลือกการยืดแทนคาร์ดิโอเสริม";
 "Your body, measured. Your plan, rewritten every week." = "ร่างกายของคุณ ถูกวัดผล แผนของคุณ ถูกเขียนใหม่ทุกสัปดาห์";
+
+/* Session briefing and supplement timing */
+"Adults only" = "สำหรับผู้ใหญ่เท่านั้น";
+"Early evidence" = "หลักฐานเบื้องต้น";
+"Hip flexors" = "กล้ามเนื้อสะโพกด้านหน้า";
+"Inner thigh" = "กล้ามเนื้อต้นขาด้านใน";
+"Outer hip" = "กล้ามเนื้อสะโพกด้านนอก";
+"Upper back" = "หลังส่วนบน";
+"Shoulders" = "ไหล่";
+"Traps" = "กล้ามเนื้อทราพีเซียส";
+"Neck" = "คอ";
+"Conditioning" = "ความฟิต";
+"Range of motion" = "ช่วงการเคลื่อนไหว";
+"Restoration" = "การฟื้นฟู";
+"Muscle growth" = "การสร้างกล้ามเนื้อ";
+"Pre-workout" = "ก่อนออกกำลังกาย";
+"Before bed" = "ก่อนนอน";
+"With a meal" = "พร้อมมื้ออาหาร";
+"LOGGED" = "บันทึกแล้ว";

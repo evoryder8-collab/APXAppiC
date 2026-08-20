@@ -147,9 +147,9 @@ final class RecoveryAssessmentTests: XCTestCase {
         )
     }
 
-    private func athlytic(recovery: Int, sleep: Int) -> RecoveryAssessment.Checkin {
+    private func wearableScore(recovery: Int, sleep: Int) -> RecoveryAssessment.Checkin {
         RecoveryAssessment.Checkin(
-            date: "2026-01-05", source: "athlytic", sleepScore: nil,
+            date: "2026-01-05", source: "other", sleepScore: nil,
             sleepPercent: sleep, recoveryPercent: recovery, updatedAt: "2026-01-05T07:00:00Z"
         )
     }
@@ -163,13 +163,13 @@ final class RecoveryAssessmentTests: XCTestCase {
 
     func testAthlyticUsesItsOwnBands() {
         /* 55 is a normal day on Athlytic and a low one on Apple. */
-        XCTAssertEqual(RecoveryAssessment.assess(athlytic(recovery: 55, sleep: 80)).state, .normal)
+        XCTAssertEqual(RecoveryAssessment.assess(wearableScore(recovery: 55, sleep: 80)).state, .normal)
         XCTAssertEqual(RecoveryAssessment.assess(apple(55)).state, .low)
     }
 
     func testAShortNightHoldsBackAStrongReadiness() {
-        XCTAssertEqual(RecoveryAssessment.assess(athlytic(recovery: 80, sleep: 90)).state, .strong)
-        XCTAssertEqual(RecoveryAssessment.assess(athlytic(recovery: 80, sleep: 35)).state, .normal)
+        XCTAssertEqual(RecoveryAssessment.assess(wearableScore(recovery: 80, sleep: 90)).state, .strong)
+        XCTAssertEqual(RecoveryAssessment.assess(wearableScore(recovery: 80, sleep: 35)).state, .normal)
     }
 
     func testEnoughWarningSignsPushABorderlineDayDown() {

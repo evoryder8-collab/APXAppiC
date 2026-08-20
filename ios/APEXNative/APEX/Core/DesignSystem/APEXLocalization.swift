@@ -5,6 +5,15 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     case english = "en"
     case thai = "th"
     case romanian = "ro"
+    case german = "de"
+    /* Swiss written German is Standard German with Helvetisms and no eszett,
+       which is what a Swiss reader expects to see. Dialect is spoken, not
+       written, so writing the interface in dialect would read as a joke. */
+    case swissGerman = "de-CH"
+    case italian = "it"
+    case spanish = "es"
+    case japanese = "ja"
+    case portuguese = "pt"
 
     var id: String { rawValue }
 
@@ -13,6 +22,12 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         case .english: "English"
         case .thai: "ไทย"
         case .romanian: "Română"
+        case .german: "Deutsch"
+        case .swissGerman: "Schweizerdeutsch"
+        case .italian: "Italiano"
+        case .spanish: "Español"
+        case .japanese: "日本語"
+        case .portuguese: "Português"
         }
     }
 
@@ -21,6 +36,12 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         case .english: "🇬🇧"
         case .thai: "🇹🇭"
         case .romanian: "🇷🇴"
+        case .german: "🇩🇪"
+        case .swissGerman: "🇨🇭"
+        case .italian: "🇮🇹"
+        case .spanish: "🇪🇸"
+        case .japanese: "🇯🇵"
+        case .portuguese: "🇵🇹"
         }
     }
 
@@ -29,6 +50,25 @@ enum AppLanguage: String, CaseIterable, Identifiable {
         case .english: Locale(identifier: "en_GB")
         case .thai: Locale(identifier: "th_TH")
         case .romanian: Locale(identifier: "ro_RO")
+        case .german: Locale(identifier: "de_DE")
+        case .swissGerman: Locale(identifier: "de_CH")
+        case .italian: Locale(identifier: "it_IT")
+        case .spanish: Locale(identifier: "es_ES")
+        case .japanese: Locale(identifier: "ja_JP")
+        case .portuguese: Locale(identifier: "pt_PT")
+        }
+    }
+
+    /* German compounds and Portuguese run long: "Nahrungsergänzungsmittel" is
+       three times the width of "Supplements". Screens that are tight in English
+       get a little more room to shrink before they truncate. */
+    var lengthFactor: Double {
+        switch self {
+        case .german, .swissGerman: 1.35
+        case .portuguese, .spanish, .italian: 1.20
+        case .romanian: 1.15
+        case .japanese: 0.75
+        case .thai, .english: 1.0
         }
     }
 }
@@ -47,7 +87,13 @@ final class LanguageState {
     }
 
     func text(_ key: LocalizedKey) -> String {
-        key.value(for: language)
+        let resolved = key.value(for: language)
+        /* A key with no inline case for this language resolves to English, and
+           the table carries the real translation. Running it through the string
+           lookup is what lets a new language be added by writing one table
+           rather than editing this file. */
+        guard language != .english, resolved == key.value(for: .english) else { return resolved }
+        return text(resolved)
     }
 
     /// Translates runtime strings such as Supabase-backed programme names,
@@ -212,7 +258,7 @@ final class LanguageState {
     }
 }
 
-enum LocalizedKey {
+enum LocalizedKey: CaseIterable {
     case chooseLanguage
     case chooseWhoEnters
     case swipeToRotate
@@ -238,6 +284,16 @@ enum LocalizedKey {
     case runIntelligence
     case statsBodyNeeds
     case today
+
+    /// The English text of every typed key.
+    ///
+    /// These appear in no .strings file, because English, Thai and Romanian are
+    /// written inline here. Languages added later resolve them through the
+    /// tables instead, so their files carry these strings as keys and the
+    /// coverage test needs to know that is legitimate rather than a typo.
+    static var allEnglishValues: Set<String> {
+        Set(allCases.map { $0.value(for: .english) })
+    }
 
     func value(for language: AppLanguage) -> String {
         switch (self, language) {
@@ -316,6 +372,7 @@ enum LocalizedKey {
         case (.today, .english): "Today"
         case (.today, .thai): "วันนี้"
         case (.today, .romanian): "Astăzi"
+        case (let key, _): key.value(for: .english)
         }
     }
 }

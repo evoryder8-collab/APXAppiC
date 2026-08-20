@@ -159,6 +159,7 @@ enum ProgressPhotoEngine {
         case .romanian: locale = Locale(identifier: "ro_RO")
         case .thai: locale = Locale(identifier: "th_TH")
         case .english: locale = Locale(identifier: "en_GB")
+        default: locale = Locale(identifier: "en_GB")
         }
         let parser = ISO8601DateFormatter()
         parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]

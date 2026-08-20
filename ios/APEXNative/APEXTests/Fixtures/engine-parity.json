@@ -1751,7 +1751,7 @@
       },
       {
        "date": "2026-06-12",
-       "source": "athlytic",
+       "source": "other",
        "sleep_score": null,
        "sleep_pct": null,
        "recovery_pct": 70,
@@ -2799,7 +2799,7 @@
      {
       "date": "2026-06-12",
       "kind": "recovery_signal",
-      "label": "Athlytic Recovery 70 supported the planned training day"
+      "label": "Recovery score 70 supported the planned training day"
      },
      {
       "date": "2026-06-15",

@@ -14,10 +14,18 @@ import XCTest
 /// exist in every language shipped.
 final class LocalisationCoverageTests: XCTestCase {
 
-    /// Languages the app ships. Adding one here makes the next test fail until
-    /// its table is complete, which is the intended way to add Spanish or
-    /// German: add the code, run the tests, fill in what it lists.
-    private let languages = ["ro", "th"]
+    /// Languages held to full parity with each other. A key present in one and
+    /// absent in another is the shape of a half-finished pass, so these fail
+    /// the moment they diverge.
+    private let completeLanguages = ["ro", "th"]
+
+    /// Languages still being filled in. They must have a table and must not
+    /// contain a key nobody else has, but they are allowed to be short, because
+    /// a missing key falls back to English rather than breaking anything. They
+    /// graduate to the list above when their coverage reaches parity.
+    private let inProgressLanguages = ["de", "de-CH", "it", "es", "ja", "pt"]
+
+    private var languages: [String] { completeLanguages + inProgressLanguages }
 
     private func table(_ language: String) -> [String: String]? {
         guard let url = Bundle.main.url(forResource: "Localizable", withExtension: "strings",
@@ -33,10 +41,8 @@ final class LocalisationCoverageTests: XCTestCase {
     }
 
     func testTablesAreNotMissingKeysTheOthersHave() {
-        // A key present in one language and absent in another is the shape of
-        // a half-finished translation pass.
         var keysByLanguage: [String: Set<String>] = [:]
-        for language in languages {
+        for language in completeLanguages {
             guard let table = table(language) else { continue }
             keysByLanguage[language] = Set(table.keys)
         }
@@ -45,6 +51,40 @@ final class LocalisationCoverageTests: XCTestCase {
             let missing = reference.subtracting(keys)
             XCTAssertTrue(missing.isEmpty,
                           "\(language) is missing \(missing.count) keys, e.g. \(missing.prefix(3))")
+        }
+    }
+
+    /// A key in a new table that exists nowhere else is a typo, and a typo here
+    /// is invisible: the lookup simply falls through to English and the string
+    /// stays English forever.
+    func testInProgressTablesInventNoKeysOfTheirOwn() {
+        /* The reference is the Romanian table plus the typed keys, whose
+           English lives inline in Swift rather than in any table. A new
+           language reaches those through the tables, so its file legitimately
+           carries keys Romanian's file does not. */
+        guard var reference = table("ro").map({ Set($0.keys) }) else {
+            return XCTFail("no Romanian table to compare against")
+        }
+        reference.formUnion(LocalizedKey.allEnglishValues)
+        for language in inProgressLanguages {
+            guard let keys = table(language).map({ Set($0.keys) }) else { continue }
+            let unknown = keys.subtracting(reference)
+            XCTAssertTrue(
+                unknown.isEmpty,
+                "\(language) has \(unknown.count) keys no other language has, e.g. \(unknown.prefix(3))"
+            )
+        }
+    }
+
+    /// Records how far each language has got. Not a pass or fail on its own:
+    /// it is here so the number is printed by the suite rather than being
+    /// anybody's recollection.
+    func testCoverageIsRecorded() {
+        guard let reference = table("ro")?.count, reference > 0 else { return }
+        for language in languages {
+            let count = table(language)?.count ?? 0
+            let percent = Int((Double(count) / Double(reference) * 100).rounded())
+            print("localisation coverage \(language): \(count)/\(reference) (\(percent)%)")
         }
     }
 

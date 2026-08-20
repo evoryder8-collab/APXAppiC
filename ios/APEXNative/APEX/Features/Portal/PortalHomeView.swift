@@ -9,19 +9,19 @@ struct PortalHomeView: View {
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
-        switch language.language {
-        case .english:
-            return hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
-        case .thai:
-            return hour < 12 ? "สวัสดีตอนเช้า" : hour < 18 ? "สวัสดีตอนบ่าย" : "สวัสดีตอนเย็น"
-        case .romanian:
-            return hour < 12 ? "Bună dimineața" : hour < 18 ? "Bună ziua" : "Bună seara"
-        }
+        /* Through the tables rather than a switch, so a language added later
+           needs a table entry and nothing else. */
+        let key = hour < 12 ? "Good morning" : hour < 18 ? "Good afternoon" : "Good evening"
+        return language.text(key)
     }
 
     private var greetingLine: String {
         let name = session.profile?.displayName ?? "APEX"
-        return language.language == .thai ? "\(greeting)\n\(name)" : "\(greeting),\n\(name)."
+        /* Thai and Japanese do not punctuate a greeting the way the Latin
+           languages do, so the comma and full stop are dropped rather than
+           transplanted. */
+        let latinPunctuation = ![.thai, .japanese].contains(language.language)
+        return latinPunctuation ? "\(greeting),\n\(name)." : "\(greeting)\n\(name)"
     }
 
     var body: some View {

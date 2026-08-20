@@ -65,7 +65,10 @@ enum WorkoutReceipt {
                 return "\(insight.name) ต่ำกว่าค่าอ้างอิงเมื่อ \(days) วันก่อน \(delta) กก. ควรดูช่วงลดโหลด จำนวนครั้ง และ RIR ก่อนเพิ่มครั้งถัดไป"
             }
             return "\(insight.name) คงที่ตลอด \(days) วัน เพิ่มระดับเมื่อทำซ้ำได้คมชัดและควบคุม RIR ได้"
-        case .english:
+        /* English also serves the languages whose receipts are not written
+           yet: these sentences are interpolated, so they cannot come from a
+           table, and a half-translated sentence is worse than an English one. */
+        default:
             if loadDelta > 0 {
                 return "You increased \(insight.name) by \(delta) kg across \(days) days. Estimated strength rose \(estimated) kg."
             }
@@ -80,7 +83,7 @@ enum WorkoutReceipt {
         switch language {
         case .romanian: "Primul reper curat a fost înregistrat. Acesta devine comparația pentru următoarea sesiune."
         case .thai: "บันทึกค่าฐานครั้งแรกแล้ว ค่านี้จะใช้เทียบกับการฝึกครั้งถัดไป"
-        case .english: "First clean baseline recorded. This becomes the comparison point for your next session."
+        default: "First clean baseline recorded. This becomes the comparison point for your next session."
         }
     }
 
