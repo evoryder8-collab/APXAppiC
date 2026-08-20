@@ -140,6 +140,37 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    /// A label shouted in English must stay shouted in translation.
+    ///
+    /// These are section headings and stat labels, and the capitals are what
+    /// makes them read as headings rather than as sentences. A translation that
+    /// quietly drops to sentence case looks like a different kind of element on
+    /// the screen. Latin scripts only: Japanese and Thai have no letter case.
+    func testShoutedLabelsStayShouted() {
+        for language in ["de", "de-CH", "it", "es", "pt", "ro"] {
+            guard let table = table(language) else { continue }
+            for (key, value) in table {
+                let keyLetters = key.filter(\.isLetter)
+                /* Four letters, so initialisms and units are not swept in. */
+                guard keyLetters.count >= 4, keyLetters.allSatisfy(\.isUppercase) else { continue }
+                /* Keys marked SHORT hold weekday abbreviations, where the
+                   language decides the casing: Romanian writes "Mi", not "MI". */
+                guard !key.contains("SHORT") else { continue }
+                let valueLetters = value.filter(\.isLetter)
+                guard !valueLetters.isEmpty else { continue }
+                /* An acronym spelled out is a translation, not a casing slip:
+                   EVOO properly becomes "ulei de masline extravirgin". */
+                let keyWords = key.split(separator: " ").count
+                let valueWords = value.split(separator: " ").count
+                guard valueWords <= keyWords + 1 else { continue }
+                XCTAssertTrue(
+                    valueLetters.allSatisfy(\.isUppercase),
+                    "\(language) lowercases the shouted label \"\(key)\": \(value)"
+                )
+            }
+        }
+    }
+
     /// A language may not be offered to users until its table is complete.
     ///
     /// This is the check that stops the readiness flag from being a claim. A
