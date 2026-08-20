@@ -71,16 +71,19 @@ struct WelcomeView: View {
                their own thing, which is what makes it read as designed. */
             withAnimation(.smooth(duration: 0.9)) { appeared = true }
 
-            /* A ceiling on the wait. The veil lifts on the figure being ready,
-               and a mesh that never arrives would otherwise hold the app on a
-               splash screen with no way out. Four seconds, then the screen
-               opens whether the body has welded or not. */
-            Task {
-                try? await Task.sleep(for: .seconds(4))
-                if !figureReady {
-                    withAnimation(.smooth(duration: 0.55)) { figureReady = true }
-                }
-            }
+        }
+        /* A ceiling on the wait. The veil lifts on the figure being ready, and
+           a mesh that never arrives would otherwise hold the app on a splash
+           screen with no way out.
+
+           A .task rather than a Task inside .onAppear: onAppear can fire more
+           than once, which would start a second countdown, and an unstructured
+           task keeps running after the view is gone. SwiftUI cancels this one
+           on disappear. */
+        .task {
+            try? await Task.sleep(for: .seconds(4))
+            guard !Task.isCancelled, !figureReady else { return }
+            withAnimation(.smooth(duration: 0.55)) { figureReady = true }
         }
     }
 

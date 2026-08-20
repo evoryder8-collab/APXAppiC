@@ -16,6 +16,15 @@ final class NudgeCenter {
     static let shared = NudgeCenter()
 
     private(set) var pending: [DailyNudges.Nudge] = []
+
+    /* The scheduling half of a refresh, held so a newer refresh can cancel it.
+       Being on the main actor stops two refreshes running at once, but not from
+       interleaving: each suspends at its first await and the other resumes.
+       Two of them racing could re-add a reminder the newer one had just
+       cleared, which is the exact failure this type exists to avoid, telling
+       someone they are short on protein an hour after they hit the target.
+       Cancelling means the most recent view of the day is the one that wins. */
+    private var scheduling: Task<Void, Never>?
     private(set) var authorised = false
 
     /// Nudges the user has already opened, so the bell stops claiming they are new.
@@ -89,18 +98,25 @@ final class NudgeCenter {
         ) {
             nudges.append(creatine)
         }
+        /* Computed without suspending, so what the bell shows is always the
+           newest answer even if the scheduling below is overtaken. */
         pending = nudges
 
-        guard !nudges.isEmpty else {
-            await clearScheduled()
-            return
+        scheduling?.cancel()
+        let work = Task { [nudges] in
+            guard !nudges.isEmpty else {
+                await clearScheduled()
+                return
+            }
+            /* Only ever schedules against permission the user has already
+               given. Nothing here can raise the system prompt, so opening the
+               app never costs the user a dialog they did not ask for. */
+            await readPermission()
+            guard !Task.isCancelled, authorised else { return }
+            await reschedule(nudges)
         }
-        /* Only ever schedules against permission the user has already given.
-           Nothing here can raise the system prompt, so opening the app never
-           costs the user a dialog they did not ask for. */
-        await readPermission()
-        guard authorised else { return }
-        await reschedule(nudges)
+        scheduling = work
+        await work.value
     }
 
     // MARK: - Delivery
@@ -109,9 +125,9 @@ final class NudgeCenter {
         let centre = UNUserNotificationCenter.current()
         await clearScheduled()
 
-        // Past the evening slot the day is effectively over; a reminder at
-        // midnight helps nobody, so it waits for tomorrow.
-        let components = DailyNudges.nextEveningSlot(after: Date())
+        // Hour and minute only: the system resolves the next moment that
+        // matches, so this can never be scheduled for a time already gone.
+        let components = DailyNudges.eveningSlot
 
         for nudge in nudges {
             let content = UNMutableNotificationContent()

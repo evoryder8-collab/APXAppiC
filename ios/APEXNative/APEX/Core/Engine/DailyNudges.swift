@@ -99,26 +99,21 @@ enum DailyNudges {
     static let eveningHour = 19
     static let eveningMinute = 30
 
-    /// The next time the evening slot comes round.
+    /// The components a calendar trigger should match for the evening slot.
     ///
-    /// Today's slot if it is still ahead, otherwise tomorrow's. Pinning the
-    /// date to today produced a trigger in the past every time the app was
-    /// opened after 19:30, which is most evenings, since that is when people
-    /// log dinner. A calendar trigger whose moment has gone is accepted and
-    /// then never delivered, so the reminder was not late, it was silently
-    /// dead.
-    static func nextEveningSlot(after now: Date, calendar: Calendar = .current) -> DateComponents {
-        var slot = calendar.dateComponents([.year, .month, .day], from: now)
-        slot.hour = eveningHour
-        slot.minute = eveningMinute
-        if let date = calendar.date(from: slot), date <= now {
-            let tomorrow = calendar.date(byAdding: .day, value: 1, to: date) ?? date
-            var next = calendar.dateComponents([.year, .month, .day], from: tomorrow)
-            next.hour = eveningHour
-            next.minute = eveningMinute
-            return next
-        }
-        return slot
+    /// Hour and minute only, and deliberately no date. Apple's guidance is to
+    /// "specify only the time values that you want the system to use to
+    /// determine the matching date and time", and the system then resolves the
+    /// next moment that matches.
+    ///
+    /// Pinning year, month and day, as this first did, produced a trigger in
+    /// the past every time the app was opened after 19:30, which is most
+    /// evenings since that is when dinner gets logged. A calendar trigger whose
+    /// moment has gone is accepted and then never delivered, so the reminder
+    /// was not late, it was silently dead. Leaving the date out makes that
+    /// impossible rather than merely handled.
+    static var eveningSlot: DateComponents {
+        DateComponents(hour: eveningHour, minute: eveningMinute)
     }
 
     private static func today() -> String {
