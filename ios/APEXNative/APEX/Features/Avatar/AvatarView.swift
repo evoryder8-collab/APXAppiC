@@ -2,6 +2,8 @@ import Charts
 import SwiftUI
 
 struct AvatarView: View {
+    @State private var engineExpanded = false
+    @State private var showEvolutionInfo = false
     @Environment(AppSession.self) private var session
     @State private var animate = false
     @State private var language = LanguageState.shared
@@ -50,18 +52,22 @@ struct AvatarView: View {
             LazyVStack(spacing: 20) {
                 APEXTopBar(profile: session.profile) { session.navigationPath.append(.settings) }
                 pageHeader
-                AvatarHero(profile: session.profile, overall: snapshot?.overall ?? 1)
-                visualProgressLink
+                /* Ordered by how often it is looked at, not by when it was
+                   built. Who you are, then the index, then the shape of the
+                   index, then the numbers behind it. The long prose blocks sit
+                   below the things people open this page for. */
+                AvatarHero(profile: session.profile)
                 bodyIndexCard
                 radarCard
-                engineCard
-                metabolicRhythmCard
-                healthEvidenceCard
-                needsCard
                 statsCard
-                assessmentCard
+                needsCard
                 StrengthHistoryCard(sessions: session.data.workoutSessions, logs: session.data.workoutLogs, days: trendDays)
                 jointCheckCard
+                assessmentCard
+                visualProgressLink
+                engineCard
+                healthEvidenceCard
+                metabolicRhythmCard
                 evolutionCard
             }
             .padding(18)
@@ -169,20 +175,44 @@ struct AvatarView: View {
         }
     }
 
+    /* Closed by default. It is a page of prose about rules that fired, which
+       is worth reading occasionally and worth nobody scrolling past every day. */
     private var engineCard: some View {
-        GlassCard(radius: 32, padding: 20) {
-            VStack(alignment: .leading, spacing: 15) {
-                HStack {
-                    Text(language.text("The engine")).font(APEXFont.display(26))
-                    Spacer()
+        GlassCard(radius: 32, padding: engineExpanded ? 20 : 15) {
+            VStack(alignment: .leading, spacing: engineExpanded ? 15 : 0) {
+                Button {
+                    withAnimation(.snappy(duration: 0.26)) { engineExpanded.toggle() }
+                } label: {
+                    HStack {
+                        Text(language.text("The engine"))
+                            .font(APEXFont.display(engineExpanded ? 26 : 19))
+                            .foregroundStyle(APEXColor.ink)
+                        Spacer(minLength: 8)
+                        if !engineExpanded, !engineFacts.isEmpty {
+                            Text("\(engineFacts.count)")
+                                .font(APEXFont.mono(10, weight: .bold))
+                                .foregroundStyle(APEXColor.green)
+                                .padding(.horizontal, 8).padding(.vertical, 4)
+                                .background(APEXColor.green.opacity(0.12), in: Capsule())
+                        }
+                        Image(systemName: engineExpanded ? "chevron.up" : "chevron.down")
+                            .font(.system(size: 11, weight: .bold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+
+                if engineExpanded {
                     Text(language.text("NUTRITION × TRAINING × RECOVERY"))
                         .font(APEXFont.mono(8)).tracking(1).foregroundStyle(APEXColor.green)
-                        .padding(.horizontal, 11).padding(.vertical, 8).overlay(Capsule().stroke(APEXColor.green.opacity(0.3)))
-                }
-                if engineFacts.isEmpty {
-                    evidenceRow("Complete meals, training or daily logs to start the evidence feed.", date: nil, color: APEXColor.secondaryInk)
-                } else {
-                    ForEach(engineFacts) { fact in evidenceRow(fact.text, date: fact.date, color: fact.color) }
+                        .padding(.horizontal, 11).padding(.vertical, 8)
+                        .overlay(Capsule().stroke(APEXColor.green.opacity(0.3)))
+                    if engineFacts.isEmpty {
+                        evidenceRow("Complete meals, training or daily logs to start the evidence feed.", date: nil, color: APEXColor.secondaryInk)
+                    } else {
+                        ForEach(engineFacts) { fact in evidenceRow(fact.text, date: fact.date, color: fact.color) }
+                    }
                 }
             }
         }
@@ -342,9 +372,25 @@ struct AvatarView: View {
         if snapshots.count > 1 {
             GlassCard(radius: 32, padding: 18) {
                 VStack(alignment: .leading, spacing: 12) {
-                    Text(language.text("Progress you can actually see")).font(APEXFont.display(25))
-                    Text(language.text("Every curve comes from dated APEX snapshots."))
-                        .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
+                    /* Retitled. It charts the overall index over time, and the
+                       old heading never said so, which made a real feature read
+                       as decoration. */
+                    HStack(spacing: 8) {
+                        Text(language.text("Your index over time")).font(APEXFont.display(25))
+                        Button { showEvolutionInfo.toggle() } label: {
+                            Image(systemName: "info.circle")
+                                .font(.system(size: 16))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel(language.text("What this chart shows"))
+                    }
+                    if showEvolutionInfo {
+                        Text(language.text("One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today."))
+                            .font(APEXFont.body(12))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
                     Chart(Array(snapshots.suffix(trendDays))) { point in
                         LineMark(x: .value("Date", point.date), y: .value("Overall", point.overall)).foregroundStyle(APEXColor.violet.gradient).interpolationMethod(.catmullRom)
                         AreaMark(x: .value("Date", point.date), y: .value("Overall", point.overall)).foregroundStyle(APEXColor.violet.opacity(0.1).gradient)
@@ -694,12 +740,21 @@ private struct AvatarRadarChart: View {
                         let point = radarPoint(index: index, count: stats.count, radius: radius * scale, center: center)
                         index == stats.startIndex ? path.move(to: point) : path.addLine(to: point)
                     }
-                    path.closeSubpath(); context.stroke(path, with: .color(APEXColor.cyan.opacity(0.15)), lineWidth: 1)
+                    path.closeSubpath()
+                    /* Grid in ink rather than pale cyan. A cyan line at 15% on
+                       a near-white card is invisible, which left the shape
+                       floating with nothing to measure it against. The outer
+                       ring is drawn hardest because it is the 100 mark. */
+                    context.stroke(
+                        path,
+                        with: .color(APEXColor.ink.opacity(ring == 4 ? 0.22 : 0.10)),
+                        lineWidth: ring == 4 ? 1.4 : 1
+                    )
                 }
                 for index in stats.indices {
                     var spoke = Path(); spoke.move(to: center)
                     spoke.addLine(to: radarPoint(index: index, count: stats.count, radius: radius, center: center))
-                    context.stroke(spoke, with: .color(APEXColor.cyan.opacity(0.12)), lineWidth: 1)
+                    context.stroke(spoke, with: .color(APEXColor.ink.opacity(0.12)), lineWidth: 1)
                 }
                 var data = Path()
                 for index in stats.indices {
@@ -707,15 +762,43 @@ private struct AvatarRadarChart: View {
                     index == stats.startIndex ? data.move(to: point) : data.addLine(to: point)
                 }
                 data.closeSubpath()
-                context.fill(data, with: .linearGradient(Gradient(colors: [APEXColor.teal.opacity(0.5), APEXColor.cyan.opacity(0.2)]), startPoint: CGPoint(x: center.x, y: center.y - radius), endPoint: CGPoint(x: center.x, y: center.y + radius)))
-                context.stroke(data, with: .color(APEXColor.teal), style: StrokeStyle(lineWidth: 4, lineJoin: .round))
+                context.fill(
+                    data,
+                    with: .linearGradient(
+                        Gradient(colors: [APEXColor.violet.opacity(0.42), APEXColor.cyan.opacity(0.32)]),
+                        startPoint: CGPoint(x: center.x, y: center.y - radius),
+                        endPoint: CGPoint(x: center.x, y: center.y + radius)
+                    )
+                )
+                context.stroke(data, with: .color(APEXColor.violet), style: StrokeStyle(lineWidth: 3, lineJoin: .round))
+                /* A dot on each vertex, so a value can be read off the shape
+                   instead of guessed from where the outline bends. */
+                for index in stats.indices {
+                    let point = radarPoint(
+                        index: index, count: stats.count,
+                        radius: radius * CGFloat(min(1, max(0.02, stats[index].value / 100))),
+                        center: center
+                    )
+                    let dot = CGRect(x: point.x - 3.5, y: point.y - 3.5, width: 7, height: 7)
+                    context.fill(Circle().path(in: dot), with: .color(.white))
+                    context.stroke(Circle().path(in: dot), with: .color(APEXColor.violet), lineWidth: 2)
+                }
             }
             ForEach(Array(stats.enumerated()), id: \.element.id) { index, stat in
                 let point = radarPoint(index: index, count: stats.count, radius: radius + 34, center: center)
-                VStack(spacing: 1) {
-                    Text(language.text(shortName(stat.name))).font(APEXFont.mono(7)).multilineTextAlignment(.center).lineLimit(2)
-                    Text("\(Int(stat.value.rounded()))").font(APEXFont.mono(10)).foregroundStyle(stat.color)
-                }.frame(width: 82).position(point)
+                VStack(spacing: 2) {
+                    Text(language.text(shortName(stat.name)))
+                        .font(APEXFont.mono(8, weight: .semibold))
+                        .tracking(0.4)
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .multilineTextAlignment(.center)
+                        .lineLimit(2)
+                    /* The number is the point of the chart, so it is the size
+                       of something meant to be read at arm's length. */
+                    Text("\(Int(stat.value.rounded()))")
+                        .font(APEXFont.mono(14, weight: .bold))
+                        .foregroundStyle(APEXColor.ink)
+                }.frame(width: 84).position(point)
             }
         }
     }
@@ -805,7 +888,6 @@ private struct StrengthHistoryCard: View {
 private struct AvatarHero: View {
     @State private var language = LanguageState.shared
     let profile: Profile?
-    let overall: Double
     @State private var pulse = false
 
     var body: some View {
@@ -819,10 +901,13 @@ private struct AvatarHero: View {
             VStack {
                 Spacer()
                 HStack {
-                    VStack(alignment: .leading, spacing: 3) {
-                        Text((profile?.displayName ?? "APEX").uppercased()).font(APEXFont.mono(11)).tracking(2)
-                        Text(language.format("Overall %d", Int(overall.rounded()))).font(APEXFont.display(22))
-                    }
+                    /* The name only. The overall score has its own card
+                       directly underneath, and printing it twice made the
+                       second one look like a different number. */
+                    Text(profile?.displayName ?? "APEX")
+                        .font(APEXFont.display(24))
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.7)
                     Spacer(); Image(systemName: "waveform.path.ecg").font(.system(size: 27, weight: .semibold))
                 }.foregroundStyle(.white).padding(20).background(.black.opacity(0.26))
             }

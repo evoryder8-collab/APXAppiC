@@ -188,6 +188,11 @@ struct ProgressCameraView: View {
     /// The previous photo in the same pose, shown underneath for alignment.
     var reference: ProgressPhoto?
     var onClose: () -> Void
+
+    /// Whether the user has allowed the front camera for progress scans.
+    private var allowsFrontCamera: Bool {
+        session.data.settings?.addons["allow_front_camera_scanning"]?.boolValue ?? false
+    }
     var onCaptured: (UIImage, ProgressCaptureIntent) -> Void
 
     @Environment(AppSession.self) private var session
@@ -237,7 +242,12 @@ struct ProgressCameraView: View {
                     .transition(.scale.combined(with: .opacity))
             }
         }
-        .task { await controller.start() }
+        .task {
+            /* Honour the setting. It has existed in Settings since the camera
+               did, and nothing has ever read it: the scanner opened on the
+               front camera regardless of what the switch said. */
+            await controller.start(position: allowsFrontCamera ? .front : .back)
+        }
         .task(id: reference?.id) {
             guard let reference,
                   let url = try? await session.signedProgressURL(for: reference, thumbnail: false),
@@ -413,10 +423,14 @@ struct ProgressCameraView: View {
                     .accessibilityLabel(language.format("Take photo in %d seconds", timerSeconds))
                     .accessibilityIdentifier("progress-camera-shutter")
                     Spacer()
-                    Text(controller.position == .front ? language.text("REAR") : language.text("FRONT"))
-                        .font(APEXFont.mono(10, weight: .bold))
-                        .foregroundStyle(.white.opacity(0.6))
-                        .frame(width: 74, alignment: .trailing)
+                    if allowsFrontCamera {
+                        Text(controller.position == .front ? language.text("REAR") : language.text("FRONT"))
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .foregroundStyle(.white.opacity(0.6))
+                            .frame(width: 74, alignment: .trailing)
+                    } else {
+                        Color.clear.frame(width: 74)
+                    }
                 }
             }
             .padding(.horizontal, 18)

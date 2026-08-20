@@ -411,9 +411,6 @@ struct SettingsView: View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 17) {
                 sectionTitle("Camera & comparison", subtitle: "Choose what appears on exported progress comparisons.")
-                settingToggle("Allow front camera for food scanning", subtitle: "Off keeps every new scan on the rear camera.", value: addonBool("food_scanner_front_camera", default: false)) {
-                    setAddon("food_scanner_front_camera", .bool($0))
-                }
                 settingGroup(title: "Comparison export stats", subtitle: "Minimal shows only APEX, Before/After, and each photo’s date and time.", tint: APEXColor.violet) {
                     choiceRow(options: [("Minimal", "minimal"), ("Detailed", "detailed")], selected: addonString("comparison_export_mode", default: "detailed")) {
                         setAddon("comparison_export_mode", .string($0))

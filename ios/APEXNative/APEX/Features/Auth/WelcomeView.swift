@@ -139,7 +139,7 @@ struct WelcomeView: View {
                 .mask(Text("APEX").font(APEXFont.display(42)).tracking(11))
                 .rise(appeared, delay: 0.10)
 
-            Text(language.text("Every session, meal and night of sleep quietly rewrites what tomorrow asks of you."))
+            Text(language.text("Train, eat and rest, and watch tomorrow adjust itself around what you actually did."))
                 .font(APEXFont.body(15))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .multilineTextAlignment(.center)
