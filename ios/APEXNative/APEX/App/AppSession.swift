@@ -46,6 +46,7 @@ final class AppSession {
             case "welcome": route = .welcome
             case "induction": route = .induction
             case "consent": route = .consent
+            case "persona": route = .persona
             default: route = .welcome
             }
             bootstrapped = true
@@ -80,11 +81,16 @@ final class AppSession {
                 selectedPersona = data.profile?.persona
                 route = .portal
                 await startRealtimeSync()
+                await importHealthQuietly()
                 return
             } catch {
                 if data.profile?.userID == userID {
                     /* No alert: the sync indicator already shows this, and a modal on
                        every launch without signal trains people to dismiss modals. */
+                    /* Health still imports. It comes off the phone, not the
+                       network, so a failed refresh is no reason to leave the
+                       day's steps unread. */
+                    await importHealthQuietly()
                     return
                 }
             }
@@ -235,7 +241,6 @@ final class AppSession {
         }
         await considerWeeklyCalibration()
         await resolveEntitlements()
-        await importHealthQuietly()
     }
 
     /// Store a new profile picture.
@@ -338,6 +343,11 @@ final class AppSession {
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
         #endif
         guard route == .portal else { return }
+        /* Health first, and independent of the network. It used to hang off the
+           end of the dashboard refresh, so any failed or slow request skipped
+           the import altogether and the card sat on "no wearable data" with a
+           button to press, for data the phone already had on disk. */
+        await importHealthQuietly()
         await refresh()
     }
 

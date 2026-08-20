@@ -225,6 +225,10 @@ struct MuscleMapView: UIViewRepresentable {
         let background = transparentBackground
             ? "document.documentElement.style.setProperty('--mm-bg', 'transparent');"
               + "document.body.style.background = 'transparent';"
+              /* The widget's own progress bar is for the training screens. On a
+                 transparent stage the figure fades in when it is ready, so a
+                 loading bar would be the first thing anyone sees of the app. */
+              + "var l = document.getElementById('loader'); if (l) { l.style.display = 'none'; }"
             : ""
         return """
         (function(){

@@ -70,6 +70,17 @@ struct WelcomeView: View {
             /* One orchestrated entrance rather than five things each doing
                their own thing, which is what makes it read as designed. */
             withAnimation(.smooth(duration: 0.9)) { appeared = true }
+
+            /* A ceiling on the wait. The veil lifts on the figure being ready,
+               and a mesh that never arrives would otherwise hold the app on a
+               splash screen with no way out. Four seconds, then the screen
+               opens whether the body has welded or not. */
+            Task {
+                try? await Task.sleep(for: .seconds(4))
+                if !figureReady {
+                    withAnimation(.smooth(duration: 0.55)) { figureReady = true }
+                }
+            }
         }
     }
 
