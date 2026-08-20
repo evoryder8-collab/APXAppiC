@@ -331,3 +331,32 @@
 "Backpack RDL" = "バックパックRDL";
 "Battle ropes" = "バトルロープ";
 "Bent-Knee Calf Raise" = "膝曲げカーフレイズ";
+
+/* Common interface vocabulary */
+"Undo" = "元に戻す";
+"Remove" = "削除";
+"Rename" = "名前を変更";
+"Duplicate" = "複製";
+"Share" = "共有";
+"Export" = "書き出す";
+"Import" = "読み込む";
+"This week" = "今週";
+"Target" = "目標";
+"Progress" = "進捗";
+"Notes" = "メモ";
+"Minutes" = "分";
+"Weight" = "重量";
+"Height" = "身長";
+"Age" = "年齢";
+"Advanced" = "上級";
+"Simple" = "シンプル";
+"Recovery" = "回復";
+"Hydration" = "水分補給";
+"Calories" = "カロリー";
+"Start" = "開始";
+"Pause" = "一時停止";
+"Resume" = "再開";
+"Finish" = "終了";
+"Log" = "記録";
+"Repeat" = "繰り返す";
+"None" = "なし";

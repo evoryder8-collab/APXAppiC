@@ -331,3 +331,32 @@
 "Backpack RDL" = "Rucksack-RDL";
 "Battle ropes" = "Battle Ropes";
 "Bent-Knee Calf Raise" = "Wadeheebe bogä";
+
+/* Common interface vocabulary */
+"Undo" = "Rückgängig";
+"Remove" = "Entferne";
+"Rename" = "Umbenenne";
+"Duplicate" = "Dupliziere";
+"Share" = "Teile";
+"Export" = "Exportiere";
+"Import" = "Importiere";
+"This week" = "Die Wuche";
+"Target" = "Ziel";
+"Progress" = "Fortschritt";
+"Notes" = "Notize";
+"Minutes" = "Minute";
+"Weight" = "Gwicht";
+"Height" = "Grössi";
+"Age" = "Alter";
+"Advanced" = "Fortgschritte";
+"Simple" = "Eifach";
+"Recovery" = "Erholig";
+"Hydration" = "Flüssigkeit";
+"Calories" = "Kalorie";
+"Start" = "Starte";
+"Pause" = "Pausiere";
+"Resume" = "Fortsetze";
+"Finish" = "Beände";
+"Log" = "Erfasse";
+"Repeat" = "Wiederhole";
+"None" = "Kei";

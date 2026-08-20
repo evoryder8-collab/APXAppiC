@@ -331,3 +331,32 @@
 "Backpack RDL" = "Stacco rumeno con zaino";
 "Battle ropes" = "Battle rope";
 "Bent-Knee Calf Raise" = "Calf raise a ginocchio piegato";
+
+/* Common interface vocabulary */
+"Undo" = "Annulla";
+"Remove" = "Rimuovi";
+"Rename" = "Rinomina";
+"Duplicate" = "Duplica";
+"Share" = "Condividi";
+"Export" = "Esporta";
+"Import" = "Importa";
+"This week" = "Questa settimana";
+"Target" = "Obiettivo";
+"Progress" = "Progresso";
+"Notes" = "Note";
+"Minutes" = "Minuti";
+"Weight" = "Peso";
+"Height" = "Altezza";
+"Age" = "Età";
+"Advanced" = "Avanzato";
+"Simple" = "Semplice";
+"Recovery" = "Recupero";
+"Hydration" = "Idratazione";
+"Calories" = "Calorie";
+"Start" = "Inizia";
+"Pause" = "Pausa";
+"Resume" = "Riprendi";
+"Finish" = "Termina";
+"Log" = "Registra";
+"Repeat" = "Ripeti";
+"None" = "Nessuno";
