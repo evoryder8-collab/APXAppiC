@@ -17,18 +17,18 @@ struct ActivityGuideSheet: View {
             VStack(alignment: .leading, spacing: 22) {
                 HStack {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Activity guide")
+                        Text(language.text("Activity guide"))
                             .font(APEXFont.display(31))
-                        Text("Quick Mode's brain")
+                        Text(language.text("Quick Mode's brain"))
                             .font(APEXFont.mono(11))
                             .tracking(1.4)
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
                     Spacer()
-                    Button("Done") { dismiss() }
+                    Button(language.text("Done")) { dismiss() }
                 }
 
-                Text("The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day.")
+                Text(language.text("The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day."))
                     .font(APEXFont.body(15, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
 
@@ -50,7 +50,7 @@ struct ActivityGuideSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("EXAMPLE DAYS")
+                    Text(language.text("EXAMPLE DAYS"))
                         .font(APEXFont.mono(10))
                         .tracking(1.4)
                     personaRow(icon: "video", title: "Videographer", copy: "Four hours gimbal + rig carry + travel")

@@ -73,14 +73,14 @@ struct FoodSearchSheet: View {
                         ContentUnavailableView(
                             "No food found",
                             systemImage: "fork.knife.circle",
-                            description: Text("Try the exact product name or scan its barcode.")
+                            description: Text(language.text("Try the exact product name or scan its barcode."))
                         )
                     }
                 }
                 .padding(18)
             }
             .background(APEXBackground())
-            .navigationTitle("Food Memory")
+            .navigationTitle(language.text("Food Memory"))
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, prompt: "Search foods and brands")
             .onSubmit(of: .search) { Task { await search() } }
@@ -92,7 +92,7 @@ struct FoodSearchSheet: View {
             }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Done") { dismiss() }
+                    Button(language.text("Done")) { dismiss() }
                 }
                 ToolbarItem(placement: .primaryAction) {
                     Button { Task { await search() } } label: {
@@ -217,12 +217,12 @@ struct FoodPortionSheet: View {
 
                     GlassCard(radius: 28, padding: 19) {
                         VStack(alignment: .leading, spacing: 16) {
-                            Text("Portion")
+                            Text(language.text("Portion"))
                                 .font(APEXFont.display(21))
                             HStack(spacing: 12) {
                                 Button { amount = max(step, amount - step) } label: { Image(systemName: "minus") }
                                     .buttonStyle(PortionStepperStyle())
-                                TextField("Amount", value: $amount, format: .number.precision(.fractionLength(0...1)))
+                                TextField(language.text("Amount"), value: $amount, format: .number.precision(.fractionLength(0...1)))
                                     .keyboardType(.decimalPad)
                                     .multilineTextAlignment(.center)
                                     .font(APEXFont.display(28))
@@ -248,7 +248,7 @@ struct FoodPortionSheet: View {
                         Task { await save() }
                     } label: {
                         if isSaving { ProgressView().tint(.white) }
-                        else { Label("Log food", systemImage: "checkmark.circle.fill") }
+                        else { Label(language.text("Log food"), systemImage: "checkmark.circle.fill") }
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
                     .disabled(isSaving || equivalentAmount <= 0)
@@ -256,16 +256,16 @@ struct FoodPortionSheet: View {
                 .padding(18)
             }
             .background(APEXBackground())
-            .navigationTitle("Confirm food")
+            .navigationTitle(language.text("Confirm food"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
             }
             .alert("Could not log food", isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("OK", role: .cancel) {}
+                Button(language.text("OK"), role: .cancel) {}
             } message: {
                 Text(language.text(errorMessage ?? "Please try again."))
             }

@@ -24,7 +24,7 @@ struct OrbitLibraryView: View {
                 .buttonStyle(.plain)
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Recent runs")
+                    Text(language.text("Recent runs"))
                         .font(APEXFont.display(26))
                     if session.data.orbitRuns.isEmpty {
                         empty("figure.run.circle", "No recorded runs yet", "A completed Orbit run will appear here with its private debrief.")
@@ -40,7 +40,7 @@ struct OrbitLibraryView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 12) {
-                    Text("Saved routes")
+                    Text(language.text("Saved routes"))
                         .font(APEXFont.display(26))
                     if session.data.orbitRoutes.isEmpty {
                         empty("map", "No saved routes yet", "Generate, draw or import a route to build a private library.")
@@ -53,7 +53,7 @@ struct OrbitLibraryView: View {
             .padding(18)
             .padding(.bottom, 30)
         }
-        .navigationTitle("Orbit Library")
+        .navigationTitle(language.text("Orbit Library"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(item: $editingRoute) { route in
             RouteEditorSheet(route: route)
@@ -155,23 +155,23 @@ private struct RouteLibraryCard: View {
                                     mission: route.missionTags.first?.replacingOccurrences(of: "_", with: " ").capitalized ?? "Easy",
                                     plannedRoute: route
                                 )
-                            } label: { Label("Start", systemImage: "play.fill") }
+                            } label: { Label(language.text("Start"), systemImage: "play.fill") }
                                 .buttonStyle(.borderedProminent).tint(APEXColor.cyan)
                             Button(language.text(route.favourite ? "Unfavourite" : "Favourite")) { toggleFavourite() }
                                 .buttonStyle(.bordered)
-                            Button("Edit") { editingRoute = route }
+                            Button(language.text("Edit")) { editingRoute = route }
                                 .buttonStyle(.bordered)
-                            Button("Reverse") { reverse() }
+                            Button(language.text("Reverse")) { reverse() }
                                 .buttonStyle(.bordered)
-                            Button("Duplicate") { Task { _ = await session.duplicateOrbitRoute(route) } }
+                            Button(language.text("Duplicate")) { Task { _ = await session.duplicateOrbitRoute(route) } }
                                 .buttonStyle(.bordered)
-                            Button("Add segment") { showSegmentEditor = true }
+                            Button(language.text("Add segment")) { showSegmentEditor = true }
                                 .buttonStyle(.bordered)
                             if let exportURL {
-                                ShareLink(item: exportURL) { Label("Export GPX", systemImage: "square.and.arrow.up") }
+                                ShareLink(item: exportURL) { Label(language.text("Export GPX"), systemImage: "square.and.arrow.up") }
                                     .buttonStyle(.bordered)
                             } else {
-                                Button("Prepare GPX") { exportURL = try? OrbitGPXService.export(route: route) }
+                                Button(language.text("Prepare GPX")) { exportURL = try? OrbitGPXService.export(route: route) }
                                     .buttonStyle(.bordered)
                             }
                         }
@@ -238,7 +238,7 @@ private struct SegmentPerformanceRow: View {
                     .font(APEXFont.body(8, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             } else {
-                Text("Complete this saved route to establish a private segment baseline.")
+                Text(language.text("Complete this saved route to establish a private segment baseline."))
                     .font(APEXFont.body(8, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
@@ -279,24 +279,24 @@ private struct SegmentEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Segment name", text: $name)
-                Section("Start") {
+                TextField(language.text("Segment name"), text: $name)
+                Section(language.text("Start")) {
                     Slider(value: $startM, in: 0...Double(max(1, route.distanceM - 100)), step: 50)
                     Text(language.format("%.2f km", startM / 1_000))
                 }
-                Section("End") {
+                Section(language.text("End")) {
                     Slider(value: $endM, in: 100...Double(max(100, route.distanceM)), step: 50)
                     Text(language.format("%.2f km", endM / 1_000))
                 }
-                Text("Personal segments remain private. There are no public leaderboards.")
+                Text(language.text("Personal segments remain private. There are no public leaderboards."))
                     .font(APEXFont.body(10, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
-            .navigationTitle("Personal segment")
+            .navigationTitle(language.text("Personal segment"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(language.text("Save")) {
                         Task {
                             await session.saveOrbitSegment(
                                 route: route,
@@ -329,8 +329,8 @@ private struct RouteEditorSheet: View {
     var body: some View {
         NavigationStack {
             Form {
-                TextField("Route name", text: $route.name)
-                TextField("Private note", text: $route.note, axis: .vertical)
+                TextField(language.text("Route name"), text: $route.name)
+                TextField(language.text("Private note"), text: $route.note, axis: .vertical)
                     .lineLimit(3...6)
                 Picker("Surface", selection: $route.surface) {
                     ForEach(["road", "path", "trail", "mixed"], id: \.self) { Text(language.text($0.capitalized)).tag($0) }
@@ -347,23 +347,23 @@ private struct RouteEditorSheet: View {
                     get: { route.rating ?? 0 },
                     set: { route.rating = $0 == 0 ? nil : $0 }
                 ), in: 0...5)
-                TextField("Preferred sections, separated by commas", text: Binding(
+                TextField(language.text("Preferred sections, separated by commas"), text: Binding(
                     get: { route.preferredSections.joined(separator: ", ") },
                     set: { route.preferredSections = split($0) }
                 ))
-                TextField("Avoided sections, separated by commas", text: Binding(
+                TextField(language.text("Avoided sections, separated by commas"), text: Binding(
                     get: { route.avoidedSections.joined(separator: ", ") },
                     set: { route.avoidedSections = split($0) }
                 ))
-                Text("Preferred and avoided sections inform future route comparison. They are not safety guarantees.")
+                Text(language.text("Preferred and avoided sections inform future route comparison. They are not safety guarantees."))
                     .font(APEXFont.body(9, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
-            .navigationTitle("Edit route")
+            .navigationTitle(language.text("Edit route"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") {
+                    Button(language.text("Save")) {
                         Task {
                             await session.updateOrbitRoute(route)
                             dismiss()

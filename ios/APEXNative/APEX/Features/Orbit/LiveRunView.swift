@@ -62,7 +62,7 @@ struct LiveRunView: View {
                     Spacer()
                     VStack(spacing: 2) {
                         Text(language.text(effectiveMission).uppercased(with: language.language.locale)).font(APEXFont.mono(11)).tracking(1.4)
-                        if location.weakGPS { Text("WEAK GPS").font(APEXFont.mono(8)).foregroundStyle(APEXColor.amber) }
+                        if location.weakGPS { Text(language.text("WEAK GPS")).font(APEXFont.mono(8)).foregroundStyle(APEXColor.amber) }
                     }
                     Spacer()
                     Button { position = .userLocation(followsHeading: true, fallback: .automatic) } label: {
@@ -99,7 +99,7 @@ struct LiveRunView: View {
                 VStack(spacing: 20) {
                     if location.state == .idle {
                         Menu {
-                            Button("No shoe assigned") {
+                            Button(language.text("No shoe assigned")) {
                                 selectedShoeID = nil
                                 location.assignShoe(nil)
                             }
@@ -181,7 +181,7 @@ struct LiveRunView: View {
             )
         }
         .confirmationDialog("Finish this run?", isPresented: $showFinish, titleVisibility: .visible) {
-            Button("Finish and save") {
+            Button(language.text("Finish and save")) {
                 let endedAt = Date()
                 let startedAt = location.startedAt ?? endedAt
                 location.finish()
@@ -209,11 +209,11 @@ struct LiveRunView: View {
                     }
                 }
             }
-            Button("Keep running", role: .cancel) {}
+            Button(language.text("Keep running"), role: .cancel) {}
         }
         .confirmationDialog("Cancel this run?", isPresented: $showCancel, titleVisibility: .visible) {
-            Button("Discard run", role: .destructive) { location.cancel(); dismiss() }
-            Button("Keep run", role: .cancel) {}
+            Button(language.text("Discard run"), role: .destructive) { location.cancel(); dismiss() }
+            Button(language.text("Keep run"), role: .cancel) {}
         }
         .fullScreenCover(item: $debriefRun) { run in
             RunDebriefView(run: run) {

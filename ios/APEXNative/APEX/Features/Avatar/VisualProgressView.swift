@@ -39,9 +39,9 @@ struct VisualProgressView: View {
         ScrollView {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 6) {
-                    Label("Private Visual Progress", systemImage: "camera.fill")
+                    Label(language.text("Private Visual Progress"), systemImage: "camera.fill")
                         .font(APEXFont.display(31))
-                    Text("Your photos remain private. Compare your physique and the performance signals behind it.")
+                    Text(language.text("Your photos remain private. Compare your physique and the performance signals behind it."))
                         .font(APEXFont.body(14, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -52,21 +52,21 @@ struct VisualProgressView: View {
                     GlassCard(radius: 29, padding: 19) {
                         VStack(alignment: .leading, spacing: 14) {
                             Picker("Pose", selection: $pose) {
-                                Text("Front").tag("front")
-                                Text("Side").tag("side")
-                                Text("Back").tag("back")
+                                Text(language.text("Front")).tag("front")
+                                Text(language.text("Side")).tag("side")
+                                Text(language.text("Back")).tag("back")
                             }
                             .pickerStyle(.segmented)
-                            TextField("Optional note", text: $note, axis: .vertical)
+                            TextField(language.text("Optional note"), text: $note, axis: .vertical)
                                 .textFieldStyle(.roundedBorder)
                             HStack(spacing: 10) {
-                                Button("Retake") { self.selectedImage = nil }
+                                Button(language.text("Retake")) { self.selectedImage = nil }
                                     .buttonStyle(.bordered)
                                 Button {
                                     Task { await save(selectedImage) }
                                 } label: {
                                     if isSaving { ProgressView().tint(.white) }
-                                    else { Label("Save private checkpoint", systemImage: "lock.fill") }
+                                    else { Label(language.text("Save private checkpoint"), systemImage: "lock.fill") }
                                 }
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.violet)
@@ -80,21 +80,21 @@ struct VisualProgressView: View {
                             Image(systemName: "camera.viewfinder")
                                 .font(.system(size: 55, weight: .light))
                                 .foregroundStyle(APEXColor.violet)
-                            Text("Create a new checkpoint")
+                            Text(language.text("Create a new checkpoint"))
                                 .font(APEXFont.display(23))
-                            Text("Use the same pose, distance and lighting for the clearest comparison.")
+                            Text(language.text("Use the same pose, distance and lighting for the clearest comparison."))
                                 .font(APEXFont.body(13, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .multilineTextAlignment(.center)
                             HStack {
                                 Button { showBriefing = true } label: {
-                                    Label("Take progress photo", systemImage: "camera.fill")
+                                    Label(language.text("Take progress photo"), systemImage: "camera.fill")
                                 }
                                 .accessibilityIdentifier("progress-take-photo")
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.violet)
                                 PhotosPicker(selection: $selectedItem, matching: .images) {
-                                    Label("Library", systemImage: "photo")
+                                    Label(language.text("Library"), systemImage: "photo")
                                 }
                                 .buttonStyle(.bordered)
                             }
@@ -106,9 +106,9 @@ struct VisualProgressView: View {
                 GlassCard(radius: 29, padding: 18) {
                     Toggle(isOn: $includeStats) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Include stats")
+                            Text(language.text("Include stats"))
                                 .font(APEXFont.display(18))
-                            Text("Overlay compact performance bars on comparison photos")
+                            Text(language.text("Overlay compact performance bars on comparison photos"))
                                 .font(APEXFont.body(11, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         }
@@ -119,14 +119,14 @@ struct VisualProgressView: View {
                 if comparisonSelection.count == 2 {
                     VStack(alignment: .leading, spacing: 12) {
                         HStack {
-                            Text("Before and after")
+                            Text(language.text("Before and after"))
                                 .font(APEXFont.display(25))
                             Spacer()
                             Button(language.text("Compare")) { showComparison = true }
                                 .font(APEXFont.body(12, weight: .bold))
                                 .foregroundStyle(APEXColor.violet)
                                 .accessibilityIdentifier("progress-compare")
-                            Button("Clear") { comparisonSelection = [] }
+                            Button(language.text("Clear")) { comparisonSelection = [] }
                                 .font(APEXFont.body(12, weight: .bold))
                         }
                         HStack(spacing: 10) {
@@ -146,9 +146,9 @@ struct VisualProgressView: View {
                 if session.data.progressPhotos.isEmpty {
                     GlassCard(radius: 29, padding: 20) {
                         VStack(spacing: 9) {
-                            Text("No synced checkpoints yet")
+                            Text(language.text("No synced checkpoints yet"))
                                 .font(APEXFont.display(20))
-                            Text("Your existing web progress photos will appear here as soon as their private signed previews are loaded.")
+                            Text(language.text("Your existing web progress photos will appear here as soon as their private signed previews are loaded."))
                                 .font(APEXFont.body(12, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .multilineTextAlignment(.center)
@@ -157,9 +157,9 @@ struct VisualProgressView: View {
                     }
                 } else {
                     VStack(alignment: .leading, spacing: 12) {
-                        Text("Timeline")
+                        Text(language.text("Timeline"))
                             .font(APEXFont.display(25))
-                        Text("Select any two checkpoints to compare them.")
+                        Text(language.text("Select any two checkpoints to compare them."))
                             .font(APEXFont.body(12, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                         ForEach(session.data.progressPhotos) { photo in
@@ -177,7 +177,7 @@ struct VisualProgressView: View {
             .padding(.bottom, 28)
 .dockClearance()
         }
-        .navigationTitle("Visual Progress")
+        .navigationTitle(language.text("Visual Progress"))
         .navigationBarTitleDisplayMode(.inline)
         .onChange(of: selectedItem) { _, item in
             Task {
@@ -229,7 +229,7 @@ struct VisualProgressView: View {
             get: { saveError != nil },
             set: { if !$0 { saveError = nil } }
         )) {
-            Button("OK", role: .cancel) {}
+            Button(language.text("OK"), role: .cancel) {}
         } message: {
             Text(language.text(saveError ?? "Please try again."))
         }

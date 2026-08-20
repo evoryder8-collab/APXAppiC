@@ -227,7 +227,7 @@ private struct TodaysActivitiesPanel: View {
             VStack(alignment: .leading, spacing: 17) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("Today's Activities")
+                        Text(language.text("Today's Activities"))
                             .font(APEXFont.display(25))
                         Text(language.text(logs.isEmpty ? "Quick mode" : "Precise mode · computed from your day"))
                             .font(APEXFont.body(13, weight: .semibold))
@@ -247,7 +247,7 @@ private struct TodaysActivitiesPanel: View {
                             Text("\(logs.reduce(0) { $0 + Int($1.computedKcal.rounded()) })")
                                 .font(APEXFont.display(44))
                                 .contentTransition(.numericText())
-                            Text("NET ACTIVITY KCAL")
+                            Text(language.text("NET ACTIVITY KCAL"))
                                 .font(APEXFont.mono(9))
                                 .tracking(1.4)
                                 .foregroundStyle(APEXColor.secondaryInk)
@@ -325,7 +325,7 @@ private struct TodaysActivitiesPanel: View {
                 }
 
                 Button(action: onAdd) {
-                    Label("Add activity block", systemImage: "plus")
+                    Label(language.text("Add activity block"), systemImage: "plus")
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
 
@@ -334,7 +334,7 @@ private struct TodaysActivitiesPanel: View {
                         Button {
                             Task { await session.repeatYesterday(onto: date) }
                         } label: {
-                            Label("Repeat yesterday", systemImage: "arrow.uturn.backward.circle")
+                            Label(language.text("Repeat yesterday"), systemImage: "arrow.uturn.backward.circle")
                         }
                         .buttonStyle(.bordered)
                     }
@@ -342,7 +342,7 @@ private struct TodaysActivitiesPanel: View {
                         Button(role: .destructive) {
                             Task { await session.clearActivities(on: date) }
                         } label: {
-                            Label("Clear day", systemImage: "trash")
+                            Label(language.text("Clear day"), systemImage: "trash")
                         }
                         .buttonStyle(.bordered)
                     }
@@ -383,7 +383,7 @@ private struct DailyTargetsCard: View {
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 20) {
                 HStack {
-                    Text("Daily targets")
+                    Text(language.text("Daily targets"))
                         .font(APEXFont.display(27))
                     Spacer()
                     Text(language.text(session.profile?.goal.title ?? "Goal").uppercased(with: language.language.locale))
@@ -417,7 +417,7 @@ private struct DailyTargetsCard: View {
 
                 if !precise {
                     VStack(alignment: .leading, spacing: 10) {
-                        Text("QUICK MODE")
+                        Text(language.text("QUICK MODE"))
                             .font(APEXFont.mono(9))
                             .tracking(1.5)
                             .foregroundStyle(APEXColor.secondaryInk)
@@ -431,7 +431,7 @@ private struct DailyTargetsCard: View {
                         }
                     }
                 } else {
-                    Label("Activity levels are computed from today's blocks", systemImage: "sparkles")
+                    Label(language.text("Activity levels are computed from today's blocks"), systemImage: "sparkles")
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -446,7 +446,7 @@ private struct DailyTargetsCard: View {
                 }
 
                 if targets.safetyFloorApplied {
-                    Label("Target held above the recovery safety floor", systemImage: "shield.lefthalf.filled")
+                    Label(language.text("Target held above the recovery safety floor"), systemImage: "shield.lefthalf.filled")
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.green)
                 }
@@ -484,9 +484,9 @@ private struct MealTimeline: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
-            Text("Meal timeline")
+            Text(language.text("Meal timeline"))
                 .font(APEXFont.display(28))
-            Text("Portions adapt to your activity and goal selection.")
+            Text(language.text("Portions adapt to your activity and goal selection."))
                 .font(APEXFont.body(14, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
 
@@ -553,9 +553,9 @@ private struct FoodLoggingCard: View {
             VStack(alignment: .leading, spacing: 15) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("Food log")
+                        Text(language.text("Food log"))
                             .font(APEXFont.display(25))
-                        Text("Log what you actually ate")
+                        Text(language.text("Log what you actually ate"))
                             .font(APEXFont.body(13, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -566,7 +566,7 @@ private struct FoodLoggingCard: View {
                         VStack(spacing: 5) {
                             Image(systemName: "barcode.viewfinder")
                                 .font(.system(size: 30, weight: .semibold))
-                            Text("SCAN")
+                            Text(language.text("SCAN"))
                                 .font(APEXFont.mono(8))
                                 .tracking(1)
                         }
@@ -614,7 +614,7 @@ private struct FoodLoggingCard: View {
                 }
 
                 Button { showFoodSearch = true } label: {
-                    Label("Add food or use a saved meal", systemImage: "plus.circle.fill")
+                    Label(language.text("Add food or use a saved meal"), systemImage: "plus.circle.fill")
                         .font(APEXFont.body(14, weight: .bold))
                         .frame(maxWidth: .infinity, alignment: .leading)
                         .padding(15)
@@ -640,7 +640,7 @@ private struct SupplementTimeline: View {
     var body: some View {
         VStack(alignment: .leading, spacing: 14) {
             HStack {
-                Text("Supplement stack")
+                Text(language.text("Supplement stack"))
                     .font(APEXFont.display(28))
                 Spacer()
                 Text(language.format("Training at %@", session.profile?.trainingTime ?? "19:00"))
@@ -704,7 +704,7 @@ private struct DailyLogCard: View {
     var body: some View {
         GlassCard(radius: 32, padding: 21) {
             VStack(alignment: .leading, spacing: 19) {
-                Text("Daily log")
+                Text(language.text("Daily log"))
                     .font(APEXFont.display(27))
                 Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).year().locale(language.language.locale)))
                     .font(APEXFont.mono(12))
@@ -733,10 +733,10 @@ private struct DailyLogCard: View {
                             }
                         }
                         HStack(spacing: 10) {
-                            Button("Adjust blocks", action: onAdjustActivities)
+                            Button(language.text("Adjust blocks"), action: onAdjustActivities)
                                 .buttonStyle(.bordered)
                             if allReconciled == false {
-                                Button("Yes, finalize") {
+                                Button(language.text("Yes, finalize")) {
                                     Task { await session.finalizeActivityDay(date, targets: targets) }
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -935,13 +935,13 @@ private struct BodyAssessmentCard: View {
     var body: some View {
         GlassCard(radius: 32, padding: 22) {
             VStack(alignment: .leading, spacing: 13) {
-                Label("APEX assessment", systemImage: "sparkles")
+                Label(language.text("APEX assessment"), systemImage: "sparkles")
                     .font(APEXFont.display(24))
                 Text(assessment)
                     .font(APEXFont.body(15, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .lineSpacing(4)
-                Text("This is performance guidance, not medical advice.")
+                Text(language.text("This is performance guidance, not medical advice."))
                     .font(APEXFont.body(10, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk.opacity(0.75))
             }

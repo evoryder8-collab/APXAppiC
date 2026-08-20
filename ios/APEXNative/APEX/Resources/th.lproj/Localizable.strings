@@ -3592,3 +3592,9 @@
 "set" = "เซต";
 "~%d min" = "~%d นาที";
 "… %d more sets" = "… อีก %d เซต";
+
+/* Meal guide */
+"YOUR MEAL GUIDE" = "คู่มือมื้ออาหารของคุณ";
+
+/* Creatine, revised */
+"The most replicated performance supplement there is. Raises muscle phosphocreatine, which adds reps at high intensity and, over time, size and strength. Monohydrate is the studied form, and the exotic ones such as HCl or buffered are not better than it. Purity is a separate question: a Creapure mark certifies tested limits on manufacturing by-products, whoever packs it." = "อาหารเสริมด้านสมรรถภาพที่มีงานวิจัยรองรับมากที่สุด ช่วยเพิ่มฟอสโฟครีเอทีนในกล้ามเนื้อ ทำให้ทำซ้ำได้มากขึ้นในความหนักสูง และเมื่อสะสมไปเรื่อย ๆ ก็ได้ทั้งขนาดและความแข็งแรง โมโนไฮเดรตคือรูปแบบที่ถูกศึกษา และรูปแบบแปลกใหม่อย่าง HCl หรือแบบบัฟเฟอร์ก็ไม่ได้ดีกว่า ส่วนความบริสุทธิ์เป็นอีกเรื่องหนึ่ง เครื่องหมาย Creapure รับรองว่ามีการตรวจควบคุมสารตกค้างจากการผลิต ไม่ว่าใครจะเป็นผู้บรรจุ";

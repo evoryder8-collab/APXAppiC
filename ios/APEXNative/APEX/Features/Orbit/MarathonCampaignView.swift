@@ -18,7 +18,7 @@ struct MarathonCampaignView: View {
                     emptyCampaign
                 }
 
-                Text("APEX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise.")
+                Text(language.text("APEX Orbit Marathon Campaign provides personalized fitness training, educational guidance and performance tracking for adults preparing for endurance events. It does not diagnose, treat, monitor, predict or prevent disease or injury and does not determine medical fitness for exercise."))
                     .font(APEXFont.body(9, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .multilineTextAlignment(.center)
@@ -27,7 +27,7 @@ struct MarathonCampaignView: View {
             .padding(18)
             .padding(.bottom, 30)
         }
-        .navigationTitle("Marathon Campaign")
+        .navigationTitle(language.text("Marathon Campaign"))
         .navigationBarTitleDisplayMode(.inline)
         .confirmationDialog(
             "Mark this session missed?",
@@ -37,14 +37,14 @@ struct MarathonCampaignView: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Mark missed and rebalance") {
+            Button(language.text("Mark missed and rebalance")) {
                 guard let item = missedCandidate else { return }
                 missedCandidate = nil
                 Task { await session.markOrbitCampaignSessionMissed(item) }
             }
-            Button("Cancel", role: .cancel) { missedCandidate = nil }
+            Button(language.text("Cancel"), role: .cancel) { missedCandidate = nil }
         } message: {
-            Text("Orbit continues forward without stacking catch-up work. The original prescription stays visible.")
+            Text(language.text("Orbit continues forward without stacking catch-up work. The original prescription stays visible."))
         }
     }
 
@@ -62,19 +62,19 @@ struct MarathonCampaignView: View {
                 CelestialField()
                     .clipShape(RoundedRectangle(cornerRadius: 38, style: .continuous))
                 VStack(alignment: .leading, spacing: 16) {
-                    Text("PERSONAL · PRIVATE · ADAPTIVE")
+                    Text(language.text("PERSONAL · PRIVATE · ADAPTIVE"))
                         .font(APEXFont.mono(9))
                         .tracking(1.4)
                         .foregroundStyle(APEXColor.cyan)
-                    Text("Build the credible path to 42.195 km.")
+                    Text(language.text("Build the credible path to 42.195 km."))
                         .font(APEXFont.display(33))
-                    Text("Orbit reuses your APEX profile, strength week, activity history and calendar. It asks only what it does not already know, then assigns a readiness outcome before creating a campaign.")
+                    Text(language.text("Orbit reuses your APEX profile, strength week, activity history and calendar. It asks only what it does not already know, then assigns a readiness outcome before creating a campaign."))
                         .font(APEXFont.body(13, weight: .medium))
                         .foregroundStyle(.white.opacity(0.72))
                     NavigationLink {
                         MarathonInductionView()
                     } label: {
-                        Label("Begin induction", systemImage: "arrow.right")
+                        Label(language.text("Begin induction"), systemImage: "arrow.right")
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
                 }
@@ -85,9 +85,9 @@ struct MarathonCampaignView: View {
 
             GlassCard(radius: 29, padding: 19) {
                 VStack(alignment: .leading, spacing: 7) {
-                    Text("Not every runner receives a twelve-week plan.")
+                    Text(language.text("Not every runner receives a twelve-week plan."))
                         .font(APEXFont.display(19))
-                    Text("A credible recent base may enter marathon-specific training. A newer or returning runner receives Foundation first. A timeline that is too close is explained instead of compressed.")
+                    Text(language.text("A credible recent base may enter marathon-specific training. A newer or returning runner receives Foundation first. A timeline that is too close is explained instead of compressed."))
                         .font(APEXFont.body(12, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -175,9 +175,9 @@ struct MarathonCampaignView: View {
             } else {
                 GlassCard(radius: 30, padding: 21) {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("Post-marathon recovery")
+                        Text(language.text("Post-marathon recovery"))
                             .font(APEXFont.display(24))
-                        Text("No demanding session is waiting. Orbit preserves a gradual return before another campaign.")
+                        Text(language.text("No demanding session is waiting. Orbit preserves a gradual return before another campaign."))
                             .font(APEXFont.body(12, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -188,7 +188,7 @@ struct MarathonCampaignView: View {
 
             GlassCard(radius: 30, padding: 20) {
                 VStack(alignment: .leading, spacing: 10) {
-                    Text("CURRENT PHASE")
+                    Text(language.text("CURRENT PHASE"))
                         .font(APEXFont.mono(9))
                         .foregroundStyle(APEXColor.violet)
                     Text(language.text(OrbitCampaignEngine.phaseLabel(currentPhase)))
@@ -205,9 +205,9 @@ struct MarathonCampaignView: View {
             }
 
             VStack(alignment: .leading, spacing: 11) {
-                Text("Marathon readiness")
+                Text(language.text("Marathon readiness"))
                     .font(APEXFont.display(24))
-                Text("No mysterious score. Every conclusion keeps its reason visible.")
+                Text(language.text("No mysterious score. Every conclusion keeps its reason visible."))
                     .font(APEXFont.body(11, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                 ForEach(readiness) { component in
@@ -248,9 +248,9 @@ struct MarathonCampaignView: View {
 
             GlassCard(radius: 28, padding: 19) {
                 VStack(alignment: .leading, spacing: 9) {
-                    Text("Why this plan is built this way")
+                    Text(language.text("Why this plan is built this way"))
                         .font(APEXFont.display(19))
-                    Text("Predominantly controlled running, progressive exposure, purposeful quality, long-run development, recovery, strength coordination, fueling rehearsal and tapering. The rules are versioned and their limitations remain visible.")
+                    Text(language.text("Predominantly controlled running, progressive exposure, purposeful quality, long-run development, recovery, strength coordination, fueling rehearsal and tapering. The rules are versioned and their limitations remain visible."))
                         .font(APEXFont.body(11, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                     NavigationLink("Open Science Ledger") { OrbitScienceView() }
@@ -299,7 +299,7 @@ struct MarathonCampaignView: View {
 
                 if item.adaptationReason.isEmpty == false {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("PLAN ADAPTATION")
+                        Text(language.text("PLAN ADAPTATION"))
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.violet)
                         Text(language.text(item.adaptationReason))
@@ -314,10 +314,10 @@ struct MarathonCampaignView: View {
                             .font(APEXFont.body(9, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                         HStack {
-                            Button("Use adapted") { Task { await session.chooseOrbitCampaignVersion(item, useOriginal: false) } }
+                            Button(language.text("Use adapted")) { Task { await session.chooseOrbitCampaignVersion(item, useOriginal: false) } }
                                 .buttonStyle(.borderedProminent)
                                 .tint(APEXColor.violet)
-                            Button("Keep original") { Task { await session.chooseOrbitCampaignVersion(item, useOriginal: true) } }
+                            Button(language.text("Keep original")) { Task { await session.chooseOrbitCampaignVersion(item, useOriginal: true) } }
                                 .buttonStyle(.bordered)
                         }
                     }
@@ -328,7 +328,7 @@ struct MarathonCampaignView: View {
                 NavigationLink {
                     RoutePlannerView(initialMission: mission, campaignSessionID: item.id)
                 } label: {
-                    Label("Choose route", systemImage: "map")
+                    Label(language.text("Choose route"), systemImage: "map")
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
 
@@ -336,7 +336,7 @@ struct MarathonCampaignView: View {
                     NavigationLink {
                         LiveRunView(mission: mission.replacingOccurrences(of: "_", with: " ").capitalized, campaignSessionID: item.id)
                     } label: {
-                        Label("Start session", systemImage: "play.fill")
+                        Label(language.text("Start session"), systemImage: "play.fill")
                     }
                     .buttonStyle(.borderedProminent)
                     .tint(APEXColor.cyan)
@@ -351,7 +351,7 @@ struct MarathonCampaignView: View {
                     }
                 }
 
-                Button("Mark missed") { missedCandidate = item }
+                Button(language.text("Mark missed")) { missedCandidate = item }
                     .font(APEXFont.body(11, weight: .bold))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
@@ -433,7 +433,7 @@ private struct OrbitalJourneyView: View {
             in: RoundedRectangle(cornerRadius: 31)
         )
         .overlay(alignment: .bottomLeading) {
-            Text("Missed sessions reorganise the path. They do not break it.")
+            Text(language.text("Missed sessions reorganise the path. They do not break it."))
                 .font(APEXFont.body(9, weight: .medium))
                 .foregroundStyle(.white.opacity(0.45))
                 .padding(15)
@@ -483,10 +483,10 @@ private struct CampaignWeekView: View {
 
     var body: some View {
         VStack(alignment: .leading, spacing: 10) {
-            Text("Current week")
+            Text(language.text("Current week"))
                 .font(APEXFont.display(23))
             if window.isEmpty {
-                Text("No prescribed run falls in the current calendar window.")
+                Text(language.text("No prescribed run falls in the current calendar window."))
                     .font(APEXFont.body(11, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
@@ -525,7 +525,7 @@ private struct RecentAdaptationsView: View {
     var body: some View {
         GlassCard(radius: 28, padding: 19) {
             VStack(alignment: .leading, spacing: 10) {
-                Text("Recent adaptations")
+                Text(language.text("Recent adaptations"))
                     .font(APEXFont.display(21))
                 ForEach(Array(campaign.adaptations.suffix(5).reversed().enumerated()), id: \.offset) { _, value in
                     if case .object(let object) = value {
@@ -563,10 +563,10 @@ private struct RaceWeekCommandCentre: View {
     var body: some View {
         GlassCard(radius: 30, padding: 20) {
             VStack(alignment: .leading, spacing: 12) {
-                Text("RACE WEEK COMMAND CENTRE")
+                Text(language.text("RACE WEEK COMMAND CENTRE"))
                     .font(APEXFont.mono(9))
                     .foregroundStyle(APEXColor.amber)
-                Text("Calm, rehearsed, decisive.")
+                Text(language.text("Calm, rehearsed, decisive."))
                     .font(APEXFont.display(25))
                 ForEach(items, id: \.0) { item in
                     VStack(alignment: .leading, spacing: 3) {
@@ -576,7 +576,7 @@ private struct RaceWeekCommandCentre: View {
                     .padding(11)
                     .background(.white.opacity(0.5), in: RoundedRectangle(cornerRadius: 16))
                 }
-                Text("Orbit does not promise a finish time. The pacing strategy remains adjustable to conditions and how the body responds.")
+                Text(language.text("Orbit does not promise a finish time. The pacing strategy remains adjustable to conditions and how the body responds."))
                     .font(APEXFont.body(9, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
@@ -615,7 +615,7 @@ struct OrbitScienceView: View {
             }
             .padding(18)
         }
-        .navigationTitle("Science Ledger")
+        .navigationTitle(language.text("Science Ledger"))
     }
 
     private func ledgerLine(_ title: String, _ value: String) -> some View {

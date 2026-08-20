@@ -43,7 +43,7 @@ struct ManualRouteEditorView: View {
                 )
             }
             .overlay(alignment: .top) {
-                Text("Tap the map to place route points")
+                Text(language.text("Tap the map to place route points"))
                     .font(APEXFont.body(11, weight: .bold))
                     .foregroundStyle(.white)
                     .padding(.horizontal, 14)
@@ -54,15 +54,15 @@ struct ManualRouteEditorView: View {
 
             VStack(spacing: 12) {
                 HStack {
-                    Button("Undo") { if points.isEmpty == false { points.removeLast() } }
+                    Button(language.text("Undo")) { if points.isEmpty == false { points.removeLast() } }
                         .buttonStyle(.bordered)
-                    Button("Clear", role: .destructive) { points.removeAll() }
+                    Button(language.text("Clear"), role: .destructive) { points.removeAll() }
                         .buttonStyle(.bordered)
                     Spacer()
                     Text(distanceLabel)
                         .font(APEXFont.mono(10))
                 }
-                TextField("Route name", text: $name)
+                TextField(language.text("Route name"), text: $name)
                     .textFieldStyle(.roundedBorder)
                 HStack {
                     Picker("Mission", selection: $mission) {
@@ -76,7 +76,7 @@ struct ManualRouteEditorView: View {
                 }
                 Button { Task { await save() } } label: {
                     if saving { ProgressView().tint(.white) }
-                    else { Label("Save drawn route", systemImage: "checkmark") }
+                    else { Label(language.text("Save drawn route"), systemImage: "checkmark") }
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
                 .disabled(points.count < 2 || saving)
@@ -85,7 +85,7 @@ struct ManualRouteEditorView: View {
             .background(.ultraThinMaterial)
         }
         .ignoresSafeArea(edges: .bottom)
-        .navigationTitle("Draw route")
+        .navigationTitle(language.text("Draw route"))
         .navigationBarTitleDisplayMode(.inline)
     }
 

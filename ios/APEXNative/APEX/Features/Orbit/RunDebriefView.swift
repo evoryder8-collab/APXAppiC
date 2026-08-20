@@ -53,7 +53,7 @@ struct RunDebriefView: View {
                         .mapStyle(.standard(elevation: .realistic, emphasis: .muted, pointsOfInterest: .excludingAll))
 
                         VStack(alignment: .leading, spacing: 4) {
-                            Text("APEX PERFORMANCE DEBRIEF")
+                            Text(language.text("APEX PERFORMANCE DEBRIEF"))
                                 .font(APEXFont.mono(9))
                                 .tracking(1.4)
                             Text(language.text(missionTitle))
@@ -84,7 +84,7 @@ struct RunDebriefView: View {
                             HStack {
                                 Image(systemName: missionSymbol)
                                     .foregroundStyle(APEXColor.cyan)
-                                Text("What this run built")
+                                Text(language.text("What this run built"))
                                     .font(APEXFont.display(22))
                             }
                             Text(language.text(missionAssessment))
@@ -99,7 +99,7 @@ struct RunDebriefView: View {
 
                     if splits.isEmpty == false {
                         VStack(alignment: .leading, spacing: 11) {
-                            Text("Kilometre splits")
+                            Text(language.text("Kilometre splits"))
                                 .font(APEXFont.display(24))
                             ForEach(splits, id: \.index) { split in
                                 HStack {
@@ -126,7 +126,7 @@ struct RunDebriefView: View {
                         GlassCard(radius: 30, padding: 20) {
                             VStack(alignment: .leading, spacing: 11) {
                                 HStack {
-                                    Text("Route DNA")
+                                    Text(language.text("Route DNA"))
                                         .font(APEXFont.display(23))
                                     Spacer()
                                     Text(language.format("%d completions", routeDNA.completions).uppercased(with: language.language.locale))
@@ -149,7 +149,7 @@ struct RunDebriefView: View {
 
                     GlassCard(radius: 30, padding: 20) {
                         VStack(alignment: .leading, spacing: 13) {
-                            Text("NUTRITION · FOOD MEMORY")
+                            Text(language.text("NUTRITION · FOOD MEMORY"))
                                 .font(APEXFont.mono(9))
                                 .tracking(1.2)
                                 .foregroundStyle(APEXColor.amberDeep)
@@ -187,11 +187,11 @@ struct RunDebriefView: View {
 
                     GlassCard(radius: 30, padding: 20) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("APEX RESPONSE")
+                            Text(language.text("APEX RESPONSE"))
                                 .font(APEXFont.mono(9))
                                 .tracking(1.2)
                                 .foregroundStyle(APEXColor.green)
-                            Label("Training and Avatar remain coordinated", systemImage: "point.3.connected.trianglepath.dotted")
+                            Label(language.text("Training and Avatar remain coordinated"), systemImage: "point.3.connected.trianglepath.dotted")
                                 .font(APEXFont.display(20))
                             Text(language.text(trainingAdjustment.explanation))
                                 .font(APEXFont.body(12, weight: .bold))
@@ -205,7 +205,7 @@ struct RunDebriefView: View {
                             Text(language.text(avatarContribution.explanation))
                                 .font(APEXFont.body(10, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
-                            Text("PROPOSED AND REVERSIBLE · NEVER SILENT")
+                            Text(language.text("PROPOSED AND REVERSIBLE · NEVER SILENT"))
                                 .font(APEXFont.mono(8))
                                 .foregroundStyle(APEXColor.green)
                         }
@@ -223,9 +223,9 @@ struct RunDebriefView: View {
                             .frame(width: 52, height: 52)
 
                             VStack(alignment: .leading, spacing: 4) {
-                                Text("Create route poster")
+                                Text(language.text("Create route poster"))
                                     .font(APEXFont.display(20))
-                                Text("Map, constellation, elevation or minimal. Your exact start and finish stay hidden by default.")
+                                Text(language.text("Map, constellation, elevation or minimal. Your exact start and finish stay hidden by default."))
                                     .font(APEXFont.body(10, weight: .medium))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
@@ -241,10 +241,10 @@ struct RunDebriefView: View {
 
                     GlassCard(radius: 30, padding: 20) {
                         VStack(alignment: .leading, spacing: 17) {
-                            Text("How did it feel?")
+                            Text(language.text("How did it feel?"))
                                 .font(APEXFont.display(24))
                             HStack {
-                                Text("PERCEIVED EFFORT")
+                                Text(language.text("PERCEIVED EFFORT"))
                                     .font(APEXFont.mono(9))
                                 Spacer()
                                 Text("\(perceivedEffort) / 10")
@@ -257,34 +257,34 @@ struct RunDebriefView: View {
                             .tint(APEXColor.cyan)
 
                             Picker("Legs", selection: $legs) {
-                                Text("Fresh").tag("fresh")
-                                Text("Normal").tag("normal")
-                                Text("Heavy").tag("heavy")
-                                Text("Very heavy").tag("very_heavy")
+                                Text(language.text("Fresh")).tag("fresh")
+                                Text(language.text("Normal")).tag("normal")
+                                Text(language.text("Heavy")).tag("heavy")
+                                Text(language.text("Very heavy")).tag("very_heavy")
                             }
                             .pickerStyle(.segmented)
 
                             Picker("Discomfort", selection: $discomfort) {
-                                Text("None").tag("none")
-                                Text("Noticeable").tag("noticeable")
-                                Text("Changed movement").tag("changed_movement")
+                                Text(language.text("None")).tag("none")
+                                Text(language.text("Noticeable")).tag("noticeable")
+                                Text(language.text("Changed movement")).tag("changed_movement")
                             }
                             .pickerStyle(.menu)
 
-                            TextField("Optional private note", text: $note, axis: .vertical)
+                            TextField(language.text("Optional private note"), text: $note, axis: .vertical)
                                 .lineLimit(2...5)
                                 .padding(13)
                                 .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 18))
 
                             if discomfort == "changed_movement" {
-                                Text("Orbit records what you report and can reduce training load. It does not diagnose an injury. Consider professional advice if symptoms persist or concern you.")
+                                Text(language.text("Orbit records what you report and can reduce training load. It does not diagnose an injury. Consider professional advice if symptoms persist or concern you."))
                                     .font(APEXFont.body(10, weight: .medium))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
 
                             Button { Task { await saveAndFinish() } } label: {
                                 if isSaving { ProgressView().tint(.white) }
-                                else { Label("Save debrief", systemImage: "checkmark") }
+                                else { Label(language.text("Save debrief"), systemImage: "checkmark") }
                             }
                             .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
                             .disabled(isSaving)
@@ -295,7 +295,7 @@ struct RunDebriefView: View {
                 .padding(.bottom, 28)
             }
             .background(APEXBackground())
-            .navigationTitle("Run complete")
+            .navigationTitle(language.text("Run complete"))
             .navigationBarTitleDisplayMode(.inline)
             .interactiveDismissDisabled()
             .onAppear { fitRoute() }

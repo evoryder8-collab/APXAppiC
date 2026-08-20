@@ -11,10 +11,10 @@ struct RunningShoesView: View {
             VStack(spacing: 14) {
                 HStack {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("PRIVATE SHOE ROTATION")
+                        Text(language.text("PRIVATE SHOE ROTATION"))
                             .font(APEXFont.mono(9))
                             .foregroundStyle(APEXColor.cyan)
-                        Text("Running shoes")
+                        Text(language.text("Running shoes"))
                             .font(APEXFont.display(31))
                     }
                     Spacer()
@@ -36,9 +36,9 @@ struct RunningShoesView: View {
                             Image(systemName: "shoe.2")
                                 .font(.system(size: 38))
                                 .foregroundStyle(APEXColor.cyan)
-                            Text("Add the pair you run in")
+                            Text(language.text("Add the pair you run in"))
                                 .font(APEXFont.display(21))
-                            Text("Orbit tracks factual use and notes. It does not declare a shoe unsafe from a generic distance threshold.")
+                            Text(language.text("Orbit tracks factual use and notes. It does not declare a shoe unsafe from a generic distance threshold."))
                                 .font(APEXFont.body(11, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                                 .multilineTextAlignment(.center)
@@ -76,12 +76,12 @@ struct RunningShoesView: View {
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
                             HStack {
-                                Button("Edit") {
+                                Button(language.text("Edit")) {
                                     editing = shoe
                                     showEditor = true
                                 }
                                 .buttonStyle(.bordered)
-                                Button("Archive") { Task { await session.archiveOrbitShoe(shoe) } }
+                                Button(language.text("Archive")) { Task { await session.archiveOrbitShoe(shoe) } }
                                     .buttonStyle(.bordered)
                             }
                         }
@@ -107,7 +107,7 @@ struct RunningShoesView: View {
             .padding(18)
             .padding(.bottom, 30)
         }
-        .navigationTitle("Shoes")
+        .navigationTitle(language.text("Shoes"))
         .navigationBarTitleDisplayMode(.inline)
         .sheet(isPresented: $showEditor) {
             ShoeEditorView(shoe: editing)
@@ -140,12 +140,12 @@ private struct ShoeEditorView: View {
     var body: some View {
         NavigationStack {
             Form {
-                Section("Pair") {
-                    TextField("Name", text: $name)
-                    TextField("Brand", text: $brand)
+                Section(language.text("Pair")) {
+                    TextField(language.text("Name"), text: $name)
+                    TextField(language.text("Brand"), text: $brand)
                     DatePicker("First used", selection: $firstUseDate, displayedComponents: .date)
                 }
-                Section("Preferred surfaces") {
+                Section(language.text("Preferred surfaces")) {
                     ForEach(["road", "path", "trail", "mixed"], id: \.self) { surface in
                         Toggle(language.text(surface.capitalized), isOn: Binding(
                             get: { surfaces.contains(surface) },
@@ -156,21 +156,21 @@ private struct ShoeEditorView: View {
                         ))
                     }
                 }
-                Section("Private wear or comfort note") {
-                    TextField("Optional note", text: $notes, axis: .vertical)
+                Section(language.text("Private wear or comfort note")) {
+                    TextField(language.text("Optional note"), text: $notes, axis: .vertical)
                         .lineLimit(3...6)
                 }
                 Section {
-                    Text("Mileage is shown factually. APEX does not label shoes unsafe from distance alone.")
+                    Text(language.text("Mileage is shown factually. APEX does not label shoes unsafe from distance alone."))
                         .font(APEXFont.body(10, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
             }
             .navigationTitle(language.text(shoe == nil ? "Add shoes" : "Edit shoes"))
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } }
                 ToolbarItem(placement: .confirmationAction) {
-                    Button("Save") { Task { await save() } }
+                    Button(language.text("Save")) { Task { await save() } }
                         .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saving)
                 }
             }

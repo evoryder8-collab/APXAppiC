@@ -122,7 +122,7 @@ struct SimpleHomeView: View {
                 HStack {
                     PortalModeSwitcher()
                     Spacer()
-                    Text("ONE TAP FLOW")
+                    Text(language.text("ONE TAP FLOW"))
                         .font(APEXFont.mono(9))
                         .tracking(1.1)
                         .foregroundStyle(APEXColor.secondaryInk)
@@ -192,7 +192,7 @@ struct SimpleHomeView: View {
                                 .font(APEXFont.mono(9))
                                 .foregroundStyle(APEXColor.amberDeep)
                         } else {
-                            Label("Synced", systemImage: "checkmark.icloud")
+                            Label(language.text("Synced"), systemImage: "checkmark.icloud")
                                 .font(APEXFont.mono(9))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         }
@@ -348,7 +348,7 @@ struct SimpleHomeView: View {
                 } label: {
                     HStack {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("Today’s checklist")
+                            Text(language.text("Today’s checklist"))
                                 .font(APEXFont.display(18))
                             Text(language.format("%d of %d essentials complete", completedTasks, totalTasks))
                                 .font(APEXFont.body(11, weight: .medium))
@@ -421,19 +421,19 @@ struct SimpleHomeView: View {
                 VStack(alignment: .leading, spacing: 3) {
                     Text(language.text(day.name))
                         .font(APEXFont.display(17))
-                    Text("Start directly. Skip calendar and setup.")
+                    Text(language.text("Start directly. Skip calendar and setup."))
                         .font(APEXFont.body(10, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 Spacer(minLength: 2)
                 VStack(spacing: 6) {
-                    Button("Quick") {
+                    Button(language.text("Quick")) {
                         workoutIsLite = true
                         showWorkout = true
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
-                    Button("Start") {
+                    Button(language.text("Start")) {
                         workoutIsLite = false
                         showWorkout = true
                     }
@@ -477,8 +477,8 @@ struct SimpleHomeView: View {
 
     private var fullDetailShortcuts: some View {
         HStack(spacing: 9) {
-            Button("Food or activity changed?") { session.navigationPath.append(.nutrition) }
-            Button("Open full schedule") { session.navigationPath.append(.transition) }
+            Button(language.text("Food or activity changed?")) { session.navigationPath.append(.nutrition) }
+            Button(language.text("Open full schedule")) { session.navigationPath.append(.transition) }
         }
         .font(APEXFont.body(11, weight: .bold))
         .buttonStyle(SimpleTextButtonStyle())
@@ -883,6 +883,7 @@ enum WearableActivityEngine {
 }
 
 private struct WaterQuickAddSheet: View {
+    @State private var language = LanguageState.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     let drinkLiters: Double
@@ -899,13 +900,13 @@ private struct WaterQuickAddSheet: View {
         VStack(spacing: 0) {
             HStack(alignment: .firstTextBaseline) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Water quick add").font(APEXFont.display(24))
+                    Text(language.text("Water quick add")).font(APEXFont.display(24))
                     Text(String(format: "Drinks %.2f L · Food %.2f L", drinkLiters, foodLiters))
                         .font(APEXFont.body(10, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 Spacer()
-                Button("Done") { dismiss() }
+                Button(language.text("Done")) { dismiss() }
                     .font(APEXFont.body(14, weight: .bold))
                     .foregroundStyle(APEXColor.cyan)
             }
@@ -940,7 +941,7 @@ private struct WaterQuickAddSheet: View {
 
             VStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 7) {
-                    Text("ADD").font(APEXFont.mono(10, weight: .bold))
+                    Text(language.text("ADD")).font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     HStack(spacing: 9) {
@@ -968,7 +969,7 @@ private struct WaterQuickAddSheet: View {
                 }
 
                 VStack(alignment: .leading, spacing: 7) {
-                    Text("REMOVE").font(APEXFont.mono(10, weight: .bold))
+                    Text(language.text("REMOVE")).font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .frame(maxWidth: .infinity, alignment: .leading)
                     HStack(spacing: 9) {
@@ -979,7 +980,7 @@ private struct WaterQuickAddSheet: View {
                             .disabled(drinkLiters <= 0)
                             .opacity(drinkLiters <= 0 ? 0.35 : 1)
                         }
-                        Button("Clear") { commit(-drinkLiters) }
+                        Button(language.text("Clear")) { commit(-drinkLiters) }
                             .font(APEXFont.body(12, weight: .bold))
                             .foregroundStyle(APEXColor.danger)
                             .frame(maxWidth: .infinity, minHeight: 50)
@@ -1138,6 +1139,7 @@ private struct HydrationFigureGauge: View {
 }
 
 private struct SupplementQuickSheet: View {
+    @State private var language = LanguageState.shared
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let date: Date
@@ -1201,7 +1203,7 @@ private struct SupplementQuickSheet: View {
                            Not a full swipe, so it cannot happen by accident
                            while scrolling a list you check off every morning. */
                         Button(role: .destructive) { pendingDelete = supplement } label: {
-                            Label("Remove", systemImage: "archivebox")
+                            Label(language.text("Remove"), systemImage: "archivebox")
                         }
                     }
                 }
@@ -1213,13 +1215,16 @@ private struct SupplementQuickSheet: View {
                scrolling was switched off, so anyone whose stack ran past the
                bottom of the sheet could not reach the rest of it. It now takes
                what it needs up to a ceiling, and scrolls beyond that. */
-            .frame(maxHeight: min(CGFloat(max(1, supplements.count)) * 66, 420))
+            /* A definite height, not a maximum: a List has no intrinsic
+               height of its own, so maxHeight let it collapse to nothing and
+               the sheet rendered empty. Capped so a long stack scrolls. */
+            .frame(height: min(CGFloat(max(1, supplements.count)) * 66, 420))
             .scrollDisabled(false)
 
             Button {
                 showPicker = true
             } label: {
-                Label("Add", systemImage: "plus")
+                Label(language.text("Add"), systemImage: "plus")
                     .font(APEXFont.body(13, weight: .bold))
                     .frame(maxWidth: .infinity)
             }
@@ -1245,21 +1250,22 @@ private struct SupplementQuickSheet: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Remove", role: .destructive) {
+            Button(language.text("Remove"), role: .destructive) {
                 if let supplement = pendingDelete {
                     Task { await session.archiveSupplement(supplement) }
                 }
                 pendingDelete = nil
             }
-            Button("Keep", role: .cancel) { pendingDelete = nil }
+            Button(language.text("Keep"), role: .cancel) { pendingDelete = nil }
         } message: {
-            Text("It stops appearing in your plan. Everything you have already logged is kept.")
+            Text(language.text("It stops appearing in your plan. Everything you have already logged is kept."))
         }
     }
 
 }
 
 private struct StatsQuickSheet: View {
+    @State private var language = LanguageState.shared
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let date: Date
@@ -1274,17 +1280,17 @@ private struct StatsQuickSheet: View {
                     Text(String(Int(snapshot.overall.rounded())))
                         .font(APEXFont.mono(52))
                         .foregroundStyle(APEXColor.green)
-                    Text("Overall Fitness Level").font(APEXFont.body(12, weight: .bold))
+                    Text(language.text("Overall Fitness Level")).font(APEXFont.body(12, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 .frame(maxWidth: .infinity)
             } else {
-                Text("No stats yet")
+                Text(language.text("No stats yet"))
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .frame(maxWidth: .infinity)
             }
-            Button("Open full Avatar") {
+            Button(language.text("Open full Avatar")) {
                 onClose()
                 session.navigationPath.append(.avatar)
             }
@@ -1543,6 +1549,7 @@ private struct TrainingQuickSheet: View {
 }
 
 private struct WearableActivityCard: View {
+    @State private var language = LanguageState.shared
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
     @State private var showEditor = false
@@ -1567,7 +1574,7 @@ private struct WearableActivityCard: View {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { expanded.toggle() }
                 } label: {
                     HStack {
-                        Text("Wearable activity").font(APEXFont.display(18))
+                        Text(language.text("Wearable activity")).font(APEXFont.display(18))
                             .foregroundStyle(APEXColor.ink)
                         Spacer()
                         Image(systemName: "chevron.down")
@@ -1615,6 +1622,7 @@ private struct WearableActivityCard: View {
 }
 
 private struct WearableActivityEditor: View {
+    @State private var language = LanguageState.shared
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let date: Date
@@ -1624,9 +1632,9 @@ private struct WearableActivityEditor: View {
     @State private var minutes = ""
     var body: some View {
         VStack(alignment: .leading, spacing: 15) {
-            Text("Wearable activity").font(APEXFont.display(25))
+            Text(language.text("Wearable activity")).font(APEXFont.display(25))
             HStack { field("Steps", text: $steps); field("Active kcal", text: $calories); field("Exercise min", text: $minutes) }
-            Button("Save and use suggested mode") {
+            Button(language.text("Save and use suggested mode")) {
                 let record = WearableActivityRecord(date: date.apexDateKey, steps: Int(steps) ?? 0, activeCalories: Int(calories) ?? 0, exerciseMinutes: Int(minutes) ?? 0, source: "manual", updatedAt: Date().ISO8601Format())
                 Task { await session.saveWearableActivity(record, automaticallyApply: true); dismiss() }
             }.buttonStyle(.borderedProminent).tint(APEXColor.cyan).frame(maxWidth: .infinity)
@@ -1694,7 +1702,7 @@ private struct RecoveryMorningCard: View {
         } label: {
             HStack(spacing: 10) {
                 VStack(alignment: .leading, spacing: 2) {
-                    Text("Morning check")
+                    Text(language.text("Morning check"))
                         .font(APEXFont.display(headlineScore == nil || expanded ? 17 : 14))
                         .foregroundStyle(APEXColor.ink)
                     Text(collapsedSubtitle)
@@ -1759,7 +1767,7 @@ private struct RecoveryMorningCard: View {
             }
             Text(source == "athlytic" ? "Athlytic’s proprietary score is entered manually; Apple Health context is imported automatically." : "Apple Health sleep context imports automatically. Add the 0–100 score when your watch does not expose one.")
                 .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
-            Button("Save morning check") { save(); expanded = false }
+            Button(language.text("Save morning check")) { save(); expanded = false }
                 .buttonStyle(.borderedProminent)
                 .tint(APEXColor.green)
                 .controlSize(.small)

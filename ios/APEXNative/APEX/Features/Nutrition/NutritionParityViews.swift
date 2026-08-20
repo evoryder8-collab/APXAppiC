@@ -378,7 +378,7 @@ struct NutritionTargetSheet: View {
                                 }
                             }
                             if !logs.isEmpty {
-                                Label("Computed from your day. Tap a level to switch back to Quick Mode.", systemImage: "sparkles")
+                                Label(language.text("Computed from your day. Tap a level to switch back to Quick Mode."), systemImage: "sparkles")
                                     .font(APEXFont.body(9, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
@@ -690,7 +690,7 @@ struct APEXDaylineView: View {
 
             if visibleEntries.isEmpty {
                 Button(action: onAddMeal) {
-                    Label("Add your first meal moment", systemImage: "plus")
+                    Label(language.text("Add your first meal moment"), systemImage: "plus")
                         .font(APEXFont.body(14, weight: .bold))
                         .foregroundStyle(.white)
                         .frame(maxWidth: .infinity)
@@ -1211,12 +1211,12 @@ struct MealSlotPickerSheet: View {
 
                     GlassCard(radius: 24, padding: 17) {
                         VStack(alignment: .leading, spacing: 12) {
-                            Text("Create a custom meal")
+                            Text(language.text("Create a custom meal"))
                                 .font(APEXFont.display(19))
-                            TextField("Meal name", text: $customName)
+                            TextField(language.text("Meal name"), text: $customName)
                                 .textFieldStyle(.roundedBorder)
                             DatePicker("Time", selection: $customTime, displayedComponents: .hourAndMinute)
-                            Button("Create meal") {
+                            Button(language.text("Create meal")) {
                                 let clean = customName.trimmingCharacters(in: .whitespacesAndNewlines)
                                 let slot = clean.isEmpty ? "custom" : clean.lowercased().replacingOccurrences(of: " ", with: "_")
                                 let parts = Calendar.current.dateComponents([.hour, .minute], from: customTime)
@@ -1244,7 +1244,7 @@ struct MealSlotPickerSheet: View {
             .navigationTitle(language.text("Add meal"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(language.text("Close")) { dismiss() } }
             }
         }
     }
@@ -1309,7 +1309,7 @@ struct NutritionCalendarSheet: View {
                             Text(month.formatted(.dateTime.month(.wide).year().locale(language.language.locale)))
                                 .font(APEXFont.display(22))
                             if copiedSource == nil {
-                                Button("Jump to today") {
+                                Button(language.text("Jump to today")) {
                                     month = Calendar.current.dateInterval(of: .month, for: .now)?.start ?? .now
                                     onSelect(.now)
                                     dismiss()
@@ -1317,7 +1317,7 @@ struct NutritionCalendarSheet: View {
                                 .font(APEXFont.mono(9))
                                 .foregroundStyle(APEXColor.violet)
                             } else {
-                                Text("CHOOSE WHERE TO PASTE")
+                                Text(language.text("CHOOSE WHERE TO PASTE"))
                                     .font(APEXFont.mono(9))
                                     .tracking(1.15)
                                     .foregroundStyle(APEXColor.cyan)
@@ -1354,7 +1354,7 @@ struct NutritionCalendarSheet: View {
                                 copiedSource.formatted(.dateTime.day().month(.abbreviated).locale(language.language.locale))
                             ))
                             Spacer()
-                            Button("Cancel") { self.copiedSource = nil }
+                            Button(language.text("Cancel")) { self.copiedSource = nil }
                                 .font(APEXFont.body(10, weight: .bold))
                         }
                         .font(APEXFont.body(10, weight: .semibold))
@@ -1362,7 +1362,7 @@ struct NutritionCalendarSheet: View {
                         .padding(12)
                         .background(APEXColor.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 16))
                     } else {
-                        Text("Tap to open a day. Hold any day to copy or clear its meals and snacks.")
+                        Text(language.text("Tap to open a day. Hold any day to copy or clear its meals and snacks."))
                             .font(APEXFont.body(11, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .frame(maxWidth: .infinity, alignment: .leading)
@@ -1384,13 +1384,13 @@ struct NutritionCalendarSheet: View {
             /* No navigation title: the month name is the heading, and an inline
                bar title lands straight on top of it in a sheet this short. */
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Close") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(language.text("Close")) { dismiss() } } }
             .animation(.snappy, value: workflow)
             .alert("Calendar action failed", isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("OK", role: .cancel) { errorMessage = nil }
+                Button(language.text("OK"), role: .cancel) { errorMessage = nil }
             } message: {
                 Text(errorMessage ?? "Please try again.")
             }
@@ -1459,7 +1459,7 @@ struct NutritionCalendarSheet: View {
                 VStack(alignment: .leading, spacing: 4) {
                     Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)))
                         .font(APEXFont.display(23))
-                    Text("Copy or clear this day’s meals and snacks.")
+                    Text(language.text("Copy or clear this day’s meals and snacks."))
                         .font(APEXFont.body(12, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -1470,7 +1470,7 @@ struct NutritionCalendarSheet: View {
                 copiedSource = date
                 workflow = nil
             } label: {
-                Label("Copy", systemImage: "doc.on.doc")
+                Label(language.text("Copy"), systemImage: "doc.on.doc")
                     .frame(maxWidth: .infinity, alignment: .leading)
             }
             .buttonStyle(CalendarWorkflowButtonStyle(color: APEXColor.cyan))
@@ -1495,7 +1495,7 @@ struct NutritionCalendarSheet: View {
         VStack(alignment: .leading, spacing: 15) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 4) {
-                    Text("Paste copied day")
+                    Text(language.text("Paste copied day"))
                         .font(APEXFont.display(23))
                     Text("\(shortDate(source)) → \(shortDate(destination))")
                         .font(APEXFont.body(13, weight: .semibold))
@@ -1508,8 +1508,8 @@ struct NutritionCalendarSheet: View {
                 pasteDay(source: source, destination: destination, mealIDs: nil)
             } label: {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Paste").font(APEXFont.display(18))
-                    Text("All meals and snacks").font(APEXFont.body(11, weight: .semibold))
+                    Text(language.text("Paste")).font(APEXFont.display(18))
+                    Text(language.text("All meals and snacks")).font(APEXFont.body(11, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -1521,8 +1521,8 @@ struct NutritionCalendarSheet: View {
                 workflow = .select(source: source, destination: destination)
             } label: {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Select").font(APEXFont.display(18))
-                    Text("Choose individual meals or snacks").font(APEXFont.body(11, weight: .semibold))
+                    Text(language.text("Select")).font(APEXFont.display(18))
+                    Text(language.text("Choose individual meals or snacks")).font(APEXFont.body(11, weight: .semibold))
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
             }
@@ -1536,7 +1536,7 @@ struct NutritionCalendarSheet: View {
         return VStack(alignment: .leading, spacing: 14) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("Choose meals")
+                    Text(language.text("Choose meals"))
                         .font(APEXFont.display(23))
                     Text("\(shortDate(source)) → \(shortDate(destination))")
                         .font(APEXFont.body(12, weight: .semibold))
@@ -1546,7 +1546,7 @@ struct NutritionCalendarSheet: View {
                 closeWorkflowButton
             }
             if meals.isEmpty {
-                Text("No structured meals are available to copy from this day.")
+                Text(language.text("No structured meals are available to copy from this day."))
                     .font(APEXFont.body(12, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .padding(.vertical, 12)
@@ -1768,7 +1768,7 @@ struct LoggedMealsCard: View {
                         }
                         .buttonStyle(.plain)
                         .contextMenu {
-                            Button("Delete meal", role: .destructive) {
+                            Button(language.text("Delete meal"), role: .destructive) {
                                 Task { await session.deleteLoggedMeal(meal) }
                             }
                         }

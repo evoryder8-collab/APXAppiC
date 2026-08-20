@@ -28,7 +28,7 @@ struct AppRootView: View {
             get: { session.alertMessage != nil },
             set: { if !$0 { session.alertMessage = nil } }
         )) {
-            Button("OK", role: .cancel) { session.alertMessage = nil }
+            Button(language.text("OK"), role: .cancel) { session.alertMessage = nil }
         } message: {
             Text(language.text(session.alertMessage ?? ""))
         }
@@ -43,7 +43,7 @@ private struct APEXLaunchView: View {
             APEXMark(size: 74)
                 .scaleEffect(breathing ? 1.04 : 0.96)
                 .shadow(color: APEXColor.violet.opacity(0.25), radius: 30)
-            Text("APEX")
+            Text("APEX")  // brand name, never translated
                 .font(APEXFont.display(34))
                 .tracking(9)
                 .foregroundStyle(APEXColor.ink)

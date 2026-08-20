@@ -34,31 +34,31 @@ struct OrbitRoutePosterSheet: View {
                     .shadow(color: .black.opacity(0.24), radius: 20, y: 12)
 
                     Picker("Style", selection: $style) {
-                        Text("Map").tag("map")
-                        Text("Constellation").tag("constellation")
-                        Text("Elevation").tag("elevation")
-                        Text("Minimal").tag("minimal")
+                        Text(language.text("Map")).tag("map")
+                        Text(language.text("Constellation")).tag("constellation")
+                        Text(language.text("Elevation")).tag("elevation")
+                        Text(language.text("Minimal")).tag("minimal")
                     }
                     .pickerStyle(.segmented)
 
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
-                            Text("Privacy trim")
+                            Text(language.text("Privacy trim"))
                             Spacer()
                             Text(language.format("%d m from both ends", Int(trimM)))
                                 .font(APEXFont.mono(8))
                         }
                         Slider(value: $trimM, in: 0...maximumTrim, step: 50)
                             .tint(APEXColor.cyan)
-                        Text("The precise start and finish are hidden by default.")
+                        Text(language.text("The precise start and finish are hidden by default."))
                             .font(APEXFont.body(9, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
 
-                    Toggle("Include recorded heart rate", isOn: $includeHeartRate)
+                    Toggle(language.text("Include recorded heart rate"), isOn: $includeHeartRate)
                         .disabled(run.metrics["heart_rate_avg"]?.numberValue == nil)
                         .tint(APEXColor.cyan)
-                    TextField("Optional poster note", text: $note)
+                    TextField(language.text("Optional poster note"), text: $note)
                         .textFieldStyle(.roundedBorder)
 
                     if let message {
@@ -70,18 +70,18 @@ struct OrbitRoutePosterSheet: View {
                     HStack(spacing: 10) {
                         Button { Task { await saveToPhotos() } } label: {
                             if saving { ProgressView() }
-                            else { Label("Save image", systemImage: "photo.badge.arrow.down") }
+                            else { Label(language.text("Save image"), systemImage: "photo.badge.arrow.down") }
                         }
                         .buttonStyle(.borderedProminent)
                         .tint(APEXColor.cyan)
 
                         if let renderedURL {
                             ShareLink(item: renderedURL) {
-                                Label("Share", systemImage: "square.and.arrow.up")
+                                Label(language.text("Share"), systemImage: "square.and.arrow.up")
                             }
                             .buttonStyle(.bordered)
                         } else {
-                            Button("Prepare share") { render() }
+                            Button(language.text("Prepare share")) { render() }
                                 .buttonStyle(.bordered)
                         }
                     }
@@ -89,9 +89,9 @@ struct OrbitRoutePosterSheet: View {
                 .padding(18)
                 .padding(.bottom, 30)
             }
-            .navigationTitle("Route poster")
+            .navigationTitle(language.text("Route poster"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(language.text("Done")) { dismiss() } } }
             .onChange(of: style) { _, _ in renderedURL = nil }
             .onChange(of: trimM) { _, _ in renderedURL = nil }
             .onChange(of: note) { _, _ in renderedURL = nil }
@@ -180,7 +180,7 @@ private struct RoutePosterArtwork: View {
             VStack(alignment: .leading, spacing: 0) {
                 HStack {
                     VStack(alignment: .leading, spacing: 3) {
-                        Text("APEX ORBIT")
+                        Text(language.text("APEX ORBIT"))
                             .font(.system(size: 8, weight: .bold, design: .monospaced))
                             .tracking(2)
                         Text(profileName.uppercased())
@@ -208,7 +208,7 @@ private struct RoutePosterArtwork: View {
                 HStack(alignment: .lastTextBaseline, spacing: 12) {
                     Text(((run.metrics["distance_m"]?.numberValue ?? 0) / 1_000).formatted(.number.precision(.fractionLength(2)).locale(language.language.locale)))
                         .font(.system(size: 42, weight: .black, design: .rounded))
-                    Text("KM")
+                    Text(language.text("KM"))
                         .font(.system(size: 10, weight: .bold, design: .monospaced))
                         .opacity(0.55)
                     Spacer()

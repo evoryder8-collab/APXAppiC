@@ -116,7 +116,7 @@ struct APEXTopBar: View {
     var body: some View {
         HStack(spacing: 13) {
             APEXMark(size: 33)
-            Text("APEX")
+            Text("APEX")  // brand name, never translated
                 .font(APEXFont.display(20))
                 .tracking(6)
             Spacer()

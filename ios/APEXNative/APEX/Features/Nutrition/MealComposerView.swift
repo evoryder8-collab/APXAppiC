@@ -146,12 +146,12 @@ struct MealComposerView: View {
                             .font(APEXFont.mono(9))
                             .tracking(1.4)
                             .foregroundStyle(APEXColor.secondaryInk)
-                        Text("Build this meal")
+                        Text(language.text("Build this meal"))
                             .font(APEXFont.display(18))
                     }
                 }
                 ToolbarItem(placement: .cancellationAction) {
-                    Button("Close") { close() }
+                    Button(language.text("Close")) { close() }
                         .font(APEXFont.body(14, weight: .bold))
                 }
             }
@@ -199,13 +199,13 @@ struct MealComposerView: View {
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
             )) {
-                Button("OK", role: .cancel) {}
+                Button(language.text("OK"), role: .cancel) {}
             } message: {
                 Text(language.text(errorMessage ?? "Please try again."))
             }
             .confirmationDialog("Discard unsaved changes?", isPresented: $showDeleteConfirmation) {
-                Button("Discard", role: .destructive) { dismiss() }
-                Button("Keep editing", role: .cancel) {}
+                Button(language.text("Discard"), role: .destructive) { dismiss() }
+                Button(language.text("Keep editing"), role: .cancel) {}
             }
             .task { hydrateExistingMeal() }
         }
@@ -216,16 +216,16 @@ struct MealComposerView: View {
             VStack(alignment: .leading, spacing: 17) {
                 HStack(alignment: .top, spacing: 14) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Meal name")
+                        Text(language.text("Meal name"))
                             .font(APEXFont.body(12, weight: .bold))
                             .foregroundStyle(APEXColor.secondaryInk)
-                        TextField("Meal name", text: $draft.displayName)
+                        TextField(language.text("Meal name"), text: $draft.displayName)
                             .font(APEXFont.display(26))
                             .textInputAutocapitalization(.words)
                     }
                     Spacer(minLength: 8)
                     VStack(alignment: .leading, spacing: 5) {
-                        Text("MEAL FINISHED AT")
+                        Text(language.text("MEAL FINISHED AT"))
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.amberDeep)
                         DatePicker("", selection: $draft.finishedAt, displayedComponents: .hourAndMinute)
@@ -299,7 +299,7 @@ struct MealComposerView: View {
                 VStack(alignment: .leading, spacing: 12) {
                     HStack(alignment: .top, spacing: 12) {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("YOUR MEAL GUIDE")
+                            Text(language.text("YOUR MEAL GUIDE"))
                                 .font(APEXFont.mono(10, weight: .bold))
                                 .tracking(1.3)
                                 .foregroundStyle(APEXColor.amberDeep)
@@ -444,10 +444,10 @@ struct MealComposerView: View {
                         .font(.system(size: 19, weight: .semibold))
                         .foregroundStyle(APEXColor.amberDeep)
                     VStack(alignment: .leading, spacing: 2) {
-                        Text("Search foods, aliases or brands")
+                        Text(language.text("Search foods, aliases or brands"))
                             .font(APEXFont.body(15, weight: .bold))
                             .foregroundStyle(APEXColor.ink)
-                        Text("Food Memory, recent foods and barcode scan")
+                        Text(language.text("Food Memory, recent foods and barcode scan"))
                             .font(APEXFont.body(11, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -471,7 +471,7 @@ struct MealComposerView: View {
         if presets.isEmpty == false {
             GlassCard(radius: 27, padding: 16) {
                 VStack(alignment: .leading, spacing: 11) {
-                    Text("FAST STARTS")
+                    Text(language.text("FAST STARTS"))
                         .font(APEXFont.mono(10))
                         .tracking(1.3)
                         .foregroundStyle(APEXColor.secondaryInk)
@@ -488,7 +488,7 @@ struct MealComposerView: View {
                                 }
                                 .buttonStyle(.plain)
                                 .contextMenu {
-                                    Button("Delete preset", role: .destructive) {
+                                    Button(language.text("Delete preset"), role: .destructive) {
                                         Task { await session.deleteMealPreset(preset) }
                                     }
                                 }
@@ -504,7 +504,7 @@ struct MealComposerView: View {
         VStack(spacing: 12) {
             HStack(alignment: .bottom) {
                 VStack(alignment: .leading, spacing: 3) {
-                    Text("IN THIS MEAL")
+                    Text(language.text("IN THIS MEAL"))
                         .font(APEXFont.mono(10))
                         .tracking(1.5)
                         .foregroundStyle(APEXColor.amberDeep)
@@ -513,7 +513,7 @@ struct MealComposerView: View {
                 }
                 Spacer()
                 if !selectionMode {
-                    Button("Select") { selectionMode = true }
+                    Button(language.text("Select")) { selectionMode = true }
                         .buttonStyle(.bordered)
                         .disabled(draft.items.isEmpty)
                 }
@@ -529,12 +529,12 @@ struct MealComposerView: View {
                         .foregroundStyle(APEXColor.amberDeep)
                         .fixedSize()
                     Spacer(minLength: 6)
-                    Button("Cancel") {
+                    Button(language.text("Cancel")) {
                         selectionMode = false
                         selectedItemIDs.removeAll()
                     }
                     .buttonStyle(.bordered)
-                    Button("Create preset") {
+                    Button(language.text("Create preset")) {
                         guard selectedItemIDs.isEmpty == false else { return }
                         showPresetCreator = true
                     }
@@ -544,8 +544,8 @@ struct MealComposerView: View {
             }
 
             Picker("Food display", selection: $density) {
-                Text("Compact").tag(MealComposerDensity.compact)
-                Text("Expanded").tag(MealComposerDensity.expanded)
+                Text(language.text("Compact")).tag(MealComposerDensity.compact)
+                Text(language.text("Expanded")).tag(MealComposerDensity.expanded)
             }
             .pickerStyle(.segmented)
         }
@@ -787,7 +787,7 @@ private struct MealComposerItemCard: View {
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
-                        TextField("Amount", value: Binding(
+                        TextField(language.text("Amount"), value: Binding(
                             get: { item.quantity },
                             set: { item.setQuantity($0, food: food) }
                         ), format: .number.precision(.fractionLength(0...1)))
@@ -869,7 +869,7 @@ private struct MealComposerItemCard: View {
                 }
 
                 HStack(spacing: 8) {
-                    TextField("Amount", value: Binding(
+                    TextField(language.text("Amount"), value: Binding(
                         get: { item.quantity },
                         set: { item.setQuantity($0, food: food) }
                     ), format: .number.precision(.fractionLength(0...1)))
@@ -914,21 +914,21 @@ private struct MealComposerItemCard: View {
                 if density == .expanded {
                     Divider()
                     HStack(spacing: 12) {
-                        Toggle("Adaptive", isOn: $item.adjustable)
-                        Toggle("Lock", isOn: $item.locked)
+                        Toggle(language.text("Adaptive"), isOn: $item.adjustable)
+                        Toggle(language.text("Lock"), isOn: $item.locked)
                     }
                     .toggleStyle(.switch)
                     .font(APEXFont.body(11, weight: .semibold))
 
                     Picker("Adjustment role", selection: $item.adjustmentRole) {
-                        Text("Fixed").tag("none")
-                        Text("Carbohydrate first").tag("carb")
-                        Text("Protein last").tag("protein")
-                        Text("Fat").tag("fat")
+                        Text(language.text("Fixed")).tag("none")
+                        Text(language.text("Carbohydrate first")).tag("carb")
+                        Text(language.text("Protein last")).tag("protein")
+                        Text(language.text("Fat")).tag("fat")
                     }
                     .pickerStyle(.menu)
 
-                    TextField("Personal label", text: $item.personalLabel)
+                    TextField(language.text("Personal label"), text: $item.personalLabel)
                         .textFieldStyle(.roundedBorder)
                 }
             }
@@ -1035,7 +1035,7 @@ private struct MealFoodPicker: View {
                 LazyVStack(spacing: 10) {
                     HStack(spacing: 10) {
                         Button { showScanner = true } label: {
-                            Label("Scan barcode", systemImage: "barcode.viewfinder")
+                            Label(language.text("Scan barcode"), systemImage: "barcode.viewfinder")
                                 .font(APEXFont.body(14, weight: .bold))
                                 .frame(maxWidth: .infinity)
                                 .frame(height: 56)
@@ -1097,14 +1097,14 @@ private struct MealFoodPicker: View {
                 .padding(16)
             }
             .background(APEXBackground())
-            .navigationTitle("Food Memory")
+            .navigationTitle(language.text("Food Memory"))
             .navigationBarTitleDisplayMode(.inline)
             .searchable(text: $query, prompt: "Search foods, aliases or brands")
             .onSubmit(of: .search) { Task { await search() } }
             .onChange(of: query) { _, value in if value.isEmpty { remoteResults = []; message = nil } }
             .onAppear { if query.isEmpty { query = initialQuery } }
             .toolbar {
-                ToolbarItem(placement: .cancellationAction) { Button("Done") { dismiss() } }
+                ToolbarItem(placement: .cancellationAction) { Button(language.text("Done")) { dismiss() } }
                 ToolbarItem(placement: .primaryAction) {
                     Button { Task { await search() } } label: { Image(systemName: "magnifyingglass") }
                         .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).count < 2)
@@ -1196,6 +1196,7 @@ private struct MealFoodPicker: View {
 }
 
 private struct PresetCreationSheet: View {
+    @State private var language = LanguageState.shared
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let mealSlot: String
@@ -1210,35 +1211,35 @@ private struct PresetCreationSheet: View {
     var body: some View {
         NavigationStack {
             VStack(alignment: .leading, spacing: 18) {
-                Text("Keep this combination")
+                Text(language.text("Keep this combination"))
                     .font(APEXFont.display(24))
-                TextField("Preset title", text: $title)
+                TextField(language.text("Preset title"), text: $title)
                     .textFieldStyle(.roundedBorder)
                     .font(APEXFont.display(18))
-                TextField("Subtitle (optional)", text: $subtitle)
+                TextField(language.text("Subtitle (optional)"), text: $subtitle)
                     .textFieldStyle(.roundedBorder)
                 Button {
                     Task { await save() }
                 } label: {
                     if isSaving { ProgressView().tint(.white) }
-                    else { Text("Save preset") }
+                    else { Text(language.text("Save preset")) }
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
                 .disabled(title.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || isSaving)
-                Text("Presets are reusable food groups. Add several presets to one meal without renaming the meal itself.")
+                Text(language.text("Presets are reusable food groups. Add several presets to one meal without renaming the meal itself."))
                     .font(APEXFont.body(12, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                 Spacer()
             }
             .padding(20)
             .background(APEXBackground())
-            .navigationTitle("Create preset")
+            .navigationTitle(language.text("Create preset"))
             .navigationBarTitleDisplayMode(.inline)
-            .toolbar { ToolbarItem(placement: .cancellationAction) { Button("Cancel") { dismiss() } } }
+            .toolbar { ToolbarItem(placement: .cancellationAction) { Button(language.text("Cancel")) { dismiss() } } }
             .alert("Could not save preset", isPresented: Binding(
                 get: { errorMessage != nil },
                 set: { if !$0 { errorMessage = nil } }
-            )) { Button("OK", role: .cancel) {} } message: { Text(errorMessage ?? "Please try again.") }
+            )) { Button(language.text("OK"), role: .cancel) {} } message: { Text(errorMessage ?? "Please try again.") }
         }
     }
 

@@ -21,7 +21,7 @@ struct MarathonInductionView: View {
             VStack(spacing: 20) {
                 VStack(alignment: .leading, spacing: 10) {
                     HStack {
-                        Text("FITNESS-READINESS CHECK")
+                        Text(language.text("FITNESS-READINESS CHECK"))
                             .font(APEXFont.mono(10))
                             .tracking(1.5)
                             .foregroundStyle(APEXColor.cyan)
@@ -31,7 +31,7 @@ struct MarathonInductionView: View {
                     }
                     ProgressView(value: progress)
                         .tint(APEXColor.cyan)
-                    Text("APEX reuses your age, profile and strength plan. It asks only for missing running context.")
+                    Text(language.text("APEX reuses your age, profile and strength plan. It asks only for missing running context."))
                         .font(APEXFont.body(11, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -66,7 +66,7 @@ struct MarathonInductionView: View {
                         if step == 0 { dismiss() }
                         else { withAnimation(.snappy) { step -= 1 } }
                     } label: {
-                        Label("Back", systemImage: "chevron.left")
+                        Label(language.text("Back"), systemImage: "chevron.left")
                     }
                     .buttonStyle(.bordered)
                     .frame(maxWidth: .infinity)
@@ -81,7 +81,7 @@ struct MarathonInductionView: View {
                     .disabled(isSaving || hasAnswer == false)
                 }
 
-                Text("This check assigns a training recommendation. It does not provide medical clearance or diagnose a condition.")
+                Text(language.text("This check assigns a training recommendation. It does not provide medical clearance or diagnose a condition."))
                     .font(APEXFont.body(9, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .multilineTextAlignment(.center)
@@ -89,7 +89,7 @@ struct MarathonInductionView: View {
             .padding(18)
             .padding(.bottom, 30)
         }
-        .navigationTitle("Marathon induction")
+        .navigationTitle(language.text("Marathon induction"))
         .navigationBarTitleDisplayMode(.inline)
         .task { loadExisting() }
     }
@@ -141,7 +141,7 @@ struct MarathonInductionView: View {
                     .padding(13)
                     .background(.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 18))
                 }
-                Text("Leave every switch off if none applies.")
+                Text(language.text("Leave every switch off if none applies."))
                     .font(APEXFont.body(10, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
             }

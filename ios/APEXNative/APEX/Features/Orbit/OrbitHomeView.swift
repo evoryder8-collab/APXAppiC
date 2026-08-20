@@ -19,11 +19,11 @@ struct OrbitHomeView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 7) {
-                    Text("APEX ORBIT · RUN INTELLIGENCE")
+                    Text(language.text("APEX ORBIT · RUN INTELLIGENCE"))
                         .font(APEXFont.mono(10))
                         .tracking(1.8)
                         .foregroundStyle(APEXColor.cyan)
-                    Text("The right run,\nfor this body, today.")
+                    Text(language.text("The right run,\nfor this body, today."))
                         .font(APEXFont.display(36))
                     Text(language.text(recommendationReason))
                         .font(APEXFont.body(14, weight: .medium))
@@ -87,7 +87,7 @@ struct OrbitHomeView: View {
 
                 VStack(alignment: .leading, spacing: 13) {
                     HStack {
-                        Text("Recent runs")
+                        Text(language.text("Recent runs"))
                             .font(APEXFont.display(25))
                         Spacer()
                         NavigationLink("Library") { OrbitLibraryView() }
@@ -100,9 +100,9 @@ struct OrbitHomeView: View {
                                     .font(.system(size: 34))
                                     .foregroundStyle(APEXColor.cyan)
                                 VStack(alignment: .leading, spacing: 3) {
-                                    Text("Your first route becomes your baseline")
+                                    Text(language.text("Your first route becomes your baseline"))
                                         .font(APEXFont.display(17))
-                                    Text("Orbit will interpret the mission, pacing and recovery cost after you finish.")
+                                    Text(language.text("Orbit will interpret the mission, pacing and recovery cost after you finish."))
                                         .font(APEXFont.body(12, weight: .medium))
                                         .foregroundStyle(APEXColor.secondaryInk)
                                 }
@@ -132,10 +132,10 @@ struct OrbitHomeView: View {
                             }
 
                             VStack(alignment: .leading, spacing: 8) {
-                                Label("Private by design", systemImage: "lock.shield.fill")
+                                Label(language.text("Private by design"), systemImage: "lock.shield.fill")
                                     .font(APEXFont.display(17))
                                     .foregroundStyle(APEXColor.ink)
-                                Text("Routes, tracks, readiness answers and campaign notes remain user-scoped. There is no public feed, leaderboard or follower graph.")
+                                Text(language.text("Routes, tracks, readiness answers and campaign notes remain user-scoped. There is no public feed, leaderboard or follower graph."))
                                     .font(APEXFont.body(11, weight: .medium))
                                     .foregroundStyle(APEXColor.secondaryInk)
 
@@ -144,14 +144,14 @@ struct OrbitHomeView: View {
                                         do { shareURL = try session.exportOrbitData() }
                                         catch { session.alertMessage = error.localizedDescription }
                                     } label: {
-                                        Label("Export Orbit data", systemImage: "square.and.arrow.up")
+                                        Label(language.text("Export Orbit data"), systemImage: "square.and.arrow.up")
                                     }
                                     .buttonStyle(.bordered)
 
                                     Button(role: .destructive) {
                                         showDeleteConfirmation = true
                                     } label: {
-                                        Label("Delete Orbit data", systemImage: "trash")
+                                        Label(language.text("Delete Orbit data"), systemImage: "trash")
                                     }
                                     .buttonStyle(.bordered)
                                 }
@@ -163,9 +163,9 @@ struct OrbitHomeView: View {
                         .padding(.top, 14)
                     } label: {
                         VStack(alignment: .leading, spacing: 3) {
-                            Text("More from Orbit")
+                            Text(language.text("More from Orbit"))
                                 .font(APEXFont.display(20))
-                            Text("Routes, science and private data controls")
+                            Text(language.text("Routes, science and private data controls"))
                                 .font(APEXFont.body(11, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         }
@@ -177,7 +177,7 @@ struct OrbitHomeView: View {
             .padding(.bottom, 28)
 .dockClearance()
         }
-        .navigationTitle("Orbit")
+        .navigationTitle("Orbit")  // brand name
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             location.requestLocation()
@@ -286,6 +286,7 @@ private struct OrbitShareSheet: UIViewControllerRepresentable {
 }
 
 private struct OrbitMapHero: View {
+    @State private var language = LanguageState.shared
     @Binding var position: MapCameraPosition
     let samples: [OrbitLocationSample]
 
@@ -306,11 +307,11 @@ private struct OrbitMapHero: View {
             }
 
             HStack {
-                Label("NATIVE MAPKIT", systemImage: "location.fill")
+                Label(language.text("NATIVE MAPKIT"), systemImage: "location.fill")
                     .font(APEXFont.mono(9))
                     .tracking(1.2)
                 Spacer()
-                Text("GPS READY")
+                Text(language.text("GPS READY"))
                     .font(APEXFont.mono(9))
                     .tracking(1.2)
             }
@@ -369,7 +370,7 @@ private struct OrbitContextCard: View {
     var body: some View {
         GlassCard(radius: 29, padding: 18) {
             VStack(alignment: .leading, spacing: 13) {
-                Text("APEX context")
+                Text(language.text("APEX context"))
                     .font(APEXFont.display(21))
                 HStack(spacing: 14) {
                     context(

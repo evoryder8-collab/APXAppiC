@@ -22,9 +22,9 @@ struct AddActivitySheet: View {
             ScrollView {
                 LazyVStack(alignment: .leading, spacing: 24) {
                     VStack(alignment: .leading, spacing: 6) {
-                        Text("Add activity block")
+                        Text(language.text("Add activity block"))
                             .font(APEXFont.display(30))
-                        Text("Only add activity beyond the normal daily floor.")
+                        Text(language.text("Only add activity beyond the normal daily floor."))
                             .font(APEXFont.body(14, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -72,7 +72,7 @@ struct AddActivitySheet: View {
             .background(APEXBackground())
             .toolbar {
                 ToolbarItem(placement: .topBarTrailing) {
-                    Button("Done") { dismiss() }
+                    Button(language.text("Done")) { dismiss() }
                 }
             }
             .sheet(item: $selectedType) { type in
@@ -154,7 +154,7 @@ private struct ActivityEntryForm: View {
                         .font(APEXFont.display(48))
                         .foregroundStyle(APEXColor.amberDeep)
                         .contentTransition(.numericText())
-                    Text("kcal net")
+                    Text(language.text("kcal net"))
                         .font(APEXFont.mono(12))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
@@ -164,20 +164,20 @@ private struct ActivityEntryForm: View {
 
                 if type.supportsWatch || type.inputStyle == .watchKcal {
                     VStack(alignment: .leading, spacing: 8) {
-                        Text("MY WATCH SAYS")
+                        Text(language.text("MY WATCH SAYS"))
                             .font(APEXFont.mono(10))
                             .tracking(1.2)
                         TextField("kcal", value: $watchKcal, format: .number)
                             .keyboardType(.decimalPad)
                             .textFieldStyle(.roundedBorder)
-                        Text("APEX counts 80% because wrist estimates commonly run hot. If distance is also present, APEX uses the larger estimate, never both.")
+                        Text(language.text("APEX counts 80% because wrist estimates commonly run hot. If distance is also present, APEX uses the larger estimate, never both."))
                             .font(APEXFont.body(11, weight: .medium))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
                 }
 
                 if type.id == "incidental-steps" {
-                    Label("If a walk or run is logged above, keep this field to incidental steps only.", systemImage: "exclamationmark.triangle")
+                    Label(language.text("If a walk or run is logged above, keep this field to incidental steps only."), systemImage: "exclamationmark.triangle")
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.amberDeep)
                 }
@@ -195,7 +195,7 @@ private struct ActivityEntryForm: View {
                         onSaved()
                     }
                 } label: {
-                    Label("Add to today", systemImage: "plus")
+                    Label(language.text("Add to today"), systemImage: "plus")
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
             }
@@ -216,11 +216,11 @@ private struct ActivityEntryForm: View {
             durationPicker
         case .distance:
             VStack(alignment: .leading, spacing: 9) {
-                Text("DISTANCE")
+                Text(language.text("DISTANCE"))
                     .font(APEXFont.mono(10))
                     .tracking(1.2)
                 HStack {
-                    TextField("Distance", value: $distanceKM, format: .number.precision(.fractionLength(1)))
+                    TextField(language.text("Distance"), value: $distanceKM, format: .number.precision(.fractionLength(1)))
                         .keyboardType(.decimalPad)
                         .textFieldStyle(.roundedBorder)
                     Text("km").font(APEXFont.mono(12))
@@ -228,7 +228,7 @@ private struct ActivityEntryForm: View {
             }
         case .steps:
             VStack(alignment: .leading, spacing: 9) {
-                Text("STEPS NOT ALREADY COVERED BY THE BLOCKS ABOVE.")
+                Text(language.text("STEPS NOT ALREADY COVERED BY THE BLOCKS ABOVE."))
                     .font(APEXFont.mono(10))
                     .tracking(1.1)
                 Stepper(value: $steps, in: 0...50_000, step: 500) {
@@ -248,9 +248,9 @@ private struct ActivityEntryForm: View {
                 .tracking(1.2)
             if type.inputStyle == .count && ["massage-session", "deep-tissue-massage"].contains(type.id) {
                 Picker("Minutes", selection: $durationMinutes) {
-                    Text("30 min").tag(30)
-                    Text("60 min").tag(60)
-                    Text("90 min").tag(90)
+                    Text(language.text("30 min")).tag(30)
+                    Text(language.text("60 min")).tag(60)
+                    Text(language.text("90 min")).tag(90)
                 }
                 .pickerStyle(.segmented)
             } else {

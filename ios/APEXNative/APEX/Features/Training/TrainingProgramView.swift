@@ -228,8 +228,8 @@ struct TrainingProgramView: View {
 
                 if slug != "custom" {
                     Picker("Mode", selection: $lite) {
-                        Text("Full session").tag(false)
-                        Text("Minimum effective").tag(true)
+                        Text(language.text("Full session")).tag(false)
+                        Text(language.text("Minimum effective")).tag(true)
                     }
                     .pickerStyle(.segmented)
                 }
@@ -445,7 +445,7 @@ private struct DayCard: View {
                         Text(language.text(day.name))
                             .font(APEXFont.display(18))
                         if isToday {
-                            Text("TODAY")
+                            Text(language.text("TODAY"))
                                 .font(APEXFont.mono(8))
                                 .tracking(1)
                                 .foregroundStyle(accent)
@@ -665,7 +665,7 @@ struct WorkoutDayView: View {
                 Button {
                     showPlayer = true
                 } label: {
-                    Label("Start session", systemImage: "play.fill")
+                    Label(language.text("Start session"), systemImage: "play.fill")
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                 .accessibilityIdentifier("workout-start-session")
@@ -1208,7 +1208,7 @@ struct WorkoutPlayerView: View {
                 }
 
                 HStack(spacing: 12) {
-                    Button("+30s") {
+                    Button(language.text("+30s")) {
                         timerRemaining += 30
                         timerTotal += 30
                     }

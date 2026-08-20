@@ -57,39 +57,39 @@ struct RoutePlannerView: View {
 
                 GlassCard(radius: 30, padding: 20) {
                     VStack(alignment: .leading, spacing: 18) {
-                        Text("Build a route")
+                        Text(language.text("Build a route"))
                             .font(APEXFont.display(27))
                         HStack {
-                            Text("DISTANCE").font(APEXFont.mono(10)).tracking(1.2)
+                            Text(language.text("DISTANCE")).font(APEXFont.mono(10)).tracking(1.2)
                             Spacer()
                             Text(language.format("%.1f km", distanceKM)).font(APEXFont.display(19))
                         }
                         Slider(value: $distanceKM, in: 1...42.2, step: 0.5).tint(APEXColor.cyan)
                         Picker("Shape", selection: $shape) {
-                            Text("Loop").tag("loop")
-                            Text("Out & back").tag("out_back")
-                            Text("Point to point").tag("point_to_point")
+                            Text(language.text("Loop")).tag("loop")
+                            Text(language.text("Out & back")).tag("out_back")
+                            Text(language.text("Point to point")).tag("point_to_point")
                         }.pickerStyle(.segmented)
                         Picker("Terrain", selection: $terrain) {
-                            Text("Flat").tag("flat")
-                            Text("Rolling").tag("rolling")
-                            Text("Hilly").tag("hilly")
+                            Text(language.text("Flat")).tag("flat")
+                            Text(language.text("Rolling")).tag("rolling")
+                            Text(language.text("Hilly")).tag("hilly")
                         }.pickerStyle(.segmented)
                         Picker("Surface", selection: $surface) {
-                            Text("Road").tag("road")
-                            Text("Path").tag("path")
-                            Text("Trail").tag("trail")
-                            Text("Mixed").tag("mixed")
+                            Text(language.text("Road")).tag("road")
+                            Text(language.text("Path")).tag("path")
+                            Text(language.text("Trail")).tag("trail")
+                            Text(language.text("Mixed")).tag("mixed")
                         }.pickerStyle(.menu)
                         Picker("Mission", selection: $mission) {
                             ForEach(["Recovery", "Easy", "Tempo", "Hills", "Long run"], id: \.self) { Text(language.text($0)).tag($0) }
                         }.pickerStyle(.menu)
-                        Toggle("Prefer simpler navigation", isOn: $simpleNavigation)
+                        Toggle(language.text("Prefer simpler navigation"), isOn: $simpleNavigation)
                             .tint(APEXColor.cyan)
 
                         Button { Task { await generate() } } label: {
                             if isGenerating { ProgressView().tint(.white) }
-                            else { Label("Generate route options", systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
+                            else { Label(language.text("Generate route options"), systemImage: "point.topleft.down.to.point.bottomright.curvepath") }
                         }
                         .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
                         .disabled(isGenerating || location.currentLocation == nil)
@@ -98,18 +98,18 @@ struct RoutePlannerView: View {
                             NavigationLink {
                                 ManualRouteEditorView()
                             } label: {
-                                Label("Draw", systemImage: "pencil.and.outline")
+                                Label(language.text("Draw"), systemImage: "pencil.and.outline")
                             }
                             .buttonStyle(.bordered)
 
                             Button { importingGPX = true } label: {
-                                Label("Import GPX", systemImage: "square.and.arrow.down")
+                                Label(language.text("Import GPX"), systemImage: "square.and.arrow.down")
                             }
                             .buttonStyle(.bordered)
                         }
 
                         if location.currentLocation == nil {
-                            Label("Waiting for location permission and a usable GPS fix", systemImage: "location.circle")
+                            Label(language.text("Waiting for location permission and a usable GPS fix"), systemImage: "location.circle")
                                 .font(APEXFont.body(11, weight: .semibold))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         }
@@ -127,7 +127,7 @@ struct RoutePlannerView: View {
 
                 if candidates.isEmpty == false {
                     VStack(alignment: .leading, spacing: 11) {
-                        Text("Route options")
+                        Text(language.text("Route options"))
                             .font(APEXFont.display(24))
                         ScrollView(.horizontal, showsIndicators: false) {
                             HStack(spacing: 11) {
@@ -160,9 +160,9 @@ struct RoutePlannerView: View {
                                 .font(APEXFont.body(13, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                             HStack(spacing: 10) {
-                                Button("Save route") { Task { _ = await save(selected) } }
+                                Button(language.text("Save route")) { Task { _ = await save(selected) } }
                                     .buttonStyle(.bordered)
-                                Button("Start this route") {
+                                Button(language.text("Start this route")) {
                                     Task { routeToStart = await save(selected) }
                                 }
                                 .buttonStyle(.borderedProminent)
@@ -174,12 +174,12 @@ struct RoutePlannerView: View {
                     NavigationLink {
                         LiveRunView(mission: mission, campaignSessionID: campaignSessionID)
                     } label: {
-                        Label("Start a free run instead", systemImage: "figure.run")
+                        Label(language.text("Start a free run instead"), systemImage: "figure.run")
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.cyan))
                 }
 
-                Text("Orbit never labels a route guaranteed safe. It can compare map-supported features such as crossings, turns, terrain and surface where data exists.")
+                Text(language.text("Orbit never labels a route guaranteed safe. It can compare map-supported features such as crossings, turns, terrain and surface where data exists."))
                     .font(APEXFont.body(11, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .padding(.horizontal, 5)
@@ -187,7 +187,7 @@ struct RoutePlannerView: View {
             .padding(18)
             .padding(.bottom, 24)
         }
-        .navigationTitle("Plan a run")
+        .navigationTitle(language.text("Plan a run"))
         .navigationBarTitleDisplayMode(.inline)
         .navigationDestination(item: $routeToStart) { route in
             LiveRunView(mission: mission, plannedRoute: route, campaignSessionID: campaignSessionID)

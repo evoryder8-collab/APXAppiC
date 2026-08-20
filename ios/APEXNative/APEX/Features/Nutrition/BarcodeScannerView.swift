@@ -34,7 +34,7 @@ struct BarcodeScannerView: View {
                             .background(.black.opacity(0.48), in: Circle())
                     }
                     Spacer()
-                    Text("SCAN FOOD BARCODE")
+                    Text(language.text("SCAN FOOD BARCODE"))
                         .font(APEXFont.mono(11))
                         .tracking(1.5)
                         .foregroundStyle(.white)
@@ -60,16 +60,16 @@ struct BarcodeScannerView: View {
                 GlassCard(radius: 28, padding: 19) {
                     VStack(spacing: 8) {
                         if permissionDenied {
-                            Text("Camera access is off")
+                            Text(language.text("Camera access is off"))
                                 .font(APEXFont.display(20))
-                            Text("Enable Camera for APEX in Settings to scan food labels.")
+                            Text(language.text("Enable Camera for APEX in Settings to scan food labels."))
                                 .font(APEXFont.body(13, weight: .medium))
                                 .multilineTextAlignment(.center)
                         } else if isLookingUp {
                             ProgressView()
-                            Text("Reading nutrition data")
+                            Text(language.text("Reading nutrition data"))
                                 .font(APEXFont.display(20))
-                            Text("Checking APEX Food Memory and Open Food Facts")
+                            Text(language.text("Checking APEX Food Memory and Open Food Facts"))
                                 .font(APEXFont.body(12, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         } else if let food {
@@ -85,24 +85,24 @@ struct BarcodeScannerView: View {
                                 .font(APEXFont.body(12, weight: .medium))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(APEXColor.secondaryInk)
-                            Button("Choose portion") { showPortion = true }
+                            Button(language.text("Choose portion")) { showPortion = true }
                                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
                         } else if let lookupMessage {
-                            Text("Barcode read")
+                            Text(language.text("Barcode read"))
                                 .font(APEXFont.display(20))
                             Text(language.text(lookupMessage))
                                 .font(APEXFont.body(12, weight: .medium))
                                 .multilineTextAlignment(.center)
                                 .foregroundStyle(APEXColor.secondaryInk)
-                            Button("Scan another") {
+                            Button(language.text("Scan another")) {
                                 code = nil
                                 self.lookupMessage = nil
                             }
                             .buttonStyle(.bordered)
                         } else {
-                            Text("Hold the barcode inside the frame")
+                            Text(language.text("Hold the barcode inside the frame"))
                                 .font(APEXFont.display(18))
-                            Text("APEX detects EAN-8, EAN-13 and UPC labels automatically.")
+                            Text(language.text("APEX detects EAN-8, EAN-13 and UPC labels automatically."))
                                 .font(APEXFont.body(12, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         }
