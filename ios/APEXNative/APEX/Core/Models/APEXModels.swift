@@ -129,6 +129,8 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     var trialStartedAt: String?
     var subscriptionTier: String?
     var subscriptionExpiresAt: String?
+    /// Storage path of a user-chosen picture. Nil keeps the built-in portrait.
+    var avatarPath: String?
 
     enum CodingKeys: String, CodingKey {
         case id
@@ -137,6 +139,7 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         case trialStartedAt = "trial_started_at"
         case subscriptionTier = "subscription_tier"
         case subscriptionExpiresAt = "subscription_expires_at"
+        case avatarPath = "avatar_path"
         case persona
         case displayName = "display_name"
         case sex

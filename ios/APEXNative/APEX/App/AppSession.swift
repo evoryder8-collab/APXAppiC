@@ -7,6 +7,8 @@ import UIKit
 final class AppSession {
     var route: AppRoute = .launching
     var selectedPersona: Persona?
+    /// Shown briefly after a bespoke account signs in by email.
+    var greetingPersona: Persona?
     var data: DashboardData = .empty {
         didSet { recomputeBrain() }
     }
@@ -123,6 +125,13 @@ final class AppSession {
             }
             if let persona = data.profile?.persona {
                 defaults.set(persona.rawValue, forKey: "apex.lastPersona")
+                /* A bespoke account gets its own portrait on the way in, and
+                   only its own. The portrait wall asked you to pick a face
+                   before proving who you were; this shows the face the
+                   credentials already identified. */
+                if data.profile?.foundingMember == true, selectedPersona == nil {
+                    greetingPersona = persona
+                }
             }
             route = data.profile == nil ? .induction : .portal
             await startRealtimeSync()
@@ -226,6 +235,36 @@ final class AppSession {
         }
         await considerWeeklyCalibration()
         await resolveEntitlements()
+        await importHealthQuietly()
+    }
+
+    /// Store a new profile picture.
+    ///
+    /// Uploaded first, recorded second: a profile pointing at a file that was
+    /// never stored would show a broken picture on every device the account
+    /// opens on.
+    func setAvatar(data: Data) async {
+        guard var profile else { return }
+        do {
+            let path = try await service.uploadAvatar(userID: profile.userID, data: data)
+            profile.avatarPath = path
+            profile.updatedAt = Date().ISO8601Format()
+            self.data.profile = profile
+            await persistUpsert(profile, table: "profile", onConflict: "user_id")
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    /// Pull today's activity from Apple Health on open, without prompting.
+    ///
+    /// The phone records steps by itself, and a watch writes to the same place,
+    /// so there is nothing to wait for and no reason to make anyone press a
+    /// button for data the system already has.
+    func importHealthQuietly() async {
+        guard profile != nil else { return }
+        guard let snapshot = await HealthKitManager.shared.silentRefresh() else { return }
+        await applyHealthSnapshot(snapshot)
     }
 
     /// Work out what this account may use, and start the trial clock on the

@@ -318,6 +318,22 @@ actor SupabaseService {
         }
     }
 
+    /// Upload a prepared avatar and return the path it was stored at.
+    ///
+    /// Overwrites in place rather than accumulating one file per change: a
+    /// profile picture has exactly one current value, and old ones are not
+    /// history anybody wants kept.
+    func uploadAvatar(userID: UUID, data: Data) async throws -> String {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let path = "\(userID.uuidString.lowercased())/avatar.jpg"
+        try await client.storage.from("apex-progress").upload(
+            path,
+            data: data,
+            options: .init(cacheControl: "3600", contentType: "image/jpeg", upsert: true)
+        )
+        return path
+    }
+
     func signedProgressURL(path: String, expiresIn: Int = 3_600) async throws -> URL {
         guard let client else { throw APEXServiceError.configurationMissing }
         return try await client.storage

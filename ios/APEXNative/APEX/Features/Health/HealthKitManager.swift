@@ -72,6 +72,33 @@ final class HealthKitManager {
         }
     }
 
+    /// Read today's activity without ever raising a permission prompt.
+    ///
+    /// The card used to show "no wearable data" on any day the user had not
+    /// tapped refresh, which is most days: the phone counts steps whether or
+    /// not a watch is worn, and that was simply being thrown away. Reading an
+    /// unauthorised type returns nothing rather than prompting, so this is safe
+    /// to call on every open.
+    ///
+    /// Returns nil when nothing was readable, so a silent failure never
+    /// overwrites a hand-entered day with zeroes.
+    func silentRefresh() async -> HealthSnapshot? {
+        guard isAvailable else { return nil }
+        guard let snapshot = try? await readToday() else { return nil }
+        let hasActivity = (snapshot.steps ?? 0) > 0
+            || (snapshot.activeEnergyKcal ?? 0) > 0
+            || (snapshot.exerciseMinutes ?? 0) > 0
+        guard hasActivity || snapshot.weightKG != nil || snapshot.sleepDurationHours != nil else {
+            return nil
+        }
+        isAuthorized = true
+        lastSnapshot = snapshot
+        /* Keep it current for the rest of the day rather than only at open. */
+        await enableBackgroundDelivery()
+        startBackgroundMonitoring(handler: importHandler)
+        return snapshot
+    }
+
     func readToday() async throws -> HealthSnapshot {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: .now)

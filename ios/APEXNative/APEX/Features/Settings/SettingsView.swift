@@ -102,14 +102,18 @@ struct SettingsView: View {
     private var identityCard: some View {
         GlassCard(radius: 31, padding: 21) {
             VStack(alignment: .leading, spacing: 17) {
-                HStack(alignment: .top) {
+                HStack(alignment: .top, spacing: 14) {
+                    ProfileAvatarPicker()
                     VStack(alignment: .leading, spacing: 5) {
                         Text(language.text("ACTIVE IDENTITY"))
                             .font(APEXFont.mono(10)).tracking(2)
                             .foregroundStyle(APEXColor.secondaryInk)
-                        Text(profile?.displayName ?? "APEX").font(APEXFont.display(31))
+                        Text(profile?.displayName ?? "APEX")
+                            .font(APEXFont.display(26))
+                            .lineLimit(1)
+                            .minimumScaleFactor(0.7)
                     }
-                    Spacer()
+                    Spacer(minLength: 4)
                     Text((profile?.persona.displayName ?? "APEX").uppercased(with: language.language.locale))
                         .font(APEXFont.mono(9)).tracking(1.1).foregroundStyle(APEXColor.violet)
                         .padding(.horizontal, 12).padding(.vertical, 8)

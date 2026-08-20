@@ -36,6 +36,14 @@ struct AppRootView: View {
                     .transition(.opacity)
             }
         }
+        .overlay {
+            if let persona = session.greetingPersona {
+                PersonaGreetingOverlay(persona: persona) {
+                    withAnimation(.smooth(duration: 0.5)) { session.greetingPersona = nil }
+                }
+                .transition(.opacity)
+            }
+        }
         /* Only once the trial is actually over, and never over the sign-in
            screen: being asked to pay before you have seen anything is how an
            app gets deleted. */
