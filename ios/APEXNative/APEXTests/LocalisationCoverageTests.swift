@@ -106,6 +106,40 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    /// An English word must not be left stranded inside a non-Latin translation.
+    ///
+    /// Latin letters belong in Japanese and Thai all the time: product names,
+    /// units, people. So the test is not whether Latin appears, but whether a
+    /// Latin word appears that is not in the English being translated. "App
+    /// Store" and "SkiErg" survive because the original says them; a Japanese
+    /// question ending in "continuous" does not, because the original never
+    /// contained that word and the sentence was simply left half written.
+    func testNonLatinTranslationsDoNotStrandEnglishWords() {
+        /* Names the app owns. A translator may introduce one where the English
+           left the subject implicit, which Thai in particular often needs, so
+           these are allowed even when the original does not say them. */
+        let ownNames: Set<String> = ["apex", "orbit", "focus"]
+        let words = try! NSRegularExpression(pattern: "[A-Za-z]{4,}")
+        for language in ["ja", "th"] {
+            guard let table = table(language) else { continue }
+            for (key, value) in table where key != value {
+                let source = key.lowercased()
+                let range = NSRange(value.startIndex..., in: value)
+                for match in words.matches(in: value, range: range) {
+                    guard let found = Range(match.range, in: value) else { continue }
+                    let word = String(value[found])
+                    XCTAssertTrue(
+                        source.contains(word.lowercased()) || ownNames.contains(word.lowercased()),
+                        """
+                        \(language) leaves the English word "\(word)" inside \
+                        "\(key)", and the original never used it: \(value)
+                        """
+                    )
+                }
+            }
+        }
+    }
+
     /// A language may not be offered to users until its table is complete.
     ///
     /// This is the check that stops the readiness flag from being a claim. A
