@@ -209,3 +209,31 @@
 "Search" = "検索";
 "Today’s checklist" = "今日のチェックリスト";
 "Open full schedule" = "スケジュール全体を開く";
+
+/* Nutrition, supplements, reminders, membership */
+"Eaten" = "摂取";
+"Remaining" = "残り";
+"of %d kcal" = "%d kcal 中";
+"Nutrition at a glance" = "栄養のひと目まとめ";
+"TODAY" = "今日";
+"Add food" = "追加";
+"Food or activity changed?" = "食事や活動に変更がありますか";
+"Add water" = "水分を追加";
+"WATER" = "水分";
+"KCAL" = "kcal";
+"PROTEIN" = "タンパク質";
+"CARBS" = "炭水化物";
+"FAT" = "脂質";
+"Wake" = "起床時";
+"Send these to my lock screen" = "ロック画面に通知する";
+"Morning check" = "朝のチェック";
+"Sleep" = "睡眠";
+"Save morning check" = "朝のチェックを保存";
+"Strong" = "良好";
+"Steady" = "安定";
+"Low" = "低い";
+"Very low" = "非常に低い";
+"Founding account. Full access, permanently, with nothing to pay." = "創設メンバーのアカウントです。追加費用なしで、すべての機能をずっとご利用いただけます。";
+"Trial, %d days left. Everything is unlocked until then." = "体験期間はあと%d日です。それまではすべての機能をご利用いただけます。";
+"Unlocked with a beta code." = "ベータコードで解除済みです。";
+"Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "購入はApp Storeでの公開に合わせて開始します。それまではベータコードですべて解除できます。";

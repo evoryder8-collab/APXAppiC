@@ -209,3 +209,31 @@
 "Search" = "Pesquisar";
 "Today’s checklist" = "Lista de hoje";
 "Open full schedule" = "Abrir o horário completo";
+
+/* Nutrition, supplements, reminders, membership */
+"Eaten" = "Ingerido";
+"Remaining" = "Restantes";
+"of %d kcal" = "de %d kcal";
+"Nutrition at a glance" = "Nutrição num relance";
+"TODAY" = "HOJE";
+"Add food" = "Adicionar";
+"Food or activity changed?" = "Mudou a comida ou a atividade?";
+"Add water" = "Adicionar água";
+"WATER" = "ÁGUA";
+"KCAL" = "KCAL";
+"PROTEIN" = "PROTEÍNA";
+"CARBS" = "HIDRATOS";
+"FAT" = "GORDURA";
+"Wake" = "Ao acordar";
+"Send these to my lock screen" = "Enviar para o ecrã de bloqueio";
+"Morning check" = "Verificação matinal";
+"Sleep" = "Sono";
+"Save morning check" = "Guardar verificação";
+"Strong" = "Forte";
+"Steady" = "Estável";
+"Low" = "Baixo";
+"Very low" = "Muito baixo";
+"Founding account. Full access, permanently, with nothing to pay." = "Conta fundadora. Acesso completo, para sempre, sem pagar nada.";
+"Trial, %d days left. Everything is unlocked until then." = "Teste, faltam %d dias. Até lá está tudo desbloqueado.";
+"Unlocked with a beta code." = "Desbloqueado com um código beta.";
+"Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "A compra abre com a publicação na App Store. Até lá, um código beta desbloqueia tudo.";

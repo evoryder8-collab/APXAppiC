@@ -209,3 +209,31 @@
 "Search" = "Sueche";
 "Today’s checklist" = "Hütigi Checkliste";
 "Open full schedule" = "De ganz Zitplan uftue";
+
+/* Nutrition, supplements, reminders, membership */
+"Eaten" = "Ggässe";
+"Remaining" = "Übrig";
+"of %d kcal" = "vo %d kcal";
+"Nutrition at a glance" = "Ernährig uf ei Blick";
+"TODAY" = "HÜT";
+"Add food" = "Zuegeh";
+"Food or activity changed?" = "Ässe oder Aktivität gänderet?";
+"Add water" = "Wasser zuegeh";
+"WATER" = "WASSER";
+"KCAL" = "KCAL";
+"PROTEIN" = "PROTEIN";
+"CARBS" = "CHOHLEHYDRAT";
+"FAT" = "FETT";
+"Wake" = "Nach em Ufstoh";
+"Send these to my lock screen" = "Uf de Sperrbildschirm schicke";
+"Morning check" = "Morge-Check";
+"Sleep" = "Schlaf";
+"Save morning check" = "Morge-Check sichere";
+"Strong" = "Stark";
+"Steady" = "Stabil";
+"Low" = "Nidrig";
+"Very low" = "Sehr nidrig";
+"Founding account. Full access, permanently, with nothing to pay." = "Gründigskonto. Duurhaft volle Zuegang, ohni Choste.";
+"Trial, %d days left. Everything is unlocked until then." = "Testphase, no %d Täg. Bis dänn isch alles frei.";
+"Unlocked with a beta code." = "Mit em Beta-Code freigschaltet.";
+"Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "De Chauf startet mit em App-Store-Iitrag. Bis dänn schaltet en Beta-Code alles frei.";
