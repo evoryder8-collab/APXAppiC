@@ -355,6 +355,44 @@ final class AppSession {
         }
     }
 
+    /// Adds a supplement to the plan from wherever the user happens to be.
+    ///
+    /// Previously the stack could only be checked off, never changed, so
+    /// adding one meant leaving the thing you were doing and going to find the
+    /// full editor. Sorting after the current last item keeps it in the group
+    /// the user picked rather than jumping to the top.
+    func addSupplement(name: String, dose: String, groupLabel: String) async {
+        guard let profile else { return }
+        let trimmedName = name.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmedName.isEmpty else { return }
+        let row = Supplement(
+            id: UUID(),
+            userID: profile.userID,
+            name: trimmedName,
+            dose: dose.trimmingCharacters(in: .whitespacesAndNewlines),
+            timing: "anytime",
+            clockTime: nil,
+            offsetMinutes: nil,
+            groupLabel: groupLabel.trimmingCharacters(in: .whitespacesAndNewlines),
+            trainingDaysOnly: false,
+            sortOrder: (data.supplements.map(\.sortOrder).max() ?? 0) + 1
+        )
+        data.supplements.append(row)
+        await persistUpsert(row, table: "supplements", onConflict: "id")
+    }
+
+    /// Removes a supplement from the plan for good.
+    ///
+    /// The database cascades supplement_logs on delete, so the record of
+    /// having taken it goes with it. Mirroring that locally rather than
+    /// leaving orphaned logs behind keeps the cache honest about what the
+    /// server now holds.
+    func deleteSupplement(_ supplement: Supplement) async {
+        data.supplements.removeAll { $0.id == supplement.id }
+        data.supplementLogs.removeAll { $0.supplementID == supplement.id }
+        await persistDelete(table: "supplements", id: supplement.id)
+    }
+
     func updateDailyLog(_ row: DailyLog) async {
         if let index = data.dailyLogs.firstIndex(where: { $0.id == row.id }) {
             data.dailyLogs[index] = row

@@ -1146,10 +1146,28 @@ private struct SupplementQuickSheet: View {
     let date: Date
     var onClose: () -> Void = {}
 
+    @State private var adding = false
+    @State private var newName = ""
+    @State private var newDose = ""
+    @State private var newGroup = ""
+    @State private var pendingDelete: Supplement?
+    @FocusState private var nameFocused: Bool
+
+    private var supplements: [Supplement] {
+        session.data.supplements.sorted { $0.sortOrder < $1.sortOrder }
+    }
+
     private var taken: Int {
         session.data.supplements.filter { supplement in
             session.data.supplementLogs.contains { $0.date == date.apexDateKey && $0.supplementID == supplement.id }
         }.count
+    }
+
+    /* Whichever group the last item belongs to is the likeliest one for the
+       next, which saves typing it again for the common case of adding two or
+       three at once. */
+    private var suggestedGroup: String {
+        supplements.last?.groupLabel ?? "Daily"
     }
 
     var body: some View {
@@ -1161,8 +1179,13 @@ private struct SupplementQuickSheet: View {
                 subtitle: "\(taken) of \(session.data.supplements.count) taken",
                 onClose: onClose
             )
-            VStack(spacing: 8) {
-                ForEach(session.data.supplements.sorted { $0.sortOrder < $1.sortOrder }) { supplement in
+
+            /* A List rather than a stack of buttons, because swipe-to-delete
+               should be the real gesture -- it comes with the resistance, the
+               full-swipe and the VoiceOver actions people already expect,
+               none of which a hand-rolled drag gets right. */
+            List {
+                ForEach(supplements) { supplement in
                     let done = session.data.supplementLogs.contains {
                         $0.date == date.apexDateKey && $0.supplementID == supplement.id
                     }
@@ -1184,9 +1207,96 @@ private struct SupplementQuickSheet: View {
                         .background(.white.opacity(done ? 0.85 : 0.6), in: RoundedRectangle(cornerRadius: 15))
                     }
                     .buttonStyle(.plain)
+                    .listRowInsets(EdgeInsets(top: 4, leading: 0, bottom: 4, trailing: 0))
+                    .listRowBackground(Color.clear)
+                    .listRowSeparator(.hidden)
+                    .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                        /* Not a full swipe, and confirmed: this removes the
+                           supplement from the plan permanently and the record
+                           of having taken it goes with it. */
+                        Button(role: .destructive) { pendingDelete = supplement } label: {
+                            Label("Delete", systemImage: "trash")
+                        }
+                    }
                 }
             }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .environment(\.defaultMinListRowHeight, 0)
+            .frame(height: CGFloat(max(1, supplements.count)) * 66)
+            .scrollDisabled(true)
+
+            if adding {
+                VStack(spacing: 8) {
+                    TextField("Name", text: $newName)
+                        .textInputAutocapitalization(.words)
+                        .focused($nameFocused)
+                    HStack(spacing: 8) {
+                        TextField("Dose", text: $newDose)
+                        TextField("When", text: $newGroup)
+                    }
+                }
+                .font(APEXFont.body(13, weight: .semibold))
+                .textFieldStyle(.plain)
+                .padding(13)
+                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 15))
+
+                HStack(spacing: 8) {
+                    Button("Cancel") { resetDraft() }
+                        .buttonStyle(.bordered)
+                    Button("Save") {
+                        Task {
+                            await session.addSupplement(
+                                name: newName,
+                                dose: newDose,
+                                groupLabel: newGroup.isEmpty ? suggestedGroup : newGroup
+                            )
+                            resetDraft()
+                        }
+                    }
+                    .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.green))
+                    .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
+                }
+            } else {
+                Button {
+                    newGroup = suggestedGroup
+                    adding = true
+                    nameFocused = true
+                } label: {
+                    Label("Add", systemImage: "plus")
+                        .font(APEXFont.body(13, weight: .bold))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.bordered)
+                .tint(APEXColor.green)
+            }
         }
+        .confirmationDialog(
+            "Remove from your plan?",
+            isPresented: Binding(
+                get: { pendingDelete != nil },
+                set: { if !$0 { pendingDelete = nil } }
+            ),
+            titleVisibility: .visible
+        ) {
+            Button("Delete for good", role: .destructive) {
+                if let supplement = pendingDelete {
+                    Task { await session.deleteSupplement(supplement) }
+                }
+                pendingDelete = nil
+            }
+            Button("Keep", role: .cancel) { pendingDelete = nil }
+        } message: {
+            Text("This also removes the record of having taken it.")
+        }
+    }
+
+    private func resetDraft() {
+        adding = false
+        newName = ""
+        newDose = ""
+        newGroup = ""
+        nameFocused = false
     }
 }
 
