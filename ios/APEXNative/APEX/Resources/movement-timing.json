@@ -1,0 +1,3024 @@
+{
+ "generated_note": "Generated from src/data/movements.ts. Do not edit by hand.",
+ "movements": [
+  {
+   "id": "barbell_romanian_deadlift",
+   "name": "Romanian Deadlift",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dumbbell_romanian_deadlift",
+   "name": "Dumbbell Romanian Deadlift",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_leg_romanian_deadlift",
+   "name": "Single-Leg Romanian Deadlift",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "conventional_deadlift",
+   "name": "Conventional Deadlift",
+   "setup_seconds": 75,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "trap_bar_deadlift",
+   "name": "Trap Bar Deadlift",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hip_thrust_barbell",
+   "name": "Barbell Hip Thrust",
+   "setup_seconds": 90,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hip_thrust_dumbbell",
+   "name": "Dumbbell Hip Thrust",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "machine_hip_thrust",
+   "name": "Machine Hip Thrust",
+   "setup_seconds": 40,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "b_stance_hip_thrust",
+   "name": "B-Stance Hip Thrust",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "glute_bridge",
+   "name": "Glute Bridge",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "frog_pump",
+   "name": "Frog Pump",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "back_extension",
+   "name": "Back Extension",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "kettlebell_swing",
+   "name": "Kettlebell Swing",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "good_morning",
+   "name": "Good Morning",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "backpack_rdl",
+   "name": "Backpack Romanian Deadlift",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "barbell_back_squat",
+   "name": "Barbell Back Squat",
+   "setup_seconds": 90,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "barbell_front_squat",
+   "name": "Barbell Front Squat",
+   "setup_seconds": 90,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "goblet_squat",
+   "name": "Goblet Squat",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "heel_elevated_goblet_squat",
+   "name": "Heel-Elevated Goblet Squat",
+   "setup_seconds": 30,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hack_squat",
+   "name": "Hack Squat",
+   "setup_seconds": 45,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "leg_press",
+   "name": "Leg Press",
+   "setup_seconds": 40,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "bodyweight_squat",
+   "name": "Bodyweight Squat",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "sit_to_stand",
+   "name": "Sit-to-Stand",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pistol_squat",
+   "name": "Pistol Squat",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "smith_machine_squat",
+   "name": "Smith Machine Squat",
+   "setup_seconds": 45,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "bulgarian_split_squat",
+   "name": "Bulgarian Split Squat",
+   "setup_seconds": 40,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "split_squat",
+   "name": "Split Squat",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reverse_lunge",
+   "name": "Reverse Lunge",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "walking_lunge",
+   "name": "Walking Lunge",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "forward_lunge",
+   "name": "Forward Lunge",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "step_up",
+   "name": "Step-Up",
+   "setup_seconds": 30,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "smith_split_squat",
+   "name": "Smith Machine Split Squat",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "barbell_bench_press",
+   "name": "Barbell Bench Press",
+   "setup_seconds": 75,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dumbbell_bench_press",
+   "name": "Flat Dumbbell Press",
+   "setup_seconds": 40,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "incline_dumbbell_press",
+   "name": "Incline Dumbbell Press",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dumbbell_floor_press",
+   "name": "Dumbbell Floor Press",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "machine_chest_press",
+   "name": "Machine Chest Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "incline_smith_press",
+   "name": "Incline Smith Machine Press",
+   "setup_seconds": 50,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "push_up",
+   "name": "Push-Up",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "incline_push_up",
+   "name": "Incline Push-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "knee_push_up",
+   "name": "Knee Push-Up",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "feet_elevated_push_up",
+   "name": "Feet-Elevated Push-Up",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "weighted_push_up",
+   "name": "Weighted Push-Up",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "diamond_push_up",
+   "name": "Diamond Push-Up",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dip",
+   "name": "Parallel Bar Dip",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_fly",
+   "name": "Cable Fly",
+   "setup_seconds": 40,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "barbell_overhead_press",
+   "name": "Barbell Overhead Press",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dumbbell_overhead_press",
+   "name": "Seated Dumbbell Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "machine_shoulder_press",
+   "name": "Machine Shoulder Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "landmine_press",
+   "name": "Landmine Press",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pike_push_up",
+   "name": "Pike Push-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "elevated_pike_push_up",
+   "name": "Feet-Elevated Pike Push-Up",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "handstand_push_up",
+   "name": "Handstand Push-Up",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "barbell_row",
+   "name": "Barbell Row",
+   "setup_seconds": 50,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "one_arm_dumbbell_row",
+   "name": "One-Arm Dumbbell Row",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "chest_supported_row",
+   "name": "Chest-Supported Dumbbell Row",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "machine_row",
+   "name": "Chest-Supported Machine Row",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "t_bar_row",
+   "name": "Chest-Supported T-Bar Row",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_row",
+   "name": "Seated Cable Row",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_arm_cable_row",
+   "name": "Single-Arm Cable Row",
+   "setup_seconds": 40,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "inverted_row",
+   "name": "Inverted Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_row",
+   "name": "Band Row",
+   "setup_seconds": 20,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "backpack_row",
+   "name": "Backpack Row",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pull_up",
+   "name": "Pull-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "chin_up",
+   "name": "Chin-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_assisted_pull_up",
+   "name": "Band-Assisted Pull-Up",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "lat_pulldown",
+   "name": "Neutral-Grip Lat Pulldown",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_lat_pulldown",
+   "name": "Band Lat Pulldown",
+   "setup_seconds": 25,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dead_hang",
+   "name": "Dead Hang",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "scapular_pull_up",
+   "name": "Scapular Pull-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "muscle_up_practice",
+   "name": "Muscle-Up Transition Practice",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "suitcase_carry",
+   "name": "Suitcase Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "farmers_carry",
+   "name": "Farmer's Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "plank",
+   "name": "Plank",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "rkc_plank",
+   "name": "RKC Plank",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "side_plank",
+   "name": "Side Plank",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "dead_bug",
+   "name": "Dead Bug",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "bird_dog",
+   "name": "Bird-Dog",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pallof_press",
+   "name": "Pallof Press",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hanging_knee_raise",
+   "name": "Hanging Knee Raise",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hollow_body_hold",
+   "name": "Hollow Body Hold",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "dumbbell_curl",
+   "name": "Dumbbell Curl",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "incline_dumbbell_curl",
+   "name": "Incline Dumbbell Curl",
+   "setup_seconds": 35,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hammer_curl",
+   "name": "Hammer Curl",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_curl",
+   "name": "Cable Curl",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_curl",
+   "name": "Band Curl",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "overhead_triceps_extension",
+   "name": "Overhead Triceps Extension",
+   "setup_seconds": 20,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "lateral_raise",
+   "name": "Lateral Raise",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_lateral_raise",
+   "name": "Cable Lateral Raise",
+   "setup_seconds": 35,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_lateral_raise",
+   "name": "Band Lateral Raise",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "face_pull",
+   "name": "Cable Face Pull",
+   "setup_seconds": 35,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_face_pull",
+   "name": "Band Face Pull",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_pull_apart",
+   "name": "Band Pull-Apart",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reverse_pec_deck",
+   "name": "Reverse Pec Deck",
+   "setup_seconds": 35,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_external_rotation",
+   "name": "Cable External Rotation",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "lying_leg_curl",
+   "name": "Lying Leg Curl",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "seated_leg_curl",
+   "name": "Seated Leg Curl",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "sliding_leg_curl",
+   "name": "Sliding Leg Curl",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "nordic_curl",
+   "name": "Nordic Hamstring Curl",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "leg_extension",
+   "name": "Leg Extension",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hip_abduction",
+   "name": "Hip Abduction",
+   "setup_seconds": 25,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "standing_calf_raise",
+   "name": "Standing Calf Raise",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "seated_calf_raise",
+   "name": "Seated Calf Raise",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_leg_calf_raise",
+   "name": "Single-Leg Calf Raise",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "l_sit",
+   "name": "L-Sit",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "tuck_planche_hold",
+   "name": "Tuck Planche Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "wall_handstand_hold",
+   "name": "Wall Handstand Hold",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "archer_push_up",
+   "name": "Archer Push-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "ring_dip",
+   "name": "Ring Dip",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "burpee",
+   "name": "Burpee",
+   "setup_seconds": 5,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "squat_thrust",
+   "name": "Squat Thrust",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "mountain_climber",
+   "name": "Mountain Climber",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "high_knees",
+   "name": "High Knees",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "marching_in_place",
+   "name": "Marching in Place",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "jumping_jack",
+   "name": "Jumping Jack",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "box_jump",
+   "name": "Box Jump",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "squat_jump",
+   "name": "Squat Jump",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "broad_jump",
+   "name": "Broad Jump",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "battle_ropes",
+   "name": "Battle Ropes",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "downward_dog",
+   "name": "Downward-Facing Dog",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "childs_pose",
+   "name": "Child's Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "cat_cow",
+   "name": "Cat-Cow",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "cobra_pose",
+   "name": "Cobra",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "warrior_two",
+   "name": "Warrior II",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "triangle_pose",
+   "name": "Triangle Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pigeon_pose",
+   "name": "Pigeon Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "forward_fold",
+   "name": "Standing Forward Fold",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "bridge_pose",
+   "name": "Bridge Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sun_salutation",
+   "name": "Sun Salutation",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "ninety_ninety_hip",
+   "name": "90/90 Hip Mobility",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "figure_four_stretch",
+   "name": "Figure-Four Stretch",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "couch_stretch",
+   "name": "Couch Stretch",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "hip_flexor_stretch",
+   "name": "Hip Flexor Stretch",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "thoracic_extension",
+   "name": "Thoracic Extension",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "wall_slide",
+   "name": "Wall Slide",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "mobility_flow",
+   "name": "Sun Salutation A",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "diaphragmatic_breathing",
+   "name": "Diaphragmatic Breathing",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "joint_circles",
+   "name": "Controlled Articular Rotations",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pec_deck",
+   "name": "Pec Deck",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "incline_chest_press_machine",
+   "name": "Incline Chest Press Machine",
+   "setup_seconds": 35,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "converging_row_machine",
+   "name": "Converging Row Machine",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "straight_arm_pulldown",
+   "name": "Straight-Arm Pulldown",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pullover_machine",
+   "name": "Pullover Machine",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "assisted_pull_up_machine",
+   "name": "Assisted Pull-Up Machine",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "preacher_curl_machine",
+   "name": "Preacher Curl Machine",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "triceps_pushdown",
+   "name": "Triceps Pushdown",
+   "setup_seconds": 25,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dip_machine",
+   "name": "Seated Dip Machine",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "shrug",
+   "name": "Dumbbell Shrug",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "upright_row",
+   "name": "Cable Upright Row",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "machine_lateral_raise",
+   "name": "Machine Lateral Raise",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hip_adduction",
+   "name": "Hip Adduction Machine",
+   "setup_seconds": 25,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "copenhagen_plank",
+   "name": "Copenhagen Plank",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "cable_kickback",
+   "name": "Cable Glute Kickback",
+   "setup_seconds": 40,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_pull_through",
+   "name": "Cable Pull-Through",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "belt_squat",
+   "name": "Belt Squat",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pendulum_squat",
+   "name": "Pendulum Squat",
+   "setup_seconds": 45,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "calf_press_leg_press",
+   "name": "Calf Press on Leg Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "machine_crunch",
+   "name": "Machine Crunch",
+   "setup_seconds": 30,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_crunch",
+   "name": "Cable Crunch",
+   "setup_seconds": 35,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "back_extension_machine",
+   "name": "Back Extension Machine",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hip_thrust_smith",
+   "name": "Smith Machine Hip Thrust",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "landmine_row",
+   "name": "Landmine Row",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "landmine_squat",
+   "name": "Landmine Squat",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_hundred",
+   "name": "The Hundred",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pilates_roll_up",
+   "name": "Roll-Up",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_single_leg_circle",
+   "name": "Single Leg Circles",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pilates_single_leg_stretch",
+   "name": "Single Leg Stretch",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_double_leg_stretch",
+   "name": "Double Leg Stretch",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_scissors",
+   "name": "Pilates Scissors",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_teaser",
+   "name": "Teaser",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_swan",
+   "name": "Swan",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pilates_saw",
+   "name": "Saw",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pilates_spine_stretch",
+   "name": "Spine Stretch Forward",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pilates_side_kick",
+   "name": "Side Kick Series",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_clam",
+   "name": "Clam",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "pilates_swimming",
+   "name": "Pilates Swimming",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "reformer_footwork",
+   "name": "Reformer Footwork",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reformer_long_stretch",
+   "name": "Reformer Long Stretch",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reformer_elephant",
+   "name": "Reformer Elephant",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "reformer_knee_stretch",
+   "name": "Reformer Knee Stretch",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reformer_short_box",
+   "name": "Reformer Short Box",
+   "setup_seconds": 50,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reformer_mermaid",
+   "name": "Reformer Mermaid",
+   "setup_seconds": 40,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "chair_pose",
+   "name": "Chair Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "tree_pose",
+   "name": "Tree Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "warrior_one",
+   "name": "Warrior I",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "warrior_three",
+   "name": "Warrior III",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "half_moon",
+   "name": "Half Moon",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "extended_side_angle",
+   "name": "Extended Side Angle",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "revolved_triangle",
+   "name": "Revolved Triangle",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "crow_pose",
+   "name": "Crow Pose",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "boat_pose",
+   "name": "Boat Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "camel_pose",
+   "name": "Camel Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "bow_pose",
+   "name": "Bow Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "locust_pose",
+   "name": "Locust Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "seated_forward_fold",
+   "name": "Seated Forward Fold",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "butterfly_stretch",
+   "name": "Butterfly",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "happy_baby",
+   "name": "Happy Baby",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "supine_twist",
+   "name": "Supine Twist",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "legs_up_wall",
+   "name": "Legs Up the Wall",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "corpse_pose",
+   "name": "Corpse Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "chaturanga",
+   "name": "Chaturanga",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "upward_dog",
+   "name": "Upward-Facing Dog",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "low_lunge",
+   "name": "Low Lunge",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "lizard_pose",
+   "name": "Lizard Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "garland_pose",
+   "name": "Garland Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "eagle_pose",
+   "name": "Eagle Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "dancer_pose",
+   "name": "Dancer Pose",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sled_push",
+   "name": "Sled Push",
+   "setup_seconds": 60,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sled_pull",
+   "name": "Sled Pull",
+   "setup_seconds": 60,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "burpee_broad_jump",
+   "name": "Burpee Broad Jump",
+   "setup_seconds": 10,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sandbag_lunge",
+   "name": "Sandbag Lunge",
+   "setup_seconds": 30,
+   "fatigue_cost": 5,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "wall_ball",
+   "name": "Wall Ball",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "thruster",
+   "name": "Thruster",
+   "setup_seconds": 45,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "power_clean",
+   "name": "Power Clean",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "power_snatch",
+   "name": "Power Snatch",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "clean_and_jerk",
+   "name": "Clean and Jerk",
+   "setup_seconds": 60,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "push_press",
+   "name": "Push Press",
+   "setup_seconds": 50,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "overhead_squat",
+   "name": "Overhead Squat",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "front_rack_lunge",
+   "name": "Front Rack Lunge",
+   "setup_seconds": 55,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "double_under",
+   "name": "Double Under",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "single_under",
+   "name": "Skipping",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "toes_to_bar",
+   "name": "Toes to Bar",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "kettlebell_clean",
+   "name": "Kettlebell Clean",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "turkish_get_up",
+   "name": "Turkish Get-Up",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "devils_press",
+   "name": "Devil's Press",
+   "setup_seconds": 15,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "man_maker",
+   "name": "Man Maker",
+   "setup_seconds": 15,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sandbag_clean",
+   "name": "Sandbag Clean",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "tire_flip",
+   "name": "Tire Flip",
+   "setup_seconds": 30,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "bear_crawl",
+   "name": "Bear Crawl",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sled_drag",
+   "name": "Sled Drag",
+   "setup_seconds": 45,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "overhead_carry",
+   "name": "Overhead Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "front_rack_carry",
+   "name": "Front Rack Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "sandbag_carry",
+   "name": "Sandbag Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "yoke_walk",
+   "name": "Yoke Walk",
+   "setup_seconds": 60,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "zercher_carry",
+   "name": "Zercher Carry",
+   "setup_seconds": 40,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "waiter_walk",
+   "name": "Waiter Walk",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "bottoms_up_carry",
+   "name": "Bottoms-Up Carry",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "mixed_carry",
+   "name": "Mixed Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "depth_jump",
+   "name": "Depth Jump",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "bounding",
+   "name": "Bounding",
+   "setup_seconds": 15,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "lateral_bound",
+   "name": "Lateral Bound",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "lateral_hop",
+   "name": "Lateral Hop",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "pogo_hop",
+   "name": "Pogo Hop",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "tuck_jump",
+   "name": "Tuck Jump",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "split_jump",
+   "name": "Split Jump",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "single_leg_hop",
+   "name": "Single-Leg Hop",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "hurdle_hop",
+   "name": "Hurdle Hop",
+   "setup_seconds": 30,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "medicine_ball_slam",
+   "name": "Medicine Ball Slam",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "medicine_ball_chest_pass",
+   "name": "Medicine Ball Chest Pass",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "medicine_ball_rotational_throw",
+   "name": "Rotational Throw",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "broad_jump_repeat",
+   "name": "Repeat Broad Jump",
+   "setup_seconds": 15,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "landmine_rotation",
+   "name": "Landmine Rotation",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_chop",
+   "name": "Cable Chop",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "cable_lift",
+   "name": "Cable Lift",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "renegade_row",
+   "name": "Renegade Row",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "suitcase_deadlift",
+   "name": "Suitcase Deadlift",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "half_kneeling_press",
+   "name": "Half-Kneeling Press",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "plank_pull_through",
+   "name": "Plank Pull-Through",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "bird_dog_row",
+   "name": "Bird-Dog Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_arm_dumbbell_press",
+   "name": "Single-Arm Dumbbell Press",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_arm_floor_press",
+   "name": "Single-Arm Floor Press",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_arm_bench_press",
+   "name": "Single-Arm Dumbbell Bench Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_arm_landmine_press",
+   "name": "Single-Arm Landmine Press",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_arm_machine_press",
+   "name": "Single-Arm Machine Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "arnold_press",
+   "name": "Arnold Press",
+   "setup_seconds": 35,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "front_raise",
+   "name": "Front Raise",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "svend_press",
+   "name": "Svend Press",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "decline_press",
+   "name": "Decline Press",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "ab_wheel_rollout",
+   "name": "Ab-Wheel Rollout",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "reverse_crunch",
+   "name": "Reverse Crunch",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "decline_sit_up",
+   "name": "Decline Sit-Up",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "front_lever_row",
+   "name": "Front Lever Row",
+   "setup_seconds": 15,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "human_flag_progression",
+   "name": "Human Flag Progression",
+   "setup_seconds": 20,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "worlds_greatest_stretch",
+   "name": "World's Greatest Stretch",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "band_shoulder_dislocate",
+   "name": "Band Shoulder Dislocate",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "lower_body_foam_roll",
+   "name": "Lower-Body Foam Roll",
+   "setup_seconds": 10,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "single_leg_stand",
+   "name": "Single-Leg Stand",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "tandem_stance",
+   "name": "Tandem Stance",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "heel_toe_walk",
+   "name": "Heel-to-Toe Walk",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "single_leg_reach",
+   "name": "Single-Leg Reach",
+   "setup_seconds": 0,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "airplane_balance",
+   "name": "Airplane Balance",
+   "setup_seconds": 0,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "eyes_closed_balance",
+   "name": "Single-Leg Stand, Eyes Closed",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "step_down_control",
+   "name": "Controlled Step-Down",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "bent_over_dumbbell_row",
+   "name": "Bent-Over Dumbbell Row",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "kettlebell_bent_over_row",
+   "name": "Bent-Over Kettlebell Row",
+   "setup_seconds": 15,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_bent_over_row",
+   "name": "Bent-Over Band Row",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "prone_floor_row",
+   "name": "Prone Floor Row",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "table_row",
+   "name": "Table Row",
+   "setup_seconds": 30,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "towel_door_row",
+   "name": "Towel Door Row",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_lat_pullover",
+   "name": "Band Lat Pullover",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "dumbbell_pullover",
+   "name": "Dumbbell Pullover",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "floor_pullover",
+   "name": "Floor Pullover",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "towel_door_pulldown",
+   "name": "Towel Door Pulldown",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_straight_arm_pulldown",
+   "name": "Band Straight-Arm Pulldown",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "wall_sit",
+   "name": "Wall Sit",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "cossack_squat",
+   "name": "Cossack Squat",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "lateral_lunge",
+   "name": "Lateral Lunge",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "shrimp_squat",
+   "name": "Shrimp Squat",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "chair_step_up",
+   "name": "Chair Step-Up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "tempo_down_s": null
+  },
+  {
+   "id": "single_leg_glute_bridge",
+   "name": "Single-Leg Glute Bridge",
+   "setup_seconds": 5,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "nordic_eccentric",
+   "name": "Nordic Curl, Eccentric",
+   "setup_seconds": 30,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "hamstring_walkout",
+   "name": "Hamstring Walkout",
+   "setup_seconds": 5,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_good_morning",
+   "name": "Band Good Morning",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "band_overhead_press",
+   "name": "Band Overhead Press",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "wall_walk",
+   "name": "Wall Walk",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "backpack_carry",
+   "name": "Loaded Backpack Carry",
+   "setup_seconds": 30,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "suitcase_hold",
+   "name": "Suitcase Hold",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "tibialis_raise",
+   "name": "Tibialis Raise",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  },
+  {
+   "id": "heel_walk",
+   "name": "Heel Walk",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "short_foot",
+   "name": "Short Foot Drill",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "plate_pinch",
+   "name": "Plate Pinch",
+   "setup_seconds": 15,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "towel_hang",
+   "name": "Towel Hang",
+   "setup_seconds": 20,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "wrist_roller",
+   "name": "Wrist Roller",
+   "setup_seconds": 40,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "neck_isometric",
+   "name": "Neck Isometric",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "chin_tuck",
+   "name": "Chin Tuck",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "side_plank_knees",
+   "name": "Side Plank from Knees",
+   "setup_seconds": 5,
+   "fatigue_cost": 1,
+   "unilateral": true,
+   "repositioning": false,
+   "tempo_down_s": 0
+  },
+  {
+   "id": "dumbbell_side_bend",
+   "name": "Dumbbell Side Bend",
+   "setup_seconds": 15,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "tempo_down_s": null
+  }
+ ],
+ "aliases": {
+  "90/90 Hip Mobility": "ninety_ninety_hip",
+  "90/90 Hip Switch": "ninety_ninety_hip",
+  "Ab Crunch Machine": "machine_crunch",
+  "Ankle Mobility Rock": "joint_circles",
+  "Any 10-min HIIT video": "burpee",
+  "B-Stance or Single-Leg Hip Thrust": "b_stance_hip_thrust",
+  "Backpack RDL": "backpack_rdl",
+  "Backpack Row": "backpack_row",
+  "Band Abduction": "hip_abduction",
+  "Band Face Pull": "band_face_pull",
+  "Band Face Pulls": "band_face_pull",
+  "Band Lat Pulldown": "band_lat_pulldown",
+  "Band Pull-Apart": "band_pull_apart",
+  "Band Pull-Aparts": "band_pull_apart",
+  "Band Pull-Aparts (finisher if fresh)": "band_pull_apart",
+  "Band Pull-Aparts (posture closer)": "band_pull_apart",
+  "Band Row": "band_row",
+  "Band or DB Curls": "dumbbell_curl",
+  "Band-Assisted Pull-Up": "band_assisted_pull_up",
+  "Band-Assisted Pull-Up · Alternate Grip": "band_assisted_pull_up",
+  "Bar Muscle-Up": "muscle_up_practice",
+  "Barbell Curl": "dumbbell_curl",
+  "Barbell Row": "barbell_row",
+  "Barbell Shrug": "shrug",
+  "Battle Rope Waves": "battle_ropes",
+  "Big Hammer Loop": "joint_circles",
+  "Bird-Dog": "bird_dog",
+  "Breathing + Thoracic Reset": "thoracic_extension",
+  "Bulgarian Split Squat": "bulgarian_split_squat",
+  "Bulgarian Split Squat (backpack)": "bulgarian_split_squat",
+  "Cable Biceps Curl": "cable_curl",
+  "Cable Curl + Rope Pressdown": "cable_curl",
+  "Cable External Rotation": "cable_external_rotation",
+  "Cable Face Pull": "face_pull",
+  "Cable Fly": "cable_fly",
+  "Cable Hip Adduction": "hip_adduction",
+  "Cable Lateral Raise": "cable_lateral_raise",
+  "Cable Triceps Extension": "triceps_pushdown",
+  "Calf Raise": "standing_calf_raise",
+  "Calf Raises (backpack, off a step)": "single_leg_calf_raise",
+  "Calf Raises (single-leg or backpack)": "single_leg_calf_raise",
+  "Cat-Cow Flow": "cat_cow",
+  "Chest-Supported Dumbbell Row": "chest_supported_row",
+  "Chest-Supported Machine Row": "machine_row",
+  "Chest-Supported T-Bar Row": "t_bar_row",
+  "Chin-Up": "chin_up",
+  "Couch Stretch": "couch_stretch",
+  "Dead Bug": "dead_bug",
+  "Dead Hang": "dead_hang",
+  "Dead Hangs": "dead_hang",
+  "Decline Push-Up": "feet_elevated_push_up",
+  "Diamond Pushups": "diamond_push_up",
+  "Diamond or Close-Grip Push-Up": "diamond_push_up",
+  "Diaphragmatic Breathing": "diaphragmatic_breathing",
+  "Dumbbell Floor Press": "dumbbell_floor_press",
+  "Dumbbell Fly": "cable_fly",
+  "Dumbbell Hip Thrust": "hip_thrust_dumbbell",
+  "Dumbbell Lateral Raise": "lateral_raise",
+  "Dumbbell Overhead Press": "dumbbell_overhead_press",
+  "Dumbbell Romanian Deadlift": "dumbbell_romanian_deadlift",
+  "Dumbbell Skull Crusher": "overhead_triceps_extension",
+  "Elevated Calf Raise": "standing_calf_raise",
+  "Farmer Carry": "farmers_carry",
+  "Feet-Elevated Push-Up": "feet_elevated_push_up",
+  "Feet-Elevated Push-Ups": "feet_elevated_push_up",
+  "Flat Dumbbell Press": "dumbbell_bench_press",
+  "Frog Pump": "frog_pump",
+  "Front Lunge": "forward_lunge",
+  "Functional stretch flow (saved YouTube favorite)": "mobility_flow",
+  "Gentle Mobility Flow": "mobility_flow",
+  "Gimbal Front Hold": "plank",
+  "Glute Kickback Machine": "cable_kickback",
+  "Goblet Squat": "goblet_squat",
+  "Hack Squat": "hack_squat",
+  "Hammer Curl": "hammer_curl",
+  "Hammer or Incline DB Curls": "hammer_curl",
+  "Hanging Knee Raise": "hanging_knee_raise",
+  "Hanging Leg Raise": "hanging_knee_raise",
+  "Hanging Scapular Depression": "scapular_pull_up",
+  "Heel-Elevated Goblet Squat": "heel_elevated_goblet_squat",
+  "Heel-Elevated Goblet Squat (backpack)": "heel_elevated_goblet_squat",
+  "Hip Abduction Machine": "hip_abduction",
+  "Hip Flexor + Lat Reset": "hip_flexor_stretch",
+  "Hip Flexor Mobility": "hip_flexor_stretch",
+  "Hip Thrust": "hip_thrust_barbell",
+  "Hollow Body Hold": "hollow_body_hold",
+  "Incline Dumbbell Curl": "incline_dumbbell_curl",
+  "Incline Smith Machine Press": "incline_smith_press",
+  "Inverted Row": "inverted_row",
+  "Jump Rope": "single_under",
+  "Jump Squat": "squat_jump",
+  "L-Sit Hold": "l_sit",
+  "Lateral Raise": "lateral_raise",
+  "Leg Extension": "leg_extension",
+  "Leg Press": "leg_press",
+  "Lying Leg Curl": "lying_leg_curl",
+  "Machine Chest Press": "machine_chest_press",
+  "Machine Hip Thrust": "machine_hip_thrust",
+  "Machine Shoulder Press": "machine_shoulder_press",
+  "Mobility Flow": "mobility_flow",
+  "Mobility Reset": "mobility_flow",
+  "Muscle-Up Transition Practice": "muscle_up_practice",
+  "Neutral-Grip Lat Pulldown": "lat_pulldown",
+  "One-Arm Dumbbell Row": "one_arm_dumbbell_row",
+  "One-Arm Supported Dumbbell Row": "one_arm_dumbbell_row",
+  "Pain-Free Joint Circles": "joint_circles",
+  "Pallof Press": "pallof_press",
+  "Pec Deck Fly": "pec_deck",
+  "Pike Push-Up": "pike_push_up",
+  "Pike Pushups (feet on chair)": "elevated_pike_push_up",
+  "Prone Lat Sweep": "band_lat_pulldown",
+  "Pull-Up": "pull_up",
+  "Pull-Ups": "pull_up",
+  "Pull-Ups (different grip than Wed)": "pull_up",
+  "Push-Up": "push_up",
+  "Push-Ups": "push_up",
+  "RKC Plank": "rkc_plank",
+  "Rear-Delt Dumbbell Fly": "reverse_pec_deck",
+  "Reverse Dumbbell Lunge": "reverse_lunge",
+  "Reverse Lunge": "reverse_lunge",
+  "Reverse Pec Deck": "reverse_pec_deck",
+  "Romanian Deadlift": "barbell_romanian_deadlift",
+  "Seated Calf Raise": "seated_calf_raise",
+  "Seated Dumbbell Press": "dumbbell_overhead_press",
+  "Seated Leg Curl": "seated_leg_curl",
+  "Shoulder + Hip Mobility": "mobility_flow",
+  "Side Plank": "side_plank",
+  "Single-Arm Cable Row": "single_arm_cable_row",
+  "Single-Leg Calf Raise": "single_leg_calf_raise",
+  "Single-Leg Romanian Deadlift": "single_leg_romanian_deadlift",
+  "Sliding Leg Curl": "sliding_leg_curl",
+  "Sliding Leg Curl (towel)": "sliding_leg_curl",
+  "Smith Machine Split Squat": "smith_split_squat",
+  "Standing Calf Machine": "standing_calf_raise",
+  "Standing Calf Raise Machine": "standing_calf_raise",
+  "Step-Up": "step_up",
+  "Straight-Bar Dip": "dip",
+  "Straight-Bar Preacher Curl": "preacher_curl_machine",
+  "Strict Push-Up": "push_up",
+  "Suitcase Carry": "suitcase_carry",
+  "Suitcase Hold or March": "suitcase_carry",
+  "Supported Calf Raise": "standing_calf_raise",
+  "Supported Reverse Lunge": "reverse_lunge",
+  "Supported Sit-to-Stand": "sit_to_stand",
+  "Tempo Push-Up": "push_up",
+  "Thoracic Extension over chair edge": "thoracic_extension",
+  "Thoracic Rotation": "thoracic_extension",
+  "Walking Dumbbell Lunge": "walking_lunge",
+  "Walking Front Lunge": "walking_lunge",
+  "Walking Lunges (backpack)": "walking_lunge",
+  "Wall Shoulder Slide": "wall_slide",
+  "Wall Slide": "wall_slide",
+  "Weighted Push-Up": "weighted_push_up",
+  "Weighted Push-Up on Handles": "weighted_push_up",
+  "Weighted Pushups": "weighted_push_up",
+  "Weighted Pushups (handles, backpack)": "weighted_push_up",
+  "Weighted Squat": "goblet_squat",
+  "Wrist Extensor Isometric": "joint_circles",
+  "australian_pull_up": "inverted_row",
+  "band_abduction": "hip_abduction",
+  "cable_crossover": "cable_fly",
+  "cable_triceps_extension": "triceps_pushdown",
+  "machine_rear_delt": "reverse_pec_deck",
+  "ring_row": "inverted_row"
+ }
+}

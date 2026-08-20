@@ -32,6 +32,7 @@
 		1BE4BAAFBF290CE5F184761A /* HolographicBodyView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 88FC672B13DFB786889784E8 /* HolographicBodyView.swift */; };
 		1EDB0BA3C3FE40F5B256B247 /* APEXModels.swift in Sources */ = {isa = PBXBuildFile; fileRef = 86D28E97F232A4D446A7C4EF /* APEXModels.swift */; };
 		1FAE544A531915497096AEE3 /* musclemap.html in Resources */ = {isa = PBXBuildFile; fileRef = BAA3072D365C90BF052C5711 /* musclemap.html */; };
+		218AAD6781C51180219C39F5 /* MovementTiming.swift in Sources */ = {isa = PBXBuildFile; fileRef = 5956DD731E5551C014950E65 /* MovementTiming.swift */; };
 		22113A8279C4CE646779A26D /* iulian.webp in Resources */ = {isa = PBXBuildFile; fileRef = 16EDB23CA552311D34D8B188 /* iulian.webp */; };
 		2219AE8253847A3B5DE9AB77 /* SeedVersion.swift in Sources */ = {isa = PBXBuildFile; fileRef = 907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */; };
 		22A8AD7876D6B713C2E13474 /* HydrationGaugeTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 687976EA3575F155FEE0785C /* HydrationGaugeTests.swift */; };
@@ -99,6 +100,7 @@
 		83AB7CCD99EF5B25A515E9C3 /* TrainingPlanParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 823ED9B3330B37611FD366A2 /* TrainingPlanParityTests.swift */; };
 		85115AA3394E20C0EA86F5C0 /* MealTimingEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 7601EE1C7E9A7AE48F0E81C6 /* MealTimingEngine.swift */; };
 		85B073879670F688F87A0EFC /* ExerciseGuidance.swift in Sources */ = {isa = PBXBuildFile; fileRef = 72CADC4FA2048B67040C2FE7 /* ExerciseGuidance.swift */; };
+		86E6D17FA20AC0B2746E49B6 /* movement-timing.json in Resources */ = {isa = PBXBuildFile; fileRef = DF3229376BCA95C5375794DC /* movement-timing.json */; };
 		886A675690E6502EB8A62CF9 /* EnergyEngineTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */; };
 		8877B70250BE84F4417ADD50 /* OrbitGPXService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6681DF046ED9381B422E42E /* OrbitGPXService.swift */; };
 		8919266C5A4F0701D86E6C23 /* FitnessBrainEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A775E9746F75FF485AA68B /* FitnessBrainEngine.swift */; };
@@ -311,6 +313,7 @@
 		53A12AB559BCB32B420CC5D9 /* MarathonCampaignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonCampaignView.swift; sourceTree = "<group>"; };
 		57258905C757B4949A5AC5C6 /* ProgressComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressComparisonView.swift; sourceTree = "<group>"; };
 		57E7828E22BB80EC824A0F3D /* HealthHistoryReader.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HealthHistoryReader.swift; sourceTree = "<group>"; };
+		5956DD731E5551C014950E65 /* MovementTiming.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MovementTiming.swift; sourceTree = "<group>"; };
 		59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainTargets.swift; sourceTree = "<group>"; };
 		5B6D7EBC10E6E7795AFC4F41 /* OrbitIntegrations.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitIntegrations.swift; sourceTree = "<group>"; };
 		5C5DD87DC31AEF8E5A0A6905 /* APEXConfiguration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXConfiguration.swift; sourceTree = "<group>"; };
@@ -410,6 +413,7 @@
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
 		DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchive.swift; sourceTree = "<group>"; };
+		DF3229376BCA95C5375794DC /* movement-timing.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "movement-timing.json"; sourceTree = "<group>"; };
 		E6A1160480AC757FD1D1C9DE /* MealMemory.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MealMemory.swift; sourceTree = "<group>"; };
 		E6EA5B3B7A38534303CC9A5B /* TrainingCalendarView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingCalendarView.swift; sourceTree = "<group>"; };
 		E8FA24DAE259E669A2244F79 /* EnergyEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = EnergyEngineTests.swift; sourceTree = "<group>"; };
@@ -711,6 +715,7 @@
 				F60F21F488DA31129354FF26 /* Localizable.strings */,
 				7D5BCB187A0A27A97258B96D /* Localizable.strings */,
 				859EB7961437751182D5344E /* matthew.png */,
+				DF3229376BCA95C5375794DC /* movement-timing.json */,
 				824BF923D9B1FDA73E7A7B31 /* Hydration */,
 				AD6202F7E305DB4FFDCF5464 /* MuscleMap */,
 			);
@@ -820,6 +825,7 @@
 				E6A1160480AC757FD1D1C9DE /* MealMemory.swift */,
 				13557A81963363E286A7705D /* MealProtocolGuide.swift */,
 				7601EE1C7E9A7AE48F0E81C6 /* MealTimingEngine.swift */,
+				5956DD731E5551C014950E65 /* MovementTiming.swift */,
 				FD93B4562F2F4883871B64E4 /* PlayerTimeline.swift */,
 				9ED7764E8EA64DAD55DEF65F /* ProgressComparison.swift */,
 				393564C9A7237B2AE2880001 /* ProgressionEngine.swift */,
@@ -1046,6 +1052,7 @@
 				A1D8E7517E94A16EF7750243 /* legs_bump.jpg in Resources */,
 				0327CDA9CA16B4BC55580464 /* legs_dif.jpg in Resources */,
 				8D6FC92C25B4152CC1030D1C /* matthew.png in Resources */,
+				86E6D17FA20AC0B2746E49B6 /* movement-timing.json in Resources */,
 				1FAE544A531915497096AEE3 /* musclemap.html in Resources */,
 				C643CC39DC869012CA364630 /* torso_bump.jpg in Resources */,
 				04CC69598F75B23B55D84281 /* torso_dif.jpg in Resources */,
@@ -1134,6 +1141,7 @@
 				9D19D5CC5A3E3B9A185071CD /* MealMemory.swift in Sources */,
 				F31B84CD7B344A4CE1A5591B /* MealProtocolGuide.swift in Sources */,
 				85115AA3394E20C0EA86F5C0 /* MealTimingEngine.swift in Sources */,
+				218AAD6781C51180219C39F5 /* MovementTiming.swift in Sources */,
 				42ED8A7CB4EA88FE1941CF09 /* MuscleMapAssetHandler.swift in Sources */,
 				B71C19C7366753A84F73BE7C /* MuscleMapCard.swift in Sources */,
 				9EEED55F9769ADB756BDB9AF /* MuscleMapView.swift in Sources */,

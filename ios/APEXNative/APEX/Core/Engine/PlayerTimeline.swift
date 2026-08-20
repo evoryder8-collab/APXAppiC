@@ -103,15 +103,16 @@ enum PlayerTimeline {
                         repDuration: repDuration(exercise),
                         timed: timedSeconds(exercise)
                     ))
-                    /* A split squat needs a moment to reset the rear foot;
-                       other per-side work does not. */
-                    if side == .left,
-                       sideIndex < sides.count - 1,
-                       exercise.name.range(
-                           of: "(?:bulgarian|split[\\s-]?squat)",
-                           options: [.regularExpression, .caseInsensitive]
-                       ) != nil {
-                        blocks.append(.sideSwitch(exerciseIndex: index, setNumber: setNumber, duration: 3))
+                    /* Every single-sided movement needs the switch, not only
+                       the ones whose name happens to say "split squat", and it
+                       lasts as long as the movement makes it last. */
+                    if side == .left, sideIndex < sides.count - 1 {
+                        let timing = MovementTiming.movement(named: exercise.name)
+                        blocks.append(.sideSwitch(
+                            exerciseIndex: index,
+                            setNumber: setNumber,
+                            duration: MovementTiming.sideSwitchSeconds(for: timing)
+                        ))
                     }
                 }
 
@@ -129,11 +130,20 @@ enum PlayerTimeline {
             }
 
             let next = index + 1 < plan.exercises.count ? plan.exercises[index + 1] : nil
-            if let next, exercise.restSeconds > 0 {
+            if let next {
+                /* The finished exercise still needs its recovery and the next
+                   one needs setting up, and those overlap rather than stack.
+                   Reusing the between-sets rest ignored the setup entirely: a
+                   ninety second hip thrust does not fit inside a sixty second
+                   rest. */
                 blocks.append(.rest(
                     exerciseIndex: index,
                     afterSet: planned.plannedSets,
-                    duration: exercise.restSeconds,
+                    duration: MovementTiming.transitionSeconds(
+                        finished: MovementTiming.movement(named: exercise.name),
+                        next: MovementTiming.movement(named: next.exercise.name),
+                        authoredRest: exercise.restSeconds
+                    ),
                     nextLabel: next.name,
                     captureLoad: false,
                     reviewExercise: true
