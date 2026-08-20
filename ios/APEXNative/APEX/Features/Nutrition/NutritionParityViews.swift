@@ -75,6 +75,12 @@ struct NutritionGlanceCard: View {
                             HStack(spacing: 7) {
                                 Text(language.text("Nutrition at a glance"))
                                     .font(APEXFont.display(26))
+                                    /* Romanian and Thai run longer than the
+                                       English this was sized for. Shrinking a
+                                       little is better than wrapping, and far
+                                       better than hyphenating a title. */
+                                    .lineLimit(1)
+                                    .minimumScaleFactor(0.72)
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundStyle(APEXColor.amberDeep)

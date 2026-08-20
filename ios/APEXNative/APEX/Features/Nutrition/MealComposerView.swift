@@ -108,9 +108,9 @@ struct MealComposerView: View {
 
                     if draft.items.isEmpty {
                         ContentUnavailableView(
-                            "This meal is empty",
+                            language.text("This meal is empty"),
                             systemImage: "fork.knife.circle",
-                            description: Text("Search Food Memory, scan a barcode, or apply a saved preset.")
+                            description: Text(language.text("Search Food Memory, scan a barcode, or apply a saved preset."))
                         )
                         .padding(.vertical, 38)
                     } else {

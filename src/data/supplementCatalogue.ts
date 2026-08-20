@@ -67,7 +67,7 @@ export const SUPPLEMENT_CATEGORIES = [
 export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   // ---------------------------------------------------------- FOUNDATIONAL
   { id: 'creatine_monohydrate', name: 'Creatine Monohydrate', aliases: ['creatine', 'creatin', 'kreatine', 'mono'], category: 'Foundational', doses: [3000, 5000, 10000], unit: 'mg', evidence: 'strong',
-    summary: 'The most replicated performance supplement there is. Raises muscle phosphocreatine, which adds reps at high intensity and, over time, size and strength. Monohydrate is the studied form; the expensive ones are not better.', timing: 'Any time' },
+    summary: 'The most replicated performance supplement there is. Raises muscle phosphocreatine, which adds reps at high intensity and, over time, size and strength. Monohydrate is the studied form, and the exotic ones such as HCl or buffered are not better than it. Purity is a separate question: a Creapure mark certifies tested limits on manufacturing by-products, whoever packs it.', timing: 'Any time' },
   { id: 'whey_protein', name: 'Whey Protein', aliases: ['whey', 'protein powder', 'protein'], category: 'Foundational', doses: [20, 25, 30, 40], unit: 'g', evidence: 'strong',
     summary: 'A convenient way to reach a protein target, not a magic one. What matters is total daily protein; powder is simply an easy way to get there.', timing: 'Any time' },
   { id: 'caffeine', name: 'Caffeine', aliases: ['coffee', 'kafeine', 'cafeine'], category: 'Performance', doses: [100, 200, 300, 400], unit: 'mg', evidence: 'strong',

@@ -288,9 +288,6 @@ struct SimpleHomeView: View {
                 Text(language.format("Today, %@.", profile?.displayName.components(separatedBy: " ").first ?? "APEX"))
                     .font(APEXFont.display(31))
                     .minimumScaleFactor(0.8)
-                Text("Only what matters. One tap at a time.")
-                    .font(APEXFont.body(13, weight: .medium))
-                    .foregroundStyle(APEXColor.secondaryInk)
             }
             Spacer(minLength: 4)
             CompletionRing(value: completion)
@@ -1212,8 +1209,12 @@ private struct SupplementQuickSheet: View {
             .listStyle(.plain)
             .scrollContentBackground(.hidden)
             .environment(\.defaultMinListRowHeight, 0)
-            .frame(height: CGFloat(max(1, supplements.count)) * 66)
-            .scrollDisabled(true)
+            /* The height used to grow with the number of supplements and
+               scrolling was switched off, so anyone whose stack ran past the
+               bottom of the sheet could not reach the rest of it. It now takes
+               what it needs up to a ceiling, and scrolls beyond that. */
+            .frame(maxHeight: min(CGFloat(max(1, supplements.count)) * 66, 420))
+            .scrollDisabled(false)
 
             Button {
                 showPicker = true
@@ -1753,7 +1754,7 @@ private struct RecoveryMorningCard: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                scoreField("Sleep", text: $sleep)
+                scoreField(language.text("Sleep"), text: $sleep)
                 if source == "athlytic" { scoreField("Recovery", text: $recovery) }
             }
             Text(source == "athlytic" ? "Athlytic’s proprietary score is entered manually; Apple Health context is imported automatically." : "Apple Health sleep context imports automatically. Add the 0–100 score when your watch does not expose one.")
