@@ -3608,3 +3608,16 @@
 /* Water in food facts */
 "WATER" = "น้ำ";
 "W" = "น";
+
+/* Evening reminders */
+"Protein is short today" = "วันนี้โปรตีนยังขาด";
+"%d g to go. %d g tonight is enough." = "เหลืออีก %d ก. คืนนี้ %d ก. ก็พอ";
+"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "ระหว่างที่กำลังลดน้ำหนัก โปรตีนคือสิ่งที่ทำให้น้ำหนักที่หายไปมาจากไขมัน ไม่ใช่กล้ามเนื้อ";
+"Protein is the one target worth closing even on a busy day." = "โปรตีนคือเป้าหมายเดียวที่ควรทำให้ครบ แม้ในวันที่ยุ่ง";
+"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "คุณขาดอยู่ %d ก. อย่าพยายามชดเชยทั้งหมดในคราวเดียว มื้อเดียวใช้ได้ราว %d ก. เพื่อสร้างกล้ามเนื้อ ส่วนที่เหลือถูกเผาเป็นพลังงานเสียมากกว่า กินราว %d ก. ตอนนี้ แล้วพรุ่งนี้เริ่มต้นตรงเป้า ไม่ใช่ตามหลัง";
+"Creatine not logged" = "ยังไม่ได้บันทึกครีเอทีน";
+"It works by staying topped up. Today still counts." = "มันได้ผลเพราะความต่อเนื่อง วันนี้ยังทันอยู่";
+"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "ครีเอทีนสะสมในกล้ามเนื้อภายในไม่กี่สัปดาห์ และคงอยู่ตราบที่คุณกินต่อเนื่อง ความสม่ำเสมอจึงสำคัญกว่าปริมาณในครั้งเดียว";
+"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "ขาดหนึ่งวันแทบไม่เปลี่ยนอะไร แต่ถ้าขาดเกือบทุกวัน ก็เท่ากับไม่ได้กินเลย ไม่ต้องกินเพิ่มเป็นสองเท่าในวันพรุ่งนี้ กินปริมาณปกติแล้วทำต่อไป";
+"Today only" = "เฉพาะวันนี้";
+"Nothing to flag today." = "วันนี้ไม่มีอะไรต้องแจ้ง";

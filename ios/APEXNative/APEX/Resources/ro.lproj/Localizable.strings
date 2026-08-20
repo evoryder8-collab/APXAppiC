@@ -3608,3 +3608,16 @@
 /* Water in food facts */
 "WATER" = "APĂ";
 "W" = "A";
+
+/* Evening reminders */
+"Protein is short today" = "Azi ești sub proteine";
+"%d g to go. %d g tonight is enough." = "Mai ai %d g. %d g diseară sunt de ajuns.";
+"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "Cât timp slăbești, proteina e cea care face ca pierderea să vină din grăsime, nu din mușchi.";
+"Protein is the one target worth closing even on a busy day." = "Proteina e singura țintă care merită închisă chiar și într-o zi aglomerată.";
+"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "Ești cu %d g sub țintă. Nu încerca să recuperezi tot dintr-o dată: o singură masă poate folosi în jur de %d g pentru mușchi, iar restul se arde mai degrabă pentru energie. Ia cam %d g acum și începe mâine pe țintă, nu în urmă.";
+"Creatine not logged" = "Creatina nu e bifată";
+"It works by staying topped up. Today still counts." = "Funcționează prin constanță. Ziua de azi încă contează.";
+"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "Creatina se acumulează în mușchi în câteva săptămâni și rămâne acolo cât timp o iei, așa că regularitatea contează mai mult decât orice doză singulară.";
+"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "O zi ratată schimbă foarte puțin. Ratate majoritatea zilelor, e la fel ca și cum nu ai lua deloc. Nu e nevoie să dublezi mâine: ia doza obișnuită și mergi mai departe.";
+"Today only" = "Doar azi";
+"Nothing to flag today." = "Nimic de semnalat azi.";

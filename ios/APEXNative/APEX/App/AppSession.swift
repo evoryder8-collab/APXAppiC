@@ -322,6 +322,7 @@ final class AppSession {
         )
 
         data.loggedMeals.insert(localMeal, at: 0)
+        await refreshNudges()
         data.loggedFoodEntries.insert(localEntry, at: 0)
         data.mealLogs.append(check)
         recalculateLocalStructuredDay(day, userID: profile.userID)
@@ -353,6 +354,7 @@ final class AppSession {
             data.supplementLogs.append(row)
             await persistUpsert(row, table: "supplement_logs", onConflict: "user_id,date,supplement_id")
         }
+        await refreshNudges()
     }
 
     /// Adds a supplement to the plan from wherever the user happens to be.
@@ -398,6 +400,35 @@ final class AppSession {
         guard let index = data.supplements.firstIndex(where: { $0.id == supplement.id }) else { return }
         data.supplements[index].archived = false
         await persistUpsert(data.supplements[index], table: "supplements", onConflict: "id")
+    }
+
+    /// Re-evaluate today's reminders from live data.
+    ///
+    /// Called on open and after anything that could change the answer, because
+    /// a local notification is scheduled ahead of time and would otherwise fire
+    /// on a stale reading. Being told you are short on protein an hour after
+    /// hitting the target is the failure people actually notice.
+    func refreshNudges() async {
+        guard let profile else { return }
+        let today = Date().apexDateKey
+        let logs = data.activityLogs.filter { $0.date == today }
+        let targets = EnergyEngine.targets(profile: profile, logs: logs, catalog: data.activityTypes)
+        let consumed = data.loggedMeals
+            .filter { $0.localDate == today }
+            .reduce(0.0) { $0 + $1.totalProteinG }
+        let creatine = activeSupplements.first { $0.name.lowercased().contains("creatine") }
+        let creatineLogged = creatine.map { supplement in
+            data.supplementLogs.contains { $0.date == today && $0.supplementID == supplement.id }
+        } ?? false
+
+        await NudgeCenter.shared.refresh(
+            proteinConsumedG: consumed,
+            proteinTargetG: Double(targets.proteinG),
+            goal: profile.goal.rawValue,
+            bodyweightKG: profile.weightKG,
+            creatineInStack: creatine != nil,
+            creatineLoggedToday: creatineLogged
+        )
     }
 
     /// What the plan should show: everything not retired.
@@ -875,6 +906,7 @@ final class AppSession {
         }
         data.loggedMeals.removeAll { $0.id == draft.id }
         data.loggedMeals.insert(localMeal, at: 0)
+        await refreshNudges()
         data.loggedFoodEntries.removeAll { $0.mealID == draft.id }
         data.loggedFoodEntries.insert(contentsOf: localEntries, at: 0)
         recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
@@ -1258,6 +1290,7 @@ final class AppSession {
         )
 
         data.loggedMeals.insert(localMeal, at: 0)
+        await refreshNudges()
         data.loggedFoodEntries.insert(localEntry, at: 0)
         recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
         await saveLocalSnapshot()

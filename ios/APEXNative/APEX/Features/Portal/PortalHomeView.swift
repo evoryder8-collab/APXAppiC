@@ -2,6 +2,8 @@ import SwiftUI
 
 struct PortalHomeView: View {
     @Environment(AppSession.self) private var session
+    @State private var nudges = NudgeCenter.shared
+    @State private var showNudges = false
     @State private var language = LanguageState.shared
 
     private var greeting: String {
@@ -24,9 +26,12 @@ struct PortalHomeView: View {
     var body: some View {
         ScrollView {
             LazyVStack(spacing: 16) {
-                APEXTopBar(profile: session.profile) {
-                    session.navigationPath.append(.settings)
-                }
+                APEXTopBar(
+                    profile: session.profile,
+                    onSettings: { session.navigationPath.append(.settings) },
+                    nudges: nudges,
+                    onOpenNudges: { showNudges = true }
+                )
 
                 HStack {
                     PortalModeSwitcher()
@@ -108,6 +113,11 @@ struct PortalHomeView: View {
 .dockClearance()
         }
         .refreshable { await session.refresh() }
+        .sheet(isPresented: $showNudges) {
+            NudgeSheet(nudges: nudges) { showNudges = false }
+                .apexTransientSheet(.fraction(0.62))
+        }
+        .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
     }
 }

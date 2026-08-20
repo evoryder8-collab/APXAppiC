@@ -4,6 +4,8 @@ import UIKit
 
 struct OrbitHomeView: View {
     @Environment(AppSession.self) private var session
+    @State private var nudges = NudgeCenter.shared
+    @State private var showNudges = false
     @State private var location = OrbitLocationManager.shared
     @State private var mapPosition: MapCameraPosition = .userLocation(fallback: .automatic)
     @State private var language = LanguageState.shared
@@ -14,9 +16,12 @@ struct OrbitHomeView: View {
     var body: some View {
         ScrollView {
             VStack(spacing: 18) {
-                APEXTopBar(profile: session.profile) {
-                    session.navigationPath.append(.settings)
-                }
+                APEXTopBar(
+                    profile: session.profile,
+                    onSettings: { session.navigationPath.append(.settings) },
+                    nudges: nudges,
+                    onOpenNudges: { showNudges = true }
+                )
 
                 VStack(alignment: .leading, spacing: 7) {
                     Text(language.text("APEX ORBIT · RUN INTELLIGENCE"))
@@ -179,6 +184,11 @@ struct OrbitHomeView: View {
         }
         .navigationTitle("Orbit")  // brand name
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showNudges) {
+            NudgeSheet(nudges: nudges) { showNudges = false }
+                .apexTransientSheet(.fraction(0.62))
+        }
+        .task { await session.refreshNudges() }
         .onAppear {
             location.requestLocation()
             if let ownerID = session.profile?.userID { location.restoreDraft(for: ownerID) }

@@ -3,6 +3,8 @@ import SwiftUI
 struct SimpleHomeView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
+    @State private var nudges = NudgeCenter.shared
+    @State private var showNudges = false
     @State private var showChecklist = false
     @State private var showWorkout = false
     @State private var workoutIsLite = false
@@ -115,9 +117,12 @@ struct SimpleHomeView: View {
     var body: some View {
         VStack(spacing: 8) {
             VStack(spacing: 8) {
-                APEXTopBar(profile: profile) {
-                    session.navigationPath.append(.settings)
-                }
+                APEXTopBar(
+                    profile: profile,
+                    onSettings: { session.navigationPath.append(.settings) },
+                    nudges: nudges,
+                    onOpenNudges: { showNudges = true }
+                )
 
                 HStack {
                     PortalModeSwitcher()
@@ -207,6 +212,11 @@ struct SimpleHomeView: View {
             .refreshable { await session.refresh() }
         }
         .apexEdgeDateSwipe(onPrevious: { changeDate(-1) }, onNext: { changeDate(1) })
+        .sheet(isPresented: $showNudges) {
+            NudgeSheet(nudges: nudges) { showNudges = false }
+                .apexTransientSheet(.fraction(0.62))
+        }
+        .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showWorkout) {
             if let todayProgramDay {

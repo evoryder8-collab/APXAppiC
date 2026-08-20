@@ -112,6 +112,10 @@ struct APEXMark: View {
 struct APEXTopBar: View {
     var profile: Profile?
     var onSettings: (() -> Void)?
+    /* The bell appears only when there is something to read. An always-present
+       empty bell trains people to stop looking at it. */
+    var nudges: NudgeCenter?
+    var onOpenNudges: (() -> Void)?
 
     var body: some View {
         HStack(spacing: 13) {
@@ -128,6 +132,16 @@ struct APEXTopBar: View {
                     .padding(.horizontal, 13)
                     .padding(.vertical, 9)
                     .background(.white.opacity(0.55), in: Capsule())
+            }
+            if let nudges, !nudges.pending.isEmpty {
+                Button(action: { onOpenNudges?() }) {
+                    Image(systemName: nudges.unreadCount > 0 ? "bell.badge.fill" : "bell")
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(nudges.unreadCount > 0 ? APEXColor.amber : APEXColor.secondaryInk)
+                        .frame(width: 40, height: 40)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(LanguageState.shared.text("Reminders"))
             }
             Button(action: { onSettings?() }) {
                 Image(systemName: "slider.horizontal.3")
