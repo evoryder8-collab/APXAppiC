@@ -171,6 +171,41 @@ final class LocalisationCoverageTests: XCTestCase {
         }
     }
 
+    /// A translated format string must take exactly the arguments the original does.
+    ///
+    /// This is the one class of translation error that is not merely ugly. The
+    /// caller passes an Int where the format says %d; if a translation drops
+    /// that placeholder the argument is ignored, and if it invents one the
+    /// formatter reads memory that was never passed. Word order may move freely,
+    /// so this compares the multiset of specifiers rather than the sequence.
+    func testFormatStringsTakeTheSameArguments() {
+        /* No space flag: "15% calorie" would otherwise read as a "% c"
+           specifier, and a percentage written in prose is not a placeholder.
+           Nothing in this app formats with the space flag. */
+        let specifier = try! NSRegularExpression(
+            pattern: "%(?:[-+#0]*)(?:[0-9]+)?(?:\\.[0-9]+)?[@dfsxXeEgGcup%]"
+        )
+        func specifiers(_ text: String) -> [String] {
+            let range = NSRange(text.startIndex..., in: text)
+            return specifier.matches(in: text, range: range)
+                .compactMap { Range($0.range, in: text).map { String(text[$0]) } }
+                /* A literal percent consumes no argument. */
+                .filter { $0 != "%%" }
+                .sorted()
+        }
+        for language in languages {
+            guard let table = table(language) else { continue }
+            for (key, value) in table {
+                let expected = specifiers(key)
+                guard !expected.isEmpty else { continue }
+                XCTAssertEqual(
+                    specifiers(value), expected,
+                    "\(language) changes the arguments of \"\(key)\": \(value)"
+                )
+            }
+        }
+    }
+
     /// A language may not be offered to users until its table is complete.
     ///
     /// This is the check that stops the readiness flag from being a claim. A
