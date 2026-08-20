@@ -282,9 +282,13 @@ struct Supplement: Codable, Identifiable, Hashable, Sendable {
     var groupLabel: String
     var trainingDaysOnly: Bool
     var sortOrder: Int
+    /* Retired from the plan without destroying the history of having taken it.
+       supplement_logs cascades on delete, so an actual delete would erase
+       months of check-offs the moment somebody tidied their stack. */
+    var archived: Bool = false
 
     enum CodingKeys: String, CodingKey {
-        case id, name, dose, timing
+        case id, name, dose, timing, archived
         case userID = "user_id"
         case clockTime = "clock_time"
         case offsetMinutes = "offset_min"

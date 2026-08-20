@@ -381,16 +381,28 @@ final class AppSession {
         await persistUpsert(row, table: "supplements", onConflict: "id")
     }
 
-    /// Removes a supplement from the plan for good.
+    /// Retires a supplement from the plan, keeping what it recorded.
     ///
-    /// The database cascades supplement_logs on delete, so the record of
-    /// having taken it goes with it. Mirroring that locally rather than
-    /// leaving orphaned logs behind keeps the cache honest about what the
-    /// server now holds.
-    func deleteSupplement(_ supplement: Supplement) async {
-        data.supplements.removeAll { $0.id == supplement.id }
-        data.supplementLogs.removeAll { $0.supplementID == supplement.id }
-        await persistDelete(table: "supplements", id: supplement.id)
+    /// supplement_logs cascades on delete, so removing the row would take
+    /// every past check-off with it. For somebody paying for the app that is
+    /// their data disappearing because they tidied a list, so the row stays
+    /// and simply stops appearing in the plan.
+    func archiveSupplement(_ supplement: Supplement) async {
+        guard let index = data.supplements.firstIndex(where: { $0.id == supplement.id }) else { return }
+        data.supplements[index].archived = true
+        await persistUpsert(data.supplements[index], table: "supplements", onConflict: "id")
+    }
+
+    /// Puts an archived supplement back into the plan.
+    func restoreSupplement(_ supplement: Supplement) async {
+        guard let index = data.supplements.firstIndex(where: { $0.id == supplement.id }) else { return }
+        data.supplements[index].archived = false
+        await persistUpsert(data.supplements[index], table: "supplements", onConflict: "id")
+    }
+
+    /// What the plan should show: everything not retired.
+    var activeSupplements: [Supplement] {
+        data.supplements.filter { !$0.archived }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
     func updateDailyLog(_ row: DailyLog) async {

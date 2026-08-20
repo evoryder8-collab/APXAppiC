@@ -32,7 +32,7 @@ struct NutritionView: View {
 
     /* Mirrors the web's collapsed supplement row: "3/7 · 17 Aug" */
     private var supplementSummary: String {
-        let total = session.data.supplements.count
+        let total = session.activeSupplements.count
         let done = session.data.supplementLogs.filter { $0.date == dayKey }.count
         let formatter = DateFormatter()
         formatter.dateFormat = "d MMM"
@@ -632,7 +632,7 @@ private struct SupplementTimeline: View {
     let date: Date
 
     private var groups: [(String, [Supplement])] {
-        Dictionary(grouping: session.data.supplements, by: \.groupLabel)
+        Dictionary(grouping: session.activeSupplements, by: \.groupLabel)
             .map { ($0.key, $0.value.sorted { $0.sortOrder < $1.sortOrder }) }
             .sorted { ($0.1.first?.sortOrder ?? 0) < ($1.1.first?.sortOrder ?? 0) }
     }

@@ -39,7 +39,7 @@ struct SimpleHomeView: View {
     private var waterDone: Bool { waterL >= waterTargetL * 0.9 }
 
     private var supplementGroups: [SimpleSupplementGroup] {
-        let grouped = Dictionary(grouping: session.data.supplements, by: \.groupLabel)
+        let grouped = Dictionary(grouping: session.activeSupplements, by: \.groupLabel)
         return grouped.map { label, items in
             let sorted = items.sorted { $0.sortOrder < $1.sortOrder }
             return SimpleSupplementGroup(
@@ -1146,28 +1146,17 @@ private struct SupplementQuickSheet: View {
     let date: Date
     var onClose: () -> Void = {}
 
-    @State private var adding = false
-    @State private var newName = ""
-    @State private var newDose = ""
-    @State private var newGroup = ""
+    @State private var showPicker = false
     @State private var pendingDelete: Supplement?
-    @FocusState private var nameFocused: Bool
 
     private var supplements: [Supplement] {
-        session.data.supplements.sorted { $0.sortOrder < $1.sortOrder }
+        session.activeSupplements
     }
 
     private var taken: Int {
-        session.data.supplements.filter { supplement in
+        session.activeSupplements.filter { supplement in
             session.data.supplementLogs.contains { $0.date == date.apexDateKey && $0.supplementID == supplement.id }
         }.count
-    }
-
-    /* Whichever group the last item belongs to is the likeliest one for the
-       next, which saves typing it again for the common case of adding two or
-       three at once. */
-    private var suggestedGroup: String {
-        supplements.last?.groupLabel ?? "Daily"
     }
 
     var body: some View {
@@ -1176,7 +1165,7 @@ private struct SupplementQuickSheet: View {
         VStack(alignment: .leading, spacing: 14) {
             APEXPopoverHeader(
                 title: "Supplement stack",
-                subtitle: "\(taken) of \(session.data.supplements.count) taken",
+                subtitle: "\(taken) of \(session.activeSupplements.count) taken",
                 onClose: onClose
             )
 
@@ -1211,11 +1200,11 @@ private struct SupplementQuickSheet: View {
                     .listRowBackground(Color.clear)
                     .listRowSeparator(.hidden)
                     .swipeActions(edge: .trailing, allowsFullSwipe: false) {
-                        /* Not a full swipe, and confirmed: this removes the
-                           supplement from the plan permanently and the record
-                           of having taken it goes with it. */
+                        /* Retires it from the plan and keeps the history.
+                           Not a full swipe, so it cannot happen by accident
+                           while scrolling a list you check off every morning. */
                         Button(role: .destructive) { pendingDelete = supplement } label: {
-                            Label("Delete", systemImage: "trash")
+                            Label("Remove", systemImage: "archivebox")
                         }
                     }
                 }
@@ -1226,49 +1215,25 @@ private struct SupplementQuickSheet: View {
             .frame(height: CGFloat(max(1, supplements.count)) * 66)
             .scrollDisabled(true)
 
-            if adding {
-                VStack(spacing: 8) {
-                    TextField("Name", text: $newName)
-                        .textInputAutocapitalization(.words)
-                        .focused($nameFocused)
-                    HStack(spacing: 8) {
-                        TextField("Dose", text: $newDose)
-                        TextField("When", text: $newGroup)
-                    }
+            Button {
+                showPicker = true
+            } label: {
+                Label("Add", systemImage: "plus")
+                    .font(APEXFont.body(13, weight: .bold))
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.bordered)
+            .tint(APEXColor.green)
+        }
+        .sheet(isPresented: $showPicker) {
+            SupplementPickerSheet { entry, dose in
+                Task {
+                    await session.addSupplement(
+                        name: entry.name,
+                        dose: entry.formattedDose(dose),
+                        groupLabel: entry.timing
+                    )
                 }
-                .font(APEXFont.body(13, weight: .semibold))
-                .textFieldStyle(.plain)
-                .padding(13)
-                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 15))
-
-                HStack(spacing: 8) {
-                    Button("Cancel") { resetDraft() }
-                        .buttonStyle(.bordered)
-                    Button("Save") {
-                        Task {
-                            await session.addSupplement(
-                                name: newName,
-                                dose: newDose,
-                                groupLabel: newGroup.isEmpty ? suggestedGroup : newGroup
-                            )
-                            resetDraft()
-                        }
-                    }
-                    .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.green))
-                    .disabled(newName.trimmingCharacters(in: .whitespaces).isEmpty)
-                }
-            } else {
-                Button {
-                    newGroup = suggestedGroup
-                    adding = true
-                    nameFocused = true
-                } label: {
-                    Label("Add", systemImage: "plus")
-                        .font(APEXFont.body(13, weight: .bold))
-                        .frame(maxWidth: .infinity)
-                }
-                .buttonStyle(.bordered)
-                .tint(APEXColor.green)
             }
         }
         .confirmationDialog(
@@ -1279,25 +1244,18 @@ private struct SupplementQuickSheet: View {
             ),
             titleVisibility: .visible
         ) {
-            Button("Delete for good", role: .destructive) {
+            Button("Remove", role: .destructive) {
                 if let supplement = pendingDelete {
-                    Task { await session.deleteSupplement(supplement) }
+                    Task { await session.archiveSupplement(supplement) }
                 }
                 pendingDelete = nil
             }
             Button("Keep", role: .cancel) { pendingDelete = nil }
         } message: {
-            Text("This also removes the record of having taken it.")
+            Text("It stops appearing in your plan. Everything you have already logged is kept.")
         }
     }
 
-    private func resetDraft() {
-        adding = false
-        newName = ""
-        newDose = ""
-        newGroup = ""
-        nameFocused = false
-    }
 }
 
 private struct StatsQuickSheet: View {
@@ -1835,5 +1793,143 @@ private struct SimpleTextButtonStyle: ButtonStyle {
             .background(.white.opacity(configuration.isPressed ? 0.42 : 0.62), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 16, style: .continuous).stroke(.white.opacity(0.85)))
             .scaleEffect(configuration.isPressed ? 0.985 : 1)
+    }
+}
+
+/*
+ * Picking a supplement from the catalogue instead of typing one.
+ *
+ * Typing a name in by hand meant remembering how it is spelled and guessing a
+ * dose, and produced a stack full of near-duplicates: "Ashwaganda", "ashwa",
+ * "Ashwagandha KSM-66". The catalogue gives one canonical name per supplement,
+ * the sizes it is actually sold in, and a straight answer about how well
+ * supported it is -- including for the ones that are not.
+ */
+private struct SupplementPickerSheet: View {
+    @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+    @State private var query = ""
+    @State private var expanded: String?
+    @State private var chosenDose: [String: Double] = [:]
+    let onAdd: (SupplementCatalogue.Entry, Double) -> Void
+
+    private var results: [SupplementCatalogue.Entry] {
+        SupplementCatalogue.search(query)
+    }
+
+    var body: some View {
+        NavigationStack {
+            List {
+                ForEach(results) { entry in
+                    VStack(alignment: .leading, spacing: 9) {
+                        HStack(spacing: 8) {
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text(entry.name).font(APEXFont.body(15, weight: .bold))
+                                Text(entry.category)
+                                    .font(APEXFont.body(10))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                            }
+                            /* The evidence is behind an icon rather than on the
+                               row, so the list stays scannable, but it is one
+                               tap away rather than absent. */
+                            Button {
+                                expanded = expanded == entry.id ? nil : entry.id
+                            } label: {
+                                Image(systemName: expanded == entry.id
+                                      ? "info.circle.fill" : "info.circle")
+                                    .font(.system(size: 17))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel(language.format("What %@ does", entry.name))
+                            Spacer(minLength: 0)
+                        }
+
+                        if expanded == entry.id {
+                            VStack(alignment: .leading, spacing: 6) {
+                                Text(entry.evidenceLabel)
+                                    .font(APEXFont.mono(9))
+                                    .tracking(1.1)
+                                    .foregroundStyle(evidenceColor(entry.evidence))
+                                Text(entry.summary)
+                                    .font(APEXFont.body(12))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .padding(11)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 13))
+                        }
+
+                        /* Sizes these are actually sold and studied in, so a
+                           stack records 600 mg of Alpha-GPC rather than "some". */
+                        HStack(spacing: 7) {
+                            ForEach(entry.doses, id: \.self) { dose in
+                                let selected = (chosenDose[entry.id] ?? entry.doses.first) == dose
+                                Button {
+                                    chosenDose[entry.id] = dose
+                                } label: {
+                                    Text(entry.formattedDose(dose))
+                                        .font(APEXFont.mono(10))
+                                        .padding(.horizontal, 10)
+                                        .padding(.vertical, 7)
+                                        .background(
+                                            selected ? APEXColor.green.opacity(0.16) : .white.opacity(0.55),
+                                            in: Capsule()
+                                        )
+                                        .overlay(Capsule().stroke(
+                                            selected ? APEXColor.green.opacity(0.5) : APEXColor.ink.opacity(0.07)
+                                        ))
+                                        .foregroundStyle(selected ? APEXColor.green : APEXColor.secondaryInk)
+                                }
+                                .buttonStyle(.plain)
+                            }
+                            Spacer(minLength: 0)
+                            Button {
+                                onAdd(entry, chosenDose[entry.id] ?? entry.doses.first ?? 0)
+                                dismiss()
+                            } label: {
+                                Text(language.text("Add"))
+                                    .font(APEXFont.body(12, weight: .bold))
+                                    .padding(.horizontal, 15)
+                                    .padding(.vertical, 7)
+                                    .background(APEXColor.green, in: Capsule())
+                                    .foregroundStyle(.white)
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                    .padding(.vertical, 5)
+                    .listRowBackground(Color.clear)
+                }
+
+                if results.isEmpty {
+                    Text(language.text("Nothing matches that. You can still add it by name from the full editor."))
+                        .font(APEXFont.body(12))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .listRowBackground(Color.clear)
+                }
+            }
+            .listStyle(.plain)
+            .scrollContentBackground(.hidden)
+            .background(APEXBackground())
+            .searchable(text: $query, prompt: Text(language.text("Search supplements")))
+            .navigationTitle(language.text("Add supplement"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(language.text("Close")) { dismiss() }
+                }
+            }
+        }
+    }
+
+    private func evidenceColor(_ evidence: String) -> Color {
+        switch evidence {
+        case "strong": return APEXColor.green
+        case "moderate": return APEXColor.ink
+        case "limited": return APEXColor.secondaryInk
+        default: return .orange
+        }
     }
 }
