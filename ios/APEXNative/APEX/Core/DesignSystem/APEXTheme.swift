@@ -116,22 +116,53 @@ struct APEXTopBar: View {
        empty bell trains people to stop looking at it. */
     var nudges: NudgeCenter?
     var onOpenNudges: (() -> Void)?
+    /* The diamond is the way back to the offer while a trial is running. It is
+       read from the shared store rather than passed in, so no screen can forget
+       to show it and quietly strand someone mid-trial with no way to subscribe. */
+    var onOpenPaywall: (() -> Void)?
 
     var body: some View {
-        HStack(spacing: 13) {
+        HStack(spacing: 10) {
             APEXMark(size: 33)
             Text("APEX")  // brand name, never translated
                 .font(APEXFont.display(20))
                 .tracking(6)
-            Spacer()
+                /* The wordmark never wraps. Adding icons to this bar once broke
+                   it into "APE / X", which is the sort of thing that makes a
+                   whole app look unfinished. */
+                .lineLimit(1)
+                .fixedSize()
+            Spacer(minLength: 6)
             if let profile {
                 Text(profile.displayName.uppercased())
                     .font(APEXFont.mono(10))
                     .tracking(2)
                     .lineLimit(1)
+                    .truncationMode(.tail)
+                    /* The name yields first when the bar is crowded: it is the
+                       one thing here the user already knows. */
+                    .layoutPriority(-1)
                     .padding(.horizontal, 13)
                     .padding(.vertical, 9)
                     .background(.white.opacity(0.55), in: Capsule())
+            }
+            if let days = EntitlementStore.shared.trialDaysRemaining, let onOpenPaywall {
+                Button(action: onOpenPaywall) {
+                    Image(systemName: "diamond.fill")
+                        .font(.system(size: 16, weight: .semibold))
+                        .foregroundStyle(
+                            LinearGradient(
+                                colors: [APEXColor.violet, APEXColor.cyan],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            )
+                        )
+                        .frame(width: 38, height: 40)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(
+                    LanguageState.shared.format("%d days left in your trial", days)
+                )
             }
             if let nudges, !nudges.pending.isEmpty {
                 Button(action: { onOpenNudges?() }) {

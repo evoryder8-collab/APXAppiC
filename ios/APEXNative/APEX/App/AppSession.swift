@@ -35,6 +35,20 @@ final class AppSession {
         bootstrapped = true
 
         #if DEBUG
+        /* Jump straight to a first-run screen for visual checking. Debug only,
+           and it never touches the network, so inspecting the questionnaire
+           does not leave a stray account behind. */
+        if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-apex-preview"),
+           index + 1 < ProcessInfo.processInfo.arguments.count {
+            switch ProcessInfo.processInfo.arguments[index + 1] {
+            case "welcome": route = .welcome
+            case "induction": route = .induction
+            case "consent": route = .consent
+            default: route = .welcome
+            }
+            bootstrapped = true
+            return
+        }
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") {
             /* Preferences outlive a relaunch, so one test could otherwise hand
                the next a screen with different sections open. Start every run
@@ -73,7 +87,9 @@ final class AppSession {
             }
         }
 
-        route = .persona
+        /* No session: the public front door, not the portrait wall. The four
+           bespoke accounts reach their portraits from a link on it. */
+        route = .welcome
     }
 
     func choose(_ persona: Persona) {
@@ -87,26 +103,99 @@ final class AppSession {
     }
 
     func signIn(email: String, password: String) async {
-        guard let expected = selectedPersona else { return }
         isBusy = true
         defer { isBusy = false }
         do {
             let userID = try await service.signIn(email: email, password: password)
             try await refreshDashboard(expectedUserID: userID)
-            guard let actual = data.profile?.persona else {
-                throw APEXServiceError.configurationMissing
+            /* The portrait entrance promises a particular person, so it still
+               checks. The public email door promises nothing and skips it. */
+            if let expected = selectedPersona {
+                guard let actual = data.profile?.persona else {
+                    throw APEXServiceError.configurationMissing
+                }
+                guard actual == expected else {
+                    try await service.signOut()
+                    data = .empty
+                    throw APEXServiceError.personaMismatch(expected: expected, actual: actual)
+                }
             }
-            guard actual == expected else {
-                try await service.signOut()
-                data = .empty
-                throw APEXServiceError.personaMismatch(expected: expected, actual: actual)
+            if let persona = data.profile?.persona {
+                defaults.set(persona.rawValue, forKey: "apex.lastPersona")
             }
-            defaults.set(actual.rawValue, forKey: "apex.lastPersona")
-            route = .portal
+            route = data.profile == nil ? .induction : .portal
             await startRealtimeSync()
         } catch {
             alertMessage = error.localizedDescription
         }
+    }
+
+    /// Create an account, then send it straight into the questionnaire: there
+    /// is nothing to show a new account until it has answered.
+    func signUp(email: String, password: String) async {
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            _ = try await service.signUp(email: email, password: password)
+            selectedPersona = nil
+            data = .empty
+            route = .induction
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    func signInWithApple(idToken: String, nonce: String) async {
+        isBusy = true
+        defer { isBusy = false }
+        do {
+            let userID = try await service.signInWithApple(idToken: idToken, nonce: nonce)
+            selectedPersona = nil
+            try await refreshDashboard(expectedUserID: userID)
+            /* A returning Apple account already has a profile and goes home. A
+               first-time one has none, and answers the questionnaire instead. */
+            route = data.profile == nil ? .induction : .portal
+            await startRealtimeSync()
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    /// Turn the questionnaire into a profile and a first twelve weeks.
+    func completeInduction(_ input: TrainingInduction.Input) async {
+        isBusy = true
+        defer { isBusy = false }
+        guard let userID = await service.currentUserID() else {
+            alertMessage = "Sign in again to continue."
+            route = .welcome
+            return
+        }
+        do {
+            /* The row is created with the column defaults and only the answers
+               that map onto it, rather than inventing a height and a weight
+               nobody gave. Those are asked for later, in the body profile. */
+            let profile = try await service.createProfileIfNeeded(
+                userID: userID,
+                goal: TrainingInduction.goalColumn(for: input.goal)
+            )
+            data.profile = profile
+
+            let plan = TrainingInduction.generate(userID: userID, input: input)
+            try await service.saveInductionPlan(plan)
+            try await refreshDashboard(expectedUserID: userID)
+            await resolveEntitlements()
+            route = .consent
+        } catch {
+            alertMessage = error.localizedDescription
+        }
+    }
+
+    /// The last step of a first run: permissions have been offered, the trial
+    /// is running, and the app opens for real.
+    func finishOnboarding() async {
+        route = .portal
+        await startRealtimeSync()
+        await refreshNudges()
     }
 
     func signOut() async {
@@ -118,7 +207,7 @@ final class AppSession {
         pendingSyncCount = 0
         navigationPath.removeAll()
         selectedPersona = nil
-        route = .persona
+        route = .welcome
     }
 
     func refreshDashboard(expectedUserID: UUID? = nil) async throws {

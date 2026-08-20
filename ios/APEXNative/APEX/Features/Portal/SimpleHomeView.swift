@@ -5,6 +5,7 @@ struct SimpleHomeView: View {
     @State private var language = LanguageState.shared
     @State private var nudges = NudgeCenter.shared
     @State private var showNudges = false
+    @State private var showPaywall = false
     @State private var showChecklist = false
     @State private var showWorkout = false
     @State private var workoutIsLite = false
@@ -121,7 +122,8 @@ struct SimpleHomeView: View {
                     profile: profile,
                     onSettings: { session.navigationPath.append(.settings) },
                     nudges: nudges,
-                    onOpenNudges: { showNudges = true }
+                    onOpenNudges: { showNudges = true },
+                    onOpenPaywall: { showPaywall = true }
                 )
 
                 HStack {
@@ -212,6 +214,9 @@ struct SimpleHomeView: View {
             .refreshable { await session.refresh() }
         }
         .apexEdgeDateSwipe(onPrevious: { changeDate(-1) }, onNext: { changeDate(1) })
+        .sheet(isPresented: $showPaywall) {
+            PaywallView { showPaywall = false }
+        }
         .sheet(isPresented: $showNudges) {
             NudgeSheet(nudges: nudges) { showNudges = false }
                 .apexTransientSheet(.fraction(0.62))

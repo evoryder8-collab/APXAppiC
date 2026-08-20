@@ -67,10 +67,8 @@ final class EntitlementTests: XCTestCase {
     func testYearlyPricingSavesWhatTheLabelWillClaim() {
         // 9.90 a month is 118.80 a year, against 79 for the yearly plan.
         XCTAssertEqual(Entitlement.price(.premium).yearlySavingPercent, 34)
-        // Coach has no yearly plan yet, so there is no saving to advertise and
-        // no invented figure sitting on a price tag.
-        XCTAssertNil(Entitlement.price(.coach).yearlyRappen)
-        XCTAssertNil(Entitlement.price(.coach).yearlySavingPercent)
+        // 29 a month is 348 a year, against 229 for the yearly plan.
+        XCTAssertEqual(Entitlement.price(.coach).yearlySavingPercent, 34)
     }
 
     func testCoachSeatsAreFreeUpToThreeThenSixFrancsEach() {

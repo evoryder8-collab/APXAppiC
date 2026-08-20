@@ -1,4 +1,5 @@
 import Foundation
+import AuthenticationServices
 import Supabase
 
 actor SupabaseService {
@@ -37,6 +38,26 @@ actor SupabaseService {
         return session.user.id
     }
 
+    /// Create an account with an email and a password.
+    func signUp(email: String, password: String) async throws -> UUID {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let response = try await client.auth.signUp(email: email, password: password)
+        return response.user.id
+    }
+
+    /// Sign in with Apple, using the identity token the system hands back.
+    ///
+    /// Native rather than web based, so the sheet is the one iOS draws and the
+    /// user never leaves the app. The nonce is passed through unhashed because
+    /// Supabase compares it against the hashed copy inside the token.
+    func signInWithApple(idToken: String, nonce: String) async throws -> UUID {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let session = try await client.auth.signInWithIdToken(
+            credentials: OpenIDConnectCredentials(provider: .apple, idToken: idToken, nonce: nonce)
+        )
+        return session.user.id
+    }
+
     func signOut() async throws {
         guard let client else { return }
         await stopRealtime()
@@ -46,6 +67,45 @@ actor SupabaseService {
     func handleAuthCallback(_ url: URL) async throws {
         guard let client else { throw APEXServiceError.configurationMissing }
         _ = try await client.auth.session(from: url)
+    }
+
+    /// Create the profile row for a brand-new account, or return the one that
+    /// is already there.
+    ///
+    /// Only the goal is written. Every other column has a database default, and
+    /// inventing a height and a weight for someone who has not given them would
+    /// put made-up numbers behind every calorie target in the app.
+    func createProfileIfNeeded(userID: UUID, goal: String) async throws -> Profile {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let existing: [Profile] = try await client.from("profile")
+            .select().eq("user_id", value: userID).limit(1).execute().value
+        if let profile = existing.first { return profile }
+
+        struct NewProfile: Encodable {
+            let user_id: UUID
+            let goal: String
+            let trial_started_at: String
+        }
+        let inserted: [Profile] = try await client.from("profile")
+            .insert(NewProfile(
+                user_id: userID,
+                goal: goal,
+                trial_started_at: ISO8601DateFormatter().string(from: .now)
+            ))
+            .select()
+            .execute().value
+        guard let profile = inserted.first else { throw APEXServiceError.configurationMissing }
+        return profile
+    }
+
+    /// Write the generated first twelve weeks.
+    func saveInductionPlan(_ plan: TrainingInduction.GeneratedPlan) async throws {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        /* Ordered deliberately: days reference programmes and exercises
+           reference days, so a partial failure never leaves an orphan row. */
+        try await client.from("programs").upsert(plan.programs, onConflict: "id").execute()
+        try await client.from("program_days").upsert(plan.programDays, onConflict: "id").execute()
+        try await client.from("exercises").upsert(plan.exercises, onConflict: "id").execute()
     }
 
     func loadDashboard() async throws -> DashboardData {

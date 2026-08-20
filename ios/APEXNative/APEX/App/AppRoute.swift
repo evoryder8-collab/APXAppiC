@@ -2,6 +2,12 @@ import Foundation
 
 enum AppRoute: Equatable {
     case launching
+    /// The commercial front door: what a new install opens to.
+    case welcome
+    case emailAuth(signUp: Bool)
+    /// A brand-new account answers these before anything is generated for it.
+    case induction
+    case consent
     case persona
     case login(Persona)
     case portal

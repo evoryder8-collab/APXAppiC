@@ -35,9 +35,8 @@ enum Entitlement {
     /// can reach a price tag.
     struct Price: Equatable, Sendable {
         let monthlyRappen: Int
-        /// Nil where no yearly plan is offered. Coach is monthly only for now:
-        /// inventing a yearly figure to fill the space would put a number on a
-        /// price tag that nobody decided.
+        /// Optional so a tier can be offered monthly only. Both tiers currently
+        /// have a yearly plan at roughly a third off.
         let yearlyRappen: Int?
 
         /// What the yearly plan saves against twelve months, as a whole percent.
@@ -51,7 +50,7 @@ enum Entitlement {
     static func price(_ tier: Tier) -> Price {
         switch tier {
         case .premium: Price(monthlyRappen: 990, yearlyRappen: 7_900)
-        case .coach: Price(monthlyRappen: 2_900, yearlyRappen: nil)
+        case .coach: Price(monthlyRappen: 2_900, yearlyRappen: 22_900)
         }
     }
 

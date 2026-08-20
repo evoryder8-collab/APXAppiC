@@ -4,6 +4,7 @@ struct PortalHomeView: View {
     @Environment(AppSession.self) private var session
     @State private var nudges = NudgeCenter.shared
     @State private var showNudges = false
+    @State private var showPaywall = false
     @State private var language = LanguageState.shared
 
     private var greeting: String {
@@ -30,7 +31,8 @@ struct PortalHomeView: View {
                     profile: session.profile,
                     onSettings: { session.navigationPath.append(.settings) },
                     nudges: nudges,
-                    onOpenNudges: { showNudges = true }
+                    onOpenNudges: { showNudges = true },
+                    onOpenPaywall: { showPaywall = true }
                 )
 
                 HStack {
@@ -113,6 +115,9 @@ struct PortalHomeView: View {
 .dockClearance()
         }
         .refreshable { await session.refresh() }
+        .sheet(isPresented: $showPaywall) {
+            PaywallView { showPaywall = false }
+        }
         .sheet(isPresented: $showNudges) {
             NudgeSheet(nudges: nudges) { showNudges = false }
                 .apexTransientSheet(.fraction(0.62))

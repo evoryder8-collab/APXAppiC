@@ -13,6 +13,18 @@ struct AppRootView: View {
             case .launching:
                 APEXLaunchView()
                     .transition(.opacity)
+            case .welcome:
+                WelcomeView()
+                    .transition(.opacity)
+            case .emailAuth(let signUp):
+                EmailAuthView(signUp: signUp)
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            case .induction:
+                InductionView()
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
+            case .consent:
+                ConsentView()
+                    .transition(.move(edge: .trailing).combined(with: .opacity))
             case .persona:
                 PersonaSelectorView()
                     .transition(.opacity.combined(with: .scale(scale: 1.025)))

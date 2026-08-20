@@ -52,6 +52,20 @@ enum TrainingInduction {
         )
     }
 
+    /// Which nutrition goal a training answer implies.
+    ///
+    /// The questionnaire asks what someone trains for; the profile stores how
+    /// they eat. Only losing fat and building muscle actually pin the calories,
+    /// so everything else maintains rather than guessing at a surplus nobody
+    /// asked for.
+    static func goalColumn(for trainingGoal: String) -> String {
+        switch trainingGoal {
+        case "fat_loss": "recomp"
+        case "muscle": "bulk"
+        default: "maintain"
+        }
+    }
+
     // MARK: - Equipment
 
     struct EquipmentOption: Identifiable, Hashable, Sendable {
