@@ -102,7 +102,14 @@ struct NutritionGlanceCard: View {
                     Spacer(minLength: 4)
                 }
 
-                HStack(spacing: 15) {
+                /* Three columns around a 164pt ring only fit while the text is
+                   small. At accessibility sizes the outer numbers ran into the
+                   ring and their labels were cut off, so the row becomes a
+                   column and each figure gets the full width. */
+                let layout = dynamicTypeSize.isAccessibilitySize
+                    ? AnyLayout(VStackLayout(spacing: 18))
+                    : AnyLayout(HStackLayout(spacing: 15))
+                layout {
                     VStack(spacing: 3) {
                         /* Four-digit intakes wrapped mid-number, dropping the
                            last digit onto its own line. The column is narrow by
@@ -241,6 +248,9 @@ struct APEXDateNavigator: View {
                 VStack(spacing: 2) {
                     Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)).uppercased(with: language.language.locale))
                         .font(APEXFont.mono(10))
+                        /* The date is the whole point of this control, so it
+                           shrinks rather than becoming "FRIDAY 21 AUGU…". */
+                        .minimumScaleFactor(0.5)
                         .tracking(1.25)
                         .lineLimit(1)
                         .minimumScaleFactor(0.75)

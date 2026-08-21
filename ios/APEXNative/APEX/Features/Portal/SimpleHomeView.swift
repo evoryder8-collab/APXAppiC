@@ -2,6 +2,7 @@ import SwiftUI
 
 struct SimpleHomeView: View {
     @Environment(AppSession.self) private var session
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var language = LanguageState.shared
     @State private var nudges = NudgeCenter.shared
     @State private var showNudges = false
@@ -318,8 +319,11 @@ struct SimpleHomeView: View {
         HStack(alignment: .center, spacing: 14) {
             Text(language.format("Today, %@.", profile?.displayName.components(separatedBy: " ").first ?? "APEX"))
                 .font(APEXFont.display(23))
-                .minimumScaleFactor(0.75)
-                .lineLimit(1)
+                /* Wraps rather than truncating once the text is large. A name
+                   cut to "Consta…" is worse than one on two lines, and a
+                   greeting can afford the room. */
+                .minimumScaleFactor(0.6)
+                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
             Spacer(minLength: 4)
             CompletionRing(value: completion)
                 .scaleEffect(0.78)
@@ -745,6 +749,11 @@ private struct CompletionRing: View {
                 .animation(.snappy, value: value)
             Text("\(value)%")
                 .font(APEXFont.mono(12))
+                /* The ring is a fixed circle, so the number has to shrink
+                   rather than clip. At the largest text size this read "1…",
+                   which is not a smaller number, it is a wrong one. */
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
         }
         .frame(width: 63, height: 63)
         .accessibilityLabel("Daily completion")
