@@ -43,6 +43,18 @@ struct TrainingProgramView: View {
         TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
     }
 
+    /// The hero, hologram and briefing must describe the same prescription.
+    /// Looking up the weekly template independently allowed a generated rest
+    /// day to keep an upper-body hologram and explanation.
+    private var todayMuscleDayType: String {
+        if todayPlan.isRecoveryMicro { return "mobility" }
+        return todayPlan.programDay?.dayType ?? "rest"
+    }
+
+    private var todayExerciseNames: [String] {
+        todayPlan.exercises.map(\.name)
+    }
+
     /// Last night, if the watch had something to say about it.
     private var readiness: RecoveryAssessment.Verdict? {
         RecoveryAssessment.todaysCheckin(session.data, date: Date().apexDateKey)
@@ -219,7 +231,8 @@ struct TrainingProgramView: View {
                 if slug != "custom" { todayHero }
 
                 MuscleMapCard(
-                    dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper",
+                    dayType: todayMuscleDayType,
+                    exerciseNames: todayExerciseNames,
                     height: 442,
                     accent: accent,
                     eyebrow: language.text("TODAY'S SIGNAL"),
@@ -408,12 +421,14 @@ struct TrainingProgramView: View {
     }
 
     private var muscleFocus: String {
-        switch days.first(where: { $0.weekday == todayWeekday })?.dayType {
+        switch todayMuscleDayType {
         case "legs_a", "legs_b": "Glutes · Quads · Hamstrings"
         case "push": "Chest · Delts · Triceps"
         case "pull": "Back · Biceps · Grip"
+        case "upper": "Chest · Back · Arms"
         case "mobility", "fix": "Mobility · Joint quality"
         case "t25": "Cardiovascular engine"
+        case "rest": "Rest · Restore · Adapt"
         default: "Full-body readiness"
         }
     }

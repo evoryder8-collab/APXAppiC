@@ -119,7 +119,11 @@ enum TrainingPlanEngine {
         guard let induction = induction(data), slug == "transition" || slug == "main" else { return nil }
         let key = slug == "transition" ? "transition_day_ids" : "main_day_ids"
         let ids = induction[key]?.arrayValue?.compactMap { $0.stringValue } ?? []
-        return Set(ids)
+        // Older accounts and interrupted plan generation can legitimately
+        // contain the induction object without its scoped day IDs. Treating an
+        // empty list as an active filter removes every generated day from the
+        // calendar. No IDs means no additional filtering.
+        return ids.isEmpty ? nil : Set(ids)
     }
 
     static func isInsideInductionWindow(_ data: DashboardData, slug: String, date: String) -> Bool {

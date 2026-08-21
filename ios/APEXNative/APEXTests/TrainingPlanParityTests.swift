@@ -202,4 +202,48 @@ final class TrainingPlanParityTests: XCTestCase {
         XCTAssertEqual(APEXDateMath.calendarDaysBetween(from: "2026-01-05", to: "2026-01-12"), 7)
         XCTAssertEqual(APEXDateMath.adding(days: 30, to: "2026-01-05"), "2026-02-04")
     }
+
+    func testEmptyInductionDayIDsDoNotEraseGeneratedCalendar() throws {
+        let fixture = Self.fixture
+        var data = dashboard(fixture.cases[0].input, userID: fixture.user_id)
+        var settings = try XCTUnwrap(data.settings)
+        settings.addons["training_induction"] = .object([
+            "main_day_ids": .array([])
+        ])
+        data.settings = settings
+
+        XCTAssertNil(TrainingPlanEngine.activeInductionDayIDs(data, slug: "main"))
+    }
+
+    func testPopulatedInductionDayIDsRemainScoped() throws {
+        let fixture = Self.fixture
+        var data = dashboard(fixture.cases[0].input, userID: fixture.user_id)
+        var settings = try XCTUnwrap(data.settings)
+        settings.addons["training_induction"] = .object([
+            "main_day_ids": .array([.string("day-a"), .string("day-b")])
+        ])
+        data.settings = settings
+
+        XCTAssertEqual(
+            TrainingPlanEngine.activeInductionDayIDs(data, slug: "main"),
+            Set(["day-a", "day-b"])
+        )
+    }
+
+    @MainActor
+    func testRestDayHasNoHighlightedMuscles() {
+        let groups = MuscleMapView.groups(for: "rest")
+
+        XCTAssertTrue(groups.primary.isEmpty)
+        XCTAssertTrue(groups.secondary.isEmpty)
+    }
+
+    func testRestDayBriefingDescribesRecoveryInsteadOfTraining() {
+        let briefing = SessionBriefing.briefing(dayType: "rest")
+
+        XCTAssertEqual(briefing.title, "Rest day")
+        XCTAssertEqual(briefing.intent, .restoration)
+        XCTAssertTrue(briefing.primary.isEmpty)
+        XCTAssertTrue(briefing.secondary.isEmpty)
+    }
 }
