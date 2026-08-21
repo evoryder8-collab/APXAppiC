@@ -46,7 +46,7 @@ struct EmailAuthView: View {
                         .font(APEXFont.display(30))
                         .multilineTextAlignment(.center)
                     Text(language.text(isSignUp
-                        ? "Fourteen days, everything unlocked, no card needed."
+                        ? "Seven days, everything unlocked, no card needed."
                         : "Sign in with the email and password you already use."))
                         .font(APEXFont.body(14))
                         .foregroundStyle(APEXColor.secondaryInk)

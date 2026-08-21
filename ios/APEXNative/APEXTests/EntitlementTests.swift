@@ -21,16 +21,16 @@ final class EntitlementTests: XCTestCase {
         XCTAssertTrue(Entitlement.isUnlocked(access))
     }
 
-    func testTheTrialRunsForTwoTrainingWeeksThenAsks() {
+    func testTheTrialRunsForOneTrainingWeekThenAsks() {
         func remaining(_ daysAgo: Int) -> Entitlement.Access {
             Entitlement.access(
                 foundingMember: false, developerCodeRedeemed: false,
                 subscribedTier: nil, subscriptionExpires: nil,
                 trialStarted: date(daysAgo: daysAgo))
         }
-        XCTAssertEqual(remaining(0), .trial(daysRemaining: 14))
-        XCTAssertEqual(remaining(13), .trial(daysRemaining: 1))
-        XCTAssertEqual(remaining(14), .expired)
+        XCTAssertEqual(remaining(0), .trial(daysRemaining: 7))
+        XCTAssertEqual(remaining(6), .trial(daysRemaining: 1))
+        XCTAssertEqual(remaining(7), .expired)
         XCTAssertEqual(remaining(90), .expired)
     }
 
@@ -41,7 +41,7 @@ final class EntitlementTests: XCTestCase {
             Entitlement.access(
                 foundingMember: false, developerCodeRedeemed: false,
                 subscribedTier: nil, subscriptionExpires: nil, trialStarted: nil),
-            .trial(daysRemaining: 14)
+            .trial(daysRemaining: 7)
         )
     }
 

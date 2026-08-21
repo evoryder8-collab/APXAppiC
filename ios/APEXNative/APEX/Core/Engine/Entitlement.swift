@@ -27,7 +27,7 @@ enum Entitlement {
 
     /// Two complete training weeks. Long enough to finish a programme block and
     /// see progression happen, which is the thing worth paying for.
-    static let trialDays = 14
+    static let trialDays = 7
 
     // MARK: - Pricing
 

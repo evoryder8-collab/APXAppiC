@@ -1721,3 +1721,8 @@
 "This account has already used a beta code." = "このアカウントはすでにベータコードを使用しています。";
 "Sign in first, then enter your code." = "先にログインしてから、コードを入力してください。";
 "Could not reach APEX. Try again when you are online." = "APEXに接続できませんでした。オンラインのときにもう一度お試しください。";
+"Seven days, everything unlocked, no card needed." = "7日間、すべての機能が使えます。カード登録は不要です。";
+"Start my 7 days" = "7日間を始める";
+"7 days free, then" = "7日間無料、その後";
+"Monthly" = "月額";
+"Yearly" = "年額";

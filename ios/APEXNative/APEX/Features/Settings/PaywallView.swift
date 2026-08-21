@@ -16,6 +16,9 @@ struct PaywallView: View {
     /// Which tier the person is looking at. Nothing is chosen for them: a
     /// preselected plan on a paywall is a decision made on someone's behalf.
     @State private var selected: Entitlement.Tier?
+    /// Yearly first, because it is the better deal and hiding it behind a tap
+    /// would be a dark pattern in the other direction.
+    @State private var yearly = true
     var onClose: (() -> Void)?
 
     /* On the jewel ground the app's ink colours vanish, so the sheet carries
@@ -27,6 +30,7 @@ struct PaywallView: View {
         ScrollView {
             VStack(spacing: 18) {
                 headline
+                periodSwitch
 
                 tierCard(
                     tier: .premium,
@@ -129,24 +133,20 @@ struct PaywallView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
-                    priceRow(
-                        amount: price.monthlyRappen,
-                        period: language.text("per month"),
-                        emphasised: price.yearlyRappen == nil
-                    )
-                    if let yearly = price.yearlyRappen {
-                        HStack(spacing: 8) {
-                            priceRow(amount: yearly, period: language.text("per year"), emphasised: true)
-                            if let saving = price.yearlySavingPercent {
-                                Text(language.format("Save %d%%", saving))
-                                    .font(APEXFont.mono(9))
-                                    .tracking(0.8)
-                                    .padding(.horizontal, 8)
-                                    .padding(.vertical, 4)
-                                    .background(APEXColor.amber.opacity(0.18), in: Capsule())
-                                    .foregroundStyle(APEXColor.amber)
-                            }
-                        }
+                    /* The trial is the offer, so it leads. Every plan starts
+                       the same way and the price is what happens afterwards. */
+                    Text(language.text("7 days free, then"))
+                        .font(APEXFont.body(11, weight: .semibold))
+                        .foregroundStyle(APEXColor.amber)
+
+                    if yearly, let annual = price.yearlyRappen {
+                        priceRow(amount: annual, period: language.text("per year"), emphasised: true)
+                    } else {
+                        priceRow(
+                            amount: price.monthlyRappen,
+                            period: language.text("per month"),
+                            emphasised: true
+                        )
                     }
                     if tier == .coach {
                         Text(language.format(
@@ -188,6 +188,66 @@ struct PaywallView: View {
             selected = isSelected ? nil : tier
         }
         .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
+    }
+
+    /// Monthly or yearly, with the saving stated on the option that carries it.
+    ///
+    /// Both prices are never shown at once: two numbers per card is the shape
+    /// that makes people re-read a paywall instead of deciding.
+    private var periodSwitch: some View {
+        let saving = Entitlement.price(.premium).yearlySavingPercent
+        return HStack(spacing: 0) {
+            periodOption(title: language.text("Monthly"), isYearly: false, saving: nil)
+            periodOption(title: language.text("Yearly"), isYearly: true, saving: saving)
+        }
+        .padding(4)
+        .background(.white.opacity(0.08), in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.18), lineWidth: 0.8))
+        .padding(.bottom, 2)
+    }
+
+    private func periodOption(title: String, isYearly: Bool, saving: Int?) -> some View {
+        let active = yearly == isYearly
+        return Button {
+            withAnimation(.spring(response: 0.32, dampingFraction: 0.78)) { yearly = isYearly }
+        } label: {
+            HStack(spacing: 7) {
+                Text(title)
+                    .font(APEXFont.body(14, weight: .bold))
+                    .foregroundStyle(active ? APEXColor.ink : .white.opacity(0.75))
+                if let saving {
+                    /* The ribbon stays gold on both states: it is the reason to
+                       pick this option, so it should not dim when unselected. */
+                    Text(language.format("Save %d%%", saving))
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .tracking(0.6)
+                        .foregroundStyle(Color(red: 0.24, green: 0.17, blue: 0.02))
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(
+                            LinearGradient(
+                                colors: [
+                                    Color(red: 1.0, green: 0.86, blue: 0.45),
+                                    Color(red: 0.93, green: 0.68, blue: 0.16)
+                                ],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: Capsule()
+                        )
+                }
+            }
+            .frame(maxWidth: .infinity)
+            .padding(.vertical, 10)
+            .background {
+                if active {
+                    Capsule().fill(.white.opacity(0.92))
+                }
+            }
+            .contentShape(Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(active ? [.isButton, .isSelected] : .isButton)
     }
 
     private func priceRow(amount: Int, period: String, emphasised: Bool) -> some View {
