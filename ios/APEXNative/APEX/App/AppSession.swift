@@ -248,9 +248,12 @@ final class AppSession {
     func refreshDashboard(expectedUserID: UUID? = nil) async throws {
         isRefreshing = true
         defer { isRefreshing = false }
-        let next = try await service.loadDashboard()
+        var next = try await service.loadDashboard()
         if let expectedUserID, next.profile?.userID != expectedUserID {
             throw APEXServiceError.configurationMissing
+        }
+        if let authenticatedUserID = next.profile?.userID {
+            next.settings = next.settings?.rebound(to: authenticatedUserID)
         }
         data = next
         lastSyncAt = .now
@@ -655,7 +658,8 @@ final class AppSession {
     }
 
     func updateSettings(_ transform: (inout UserSettings) -> Void) async {
-        guard var settings = data.settings else { return }
+        guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         transform(&settings)
         data.settings = settings
         await persistUpsert(settings, table: "settings", onConflict: "user_id")
@@ -986,6 +990,7 @@ final class AppSession {
         guard validItems.isEmpty == false else { throw APEXServiceError.incompleteFood }
 
         let key = "ios-meal-\(draft.id.uuidString.lowercased())"
+        let loggedAs = MealLogKind.normalized(draft.loggedAs)
         let request = StructuredMealRequest(
             id: draft.id,
             localDate: draft.localDate,
@@ -997,7 +1002,7 @@ final class AppSession {
             sourcePlannedMealID: draft.sourcePlannedMealID,
             loggedAt: draft.finishedAt.ISO8601Format(),
             clientIdempotencyKey: key,
-            loggedAs: draft.loggedAs,
+            loggedAs: loggedAs,
             replaceMealID: draft.replaceMealID
         )
         let entryRequests = validItems.enumerated().map { index, item in
@@ -1034,7 +1039,7 @@ final class AppSession {
             sourcePlannedMealID: draft.sourcePlannedMealID,
             loggedAt: request.loggedAt,
             clientIdempotencyKey: key,
-            loggedAs: draft.loggedAs,
+            loggedAs: loggedAs,
             totalKcal: totals.kcal.rounded(),
             totalProteinG: totals.proteinG,
             totalCarbsG: totals.carbsG,
@@ -1076,6 +1081,10 @@ final class AppSession {
             )
         }
 
+        let previousData = data
+        let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
+        let offlineOperation = try OfflineOperation.rpc("log_structured_meal", params: payload)
+
         if let replaced = draft.replaceMealID {
             data.loggedMeals.removeAll { $0.id == replaced }
             data.loggedFoodEntries.removeAll { $0.mealID == replaced }
@@ -1090,14 +1099,41 @@ final class AppSession {
 
         do {
             _ = try await service.logStructuredMeal(meal: request, entries: entryRequests)
-            try await refreshDashboard()
+            lastSyncAt = .now
         } catch {
-            let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
-            try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
-            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-            /* Saved offline and queued. Deliberately silent: this is the app
-               working, not an event, and pendingSyncCount already shows it.
-               Naming the backend on a user's screen helps nobody. */
+            switch SyncFailurePolicy.classify(error) {
+            case .transient:
+                do {
+                    try await offlineStore.enqueue(offlineOperation, for: profile.userID)
+                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count)
+                        ?? pendingSyncCount + 1
+                    /* Saved offline and queued. Deliberately silent: this is
+                       normal offline operation, not a failed save. */
+                    return
+                } catch {
+                    data = previousData
+                    await saveLocalSnapshot()
+                    throw error
+                }
+            case .permanent:
+                data = previousData
+                await saveLocalSnapshot()
+                try? await offlineStore.recordFailure(
+                    offlineOperation,
+                    reason: error.localizedDescription,
+                    for: profile.userID
+                )
+                throw error
+            }
+        }
+
+        // The write is already committed and idempotent. A dashboard refresh
+        // failure must not turn a successful meal into an offline retry or a
+        // false error; the optimistic local meal remains the accurate view.
+        do {
+            try await refreshDashboard(expectedUserID: profile.userID)
+        } catch {
+            lastSyncAt = .now
         }
     }
 
@@ -2384,6 +2420,7 @@ final class AppSession {
      */
     func installInductionPlan(_ input: TrainingInduction.Input) async {
         guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         let plan = TrainingInduction.generate(
             userID: profile.userID,
             input: input,
@@ -2423,7 +2460,8 @@ final class AppSession {
 
     /// Puts the original programme back by clearing the generated overlay.
     func restoreOriginalProgramme() async {
-        guard var settings = data.settings else { return }
+        guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         settings.addons["newbie_mode"] = .bool(false)
         settings.addons.removeValue(forKey: "training_induction")
         data.settings = settings
@@ -2434,7 +2472,8 @@ final class AppSession {
     /// goal never quietly rewrites the others. An emptied list falls back to
     /// the protocol default.
     func saveMealProtocolOverride(key: String, lines: [String]) async {
-        guard var settings = data.settings else { return }
+        guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         var overrides = settings.addons["meal_protocol_overrides"]?.objectValue ?? [:]
         if lines.isEmpty {
             overrides.removeValue(forKey: key)
@@ -2459,10 +2498,21 @@ final class AppSession {
             guard let userID = profile?.userID else { return }
             do {
                 let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
-                try await offlineStore.enqueue(operation, for: userID)
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
-                /* Silent, like the other offline saves. Working without a
-                   connection is the feature, not an incident report. */
+                switch SyncFailurePolicy.classify(error) {
+                case .transient:
+                    try await offlineStore.enqueue(operation, for: userID)
+                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
+                        ?? pendingSyncCount + 1
+                    /* Silent, like the other offline saves. Working without a
+                       connection is the feature, not an incident report. */
+                case .permanent:
+                    try await offlineStore.recordFailure(
+                        operation,
+                        reason: error.localizedDescription,
+                        for: userID
+                    )
+                    alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
+                }
             } catch {
                 alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
             }
@@ -2477,10 +2527,22 @@ final class AppSession {
         } catch {
             guard let userID = profile?.userID else { return }
             do {
-                try await offlineStore.enqueue(.delete(table: table, id: id), for: userID)
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
-                /* Silent, like the other offline saves. Working without a
-                   connection is the feature, not an incident report. */
+                let operation = OfflineOperation.delete(table: table, id: id)
+                switch SyncFailurePolicy.classify(error) {
+                case .transient:
+                    try await offlineStore.enqueue(operation, for: userID)
+                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
+                        ?? pendingSyncCount + 1
+                    /* Silent, like the other offline saves. Working without a
+                       connection is the feature, not an incident report. */
+                case .permanent:
+                    try await offlineStore.recordFailure(
+                        operation,
+                        reason: error.localizedDescription,
+                        for: userID
+                    )
+                    alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
+                }
             } catch {
                 alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
             }
@@ -2582,16 +2644,24 @@ final class AppSession {
     private func flushPendingChanges(for userID: UUID) async {
         guard let operations = try? await offlineStore.pendingOperations(for: userID) else { return }
         pendingSyncCount = operations.count
-        for operation in operations {
-            do {
+        let report = await OfflineQueueDrainer.drain(
+            operations,
+            replay: { [service] operation in
                 try await service.replay(operation)
+            },
+            remove: { [offlineStore] operation in
                 try await offlineStore.removeOperation(operation.id, for: userID)
-                pendingSyncCount -= 1
-            } catch {
-                return
-            }
-        }
-        if operations.isEmpty == false { lastSyncAt = .now }
+            },
+            quarantine: { [offlineStore] operation, reason in
+                try await offlineStore.quarantine(operation, reason: reason, for: userID)
+            },
+            classify: SyncFailurePolicy.classify
+        )
+        pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? max(
+            0,
+            operations.count - report.succeeded - report.quarantined
+        )
+        if report.succeeded > 0 { lastSyncAt = .now }
     }
 
     private func startRealtimeSync() async {

@@ -88,7 +88,7 @@ struct MealComposerView: View {
             sourcePresetID: request.existingMeal?.sourcePresetID,
             sourcePlannedMealID: request.existingMeal?.sourcePlannedMealID,
             replaceMealID: request.existingMeal?.id,
-            loggedAs: request.existingMeal?.loggedAs ?? "actual",
+            loggedAs: request.existingMeal.map { MealLogKind.normalized($0.loggedAs) } ?? "custom",
             items: []
         ))
     }

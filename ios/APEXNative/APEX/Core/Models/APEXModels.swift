@@ -186,6 +186,20 @@ struct UserSettings: Codable, Hashable, Sendable {
         case guardianFactor = "guardian_factor"
         case addons
     }
+
+    /// Cached settings can outlive an authentication transition. Keep the
+    /// preferences, but always bind the row back to the authenticated owner
+    /// before a write reaches an RLS-protected table.
+    func rebound(to userID: UUID) -> UserSettings {
+        UserSettings(
+            userID: userID,
+            voiceOn: voiceOn,
+            ticksOn: ticksOn,
+            notificationsOn: notificationsOn,
+            guardianFactor: guardianFactor,
+            addons: addons
+        )
+    }
 }
 
 enum JSONValue: Codable, Hashable, Sendable {
@@ -1005,6 +1019,22 @@ struct MealComposerDraft: Identifiable, Hashable, Sendable {
                 fatG: partial.fatG + value.fatG
             )
         }
+    }
+}
+
+/// Values accepted by `logged_meals_logged_as_check` in production.
+/// Older clients used `actual` for a newly composed meal; treating any legacy
+/// or unknown value as `custom` keeps fresh, no-plan accounts compatible with
+/// the shared web/native schema.
+enum MealLogKind {
+    private static let accepted: Set<String> = ["planned", "changed", "custom"]
+
+    static func normalized(_ rawValue: String?) -> String {
+        guard let rawValue else { return "custom" }
+        let value = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return accepted.contains(value) ? value : "custom"
     }
 }
 

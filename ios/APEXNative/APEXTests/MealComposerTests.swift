@@ -2,6 +2,125 @@ import XCTest
 @testable import APEX
 
 final class MealComposerTests: XCTestCase {
+    func testNewMealLogKindNormalizesToDatabaseAcceptedCustomValue() {
+        XCTAssertEqual(MealLogKind.normalized(nil), "custom")
+        XCTAssertEqual(MealLogKind.normalized("actual"), "custom")
+        XCTAssertEqual(MealLogKind.normalized(" manual "), "custom")
+        XCTAssertEqual(MealLogKind.normalized("planned"), "planned")
+        XCTAssertEqual(MealLogKind.normalized("CHANGED"), "changed")
+        XCTAssertEqual(MealLogKind.normalized("custom"), "custom")
+    }
+
+    func testSettingsRebindToTheAuthenticatedProfileWithoutLosingPreferences() {
+        let staleUserID = UUID()
+        let authenticatedUserID = UUID()
+        let settings = UserSettings(
+            userID: staleUserID,
+            voiceOn: false,
+            ticksOn: true,
+            notificationsOn: false,
+            guardianFactor: 1.75,
+            addons: ["uiMode": .string("simple"), "newbie_mode": .bool(true)]
+        )
+
+        let rebound = settings.rebound(to: authenticatedUserID)
+
+        XCTAssertEqual(rebound.userID, authenticatedUserID)
+        XCTAssertEqual(rebound.voiceOn, settings.voiceOn)
+        XCTAssertEqual(rebound.ticksOn, settings.ticksOn)
+        XCTAssertEqual(rebound.notificationsOn, settings.notificationsOn)
+        XCTAssertEqual(rebound.guardianFactor, settings.guardianFactor)
+        XCTAssertEqual(rebound.addons, settings.addons)
+    }
+
+    func testPermanentSyncFailuresAreNeverClassifiedAsOfflineRetryWork() {
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: 400, databaseCode: nil, isNetworkFailure: false),
+            .permanent
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: 403, databaseCode: nil, isNetworkFailure: false),
+            .permanent
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: nil, databaseCode: "23514", isNetworkFailure: false),
+            .permanent
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: nil, databaseCode: "42501", isNetworkFailure: false),
+            .permanent
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: 429, databaseCode: nil, isNetworkFailure: false),
+            .transient
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: nil, databaseCode: nil, isNetworkFailure: true),
+            .transient
+        )
+    }
+
+    func testPermanentPoisonOperationDoesNotBlockTheFollowingValidOperation() async throws {
+        let poison = OfflineOperation.delete(table: "poison", id: UUID())
+        let valid = OfflineOperation.delete(table: "valid", id: UUID())
+        let harness = OfflineReplayHarness(poisonID: poison.id)
+
+        let report = await OfflineQueueDrainer.drain(
+            [poison, valid],
+            replay: { try await harness.replay($0) },
+            remove: { try await harness.remove($0) },
+            quarantine: { try await harness.quarantine($0, reason: $1) },
+            classify: { error in
+                error is OfflineReplayHarness.PermanentReplayError ? .permanent : .transient
+            }
+        )
+
+        XCTAssertEqual(report, OfflineQueueDrainReport(succeeded: 1, quarantined: 1, paused: false))
+        let snapshot = await harness.snapshot()
+        XCTAssertEqual(snapshot.replayed, [poison.id, valid.id])
+        XCTAssertEqual(snapshot.removed, [valid.id])
+        XCTAssertEqual(snapshot.quarantined, [poison.id])
+    }
+
+    func testDiskBackedOutboxQuarantinesPoisonAndFullyDrainsValidWork() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("APEXOfflineStoreTests-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let userID = UUID()
+        let poison = OfflineOperation.delete(table: "poison", id: UUID())
+        let valid = OfflineOperation.delete(table: "valid", id: UUID())
+        let store = OfflineStore(rootURL: rootURL)
+        let harness = OfflineReplayHarness(poisonID: poison.id)
+
+        try await store.enqueue(poison, for: userID)
+        try await store.enqueue(valid, for: userID)
+
+        let queued = try await store.pendingOperations(for: userID)
+        XCTAssertEqual(queued.map(\.id), [poison.id, valid.id])
+
+        let report = await OfflineQueueDrainer.drain(
+            queued,
+            replay: { try await harness.replay($0) },
+            remove: { try await store.removeOperation($0.id, for: userID) },
+            quarantine: { try await store.quarantine($0, reason: $1, for: userID) },
+            classify: { error in
+                error is OfflineReplayHarness.PermanentReplayError ? .permanent : .transient
+            }
+        )
+
+        XCTAssertEqual(report, OfflineQueueDrainReport(succeeded: 1, quarantined: 1, paused: false))
+        let remaining = try await store.pendingOperations(for: userID)
+        XCTAssertTrue(remaining.isEmpty)
+
+        let failures = try await store.failedOperations(for: userID)
+        XCTAssertEqual(failures.map(\.operation.id), [poison.id])
+        XCTAssertEqual(failures.first?.reason, OfflineReplayHarness.PermanentReplayError().localizedDescription)
+
+        let replaySnapshot = await harness.snapshot()
+        XCTAssertEqual(replaySnapshot.replayed, [poison.id, valid.id])
+    }
+
     func testDraftTotalsFollowEditedQuantities() {
         let oats = food(
             name: "Oats",
@@ -129,5 +248,37 @@ final class MealComposerTests: XCTestCase {
             pieceGramsOrML: nil,
             confidence: "verified"
         )
+    }
+}
+
+private actor OfflineReplayHarness {
+    struct PermanentReplayError: Error, Sendable {}
+
+    private let poisonID: UUID
+    private var replayed: [UUID] = []
+    private var removed: [UUID] = []
+    private var quarantined: [UUID] = []
+
+    init(poisonID: UUID) {
+        self.poisonID = poisonID
+    }
+
+    func replay(_ operation: OfflineOperation) throws {
+        replayed.append(operation.id)
+        if operation.id == poisonID {
+            throw PermanentReplayError()
+        }
+    }
+
+    func remove(_ operation: OfflineOperation) {
+        removed.append(operation.id)
+    }
+
+    func quarantine(_ operation: OfflineOperation, reason: String) {
+        quarantined.append(operation.id)
+    }
+
+    func snapshot() -> (replayed: [UUID], removed: [UUID], quarantined: [UUID]) {
+        (replayed, removed, quarantined)
     }
 }
