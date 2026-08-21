@@ -11,7 +11,13 @@ struct PaywallView: View {
     @State private var entitlements = EntitlementStore.shared
     @State private var code = ""
     @State private var codeRejected = false
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     var onClose: (() -> Void)?
+
+    /* On the jewel ground the app's ink colours vanish, so the sheet carries
+       its own two levels of white. */
+    private let primaryInk = Color.white
+    private let secondaryInk = Color.white.opacity(0.62)
 
     var body: some View {
         ScrollView {
@@ -44,18 +50,38 @@ struct PaywallView: View {
 
                 Text(language.text("Purchasing opens with the App Store listing. Until then, a beta code unlocks everything."))
                     .font(APEXFont.body(11))
-                    .foregroundStyle(APEXColor.secondaryInk)
+                    .foregroundStyle(secondaryInk)
                     .multilineTextAlignment(.center)
                     .fixedSize(horizontal: false, vertical: true)
             }
             .padding(20)
         }
+        .scrollContentBackground(.hidden)
+        .background { JewelBackdrop(animated: !reduceMotion) }
+        .foregroundStyle(primaryInk)
+        .preferredColorScheme(.dark)
     }
 
     // MARK: - Pieces
 
     private var headline: some View {
         VStack(spacing: 7) {
+            /* The stone the diamond in the top bar opens into. Large, dim and
+               behind the wordmark rather than beside it, so it reads as the
+               room the sheet is in rather than as an icon repeated. */
+            Image(systemName: "diamond.fill")
+                .font(.system(size: 54, weight: .thin))
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.white.opacity(0.95), APEXColor.cyan.opacity(0.55), APEXColor.violet.opacity(0.7)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+                .shadow(color: APEXColor.cyan.opacity(0.5), radius: 22)
+                .padding(.bottom, 4)
+                .accessibilityHidden(true)
+
             Text(language.text("APEX"))
                 .font(APEXFont.display(30))
                 .tracking(6)
@@ -78,7 +104,7 @@ struct PaywallView: View {
         features: [String]
     ) -> some View {
         let price = Entitlement.price(tier)
-        return GlassCard(radius: 26, padding: 19) {
+        return FacetPanel(radius: 26, padding: 19, lifted: tier == .premium) {
             VStack(alignment: .leading, spacing: 13) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(language.text(tier == .premium ? "Premium" : "Coach"))
@@ -87,7 +113,7 @@ struct PaywallView: View {
                     Text(audience.uppercased(with: language.language.locale))
                         .font(APEXFont.mono(9))
                         .tracking(1.2)
-                        .foregroundStyle(APEXColor.secondaryInk)
+                        .foregroundStyle(secondaryInk)
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
@@ -117,7 +143,7 @@ struct PaywallView: View {
                             Self.francs(Entitlement.coachExtraSeatRappen)
                         ))
                         .font(APEXFont.body(11))
-                        .foregroundStyle(APEXColor.secondaryInk)
+                        .foregroundStyle(secondaryInk)
                         .fixedSize(horizontal: false, vertical: true)
                     }
                 }
@@ -131,7 +157,7 @@ struct PaywallView: View {
                                 .padding(.top, 3)
                             Text(language.text(feature))
                                 .font(APEXFont.body(12))
-                                .foregroundStyle(APEXColor.secondaryInk)
+                                .foregroundStyle(secondaryInk)
                                 .fixedSize(horizontal: false, vertical: true)
                         }
                     }
@@ -146,12 +172,12 @@ struct PaywallView: View {
                 .font(APEXFont.display(emphasised ? 21 : 17))
             Text(period)
                 .font(APEXFont.body(11))
-                .foregroundStyle(APEXColor.secondaryInk)
+                .foregroundStyle(secondaryInk)
         }
     }
 
     private var betaCode: some View {
-        GlassCard(radius: 22, padding: 17) {
+        FacetPanel(radius: 22, padding: 17) {
             VStack(alignment: .leading, spacing: 11) {
                 Text(language.text("Have a beta code?"))
                     .font(APEXFont.body(14, weight: .bold))
@@ -162,7 +188,7 @@ struct PaywallView: View {
                         .font(APEXFont.mono(13))
                         .padding(.horizontal, 12)
                         .padding(.vertical, 11)
-                        .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 13))
+                        .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
                     Button(language.text("Redeem")) {
                         codeRejected = !entitlements.redeem(code: code)
                         if !codeRejected {

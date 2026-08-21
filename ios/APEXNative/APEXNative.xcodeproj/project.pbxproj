@@ -115,6 +115,7 @@
 		7631520A295EB29752C35053 /* head_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 1C59AEFABD65B2A6F186CE0F /* head_dif.jpg */; };
 		76C3F2FEE9DED4CD82BF8A01 /* MealMacroGuidanceParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC9B41B4934D3F2405AA4C3 /* MealMacroGuidanceParityTests.swift */; };
 		7844717B06A0968147BE2154 /* APEXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */; };
+		7B839CED35AC899C4670311A /* JewelBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92640F4E6CC6ACF928E89B7A /* JewelBackdrop.swift */; };
 		7FE25997D68A85FA565DDDD4 /* ProgressComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED7764E8EA64DAD55DEF65F /* ProgressComparison.swift */; };
 		803AB91282B418FFB9B7300C /* AppRoute.swift in Sources */ = {isa = PBXBuildFile; fileRef = 135C463AB8CEF57FA521CD01 /* AppRoute.swift */; };
 		82BBDBE227779625CC926024 /* progress-parity.json in Resources */ = {isa = PBXBuildFile; fileRef = 1B14F6053F580589E4CA2CE7 /* progress-parity.json */; };
@@ -423,6 +424,7 @@
 		8D471F877A5E7E72F1A31D06 /* hydration-male.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-male.html"; sourceTree = "<group>"; };
 		907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SeedVersion.swift; sourceTree = "<group>"; };
 		91D36C2E80B56012F830D74B /* Info.plist */ = {isa = PBXFileReference; lastKnownFileType = text.plist; path = Info.plist; sourceTree = "<group>"; };
+		92640F4E6CC6ACF928E89B7A /* JewelBackdrop.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = JewelBackdrop.swift; sourceTree = "<group>"; };
 		946DC4125357F8D2D3ACEFE8 /* NutritionView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = NutritionView.swift; sourceTree = "<group>"; };
 		95409AE77B69B4A6848B009E /* OrbitIntegrationsTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitIntegrationsTests.swift; sourceTree = "<group>"; };
 		984FEF3A9C87EA524EF49121 /* LoginView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = LoginView.swift; sourceTree = "<group>"; };
@@ -822,6 +824,7 @@
 		A24A6A09937428075783B26D /* Settings */ = {
 			isa = PBXGroup;
 			children = (
+				92640F4E6CC6ACF928E89B7A /* JewelBackdrop.swift */,
 				2CD5EA29A6CF5B32C5C07DA6 /* PaywallView.swift */,
 				30E466A7F4101C8729453FCE /* ProfileAvatarPicker.swift */,
 				E95C814C0119931140528180 /* SettingsView.swift */,
@@ -1260,6 +1263,7 @@
 				3305E56000695DF251BDE392 /* HorizontalPan.swift in Sources */,
 				708DCA6DB776A84982950FBE /* HydrationFigureWebView.swift in Sources */,
 				2E011AF030CFB448B94A26D8 /* InductionView.swift in Sources */,
+				7B839CED35AC899C4670311A /* JewelBackdrop.swift in Sources */,
 				BD0BA71A490CB6D6DFB67907 /* LiveRunView.swift in Sources */,
 				F1365543A54BB3712F867003 /* LoginView.swift in Sources */,
 				CD8B1FE6660C170BB63D95A2 /* ManualRouteEditorView.swift in Sources */,

@@ -12,6 +12,8 @@ final class AppSession {
     /// The address a confirmation link was just sent to, if any. Held so the
     /// sign-up screen can say what happened rather than appear to do nothing.
     var awaitingConfirmationFor: String?
+    /// Debug only: opens the premium sheet straight away for visual checking.
+    var previewPaywall = false
     var data: DashboardData = .empty {
         didSet { recomputeBrain() }
     }
@@ -50,6 +52,9 @@ final class AppSession {
             case "induction": route = .induction
             case "consent": route = .consent
             case "persona": route = .persona
+            case "paywall":
+                route = .persona
+                previewPaywall = true
             default: route = .welcome
             }
             bootstrapped = true

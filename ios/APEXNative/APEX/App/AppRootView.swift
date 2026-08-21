@@ -36,6 +36,12 @@ struct AppRootView: View {
                     .transition(.opacity)
             }
         }
+        .sheet(isPresented: Binding(
+            get: { session.previewPaywall },
+            set: { session.previewPaywall = $0 }
+        )) {
+            PaywallView { session.previewPaywall = false }
+        }
         .overlay {
             if let persona = session.greetingPersona {
                 PersonaGreetingOverlay(persona: persona) {
