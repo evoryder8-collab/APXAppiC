@@ -126,20 +126,7 @@ struct NutritionGlanceCard: View {
                     .frame(maxWidth: .infinity)
 
                     Button(action: onEditTargets) {
-                        ZStack {
-                            Circle()
-                                .stroke(APEXColor.ink.opacity(0.07), lineWidth: 15)
-                            Circle()
-                                .trim(from: 0, to: max(calorieProgress, 0.012))
-                                .stroke(
-                                    AngularGradient(
-                                        colors: [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
-                                        center: .center
-                                    ),
-                                    style: StrokeStyle(lineWidth: 15, lineCap: .round)
-                                )
-                                .rotationEffect(.degrees(-90))
-                                .animation(.snappy, value: calorieProgress)
+                        EnergyRing(progress: calorieProgress) {
                             VStack(spacing: 2) {
                                 Text(language.text("Remaining"))
                                     .font(APEXFont.body(10, weight: .semibold))
