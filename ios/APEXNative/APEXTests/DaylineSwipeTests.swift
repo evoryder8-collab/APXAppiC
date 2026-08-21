@@ -1,4 +1,5 @@
 import XCTest
+@testable import APEX
 
 /*
  * Swipe-to-delete on the Dayline, pinned after two wrong fixes.
@@ -66,5 +67,18 @@ final class DaylineSwipeTests: XCTestCase {
         XCTAssertTrue(locksHorizontal(dx: 40, dy: 10))
         XCTAssertFalse(locksHorizontal(dx: 20, dy: 30))
         XCTAssertFalse(locksHorizontal(dx: 21, dy: 20))
+    }
+
+    func testMajorAxisLabelIsHiddenWhenAMealAlreadyStatesTheExactTime() {
+        XCTAssertFalse(DaylineAxisLabels.shouldShow(lineMinute: 1_260, entryMinutes: [1_260]))
+    }
+
+    func testMajorAxisLabelRemainsForANearbyButDifferentMealTime() {
+        XCTAssertTrue(DaylineAxisLabels.shouldShow(lineMinute: 1_260, entryMinutes: [1_290]))
+    }
+
+    func testMajorAxisLabelMatchesClockTimeAcrossMidnight() {
+        XCTAssertFalse(DaylineAxisLabels.shouldShow(lineMinute: 1_440, entryMinutes: [0]))
+        XCTAssertFalse(DaylineAxisLabels.shouldShow(lineMinute: 1_620, entryMinutes: [180]))
     }
 }
