@@ -173,6 +173,42 @@ final class MealComposerTests: XCTestCase {
         XCTAssertEqual(item.nutrients.proteinG, 26, accuracy: 0.001)
     }
 
+    func testApplyingAPresetCreatesFreshLoggedFoodEntryIDsEveryTime() {
+        let food = food(name: "Oats", kcal100: 370, protein100: 13, carbs100: 60, fat100: 7)
+        let presetItem = MealPresetItem(
+            id: UUID(),
+            presetID: UUID(),
+            userID: UUID(),
+            foodID: UUID(uuidString: food.id)!,
+            sortOrder: 0,
+            quantity: 60,
+            unit: "g",
+            optional: false,
+            locked: false,
+            adjustable: true,
+            minimumAmount: nil,
+            maximumAmount: nil,
+            stepAmount: nil,
+            adjustmentRole: "carb"
+        )
+
+        let firstApplication = MealComposerItem(food: food, preset: presetItem)
+        let secondApplication = MealComposerItem(food: food, preset: presetItem)
+
+        XCTAssertNotEqual(firstApplication.id, presetItem.id)
+        XCTAssertNotEqual(secondApplication.id, presetItem.id)
+        XCTAssertNotEqual(firstApplication.id, secondApplication.id)
+    }
+
+    func testEachComposerSessionGetsANewSaveOperationKeyForTheSameMeal() {
+        let mealID = UUID()
+        let firstDraft = draft(id: mealID)
+        let reopenedDraft = draft(id: mealID)
+
+        XCTAssertEqual(firstDraft.clientIdempotencyKey, firstDraft.clientIdempotencyKey)
+        XCTAssertNotEqual(firstDraft.clientIdempotencyKey, reopenedDraft.clientIdempotencyKey)
+    }
+
     func testPresetPayloadKeepsSupabaseRPCContract() throws {
         let foodID = UUID()
         let payload = MealPresetRPCPayload(
@@ -212,6 +248,21 @@ final class MealComposerTests: XCTestCase {
         let items = try XCTUnwrap(object["p_items"] as? [[String: Any]])
         XCTAssertEqual(items.first?["food_id"] as? String, foodID.uuidString)
         XCTAssertEqual(items.first?["adjustment_role"] as? String, "fixed")
+    }
+
+    private func draft(id: UUID) -> MealComposerDraft {
+        MealComposerDraft(
+            id: id,
+            localDate: "2026-08-21",
+            mealSlot: "breakfast",
+            displayName: "Breakfast",
+            finishedAt: Date(timeIntervalSince1970: 0),
+            sourcePresetID: nil,
+            sourcePlannedMealID: nil,
+            replaceMealID: id,
+            loggedAs: "custom",
+            items: []
+        )
     }
 
     private func food(

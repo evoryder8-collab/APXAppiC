@@ -986,7 +986,6 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
 
     init(food: Food, preset: MealPresetItem) {
         self.init(food: food, quantity: preset.quantity, unit: preset.unit)
-        id = preset.id
         optional = preset.optional
         locked = preset.locked
         adjustable = preset.adjustable
@@ -1008,6 +1007,13 @@ struct MealComposerDraft: Identifiable, Hashable, Sendable {
     var replaceMealID: UUID?
     var loggedAs: String
     var items: [MealComposerItem]
+    var saveOperationID: UUID = UUID()
+
+    /// Stable for retries of one save attempt, but renewed whenever the meal
+    /// composer is opened again so a later edit is not mistaken for a replay.
+    var clientIdempotencyKey: String {
+        "ios-meal-op-\(saveOperationID.uuidString.lowercased())"
+    }
 
     var totals: FoodNutrients {
         items.reduce(FoodNutrients(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0)) { partial, item in

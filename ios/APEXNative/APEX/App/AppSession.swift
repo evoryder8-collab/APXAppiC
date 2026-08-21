@@ -989,7 +989,7 @@ final class AppSession {
         let validItems = draft.items.filter { $0.equivalentAmount > 0 }
         guard validItems.isEmpty == false else { throw APEXServiceError.incompleteFood }
 
-        let key = "ios-meal-\(draft.id.uuidString.lowercased())"
+        let key = draft.clientIdempotencyKey
         let loggedAs = MealLogKind.normalized(draft.loggedAs)
         let request = StructuredMealRequest(
             id: draft.id,
