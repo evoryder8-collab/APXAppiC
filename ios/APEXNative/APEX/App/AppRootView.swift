@@ -67,6 +67,7 @@ struct AppRootView: View {
 }
 
 private struct APEXLaunchView: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var breathing = false
 
     var body: some View {
@@ -82,6 +83,10 @@ private struct APEXLaunchView: View {
                 .tint(APEXColor.amber)
         }
         .onAppear {
+            /* Repeating without end is the shape of animation that Reduce
+               Motion exists for: there is no moment when it settles, so it
+               cannot be waited out. Left still when the setting is on. */
+            guard !reduceMotion else { return }
             withAnimation(.easeInOut(duration: 1.4).repeatForever(autoreverses: true)) {
                 breathing = true
             }

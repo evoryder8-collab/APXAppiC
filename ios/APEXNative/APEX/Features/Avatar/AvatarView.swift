@@ -941,6 +941,7 @@ private struct StrengthHistoryCard: View {
 }
 
 private struct AvatarHero: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
     let profile: Profile?
     @State private var pulse = false
@@ -969,6 +970,11 @@ private struct AvatarHero: View {
         }
         .frame(height: 330).clipShape(RoundedRectangle(cornerRadius: 40, style: .continuous))
         .shadow(color: APEXColor.violet.opacity(0.22), radius: 30, y: 14)
-        .onAppear { withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) { pulse = true } }
+        /* Never settles, so Reduce Motion turns it off entirely rather than
+           shortening it. */
+        .onAppear {
+            guard !reduceMotion else { return }
+            withAnimation(.easeInOut(duration: 2.2).repeatForever(autoreverses: true)) { pulse = true }
+        }
     }
 }
