@@ -37,15 +37,58 @@ final class EntitlementStore {
         UserDefaults.standard.bool(forKey: Self.redeemedKey)
     }
 
+    /// What happened when a code was entered.
+    enum RedeemOutcome: Equatable {
+        case unlocked
+        case alreadyRedeemed
+        case notRecognised
+        case notSignedIn
+        case unavailable
+    }
+
+    /// The developer code, which is mine and unlimited, checked on device.
     /// Returns whether the code was accepted.
     @discardableResult
     func redeem(code: String) -> Bool {
-        let normalised = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
-        let digest = SHA256.hash(data: Data(normalised.utf8))
-        let hex = digest.map { String(format: "%02x", $0) }.joined()
-        guard hex == Self.developerCodeHash else { return false }
+        guard hash(of: code) == Self.developerCodeHash else { return false }
         UserDefaults.standard.set(true, forKey: Self.redeemedKey)
         return true
+    }
+
+    /// A shared beta code, which belongs to whichever account claims it first.
+    ///
+    /// This cannot be decided on the device: a local flag is per install, so
+    /// the same code would work again on another phone, or after deleting and
+    /// reinstalling. The claim is recorded against the account server side.
+    func redeemBeta(code: String, service: SupabaseService) async -> RedeemOutcome {
+        /* The developer code still short-circuits, so my own testing never
+           consumes one of the five. */
+        if redeem(code: code) { return .unlocked }
+
+        let result: String
+        do {
+            result = try await service.redeemBetaCode(hash: hash(of: code))
+        } catch {
+            return .unavailable
+        }
+
+        switch result {
+        case "ok":
+            UserDefaults.standard.set(true, forKey: Self.redeemedKey)
+            return .unlocked
+        case "already_redeemed": return .alreadyRedeemed
+        case "not_signed_in": return .notSignedIn
+        default: return .notRecognised
+        }
+    }
+
+    /// Normalised the same way on every path, so a code typed with stray
+    /// spaces or in lower case still matches.
+    private func hash(of code: String) -> String {
+        let normalised = code.trimmingCharacters(in: .whitespacesAndNewlines).uppercased()
+        return SHA256.hash(data: Data(normalised.utf8))
+            .map { String(format: "%02x", $0) }
+            .joined()
     }
 
     // MARK: - Resolution

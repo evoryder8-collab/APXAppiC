@@ -3977,3 +3977,6 @@
 "APEX plan" = "แผน APEX";
 "Check your email" = "ตรวจสอบอีเมลของคุณ";
 "We sent a confirmation link to %@. Open it, then sign in here." = "เราส่งลิงก์ยืนยันไปที่ %@ แล้ว เปิดลิงก์ จากนั้นกลับมาเข้าสู่ระบบที่นี่";
+"This account has already used a beta code." = "บัญชีนี้ใช้รหัสเบต้าไปแล้ว";
+"Sign in first, then enter your code." = "เข้าสู่ระบบก่อน แล้วจึงกรอกรหัส";
+"Could not reach APEX. Try again when you are online." = "ไม่สามารถเชื่อมต่อ APEX ลองใหม่เมื่อออนไลน์";

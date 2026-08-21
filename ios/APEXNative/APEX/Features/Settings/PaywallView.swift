@@ -10,8 +10,12 @@ struct PaywallView: View {
     @State private var language = LanguageState.shared
     @State private var entitlements = EntitlementStore.shared
     @State private var code = ""
-    @State private var codeRejected = false
+    @State private var codeMessage: String?
+    @State private var redeeming = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    /// Which tier the person is looking at. Nothing is chosen for them: a
+    /// preselected plan on a paywall is a decision made on someone's behalf.
+    @State private var selected: Entitlement.Tier?
     var onClose: (() -> Void)?
 
     /* On the jewel ground the app's ink colours vanish, so the sheet carries
@@ -104,7 +108,15 @@ struct PaywallView: View {
         features: [String]
     ) -> some View {
         let price = Entitlement.price(tier)
-        return FacetPanel(radius: 26, padding: 19, lifted: tier == .premium) {
+        let isSelected = selected == tier
+        return FacetPanel(
+            radius: 26,
+            padding: 19,
+            /* Lifted by choice once one is made, and by recommendation until
+               then, so the sheet always has exactly one focal point. */
+            lifted: isSelected || (selected == nil && tier == .premium),
+            selected: isSelected
+        ) {
             VStack(alignment: .leading, spacing: 13) {
                 HStack(alignment: .firstTextBaseline) {
                     Text(language.text(tier == .premium ? "Premium" : "Coach"))
@@ -164,6 +176,18 @@ struct PaywallView: View {
                 }
             }
         }
+        /* Each card drifts on its own phase, so the pair breathes instead of
+           moving as one block, which reads as a bug rather than as life. */
+        .floating(index: tier == .premium ? 0 : 2, active: !reduceMotion)
+        .scaleEffect(isSelected ? 1.015 : 1)
+        .animation(.spring(response: 0.34, dampingFraction: 0.72), value: isSelected)
+        .contentShape(RoundedRectangle(cornerRadius: 26, style: .continuous))
+        .onTapGesture {
+            /* Tapping the chosen one again clears it, so the choice is never a
+               trap. */
+            selected = isSelected ? nil : tier
+        }
+        .accessibilityAddTraits(isSelected ? [.isButton, .isSelected] : .isButton)
     }
 
     private func priceRow(amount: Int, period: String, emphasised: Bool) -> some View {
@@ -190,21 +214,39 @@ struct PaywallView: View {
                         .padding(.vertical, 11)
                         .background(.white.opacity(0.10), in: RoundedRectangle(cornerRadius: 13))
                     Button(language.text("Redeem")) {
-                        codeRejected = !entitlements.redeem(code: code)
-                        if !codeRejected {
-                            entitlements.resolve(profile: session.profile)
-                            onClose?()
-                        }
+                        Task { await submitCode() }
                     }
                     .font(APEXFont.body(13, weight: .bold))
-                    .disabled(code.isEmpty)
+                    .disabled(code.isEmpty || redeeming)
                 }
-                if codeRejected {
-                    Text(language.text("That code was not recognised."))
+                /* Each outcome says what actually happened. "Not recognised"
+                   for a code that was already claimed sends someone hunting for
+                   a typo that is not there. */
+                if let message = codeMessage {
+                    Text(message)
                         .font(APEXFont.body(11))
-                        .foregroundStyle(.red)
+                        .foregroundStyle(APEXColor.amber)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
+        }
+    }
+
+    private func submitCode() async {
+        redeeming = true
+        defer { redeeming = false }
+        switch await entitlements.redeemBeta(code: code, service: .shared) {
+        case .unlocked:
+            entitlements.resolve(profile: session.profile)
+            onClose?()
+        case .alreadyRedeemed:
+            codeMessage = language.text("This account has already used a beta code.")
+        case .notSignedIn:
+            codeMessage = language.text("Sign in first, then enter your code.")
+        case .unavailable:
+            codeMessage = language.text("Could not reach APEX. Try again when you are online.")
+        case .notRecognised:
+            codeMessage = language.text("That code was not recognised.")
         }
     }
 

@@ -1718,3 +1718,6 @@
 "Recent frequency, volume, long-run exposure and consistency support entry into a marathon-specific campaign." = "最近の頻度、走行量、ロングランの経験、継続性から、マラソン特化のキャンペーンに入れます。";
 "Check your email" = "メールを確認してください";
 "We sent a confirmation link to %@. Open it, then sign in here." = "%@ に確認リンクを送りました。リンクを開いてから、ここでログインしてください。";
+"This account has already used a beta code." = "このアカウントはすでにベータコードを使用しています。";
+"Sign in first, then enter your code." = "先にログインしてから、コードを入力してください。";
+"Could not reach APEX. Try again when you are online." = "APEXに接続できませんでした。オンラインのときにもう一度お試しください。";

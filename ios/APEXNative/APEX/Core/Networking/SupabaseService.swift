@@ -121,6 +121,21 @@ actor SupabaseService {
         try await client.from("exercises").upsert(plan.exercises, onConflict: "id").execute()
     }
 
+    /// Claim a beta code for the signed-in account.
+    ///
+    /// Only the hash leaves the device, and the database only ever stores the
+    /// hash, so neither a network log nor a copy of the table hands anyone a
+    /// code they can type in. The claim itself is one statement server side,
+    /// so two devices racing the same code cannot both win.
+    func redeemBetaCode(hash: String) async throws -> String {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable { let p_code_hash: String }
+        return try await client
+            .rpc("redeem_beta_code", params: Params(p_code_hash: hash))
+            .execute()
+            .value
+    }
+
     func loadDashboard() async throws -> DashboardData {
         guard let client else { throw APEXServiceError.configurationMissing }
 

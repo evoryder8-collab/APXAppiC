@@ -95,6 +95,9 @@ struct FacetPanel<Content: View>: View {
     /// The recommended tier gets a brighter edge, so the eye is told where to
     /// look without a badge shouting "most popular".
     var lifted: Bool = false
+    /// Chosen by a tap, as opposed to merely recommended. Gets a ring the
+    /// recommendation does not, so the two states cannot be confused.
+    var selected: Bool = false
     @ViewBuilder var content: Content
 
     var body: some View {
@@ -127,6 +130,13 @@ struct FacetPanel<Content: View>: View {
                         ),
                         lineWidth: lifted ? 1.2 : 0.8
                     )
+            }
+            .overlay {
+                if selected {
+                    RoundedRectangle(cornerRadius: radius, style: .continuous)
+                        .stroke(APEXColor.cyan, lineWidth: 1.6)
+                        .shadow(color: APEXColor.cyan.opacity(0.7), radius: 10)
+                }
             }
             .shadow(color: .black.opacity(0.35), radius: lifted ? 26 : 16, y: lifted ? 12 : 8)
     }

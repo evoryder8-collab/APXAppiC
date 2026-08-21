@@ -1718,3 +1718,6 @@
 "Recent frequency, volume, long-run exposure and consistency support entry into a marathon-specific campaign." = "A frequência, o volume, as corridas longas e a consistência recentes permitem entrar numa campanha específica de maratona.";
 "Check your email" = "Verifica o teu email";
 "We sent a confirmation link to %@. Open it, then sign in here." = "Enviámos um link de confirmação para %@. Abre-o e depois inicia sessão aqui.";
+"This account has already used a beta code." = "Esta conta já usou um código beta.";
+"Sign in first, then enter your code." = "Inicia sessão primeiro e depois introduz o teu código.";
+"Could not reach APEX. Try again when you are online." = "Não foi possível contactar a APEX. Tenta quando estiveres online.";

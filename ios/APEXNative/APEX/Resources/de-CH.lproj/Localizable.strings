@@ -1718,3 +1718,6 @@
 "Recent frequency, volume, long-run exposure and consistency support entry into a marathon-specific campaign." = "Hüüfigkeit, Umfang, langi Läuf und Beständigkeit vo de letschte Zit erlaubed de Iistieg i e marathonspezifischi Kampagne.";
 "Check your email" = "E-Mail prüefe";
 "We sent a confirmation link to %@. Open it, then sign in here." = "Mir hend en Bestätigungslink a %@ gschickt. Mach en uf und mäld di dänn do a.";
+"This account has already used a beta code." = "Das Konto hät scho en Beta-Code bruucht.";
+"Sign in first, then enter your code." = "Mäld di zerscht a und gib dänn din Code ii.";
+"Could not reach APEX. Try again when you are online." = "APEX isch nöd erreichbar gsi. Probier s online no emal.";
