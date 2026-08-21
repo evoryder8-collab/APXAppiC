@@ -1641,13 +1641,64 @@ final class AppSession {
         }
         data.workoutSessions.append(workout)
         data.workoutLogs.append(contentsOf: logs)
-        await persistUpsert(workout, table: "workout_sessions")
-        for log in logs {
-            await persistUpsert(log, table: "workout_logs")
-        }
+
+        var linkedActivity: ActivityLog?
         if let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
-            await addActivity(type: activityType, date: .now, durationMinutes: elapsed)
+            let activity = ActivityLog(
+                id: UUID(),
+                userID: profile.userID,
+                date: Date().apexDateKey,
+                typeID: activityType.id,
+                quantity: 1,
+                durationMinutes: elapsed,
+                distanceKM: nil,
+                watchKcal: nil,
+                computedKcal: EnergyEngine.blockCalories(
+                    type: activityType,
+                    quantity: 1,
+                    durationMinutes: elapsed,
+                    distanceKM: nil,
+                    watchKcal: nil,
+                    weightKG: profile.weightKG
+                ),
+                source: "workout_module",
+                reconciled: false,
+                createdAt: now,
+                updatedAt: now
+            )
+            data.activityLogs.append(activity)
+            linkedActivity = activity
+        }
+
+        /* The receipt is part of completing the workout, so it must not wait
+           for a chain of remote writes. Preserve one complete local snapshot
+           first, then let the normal offline-aware sync path drain in the
+           background. */
+        await saveLocalSnapshot()
+        let ownerID = profile.userID
+        Task { @MainActor [weak self] in
+            guard let self, self.profile?.userID == ownerID else { return }
+            await self.persistUpsert(
+                workout,
+                table: "workout_sessions",
+                surfacePermanentFailure: false
+            )
+            for log in logs {
+                guard self.profile?.userID == ownerID else { return }
+                await self.persistUpsert(
+                    log,
+                    table: "workout_logs",
+                    surfacePermanentFailure: false
+                )
+            }
+            if let linkedActivity, self.profile?.userID == ownerID {
+                await self.persistUpsert(
+                    linkedActivity,
+                    table: "activity_logs",
+                    surfacePermanentFailure: false
+                )
+            }
         }
         return workout.id
     }
@@ -2488,7 +2539,8 @@ final class AppSession {
     private func persistUpsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,
-        onConflict: String? = nil
+        onConflict: String? = nil,
+        surfacePermanentFailure: Bool = true
     ) async {
         await saveLocalSnapshot()
         do {
@@ -2511,10 +2563,14 @@ final class AppSession {
                         reason: error.localizedDescription,
                         for: userID
                     )
-                    alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
+                    if surfacePermanentFailure {
+                        alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
+                    }
                 }
             } catch {
-                alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
+                if surfacePermanentFailure {
+                    alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
+                }
             }
         }
     }

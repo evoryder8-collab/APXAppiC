@@ -528,6 +528,7 @@ struct MealComposerView: View {
                         .font(APEXFont.body(13, weight: .bold))
                         .foregroundStyle(APEXColor.amberDeep)
                         .fixedSize()
+                        .accessibilityIdentifier("meal-selection-count")
                     Spacer(minLength: 6)
                     Button(language.text("Cancel")) {
                         selectionMode = false
