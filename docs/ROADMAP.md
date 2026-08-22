@@ -124,44 +124,39 @@ on the frozen commit `909cd63` and are **not** on `codex/main-critical-repair`:
 **Do not re-implement these from scratch.** Read `909cd63` in `~/APXAppiC-codex-release` first and
 port what is sound, with tests.
 
-## EXECUTION ORDER CHANGED — LAUNCH COMES FIRST
+## LAUNCH SCOPE AND WORKING POLICY — decided 22 Aug
 
-The owner's decision, 22 Aug: **ship to the App Store as soon as Task 5 lands.** Phases 4 and 5
-move ahead of the remaining Phase 1 workout polish. The app is already useful; the rest is
-iteration on a shipped product, delivered as 1.0.1, 1.0.2 and so on.
-
-New order: finish Task 5 → **Phase 4 (StoreKit + paywall)** → **Phase 5 (App Store submission)** →
-then resume Phase 1.5 onward.
-
-Do not carry Phase 1.5 to 1.9 in front of the launch. They ship as point releases afterwards.
+**Order is unchanged: finish the work, then launch paid.** A free or code-only beta was
+considered and rejected. Phases run in their existing numbered order; do not pull Phase 4 or 5
+forward, and do not ship an interim free release.
 
 ### Launch scope, decided
 - **Two products only**: Premium monthly and Premium yearly. Do not create Coach products —
   a subscription with no platform behind it is a 3.1.2 rejection risk. The Coach card stays
   visible, greyed, "Coming soon", excluded from StoreKit.
-- **Pricing cards stay purchasable.** The owner is not shipping a code-only beta.
-- The five beta codes bypass the paywall for family accounts, as already specified in 4.2.
+- Pricing cards are purchasable at launch. The five beta codes bypass the paywall for family
+  accounts, per 4.2.
 - **Defer App Store Server Notifications V2 to 1.1.** For launch, `Transaction.currentEntitlements`
-  checked on launch and on foreground, mirrored to Supabase, is sufficient and is what many shipped
-  apps do. Do not build the JWS-verifying Edge Function now; it processes renewals you will not have
-  for a month.
+  checked on launch and on foreground, mirrored to Supabase, is sufficient. Do not build the
+  JWS-verifying Edge Function now; it processes renewals that will not exist for a month.
 
 ### Owner-side, runs in parallel and blocks nothing you build
 The Paid Applications agreement (App Store Connect → Business) must be Active before IAP products
-can be created. That is the owner's task, not yours. **The StoreKit client code does not depend on
-it** — only sandbox testing does. Build and unit-test the client against a local `.storekit`
-configuration file while the agreement clears, so the two never block each other.
+can be created. That is the owner's task. **The StoreKit client code does not depend on it** — only
+sandbox testing does. When you reach Phase 4, build and unit-test against a local `.storekit`
+configuration file so the two never block each other.
 
 ### Review-effort policy, effective now
-The Task 5 review loop ran roughly ten rounds and consumed a disproportionate share of the owner's
-budget. It found real defects and that was worth it for data integrity. It is not the right setting
-for everything.
+This matters more than it looks. The Task 5 review loop ran roughly ten rounds and consumed a
+disproportionate share of the owner's weekly budget. It found real defects — the fabricated profile
+defaults were worth every round — but it is not the right setting for everything, and at that burn
+rate "finish everything first" is not affordable.
 
 - **Full independent review**: anything touching persistence, account isolation, entitlements,
   money, or health data.
 - **Single-pass review**: UI, copy, layout, labels, animation.
 
-A cosmetic defect on a shipped beta is a point release. Do not spend a review cycle on a chip label.
+A chip label does not earn a review cycle. Spend the budget where a defect would cost data or money.
 
 ---
 
