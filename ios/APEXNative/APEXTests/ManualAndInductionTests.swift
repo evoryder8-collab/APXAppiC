@@ -291,6 +291,62 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertEqual(TrackedWorkout.workUnit(for: ranged), .seconds)
     }
 
+    func testMaxTrackedWorkKeepsItsAuthoredModeAndRequiresCountedActuals() {
+        let max = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Pull-up",
+            sets: 1, repMin: 1, repMax: 99, repUnit: "max", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        var input = TrackedWorkout.setInputs(for: [max])[0]
+
+        XCTAssertEqual(TrackedWorkout.workUnit(for: max), .max)
+        XCTAssertEqual(TrackedWorkout.plannedTarget(for: max), "MAX")
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: max))
+        XCTAssertFalse(TrackedWorkout.isReadyToFinish([input], exercises: [max], checkDecisions: [:]))
+
+        input.reps = 12
+        input.weightKG = 10
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish([input], exercises: [max], checkDecisions: [:]))
+        XCTAssertNil(input.rir)
+    }
+
+    func testCheckTrackedWorkNeedsAnExplicitDecisionAndPersistsNoMeasurements() {
+        let check = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Warm-up",
+            sets: 1, repMin: 0, repMax: 0, repUnit: "check", perSide: false,
+            restSeconds: 0, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let draft = TrackedWorkout.setInputs(for: [check])[0]
+        let key = TrackedWorkout.setKey(for: draft)
+
+        XCTAssertEqual(TrackedWorkout.workUnit(for: check), .check)
+        XCTAssertEqual(TrackedWorkout.plannedTarget(for: check), "Check")
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: check))
+        XCTAssertFalse(TrackedWorkout.isReadyToFinish([draft], exercises: [check], checkDecisions: [:]))
+
+        let completed = TrackedWorkout.applying(.completed, to: draft)
+        XCTAssertFalse(completed.skipped)
+        XCTAssertNil(completed.reps)
+        XCTAssertNil(completed.weightKG)
+        XCTAssertNil(completed.rir)
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(
+            [completed], exercises: [check], checkDecisions: [key: .completed]
+        ))
+
+        let skipped = TrackedWorkout.applying(.skipped, to: draft)
+        XCTAssertTrue(skipped.skipped)
+        XCTAssertNil(skipped.reps)
+        XCTAssertNil(skipped.weightKG)
+        XCTAssertNil(skipped.rir)
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(
+            [skipped], exercises: [check], checkDecisions: [key: .skipped]
+        ))
+    }
+
     func testTrackedEntryUsesDirectNumberAndDecimalKeyboards() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
