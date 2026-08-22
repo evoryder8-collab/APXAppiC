@@ -1602,7 +1602,7 @@ final class AppSession {
                     setNumber: set,
                     weightKG: nil,
                     reps: exercise.repMax > 0 ? exercise.repMax : nil,
-                    rir: 2,
+                    rir: nil,
                     skipped: false
                 )
             }
@@ -2369,49 +2369,12 @@ final class AppSession {
         let existingTimes = existingLogs.compactMap { formatter.date(from: $0.createdAt)?.timeIntervalSince1970 }
         let base = existingTimes.min() ?? Date().timeIntervalSince1970
 
-        var proposed: [WorkoutLog] = []
-        for (index, draft) in usable.enumerated() {
-            let exerciseTime = base + Double(index) * 60
-            if let treadmill = draft.treadmill {
-                proposed.append(
-                    WorkoutLog(
-                        id: UUID(),
-                        userID: userID,
-                        sessionID: workout.id,
-                        exerciseID: nil,
-                        exerciseName: ManualWorkout.encodeTreadmill(name: draft.name, metrics: treadmill),
-                        setNumber: 1,
-                        weightKG: nil,
-                        reps: nil,
-                        rir: nil,
-                        skipped: false,
-                        overrideFlag: false,
-                        createdAt: formatter.string(from: Date(timeIntervalSince1970: exerciseTime))
-                    )
-                )
-                continue
-            }
-            for (setIndex, set) in draft.sets.filter({ $0.reps > 0 }).enumerated() {
-                proposed.append(
-                    WorkoutLog(
-                        id: UUID(),
-                        userID: userID,
-                        sessionID: workout.id,
-                        exerciseID: nil,
-                        exerciseName: draft.name,
-                        setNumber: setIndex + 1,
-                        weightKG: set.weightKG > 0 ? set.weightKG : nil,
-                        reps: set.reps,
-                        rir: nil,
-                        skipped: false,
-                        overrideFlag: false,
-                        createdAt: formatter.string(
-                            from: Date(timeIntervalSince1970: exerciseTime + Double(setIndex) * 0.1)
-                        )
-                    )
-                )
-            }
-        }
+        let proposed = ManualWorkout.logs(
+            userID: userID,
+            sessionID: workout.id,
+            exercises: usable,
+            base: Date(timeIntervalSince1970: base)
+        )
 
         let reconciled = ManualWorkout.reconcile(existing: existingLogs, next: proposed)
 

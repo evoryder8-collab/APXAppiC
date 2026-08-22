@@ -1216,6 +1216,7 @@ struct WorkoutPlayerView: View {
                                     adjustLastInput(repsDelta: 0, weightDelta: delta)
                                 }
                             }
+                            reportedEffortRow(last.rir)
                         }
                         .padding(16)
                         .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
@@ -1251,6 +1252,18 @@ struct WorkoutPlayerView: View {
                 Text(completionSummary)
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
+                if let last = setInputs.last, !last.skipped {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(language.text("LAST SET EFFORT"))
+                            .font(APEXFont.mono(9, weight: .bold))
+                            .tracking(1.2)
+                            .foregroundStyle(APEXColor.violet)
+                        reportedEffortRow(last.rir)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
                 Button {
                     finishWorkout()
                 } label: {
@@ -1421,7 +1434,7 @@ struct WorkoutPlayerView: View {
             setNumber: currentSet,
             weightKG: currentWeight > 0 ? currentWeight : nil,
             reps: skipped ? nil : actualReps,
-            rir: skipped ? nil : 2,
+            rir: nil,
             skipped: skipped
         )
         setInputs.removeAll { $0.exerciseID == current.id && $0.setNumber == currentSet }
@@ -1469,6 +1482,29 @@ struct WorkoutPlayerView: View {
             setInputs[index].weightKG = max(0, (setInputs[index].weightKG ?? 0) + weightDelta)
             currentWeight = setInputs[index].weightKG ?? 0
         }
+    }
+
+    private func reportedEffortRow(_ value: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(language.text("Reps in reserve"))
+                .font(APEXFont.body(11, weight: .semibold))
+            HStack(spacing: 6) {
+                Button(language.text("Clear")) { setLastReportedEffort(nil) }
+                    .buttonStyle(.bordered)
+                    .tint(value == nil ? accent : APEXColor.secondaryInk)
+                ForEach(0...5, id: \.self) { rir in
+                    Button("\(rir)") { setLastReportedEffort(rir) }
+                        .buttonStyle(.bordered)
+                        .tint(value == rir ? accent : APEXColor.secondaryInk)
+                }
+            }
+        }
+    }
+
+    private func setLastReportedEffort(_ rir: Int?) {
+        guard !setInputs.isEmpty else { return }
+        let index = setInputs.index(before: setInputs.endIndex)
+        setInputs[index].rir = rir
     }
 
     /* The session used to save and vanish. Showing the receipt is the only

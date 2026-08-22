@@ -13,9 +13,22 @@ enum ManualWorkout {
     private static let automaticTitle = "__APEX_AUTOMATIC_TITLE__"
 
     struct SetDraft: Identifiable, Hashable {
-        var id = UUID()
-        var reps: Int = 10
-        var weightKG: Double = 0
+        var id: UUID
+        var reps: Int
+        var weightKG: Double
+        var rir: Int?
+
+        init(
+            id: UUID = UUID(),
+            reps: Int = 10,
+            weightKG: Double = 0,
+            rir: Int? = nil
+        ) {
+            self.id = id
+            self.reps = reps
+            self.weightKG = weightKG
+            self.rir = rir.map { min(5, max(0, $0)) }
+        }
     }
 
     struct TreadmillDraft: Hashable {
@@ -90,6 +103,55 @@ enum ManualWorkout {
     /// The plain movement name, with any treadmill metrics stripped back off.
     static func baseName(_ value: String) -> String {
         parseTreadmill(value)?.name ?? value
+    }
+
+    // MARK: - Saved rows
+
+    /// Turns the editable manual-workout draft into the rows persisted by
+    /// AppSession. Reported RIR is optional: a blank control remains blank.
+    static func logs(
+        userID: UUID,
+        sessionID: UUID,
+        exercises: [ExerciseDraft],
+        base: Date
+    ) -> [WorkoutLog] {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime]
+        var output: [WorkoutLog] = []
+
+        for (index, draft) in exercises.enumerated() {
+            let exerciseTime = base.timeIntervalSince1970 + Double(index) * 60
+            if let treadmill = draft.treadmill {
+                output.append(
+                    WorkoutLog(
+                        id: UUID(), userID: userID, sessionID: sessionID,
+                        exerciseID: nil,
+                        exerciseName: encodeTreadmill(name: draft.name, metrics: treadmill),
+                        setNumber: 1, weightKG: nil, reps: nil, rir: nil,
+                        skipped: false, overrideFlag: false,
+                        createdAt: formatter.string(from: Date(timeIntervalSince1970: exerciseTime))
+                    )
+                )
+                continue
+            }
+
+            for (setIndex, set) in draft.sets.filter({ $0.reps > 0 }).enumerated() {
+                output.append(
+                    WorkoutLog(
+                        id: UUID(), userID: userID, sessionID: sessionID,
+                        exerciseID: nil, exerciseName: draft.name,
+                        setNumber: setIndex + 1,
+                        weightKG: set.weightKG > 0 ? set.weightKG : nil,
+                        reps: set.reps, rir: set.rir,
+                        skipped: false, overrideFlag: false,
+                        createdAt: formatter.string(
+                            from: Date(timeIntervalSince1970: exerciseTime + Double(setIndex) * 0.1)
+                        )
+                    )
+                )
+            }
+        }
+        return output
     }
 
     // MARK: - Reconciliation

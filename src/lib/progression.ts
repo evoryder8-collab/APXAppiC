@@ -35,7 +35,7 @@ export function exerciseHistory(data: AppData, exercise: Exercise): ExerciseHist
       allTopReps:
         e.reps.length > 0 &&
         e.reps.every((r) => r.reps != null && r.reps >= exercise.rep_max && exercise.rep_max > 0),
-      atTargetRir: e.reps.every((r) => r.rir == null || r.rir <= 2),
+      atTargetRir: e.reps.length > 0 && e.reps.every((r) => r.rir != null && r.rir >= 2),
     }))
     .sort((a, b) => a.date.localeCompare(b.date))
 }

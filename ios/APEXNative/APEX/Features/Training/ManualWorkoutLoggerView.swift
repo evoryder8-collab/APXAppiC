@@ -147,7 +147,11 @@ struct ManualWorkoutLoggerView: View {
                 )
                 continue
             }
-            let set = ManualWorkout.SetDraft(reps: log.reps ?? 0, weightKG: log.weightKG ?? 0)
+            let set = ManualWorkout.SetDraft(
+                reps: log.reps ?? 0,
+                weightKG: log.weightKG ?? 0,
+                rir: log.rir
+            )
             if let index = drafts.lastIndex(where: { $0.name == log.exerciseName && $0.treadmill == nil }),
                log.setNumber > drafts[index].sets.count {
                 drafts[index].sets.append(set)
@@ -227,6 +231,7 @@ struct ManualWorkoutLoggerView: View {
                         get: { set.wrappedValue.weightKG },
                         set: { set.wrappedValue.weightKG = $0 }
                     ))
+                    effortField(set)
                     if draft.wrappedValue.sets.count > 1 {
                         Button {
                             draft.wrappedValue.sets.removeAll { $0.id == set.wrappedValue.id }
@@ -267,6 +272,27 @@ struct ManualWorkoutLoggerView: View {
                 .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 10))
         }
         .frame(maxWidth: .infinity)
+    }
+
+    private func effortField(_ set: Binding<ManualWorkout.SetDraft>) -> some View {
+        Menu {
+            Button(language.text("Not reported")) { set.wrappedValue.rir = nil }
+            ForEach(0...5, id: \.self) { value in
+                Button("RIR \(value)") { set.wrappedValue.rir = value }
+            }
+        } label: {
+            VStack(alignment: .leading, spacing: 3) {
+                Text(language.text("RIR"))
+                    .font(APEXFont.mono(8, weight: .bold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                Text(set.wrappedValue.rir.map { "\($0)" } ?? "—")
+                    .font(APEXFont.mono(13, weight: .bold))
+                    .frame(maxWidth: .infinity, minHeight: 34)
+                    .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 10))
+            }
+        }
+        .frame(maxWidth: .infinity)
+        .accessibilityLabel(language.text("Reps in reserve"))
     }
 
     private func save() {

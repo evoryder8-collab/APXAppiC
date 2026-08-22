@@ -1,7 +1,8 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { assessJointCheckin, buildStrengthSeries, checkinDue, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
-import { EMPTY_DATA, type AppData, type JointCheckin } from '../src/lib/types.ts'
+import { recommendLoad } from '../src/lib/progression.ts'
+import { EMPTY_DATA, type AppData, type Exercise, type JointCheckin } from '../src/lib/types.ts'
 
 function strengthData(): AppData {
   return {
@@ -17,6 +18,38 @@ function strengthData(): AppData {
     ],
   }
 }
+
+function progressionData(rir: number | null): { data: AppData; exercise: Exercise } {
+  const exercise: Exercise = {
+    id: 'bench', user_id: 'u', program_day_id: 'd', name: 'Bench Press', sets: 1,
+    rep_min: 8, rep_max: 12, rep_unit: 'reps', per_side: false, rest_sec: 120,
+    tempo_up_s: 1, tempo_down_s: 2, tempo_pause_s: 0, tempo_note: '', notes: '',
+    increment_kg: 2.5, is_lite: false, optional: false, sort_order: 0,
+  }
+  return {
+    exercise,
+    data: {
+      ...EMPTY_DATA,
+      workout_sessions: [{
+        id: 's1', user_id: 'u', date: '2026-08-20', program_day_id: 'd',
+        is_lite: false, is_deload: false, is_event_recovery: false, completed: true,
+        quality_score: 1, started_at: null, completed_at: null, notes: '',
+      }],
+      workout_logs: [{
+        id: 'l1', user_id: 'u', session_id: 's1', exercise_id: 'bench',
+        exercise_name: 'Bench Press', set_no: 1, weight_kg: 60, reps: 12, rir,
+        skipped: false, override_flag: false, created_at: '2026-08-20T10:00:00Z',
+      }],
+    },
+  }
+}
+
+test('progression requires explicit reserve at or above the two-RIR target', () => {
+  for (const [rir, expected] of [[null, 60], [0, 60], [1, 60], [2, 62.5], [5, 62.5]] as const) {
+    const { data, exercise } = progressionData(rir)
+    assert.equal(recommendLoad(data, exercise).weight, expected, `RIR ${rir}`)
+  }
+})
 
 test('strength series uses per-set loads and creates an honest 90-day comparison', () => {
   const data = strengthData()

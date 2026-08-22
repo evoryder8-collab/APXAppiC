@@ -1257,7 +1257,7 @@ function LogCard(props: {
       rec?.weight,
     )),
   )
-  const [rir, setRir] = useState<number | null>(1)
+  const [rir, setRir] = useState<number | null>(null)
   const [reps, setReps] = useState<Array<number | null>>(() =>
     [...Array(e.planned_sets)].map((_, i) => e.rep_unit === 'reps'
       ? prefillSetReps(
@@ -1307,11 +1307,11 @@ function LogCard(props: {
       <div className="mt-4">
         <p className="text-[10px] font-bold tracking-widest text-ink-faint uppercase">Reps in reserve</p>
         <div className="mt-1.5 flex justify-center gap-1.5">
-          {[0, 1, 2, 3, 4].map((v) => (
+          {[0, 1, 2, 3, 4, 5].map((v) => (
             <button
               key={v}
               type="button"
-              onClick={() => setRir(v)}
+              onClick={() => setRir(rir === v ? null : v)}
               className="h-9 w-9 rounded-xl font-mono text-sm font-bold transition-all"
               style={
                 rir === v

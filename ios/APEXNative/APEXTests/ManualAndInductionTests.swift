@@ -23,6 +23,38 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertEqual(ManualWorkout.title(fromNotes: notes), "Workout")
     }
 
+    func testManualLogConstructionKeepsReportedEffort() {
+        let logs = ManualWorkout.logs(
+            userID: user,
+            sessionID: session,
+            exercises: [
+                ManualWorkout.ExerciseDraft(
+                    name: "Squat",
+                    sets: [ManualWorkout.SetDraft(reps: 8, weightKG: 42.5, rir: 3)]
+                )
+            ],
+            base: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(logs.count, 1)
+        XCTAssertEqual(logs.first?.rir, 3)
+    }
+
+    func testQuickAndGuidedDefaultsDoNotInventReportedEffort() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let paths = [
+            nativeRoot.appending(path: "APEX/App/AppSession.swift"),
+            nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift")
+        ]
+
+        for path in paths {
+            let source = try String(contentsOf: path)
+            XCTAssertFalse(source.contains("rir: 2"), "\(path.lastPathComponent) fabricates reported effort")
+        }
+    }
+
     func testAPlannedSessionIsNotMistakenForAManualOne() {
         XCTAssertNil(ManualWorkout.title(fromNotes: ""))
         XCTAssertNil(ManualWorkout.title(fromNotes: "Felt strong today"))
@@ -96,6 +128,19 @@ final class ManualWorkoutTests: XCTestCase {
         /* The run got longer; it is still the same row. */
         XCTAssertEqual(result.logs.map(\.id), [existingID])
         XCTAssertTrue(result.staleIDs.isEmpty)
+    }
+
+    func testASetOnlyCarriesEffortWhenTheUserReportsIt() {
+        let unreported = ManualWorkout.SetDraft(reps: 8, weightKG: 42.5)
+        let reported = ManualWorkout.SetDraft(reps: 8, weightKG: 42.5, rir: 1)
+
+        XCTAssertNil(unreported.rir)
+        XCTAssertEqual(reported.rir, 1)
+    }
+
+    func testReportedEffortIsKeptInsideTheSupportedRange() {
+        XCTAssertEqual(ManualWorkout.SetDraft(rir: -3).rir, 0)
+        XCTAssertEqual(ManualWorkout.SetDraft(rir: 12).rir, 5)
     }
 }
 
