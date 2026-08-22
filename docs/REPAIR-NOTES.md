@@ -161,3 +161,58 @@ Protected next-task state:
 
 - The two pre-existing Task 3 session-mode hunks were restored after the exact build: 17 model lines and 15 test lines. Their added-line payload hash matches the safety stash (`7fc10597542dd76e1bb0b7ba1e4c97c0ecd687d732afbb75d1f2eebd244422f8`).
 - The unrelated historical stash `8e81a00288844b3b18151541419699e1e7c0821f` remains untouched.
+
+## 2026-08-22 — Task 3 / Phase 1.2: equal guided and tracked session modes
+
+Status: implementation, review, exact verification, and connected-iPhone install complete.
+
+Implementation commits:
+
+- `f0672d5ca664ed7898f5ca10f515347331e5d4c0` — preserve the in-progress native mode model/test, decode legacy days safely, add equal guided/tracked starts, a native planned-session tracker, remembered account-scoped device choice, and authored custom-day defaults.
+- `600cfba307475e6e32056207947db5ab2ad00111` — make tracked facts explicit: nil actuals until entry, load/work controls, finish gating, timed units, compact RIR, and defensive skipped-log normalization.
+- `eac679f` — add practical direct numeric entry and faithful equal/ranged prescription labels.
+- `e04383a61b16cf6d66de4bb699d8627de4d6ae3b` — preserve authored MAX and CHECK modes without fabricated reps or RIR. This is the exact implementation SHA installed on the iPhone.
+
+Files changed:
+
+- `ios/APEXNative/APEX/App/AppSession.swift`
+- `ios/APEXNative/APEX/Core/Models/APEXModels.swift`
+- `ios/APEXNative/APEX/Features/Training/CustomWorkoutBuilder.swift`
+- `ios/APEXNative/APEX/Features/Training/TrainingProgramView.swift`
+- `ios/APEXNative/APEX/Features/Training/WorkoutDaySheet.swift`
+- `ios/APEXNative/APEXTests/ManualAndInductionTests.swift`
+
+Behavior delivered:
+
+- Both native planned-session start surfaces visibly offer guided and tracked modes; the remembered valid choice overrides the authored day default, invalid/missing values fall back safely, and choosing a mode never rewrites plan data.
+- Guided opens the existing paced player. Tracked opens a planned-set list, not the unplanned manual logger, and both finish through `AppSession.completeWorkout(day:setInputs:lite:startedAt:)`.
+- Custom days persist `session_mode`; legacy rows without it decode as guided.
+- Tracked work records distinct optional per-set load, actual reps/seconds/minutes, explicit skips, and optional rep-based RIR. Nothing is recorded as performed until the person reports it.
+- Skipped logs defensively clear weight, work, and RIR at the shared persistence boundary.
+- MAX requires actual counted work, permits applicable load, and exposes no RIR. CHECK requires an explicit Completed/Skipped choice and persists no invented measurement.
+- Direct number/decimal entry supports clearing back to nil and decimal commas; plan copy preserves exact or ranged authored targets.
+
+Tests added:
+
+- 13 native tests cover precedence, legacy decode/round-trip, both routes, custom defaults, explicit per-set facts, load entry, parsing/clearing, skip normalization, timed units, prescription ranges, MAX, and CHECK readiness/persistence.
+- Existing web parity proves session mode is not inferred from induction answers, both modes write identical history, and last choice wins.
+
+Final exact-HEAD output at `e04383a61b16cf6d66de4bb699d8627de4d6ae3b`:
+
+- Focused native: 12 passed, 0 failed, 0 skipped.
+- Full native APEXTests: 309 passed, 0 failed, 0 skipped.
+- Focused web session-mode parity: 17 passed, 0 failed.
+- Full web suite: 428 passed, 0 failed.
+- Production web build: passed (`tsc --noEmit` plus Vite; existing chunk-size advisory only).
+- Independent spec/code reviews: clean, with 0 Critical/Important findings open after three fix rounds.
+- Native result bundle: `~/Library/Developer/XcodeBuildMCP/workspaces/APXAppiC-codex-main-repair-5a1504548845/result-bundles/test_sim_2026-08-22T09-54-02-215Z_pid45079_52ab40c9.xcresult`.
+
+Connected-iPhone evidence:
+
+- Built and installed exact clean SHA `e04383a61b16cf6d66de4bb699d8627de4d6ae3b` from `/tmp/apex-task3-e04383a-device-derived` on `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`).
+- Bundle `ch.apexperformance.APEX`; direct launch of the installed bundle succeeded as PID `1607` after the initially locked phone accepted a retry.
+
+Concurrent unrelated work:
+
+- Commit `73b244d04c500ee92551d8be6f72a2398d6cc122` appeared mid-task with 106 unrelated roadmap lines. It was preserved at local pointer `codex/preserve-reporting-layer-73b244d` and excluded from this task branch without reset or content loss.
+- Historical stash `8e81a00288844b3b18151541419699e1e7c0821f` remains untouched.
