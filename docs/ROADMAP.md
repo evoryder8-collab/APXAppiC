@@ -465,6 +465,112 @@ units, labelled source changes, no smoothing that misrepresents, no false precis
 
 ---
 
+### 7.4 One ledger, not two systems
+Do not store an Avatar stat as a number that different subsystems overwrite. Store **observations**
+and derive the stat. Every observation carries value, date, source, method and confidence:
+
+| source | method | feeds |
+|---|---|---|
+| baseline questionnaire | user-estimated, low confidence, decays | seeds every stat instead of a flat 50 |
+| logged training | measured | e1RM per lift, volume, consistency |
+| HealthKit | device-estimated | VO2max, HR recovery |
+| DEXA / manual entry | measured, high confidence | body composition, bone density, measured BMR |
+
+Resolution rule, identical to the energy rule in 7.5: **measured outranks estimated, recent outranks
+old, confidence decays.** The questionnaire seeds the avatar on day one and fades on its own as real
+evidence accumulates, so there is never a reconciliation step between manual input and logged work.
+
+The decay rate is a **heuristic, not a finding**. There is no literature that fixes it. Expose it as
+a tunable and label it as an assumption wherever it affects a displayed number.
+
+### 7.5 Expenditure: intervals with provenance, resolved once
+Energy is currently at risk of being counted twice (Orbit adds suggested nutrition to consumed
+totals; imported runs delete unrelated activity). The fix is structural, not a policy choice between
+"count it" and "decorate with it".
+
+Every expenditure record carries interval (start/end), value, source and method. The daily total is
+**resolved, not summed**: overlapping intervals collapse, and within an overlap the precedence is
+measured > device-estimated > APEX MET estimate > plan assumption. A session card showing
+"412 kcal · Apple Watch" and the day's total including 412 once are then the same record seen twice,
+not two rows.
+
+Flexibility: a per-account expenditure source setting (Automatic / Wearable only / APEX estimates /
+Manual), settable by a coach per client, with a per-client scaling factor built on the existing
+`calibrationK` on the profile (`calibration_k`, used at `AppSession.swift:2632`). Coaches distrust
+Watch calories for lifting and they are right to; HR under load does not track oxygen cost the way
+steady-state cardio does.
+
+Always **show the resolution**: "2,840 kcal today — Watch active energy across 3 workouts, APEX
+estimate for 1 unmatched session." A number whose source is visible gets believed.
+
+### 7.6 HealthKit session enrichment
+Permissions and plumbing already exist: the app requests `heartRate`, `activeEnergyBurned`,
+`appleExerciseTime`, `stepCount`, `restingHeartRate`, HRV, `vo2Max`, `bodyMass` and `workoutType`,
+and reads `HKWorkout` duration/distance/energy in `HealthKitManager.swift`. What is missing is
+attaching any of it to a training session — `WorkoutSession` has no heart-rate field.
+
+- Use `HKWorkout.statistics(for:)` (iOS 16+) rather than separate sample queries. This app already
+  fires too many queries.
+- **Store the `HKWorkout.uuid` on the session.** This makes correlation idempotent and retires the
+  date + source + duration dedup heuristic that currently mistakes two similar runs for duplicates.
+- Write sessions back with `HKWorkoutBuilder` so APEX closes the user's rings and appears in Fitness.
+  Different entitlement (share, not read) and the same double-count discipline.
+- Honest empty states: heart rate exists for a lifting session **only if an Apple Watch recorded it**.
+  Phone-only users must not see a broken or fabricated panel.
+
+### 7.7 Strength by muscle group, on the body itself
+The navigation surface already exists: the 3D figure. Make it the strength dashboard rather than
+building a separate screen.
+
+- **Tint by trend, not absolute score.** Absolute strength painted on a body reads as judgement
+  ("your chest is weak"); trend reads as information ("hamstrings stalled for six weeks").
+- **No data must look absent, not zero.** Unlit, not dark red. Same honesty rule as RIR.
+- **Weight attribution by movement role.** `movement_library.role` already carries
+  `primary | accessory` (migration 016). Primary lifts drive a group's trend; accessories contribute
+  at reduced weight. State the attribution in the tooltip so it is inspectable rather than magic.
+- Tapping a region opens that group's lifts with their individual e1RM trends. The composite must
+  **expand into its inputs** — a coach needs to see that the overhead press stalled while the bench
+  moved, and a single "upper body 68" hides exactly that.
+- The actionable output is stall detection: "hamstrings: no e1RM gain in 6 weeks across 3 lifts."
+- Caveat to respect in the UI: e1RM formulas (Epley, Brzycki) degrade badly above roughly 8 reps.
+  Show a confidence band rather than a point estimate when the source sets were high-rep.
+- HR recovery between sets is **heavily confounded** by rest duration, caffeine, temperature, sleep
+  and proximity to failure. Only compare rest-interval-matched sets within one person and one
+  exercise, or do not show the comparison at all.
+- Let a coach **switch the gamified layer off entirely for a client** and work from raw data. Some
+  will, and being able to is what makes the rest credible.
+
+### 7.8 Branded PDF export
+Three report modes (Avatar Only / Workouts Only / Complete) exported as a print-quality PDF a coach
+is proud to send.
+
+Rendering: no third-party dependency. Draw into a `UIGraphicsPDFRenderer` context so **text stays
+vector and selectable** and charts are vector paths, not screenshots of the app. `ImageRenderer` is
+already used for the Orbit route poster but rasterises; that is wrong for print. Default to **A4**
+(the users are Swiss), offer Letter. Pagination must be deterministic — a report that reflows
+differently on each export looks amateur.
+
+Branding model. A logo belongs to an **organisation**, and a coach may or may not have one:
+- New `organisation` entity (gym or studio): name, logo, optional accent colour.
+- Coach carries an optional `organisation_id` and an optional personal logo.
+- Resolution order per report: explicit per-report override > organisation logo > coach's own logo >
+  APEX default. Resolve at render time from current membership, so a coach who leaves a gym stops
+  emitting that gym's mark on new reports.
+- Storage follows the existing per-owner bucket pattern from migration 005, scoped to the
+  organisation rather than to `auth.uid()`.
+- Accept PNG and SVG, require a transparent background, cap the file size, and render at print DPI.
+  A 200px PNG on an A4 header looks cheap and undoes the point of the exercise.
+
+**Decision for the owner:** co-brand or full white-label? Keeping a small "Powered by APEX" mark
+preserves a marketing surface every time a coach sends a client a report; removing it sells better
+to gyms that want the document to look entirely their own. This is a business call, not a technical
+one — ask rather than choose.
+
+Every report carries the provenance work above: date range, source per figure, method, and an honest
+missing-data disclosure. That is what makes it a document a sports-science coach will sign their name
+to.
+
+
 ## VOICE AND TRAINING-SCIENCE ITEMS
 
 ### Follow-along voice (active, not deferred)
