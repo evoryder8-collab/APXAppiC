@@ -258,6 +258,50 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertEqual(TrackedWorkout.setInputs(for: [seconds, minutes]).map(\.reps), [nil, nil])
     }
 
+    func testTrackedOptionalNumericEntryParsesAndClearsIndependentSetFacts() {
+        XCTAssertEqual(TrackedWorkout.optionalWholeNumber(from: "10", maximum: 600), 10)
+        XCTAssertNil(TrackedWorkout.optionalWholeNumber(from: "", maximum: 600))
+        XCTAssertNil(TrackedWorkout.optionalWholeNumber(from: "10.5", maximum: 600))
+
+        XCTAssertEqual(TrackedWorkout.optionalDecimal(from: "80", maximum: 1_000), 80)
+        XCTAssertEqual(TrackedWorkout.optionalDecimal(from: "80.25", maximum: 1_000), 80.25)
+        XCTAssertEqual(TrackedWorkout.optionalDecimal(from: "42.5", maximum: 1_000), 42.5)
+        XCTAssertNil(TrackedWorkout.optionalDecimal(from: "", maximum: 1_000))
+    }
+
+    func testTrackedPlanTargetsKeepEqualAndRangedAuthoringWithTheirUnits() {
+        let exact = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Press",
+            sets: 2, repMin: 10, repMax: 10, repUnit: "reps", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let ranged = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Dead Hang",
+            sets: 2, repMin: 30, repMax: 45, repUnit: "seconds", perSide: false,
+            restSeconds: 90, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 1
+        )
+
+        XCTAssertEqual(TrackedWorkout.plannedRange(for: exact), 10...10)
+        XCTAssertEqual(TrackedWorkout.workUnit(for: exact), .reps)
+        XCTAssertEqual(TrackedWorkout.plannedRange(for: ranged), 30...45)
+        XCTAssertEqual(TrackedWorkout.workUnit(for: ranged), .seconds)
+    }
+
+    func testTrackedEntryUsesDirectNumberAndDecimalKeyboards() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let programView = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+
+        XCTAssertTrue(programView.contains("TextField("))
+        XCTAssertTrue(programView.contains(".keyboardType(.numberPad)"))
+        XCTAssertTrue(programView.contains(".keyboardType(.decimalPad)"))
+    }
+
     func testEveryPlannedStartOffersAndRoutesBothSessionModes() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

@@ -629,8 +629,33 @@ enum TrackedWorkout {
         }
     }
 
+    static func plannedRange(for exercise: Exercise) -> ClosedRange<Int> {
+        min(exercise.repMin, exercise.repMax)...max(exercise.repMin, exercise.repMax)
+    }
+
     static func plannedWork(for exercise: Exercise) -> Int {
-        exercise.repMax
+        plannedRange(for: exercise).upperBound
+    }
+
+    static func optionalWholeNumber(from text: String, maximum: Int) -> Int? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let value = Int(trimmed),
+              (0...maximum).contains(value) else {
+            return nil
+        }
+        return value
+    }
+
+    static func optionalDecimal(from text: String, maximum: Double) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")),
+              value.isFinite,
+              (0...maximum).contains(value) else {
+            return nil
+        }
+        return value
     }
 
     static func allowsRIR(for exercise: Exercise) -> Bool {
@@ -652,6 +677,8 @@ struct TrackedWorkoutView: View {
     let lite: Bool
 
     @State private var setInputs: [WorkoutSetInput]
+    @State private var actualEntryTexts: [String: String] = [:]
+    @State private var loadEntryTexts: [String: String] = [:]
     @State private var startedAt = Date()
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
@@ -740,6 +767,8 @@ struct TrackedWorkoutView: View {
                         input.wrappedValue.skipped = skipped
                         if skipped {
                             input.wrappedValue = input.wrappedValue.normalizedForPersistence()
+                            actualEntryTexts[entryKey(for: current)] = nil
+                            loadEntryTexts[entryKey(for: current)] = nil
                         }
                     }
                 ))
@@ -761,22 +790,28 @@ struct TrackedWorkoutView: View {
     }
 
     private func plannedWorkLine(_ exercise: Exercise) -> String {
-        language.format(
-            "Plan · %d %@",
-            TrackedWorkout.plannedWork(for: exercise),
+        let range = TrackedWorkout.plannedRange(for: exercise)
+        let planned = range.lowerBound == range.upperBound
+            ? "\(range.lowerBound)"
+            : "\(range.lowerBound)–\(range.upperBound)"
+        return language.format(
+            "Plan · %@ %@",
+            planned,
             language.text(TrackedWorkout.workUnit(for: exercise).rawValue)
         )
     }
 
     private func actualWorkControl(_ input: Binding<WorkoutSetInput>, exercise: Exercise) -> some View {
-        compactCounter(
+        let upperBound = TrackedWorkout.workUnit(for: exercise) == .minutes ? 180 : 600
+        return compactCounter(
             label: language.text("Actual") + " " + language.text(TrackedWorkout.workUnit(for: exercise).rawValue),
             value: Binding(
                 get: { input.wrappedValue.reps },
                 set: { input.wrappedValue.reps = $0 }
             ),
+            text: actualWorkEntryText(input, maximum: upperBound),
             step: TrackedWorkout.workUnit(for: exercise) == .seconds ? 5 : 1,
-            upperBound: TrackedWorkout.workUnit(for: exercise) == .minutes ? 180 : 600
+            upperBound: upperBound
         )
     }
 
@@ -787,6 +822,7 @@ struct TrackedWorkoutView: View {
                 get: { input.wrappedValue.weightKG },
                 set: { input.wrappedValue.weightKG = $0 }
             ),
+            text: loadEntryText(input, maximum: 1_000),
             step: increment
         )
     }
@@ -794,6 +830,7 @@ struct TrackedWorkoutView: View {
     private func compactCounter(
         label: String,
         value: Binding<Int?>,
+        text: Binding<String>,
         step: Int,
         upperBound: Int
     ) -> some View {
@@ -803,17 +840,23 @@ struct TrackedWorkoutView: View {
             Spacer(minLength: 8)
             Button {
                 guard let current = value.wrappedValue else { return }
-                value.wrappedValue = max(1, current - step)
+                text.wrappedValue = String(max(1, current - step))
             } label: {
                 Image(systemName: "minus")
             }
             .buttonStyle(.bordered)
             .disabled(value.wrappedValue == nil)
-            Text(value.wrappedValue.map(String.init) ?? language.text("Not reported"))
+            TextField(
+                language.text("Not reported"),
+                text: text
+            )
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.center)
+            .textFieldStyle(.roundedBorder)
                 .font(APEXFont.mono(12, weight: .bold))
-                .frame(minWidth: 76, alignment: .center)
+                .frame(width: 76)
             Button {
-                value.wrappedValue = min(upperBound, (value.wrappedValue ?? 0) + step)
+                text.wrappedValue = String(min(upperBound, (value.wrappedValue ?? 0) + step))
             } label: {
                 Image(systemName: "plus")
             }
@@ -824,6 +867,7 @@ struct TrackedWorkoutView: View {
     private func compactDecimalCounter(
         label: String,
         value: Binding<Double?>,
+        text: Binding<String>,
         step: Double
     ) -> some View {
         HStack(spacing: 9) {
@@ -833,17 +877,23 @@ struct TrackedWorkoutView: View {
             Button {
                 guard let current = value.wrappedValue else { return }
                 let next = max(0, current - step)
-                value.wrappedValue = next > 0 ? next : nil
+                text.wrappedValue = next > 0 ? loadText(next) : ""
             } label: {
                 Image(systemName: "minus")
             }
             .buttonStyle(.bordered)
             .disabled(value.wrappedValue == nil)
-            Text(value.wrappedValue.map(loadText) ?? language.text("Not reported"))
+            TextField(
+                language.text("Not reported"),
+                text: text
+            )
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .textFieldStyle(.roundedBorder)
                 .font(APEXFont.mono(12, weight: .bold))
-                .frame(minWidth: 76, alignment: .center)
+                .frame(width: 76)
             Button {
-                value.wrappedValue = (value.wrappedValue ?? 0) + step
+                text.wrappedValue = loadText((value.wrappedValue ?? 0) + step)
             } label: {
                 Image(systemName: "plus")
             }
@@ -852,7 +902,33 @@ struct TrackedWorkoutView: View {
     }
 
     private func loadText(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
+        value == value.rounded() ? String(Int(value)) : String(value)
+    }
+
+    private func entryKey(for input: WorkoutSetInput) -> String {
+        "\(input.exerciseID?.uuidString ?? input.exerciseName)-\(input.setNumber)"
+    }
+
+    private func actualWorkEntryText(_ input: Binding<WorkoutSetInput>, maximum: Int) -> Binding<String> {
+        let key = entryKey(for: input.wrappedValue)
+        return Binding(
+            get: { actualEntryTexts[key] ?? input.wrappedValue.reps.map(String.init) ?? "" },
+            set: {
+                actualEntryTexts[key] = $0
+                input.wrappedValue.reps = TrackedWorkout.optionalWholeNumber(from: $0, maximum: maximum)
+            }
+        )
+    }
+
+    private func loadEntryText(_ input: Binding<WorkoutSetInput>, maximum: Double) -> Binding<String> {
+        let key = entryKey(for: input.wrappedValue)
+        return Binding(
+            get: { loadEntryTexts[key] ?? input.wrappedValue.weightKG.map(loadText) ?? "" },
+            set: {
+                loadEntryTexts[key] = $0
+                input.wrappedValue.weightKG = TrackedWorkout.optionalDecimal(from: $0, maximum: maximum)
+            }
+        )
     }
 
     private func reportedEffortRow(_ input: Binding<WorkoutSetInput>) -> some View {
