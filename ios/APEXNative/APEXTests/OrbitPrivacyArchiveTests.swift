@@ -52,3 +52,21 @@ final class OrbitPrivacyArchiveTests: XCTestCase {
         )
     }
 }
+
+final class SupabaseServiceReliabilityTests: XCTestCase {
+    func testRealtimeSubscriptionsAreTableScopedAndIsolatedToCurrentUser() {
+        let currentUser = UUID()
+        let otherUser = UUID()
+        let subscriptions = SupabaseService.realtimeSubscriptions(userID: currentUser)
+
+        XCTAssertFalse(subscriptions.isEmpty)
+        XCTAssertEqual(Set(subscriptions.map(\.table)).count, subscriptions.count)
+        XCTAssertTrue(subscriptions.allSatisfy { !$0.table.isEmpty })
+        XCTAssertTrue(subscriptions.allSatisfy { $0.filterColumn == "user_id" })
+        XCTAssertTrue(subscriptions.allSatisfy { $0.filterValue == currentUser })
+        XCTAssertFalse(subscriptions.contains { $0.filterValue == otherUser })
+        XCTAssertTrue(subscriptions.contains { $0.table == "daily_logs" })
+        XCTAssertFalse(subscriptions.contains { $0.table == "activity_types" })
+        XCTAssertFalse(subscriptions.contains { $0.table == "foods" })
+    }
+}

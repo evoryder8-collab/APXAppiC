@@ -40,6 +40,42 @@ final class OrbitIntegrationsTests: XCTestCase {
         XCTAssertEqual(suggestion?.nutrients.carbsG ?? 0, 45, accuracy: 0.001)
     }
 
+    func testNutritionAdjustmentCreatesAnAuditableStructuredMeal() throws {
+        let orbitRun = run(minutes: 120)
+        let oats = food(id: UUID(), name: "Oats", carbs: 60)
+        let suggestion = OrbitFoodMemorySuggestion(
+            food: oats, amount: 75, unit: "g",
+            nutrients: oats.nutrients(forEquivalentAmount: 75)
+        )
+
+        let draft = try XCTUnwrap(OrbitIntegrations.nutritionMealDraft(run: orbitRun, suggestion: suggestion))
+
+        XCTAssertEqual(draft.localDate, orbitRun.localDate)
+        XCTAssertEqual(draft.mealSlot, "post-workout")
+        XCTAssertEqual(draft.loggedAs, "custom")
+        XCTAssertEqual(draft.items.count, 1)
+        XCTAssertEqual(draft.items.first?.foodID?.uuidString.lowercased(), oats.id.lowercased())
+        XCTAssertEqual(draft.totals.kcal, suggestion.nutrients.kcal, accuracy: 0.001)
+    }
+
+    func testNutritionAdjustmentCannotBeAppliedWithoutAConcreteFoodRecord() {
+        XCTAssertNil(OrbitIntegrations.nutritionMealDraft(run: run(minutes: 120), suggestion: nil))
+    }
+
+    func testOrbitReconciliationPreservesOtherSameDayActivities() {
+        let orbitRun = run(minutes: 75)
+        let generated = activity(id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate, typeID: "jog-run", source: "orbit")
+        let manualRun = activity(id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate, typeID: "jog-run", source: "manual")
+        let watchCalories = activity(id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate, typeID: "watch-kcal", source: "manual")
+        let previousGenerated = activity(id: generated.id, userID: orbitRun.userID, date: orbitRun.localDate, typeID: "jog-run", source: "orbit")
+
+        let result = OrbitIntegrations.reconciledActivityLogs(existing: [manualRun, watchCalories, previousGenerated], generated: generated)
+
+        XCTAssertEqual(result.filter { $0.id == generated.id }.count, 1)
+        XCTAssertTrue(result.contains { $0.id == manualRun.id })
+        XCTAssertTrue(result.contains { $0.id == watchCalories.id })
+    }
+
     func testAvatarContributionUsesOneRunAndReportsPacingDiscipline() {
         let contribution = OrbitIntegrations.avatarContribution(run: run(minutes: 75))
 
@@ -98,6 +134,16 @@ final class OrbitIntegrationsTests: XCTestCase {
             id: UUID(), userID: userID, foodID: foodID, personalName: nil,
             aliases: [], favourite: favourite, usualAmount: nil, usualUnit: nil,
             usageCount: useCount, lastUsedAt: nil, hidden: false
+        )
+    }
+
+    private func activity(id: UUID, userID: UUID, date: String, typeID: String, source: String) -> ActivityLog {
+        ActivityLog(
+            id: id, userID: userID, date: date, typeID: typeID, quantity: 1,
+            durationMinutes: 60, distanceKM: typeID == "jog-run" ? 8 : nil,
+            watchKcal: typeID == "watch-kcal" ? 500 : nil, computedKcal: 400,
+            source: source, reconciled: false,
+            createdAt: "2026-08-16T08:00:00Z", updatedAt: "2026-08-16T09:00:00Z"
         )
     }
 }

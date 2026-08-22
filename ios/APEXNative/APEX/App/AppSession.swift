@@ -1875,31 +1875,16 @@ final class AppSession {
         let adjustment = OrbitIntegrations.nutritionAdjustment(run: run, weightKG: profile.weightKG)
         guard adjustment.kcal > 0 else { return run }
 
-        let kcal = Int((foodSuggestion?.nutrients.kcal ?? Double(adjustment.kcal)).rounded())
-        let protein = Int((foodSuggestion?.nutrients.proteinG ?? Double(adjustment.proteinG)).rounded())
-        let fat = Int((foodSuggestion?.nutrients.fatG ?? Double(adjustment.fatG)).rounded())
-        let carbs = Int((foodSuggestion?.nutrients.carbsG ?? Double(adjustment.carbsG)).rounded())
-        let existing = data.dailyLogs.first { $0.date == run.localDate }
-        let day = DailyLog(
-            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: run.localDate, userID: profile.userID),
-            userID: profile.userID,
-            date: run.localDate,
-            kcal: (existing?.kcal ?? 0) + kcal,
-            proteinG: (existing?.proteinG ?? 0) + protein,
-            fatG: (existing?.fatG ?? 0) + fat,
-            carbsG: (existing?.carbsG ?? 0) + carbs,
-            waterL: existing?.waterL ?? 0,
-            estimatedTDEE: existing?.estimatedTDEE,
-            computedPAL: existing?.computedPAL,
-            activityMode: existing?.activityMode ?? "precise",
-            weightKG: existing?.weightKG ?? profile.weightKG,
-            nutritionSource: "manual",
-            manualKcal: (existing?.manualKcal ?? existing?.kcal ?? 0) + kcal,
-            manualProteinG: (existing?.manualProteinG ?? existing?.proteinG ?? 0) + protein,
-            manualFatG: (existing?.manualFatG ?? existing?.fatG ?? 0) + fat,
-            manualCarbsG: (existing?.manualCarbsG ?? existing?.carbsG ?? 0) + carbs
-        )
-        await updateDailyLog(day)
+        guard let draft = OrbitIntegrations.nutritionMealDraft(run: run, suggestion: foodSuggestion) else {
+            alertMessage = "Choose one of your saved foods before applying this Orbit adjustment."
+            return run
+        }
+        do {
+            try await saveStructuredMeal(draft)
+        } catch {
+            alertMessage = "The Orbit food adjustment was not applied. \(error.localizedDescription)"
+            return run
+        }
 
         let updated = OrbitRunRecord(
             id: run.id, userID: run.userID, clientIdempotencyKey: run.clientIdempotencyKey,
@@ -2167,15 +2152,6 @@ final class AppSession {
 
     private func integrateOrbitRun(_ run: OrbitRunRecord) async {
         guard let profile, run.userID == profile.userID else { return }
-        let overlapping = data.activityLogs.filter {
-            $0.date == run.localDate
-                && ($0.typeID == "jog-run" || ($0.typeID == "watch-kcal" && $0.source != "orbit"))
-        }
-        for log in overlapping {
-            data.activityLogs.removeAll { $0.id == log.id }
-            await persistDelete(table: "activity_logs", id: log.id)
-        }
-
         let distanceKM = max(0, (run.metrics["distance_m"]?.numberValue ?? 0) / 1_000)
         let durationMinutes = max(1, Int(((run.metrics["moving_s"]?.numberValue ?? 0) / 60).rounded()))
         let id = APEXStableID.scopedUUID(
@@ -2191,8 +2167,10 @@ final class AppSession {
             source: "orbit", reconciled: true,
             createdAt: run.createdAt, updatedAt: run.updatedAt
         )
-        data.activityLogs.removeAll { $0.id == id }
-        data.activityLogs.append(activity)
+        data.activityLogs = OrbitIntegrations.reconciledActivityLogs(
+            existing: data.activityLogs,
+            generated: activity
+        )
         await persistUpsert(activity, table: "activity_logs")
 
         let healthAlreadyRepresentsRun = data.importedActivities.contains {

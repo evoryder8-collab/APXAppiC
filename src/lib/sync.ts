@@ -2,6 +2,7 @@ import { importedActivityId } from './ids.ts'
 
 const UPSERT_CONFLICT_TARGETS: Readonly<Record<string, string>> = {
   rpg_snapshots: 'user_id,date',
+  supplement_logs: 'user_id,date,supplement_id',
 }
 
 const DAILY_LOG_INTEGER_FIELDS = [
@@ -87,6 +88,26 @@ export function normalizeSyncPayload(
 
 export function upsertConflictTarget(table: string): string | undefined {
   return UPSERT_CONFLICT_TARGETS[table]
+}
+
+/** Supabase rejects a batch that contains a duplicate conflict key. Retain
+ * the final local intent for each key before optimistic and network writes. */
+export function dedupeUpsertRows<T extends Record<string, unknown>>(table: string, rows: readonly T[]): T[] {
+  const conflictFields = upsertConflictTarget(table)?.split(',').map((field) => field.trim()) ?? []
+  const seen = new Set<string>()
+  const result: T[] = []
+  for (let index = rows.length - 1; index >= 0; index -= 1) {
+    const row = rows[index]
+    const hasConflictKey = conflictFields.length > 0
+      && conflictFields.every((field) => row[field] !== null && row[field] !== undefined)
+    const key = hasConflictKey
+      ? `conflict:${conflictFields.map((field) => String(row[field])).join('|')}`
+      : typeof row.id === 'string' ? `id:${row.id}` : `index:${index}`
+    if (seen.has(key)) continue
+    seen.add(key)
+    result.push(row)
+  }
+  return result.reverse()
 }
 
 function operationRows(operation: PendingSyncOperation): Record<string, unknown>[] {

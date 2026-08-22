@@ -5,8 +5,14 @@ import Supabase
 actor SupabaseService {
     static let shared = SupabaseService()
 
+    struct RealtimeSubscription: Equatable, Sendable {
+        let table: String
+        let filterColumn: String
+        let filterValue: UUID
+    }
+
     nonisolated let client: SupabaseClient?
-    private var realtimeTask: Task<Void, Never>?
+    private var realtimeTasks: [Task<Void, Never>] = []
     private var realtimeChannel: RealtimeChannelV2?
 
     init() {
@@ -25,6 +31,18 @@ actor SupabaseService {
         } else {
             client = nil
         }
+    }
+
+    nonisolated static func realtimeSubscriptions(userID: UUID) -> [RealtimeSubscription] {
+        [
+            "profile", "settings", "meals", "meal_logs", "supplements", "supplement_logs",
+            "programs", "program_days", "exercises", "workout_sessions", "workout_logs",
+            "deload_marks", "activity_logs", "daily_logs", "events", "food_preferences",
+            "meal_presets", "meal_preset_items", "logged_meals", "logged_food_entries",
+            "rpg_snapshots", "health_metrics", "imported_activities", "progress_photos",
+            "orbit_routes", "orbit_runs", "orbit_shoes", "orbit_segments", "orbit_posters",
+            "orbit_inductions", "orbit_campaigns", "orbit_campaign_sessions",
+        ].map { RealtimeSubscription(table: $0, filterColumn: "user_id", filterValue: userID) }
     }
 
     func currentUserID() async -> UUID? {
@@ -301,22 +319,35 @@ actor SupabaseService {
     func startRealtime(onChange: @escaping @Sendable () -> Void) async throws {
         guard let client else { throw APEXServiceError.configurationMissing }
         await stopRealtime()
+        let userID = try await client.auth.session.user.id
         await client.realtimeV2.connect()
         let channel = client.realtimeV2.channel("apex-native-\(UUID().uuidString.lowercased())")
-        let changes = channel.postgresChange(AnyAction.self, schema: "public")
         realtimeChannel = channel
-        realtimeTask = Task {
-            for await _ in changes {
-                guard Task.isCancelled == false else { return }
-                onChange()
+        realtimeTasks = Self.realtimeSubscriptions(userID: userID).map { subscription in
+            let changes = channel.postgresChange(
+                AnyAction.self,
+                schema: "public",
+                table: subscription.table,
+                filter: .eq(subscription.filterColumn, value: subscription.filterValue)
+            )
+            return Task {
+                for await _ in changes {
+                    guard Task.isCancelled == false else { return }
+                    onChange()
+                }
             }
         }
-        try await channel.subscribeWithError()
+        do {
+            try await channel.subscribeWithError()
+        } catch {
+            await stopRealtime()
+            throw error
+        }
     }
 
     func stopRealtime() async {
-        realtimeTask?.cancel()
-        realtimeTask = nil
+        realtimeTasks.forEach { $0.cancel() }
+        realtimeTasks.removeAll()
         if let realtimeChannel { await realtimeChannel.unsubscribe() }
         realtimeChannel = nil
     }

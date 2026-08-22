@@ -27,7 +27,8 @@ test('meal logging queues remembered amounts with the immutable meal and verifie
   const sendBlock = foodStore.slice(sendStart, foodStore.indexOf('const flush =', sendStart))
   assert.match(sendBlock, /detachedLoggedMealPayload\(payload\)/)
   assert.match(sendBlock, /entryCheck\.count !== payload\.entries\.length/)
-  assert.match(sendBlock, /op\.operation === 'save_usage_preference' && isMealReferenceError\(error\)/)
+  assert.match(sendBlock, /isStaleFoodPreferenceReferenceError\(error, preference\.food_id\)/)
+  assert.doesNotMatch(sendBlock, /op\.operation === 'save_usage_preference' && isMealReferenceError\(error\)/)
   assert.match(foodStore, /foodSyncFailureCanYield\(operation\.operation\)/)
 })
 

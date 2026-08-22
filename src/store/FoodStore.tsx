@@ -31,10 +31,12 @@ import {
 import type { IntroLanguage } from '../lib/introLanguage'
 import {
   detachedLoggedMealPayload,
+  foodPreferencesWithExistingFoods,
   foodSyncFailureCanYield,
   foodMutationBelongsToActiveUser,
   foodOperationBelongsToUser,
   isMealReferenceError,
+  isStaleFoodPreferenceReferenceError,
   replayFoodOutbox,
   foodSessionBelongsToExpectedUser,
   type LoggedMealSyncPayload,
@@ -125,6 +127,7 @@ interface FoodStoreValue {
 
 const Ctx = createContext<FoodStoreValue | null>(null)
 let lastFoodOutboxMs = 0
+type FoodOutboxSendResult = 'sent' | 'stale_preference'
 
 function outbox(userId: string, operation: string, entityId: string, payload: unknown): PrivateOutboxOp {
   lastFoodOutboxMs = Math.max(Date.now(), lastFoodOutboxMs + 1)
@@ -294,9 +297,16 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         setHydrationRetry((value) => value + 1)
         return
       }
+      const existingLocalPreferences = foodPreferencesWithExistingFoods(localPreferences, localFoods)
+      const existingLocalPreferenceIDs = new Set(existingLocalPreferences.map((preference) => preference.id))
+      const staleLocalPreferences = localPreferences.filter((preference) => !existingLocalPreferenceIDs.has(preference.id))
       setFoods(mergeFoodCatalog(localFoods))
-      preferencesRef.current = localPreferences
-      setPreferences(localPreferences)
+      preferencesRef.current = existingLocalPreferences
+      setPreferences(existingLocalPreferences)
+      await Promise.all(staleLocalPreferences.map((preference) => (
+        privateDeleteForUser('food_preferences', preference.id, expectedUserId)
+      )))
+      if (!current()) return
       setPresets(localPresets)
       setPresetItems(localPresetItems)
       mealsRef.current = localMeals
@@ -502,7 +512,7 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     })
   }, [data.daily_logs, upsert, userId])
 
-  const sendOutbox = useCallback(async (client: SupabaseClient, op: PrivateOutboxOp): Promise<boolean> => {
+  const sendOutbox = useCallback(async (client: SupabaseClient, op: PrivateOutboxOp): Promise<FoodOutboxSendResult> => {
     if (op.operation === 'log_meal') {
       const payload = op.payload as LoggedMealSyncPayload
       let sent = payload
@@ -524,29 +534,24 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       if (!mealCheck.data || entryCheck.count !== payload.entries.length) {
         throw new Error('Meal sync verification failed; the complete snapshot remains queued.')
       }
-      return true
+      return 'sent'
     }
     if (op.operation === 'save_food') {
       const { error } = await client.from('foods').upsert(op.payload as FoodRecord, { onConflict: 'id' })
       if (error) throw error
-      return true
+      return 'sent'
     }
     if (op.operation === 'save_preference' || op.operation === 'save_usage_preference') {
-      const { error } = await client.from('food_preferences').upsert(op.payload as FoodPreference, { onConflict: 'user_id,food_id' })
-      /* A usage preference is a convenience cache created while logging a
-         meal. Some older deployments do not yet contain the client catalogue
-         row referenced by that preference. The immutable meal history still
-         carries the exact quantity and unit, so acknowledge only this optional
-         cache on a reference error rather than leaving the account permanently
-         marked as queued. Explicit user preferences remain strict. */
-      if (error && op.operation === 'save_usage_preference' && isMealReferenceError(error)) return true
+      const preference = op.payload as FoodPreference
+      const { error } = await client.from('food_preferences').upsert(preference, { onConflict: 'user_id,food_id' })
+      if (error && isStaleFoodPreferenceReferenceError(error, preference.food_id)) return 'stale_preference'
       if (error) throw error
-      return true
+      return 'sent'
     }
     if (op.operation === 'delete_meal') {
       const { error } = await client.rpc('delete_structured_meal', { p_meal_id: op.entity_id })
       if (error) throw error
-      return true
+      return 'sent'
     }
     if (op.operation === 'save_preset') {
       const payload = op.payload as { preset: MealPreset; items: MealPresetItem[]; expectedVersion: number }
@@ -556,14 +561,14 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         p_expected_version: payload.expectedVersion,
       })
       if (error) throw error
-      return true
+      return 'sent'
     }
     if (op.operation === 'delete_preset') {
       const { error } = await client.rpc('delete_meal_preset', { p_preset_id: op.entity_id })
       if (error) throw error
-      return true
+      return 'sent'
     }
-    return true
+    return 'sent'
   }, [])
 
   const flush = useCallback(async () => {
@@ -591,8 +596,19 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       for (const operation of operations) {
         if (userIdRef.current !== syncUserId || !foodOperationBelongsToUser(operation, syncUserId)) break
         try {
-          await sendOutbox(syncClient, operation)
+          const result = await sendOutbox(syncClient, operation)
           if (!foodOperationBelongsToUser(operation, syncUserId)) break
+          if (result === 'stale_preference') {
+            const stalePreference = operation.payload as FoodPreference
+            await privateDeleteForUser('food_preferences', stalePreference.id, syncUserId)
+            if (foodMutationBelongsToActiveUser(syncUserId, userIdRef.current)) {
+              const nextPreferences = preferencesRef.current.filter((preference) => (
+                preference.id !== stalePreference.id && preference.food_id !== stalePreference.food_id
+              ))
+              preferencesRef.current = nextPreferences
+              setPreferences(nextPreferences)
+            }
+          }
           await privateDeleteForUser('private_outbox', operation.id, syncUserId)
         } catch (error) {
           await privatePut('private_outbox', {
