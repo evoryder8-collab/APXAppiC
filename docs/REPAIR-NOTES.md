@@ -112,3 +112,52 @@ items. See the STRANDED WORK table in docs/ROADMAP.md. Port from that commit, do
 
 - Restored the three pre-existing Phase 1.1 RIR/session-mode files byte-for-byte after exact-tree verification. Their diff SHA-256 remains `ad9cc28c07cc338f79ae34fb94df240154e774f9d16e6a3b2133ae87123373a5`.
 - Next: Phase 1.1, honest RIR; finish the existing work in `ManualWorkout.swift`, `APEXModels.swift`, and `ManualAndInductionTests.swift` without restarting it.
+
+## 2026-08-22 — Task 2 / Phase 1.1: honest RIR
+
+Status: implementation and verification complete.
+
+Implementation commits:
+
+- `54b93a44dc8aff56ce497e72bb14ab146b9b2143` — record only explicitly reported workout effort in native manual/guided logging and web guided logging; make progression require every performed top-range set to report RIR >= 2.
+- `024de5b0b85a328da5d5d28564e0bea25f826c5f` — independent-review correction that preserves web guided RIR per set instead of copying one report across the exercise.
+
+Files changed:
+
+- `ios/APEXNative/APEX/Core/AppSession.swift`
+- `ios/APEXNative/APEX/Core/Models/ManualWorkout.swift`
+- `ios/APEXNative/APEX/Core/Engine/ProgressionEngine.swift`
+- `ios/APEXNative/APEX/Features/Training/ManualWorkoutLoggerView.swift`
+- `ios/APEXNative/APEX/Features/Training/TrainingProgramView.swift`
+- `ios/APEXNative/APEXTests/ManualAndInductionTests.swift`
+- `ios/APEXNative/APEXTests/ProgressionEngineTests.swift`
+- `src/lib/progression.ts`
+- `src/lib/workoutSession.ts`
+- `src/pages/Player.tsx`
+- `tests/follow-along-session.test.ts`
+- `tests/player-runtime.test.ts`
+- `tests/strength-progress.test.ts`
+
+Tests added or strengthened:
+
+- Native contracts prove RIR begins unreported, survives manual load/edit/save as an optional value, can be cleared, and only explicit RIR >= 2 permits progression after all performed top-range sets.
+- Web contracts prove guided RIR begins unreported, can be cleared, serializes per set, preserves `[2, null]`, and treats the missing report as progression-blocking.
+- Independent review found one Critical scalar-to-all-sets persistence defect; the fix was re-reviewed with all findings addressed and no new Critical/Important breakage.
+
+Final exact-HEAD verification at `024de5b0b85a328da5d5d28564e0bea25f826c5f`:
+
+- Focused web RIR/session/progression: 29 passed, 0 failed.
+- Full web suite: 428 passed, 0 failed.
+- Production web build: passed (`tsc --noEmit` plus Vite).
+- Full native APEXTests: 296 passed, 0 failed, 0 skipped in 118.5 seconds.
+- Native result bundle: `~/Library/Developer/XcodeBuildMCP/workspaces/APXAppiC-codex-main-repair-5a1504548845/result-bundles/test_sim_2026-08-22T08-58-31-018Z_pid45079_90be1e49.xcresult`.
+
+Connected-iPhone evidence:
+
+- Built, installed, and launched clean implementation SHA `024de5b0b85a328da5d5d28564e0bea25f826c5f` on `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`).
+- Bundle `ch.apexperformance.APEX`, launch PID `1251`, device build completed in 116.4 seconds from `/tmp/apex-task2-024de5b-device-derived`.
+
+Protected next-task state:
+
+- The two pre-existing Task 3 session-mode hunks were restored after the exact build: 17 model lines and 15 test lines. Their added-line payload hash matches the safety stash (`7fc10597542dd76e1bb0b7ba1e4c97c0ecd687d732afbb75d1f2eebd244422f8`).
+- The unrelated historical stash `8e81a00288844b3b18151541419699e1e7c0821f` remains untouched.
