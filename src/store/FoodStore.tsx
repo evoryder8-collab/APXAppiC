@@ -31,7 +31,6 @@ import {
 import type { IntroLanguage } from '../lib/introLanguage'
 import {
   detachedLoggedMealPayload,
-  foodPreferencesWithExistingFoods,
   foodSyncFailureCanYield,
   foodMutationBelongsToActiveUser,
   foodOperationBelongsToUser,
@@ -297,16 +296,9 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
         setHydrationRetry((value) => value + 1)
         return
       }
-      const existingLocalPreferences = foodPreferencesWithExistingFoods(localPreferences, localFoods)
-      const existingLocalPreferenceIDs = new Set(existingLocalPreferences.map((preference) => preference.id))
-      const staleLocalPreferences = localPreferences.filter((preference) => !existingLocalPreferenceIDs.has(preference.id))
       setFoods(mergeFoodCatalog(localFoods))
-      preferencesRef.current = existingLocalPreferences
-      setPreferences(existingLocalPreferences)
-      await Promise.all(staleLocalPreferences.map((preference) => (
-        privateDeleteForUser('food_preferences', preference.id, expectedUserId)
-      )))
-      if (!current()) return
+      preferencesRef.current = localPreferences
+      setPreferences(localPreferences)
       setPresets(localPresets)
       setPresetItems(localPresetItems)
       mealsRef.current = localMeals

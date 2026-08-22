@@ -29,6 +29,7 @@ test('meal logging queues remembered amounts with the immutable meal and verifie
   assert.match(sendBlock, /entryCheck\.count !== payload\.entries\.length/)
   assert.match(sendBlock, /isStaleFoodPreferenceReferenceError\(error, preference\.food_id\)/)
   assert.doesNotMatch(sendBlock, /op\.operation === 'save_usage_preference' && isMealReferenceError\(error\)/)
+  assert.doesNotMatch(foodStore, /foodPreferencesWithExistingFoods/)
   assert.match(foodStore, /foodSyncFailureCanYield\(operation\.operation\)/)
 })
 

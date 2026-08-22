@@ -128,7 +128,7 @@ test('food replay follows durable creation order instead of IndexedDB key order'
   assert.deepEqual(result.meals, [])
 })
 
-test('food replay prunes preferences whose food no longer exists', () => {
+test('food replay retains preferences when an incomplete food snapshot omits their food', () => {
   const base = {
     foods: [{ id: 'food-live' }],
     preferences: [{ id: 'preference-live', food_id: 'food-live' }, { id: 'preference-deleted', food_id: 'food-deleted' }],
@@ -140,7 +140,11 @@ test('food replay prunes preferences whose food no longer exists', () => {
     created_at: '2026-08-21T05:00:00.000Z',
   }])
 
-  assert.deepEqual(result.preferences.map((preference) => preference.id), ['preference-live'])
+  assert.deepEqual(result.preferences.map((preference) => preference.id), [
+    'preference-live',
+    'preference-deleted',
+    'preference-missing',
+  ])
 })
 
 test('food replay retains a preference when its queued food is created first', () => {

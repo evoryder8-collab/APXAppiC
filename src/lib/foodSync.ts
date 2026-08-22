@@ -116,15 +116,6 @@ function values<T extends { id: string }>(rows: Map<string, T>): T[] {
   return [...rows.values()]
 }
 
-/** A preference cannot outlive the food protected by its server FK. */
-export function foodPreferencesWithExistingFoods(
-  preferences: readonly FoodPreference[],
-  foods: readonly Pick<FoodRecord, 'id'>[],
-): FoodPreference[] {
-  const foodIds = new Set(foods.map((food) => food.id))
-  return preferences.filter((preference) => foodIds.has(preference.food_id))
-}
-
 /** Apply durable food intents over a server snapshot before it reaches UI or IndexedDB. */
 export function replayFoodOutbox(
   snapshot: FoodSyncSnapshot,
@@ -188,7 +179,10 @@ export function replayFoodOutbox(
 
   return {
     foods: values(foods),
-    preferences: foodPreferencesWithExistingFoods(values(preferences), values(foods)),
+    // A missing catalogue row in an incomplete cache/snapshot is not proof
+    // that the server rejected this preference. Only the classified outbound
+    // foreign-key failure may remove it.
+    preferences: values(preferences),
     presets: values(presets),
     presetItems: values(presetItems),
     meals: values(meals),
