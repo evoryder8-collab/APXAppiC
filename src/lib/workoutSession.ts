@@ -21,6 +21,25 @@ export interface SetEntry {
   rir: number | null
 }
 
+export interface LoggedSetEntry extends SetEntry {
+  skipped: boolean
+}
+
+/** Preserve a guided session's report for each set independently. */
+export function serializeExerciseSets(
+  weights: Array<number | null>,
+  rirs: Array<number | null>,
+  reps: Array<number | null>,
+  skipped: boolean,
+): LoggedSetEntry[] {
+  return reps.map((rep, index) => ({
+    weight: skipped ? null : (weights[index] ?? null),
+    reps: skipped ? null : rep,
+    rir: skipped ? null : (rirs[index] ?? null),
+    skipped,
+  }))
+}
+
 export interface ExerciseEntry {
   /* Null for anything not in the user's own exercise table, which is how the
    * guided player already treats substituted or ad-hoc movements. */

@@ -44,15 +44,11 @@ final class ManualWorkoutTests: XCTestCase {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let paths = [
-            nativeRoot.appending(path: "APEX/App/AppSession.swift"),
-            nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift")
-        ]
+        let quickComplete = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+        let guidedPlayer = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
 
-        for path in paths {
-            let source = try String(contentsOf: path)
-            XCTAssertFalse(source.contains("rir: 2"), "\(path.lastPathComponent) fabricates reported effort")
-        }
+        XCTAssertTrue(quickComplete.contains("reps: exercise.repMax > 0 ? exercise.repMax : nil,\n                    rir: nil"))
+        XCTAssertTrue(guidedPlayer.contains("reps: skipped ? nil : actualReps,\n            rir: nil"))
     }
 
     func testAPlannedSessionIsNotMistakenForAManualOne() {

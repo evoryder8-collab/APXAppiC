@@ -22,7 +22,7 @@ import {
   speechAnnouncementFallbackMs,
   type Block,
 } from '../lib/playerTimeline'
-import { buildSessionRecords } from '../lib/workoutSession'
+import { buildSessionRecords, serializeExerciseSets } from '../lib/workoutSession'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
 import { speak, stopSpeech, tick } from '../lib/audio'
 import { currentStreak } from '../lib/streak'
@@ -402,7 +402,7 @@ export function Player() {
     [plan.exercises, data],
   )
 
-  const saveExerciseLog = (exIdx: number, weights: Array<number | null>, rir: number | null, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter = true): void => {
+  const saveExerciseLog = (exIdx: number, weights: Array<number | null>, rirs: Array<number | null>, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter = true): void => {
     const e = plan.exercises[exIdx]
     const usableWeights = weights.filter((value): value is number => value != null)
     dispatch({
@@ -413,7 +413,7 @@ export function Player() {
         override,
         skippedAll,
         finalized: true,
-        sets: repsBySet.map((r, index) => ({ reps: skippedAll ? null : r, rir, skipped: skippedAll, weight: skippedAll ? null : (weights[index] ?? null) })),
+        sets: serializeExerciseSets(weights, rirs, repsBySet, skippedAll),
       },
     })
     if (voice && !skippedAll) speak(`${voiceText(e.name)}. ${voiceText('Exercise logged.')}`, language)
@@ -632,7 +632,7 @@ export function Player() {
                   dispatch({ type: 'endSet', key: block.kind === 'set' ? block.resultKey : '', reps })
                   advance()
                 }}
-                onConfirmCheck={(exIdx, completed, usedModifier) => saveExerciseLog(exIdx, [null], null, [completed ? 1 : null], !completed, usedModifier)}
+                onConfirmCheck={(exIdx, completed, usedModifier) => saveExerciseLog(exIdx, [null], [null], [completed ? 1 : null], !completed, usedModifier)}
                 recFor={recFor}
                 onSaveLog={saveExerciseLog}
                 results={state.results}
@@ -785,7 +785,7 @@ function BlockView(props: {
   onEndMaxSet: (reps: number) => void
   onConfirmCheck: (exIdx: number, completed: boolean, usedModifier: boolean) => void
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
+  onSaveLog: (exIdx: number, weights: Array<number | null>, rirs: Array<number | null>, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   onSetWeight: (exIdx: number, setNo: number, totalSets: number, weight: number | null) => void
   onSetReps: (exIdx: number, setNo: number, totalSets: number, reps: number) => void
@@ -1237,7 +1237,7 @@ function LogCard(props: {
   accent: Accent
   counted: Record<string, number>
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weights: Array<number | null>, rir: number | null, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
+  onSaveLog: (exIdx: number, weights: Array<number | null>, rirs: Array<number | null>, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
@@ -1257,7 +1257,9 @@ function LogCard(props: {
       rec?.weight,
     )),
   )
-  const [rir, setRir] = useState<number | null>(null)
+  const [rirs, setRirs] = useState<Array<number | null>>(() =>
+    [...Array(e.planned_sets)].map((_, index) => existing?.sets[index]?.rir ?? null),
+  )
   const [reps, setReps] = useState<Array<number | null>>(() =>
     [...Array(e.planned_sets)].map((_, i) => e.rep_unit === 'reps'
       ? prefillSetReps(
@@ -1279,7 +1281,7 @@ function LogCard(props: {
         return
       }
     }
-    props.onSaveLog(exIdx, weights, rir, reps, false, overridden, !props.embedded)
+    props.onSaveLog(exIdx, weights, rirs, reps, false, overridden, !props.embedded)
   }
 
   const content = (
@@ -1300,33 +1302,33 @@ function LogCard(props: {
             <span>Set {i + 1}</span>
             {e.increment_kg > 0 ? <label className="relative min-w-0"><input aria-label={`Set ${i + 1} weight in kilograms`} inputMode="decimal" type="number" min="0" step="0.5" value={weights[i] ?? ''} onChange={(event) => setWeights((current) => current.map((value, index) => index === i ? (event.target.value === '' ? null : Number(event.target.value)) : value))} className="w-full rounded-xl border border-white/80 bg-white/85 py-2 pr-8 pl-2 text-right font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[8px] font-black text-ink-faint">KG</span></label> : <span />}
             <div className="flex items-center gap-1"><button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? Math.max(0, (v ?? 0) - 1) : v)))}>-</button><span className="w-7 text-center font-bold text-ink">{r ?? '–'}</span><button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? (v ?? 0) + 1 : v)))}>+</button></div>
+            <div className="col-span-3 flex items-center justify-between gap-2 border-t border-ink/5 pt-2">
+              <span className="text-[9px] font-bold tracking-widest text-ink-faint uppercase">{t('RIR')}</span>
+              <div className="flex gap-1">
+                {[0, 1, 2, 3, 4, 5].map((value) => (
+                  <button
+                    key={value}
+                    type="button"
+                    aria-label={`${t('Set')} ${i + 1} RIR ${value}`}
+                    onClick={() => setRirs((current) => current.map((rir, index) => index === i ? (rir === value ? null : value) : rir))}
+                    className="h-7 w-7 rounded-lg font-mono text-xs font-bold transition-all"
+                    style={
+                      rirs[i] === value
+                        ? { background: accent.gradient, color: '#fff' }
+                        : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
+                    }
+                  >
+                    {value}
+                  </button>
+                ))}
+              </div>
+            </div>
           </div>
         ))}
       </div>
 
-      <div className="mt-4">
-        <p className="text-[10px] font-bold tracking-widest text-ink-faint uppercase">Reps in reserve</p>
-        <div className="mt-1.5 flex justify-center gap-1.5">
-          {[0, 1, 2, 3, 4, 5].map((v) => (
-            <button
-              key={v}
-              type="button"
-              onClick={() => setRir(rir === v ? null : v)}
-              className="h-9 w-9 rounded-xl font-mono text-sm font-bold transition-all"
-              style={
-                rir === v
-                  ? { background: accent.gradient, color: '#fff' }
-                  : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-              }
-            >
-              {v}
-            </button>
-          ))}
-        </div>
-      </div>
-
       <div className="mt-5 flex gap-2">
-        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, reps.map(() => null), null, reps.map(() => null), true, false, !props.embedded)}>
+        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, reps.map(() => null), reps.map(() => null), reps.map(() => null), true, false, !props.embedded)}>
           Skipped
         </GhostButton>
         <GradientButton accent={accent} className="flex-[2]" onClick={trySave}>
