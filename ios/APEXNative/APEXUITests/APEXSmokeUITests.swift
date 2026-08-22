@@ -74,6 +74,32 @@ final class APEXSmokeUITests: XCTestCase {
         }
     }
 
+    func testTrainingCalendarShowsPrescriptionAndHonestEmptyDay() {
+        let app = configuredApp()
+        app.launch()
+
+        let main = app.buttons["portal.main"]
+        XCTAssertTrue(scrollUntilVisible(main, in: app))
+        main.tap()
+
+        let today = calendarKey(offset: 0)
+        let tomorrow = calendarKey(offset: 1)
+        let todayCell = app.buttons["calendar-day-\(today)"]
+        XCTAssertTrue(scrollUntilVisible(todayCell, in: app))
+        XCTAssertTrue(todayCell.label.contains("Scheduled"), todayCell.label)
+
+        let emptyCell = app.buttons["calendar-day-\(tomorrow)"]
+        XCTAssertTrue(emptyCell.exists)
+        XCTAssertTrue(emptyCell.label.contains("No prescription"), emptyCell.label)
+        capture("training-calendar-states")
+        emptyCell.tap()
+
+        XCTAssertTrue(app.staticTexts["No workout prescribed"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["No programme was authored for this date."].exists)
+        XCTAssertFalse(app.staticTexts["Rest day"].exists)
+        capture("training-calendar-no-prescription")
+    }
+
     func testMealComposerPreservesFoodMemoryAndPresetWorkflow() {
         let app = configuredApp()
         app.launch()
@@ -216,6 +242,15 @@ final class APEXSmokeUITests: XCTestCase {
         app.launchArguments = ["-apex-ui-test", "-AppleLanguages", "(en)"]
         app.launchEnvironment["APEX_UI_TESTING"] = "1"
         return app
+    }
+
+    private func calendarKey(offset: Int) -> String {
+        let date = Calendar.current.date(byAdding: .day, value: offset, to: .now) ?? .now
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.string(from: date)
     }
 
     /// Opens a collapsible section and leaves it open, waiting for the thing it

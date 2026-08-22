@@ -216,3 +216,53 @@ Concurrent unrelated work:
 
 - Commit `73b244d04c500ee92551d8be6f72a2398d6cc122` appeared mid-task with 106 unrelated roadmap lines. It was preserved at local pointer `codex/preserve-reporting-layer-73b244d` and excluded from this task branch without reset or content loss.
 - Historical stash `8e81a00288844b3b18151541419699e1e7c0821f` remains untouched.
+
+## 2026-08-22 — Task 4 / Phase 1.3: honest workout-calendar states
+
+Status: implementation, rejection review, exact verification, and connected-iPhone install complete. GitHub publication and Pages verification follow this local checkpoint.
+
+Implementation commit:
+
+- `46e7ea6824d65dce9a128793f93eaffed920bcb7` — resolve calendar days from authored and recorded facts instead of treating a missing programme day as Rest.
+
+Files changed:
+
+- `ios/APEXNative/APEX/Core/Engine/TrainingCalendarDay.swift`
+- `ios/APEXNative/APEX/Core/Engine/TrainingPlanEngine.swift`
+- `ios/APEXNative/APEX/Features/Training/TrainingCalendarView.swift`
+- `ios/APEXNative/APEX/Features/Training/WorkoutDaySheet.swift`
+- `ios/APEXNative/APEXTests/TrainingCalendarDayTests.swift`
+- `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+- `ios/APEXNative/APEXNative.xcodeproj/project.pbxproj`
+
+Behavior delivered:
+
+- Calendar dates now resolve account-scoped, slug-scoped and deterministic scheduled, Rest, deload, completed, partially completed, missed, manually logged, custom-workout, and no-prescription states.
+- Missing, stale, malformed or out-of-window programme data says `No workout prescribed`; only an authored Rest day or a valid sparse induction gap says Rest.
+- Partial means a real start or workout log exists. An untouched incomplete row remains scheduled.
+- Recorded sessions retain their own authored `programDayID` when completed off schedule; the date's prescription is only a fallback.
+- Programmes, days, exercises, events, sessions, logs, deload marks, water and imported-activity indicators are scoped to the active account before display.
+- The calendar uses readable `PLAN`/`MISS`/`NONE` state codes, distinct symbols, non-color accessibility labels, deterministic duplicate-weekday ordering, and a state legend.
+- The day sheet no longer falls back from nil to Rest. Honest no-prescription and Rest explanations are visually distinct, recorded partial/manual/custom sessions reopen their actual receipt, and repeated empty-state headings were removed after device-scale screenshot review.
+
+Tests added:
+
+- Nine native resolver tests cover all nine states, untouched-versus-started partials, completed deload metadata, manual/custom records, valid sparse induction Rest, malformed induction boundaries, account/slug isolation, deterministic duplicate weekdays, and off-schedule recorded-day identity.
+- One XCUITest scrolls to the native calendar, verifies today's cell announces Scheduled, verifies tomorrow announces No prescription, opens the date, proves the honest explanation is present and `Rest day` is absent, and captures both calendar and sheet frames.
+- Red/green evidence: missing resolver initially failed to compile; malformed induction boundary failed before boundary validation; off-schedule identity failed before recorded-day-first resolution. Each focused regression passed after its scoped fix.
+
+Final verification for implementation SHA `46e7ea6824d65dce9a128793f93eaffed920bcb7`:
+
+- Full native `APEXTests`: 318 passed, 0 failed, 0 skipped on iPhone 17 Pro simulator, iOS 26.5.
+- Native result bundle: `/tmp/apex-task4-derived-data-20260822/codex-task4-full/Logs/Test/Test-APEX-2026.08.22_13-43-44-+0200.xcresult`.
+- Focused native calendar XCUITest: 1 passed, 0 failed, 0 skipped.
+- UI result bundle: `/tmp/apex-task4-derived-data-20260822/codex-task4-ui/Logs/Test/Test-APEX-2026.08.22_13-44-11-+0200.xcresult`.
+- Full web suite: 428 passed, 0 failed, 0 skipped.
+- Production web build: passed (`tsc --noEmit` plus Vite; 1,166 modules transformed; existing chunk-size advisory only).
+- `git diff --check`: clean before commit.
+
+Connected-iPhone evidence:
+
+- Clean SHA `46e7ea6824d65dce9a128793f93eaffed920bcb7` built and signed from `/tmp/apex-task4-46e7ea6-device-derived`; `** BUILD SUCCEEDED **`.
+- Installed bundle `ch.apexperformance.APEX` on paired `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`), physical iPhone 15 Pro Max.
+- Installed container `CCFCF256-EBE7-4A4D-835C-5DBCEE91B88F`; direct launch succeeded and the device process table confirmed PID `2129`.
