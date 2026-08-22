@@ -546,6 +546,21 @@ struct WorkoutSetInput: Codable, Hashable, Sendable {
     var reps: Int?
     var rir: Int?
     var skipped: Bool
+
+    /// A skipped set is an explicit absence of work, never a hidden completed
+    /// set whose old measurements could influence history or progression.
+    func normalizedForPersistence() -> WorkoutSetInput {
+        guard skipped else { return self }
+        return WorkoutSetInput(
+            exerciseID: exerciseID,
+            exerciseName: exerciseName,
+            setNumber: setNumber,
+            weightKG: nil,
+            reps: nil,
+            rir: nil,
+            skipped: true
+        )
+    }
 }
 
 struct DailyLog: Codable, Identifiable, Hashable, Sendable {

@@ -193,7 +193,7 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: "guided", dayDefault: "tracked"), .guided)
     }
 
-    func testTrackedDraftsKeepAdjustedSetCountsAndReportedEffortPerSet() {
+    func testTrackedDraftsNeedExplicitActualWorkAndKeepPerSetFactsSeparate() {
         let exercise = Exercise(
             id: UUID(), userID: user, programDayID: UUID(), name: "Row",
             sets: 2, repMin: 8, repMax: 10, repUnit: "reps", perSide: false,
@@ -204,15 +204,58 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         var drafts = TrackedWorkout.setInputs(for: [exercise])
 
         XCTAssertEqual(drafts.map(\.setNumber), [1, 2])
-        XCTAssertEqual(drafts.map(\.reps), [10, 10])
+        XCTAssertEqual(drafts.map(\.reps), [nil, nil])
+        XCTAssertEqual(drafts.map(\.weightKG), [nil, nil])
         XCTAssertEqual(drafts.map(\.rir), [nil, nil])
         XCTAssertFalse(drafts[1].skipped)
+        XCTAssertFalse(TrackedWorkout.isReadyToFinish(drafts))
 
+        drafts[0].reps = 8
+        drafts[0].weightKG = 42.5
         drafts[0].rir = 3
-        drafts[1].skipped = true
+        drafts[1].reps = 10
+        drafts[1].weightKG = 47.5
         XCTAssertEqual(drafts[0].rir, 3)
-        XCTAssertNil(drafts[1].rir)
-        XCTAssertTrue(drafts[1].skipped)
+        XCTAssertEqual(drafts.map(\.weightKG), [42.5, 47.5])
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(drafts))
+    }
+
+    func testSkippingASetClearsEveryMeasurementAtTheSharedPersistenceBoundary() {
+        let input = WorkoutSetInput(
+            exerciseID: UUID(), exerciseName: "Row", setNumber: 1,
+            weightKG: 42.5, reps: 8, rir: 3, skipped: true
+        )
+
+        let persisted = input.normalizedForPersistence()
+        XCTAssertTrue(persisted.skipped)
+        XCTAssertNil(persisted.weightKG)
+        XCTAssertNil(persisted.reps)
+        XCTAssertNil(persisted.rir)
+    }
+
+    func testTimedTrackedWorkUsesItsAuthoredUnitWithoutRIR() {
+        let seconds = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Dead Hang",
+            sets: 1, repMin: 30, repMax: 45, repUnit: "seconds", perSide: false,
+            restSeconds: 60, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let minutes = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Mobility Flow",
+            sets: 1, repMin: 5, repMax: 8, repUnit: "minutes", perSide: false,
+            restSeconds: 0, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 1
+        )
+
+        XCTAssertEqual(TrackedWorkout.workUnit(for: seconds), .seconds)
+        XCTAssertEqual(TrackedWorkout.workUnit(for: minutes), .minutes)
+        XCTAssertEqual(TrackedWorkout.plannedWork(for: seconds), 45)
+        XCTAssertEqual(TrackedWorkout.plannedWork(for: minutes), 8)
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: seconds))
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: minutes))
+        XCTAssertEqual(TrackedWorkout.setInputs(for: [seconds, minutes]).map(\.reps), [nil, nil])
     }
 
     func testEveryPlannedStartOffersAndRoutesBothSessionModes() throws {

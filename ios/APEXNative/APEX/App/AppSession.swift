@@ -1645,8 +1645,9 @@ final class AppSession {
             isEventRecovery: false, completed: true, qualityScore: 1,
             startedAt: startedAt.ISO8601Format(), completedAt: now, notes: "Completed in APEX iOS"
         )
-        let logs = setInputs.map { input in
-            WorkoutLog(
+        let logs = setInputs.map { rawInput in
+            let input = rawInput.normalizedForPersistence()
+            return WorkoutLog(
                 id: UUID(), userID: profile.userID, sessionID: workout.id,
                 exerciseID: input.exerciseID, exerciseName: input.exerciseName,
                 setNumber: input.setNumber, weightKG: input.weightKG,
