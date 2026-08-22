@@ -37,6 +37,21 @@ final class AppSession {
     var isAuthenticated: Bool { data.profile != nil }
     var interfaceMode: PortalUIMode { PortalUIMode.current(from: data.settings) }
 
+    /// A person's last choice is local device preference, deliberately kept
+    /// apart from a programme day's authored default.
+    func workoutSessionMode(for day: ProgramDay) -> WorkoutSessionMode {
+        let key = profile.map { "apex.workout-session-mode.\($0.userID.uuidString)" }
+        return WorkoutSessionMode.resolve(
+            lastUsed: key.flatMap { defaults.string(forKey: $0) },
+            dayDefault: day.sessionMode
+        )
+    }
+
+    func rememberWorkoutSessionMode(_ mode: WorkoutSessionMode) {
+        guard let userID = profile?.userID else { return }
+        defaults.set(mode.rawValue, forKey: "apex.workout-session-mode.\(userID.uuidString)")
+    }
+
     func bootstrap() async {
         guard !bootstrapped else { return }
         bootstrapped = true
@@ -248,9 +263,12 @@ final class AppSession {
     func refreshDashboard(expectedUserID: UUID? = nil) async throws {
         isRefreshing = true
         defer { isRefreshing = false }
-        let next = try await service.loadDashboard()
+        var next = try await service.loadDashboard()
         if let expectedUserID, next.profile?.userID != expectedUserID {
             throw APEXServiceError.configurationMissing
+        }
+        if let authenticatedUserID = next.profile?.userID {
+            next.settings = next.settings?.rebound(to: authenticatedUserID)
         }
         data = next
         lastSyncAt = .now
@@ -655,7 +673,8 @@ final class AppSession {
     }
 
     func updateSettings(_ transform: (inout UserSettings) -> Void) async {
-        guard var settings = data.settings else { return }
+        guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         transform(&settings)
         data.settings = settings
         await persistUpsert(settings, table: "settings", onConflict: "user_id")
@@ -985,7 +1004,8 @@ final class AppSession {
         let validItems = draft.items.filter { $0.equivalentAmount > 0 }
         guard validItems.isEmpty == false else { throw APEXServiceError.incompleteFood }
 
-        let key = "ios-meal-\(draft.id.uuidString.lowercased())"
+        let key = draft.clientIdempotencyKey
+        let loggedAs = MealLogKind.normalized(draft.loggedAs)
         let request = StructuredMealRequest(
             id: draft.id,
             localDate: draft.localDate,
@@ -997,7 +1017,7 @@ final class AppSession {
             sourcePlannedMealID: draft.sourcePlannedMealID,
             loggedAt: draft.finishedAt.ISO8601Format(),
             clientIdempotencyKey: key,
-            loggedAs: draft.loggedAs,
+            loggedAs: loggedAs,
             replaceMealID: draft.replaceMealID
         )
         let entryRequests = validItems.enumerated().map { index, item in
@@ -1034,7 +1054,7 @@ final class AppSession {
             sourcePlannedMealID: draft.sourcePlannedMealID,
             loggedAt: request.loggedAt,
             clientIdempotencyKey: key,
-            loggedAs: draft.loggedAs,
+            loggedAs: loggedAs,
             totalKcal: totals.kcal.rounded(),
             totalProteinG: totals.proteinG,
             totalCarbsG: totals.carbsG,
@@ -1076,6 +1096,10 @@ final class AppSession {
             )
         }
 
+        let previousData = data
+        let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
+        let offlineOperation = try OfflineOperation.rpc("log_structured_meal", params: payload)
+
         if let replaced = draft.replaceMealID {
             data.loggedMeals.removeAll { $0.id == replaced }
             data.loggedFoodEntries.removeAll { $0.mealID == replaced }
@@ -1090,14 +1114,41 @@ final class AppSession {
 
         do {
             _ = try await service.logStructuredMeal(meal: request, entries: entryRequests)
-            try await refreshDashboard()
+            lastSyncAt = .now
         } catch {
-            let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
-            try await offlineStore.enqueue(.rpc("log_structured_meal", params: payload), for: profile.userID)
-            pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count) ?? pendingSyncCount + 1
-            /* Saved offline and queued. Deliberately silent: this is the app
-               working, not an event, and pendingSyncCount already shows it.
-               Naming the backend on a user's screen helps nobody. */
+            switch SyncFailurePolicy.classify(error) {
+            case .transient:
+                do {
+                    try await offlineStore.enqueue(offlineOperation, for: profile.userID)
+                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count)
+                        ?? pendingSyncCount + 1
+                    /* Saved offline and queued. Deliberately silent: this is
+                       normal offline operation, not a failed save. */
+                    return
+                } catch {
+                    data = previousData
+                    await saveLocalSnapshot()
+                    throw error
+                }
+            case .permanent:
+                data = previousData
+                await saveLocalSnapshot()
+                try? await offlineStore.recordFailure(
+                    offlineOperation,
+                    reason: error.localizedDescription,
+                    for: profile.userID
+                )
+                throw error
+            }
+        }
+
+        // The write is already committed and idempotent. A dashboard refresh
+        // failure must not turn a successful meal into an offline retry or a
+        // false error; the optimistic local meal remains the accurate view.
+        do {
+            try await refreshDashboard(expectedUserID: profile.userID)
+        } catch {
+            lastSyncAt = .now
         }
     }
 
@@ -1566,7 +1617,7 @@ final class AppSession {
                     setNumber: set,
                     weightKG: nil,
                     reps: exercise.repMax > 0 ? exercise.repMax : nil,
-                    rir: 2,
+                    rir: nil,
                     skipped: false
                 )
             }
@@ -1594,8 +1645,9 @@ final class AppSession {
             isEventRecovery: false, completed: true, qualityScore: 1,
             startedAt: startedAt.ISO8601Format(), completedAt: now, notes: "Completed in APEX iOS"
         )
-        let logs = setInputs.map { input in
-            WorkoutLog(
+        let logs = setInputs.map { rawInput in
+            let input = rawInput.normalizedForPersistence()
+            return WorkoutLog(
                 id: UUID(), userID: profile.userID, sessionID: workout.id,
                 exerciseID: input.exerciseID, exerciseName: input.exerciseName,
                 setNumber: input.setNumber, weightKG: input.weightKG,
@@ -1605,13 +1657,64 @@ final class AppSession {
         }
         data.workoutSessions.append(workout)
         data.workoutLogs.append(contentsOf: logs)
-        await persistUpsert(workout, table: "workout_sessions")
-        for log in logs {
-            await persistUpsert(log, table: "workout_logs")
-        }
+
+        var linkedActivity: ActivityLog?
         if let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
-            await addActivity(type: activityType, date: .now, durationMinutes: elapsed)
+            let activity = ActivityLog(
+                id: UUID(),
+                userID: profile.userID,
+                date: Date().apexDateKey,
+                typeID: activityType.id,
+                quantity: 1,
+                durationMinutes: elapsed,
+                distanceKM: nil,
+                watchKcal: nil,
+                computedKcal: EnergyEngine.blockCalories(
+                    type: activityType,
+                    quantity: 1,
+                    durationMinutes: elapsed,
+                    distanceKM: nil,
+                    watchKcal: nil,
+                    weightKG: profile.weightKG
+                ),
+                source: "workout_module",
+                reconciled: false,
+                createdAt: now,
+                updatedAt: now
+            )
+            data.activityLogs.append(activity)
+            linkedActivity = activity
+        }
+
+        /* The receipt is part of completing the workout, so it must not wait
+           for a chain of remote writes. Preserve one complete local snapshot
+           first, then let the normal offline-aware sync path drain in the
+           background. */
+        await saveLocalSnapshot()
+        let ownerID = profile.userID
+        Task { @MainActor [weak self] in
+            guard let self, self.profile?.userID == ownerID else { return }
+            await self.persistUpsert(
+                workout,
+                table: "workout_sessions",
+                surfacePermanentFailure: false
+            )
+            for log in logs {
+                guard self.profile?.userID == ownerID else { return }
+                await self.persistUpsert(
+                    log,
+                    table: "workout_logs",
+                    surfacePermanentFailure: false
+                )
+            }
+            if let linkedActivity, self.profile?.userID == ownerID {
+                await self.persistUpsert(
+                    linkedActivity,
+                    table: "activity_logs",
+                    surfacePermanentFailure: false
+                )
+            }
         }
         return workout.id
     }
@@ -1788,31 +1891,16 @@ final class AppSession {
         let adjustment = OrbitIntegrations.nutritionAdjustment(run: run, weightKG: profile.weightKG)
         guard adjustment.kcal > 0 else { return run }
 
-        let kcal = Int((foodSuggestion?.nutrients.kcal ?? Double(adjustment.kcal)).rounded())
-        let protein = Int((foodSuggestion?.nutrients.proteinG ?? Double(adjustment.proteinG)).rounded())
-        let fat = Int((foodSuggestion?.nutrients.fatG ?? Double(adjustment.fatG)).rounded())
-        let carbs = Int((foodSuggestion?.nutrients.carbsG ?? Double(adjustment.carbsG)).rounded())
-        let existing = data.dailyLogs.first { $0.date == run.localDate }
-        let day = DailyLog(
-            id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: run.localDate, userID: profile.userID),
-            userID: profile.userID,
-            date: run.localDate,
-            kcal: (existing?.kcal ?? 0) + kcal,
-            proteinG: (existing?.proteinG ?? 0) + protein,
-            fatG: (existing?.fatG ?? 0) + fat,
-            carbsG: (existing?.carbsG ?? 0) + carbs,
-            waterL: existing?.waterL ?? 0,
-            estimatedTDEE: existing?.estimatedTDEE,
-            computedPAL: existing?.computedPAL,
-            activityMode: existing?.activityMode ?? "precise",
-            weightKG: existing?.weightKG ?? profile.weightKG,
-            nutritionSource: "manual",
-            manualKcal: (existing?.manualKcal ?? existing?.kcal ?? 0) + kcal,
-            manualProteinG: (existing?.manualProteinG ?? existing?.proteinG ?? 0) + protein,
-            manualFatG: (existing?.manualFatG ?? existing?.fatG ?? 0) + fat,
-            manualCarbsG: (existing?.manualCarbsG ?? existing?.carbsG ?? 0) + carbs
-        )
-        await updateDailyLog(day)
+        guard let draft = OrbitIntegrations.nutritionMealDraft(run: run, suggestion: foodSuggestion) else {
+            alertMessage = "Choose one of your saved foods before applying this Orbit adjustment."
+            return run
+        }
+        do {
+            try await saveStructuredMeal(draft)
+        } catch {
+            alertMessage = "The Orbit food adjustment was not applied. \(error.localizedDescription)"
+            return run
+        }
 
         let updated = OrbitRunRecord(
             id: run.id, userID: run.userID, clientIdempotencyKey: run.clientIdempotencyKey,
@@ -2080,15 +2168,6 @@ final class AppSession {
 
     private func integrateOrbitRun(_ run: OrbitRunRecord) async {
         guard let profile, run.userID == profile.userID else { return }
-        let overlapping = data.activityLogs.filter {
-            $0.date == run.localDate
-                && ($0.typeID == "jog-run" || ($0.typeID == "watch-kcal" && $0.source != "orbit"))
-        }
-        for log in overlapping {
-            data.activityLogs.removeAll { $0.id == log.id }
-            await persistDelete(table: "activity_logs", id: log.id)
-        }
-
         let distanceKM = max(0, (run.metrics["distance_m"]?.numberValue ?? 0) / 1_000)
         let durationMinutes = max(1, Int(((run.metrics["moving_s"]?.numberValue ?? 0) / 60).rounded()))
         let id = APEXStableID.scopedUUID(
@@ -2104,8 +2183,10 @@ final class AppSession {
             source: "orbit", reconciled: true,
             createdAt: run.createdAt, updatedAt: run.updatedAt
         )
-        data.activityLogs.removeAll { $0.id == id }
-        data.activityLogs.append(activity)
+        data.activityLogs = OrbitIntegrations.reconciledActivityLogs(
+            existing: data.activityLogs,
+            generated: activity
+        )
         await persistUpsert(activity, table: "activity_logs")
 
         let healthAlreadyRepresentsRun = data.importedActivities.contains {
@@ -2162,6 +2243,7 @@ final class AppSession {
         name: String,
         weekday: Int,
         estimatedMinutes: Int,
+        sessionMode: WorkoutSessionMode,
         picks: [CustomWorkoutBuilder.Pick]
     ) async {
         guard let profile else { return }
@@ -2185,7 +2267,8 @@ final class AppSession {
             dayType: "custom",
             estimatedMinutes: estimatedMinutes,
             warmupNote: "Five minutes of pain-free joint preparation",
-            sortOrder: weekday
+            sortOrder: weekday,
+            sessionMode: sessionMode.rawValue
         )
 
         let replaced = data.exercises.filter { $0.programDayID == day.id }
@@ -2304,49 +2387,12 @@ final class AppSession {
         let existingTimes = existingLogs.compactMap { formatter.date(from: $0.createdAt)?.timeIntervalSince1970 }
         let base = existingTimes.min() ?? Date().timeIntervalSince1970
 
-        var proposed: [WorkoutLog] = []
-        for (index, draft) in usable.enumerated() {
-            let exerciseTime = base + Double(index) * 60
-            if let treadmill = draft.treadmill {
-                proposed.append(
-                    WorkoutLog(
-                        id: UUID(),
-                        userID: userID,
-                        sessionID: workout.id,
-                        exerciseID: nil,
-                        exerciseName: ManualWorkout.encodeTreadmill(name: draft.name, metrics: treadmill),
-                        setNumber: 1,
-                        weightKG: nil,
-                        reps: nil,
-                        rir: nil,
-                        skipped: false,
-                        overrideFlag: false,
-                        createdAt: formatter.string(from: Date(timeIntervalSince1970: exerciseTime))
-                    )
-                )
-                continue
-            }
-            for (setIndex, set) in draft.sets.filter({ $0.reps > 0 }).enumerated() {
-                proposed.append(
-                    WorkoutLog(
-                        id: UUID(),
-                        userID: userID,
-                        sessionID: workout.id,
-                        exerciseID: nil,
-                        exerciseName: draft.name,
-                        setNumber: setIndex + 1,
-                        weightKG: set.weightKG > 0 ? set.weightKG : nil,
-                        reps: set.reps,
-                        rir: nil,
-                        skipped: false,
-                        overrideFlag: false,
-                        createdAt: formatter.string(
-                            from: Date(timeIntervalSince1970: exerciseTime + Double(setIndex) * 0.1)
-                        )
-                    )
-                )
-            }
-        }
+        let proposed = ManualWorkout.logs(
+            userID: userID,
+            sessionID: workout.id,
+            exercises: usable,
+            base: Date(timeIntervalSince1970: base)
+        )
 
         let reconciled = ManualWorkout.reconcile(existing: existingLogs, next: proposed)
 
@@ -2384,6 +2430,7 @@ final class AppSession {
      */
     func installInductionPlan(_ input: TrainingInduction.Input) async {
         guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         let plan = TrainingInduction.generate(
             userID: profile.userID,
             input: input,
@@ -2423,7 +2470,8 @@ final class AppSession {
 
     /// Puts the original programme back by clearing the generated overlay.
     func restoreOriginalProgramme() async {
-        guard var settings = data.settings else { return }
+        guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         settings.addons["newbie_mode"] = .bool(false)
         settings.addons.removeValue(forKey: "training_induction")
         data.settings = settings
@@ -2434,7 +2482,8 @@ final class AppSession {
     /// goal never quietly rewrites the others. An emptied list falls back to
     /// the protocol default.
     func saveMealProtocolOverride(key: String, lines: [String]) async {
-        guard var settings = data.settings else { return }
+        guard let profile, var settings = data.settings else { return }
+        settings = settings.rebound(to: profile.userID)
         var overrides = settings.addons["meal_protocol_overrides"]?.objectValue ?? [:]
         if lines.isEmpty {
             overrides.removeValue(forKey: key)
@@ -2449,7 +2498,8 @@ final class AppSession {
     private func persistUpsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,
-        onConflict: String? = nil
+        onConflict: String? = nil,
+        surfacePermanentFailure: Bool = true
     ) async {
         await saveLocalSnapshot()
         do {
@@ -2459,12 +2509,27 @@ final class AppSession {
             guard let userID = profile?.userID else { return }
             do {
                 let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
-                try await offlineStore.enqueue(operation, for: userID)
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
-                /* Silent, like the other offline saves. Working without a
-                   connection is the feature, not an incident report. */
+                switch SyncFailurePolicy.classify(error) {
+                case .transient:
+                    try await offlineStore.enqueue(operation, for: userID)
+                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
+                        ?? pendingSyncCount + 1
+                    /* Silent, like the other offline saves. Working without a
+                       connection is the feature, not an incident report. */
+                case .permanent:
+                    try await offlineStore.recordFailure(
+                        operation,
+                        reason: error.localizedDescription,
+                        for: userID
+                    )
+                    if surfacePermanentFailure {
+                        alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
+                    }
+                }
             } catch {
-                alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
+                if surfacePermanentFailure {
+                    alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
+                }
             }
         }
     }
@@ -2477,10 +2542,22 @@ final class AppSession {
         } catch {
             guard let userID = profile?.userID else { return }
             do {
-                try await offlineStore.enqueue(.delete(table: table, id: id), for: userID)
-                pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? pendingSyncCount + 1
-                /* Silent, like the other offline saves. Working without a
-                   connection is the feature, not an incident report. */
+                let operation = OfflineOperation.delete(table: table, id: id)
+                switch SyncFailurePolicy.classify(error) {
+                case .transient:
+                    try await offlineStore.enqueue(operation, for: userID)
+                    pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
+                        ?? pendingSyncCount + 1
+                    /* Silent, like the other offline saves. Working without a
+                       connection is the feature, not an incident report. */
+                case .permanent:
+                    try await offlineStore.recordFailure(
+                        operation,
+                        reason: error.localizedDescription,
+                        for: userID
+                    )
+                    alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
+                }
             } catch {
                 alertMessage = "APEX could not preserve that change offline. \(error.localizedDescription)"
             }
@@ -2582,16 +2659,24 @@ final class AppSession {
     private func flushPendingChanges(for userID: UUID) async {
         guard let operations = try? await offlineStore.pendingOperations(for: userID) else { return }
         pendingSyncCount = operations.count
-        for operation in operations {
-            do {
+        let report = await OfflineQueueDrainer.drain(
+            operations,
+            replay: { [service] operation in
                 try await service.replay(operation)
+            },
+            remove: { [offlineStore] operation in
                 try await offlineStore.removeOperation(operation.id, for: userID)
-                pendingSyncCount -= 1
-            } catch {
-                return
-            }
-        }
-        if operations.isEmpty == false { lastSyncAt = .now }
+            },
+            quarantine: { [offlineStore] operation, reason in
+                try await offlineStore.quarantine(operation, reason: reason, for: userID)
+            },
+            classify: SyncFailurePolicy.classify
+        )
+        pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? max(
+            0,
+            operations.count - report.succeeded - report.quarantined
+        )
+        if report.succeeded > 0 { lastSyncAt = .now }
     }
 
     private func startRealtimeSync() async {

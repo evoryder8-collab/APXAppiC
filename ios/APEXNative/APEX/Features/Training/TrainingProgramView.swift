@@ -43,6 +43,18 @@ struct TrainingProgramView: View {
         TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
     }
 
+    /// The hero, hologram and briefing must describe the same prescription.
+    /// Looking up the weekly template independently allowed a generated rest
+    /// day to keep an upper-body hologram and explanation.
+    private var todayMuscleDayType: String {
+        if todayPlan.isRecoveryMicro { return "mobility" }
+        return todayPlan.programDay?.dayType ?? "rest"
+    }
+
+    private var todayExerciseNames: [String] {
+        todayPlan.exercises.map(\.name)
+    }
+
     /// Last night, if the watch had something to say about it.
     private var readiness: RecoveryAssessment.Verdict? {
         RecoveryAssessment.todaysCheckin(session.data, date: Date().apexDateKey)
@@ -219,7 +231,8 @@ struct TrainingProgramView: View {
                 if slug != "custom" { todayHero }
 
                 MuscleMapCard(
-                    dayType: days.first(where: { $0.weekday == todayWeekday })?.dayType ?? "upper",
+                    dayType: todayMuscleDayType,
+                    exerciseNames: todayExerciseNames,
                     height: 442,
                     accent: accent,
                     eyebrow: language.text("TODAY'S SIGNAL"),
@@ -408,12 +421,14 @@ struct TrainingProgramView: View {
     }
 
     private var muscleFocus: String {
-        switch days.first(where: { $0.weekday == todayWeekday })?.dayType {
+        switch todayMuscleDayType {
         case "legs_a", "legs_b": "Glutes · Quads · Hamstrings"
         case "push": "Chest · Delts · Triceps"
         case "pull": "Back · Biceps · Grip"
+        case "upper": "Chest · Back · Arms"
         case "mobility", "fix": "Mobility · Joint quality"
         case "t25": "Cardiovascular engine"
+        case "rest": "Rest · Restore · Adapt"
         default: "Full-body readiness"
         }
     }
@@ -537,6 +552,504 @@ struct CalendarDaySelection: Identifiable, Hashable {
     var id: String { date }
 }
 
+/// The two ways to complete a planned day stay visible together. The tint only
+/// communicates the remembered/default choice; neither path is hidden or made
+/// secondary.
+struct WorkoutSessionModeButtons: View {
+    let preferred: WorkoutSessionMode
+    let accent: Color
+    let choose: (WorkoutSessionMode) -> Void
+    @State private var language = LanguageState.shared
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(language.text("HOW WOULD YOU LIKE TO TRAIN?"))
+                .font(APEXFont.mono(9, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(APEXColor.secondaryInk)
+            HStack(spacing: 9) {
+                ForEach(WorkoutSessionMode.allCases, id: \.self) { mode in
+                    Button {
+                        choose(mode)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: mode == .guided ? "figure.strengthtraining.traditional" : "checklist")
+                                .font(.system(size: 17, weight: .bold))
+                            Text(language.text(mode == .guided ? "Guided" : "Tracked"))
+                                .font(APEXFont.body(13, weight: .bold))
+                            Text(language.text(mode == .guided ? "Follow along" : "Log each set"))
+                                .font(APEXFont.body(10, weight: .medium))
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 92)
+                        .foregroundStyle(mode == preferred ? .white : APEXColor.ink)
+                        .background(
+                            mode == preferred ? AnyShapeStyle(accent.gradient) : AnyShapeStyle(.white.opacity(0.7)),
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout-session-mode-\(mode.rawValue)")
+                }
+            }
+        }
+        .accessibilityIdentifier("workout-session-mode-choices")
+    }
+}
+
+/// Turns the planner's already-adjusted rows into the same completion input
+/// boundary that the guided player uses. RIR deliberately starts unreported.
+enum TrackedWorkout {
+    enum WorkUnit: String, Equatable {
+        case reps
+        case seconds
+        case minutes
+        case max
+        case check
+    }
+
+    enum CheckDecision: Equatable {
+        case completed
+        case skipped
+    }
+
+    static func setInputs(for exercises: [Exercise]) -> [WorkoutSetInput] {
+        exercises.flatMap { exercise in
+            (1...max(exercise.sets, 1)).map { set in
+                WorkoutSetInput(
+                    exerciseID: exercise.id,
+                    exerciseName: exercise.name,
+                    setNumber: set,
+                    weightKG: nil,
+                    reps: nil,
+                    rir: nil,
+                    skipped: false
+                )
+            }
+        }
+    }
+
+    static func workUnit(for exercise: Exercise) -> WorkUnit {
+        switch exercise.repUnit {
+        case "seconds": .seconds
+        case "minutes": .minutes
+        case "max": .max
+        case "check": .check
+        default: .reps
+        }
+    }
+
+    static func plannedRange(for exercise: Exercise) -> ClosedRange<Int> {
+        min(exercise.repMin, exercise.repMax)...max(exercise.repMin, exercise.repMax)
+    }
+
+    static func plannedWork(for exercise: Exercise) -> Int {
+        plannedRange(for: exercise).upperBound
+    }
+
+    static func plannedTarget(for exercise: Exercise) -> String {
+        switch workUnit(for: exercise) {
+        case .max: return "MAX"
+        case .check: return "Check"
+        case .reps, .seconds, .minutes:
+            let range = plannedRange(for: exercise)
+            return range.lowerBound == range.upperBound
+                ? "\(range.lowerBound)"
+                : "\(range.lowerBound)–\(range.upperBound)"
+        }
+    }
+
+    static func setKey(for input: WorkoutSetInput) -> String {
+        "\(input.exerciseID?.uuidString ?? input.exerciseName)-\(input.setNumber)"
+    }
+
+    static func applying(_ decision: CheckDecision, to input: WorkoutSetInput) -> WorkoutSetInput {
+        WorkoutSetInput(
+            exerciseID: input.exerciseID,
+            exerciseName: input.exerciseName,
+            setNumber: input.setNumber,
+            weightKG: nil,
+            reps: nil,
+            rir: nil,
+            skipped: decision == .skipped
+        )
+    }
+
+    static func optionalWholeNumber(from text: String, maximum: Int) -> Int? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let value = Int(trimmed),
+              (0...maximum).contains(value) else {
+            return nil
+        }
+        return value
+    }
+
+    static func optionalDecimal(from text: String, maximum: Double) -> Double? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty,
+              let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")),
+              value.isFinite,
+              (0...maximum).contains(value) else {
+            return nil
+        }
+        return value
+    }
+
+    static func allowsRIR(for exercise: Exercise) -> Bool {
+        workUnit(for: exercise) == .reps
+    }
+
+    static func isReadyToFinish(_ inputs: [WorkoutSetInput]) -> Bool {
+        inputs.allSatisfy { $0.skipped || ($0.reps ?? 0) > 0 }
+    }
+
+    static func isReadyToFinish(
+        _ inputs: [WorkoutSetInput],
+        exercises: [Exercise],
+        checkDecisions: [String: CheckDecision]
+    ) -> Bool {
+        inputs.allSatisfy { input in
+            guard let exercise = exercises.first(where: { $0.id == input.exerciseID }),
+                  workUnit(for: exercise) == .check else {
+                return input.skipped || (input.reps ?? 0) > 0
+            }
+            guard let decision = checkDecisions[setKey(for: input)] else { return false }
+            switch decision {
+            case .completed:
+                return !input.skipped && input.weightKG == nil && input.reps == nil && input.rir == nil
+            case .skipped:
+                return input.skipped && input.weightKG == nil && input.reps == nil && input.rir == nil
+            }
+        }
+    }
+}
+
+struct TrackedWorkoutView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+    let day: ProgramDay
+    let exercises: [Exercise]
+    let accent: Color
+    let lite: Bool
+
+    @State private var setInputs: [WorkoutSetInput]
+    @State private var actualEntryTexts: [String: String] = [:]
+    @State private var loadEntryTexts: [String: String] = [:]
+    @State private var checkDecisions: [String: TrackedWorkout.CheckDecision] = [:]
+    @State private var startedAt = Date()
+    @State private var isSaving = false
+    @State private var completedSession: FinishedSession?
+
+    init(day: ProgramDay, exercises: [Exercise], accent: Color, lite: Bool) {
+        self.day = day
+        self.exercises = exercises
+        self.accent = accent
+        self.lite = lite
+        _setInputs = State(initialValue: TrackedWorkout.setInputs(for: exercises))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(language.text("TRACKED SESSION"))
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .tracking(1.4)
+                            .foregroundStyle(accent)
+                        Text(day.name)
+                            .font(APEXFont.display(29))
+                        Text(language.text("Record actual work for each planned set, or mark it skipped."))
+                            .font(APEXFont.body(13, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+
+                    ForEach(setInputs.indices, id: \.self) { index in
+                        trackedSetRow($setInputs[index])
+                    }
+
+                    Button(action: finishWorkout) {
+                        if isSaving {
+                            ProgressView().tint(.white)
+                        } else {
+                            Label(language.text("Finish workout"), systemImage: "checkmark.circle.fill")
+                        }
+                    }
+                    .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                    .disabled(isSaving || !TrackedWorkout.isReadyToFinish(
+                        setInputs, exercises: exercises, checkDecisions: checkDecisions
+                    ))
+                    .accessibilityIdentifier("tracked-workout-finish")
+                }
+                .padding(18)
+                .padding(.bottom, 24)
+            }
+            .background(APEXBackground())
+            .navigationTitle(language.text("Tracked"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button(language.text("Exit")) { dismiss() }
+                }
+            }
+        }
+        .fullScreenCover(item: $completedSession) { finished in
+            WorkoutReceiptSheet(sessionID: finished.id) {
+                completedSession = nil
+                dismiss()
+            }
+            .environment(session)
+        }
+    }
+
+    private func trackedSetRow(_ input: Binding<WorkoutSetInput>) -> some View {
+        let current = input.wrappedValue
+        let exercise = exercises.first { $0.id == current.exerciseID }
+        return GlassCard(radius: 19, padding: 13) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(current.exerciseName)
+                        .font(APEXFont.body(14, weight: .bold))
+                    Spacer()
+                    Text(language.format("SET %d", current.setNumber))
+                        .font(APEXFont.mono(10, weight: .bold))
+                        .foregroundStyle(accent)
+                }
+                if let exercise {
+                    Text(plannedWorkLine(exercise))
+                        .font(APEXFont.body(11, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                if let exercise, TrackedWorkout.workUnit(for: exercise) == .check {
+                    checkDecisionControl(input)
+                } else {
+                    Toggle(language.text("Skipped"), isOn: Binding(
+                        get: { input.wrappedValue.skipped },
+                        set: { skipped in
+                            input.wrappedValue.skipped = skipped
+                            if skipped {
+                                input.wrappedValue = input.wrappedValue.normalizedForPersistence()
+                                actualEntryTexts[entryKey(for: current)] = nil
+                                loadEntryTexts[entryKey(for: current)] = nil
+                            }
+                        }
+                    ))
+                    .tint(accent)
+
+                    if !input.wrappedValue.skipped, let exercise {
+                        actualWorkControl(input, exercise: exercise)
+                        if exercise.incrementKG > 0 {
+                            loadControl(input, increment: exercise.incrementKG)
+                        }
+                        if TrackedWorkout.allowsRIR(for: exercise) {
+                            reportedEffortRow(input)
+                        }
+                    }
+                }
+            }
+        }
+    }
+
+    private func plannedWorkLine(_ exercise: Exercise) -> String {
+        let unit = TrackedWorkout.workUnit(for: exercise)
+        let planned = TrackedWorkout.plannedTarget(for: exercise)
+        if unit == .max || unit == .check {
+            return language.format("Plan · %@", language.text(planned))
+        }
+        return language.format(
+            "Plan · %@ %@",
+            planned,
+            language.text(unit.rawValue)
+        )
+    }
+
+    private func actualWorkControl(_ input: Binding<WorkoutSetInput>, exercise: Exercise) -> some View {
+        let unit = TrackedWorkout.workUnit(for: exercise)
+        let upperBound = unit == .minutes ? 180 : 600
+        let actualUnit = unit == .max ? TrackedWorkout.WorkUnit.reps : unit
+        return compactCounter(
+            label: language.text("Actual") + " " + language.text(actualUnit.rawValue),
+            value: Binding(
+                get: { input.wrappedValue.reps },
+                set: { input.wrappedValue.reps = $0 }
+            ),
+            text: actualWorkEntryText(input, maximum: upperBound),
+            step: unit == .seconds ? 5 : 1,
+            upperBound: upperBound
+        )
+    }
+
+    private func loadControl(_ input: Binding<WorkoutSetInput>, increment: Double) -> some View {
+        compactDecimalCounter(
+            label: language.text("Load") + " (kg)",
+            value: Binding(
+                get: { input.wrappedValue.weightKG },
+                set: { input.wrappedValue.weightKG = $0 }
+            ),
+            text: loadEntryText(input, maximum: 1_000),
+            step: increment
+        )
+    }
+
+    private func compactCounter(
+        label: String,
+        value: Binding<Int?>,
+        text: Binding<String>,
+        step: Int,
+        upperBound: Int
+    ) -> some View {
+        HStack(spacing: 9) {
+            Text(label)
+                .font(APEXFont.body(12, weight: .semibold))
+            Spacer(minLength: 8)
+            Button {
+                guard let current = value.wrappedValue else { return }
+                text.wrappedValue = String(max(1, current - step))
+            } label: {
+                Image(systemName: "minus")
+            }
+            .buttonStyle(.bordered)
+            .disabled(value.wrappedValue == nil)
+            TextField(
+                language.text("Not reported"),
+                text: text
+            )
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.center)
+            .textFieldStyle(.roundedBorder)
+                .font(APEXFont.mono(12, weight: .bold))
+                .frame(width: 76)
+            Button {
+                text.wrappedValue = String(min(upperBound, (value.wrappedValue ?? 0) + step))
+            } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private func compactDecimalCounter(
+        label: String,
+        value: Binding<Double?>,
+        text: Binding<String>,
+        step: Double
+    ) -> some View {
+        HStack(spacing: 9) {
+            Text(label)
+                .font(APEXFont.body(12, weight: .semibold))
+            Spacer(minLength: 8)
+            Button {
+                guard let current = value.wrappedValue else { return }
+                let next = max(0, current - step)
+                text.wrappedValue = next > 0 ? loadText(next) : ""
+            } label: {
+                Image(systemName: "minus")
+            }
+            .buttonStyle(.bordered)
+            .disabled(value.wrappedValue == nil)
+            TextField(
+                language.text("Not reported"),
+                text: text
+            )
+            .keyboardType(.decimalPad)
+            .multilineTextAlignment(.center)
+            .textFieldStyle(.roundedBorder)
+                .font(APEXFont.mono(12, weight: .bold))
+                .frame(width: 76)
+            Button {
+                text.wrappedValue = loadText((value.wrappedValue ?? 0) + step)
+            } label: {
+                Image(systemName: "plus")
+            }
+            .buttonStyle(.bordered)
+        }
+    }
+
+    private func loadText(_ value: Double) -> String {
+        value == value.rounded() ? String(Int(value)) : String(value)
+    }
+
+    private func entryKey(for input: WorkoutSetInput) -> String {
+        TrackedWorkout.setKey(for: input)
+    }
+
+    private func actualWorkEntryText(_ input: Binding<WorkoutSetInput>, maximum: Int) -> Binding<String> {
+        let key = entryKey(for: input.wrappedValue)
+        return Binding(
+            get: { actualEntryTexts[key] ?? input.wrappedValue.reps.map(String.init) ?? "" },
+            set: {
+                actualEntryTexts[key] = $0
+                input.wrappedValue.reps = TrackedWorkout.optionalWholeNumber(from: $0, maximum: maximum)
+            }
+        )
+    }
+
+    private func loadEntryText(_ input: Binding<WorkoutSetInput>, maximum: Double) -> Binding<String> {
+        let key = entryKey(for: input.wrappedValue)
+        return Binding(
+            get: { loadEntryTexts[key] ?? input.wrappedValue.weightKG.map(loadText) ?? "" },
+            set: {
+                loadEntryTexts[key] = $0
+                input.wrappedValue.weightKG = TrackedWorkout.optionalDecimal(from: $0, maximum: maximum)
+            }
+        )
+    }
+
+    private func reportedEffortRow(_ input: Binding<WorkoutSetInput>) -> some View {
+        LazyVGrid(
+            columns: Array(repeating: GridItem(.flexible(minimum: 38), spacing: 6), count: 4),
+            spacing: 6
+        ) {
+            Button(language.text("Clear")) { input.wrappedValue.rir = nil }
+                .buttonStyle(.bordered)
+                .tint(input.wrappedValue.rir == nil ? accent : APEXColor.secondaryInk)
+            ForEach(0...5, id: \.self) { rir in
+                Button("\(rir)") { input.wrappedValue.rir = rir }
+                    .buttonStyle(.bordered)
+                    .tint(input.wrappedValue.rir == rir ? accent : APEXColor.secondaryInk)
+            }
+        }
+        .accessibilityIdentifier("tracked-workout-rir")
+    }
+
+    private func checkDecisionControl(_ input: Binding<WorkoutSetInput>) -> some View {
+        let key = TrackedWorkout.setKey(for: input.wrappedValue)
+        return HStack(spacing: 8) {
+            Button(language.text("Completed")) {
+                checkDecisions[key] = .completed
+                input.wrappedValue = TrackedWorkout.applying(.completed, to: input.wrappedValue)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(checkDecisions[key] == .completed ? accent : APEXColor.secondaryInk)
+
+            Button(language.text("Skipped")) {
+                checkDecisions[key] = .skipped
+                input.wrappedValue = TrackedWorkout.applying(.skipped, to: input.wrappedValue)
+            }
+            .buttonStyle(.bordered)
+            .tint(checkDecisions[key] == .skipped ? accent : APEXColor.secondaryInk)
+        }
+        .accessibilityIdentifier("tracked-workout-check-decision")
+    }
+
+    private func finishWorkout() {
+        guard !isSaving else { return }
+        isSaving = true
+        Task {
+            let finished = await session.completeWorkout(
+                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt
+            )
+            isSaving = false
+            if let finished {
+                completedSession = FinishedSession(id: finished)
+            } else {
+                dismiss()
+            }
+        }
+    }
+}
+
 struct WorkoutDayView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -547,7 +1060,8 @@ struct WorkoutDayView: View {
     /// Defaults to today; the calendar opens this view on any date.
     var date: String = Date().apexDateKey
     var slug: String = "main"
-    @State private var showPlayer = false
+    @State private var showGuidedPlayer = false
+    @State private var showTrackedWorkout = false
 
     /* The planner decides what today actually prescribes: event tapers, the
        championship leg rule, scheduled and marked deloads, recovery micros. */
@@ -565,6 +1079,16 @@ struct WorkoutDayView: View {
                 .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
         }
         return planned.exercises
+    }
+
+    private var sessionExercises: [Exercise] {
+        exercises.map { row in
+            var exercise = row.exercise
+            /* The player counts what the planner prescribed, not what the
+               programme row says. */
+            exercise.sets = row.plannedSets
+            return exercise
+        }
     }
 
     var body: some View {
@@ -662,12 +1186,16 @@ struct WorkoutDayView: View {
                     }
                 }
 
-                Button {
-                    showPlayer = true
-                } label: {
-                    Label(language.text("Start session"), systemImage: "play.fill")
+                WorkoutSessionModeButtons(
+                    preferred: session.workoutSessionMode(for: day),
+                    accent: accent
+                ) { mode in
+                    session.rememberWorkoutSessionMode(mode)
+                    switch mode {
+                    case .guided: showGuidedPlayer = true
+                    case .tracked: showTrackedWorkout = true
+                    }
                 }
-                .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                 .accessibilityIdentifier("workout-start-session")
             }
             .padding(18)
@@ -676,19 +1204,16 @@ struct WorkoutDayView: View {
         }
         .navigationTitle(language.text(day.name))
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showPlayer) {
+        .fullScreenCover(isPresented: $showGuidedPlayer) {
             WorkoutPlayerView(
                 day: day,
-                exercises: exercises.map { row in
-                    var exercise = row.exercise
-                    /* The player counts what the planner prescribed, not what
-                       the programme row says. */
-                    exercise.sets = row.plannedSets
-                    return exercise
-                },
+                exercises: sessionExercises,
                 accent: accent,
                 lite: lite
             )
+        }
+        .fullScreenCover(isPresented: $showTrackedWorkout) {
+            TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite)
         }
     }
 
@@ -1201,6 +1726,7 @@ struct WorkoutPlayerView: View {
                                     adjustLastInput(repsDelta: 0, weightDelta: delta)
                                 }
                             }
+                            reportedEffortRow(last.rir)
                         }
                         .padding(16)
                         .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
@@ -1236,6 +1762,18 @@ struct WorkoutPlayerView: View {
                 Text(completionSummary)
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
+                if let last = setInputs.last, !last.skipped {
+                    VStack(alignment: .leading, spacing: 8) {
+                        Text(language.text("LAST SET EFFORT"))
+                            .font(APEXFont.mono(9, weight: .bold))
+                            .tracking(1.2)
+                            .foregroundStyle(APEXColor.violet)
+                        reportedEffortRow(last.rir)
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(14)
+                    .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
+                }
                 Button {
                     finishWorkout()
                 } label: {
@@ -1406,7 +1944,7 @@ struct WorkoutPlayerView: View {
             setNumber: currentSet,
             weightKG: currentWeight > 0 ? currentWeight : nil,
             reps: skipped ? nil : actualReps,
-            rir: skipped ? nil : 2,
+            rir: nil,
             skipped: skipped
         )
         setInputs.removeAll { $0.exerciseID == current.id && $0.setNumber == currentSet }
@@ -1454,6 +1992,29 @@ struct WorkoutPlayerView: View {
             setInputs[index].weightKG = max(0, (setInputs[index].weightKG ?? 0) + weightDelta)
             currentWeight = setInputs[index].weightKG ?? 0
         }
+    }
+
+    private func reportedEffortRow(_ value: Int?) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(language.text("Reps in reserve"))
+                .font(APEXFont.body(11, weight: .semibold))
+            HStack(spacing: 6) {
+                Button(language.text("Clear")) { setLastReportedEffort(nil) }
+                    .buttonStyle(.bordered)
+                    .tint(value == nil ? accent : APEXColor.secondaryInk)
+                ForEach(0...5, id: \.self) { rir in
+                    Button("\(rir)") { setLastReportedEffort(rir) }
+                        .buttonStyle(.bordered)
+                        .tint(value == rir ? accent : APEXColor.secondaryInk)
+                }
+            }
+        }
+    }
+
+    private func setLastReportedEffort(_ rir: Int?) {
+        guard !setInputs.isEmpty else { return }
+        let index = setInputs.index(before: setInputs.endIndex)
+        setInputs[index].rir = rir
     }
 
     /* The session used to save and vanish. Showing the receipt is the only

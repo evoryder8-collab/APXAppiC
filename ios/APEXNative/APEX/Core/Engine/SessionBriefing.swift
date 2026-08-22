@@ -114,6 +114,14 @@ enum SessionBriefing {
                 rationale: "Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift.",
                 focus: "Keep moving at a pace you could hold to the end, not one that needs a rescue halfway."
             )
+        case "rest":
+            return Briefing(
+                title: "Rest day",
+                intent: .restoration,
+                primary: [], secondary: [],
+                rationale: "No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation.",
+                focus: "Rest, hydrate and let the next hard session stay productive."
+            )
         default:
             return Briefing(
                 title: "Your session",

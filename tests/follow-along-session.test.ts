@@ -14,8 +14,9 @@ import {
 } from '../src/lib/sessionShape.ts'
 import { MOVEMENT_BY_ID } from '../src/data/movements.ts'
 import type { PlannedDay, PlannedExercise } from '../src/lib/plan.ts'
-import { buildSessionRecords, sessionQuality } from '../src/lib/workoutSession.ts'
-import type { Exercise, TrainingGoal, TrainingInductionInput } from '../src/lib/types.ts'
+import { recommendLoad } from '../src/lib/progression.ts'
+import { buildSessionRecords, serializeExerciseSets, sessionQuality } from '../src/lib/workoutSession.ts'
+import { EMPTY_DATA, type Exercise, type TrainingGoal, type TrainingInductionInput } from '../src/lib/types.ts'
 
 function planFrom(exercises: Exercise[]): PlannedDay {
   return {
@@ -262,6 +263,29 @@ test('both ways of training write identical history', () => {
   const times = first.logs.map((l) => Date.parse(l.created_at))
   assert.deepEqual(times, [...times].sort((a, b) => a - b))
   assert.equal(new Set(times).size, times.length)
+})
+
+test('one unreported guided set stays null and blocks progression', () => {
+  const sets = serializeExerciseSets([80, 80], [2, null], [12, 12], false)
+  const records = buildSessionRecords({
+    sessionId: 'session-rir', userId: 'user-1', date: '2026-08-20',
+    programDayId: 'day-1', isLite: false, isDeload: false, isEventRecovery: false,
+    qualityScore: 1, startedAt: '2026-08-20T09:00:00.000Z',
+    completedAt: '2026-08-20T10:00:00.000Z',
+    exercises: [{
+      exerciseId: 'ex-rir', name: 'Bench Press', plannedSets: 2,
+      skipped: false, override: false, sets,
+    }],
+  }, (() => 'log-rir'))
+  const exercise: Exercise = {
+    id: 'ex-rir', user_id: 'user-1', program_day_id: 'day-1', name: 'Bench Press', sets: 2,
+    rep_min: 8, rep_max: 12, rep_unit: 'reps', per_side: false, rest_sec: 120,
+    tempo_up_s: 1, tempo_down_s: 2, tempo_pause_s: 0, tempo_note: '', notes: '',
+    increment_kg: 2.5, is_lite: false, optional: false, sort_order: 0,
+  }
+
+  assert.deepEqual(records.logs.map((log) => log.rir), [2, null])
+  assert.equal(recommendLoad({ ...EMPTY_DATA, workout_sessions: [records.session], workout_logs: records.logs }, exercise).weight, 80)
 })
 
 test('session quality means the same thing in both modes', () => {

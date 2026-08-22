@@ -6,6 +6,7 @@ import {
   foodMutationBelongsToActiveUser,
   foodOperationBelongsToUser,
   isMealReferenceError,
+  isStaleFoodPreferenceReferenceError,
   replayFoodOutbox,
   foodSessionBelongsToExpectedUser,
 } from '../src/lib/foodSync.ts'
@@ -37,6 +38,32 @@ test('only reference failures detach a meal and optional catalogue failures yiel
   assert.equal(foodSyncFailureCanYield('save_food'), true)
   assert.equal(foodSyncFailureCanYield('log_meal'), false)
   assert.equal(foodSyncFailureCanYield('delete_meal'), false)
+})
+
+test('only a missing food reference is safe to skip for preference writes', () => {
+  const staleFoodId = '0b88a5f2-6ee0-46a6-bf46-e433fd79610d'
+  assert.equal(isStaleFoodPreferenceReferenceError({
+    code: '23503',
+    message: 'insert or update on table "food_preferences" violates foreign key constraint "food_preferences_food_id_fkey"',
+    details: `Key (food_id)=(${staleFoodId}) is not present in table "foods".`,
+  }, staleFoodId), true)
+  assert.equal(isStaleFoodPreferenceReferenceError({
+    status: 409,
+    message: 'insert or update on table "food_preferences" violates foreign key constraint "food_preferences_food_id_fkey"',
+  }, staleFoodId), true)
+  assert.equal(isStaleFoodPreferenceReferenceError({
+    code: '22P02', message: `invalid input syntax for type uuid: "${staleFoodId}"`,
+  }, staleFoodId), true)
+
+  assert.equal(isStaleFoodPreferenceReferenceError({
+    code: '23503',
+    message: 'insert or update on table "food_preferences" violates foreign key constraint "food_preferences_user_id_fkey"',
+    details: 'Key (user_id) is not present in table "users".',
+  }, staleFoodId), false)
+  assert.equal(isStaleFoodPreferenceReferenceError({ code: '23514', message: 'new row violates a check constraint' }, staleFoodId), false)
+  assert.equal(isStaleFoodPreferenceReferenceError({ code: '42501', message: 'permission denied for table food_preferences' }, staleFoodId), false)
+  assert.equal(isStaleFoodPreferenceReferenceError({ status: 409, message: 'Conflict while saving an unrelated preference field' }, staleFoodId), false)
+  assert.equal(isStaleFoodPreferenceReferenceError({ code: '22P02', message: 'invalid input syntax for type uuid: "a-different-field"' }, staleFoodId), false)
 })
 
 test('food mutations only update the account that started them', () => {
@@ -99,4 +126,33 @@ test('food replay follows durable creation order instead of IndexedDB key order'
   ])
 
   assert.deepEqual(result.meals, [])
+})
+
+test('food replay retains preferences when an incomplete food snapshot omits their food', () => {
+  const base = {
+    foods: [{ id: 'food-live' }],
+    preferences: [{ id: 'preference-live', food_id: 'food-live' }, { id: 'preference-deleted', food_id: 'food-deleted' }],
+    presets: [], presetItems: [], meals: [], entries: [],
+  }
+  const result = replayFoodOutbox(base as never, [{
+    operation: 'save_preference', entity_id: 'preference-missing',
+    payload: { id: 'preference-missing', food_id: 'food-missing' },
+    created_at: '2026-08-21T05:00:00.000Z',
+  }])
+
+  assert.deepEqual(result.preferences.map((preference) => preference.id), [
+    'preference-live',
+    'preference-deleted',
+    'preference-missing',
+  ])
+})
+
+test('food replay retains a preference when its queued food is created first', () => {
+  const base = { foods: [], preferences: [], presets: [], presetItems: [], meals: [], entries: [] }
+  const result = replayFoodOutbox(base, [
+    { operation: 'save_food', entity_id: 'food-new', payload: { id: 'food-new' }, created_at: '2026-08-21T05:00:00.000Z' },
+    { operation: 'save_preference', entity_id: 'preference-new', payload: { id: 'preference-new', food_id: 'food-new' }, created_at: '2026-08-21T05:00:00.001Z' },
+  ])
+
+  assert.deepEqual(result.preferences.map((preference) => preference.id), ['preference-new'])
 })

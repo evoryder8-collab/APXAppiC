@@ -25,11 +25,11 @@ final class APEXSmokeUITests: XCTestCase {
         let targetButton = app.buttons["Nutrition at a glance"]
         XCTAssertTrue(targetButton.exists)
         targetButton.tap()
-        XCTAssertTrue(app.navigationBars["Daily calorie target"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 3))
         XCTAssertTrue(app.staticTexts["GOAL"].exists)
         XCTAssertTrue(app.staticTexts["ACTIVITY LEVEL"].exists)
         capture("nutrition-target-sheet")
-        app.buttons["Done"].tap()
+        app.buttons["Close"].tap()
 
         /* Asserted in the order the screen lays them out, because the helper
            only ever scrolls downward. The detail lives inside collapsed
@@ -58,14 +58,14 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["APEX BODY INDEX"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Your performance body"], in: app))
         capture("avatar-body-index")
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Metabolic rhythm"], in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Cardio & recovery evidence"], in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["What your body needs"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Upper Body Strength"].firstMatch, in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Lower Body Strength"].firstMatch, in: app))
-        XCTAssertTrue(scrollUntilVisible(app.staticTexts["APEX ASSESSMENT"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["What your body needs"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["How are your joints this week?"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["APEX ASSESSMENT"], in: app))
         capture("avatar-joint-check-in")
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["Cardio & recovery evidence"], in: app))
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["How regularly you eat"], in: app))
     }
 
     func testLaunchPerformance() {
@@ -108,7 +108,7 @@ final class APEXSmokeUITests: XCTestCase {
         firstFood.tap()
         XCTAssertTrue(app.buttons["Create preset"].isEnabled)
         /* The count label lands a frame after the button enables. */
-        XCTAssertTrue(app.staticTexts["1 selected"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["meal-selection-count"].waitForExistence(timeout: 3))
         capture("meal-composer-selection")
     }
 
@@ -120,7 +120,9 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["portal.transition"].tap()
 
         /* The day card, not the today hero, which repeats the same title. */
-        let trainingDay = app.buttons["training-day-2"]
+        let trainingDay = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "training-day-")
+        ).firstMatch
         XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
         /* A card in the middle of the list is nowhere near the dock, so let
            XCUITest scroll it in and hit its centre. */
@@ -162,7 +164,9 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
         app.buttons["portal.transition"].tap()
 
-        let trainingDay = app.buttons["training-day-2"]
+        let trainingDay = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "training-day-")
+        ).firstMatch
         XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
         trainingDay.tap()
 

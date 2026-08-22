@@ -87,9 +87,10 @@ struct MuscleMapView: UIViewRepresentable {
         case "upper":
             return (["chest", "shoulders", "triceps", "lats", "upperback", "biceps"],
                     ["traps", "forearms", "abs"])
-        case "welcome":
+        case "welcome", "rest":
             /* Nothing has been trained yet, so nothing lights up. The figure is
-               there to be looked at, not read. */
+               there to be looked at, not read. A prescribed rest day must not
+               inherit the generic custom-session fallback. */
             return ([], [])
         case "mobility":
             /* Recovery and posture: hips and thoracic spine, gently */

@@ -186,6 +186,20 @@ struct UserSettings: Codable, Hashable, Sendable {
         case guardianFactor = "guardian_factor"
         case addons
     }
+
+    /// Cached settings can outlive an authentication transition. Keep the
+    /// preferences, but always bind the row back to the authenticated owner
+    /// before a write reaches an RLS-protected table.
+    func rebound(to userID: UUID) -> UserSettings {
+        UserSettings(
+            userID: userID,
+            voiceOn: voiceOn,
+            ticksOn: ticksOn,
+            notificationsOn: notificationsOn,
+            guardianFactor: guardianFactor,
+            addons: addons
+        )
+    }
 }
 
 enum JSONValue: Codable, Hashable, Sendable {
@@ -341,6 +355,21 @@ struct Program: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+enum WorkoutSessionMode: String, CaseIterable, Codable, Hashable, Sendable {
+    case guided
+    case tracked
+
+    static func resolve(lastUsed: String?, dayDefault: String?) -> WorkoutSessionMode {
+        if let lastUsed, let mode = WorkoutSessionMode(rawValue: lastUsed) {
+            return mode
+        }
+        if let dayDefault, let mode = WorkoutSessionMode(rawValue: dayDefault) {
+            return mode
+        }
+        return .guided
+    }
+}
+
 struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userID: UUID
@@ -351,6 +380,7 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
     var estimatedMinutes: Int
     var warmupNote: String
     var sortOrder: Int
+    var sessionMode: String = WorkoutSessionMode.guided.rawValue
 
     enum CodingKeys: String, CodingKey {
         case id, weekday, name
@@ -360,6 +390,46 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         case estimatedMinutes = "est_minutes"
         case warmupNote = "warmup_note"
         case sortOrder = "sort_order"
+        case sessionMode = "session_mode"
+    }
+
+    init(
+        id: UUID,
+        userID: UUID,
+        programID: UUID,
+        weekday: Int,
+        name: String,
+        dayType: String,
+        estimatedMinutes: Int,
+        warmupNote: String,
+        sortOrder: Int,
+        sessionMode: String = WorkoutSessionMode.guided.rawValue
+    ) {
+        self.id = id
+        self.userID = userID
+        self.programID = programID
+        self.weekday = weekday
+        self.name = name
+        self.dayType = dayType
+        self.estimatedMinutes = estimatedMinutes
+        self.warmupNote = warmupNote
+        self.sortOrder = sortOrder
+        self.sessionMode = sessionMode
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        userID = try values.decode(UUID.self, forKey: .userID)
+        programID = try values.decode(UUID.self, forKey: .programID)
+        weekday = try values.decode(Int.self, forKey: .weekday)
+        name = try values.decode(String.self, forKey: .name)
+        dayType = try values.decode(String.self, forKey: .dayType)
+        estimatedMinutes = try values.decode(Int.self, forKey: .estimatedMinutes)
+        warmupNote = try values.decode(String.self, forKey: .warmupNote)
+        sortOrder = try values.decode(Int.self, forKey: .sortOrder)
+        sessionMode = try values.decodeIfPresent(String.self, forKey: .sessionMode)
+            ?? WorkoutSessionMode.guided.rawValue
     }
 }
 
@@ -476,6 +546,21 @@ struct WorkoutSetInput: Codable, Hashable, Sendable {
     var reps: Int?
     var rir: Int?
     var skipped: Bool
+
+    /// A skipped set is an explicit absence of work, never a hidden completed
+    /// set whose old measurements could influence history or progression.
+    func normalizedForPersistence() -> WorkoutSetInput {
+        guard skipped else { return self }
+        return WorkoutSetInput(
+            exerciseID: exerciseID,
+            exerciseName: exerciseName,
+            setNumber: setNumber,
+            weightKG: nil,
+            reps: nil,
+            rir: nil,
+            skipped: true
+        )
+    }
 }
 
 struct DailyLog: Codable, Identifiable, Hashable, Sendable {
@@ -972,7 +1057,6 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
 
     init(food: Food, preset: MealPresetItem) {
         self.init(food: food, quantity: preset.quantity, unit: preset.unit)
-        id = preset.id
         optional = preset.optional
         locked = preset.locked
         adjustable = preset.adjustable
@@ -994,6 +1078,13 @@ struct MealComposerDraft: Identifiable, Hashable, Sendable {
     var replaceMealID: UUID?
     var loggedAs: String
     var items: [MealComposerItem]
+    var saveOperationID: UUID = UUID()
+
+    /// Stable for retries of one save attempt, but renewed whenever the meal
+    /// composer is opened again so a later edit is not mistaken for a replay.
+    var clientIdempotencyKey: String {
+        "ios-meal-op-\(saveOperationID.uuidString.lowercased())"
+    }
 
     var totals: FoodNutrients {
         items.reduce(FoodNutrients(kcal: 0, proteinG: 0, carbsG: 0, fatG: 0)) { partial, item in
@@ -1005,6 +1096,22 @@ struct MealComposerDraft: Identifiable, Hashable, Sendable {
                 fatG: partial.fatG + value.fatG
             )
         }
+    }
+}
+
+/// Values accepted by `logged_meals_logged_as_check` in production.
+/// Older clients used `actual` for a newly composed meal; treating any legacy
+/// or unknown value as `custom` keeps fresh, no-plan accounts compatible with
+/// the shared web/native schema.
+enum MealLogKind {
+    private static let accepted: Set<String> = ["planned", "changed", "custom"]
+
+    static func normalized(_ rawValue: String?) -> String {
+        guard let rawValue else { return "custom" }
+        let value = rawValue
+            .trimmingCharacters(in: .whitespacesAndNewlines)
+            .lowercased()
+        return accepted.contains(value) ? value : "custom"
     }
 }
 

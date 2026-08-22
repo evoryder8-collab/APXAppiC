@@ -41,6 +41,7 @@ import {
 } from '../lib/activity'
 import { computeTargets } from '../lib/nutrition'
 import {
+  dedupeUpsertRows,
   enqueuePendingSyncOperation,
   hasPendingSyncForRecord,
   mergePendingSyncOperations,
@@ -449,13 +450,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const bulkUpsert = useCallback(
     <T extends { id: string }>(table: ListTable, rows: T[]) => {
       if (rows.length === 0) return
-      const normalizedRows = rows.map((row) => normalizeSyncRecord(table, row))
+      const normalizedRows = dedupeUpsertRows(
+        table,
+        rows.map((row) => normalizeSyncRecord(table, row) as T & Record<string, unknown>),
+      ) as T[]
       mutationRevision.current += 1
       const cur = dataRef.current
       const list = cur[table] as unknown as T[]
-      const map = new Map(list.map((r) => [r.id, r]))
-      for (const row of normalizedRows) map.set(row.id, row)
-      persist({ ...cur, [table]: [...map.values()] })
+      const nextList = dedupeUpsertRows(
+        table,
+        [...list, ...normalizedRows] as Array<T & Record<string, unknown>>,
+      ) as T[]
+      persist({ ...cur, [table]: nextList })
       for (let i = 0; i < normalizedRows.length; i += 400) {
         enqueue({
           table,

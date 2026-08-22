@@ -31,6 +31,30 @@ struct OrbitAvatarContribution: Hashable, Sendable {
 }
 
 enum OrbitIntegrations {
+    /// Builds the same immutable structured meal record used by Nutrition.
+    static func nutritionMealDraft(
+        run: OrbitRunRecord,
+        suggestion: OrbitFoodMemorySuggestion?
+    ) -> MealComposerDraft? {
+        guard let suggestion, UUID(uuidString: suggestion.food.id) != nil else { return nil }
+        let formatter = ISO8601DateFormatter()
+        let finishedAt = formatter.date(from: run.endedAt) ?? formatter.date(from: run.updatedAt) ?? .now
+        return MealComposerDraft(
+            id: APEXStableID.scopedUUID(namespace: "orbit-nutrition:\(run.id.uuidString.lowercased())", date: run.localDate, userID: run.userID),
+            localDate: run.localDate, mealSlot: "post-workout", displayName: "Orbit recovery",
+            finishedAt: finishedAt, sourcePresetID: nil, sourcePlannedMealID: nil,
+            replaceMealID: nil, loggedAs: "custom",
+            items: [MealComposerItem(food: suggestion.food, quantity: suggestion.amount, unit: suggestion.unit)]
+        )
+    }
+
+    /// Replaces only the deterministic integration row for this Orbit run.
+    static func reconciledActivityLogs(existing: [ActivityLog], generated: ActivityLog) -> [ActivityLog] {
+        var result = existing.filter { $0.id != generated.id }
+        result.append(generated)
+        return result
+    }
+
     static func nutritionAdjustment(run: OrbitRunRecord, weightKG: Double) -> OrbitNutritionAdjustment {
         let durationMinutes = (run.metrics["moving_s"]?.numberValue ?? 0) / 60
         if durationMinutes < 60 {

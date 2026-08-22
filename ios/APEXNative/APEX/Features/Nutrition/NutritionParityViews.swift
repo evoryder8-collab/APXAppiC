@@ -475,6 +475,17 @@ private struct DaylineEntry: Identifiable {
     var isLogged: Bool { loggedMeal != nil }
 }
 
+enum DaylineAxisLabels {
+    static func shouldShow(lineMinute: Int, entryMinutes: [Int]) -> Bool {
+        let axisClockMinute = clockMinute(lineMinute)
+        return !entryMinutes.contains { clockMinute($0) == axisClockMinute }
+    }
+
+    private static func clockMinute(_ minute: Int) -> Int {
+        ((minute % 1_440) + 1_440) % 1_440
+    }
+}
+
 /// A native, scroll-efficient version of the web metabolic Dayline. It keeps
 /// planned meal moments and actual finish times distinct and opens the same
 /// structured meal editor from either state.
@@ -706,6 +717,9 @@ struct APEXDaylineView: View {
             } else {
                 GeometryReader { proxy in
                     let railX: CGFloat = 56
+                    let occupiedClockMinutes = visibleEntries.map { entry in
+                        dragPreview[entry.id] ?? entry.minute
+                    }
                     ZStack(alignment: .topLeading) {
                         ForEach(Array(stride(from: 180, through: 1_620, by: 180)), id: \.self) { minute in
                             let y = yPosition(for: minute, height: timelineHeight)
@@ -714,10 +728,15 @@ struct APEXDaylineView: View {
                                 path.addLine(to: CGPoint(x: proxy.size.width, y: y))
                             }
                             .stroke(Color.white.opacity(0.035), lineWidth: 1)
-                            Text(clock(lineClockMinute(minute)))
-                                .font(APEXFont.mono(8))
-                                .foregroundStyle(.white.opacity(0.6))
-                                .position(x: 17, y: y)
+                            if DaylineAxisLabels.shouldShow(
+                                lineMinute: minute,
+                                entryMinutes: occupiedClockMinutes
+                            ) {
+                                Text(clock(lineClockMinute(minute)))
+                                    .font(APEXFont.mono(8))
+                                    .foregroundStyle(.white.opacity(0.6))
+                                    .position(x: 17, y: y)
+                            }
                         }
 
                         Capsule()

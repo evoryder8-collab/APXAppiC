@@ -97,12 +97,41 @@ final class ProgressionEngineTests: XCTestCase {
     func testTopOfRangeOnEverySetEarnsTheIncrement() {
         let move = exercise()
         let history = data(move, sets: [
-            (date: "2026-01-05", weight: 60, reps: 12, rir: 1),
+            (date: "2026-01-05", weight: 60, reps: 12, rir: 2),
             (date: "2026-01-05", weight: 60, reps: 12, rir: 2),
         ])
         let recommendation = ProgressionEngine.recommend(history, exercise: move)
         XCTAssertEqual(recommendation.weight, 62.5)
         XCTAssertEqual(recommendation.previous?.weight, 60)
+    }
+
+    func testMissingReserveDoesNotEarnTheIncrement() {
+        let move = exercise()
+        let history = data(move, sets: [
+            (date: "2026-01-05", weight: 60, reps: 12, rir: nil),
+        ])
+
+        XCTAssertEqual(ProgressionEngine.recommend(history, exercise: move).weight, 60)
+    }
+
+    func testZeroOrOneReserveDoesNotEarnTheIncrement() {
+        for rir in [0, 1] {
+            let move = exercise()
+            let history = data(move, sets: [
+                (date: "2026-01-05", weight: 60, reps: 12, rir: rir),
+            ])
+
+            XCTAssertEqual(ProgressionEngine.recommend(history, exercise: move).weight, 60, "RIR \(rir)")
+        }
+    }
+
+    func testReserveAtOrAboveTheTargetEarnsTheIncrement() {
+        let move = exercise()
+        let history = data(move, sets: [
+            (date: "2026-01-05", weight: 60, reps: 12, rir: 3),
+        ])
+
+        XCTAssertEqual(ProgressionEngine.recommend(history, exercise: move).weight, 62.5)
     }
 
     func testFallingShortOfTheRangeRepeatsTheLoad() {
@@ -114,13 +143,12 @@ final class ProgressionEngineTests: XCTestCase {
         XCTAssertEqual(ProgressionEngine.recommend(history, exercise: move).weight, 60)
     }
 
-    func testGrindingAtZeroReserveDoesNotEarnAJump() {
+    func testReserveAboveTheTargetEarnsAJump() {
         let move = exercise()
         let history = data(move, sets: [
             (date: "2026-01-05", weight: 60, reps: 12, rir: 3),
         ])
-        /* RIR above 2 means the set was not at the target reserve. */
-        XCTAssertEqual(ProgressionEngine.recommend(history, exercise: move).weight, 60)
+        XCTAssertEqual(ProgressionEngine.recommend(history, exercise: move).weight, 62.5)
     }
 
     func testBodyweightWorkNeverRecommendsALoad() {

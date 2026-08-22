@@ -1,6 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
+  dedupeUpsertRows,
   enqueuePendingSyncOperation,
   hasPendingSyncForRecord,
   mergePendingSyncOperations,
@@ -65,6 +66,23 @@ test('hydration retains operations acknowledged while a server snapshot was in f
 
 test('RPG snapshots reconcile legacy ids through their per-user date key', () => {
   assert.equal(upsertConflictTarget('rpg_snapshots'), 'user_id,date')
+})
+
+test('supplement logs use the production composite conflict key', () => {
+  assert.equal(upsertConflictTarget('supplement_logs'), 'user_id,date,supplement_id')
+})
+
+test('supplement import batches deduplicate composite keys before network replay', () => {
+  const rows = dedupeUpsertRows('supplement_logs', [
+    { id: 'first-id', user_id: 'user', date: '2026-08-21', supplement_id: 'taurine', taken: false },
+    { id: 'second-id', user_id: 'user', date: '2026-08-21', supplement_id: 'taurine', taken: true },
+    { id: 'third-id', user_id: 'user', date: '2026-08-21', supplement_id: 'zinc', taken: true },
+  ])
+
+  assert.deepEqual(rows, [
+    { id: 'second-id', user_id: 'user', date: '2026-08-21', supplement_id: 'taurine', taken: true },
+    { id: 'third-id', user_id: 'user', date: '2026-08-21', supplement_id: 'zinc', taken: true },
+  ])
 })
 
 test('ordinary queued writes retain primary-key upsert behavior', () => {

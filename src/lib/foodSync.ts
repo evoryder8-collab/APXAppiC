@@ -58,6 +58,25 @@ export function isMealReferenceError(error: unknown): boolean {
     || message.includes('invalid input syntax for type uuid')
 }
 
+/** A preference may be discarded only when the server proves its food_id is
+ * stale. All unrelated validation, authorization, FK and transport failures
+ * must remain visible and retryable. */
+export function isStaleFoodPreferenceReferenceError(error: unknown, foodId: string): boolean {
+  const candidate = error as { code?: unknown; status?: unknown; message?: unknown; details?: unknown; hint?: unknown }
+  const code = String(candidate?.code ?? '')
+  const status = Number(candidate?.status)
+  const message = `${String(candidate?.message ?? '')} ${String(candidate?.details ?? '')} ${String(candidate?.hint ?? '')}`
+    .toLocaleLowerCase()
+  const normalizedFoodId = foodId.trim().toLocaleLowerCase()
+  const identifiesFoodForeignKey = message.includes('food_preferences_food_id_fkey')
+    || (message.includes('key (food_id)') && message.includes('table "foods"'))
+  if ((code === '23503' || status === 409) && identifiesFoodForeignKey) return true
+  return code === '22P02'
+    && message.includes('invalid input syntax for type uuid')
+    && normalizedFoodId.length > 0
+    && message.includes(normalizedFoodId)
+}
+
 /** Catalogue conveniences may retry independently. Ledger mutations retain
  * strict ordering so a later edit or delete can never overtake its meal. */
 export function foodSyncFailureCanYield(operation: string): boolean {
@@ -160,6 +179,9 @@ export function replayFoodOutbox(
 
   return {
     foods: values(foods),
+    // A missing catalogue row in an incomplete cache/snapshot is not proof
+    // that the server rejected this preference. Only the classified outbound
+    // foreign-key failure may remove it.
     preferences: values(preferences),
     presets: values(presets),
     presetItems: values(presetItems),

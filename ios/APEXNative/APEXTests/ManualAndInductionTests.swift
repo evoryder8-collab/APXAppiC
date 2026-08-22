@@ -23,6 +23,34 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertEqual(ManualWorkout.title(fromNotes: notes), "Workout")
     }
 
+    func testManualLogConstructionKeepsReportedEffort() {
+        let logs = ManualWorkout.logs(
+            userID: user,
+            sessionID: session,
+            exercises: [
+                ManualWorkout.ExerciseDraft(
+                    name: "Squat",
+                    sets: [ManualWorkout.SetDraft(reps: 8, weightKG: 42.5, rir: 3)]
+                )
+            ],
+            base: Date(timeIntervalSince1970: 0)
+        )
+
+        XCTAssertEqual(logs.count, 1)
+        XCTAssertEqual(logs.first?.rir, 3)
+    }
+
+    func testQuickAndGuidedDefaultsDoNotInventReportedEffort() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let quickComplete = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+        let guidedPlayer = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+
+        XCTAssertTrue(quickComplete.contains("reps: exercise.repMax > 0 ? exercise.repMax : nil,\n                    rir: nil"))
+        XCTAssertTrue(guidedPlayer.contains("reps: skipped ? nil : actualReps,\n            rir: nil"))
+    }
+
     func testAPlannedSessionIsNotMistakenForAManualOne() {
         XCTAssertNil(ManualWorkout.title(fromNotes: ""))
         XCTAssertNil(ManualWorkout.title(fromNotes: "Felt strong today"))
@@ -96,6 +124,265 @@ final class ManualWorkoutTests: XCTestCase {
         /* The run got longer; it is still the same row. */
         XCTAssertEqual(result.logs.map(\.id), [existingID])
         XCTAssertTrue(result.staleIDs.isEmpty)
+    }
+
+    func testASetOnlyCarriesEffortWhenTheUserReportsIt() {
+        let unreported = ManualWorkout.SetDraft(reps: 8, weightKG: 42.5)
+        let reported = ManualWorkout.SetDraft(reps: 8, weightKG: 42.5, rir: 1)
+
+        XCTAssertNil(unreported.rir)
+        XCTAssertEqual(reported.rir, 1)
+    }
+
+    func testReportedEffortIsKeptInsideTheSupportedRange() {
+        XCTAssertEqual(ManualWorkout.SetDraft(rir: -3).rir, 0)
+        XCTAssertEqual(ManualWorkout.SetDraft(rir: 12).rir, 5)
+    }
+
+    func testTheLastSessionChoiceWinsOverThePlanDefault() {
+        XCTAssertEqual(
+            WorkoutSessionMode.resolve(lastUsed: "tracked", dayDefault: "guided"),
+            .tracked
+        )
+        XCTAssertEqual(
+            WorkoutSessionMode.resolve(lastUsed: nil, dayDefault: "tracked"),
+            .tracked
+        )
+        XCTAssertEqual(
+            WorkoutSessionMode.resolve(lastUsed: "not-a-mode", dayDefault: "not-a-mode"),
+            .guided
+        )
+    }
+}
+
+final class WorkoutSessionModeContractTests: XCTestCase {
+    private let user = UUID()
+    private let program = UUID()
+
+    func testMissingSessionModeDecodesToGuidedAndAuthoredModeRoundTrips() throws {
+        let id = UUID()
+        let oldPayload = """
+        {
+          "id": "\(id.uuidString)",
+          "user_id": "\(user.uuidString)",
+          "program_id": "\(program.uuidString)",
+          "weekday": 2,
+          "name": "Upper",
+          "day_type": "strength",
+          "est_minutes": 45,
+          "warmup_note": "Move well",
+          "sort_order": 1
+        }
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(ProgramDay.self, from: oldPayload)
+        XCTAssertEqual(decoded.sessionMode, WorkoutSessionMode.guided.rawValue)
+
+        var tracked = decoded
+        tracked.sessionMode = WorkoutSessionMode.tracked.rawValue
+        let roundTrip = try JSONDecoder().decode(
+            ProgramDay.self,
+            from: JSONEncoder().encode(tracked)
+        )
+        XCTAssertEqual(roundTrip.sessionMode, WorkoutSessionMode.tracked.rawValue)
+    }
+
+    func testResolutionUsesOnlyValidLastChoiceThenValidAuthoredDefault() {
+        XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: nil, dayDefault: nil), .guided)
+        XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: "invalid", dayDefault: "tracked"), .tracked)
+        XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: "guided", dayDefault: "tracked"), .guided)
+    }
+
+    func testTrackedDraftsNeedExplicitActualWorkAndKeepPerSetFactsSeparate() {
+        let exercise = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Row",
+            sets: 2, repMin: 8, repMax: 10, repUnit: "reps", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        var drafts = TrackedWorkout.setInputs(for: [exercise])
+
+        XCTAssertEqual(drafts.map(\.setNumber), [1, 2])
+        XCTAssertEqual(drafts.map(\.reps), [nil, nil])
+        XCTAssertEqual(drafts.map(\.weightKG), [nil, nil])
+        XCTAssertEqual(drafts.map(\.rir), [nil, nil])
+        XCTAssertFalse(drafts[1].skipped)
+        XCTAssertFalse(TrackedWorkout.isReadyToFinish(drafts))
+
+        drafts[0].reps = 8
+        drafts[0].weightKG = 42.5
+        drafts[0].rir = 3
+        drafts[1].reps = 10
+        drafts[1].weightKG = 47.5
+        XCTAssertEqual(drafts[0].rir, 3)
+        XCTAssertEqual(drafts.map(\.weightKG), [42.5, 47.5])
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(drafts))
+    }
+
+    func testSkippingASetClearsEveryMeasurementAtTheSharedPersistenceBoundary() {
+        let input = WorkoutSetInput(
+            exerciseID: UUID(), exerciseName: "Row", setNumber: 1,
+            weightKG: 42.5, reps: 8, rir: 3, skipped: true
+        )
+
+        let persisted = input.normalizedForPersistence()
+        XCTAssertTrue(persisted.skipped)
+        XCTAssertNil(persisted.weightKG)
+        XCTAssertNil(persisted.reps)
+        XCTAssertNil(persisted.rir)
+    }
+
+    func testTimedTrackedWorkUsesItsAuthoredUnitWithoutRIR() {
+        let seconds = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Dead Hang",
+            sets: 1, repMin: 30, repMax: 45, repUnit: "seconds", perSide: false,
+            restSeconds: 60, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let minutes = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Mobility Flow",
+            sets: 1, repMin: 5, repMax: 8, repUnit: "minutes", perSide: false,
+            restSeconds: 0, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 1
+        )
+
+        XCTAssertEqual(TrackedWorkout.workUnit(for: seconds), .seconds)
+        XCTAssertEqual(TrackedWorkout.workUnit(for: minutes), .minutes)
+        XCTAssertEqual(TrackedWorkout.plannedWork(for: seconds), 45)
+        XCTAssertEqual(TrackedWorkout.plannedWork(for: minutes), 8)
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: seconds))
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: minutes))
+        XCTAssertEqual(TrackedWorkout.setInputs(for: [seconds, minutes]).map(\.reps), [nil, nil])
+    }
+
+    func testTrackedOptionalNumericEntryParsesAndClearsIndependentSetFacts() {
+        XCTAssertEqual(TrackedWorkout.optionalWholeNumber(from: "10", maximum: 600), 10)
+        XCTAssertNil(TrackedWorkout.optionalWholeNumber(from: "", maximum: 600))
+        XCTAssertNil(TrackedWorkout.optionalWholeNumber(from: "10.5", maximum: 600))
+
+        XCTAssertEqual(TrackedWorkout.optionalDecimal(from: "80", maximum: 1_000), 80)
+        XCTAssertEqual(TrackedWorkout.optionalDecimal(from: "80.25", maximum: 1_000), 80.25)
+        XCTAssertEqual(TrackedWorkout.optionalDecimal(from: "42.5", maximum: 1_000), 42.5)
+        XCTAssertNil(TrackedWorkout.optionalDecimal(from: "", maximum: 1_000))
+    }
+
+    func testTrackedPlanTargetsKeepEqualAndRangedAuthoringWithTheirUnits() {
+        let exact = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Press",
+            sets: 2, repMin: 10, repMax: 10, repUnit: "reps", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let ranged = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Dead Hang",
+            sets: 2, repMin: 30, repMax: 45, repUnit: "seconds", perSide: false,
+            restSeconds: 90, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 1
+        )
+
+        XCTAssertEqual(TrackedWorkout.plannedRange(for: exact), 10...10)
+        XCTAssertEqual(TrackedWorkout.workUnit(for: exact), .reps)
+        XCTAssertEqual(TrackedWorkout.plannedRange(for: ranged), 30...45)
+        XCTAssertEqual(TrackedWorkout.workUnit(for: ranged), .seconds)
+    }
+
+    func testMaxTrackedWorkKeepsItsAuthoredModeAndRequiresCountedActuals() {
+        let max = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Pull-up",
+            sets: 1, repMin: 1, repMax: 99, repUnit: "max", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        var input = TrackedWorkout.setInputs(for: [max])[0]
+
+        XCTAssertEqual(TrackedWorkout.workUnit(for: max), .max)
+        XCTAssertEqual(TrackedWorkout.plannedTarget(for: max), "MAX")
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: max))
+        XCTAssertFalse(TrackedWorkout.isReadyToFinish([input], exercises: [max], checkDecisions: [:]))
+
+        input.reps = 12
+        input.weightKG = 10
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish([input], exercises: [max], checkDecisions: [:]))
+        XCTAssertNil(input.rir)
+    }
+
+    func testCheckTrackedWorkNeedsAnExplicitDecisionAndPersistsNoMeasurements() {
+        let check = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Warm-up",
+            sets: 1, repMin: 0, repMax: 0, repUnit: "check", perSide: false,
+            restSeconds: 0, tempoUp: 0, tempoDown: 0, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 0, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let draft = TrackedWorkout.setInputs(for: [check])[0]
+        let key = TrackedWorkout.setKey(for: draft)
+
+        XCTAssertEqual(TrackedWorkout.workUnit(for: check), .check)
+        XCTAssertEqual(TrackedWorkout.plannedTarget(for: check), "Check")
+        XCTAssertFalse(TrackedWorkout.allowsRIR(for: check))
+        XCTAssertFalse(TrackedWorkout.isReadyToFinish([draft], exercises: [check], checkDecisions: [:]))
+
+        let completed = TrackedWorkout.applying(.completed, to: draft)
+        XCTAssertFalse(completed.skipped)
+        XCTAssertNil(completed.reps)
+        XCTAssertNil(completed.weightKG)
+        XCTAssertNil(completed.rir)
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(
+            [completed], exercises: [check], checkDecisions: [key: .completed]
+        ))
+
+        let skipped = TrackedWorkout.applying(.skipped, to: draft)
+        XCTAssertTrue(skipped.skipped)
+        XCTAssertNil(skipped.reps)
+        XCTAssertNil(skipped.weightKG)
+        XCTAssertNil(skipped.rir)
+        XCTAssertTrue(TrackedWorkout.isReadyToFinish(
+            [skipped], exercises: [check], checkDecisions: [key: .skipped]
+        ))
+    }
+
+    func testTrackedEntryUsesDirectNumberAndDecimalKeyboards() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let programView = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+
+        XCTAssertTrue(programView.contains("TextField("))
+        XCTAssertTrue(programView.contains(".keyboardType(.numberPad)"))
+        XCTAssertTrue(programView.contains(".keyboardType(.decimalPad)"))
+    }
+
+    func testEveryPlannedStartOffersAndRoutesBothSessionModes() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let daySheet = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/WorkoutDaySheet.swift"))
+        let programView = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+
+        XCTAssertTrue(daySheet.contains("WorkoutSessionModeButtons("))
+        XCTAssertTrue(programView.contains("WorkoutSessionModeButtons("))
+        XCTAssertTrue(daySheet.contains("TrackedWorkoutView("))
+        XCTAssertTrue(programView.contains("TrackedWorkoutView("))
+        XCTAssertTrue(programView.contains("session.completeWorkout(\n                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt\n            )"))
+    }
+
+    func testCustomBuilderPersistsItsAuthoredSessionMode() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let builder = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/CustomWorkoutBuilder.swift"))
+        let appSession = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+
+        XCTAssertTrue(builder.contains("@State private var sessionMode"))
+        XCTAssertTrue(builder.contains("sessionMode: sessionMode"))
+        XCTAssertTrue(appSession.contains("sessionMode: WorkoutSessionMode"))
+        XCTAssertTrue(appSession.contains("sessionMode: sessionMode.rawValue"))
     }
 }
 

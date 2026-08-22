@@ -57,7 +57,10 @@ enum ProgressionEngine {
                         guard let reps = $0.reps else { return false }
                         return reps >= exercise.repMax && exercise.repMax > 0
                     },
-                    atTargetRIR: bucket.reps.allSatisfy { $0.rir == nil || $0.rir! <= 2 }
+                    atTargetRIR: !bucket.reps.isEmpty && bucket.reps.allSatisfy {
+                        guard let rir = $0.rir else { return false }
+                        return rir >= 2
+                    }
                 )
             }
             .sorted { $0.date < $1.date }

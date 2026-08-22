@@ -88,7 +88,7 @@ struct MealComposerView: View {
             sourcePresetID: request.existingMeal?.sourcePresetID,
             sourcePlannedMealID: request.existingMeal?.sourcePlannedMealID,
             replaceMealID: request.existingMeal?.id,
-            loggedAs: request.existingMeal?.loggedAs ?? "actual",
+            loggedAs: request.existingMeal.map { MealLogKind.normalized($0.loggedAs) } ?? "custom",
             items: []
         ))
     }
@@ -528,6 +528,7 @@ struct MealComposerView: View {
                         .font(APEXFont.body(13, weight: .bold))
                         .foregroundStyle(APEXColor.amberDeep)
                         .fixedSize()
+                        .accessibilityIdentifier("meal-selection-count")
                     Spacer(minLength: 6)
                     Button(language.text("Cancel")) {
                         selectionMode = false
