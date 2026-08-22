@@ -138,6 +138,109 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertEqual(ManualWorkout.SetDraft(rir: -3).rir, 0)
         XCTAssertEqual(ManualWorkout.SetDraft(rir: 12).rir, 5)
     }
+
+    func testTheLastSessionChoiceWinsOverThePlanDefault() {
+        XCTAssertEqual(
+            WorkoutSessionMode.resolve(lastUsed: "tracked", dayDefault: "guided"),
+            .tracked
+        )
+        XCTAssertEqual(
+            WorkoutSessionMode.resolve(lastUsed: nil, dayDefault: "tracked"),
+            .tracked
+        )
+        XCTAssertEqual(
+            WorkoutSessionMode.resolve(lastUsed: "not-a-mode", dayDefault: "not-a-mode"),
+            .guided
+        )
+    }
+}
+
+final class WorkoutSessionModeContractTests: XCTestCase {
+    private let user = UUID()
+    private let program = UUID()
+
+    func testMissingSessionModeDecodesToGuidedAndAuthoredModeRoundTrips() throws {
+        let id = UUID()
+        let oldPayload = """
+        {
+          "id": "\(id.uuidString)",
+          "user_id": "\(user.uuidString)",
+          "program_id": "\(program.uuidString)",
+          "weekday": 2,
+          "name": "Upper",
+          "day_type": "strength",
+          "est_minutes": 45,
+          "warmup_note": "Move well",
+          "sort_order": 1
+        }
+        """.data(using: .utf8)!
+
+        let decoded = try JSONDecoder().decode(ProgramDay.self, from: oldPayload)
+        XCTAssertEqual(decoded.sessionMode, WorkoutSessionMode.guided.rawValue)
+
+        var tracked = decoded
+        tracked.sessionMode = WorkoutSessionMode.tracked.rawValue
+        let roundTrip = try JSONDecoder().decode(
+            ProgramDay.self,
+            from: JSONEncoder().encode(tracked)
+        )
+        XCTAssertEqual(roundTrip.sessionMode, WorkoutSessionMode.tracked.rawValue)
+    }
+
+    func testResolutionUsesOnlyValidLastChoiceThenValidAuthoredDefault() {
+        XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: nil, dayDefault: nil), .guided)
+        XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: "invalid", dayDefault: "tracked"), .tracked)
+        XCTAssertEqual(WorkoutSessionMode.resolve(lastUsed: "guided", dayDefault: "tracked"), .guided)
+    }
+
+    func testTrackedDraftsKeepAdjustedSetCountsAndReportedEffortPerSet() {
+        let exercise = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Row",
+            sets: 2, repMin: 8, repMax: 10, repUnit: "reps", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        var drafts = TrackedWorkout.setInputs(for: [exercise])
+
+        XCTAssertEqual(drafts.map(\.setNumber), [1, 2])
+        XCTAssertEqual(drafts.map(\.reps), [10, 10])
+        XCTAssertEqual(drafts.map(\.rir), [nil, nil])
+        XCTAssertFalse(drafts[1].skipped)
+
+        drafts[0].rir = 3
+        drafts[1].skipped = true
+        XCTAssertEqual(drafts[0].rir, 3)
+        XCTAssertNil(drafts[1].rir)
+        XCTAssertTrue(drafts[1].skipped)
+    }
+
+    func testEveryPlannedStartOffersAndRoutesBothSessionModes() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let daySheet = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/WorkoutDaySheet.swift"))
+        let programView = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+
+        XCTAssertTrue(daySheet.contains("WorkoutSessionModeButtons("))
+        XCTAssertTrue(programView.contains("WorkoutSessionModeButtons("))
+        XCTAssertTrue(daySheet.contains("TrackedWorkoutView("))
+        XCTAssertTrue(programView.contains("TrackedWorkoutView("))
+        XCTAssertTrue(programView.contains("session.completeWorkout(\n                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt\n            )"))
+    }
+
+    func testCustomBuilderPersistsItsAuthoredSessionMode() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let builder = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/CustomWorkoutBuilder.swift"))
+        let appSession = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+
+        XCTAssertTrue(builder.contains("@State private var sessionMode"))
+        XCTAssertTrue(builder.contains("sessionMode: sessionMode"))
+        XCTAssertTrue(appSession.contains("sessionMode: WorkoutSessionMode"))
+        XCTAssertTrue(appSession.contains("sessionMode: sessionMode.rawValue"))
+    }
 }
 
 final class TrainingInductionTests: XCTestCase {

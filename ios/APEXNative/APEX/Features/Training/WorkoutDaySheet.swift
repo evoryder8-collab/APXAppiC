@@ -18,10 +18,19 @@ struct WorkoutDaySheet: View {
     let accent: Color
 
     @State private var lite = false
-    @State private var showPlayer = false
+    @State private var showGuidedPlayer = false
+    @State private var showTrackedWorkout = false
 
     private var plan: PlannedDay {
         TrainingPlanEngine.plan(session.data, slug: slug, date: date, lite: lite)
+    }
+
+    private var sessionExercises: [Exercise] {
+        plan.exercises.map { row in
+            var exercise = row.exercise
+            exercise.sets = row.plannedSets
+            return exercise
+        }
     }
 
     private var completed: WorkoutSession? {
@@ -106,16 +115,18 @@ struct WorkoutDaySheet: View {
 
                     dayControls
 
-                    if completed == nil, !plan.exercises.isEmpty, isPastOrToday {
-                        Button {
-                            showPlayer = true
-                        } label: {
-                            Label(
-                                language.text(plan.isRecoveryMicro ? "START RECOVERY" : "START SESSION"),
-                                systemImage: "play.fill"
-                            )
+                    if completed == nil, !plan.exercises.isEmpty, isPastOrToday,
+                       let day = plan.programDay {
+                        WorkoutSessionModeButtons(
+                            preferred: session.workoutSessionMode(for: day),
+                            accent: accent
+                        ) { mode in
+                            session.rememberWorkoutSessionMode(mode)
+                            switch mode {
+                            case .guided: showGuidedPlayer = true
+                            case .tracked: showTrackedWorkout = true
+                            }
                         }
-                        .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                         .accessibilityIdentifier("day-sheet-start")
                     }
                 }
@@ -130,18 +141,19 @@ struct WorkoutDaySheet: View {
                     Button(language.text("Done")) { dismiss() }
                 }
             }
-            .fullScreenCover(isPresented: $showPlayer) {
+            .fullScreenCover(isPresented: $showGuidedPlayer) {
                 if let day = plan.programDay {
                     WorkoutPlayerView(
                         day: day,
-                        exercises: plan.exercises.map { row in
-                            var exercise = row.exercise
-                            exercise.sets = row.plannedSets
-                            return exercise
-                        },
+                        exercises: sessionExercises,
                         accent: accent,
                         lite: lite
                     )
+                }
+            }
+            .fullScreenCover(isPresented: $showTrackedWorkout) {
+                if let day = plan.programDay {
+                    TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite)
                 }
             }
         }

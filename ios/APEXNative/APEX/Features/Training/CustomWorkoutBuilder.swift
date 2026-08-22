@@ -14,6 +14,7 @@ struct CustomWorkoutBuilder: View {
 
     @State private var name = ""
     @State private var weekday = CustomWorkoutBuilder.isoWeekdayToday()
+    @State private var sessionMode = WorkoutSessionMode.guided
     @State private var query = ""
     @State private var category = "all"
     @State private var picks: [Pick] = []
@@ -100,6 +101,16 @@ struct CustomWorkoutBuilder: View {
                                     .buttonStyle(.plain)
                                 }
                             }
+
+                            Text(language.text("SESSION STYLE"))
+                                .font(APEXFont.mono(9, weight: .bold))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                            Picker("Session style", selection: $sessionMode) {
+                                Text(language.text("Guided")).tag(WorkoutSessionMode.guided)
+                                Text(language.text("Tracked")).tag(WorkoutSessionMode.tracked)
+                            }
+                            .pickerStyle(.segmented)
+                            .accessibilityIdentifier("custom-workout-session-mode")
                         }
                     }
 
@@ -286,6 +297,7 @@ struct CustomWorkoutBuilder: View {
                 name: trimmed,
                 weekday: weekday,
                 estimatedMinutes: estimatedMinutes,
+                sessionMode: sessionMode,
                 picks: picks
             )
             didSave = true

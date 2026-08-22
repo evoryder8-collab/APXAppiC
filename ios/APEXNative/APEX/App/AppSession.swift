@@ -37,6 +37,21 @@ final class AppSession {
     var isAuthenticated: Bool { data.profile != nil }
     var interfaceMode: PortalUIMode { PortalUIMode.current(from: data.settings) }
 
+    /// A person's last choice is local device preference, deliberately kept
+    /// apart from a programme day's authored default.
+    func workoutSessionMode(for day: ProgramDay) -> WorkoutSessionMode {
+        let key = profile.map { "apex.workout-session-mode.\($0.userID.uuidString)" }
+        return WorkoutSessionMode.resolve(
+            lastUsed: key.flatMap { defaults.string(forKey: $0) },
+            dayDefault: day.sessionMode
+        )
+    }
+
+    func rememberWorkoutSessionMode(_ mode: WorkoutSessionMode) {
+        guard let userID = profile?.userID else { return }
+        defaults.set(mode.rawValue, forKey: "apex.workout-session-mode.\(userID.uuidString)")
+    }
+
     func bootstrap() async {
         guard !bootstrapped else { return }
         bootstrapped = true
@@ -2227,6 +2242,7 @@ final class AppSession {
         name: String,
         weekday: Int,
         estimatedMinutes: Int,
+        sessionMode: WorkoutSessionMode,
         picks: [CustomWorkoutBuilder.Pick]
     ) async {
         guard let profile else { return }
@@ -2250,7 +2266,8 @@ final class AppSession {
             dayType: "custom",
             estimatedMinutes: estimatedMinutes,
             warmupNote: "Five minutes of pain-free joint preparation",
-            sortOrder: weekday
+            sortOrder: weekday,
+            sessionMode: sessionMode.rawValue
         )
 
         let replaced = data.exercises.filter { $0.programDayID == day.id }

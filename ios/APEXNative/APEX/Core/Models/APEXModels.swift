@@ -355,6 +355,21 @@ struct Program: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+enum WorkoutSessionMode: String, CaseIterable, Codable, Hashable, Sendable {
+    case guided
+    case tracked
+
+    static func resolve(lastUsed: String?, dayDefault: String?) -> WorkoutSessionMode {
+        if let lastUsed, let mode = WorkoutSessionMode(rawValue: lastUsed) {
+            return mode
+        }
+        if let dayDefault, let mode = WorkoutSessionMode(rawValue: dayDefault) {
+            return mode
+        }
+        return .guided
+    }
+}
+
 struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userID: UUID
@@ -365,6 +380,7 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
     var estimatedMinutes: Int
     var warmupNote: String
     var sortOrder: Int
+    var sessionMode: String = WorkoutSessionMode.guided.rawValue
 
     enum CodingKeys: String, CodingKey {
         case id, weekday, name
@@ -374,6 +390,46 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         case estimatedMinutes = "est_minutes"
         case warmupNote = "warmup_note"
         case sortOrder = "sort_order"
+        case sessionMode = "session_mode"
+    }
+
+    init(
+        id: UUID,
+        userID: UUID,
+        programID: UUID,
+        weekday: Int,
+        name: String,
+        dayType: String,
+        estimatedMinutes: Int,
+        warmupNote: String,
+        sortOrder: Int,
+        sessionMode: String = WorkoutSessionMode.guided.rawValue
+    ) {
+        self.id = id
+        self.userID = userID
+        self.programID = programID
+        self.weekday = weekday
+        self.name = name
+        self.dayType = dayType
+        self.estimatedMinutes = estimatedMinutes
+        self.warmupNote = warmupNote
+        self.sortOrder = sortOrder
+        self.sessionMode = sessionMode
+    }
+
+    init(from decoder: Decoder) throws {
+        let values = try decoder.container(keyedBy: CodingKeys.self)
+        id = try values.decode(UUID.self, forKey: .id)
+        userID = try values.decode(UUID.self, forKey: .userID)
+        programID = try values.decode(UUID.self, forKey: .programID)
+        weekday = try values.decode(Int.self, forKey: .weekday)
+        name = try values.decode(String.self, forKey: .name)
+        dayType = try values.decode(String.self, forKey: .dayType)
+        estimatedMinutes = try values.decode(Int.self, forKey: .estimatedMinutes)
+        warmupNote = try values.decode(String.self, forKey: .warmupNote)
+        sortOrder = try values.decode(Int.self, forKey: .sortOrder)
+        sessionMode = try values.decodeIfPresent(String.self, forKey: .sessionMode)
+            ?? WorkoutSessionMode.guided.rawValue
     }
 }
 

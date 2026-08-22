@@ -552,6 +552,213 @@ struct CalendarDaySelection: Identifiable, Hashable {
     var id: String { date }
 }
 
+/// The two ways to complete a planned day stay visible together. The tint only
+/// communicates the remembered/default choice; neither path is hidden or made
+/// secondary.
+struct WorkoutSessionModeButtons: View {
+    let preferred: WorkoutSessionMode
+    let accent: Color
+    let choose: (WorkoutSessionMode) -> Void
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text("HOW WOULD YOU LIKE TO TRAIN?")
+                .font(APEXFont.mono(9, weight: .bold))
+                .tracking(1.2)
+                .foregroundStyle(APEXColor.secondaryInk)
+            HStack(spacing: 9) {
+                ForEach(WorkoutSessionMode.allCases, id: \.self) { mode in
+                    Button {
+                        choose(mode)
+                    } label: {
+                        VStack(spacing: 4) {
+                            Image(systemName: mode == .guided ? "figure.strengthtraining.traditional" : "checklist")
+                                .font(.system(size: 17, weight: .bold))
+                            Text(mode == .guided ? "Guided" : "Tracked")
+                                .font(APEXFont.body(13, weight: .bold))
+                            Text(mode == .guided ? "Follow along" : "Log each set")
+                                .font(APEXFont.body(10, weight: .medium))
+                        }
+                        .frame(maxWidth: .infinity, minHeight: 92)
+                        .foregroundStyle(mode == preferred ? .white : APEXColor.ink)
+                        .background(
+                            mode == preferred ? AnyShapeStyle(accent.gradient) : AnyShapeStyle(.white.opacity(0.7)),
+                            in: RoundedRectangle(cornerRadius: 18, style: .continuous)
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("workout-session-mode-\(mode.rawValue)")
+                }
+            }
+        }
+        .accessibilityIdentifier("workout-session-mode-choices")
+    }
+}
+
+/// Turns the planner's already-adjusted rows into the same completion input
+/// boundary that the guided player uses. RIR deliberately starts unreported.
+enum TrackedWorkout {
+    static func setInputs(for exercises: [Exercise]) -> [WorkoutSetInput] {
+        exercises.flatMap { exercise in
+            (1...max(exercise.sets, 1)).map { set in
+                WorkoutSetInput(
+                    exerciseID: exercise.id,
+                    exerciseName: exercise.name,
+                    setNumber: set,
+                    weightKG: nil,
+                    reps: exercise.repMax > 0 ? exercise.repMax : nil,
+                    rir: nil,
+                    skipped: false
+                )
+            }
+        }
+    }
+}
+
+struct TrackedWorkoutView: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    let day: ProgramDay
+    let exercises: [Exercise]
+    let accent: Color
+    let lite: Bool
+
+    @State private var setInputs: [WorkoutSetInput]
+    @State private var startedAt = Date()
+    @State private var isSaving = false
+    @State private var completedSession: FinishedSession?
+
+    init(day: ProgramDay, exercises: [Exercise], accent: Color, lite: Bool) {
+        self.day = day
+        self.exercises = exercises
+        self.accent = accent
+        self.lite = lite
+        _setInputs = State(initialValue: TrackedWorkout.setInputs(for: exercises))
+    }
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 14) {
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text("TRACKED SESSION")
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .tracking(1.4)
+                            .foregroundStyle(accent)
+                        Text(day.name)
+                            .font(APEXFont.display(29))
+                        Text("Record each planned set, or mark it skipped.")
+                            .font(APEXFont.body(13, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+
+                    ForEach(setInputs.indices, id: \.self) { index in
+                        trackedSetRow($setInputs[index])
+                    }
+
+                    Button(action: finishWorkout) {
+                        if isSaving {
+                            ProgressView().tint(.white)
+                        } else {
+                            Label("Finish workout", systemImage: "checkmark.circle.fill")
+                        }
+                    }
+                    .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                    .disabled(isSaving)
+                    .accessibilityIdentifier("tracked-workout-finish")
+                }
+                .padding(18)
+                .padding(.bottom, 24)
+            }
+            .background(APEXBackground())
+            .navigationTitle("Tracked")
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Exit") { dismiss() }
+                }
+            }
+        }
+        .fullScreenCover(item: $completedSession) { finished in
+            WorkoutReceiptSheet(sessionID: finished.id) {
+                completedSession = nil
+                dismiss()
+            }
+            .environment(session)
+        }
+    }
+
+    private func trackedSetRow(_ input: Binding<WorkoutSetInput>) -> some View {
+        let current = input.wrappedValue
+        return GlassCard(radius: 19, padding: 13) {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Text(current.exerciseName)
+                        .font(APEXFont.body(14, weight: .bold))
+                    Spacer()
+                    Text("SET \(current.setNumber)")
+                        .font(APEXFont.mono(10, weight: .bold))
+                        .foregroundStyle(accent)
+                }
+                Toggle("Skipped", isOn: Binding(
+                    get: { input.wrappedValue.skipped },
+                    set: { input.wrappedValue.skipped = $0 }
+                ))
+                .tint(accent)
+
+                if !input.wrappedValue.skipped {
+                    Stepper(
+                        "Reps: \(input.wrappedValue.reps ?? 0)",
+                        value: Binding(
+                            get: { input.wrappedValue.reps ?? 0 },
+                            set: { input.wrappedValue.reps = $0 }
+                        ),
+                        in: 0...600
+                    )
+                    if asksRIR(for: input.wrappedValue) {
+                        reportedEffortRow(input)
+                    }
+                }
+            }
+        }
+    }
+
+    /// Timed holds and flows have no repetitions in reserve to report.
+    private func asksRIR(for input: WorkoutSetInput) -> Bool {
+        exercises.first(where: { $0.id == input.exerciseID })?.repUnit == "reps"
+    }
+
+    private func reportedEffortRow(_ input: Binding<WorkoutSetInput>) -> some View {
+        HStack(spacing: 6) {
+            Button("Clear") { input.wrappedValue.rir = nil }
+                .buttonStyle(.bordered)
+                .tint(input.wrappedValue.rir == nil ? accent : APEXColor.secondaryInk)
+            ForEach(0...5, id: \.self) { rir in
+                Button("\(rir)") { input.wrappedValue.rir = rir }
+                    .buttonStyle(.bordered)
+                    .tint(input.wrappedValue.rir == rir ? accent : APEXColor.secondaryInk)
+            }
+        }
+        .accessibilityIdentifier("tracked-workout-rir")
+    }
+
+    private func finishWorkout() {
+        guard !isSaving else { return }
+        isSaving = true
+        Task {
+            let finished = await session.completeWorkout(
+                day: day, setInputs: setInputs, lite: lite, startedAt: startedAt
+            )
+            isSaving = false
+            if let finished {
+                completedSession = FinishedSession(id: finished)
+            } else {
+                dismiss()
+            }
+        }
+    }
+}
+
 struct WorkoutDayView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -562,7 +769,8 @@ struct WorkoutDayView: View {
     /// Defaults to today; the calendar opens this view on any date.
     var date: String = Date().apexDateKey
     var slug: String = "main"
-    @State private var showPlayer = false
+    @State private var showGuidedPlayer = false
+    @State private var showTrackedWorkout = false
 
     /* The planner decides what today actually prescribes: event tapers, the
        championship leg rule, scheduled and marked deloads, recovery micros. */
@@ -580,6 +788,16 @@ struct WorkoutDayView: View {
                 .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
         }
         return planned.exercises
+    }
+
+    private var sessionExercises: [Exercise] {
+        exercises.map { row in
+            var exercise = row.exercise
+            /* The player counts what the planner prescribed, not what the
+               programme row says. */
+            exercise.sets = row.plannedSets
+            return exercise
+        }
     }
 
     var body: some View {
@@ -677,12 +895,16 @@ struct WorkoutDayView: View {
                     }
                 }
 
-                Button {
-                    showPlayer = true
-                } label: {
-                    Label(language.text("Start session"), systemImage: "play.fill")
+                WorkoutSessionModeButtons(
+                    preferred: session.workoutSessionMode(for: day),
+                    accent: accent
+                ) { mode in
+                    session.rememberWorkoutSessionMode(mode)
+                    switch mode {
+                    case .guided: showGuidedPlayer = true
+                    case .tracked: showTrackedWorkout = true
+                    }
                 }
-                .buttonStyle(APEXPrimaryButtonStyle(color: accent))
                 .accessibilityIdentifier("workout-start-session")
             }
             .padding(18)
@@ -691,19 +913,16 @@ struct WorkoutDayView: View {
         }
         .navigationTitle(language.text(day.name))
         .navigationBarTitleDisplayMode(.inline)
-        .fullScreenCover(isPresented: $showPlayer) {
+        .fullScreenCover(isPresented: $showGuidedPlayer) {
             WorkoutPlayerView(
                 day: day,
-                exercises: exercises.map { row in
-                    var exercise = row.exercise
-                    /* The player counts what the planner prescribed, not what
-                       the programme row says. */
-                    exercise.sets = row.plannedSets
-                    return exercise
-                },
+                exercises: sessionExercises,
                 accent: accent,
                 lite: lite
             )
+        }
+        .fullScreenCover(isPresented: $showTrackedWorkout) {
+            TrackedWorkoutView(day: day, exercises: sessionExercises, accent: accent, lite: lite)
         }
     }
 
