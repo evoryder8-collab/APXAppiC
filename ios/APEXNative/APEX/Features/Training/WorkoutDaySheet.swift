@@ -25,6 +25,15 @@ struct WorkoutDaySheet: View {
         TrainingPlanEngine.plan(session.data, slug: slug, date: date, lite: lite)
     }
 
+    private var calendarDay: TrainingCalendarDay {
+        TrainingCalendarDay.resolve(
+            session.data,
+            slug: slug,
+            date: date,
+            userID: session.data.profile?.userID
+        )
+    }
+
     private var sessionExercises: [Exercise] {
         plan.exercises.map { row in
             var exercise = row.exercise
@@ -33,29 +42,33 @@ struct WorkoutDaySheet: View {
         }
     }
 
-    private var completed: WorkoutSession? {
-        let program = session.data.programs.first { $0.slug == slug }
-        let dayIDs = Set(
-            session.data.programDays.filter { $0.programID == program?.id }.map(\.id)
-        )
-        return session.data.workoutSessions.first {
-            $0.date == date && $0.completed && (dayIDs.contains($0.programDayID) || $0.isEventRecovery)
-        }
+    private var recordedSession: WorkoutSession? {
+        guard let sessionID = calendarDay.sessionID else { return nil }
+        return session.data.workoutSessions.first { $0.id == sessionID }
     }
 
     private var logs: [WorkoutLog] {
-        guard let completed else { return [] }
+        guard let recordedSession else { return [] }
+        let userID = session.data.profile?.userID
         return session.data.workoutLogs
-            .filter { $0.sessionID == completed.id }
+            .filter { log in
+                log.sessionID == recordedSession.id && (userID == nil || log.userID == userID)
+            }
             .sorted { ($0.createdAt, $0.setNumber) < ($1.createdAt, $1.setNumber) }
     }
 
     private var isDeloadMarked: Bool {
-        (session.data.deloadMarks ?? []).contains { $0.date == date }
+        let userID = session.data.profile?.userID
+        return (session.data.deloadMarks ?? []).contains { mark in
+            mark.date == date && (userID == nil || mark.userID == userID)
+        }
     }
 
     private var water: Double {
-        session.data.dailyLogs.first { $0.date == date }?.waterL ?? 0
+        let userID = session.data.profile?.userID
+        return session.data.dailyLogs.first { row in
+            row.date == date && (userID == nil || row.userID == userID)
+        }?.waterL ?? 0
     }
 
     private var isPastOrToday: Bool { date <= Date().apexDateKey }
@@ -74,48 +87,60 @@ struct WorkoutDaySheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
-                    if !plan.badges.isEmpty {
-                        badgeStack
-                    }
-
-                    if let day = plan.programDay {
-                        MuscleMapCard(
-                            dayType: plan.isRecoveryMicro ? "mobility" : day.dayType,
-                            exerciseNames: plan.exercises.map(\.name),
-                            height: 240,
-                            accent: accent
+                    if calendarDay.state == .noPrescription {
+                        emptyState(
+                            symbolName: "calendar.badge.exclamationmark",
+                            description: "No programme was authored for this date."
                         )
-                    }
-
-                    if !plan.isRecoveryMicro && plan.programDay != nil {
-                        Picker("Mode", selection: $lite) {
-                            Text(language.text("Full")).tag(false)
-                            Text(language.text("Light")).tag(true)
+                    } else if calendarDay.state == .rest {
+                        emptyState(
+                            symbolName: "moon.zzz.fill",
+                            description: "Recovery is the prescription for this date."
+                        )
+                    } else {
+                        if !plan.badges.isEmpty {
+                            badgeStack
                         }
-                        .pickerStyle(.segmented)
+
+                        if let day = plan.programDay {
+                            MuscleMapCard(
+                                dayType: plan.isRecoveryMicro ? "mobility" : day.dayType,
+                                exerciseNames: plan.exercises.map(\.name),
+                                height: 240,
+                                accent: accent
+                            )
+                        }
+
+                        if !plan.isRecoveryMicro && plan.programDay != nil {
+                            Picker("Mode", selection: $lite) {
+                                Text(language.text("Full")).tag(false)
+                                Text(language.text("Light")).tag(true)
+                            }
+                            .pickerStyle(.segmented)
+                        }
+
+                        if !plan.warmup.isEmpty {
+                            Text("\(language.text("Warm-up")): \(language.text(plan.warmup))")
+                                .font(APEXFont.body(13, weight: .semibold))
+                                .foregroundStyle(accent)
+                                .frame(maxWidth: .infinity, alignment: .leading)
+                                .padding(.horizontal, 13)
+                                .padding(.vertical, 10)
+                                .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
+                        }
+
+                        ForEach(plan.exercises) { planned in
+                            exerciseCard(planned)
+                        }
                     }
 
-                    if !plan.warmup.isEmpty {
-                        Text("\(language.text("Warm-up")): \(language.text(plan.warmup))")
-                            .font(APEXFont.body(13, weight: .semibold))
-                            .foregroundStyle(accent)
-                            .frame(maxWidth: .infinity, alignment: .leading)
-                            .padding(.horizontal, 13)
-                            .padding(.vertical, 10)
-                            .background(accent.opacity(0.1), in: RoundedRectangle(cornerRadius: 16))
-                    }
-
-                    ForEach(plan.exercises) { planned in
-                        exerciseCard(planned)
-                    }
-
-                    if let completed {
-                        completedCard(completed)
+                    if let recordedSession {
+                        recordedCard(recordedSession)
                     }
 
                     dayControls
 
-                    if completed == nil, !plan.exercises.isEmpty, isPastOrToday,
+                    if recordedSession == nil, !plan.exercises.isEmpty, isPastOrToday,
                        let day = plan.programDay {
                         WorkoutSessionModeButtons(
                             preferred: session.workoutSessionMode(for: day),
@@ -134,7 +159,7 @@ struct WorkoutDaySheet: View {
                 .padding(.bottom, 24)
             }
             .background(APEXBackground())
-            .navigationTitle(language.text(plan.programDay?.name ?? "Rest"))
+            .navigationTitle(language.text("Calendar"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .confirmationAction) {
@@ -159,6 +184,19 @@ struct WorkoutDaySheet: View {
         }
     }
 
+    private func emptyState(symbolName: String, description: String) -> some View {
+        VStack(spacing: 14) {
+            Image(systemName: symbolName)
+                .font(.system(size: 44, weight: .semibold))
+            Text(language.text(description))
+                .font(.body)
+                .multilineTextAlignment(.center)
+        }
+        .foregroundStyle(APEXColor.secondaryInk)
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 24)
+    }
+
     private var header: some View {
         VStack(alignment: .leading, spacing: 4) {
             Text(heading.uppercased(with: language.language.locale))
@@ -166,9 +204,12 @@ struct WorkoutDaySheet: View {
                 .tracking(1.5)
                 .foregroundStyle(APEXColor.secondaryInk)
             Text(language.text(
-                plan.isRecoveryMicro ? "Recovery micro-session" : (plan.programDay?.name ?? "Rest")
+                plan.isRecoveryMicro ? "Recovery micro-session" : calendarDay.title
             ))
             .font(APEXFont.display(26))
+            Label(language.text(calendarDay.accessibilityStatus), systemImage: calendarDay.state.symbolName)
+                .font(APEXFont.mono(10, weight: .bold))
+                .foregroundStyle(accent)
             if let day = plan.programDay, !plan.isRecoveryMicro {
                 Text(language.format("~%d min", day.estimatedMinutes))
                     .font(APEXFont.body(12, weight: .semibold))
@@ -281,14 +322,16 @@ struct WorkoutDaySheet: View {
         return "\(planned.plannedSets)x\(reps)\(exercise.perSide ? "/side" : "")"
     }
 
-    private func completedCard(_ workout: WorkoutSession) -> some View {
+    private func recordedCard(_ workout: WorkoutSession) -> some View {
         GlassCard(radius: 20, padding: 15) {
             VStack(alignment: .leading, spacing: 9) {
                 HStack {
-                    Text(language.text("Completed"))
+                    Text(language.text(calendarDay.state.label))
                         .font(APEXFont.display(16))
                     Spacer()
-                    Text(language.format("QUALITY %d%%", Int((workout.qualityScore * 100).rounded())))
+                    Text(workout.completed
+                         ? language.format("QUALITY %d%%", Int((workout.qualityScore * 100).rounded()))
+                         : language.text("IN PROGRESS"))
                         .font(APEXFont.mono(9, weight: .bold))
                         .foregroundStyle(.white)
                         .padding(.horizontal, 9)

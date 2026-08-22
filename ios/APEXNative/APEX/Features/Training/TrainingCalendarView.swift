@@ -51,8 +51,6 @@ struct TrainingCalendarView: View {
 
     private static let weekdayCodes = ["Mo", "Tu", "We", "Th", "Fr", "Sa", "Su"]
 
-    private var program: Program? { session.data.programs.first { $0.slug == slug } }
-
     /// Six weeks, starting on the Monday on or before the first of the month.
     private var cells: [String] {
         let calendar = APEXDateMath.calendar
@@ -64,44 +62,34 @@ struct TrainingCalendarView: View {
         return (0..<42).map { APEXDateMath.adding(days: $0 - lead, to: firstKey) }
     }
 
-    private var typeByWeekday: [Int: String] {
-        var map: [Int: String] = [:]
-        let activeIDs = TrainingPlanEngine.activeInductionDayIDs(session.data, slug: slug)
-        for day in session.data.programDays where day.programID == program?.id {
-            let allowed = activeIDs == nil
-                || activeIDs!.contains(day.id.uuidString)
-                || activeIDs!.contains(day.id.uuidString.lowercased())
-            if allowed { map[day.weekday] = day.dayType }
+    private var userID: UUID? { session.data.profile?.userID }
+
+    private var resolvedDays: [TrainingCalendarDay] {
+        cells.map { key in
+            TrainingCalendarDay.resolve(
+                session.data,
+                slug: slug,
+                date: key,
+                userID: userID
+            )
         }
-        return map
     }
 
-    private struct Completion {
-        let recovery: Bool
-        let type: String?
-    }
-
-    private var completedByDate: [String: Completion] {
-        let typeByDayID = Dictionary(
-            session.data.programDays
-                .filter { $0.programID == program?.id }
-                .map { ($0.id, $0.dayType) },
-            uniquingKeysWith: { first, _ in first }
-        )
-        var map: [String: Completion] = [:]
-        for workout in session.data.workoutSessions where workout.completed {
-            let type = typeByDayID[workout.programDayID]
-            if type == nil && !workout.isEventRecovery { continue }
-            map[workout.date] = Completion(recovery: workout.isEventRecovery, type: type)
-        }
-        return map
-    }
-
-    private var deloadDates: Set<String> { Set((session.data.deloadMarks ?? []).map(\.date)) }
     private var waterDates: Set<String> {
-        Set(session.data.dailyLogs.filter { ($0.waterL ?? 0) >= 2.5 }.map(\.date))
+        Set(session.data.dailyLogs.filter { row in
+            (userID == nil || row.userID == userID) && row.waterL >= 2.5
+        }.map(\.date))
     }
-    private var importedDates: Set<String> { Set(session.data.importedActivities.map(\.date)) }
+    private var importedDates: Set<String> {
+        Set(session.data.importedActivities.filter { row in
+            userID == nil || row.userID == userID
+        }.map(\.date))
+    }
+    private var events: [EventRecord] {
+        session.data.events.filter { event in
+            userID == nil || event.userID == userID
+        }
+    }
 
     private var monthTitle: String {
         let formatter = DateFormatter()
@@ -110,16 +98,22 @@ struct TrainingCalendarView: View {
         return formatter.string(from: month)
     }
 
-    private var legend: [DayTypeMeta] {
+    private func typeLegend(for days: [TrainingCalendarDay]) -> [DayTypeMeta] {
         var seen: [String: DayTypeMeta] = [:]
-        for type in typeByWeekday.values {
+        for type in days.compactMap(\.dayType) {
             if let meta = DayTypeMeta.all[type], seen[meta.code] == nil { seen[meta.code] = meta }
         }
         return seen.values.sorted { $0.code < $1.code }
     }
 
+    private func stateLegend(for days: [TrainingCalendarDay]) -> [TrainingCalendarDay.State] {
+        let present = Set(days.filter { isInDisplayedMonth($0.date) }.map(\.state))
+        return TrainingCalendarDay.State.allCases.filter(present.contains)
+    }
+
     var body: some View {
-        VStack(spacing: 12) {
+        let days = resolvedDays
+        return VStack(spacing: 12) {
             HStack {
                 Button {
                     shiftMonth(-1)
@@ -153,13 +147,15 @@ struct TrainingCalendarView: View {
             }
 
             LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 5), count: 7), spacing: 5) {
-                ForEach(cells, id: \.self) { key in
-                    tile(for: key)
+                ForEach(days) { day in
+                    tile(for: day)
                 }
             }
 
-            if !legend.isEmpty {
-                FlowLegend(items: legend, language: language)
+            let types = typeLegend(for: days)
+            let states = stateLegend(for: days)
+            if !types.isEmpty || !states.isEmpty {
+                FlowLegend(items: types, states: states, language: language)
             }
         }
         .accessibilityIdentifier("training-calendar")
@@ -172,22 +168,17 @@ struct TrainingCalendarView: View {
     }
 
     @ViewBuilder
-    private func tile(for key: String) -> some View {
-        let inMonth = APEXDateMath.calendar.isDate(
-            APEXDateMath.date(from: key) ?? .now, equalTo: month, toGranularity: .month
-        )
-        let completion = completedByDate[key]
-        let deload = deloadDates.contains(key)
-        let ramp = TrainingPlanEngine.approachRamp(for: key, events: session.data.events)
-        let during = TrainingPlanEngine.eventContext(for: key, events: session.data.events)?.isDuring ?? false
+    private func tile(for day: TrainingCalendarDay) -> some View {
+        let key = day.date
+        let inMonth = isInDisplayedMonth(key)
+        let ramp = TrainingPlanEngine.approachRamp(for: key, events: events)
+        let during = TrainingPlanEngine.eventContext(for: key, events: events)?.isDuring ?? false
         let isToday = key == Date().apexDateKey
-        let planType = TrainingPlanEngine.isInsideInductionWindow(session.data, slug: slug, date: key)
-            ? typeByWeekday[APEXDateMath.isoWeekday(key)]
-            : nil
-        let meta = planType.flatMap { DayTypeMeta.all[$0] }
+        let meta = day.dayType.flatMap { DayTypeMeta.all[$0] }
         let style = tileStyle(
-            inMonth: inMonth, meta: meta, deload: deload, ramp: ramp, during: during, completion: completion
+            inMonth: inMonth, meta: meta, day: day, ramp: ramp, during: during
         )
+        let darkState = day.state == .completed || day.state == .manuallyLogged || day.state == .custom
 
         Button {
             if inMonth { onSelectDay(key) }
@@ -201,7 +192,7 @@ struct TrainingCalendarView: View {
                     )
                     .overlay(
                         RoundedRectangle(cornerRadius: 11, style: .continuous)
-                            .stroke(isToday ? (completion != nil ? .white.opacity(0.85) : accent) : .clear, lineWidth: 2)
+                            .stroke(isToday ? (darkState ? .white.opacity(0.85) : accent) : .clear, lineWidth: 2)
                     )
 
                 VStack(spacing: 0) {
@@ -209,20 +200,24 @@ struct TrainingCalendarView: View {
                         Text(dayNumber(key))
                             .font(APEXFont.mono(10, weight: .bold))
                         Spacer(minLength: 0)
-                        if completion != nil {
-                            Image(systemName: "checkmark")
+                        if inMonth {
+                            Image(systemName: day.state.symbolName)
                                 .font(.system(size: 7, weight: .black))
+                        }
+                        if inMonth, day.isDeload, day.state != .deload {
+                            Image(systemName: "arrow.down")
+                                .font(.system(size: 6, weight: .black))
                         }
                         if waterDates.contains(key) {
                             Circle()
-                                .fill(completion != nil ? .white.opacity(0.8) : Color(hex: 0x38bdf8))
+                                .fill(darkState ? .white.opacity(0.8) : Color(hex: 0x38bdf8))
                                 .frame(width: 4, height: 4)
                                 .padding(.top, 2)
                         }
                     }
                     Spacer(minLength: 0)
-                    if inMonth, let meta {
-                        Text(meta.code)
+                    if inMonth {
+                        Text(day.state.shortLabel)
                             .font(APEXFont.mono(7, weight: .bold))
                             .tracking(0.8)
                             .foregroundStyle(style.code)
@@ -231,7 +226,7 @@ struct TrainingCalendarView: View {
                 .foregroundStyle(style.ink)
                 .padding(4)
 
-                if inMonth, importedDates.contains(key), completion == nil {
+                if inMonth, importedDates.contains(key), day.state != .completed {
                     Circle()
                         .fill(Color(hex: 0xf59e0b))
                         .frame(width: 4, height: 4)
@@ -243,11 +238,11 @@ struct TrainingCalendarView: View {
         }
         .buttonStyle(.plain)
         .disabled(!inMonth)
-        .accessibilityLabel(accessibleDate(key))
+        .accessibilityLabel(accessibleLabel(for: day))
         .accessibilityIdentifier("calendar-day-\(key)")
         .contextMenu {
             if inMonth {
-                Button(deload ? language.text("Clear deload") : language.text("Mark deload")) {
+                Button(isDeloadMarked(key) ? language.text("Clear deload") : language.text("Mark deload")) {
                     Task { await session.toggleDeload(on: APEXDateMath.date(from: key) ?? .now) }
                 }
             }
@@ -261,15 +256,15 @@ struct TrainingCalendarView: View {
         var code: Color
     }
 
-    /* Precedence, highest last: planned wash, deload, approach ramp, event day,
-       completed. */
+    /* Backgrounds are secondary to the icon and status code, so none of these
+       states relies on color alone. Event context sits over prescriptions;
+       recorded facts sit over event context. */
     private func tileStyle(
         inMonth: Bool,
         meta: DayTypeMeta?,
-        deload: Bool,
+        day: TrainingCalendarDay,
         ramp: Double?,
-        during: Bool,
-        completion: Completion?
+        during: Bool
     ) -> TileStyle {
         var style = TileStyle(
             background: AnyShapeStyle(Color.white.opacity(0.5)),
@@ -288,7 +283,25 @@ struct TrainingCalendarView: View {
             )
             style.border = meta.bright.opacity(0.22)
         }
-        if deload {
+        switch day.state {
+        case .scheduled:
+            break
+        case .rest:
+            style.background = AnyShapeStyle(Color(hex: 0xf1f5f9))
+            style.border = Color(hex: 0x94a3b8).opacity(0.35)
+            style.ink = Color(hex: 0x475569)
+            style.code = style.ink
+        case .noPrescription:
+            style.background = AnyShapeStyle(Color.white.opacity(0.35))
+            style.border = APEXColor.ink.opacity(0.1)
+            style.ink = APEXColor.secondaryInk
+            style.code = APEXColor.secondaryInk
+        case .missed:
+            style.background = AnyShapeStyle(Color(hex: 0xfef2f2))
+            style.border = Color(hex: 0xef4444).opacity(0.35)
+            style.ink = Color(hex: 0x991b1b)
+            style.code = style.ink
+        case .deload:
             style.background = AnyShapeStyle(
                 LinearGradient(colors: [Color(hex: 0x7dd3fc), Color(hex: 0xe0f2fe)],
                                startPoint: .topLeading, endPoint: .bottomTrailing)
@@ -296,6 +309,8 @@ struct TrainingCalendarView: View {
             style.border = Color(hex: 0x38bdf8).opacity(0.4)
             style.ink = Color(hex: 0x075985)
             style.code = Color(hex: 0x075985)
+        case .partiallyCompleted, .completed, .manuallyLogged, .custom:
+            break
         }
         if let ramp, !during {
             style.background = AnyShapeStyle(
@@ -320,8 +335,35 @@ struct TrainingCalendarView: View {
             style.ink = .white
             style.code = .white.opacity(0.9)
         }
-        if let completion, !completion.recovery {
-            let gradient = completion.type.flatMap { DayTypeMeta.all[$0] }?.gradient ?? [accent, accent]
+        if day.state == .partiallyCompleted {
+            style.background = AnyShapeStyle(
+                LinearGradient(colors: [Color(hex: 0xfde68a), Color(hex: 0xfef3c7)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            style.border = Color(hex: 0xf59e0b).opacity(0.45)
+            style.ink = Color(hex: 0x92400e)
+            style.code = style.ink
+        }
+        if day.state == .manuallyLogged {
+            style.background = AnyShapeStyle(
+                LinearGradient(colors: [Color(hex: 0x14b8a6), Color(hex: 0x0f766e)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            style.border = .clear
+            style.ink = .white
+            style.code = .white.opacity(0.95)
+        }
+        if day.state == .custom {
+            style.background = AnyShapeStyle(
+                LinearGradient(colors: [Color(hex: 0x8b5cf6), Color(hex: 0x6d28d9)],
+                               startPoint: .topLeading, endPoint: .bottomTrailing)
+            )
+            style.border = .clear
+            style.ink = .white
+            style.code = .white.opacity(0.95)
+        }
+        if day.state == .completed {
+            let gradient = day.dayType.flatMap { DayTypeMeta.all[$0] }?.gradient ?? [accent, accent]
             style.background = AnyShapeStyle(
                 LinearGradient(colors: gradient, startPoint: .topLeading, endPoint: .bottomTrailing)
             )
@@ -330,6 +372,20 @@ struct TrainingCalendarView: View {
             style.code = .white.opacity(0.95)
         }
         return style
+    }
+
+    private func isInDisplayedMonth(_ key: String) -> Bool {
+        APEXDateMath.calendar.isDate(
+            APEXDateMath.date(from: key) ?? .distantPast,
+            equalTo: month,
+            toGranularity: .month
+        )
+    }
+
+    private func isDeloadMarked(_ key: String) -> Bool {
+        (session.data.deloadMarks ?? []).contains { mark in
+            mark.date == key && (userID == nil || mark.userID == userID)
+        }
     }
 
     private func dayNumber(_ key: String) -> String {
@@ -343,10 +399,22 @@ struct TrainingCalendarView: View {
         formatter.dateStyle = .long
         return formatter.string(from: date)
     }
+
+    private func accessibleLabel(for day: TrainingCalendarDay) -> String {
+        var parts = [
+            accessibleDate(day.date),
+            language.text(day.title),
+            language.text(day.accessibilityStatus),
+        ]
+        if waterDates.contains(day.date) { parts.append(language.text("Water 2.5L+")) }
+        if importedDates.contains(day.date) { parts.append(language.text("Imported activity")) }
+        return parts.joined(separator: ", ")
+    }
 }
 
 private struct FlowLegend: View {
     let items: [DayTypeMeta]
+    let states: [TrainingCalendarDay.State]
     let language: LanguageState
 
     var body: some View {
@@ -361,7 +429,11 @@ private struct FlowLegend: View {
             ForEach(items, id: \.code) { meta in
                 chip(colors: meta.gradient, text: "\(meta.code) \(language.text(meta.label))")
             }
-            chip(colors: [Color(hex: 0x7dd3fc), Color(hex: 0xe0f2fe)], text: language.text("Deload"))
+            ForEach(states, id: \.self) { state in
+                Label(language.text(state.label), systemImage: state.symbolName)
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
             chip(colors: [Color(hex: 0x38bdf8), Color(hex: 0x38bdf8)], text: language.text("Water 2.5L+"))
         }
     }

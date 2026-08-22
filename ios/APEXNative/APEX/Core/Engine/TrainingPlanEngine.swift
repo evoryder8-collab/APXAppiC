@@ -95,17 +95,18 @@ enum TrainingPlanEngine {
         return nil
     }
 
-    static func lastCompletedSessionDate(_ data: DashboardData) -> String? {
+    static func lastCompletedSessionDate(_ data: DashboardData, userID: UUID? = nil) -> String? {
         var last: String?
-        for session in data.workoutSessions where session.completed {
+        for session in data.workoutSessions
+        where session.completed && (userID == nil || session.userID == userID) {
             if last == nil || session.date > last! { last = session.date }
         }
         return last
     }
 
     /// Any gap of three weeks or more earns a deload week on return.
-    static func layoffActive(_ data: DashboardData, date: String) -> Bool {
-        guard let last = lastCompletedSessionDate(data) else { return false }
+    static func layoffActive(_ data: DashboardData, date: String, userID: UUID? = nil) -> Bool {
+        guard let last = lastCompletedSessionDate(data, userID: userID) else { return false }
         return APEXDateMath.calendarDaysBetween(from: last, to: date) >= 21
     }
 
@@ -128,8 +129,17 @@ enum TrainingPlanEngine {
 
     static func isInsideInductionWindow(_ data: DashboardData, slug: String, date: String) -> Bool {
         guard let induction = induction(data), slug == "transition" || slug == "main" else { return true }
-        let start = induction["start_date"]?.stringValue ?? ""
-        let mainStart = induction["main_start_date"]?.stringValue ?? ""
+        guard let start = induction["start_date"]?.stringValue,
+              let mainStart = induction["main_start_date"]?.stringValue,
+              APEXDateMath.date(from: start) != nil,
+              APEXDateMath.date(from: mainStart) != nil,
+              start < mainStart
+        else {
+            // Interrupted generation and older caches can contain a partial
+            // induction object. An invalid boundary must not hide the whole
+            // weekly programme and turn every tap into an apparent rest day.
+            return true
+        }
         if slug == "transition" { return date >= start && date < mainStart }
         return date >= mainStart
     }
@@ -240,16 +250,34 @@ enum TrainingPlanEngine {
     // MARK: - The plan
 
     static func plan(_ data: DashboardData, slug: String, date: String, lite: Bool) -> PlannedDay {
-        let program = data.programs.first { $0.slug == slug }
+        let ownerID = data.profile?.userID
+        let program = data.programs
+            .filter { $0.slug == slug && (ownerID == nil || $0.userID == ownerID) }
+            .sorted { $0.id.uuidString < $1.id.uuidString }
+            .first
+        let effectiveUserID = program?.userID ?? ownerID
+        let settingsBelongToUser = data.settings.map { settings in
+            effectiveUserID == nil || settings.userID == effectiveUserID
+        } ?? true
         let weekday = APEXDateMath.isoWeekday(date)
-        let activeDayIDs = activeInductionDayIDs(data, slug: slug)
-        let insideWindow = isInsideInductionWindow(data, slug: slug, date: date)
+        let activeDayIDs = settingsBelongToUser ? activeInductionDayIDs(data, slug: slug) : nil
+        let insideWindow = settingsBelongToUser
+            ? isInsideInductionWindow(data, slug: slug, date: date)
+            : true
         let programDay: ProgramDay? = insideWindow
-            ? data.programDays.first {
-                $0.programID == program?.id
+            ? data.programDays
+                .filter {
+                    $0.programID == program?.id
+                    && (effectiveUserID == nil || $0.userID == effectiveUserID)
                     && $0.weekday == weekday
                     && (activeDayIDs == nil || activeDayIDs!.contains($0.id.uuidString.lowercased()) || activeDayIDs!.contains($0.id.uuidString))
-            }
+                }
+                .sorted {
+                    $0.sortOrder == $1.sortOrder
+                        ? $0.id.uuidString < $1.id.uuidString
+                        : $0.sortOrder < $1.sortOrder
+                }
+                .first
             : nil
 
         guard let program, let programDay else { return PlannedDay(programDay: programDay) }
@@ -257,14 +285,14 @@ enum TrainingPlanEngine {
         let userID = program.userID
         var badges: [String] = []
         var exercises = data.exercises
-            .filter { $0.programDayID == programDay.id && $0.isLite == lite }
+            .filter { $0.userID == userID && $0.programDayID == programDay.id && $0.isLite == lite }
             .sorted { $0.sortOrder < $1.sortOrder }
             .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
 
         /* Fall back to the full list when a day has no dedicated light rows. */
         if lite && exercises.isEmpty {
             exercises = data.exercises
-                .filter { $0.programDayID == programDay.id && !$0.isLite }
+                .filter { $0.userID == userID && $0.programDayID == programDay.id && !$0.isLite }
                 .sorted { $0.sortOrder < $1.sortOrder }
                 .prefix(2)
                 .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
@@ -272,7 +300,7 @@ enum TrainingPlanEngine {
         }
         if lite { badges.append("Lite day: every set 0-1 RIR") }
 
-        let hasInduction = induction(data) != nil
+        let hasInduction = settingsBelongToUser && induction(data) != nil
         if hasInduction && slug == "transition" {
             let week = inductionWeek(data, date: date)
             if week <= 4 {
@@ -424,7 +452,10 @@ enum TrainingPlanEngine {
             }
         }
 
-        let context = eventContext(for: date, events: data.events)
+        let context = eventContext(
+            for: date,
+            events: data.events.filter { $0.userID == userID }
+        )
         var taper: Double = 1
         var isEventDay = false
         var isRecoveryMicro = false
@@ -471,8 +502,10 @@ enum TrainingPlanEngine {
             }
         }
 
-        let markedDeload = (data.deloadMarks ?? []).contains { $0.date == date } || scheduledDeload
-        let layoffDeload = !isEventDay && layoffActive(data, date: date)
+        let markedDeload = (data.deloadMarks ?? []).contains {
+            $0.userID == userID && $0.date == date
+        } || scheduledDeload
+        let layoffDeload = !isEventDay && layoffActive(data, date: date, userID: userID)
         if layoffDeload {
             badges.append("Return from layoff: deload week. Minus 1 set, 3-4 RIR, lighter loads")
             if programDay.dayType == "t25" {
