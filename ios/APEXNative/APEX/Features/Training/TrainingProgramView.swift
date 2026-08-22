@@ -603,6 +603,13 @@ enum TrackedWorkout {
         case reps
         case seconds
         case minutes
+        case max
+        case check
+    }
+
+    enum CheckDecision: Equatable {
+        case completed
+        case skipped
     }
 
     static func setInputs(for exercises: [Exercise]) -> [WorkoutSetInput] {
@@ -625,6 +632,8 @@ enum TrackedWorkout {
         switch exercise.repUnit {
         case "seconds": .seconds
         case "minutes": .minutes
+        case "max": .max
+        case "check": .check
         default: .reps
         }
     }
@@ -635,6 +644,34 @@ enum TrackedWorkout {
 
     static func plannedWork(for exercise: Exercise) -> Int {
         plannedRange(for: exercise).upperBound
+    }
+
+    static func plannedTarget(for exercise: Exercise) -> String {
+        switch workUnit(for: exercise) {
+        case .max: return "MAX"
+        case .check: return "Check"
+        case .reps, .seconds, .minutes:
+            let range = plannedRange(for: exercise)
+            return range.lowerBound == range.upperBound
+                ? "\(range.lowerBound)"
+                : "\(range.lowerBound)–\(range.upperBound)"
+        }
+    }
+
+    static func setKey(for input: WorkoutSetInput) -> String {
+        "\(input.exerciseID?.uuidString ?? input.exerciseName)-\(input.setNumber)"
+    }
+
+    static func applying(_ decision: CheckDecision, to input: WorkoutSetInput) -> WorkoutSetInput {
+        WorkoutSetInput(
+            exerciseID: input.exerciseID,
+            exerciseName: input.exerciseName,
+            setNumber: input.setNumber,
+            weightKG: nil,
+            reps: nil,
+            rir: nil,
+            skipped: decision == .skipped
+        )
     }
 
     static func optionalWholeNumber(from text: String, maximum: Int) -> Int? {
@@ -665,6 +702,26 @@ enum TrackedWorkout {
     static func isReadyToFinish(_ inputs: [WorkoutSetInput]) -> Bool {
         inputs.allSatisfy { $0.skipped || ($0.reps ?? 0) > 0 }
     }
+
+    static func isReadyToFinish(
+        _ inputs: [WorkoutSetInput],
+        exercises: [Exercise],
+        checkDecisions: [String: CheckDecision]
+    ) -> Bool {
+        inputs.allSatisfy { input in
+            guard let exercise = exercises.first(where: { $0.id == input.exerciseID }),
+                  workUnit(for: exercise) == .check else {
+                return input.skipped || (input.reps ?? 0) > 0
+            }
+            guard let decision = checkDecisions[setKey(for: input)] else { return false }
+            switch decision {
+            case .completed:
+                return !input.skipped && input.weightKG == nil && input.reps == nil && input.rir == nil
+            case .skipped:
+                return input.skipped && input.weightKG == nil && input.reps == nil && input.rir == nil
+            }
+        }
+    }
 }
 
 struct TrackedWorkoutView: View {
@@ -679,6 +736,7 @@ struct TrackedWorkoutView: View {
     @State private var setInputs: [WorkoutSetInput]
     @State private var actualEntryTexts: [String: String] = [:]
     @State private var loadEntryTexts: [String: String] = [:]
+    @State private var checkDecisions: [String: TrackedWorkout.CheckDecision] = [:]
     @State private var startedAt = Date()
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
@@ -719,7 +777,9 @@ struct TrackedWorkoutView: View {
                         }
                     }
                     .buttonStyle(APEXPrimaryButtonStyle(color: accent))
-                    .disabled(isSaving || !TrackedWorkout.isReadyToFinish(setInputs))
+                    .disabled(isSaving || !TrackedWorkout.isReadyToFinish(
+                        setInputs, exercises: exercises, checkDecisions: checkDecisions
+                    ))
                     .accessibilityIdentifier("tracked-workout-finish")
                 }
                 .padding(18)
@@ -761,28 +821,30 @@ struct TrackedWorkoutView: View {
                         .font(APEXFont.body(11, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
-                Toggle(language.text("Skipped"), isOn: Binding(
-                    get: { input.wrappedValue.skipped },
-                    set: { skipped in
-                        input.wrappedValue.skipped = skipped
-                        if skipped {
-                            input.wrappedValue = input.wrappedValue.normalizedForPersistence()
-                            actualEntryTexts[entryKey(for: current)] = nil
-                            loadEntryTexts[entryKey(for: current)] = nil
+                if let exercise, TrackedWorkout.workUnit(for: exercise) == .check {
+                    checkDecisionControl(input)
+                } else {
+                    Toggle(language.text("Skipped"), isOn: Binding(
+                        get: { input.wrappedValue.skipped },
+                        set: { skipped in
+                            input.wrappedValue.skipped = skipped
+                            if skipped {
+                                input.wrappedValue = input.wrappedValue.normalizedForPersistence()
+                                actualEntryTexts[entryKey(for: current)] = nil
+                                loadEntryTexts[entryKey(for: current)] = nil
+                            }
                         }
-                    }
-                ))
-                .tint(accent)
+                    ))
+                    .tint(accent)
 
-                if !input.wrappedValue.skipped {
-                    if let exercise {
+                    if !input.wrappedValue.skipped, let exercise {
                         actualWorkControl(input, exercise: exercise)
                         if exercise.incrementKG > 0 {
                             loadControl(input, increment: exercise.incrementKG)
                         }
-                    }
-                    if let exercise, TrackedWorkout.allowsRIR(for: exercise) {
-                        reportedEffortRow(input)
+                        if TrackedWorkout.allowsRIR(for: exercise) {
+                            reportedEffortRow(input)
+                        }
                     }
                 }
             }
@@ -790,27 +852,30 @@ struct TrackedWorkoutView: View {
     }
 
     private func plannedWorkLine(_ exercise: Exercise) -> String {
-        let range = TrackedWorkout.plannedRange(for: exercise)
-        let planned = range.lowerBound == range.upperBound
-            ? "\(range.lowerBound)"
-            : "\(range.lowerBound)–\(range.upperBound)"
+        let unit = TrackedWorkout.workUnit(for: exercise)
+        let planned = TrackedWorkout.plannedTarget(for: exercise)
+        if unit == .max || unit == .check {
+            return language.format("Plan · %@", language.text(planned))
+        }
         return language.format(
             "Plan · %@ %@",
             planned,
-            language.text(TrackedWorkout.workUnit(for: exercise).rawValue)
+            language.text(unit.rawValue)
         )
     }
 
     private func actualWorkControl(_ input: Binding<WorkoutSetInput>, exercise: Exercise) -> some View {
-        let upperBound = TrackedWorkout.workUnit(for: exercise) == .minutes ? 180 : 600
+        let unit = TrackedWorkout.workUnit(for: exercise)
+        let upperBound = unit == .minutes ? 180 : 600
+        let actualUnit = unit == .max ? TrackedWorkout.WorkUnit.reps : unit
         return compactCounter(
-            label: language.text("Actual") + " " + language.text(TrackedWorkout.workUnit(for: exercise).rawValue),
+            label: language.text("Actual") + " " + language.text(actualUnit.rawValue),
             value: Binding(
                 get: { input.wrappedValue.reps },
                 set: { input.wrappedValue.reps = $0 }
             ),
             text: actualWorkEntryText(input, maximum: upperBound),
-            step: TrackedWorkout.workUnit(for: exercise) == .seconds ? 5 : 1,
+            step: unit == .seconds ? 5 : 1,
             upperBound: upperBound
         )
     }
@@ -906,7 +971,7 @@ struct TrackedWorkoutView: View {
     }
 
     private func entryKey(for input: WorkoutSetInput) -> String {
-        "\(input.exerciseID?.uuidString ?? input.exerciseName)-\(input.setNumber)"
+        TrackedWorkout.setKey(for: input)
     }
 
     private func actualWorkEntryText(_ input: Binding<WorkoutSetInput>, maximum: Int) -> Binding<String> {
@@ -946,6 +1011,26 @@ struct TrackedWorkoutView: View {
             }
         }
         .accessibilityIdentifier("tracked-workout-rir")
+    }
+
+    private func checkDecisionControl(_ input: Binding<WorkoutSetInput>) -> some View {
+        let key = TrackedWorkout.setKey(for: input.wrappedValue)
+        return HStack(spacing: 8) {
+            Button(language.text("Completed")) {
+                checkDecisions[key] = .completed
+                input.wrappedValue = TrackedWorkout.applying(.completed, to: input.wrappedValue)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(checkDecisions[key] == .completed ? accent : APEXColor.secondaryInk)
+
+            Button(language.text("Skipped")) {
+                checkDecisions[key] = .skipped
+                input.wrappedValue = TrackedWorkout.applying(.skipped, to: input.wrappedValue)
+            }
+            .buttonStyle(.bordered)
+            .tint(checkDecisions[key] == .skipped ? accent : APEXColor.secondaryInk)
+        }
+        .accessibilityIdentifier("tracked-workout-check-decision")
     }
 
     private func finishWorkout() {
