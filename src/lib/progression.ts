@@ -1,5 +1,125 @@
 /* Smart progression: next-load recommendation + Overload Guardian. */
 import type { AppData, Exercise } from './types'
+import type { WorkoutLog } from './types'
+import {
+  derivePaceSecondsPerKilometre,
+  descriptorForExercise,
+  type ExerciseLoggingDescriptor,
+} from './exerciseLogging.ts'
+
+export type ExerciseProgress = 'improved' | 'maintained' | 'regressed' | 'adherence' | 'incomparable'
+
+function pareto(improving: boolean[], regressing: boolean[]): ExerciseProgress {
+  if (regressing.some(Boolean)) return 'regressed'
+  if (improving.some(Boolean)) return 'improved'
+  return 'maintained'
+}
+
+export function compareExerciseProgress(
+  previous: WorkoutLog,
+  current: WorkoutLog,
+  descriptor: ExerciseLoggingDescriptor,
+): ExerciseProgress {
+  if (previous.skipped || current.skipped) return 'incomparable'
+  const oneLoadMissing = (previous.weight_kg == null) !== (current.weight_kg == null)
+  const oldLoad = previous.weight_kg
+  const newLoad = current.weight_kg
+
+  switch (descriptor.kind) {
+    case 'strength':
+    case 'bodyweight': {
+      if (descriptor.fields.length === 1 && descriptor.fields[0] === 'contacts') return 'adherence'
+      if (previous.reps == null || current.reps == null) return 'incomparable'
+      if (previous.rir == null || current.rir == null || oneLoadMissing) return 'incomparable'
+      if (current.rir < previous.rir) return 'regressed'
+      return pareto(
+        [current.reps > previous.reps, oldLoad != null && newLoad != null && newLoad > oldLoad],
+        [current.reps < previous.reps, oldLoad != null && newLoad != null && newLoad < oldLoad],
+      )
+    }
+    case 'isometric': {
+      if (previous.duration_seconds == null || current.duration_seconds == null || oneLoadMissing) return 'incomparable'
+      return pareto(
+        [current.duration_seconds > previous.duration_seconds, oldLoad != null && newLoad != null && newLoad > oldLoad],
+        [current.duration_seconds < previous.duration_seconds, oldLoad != null && newLoad != null && newLoad < oldLoad],
+      )
+    }
+    case 'carry': {
+      let oldDose: number
+      let newDose: number
+      if (previous.distance_meters != null && current.distance_meters != null
+        && previous.duration_seconds == null && current.duration_seconds == null) {
+        oldDose = previous.distance_meters
+        newDose = current.distance_meters
+      } else if (previous.duration_seconds != null && current.duration_seconds != null
+        && previous.distance_meters == null && current.distance_meters == null) {
+        oldDose = previous.duration_seconds
+        newDose = current.duration_seconds
+      } else return 'incomparable'
+      if (oneLoadMissing) return 'incomparable'
+      return pareto(
+        [newDose > oldDose, oldLoad != null && newLoad != null && newLoad > oldLoad],
+        [newDose < oldDose, oldLoad != null && newLoad != null && newLoad < oldLoad],
+      )
+    }
+    case 'cardio': {
+      if (previous.distance_meters == null || current.distance_meters == null
+        || previous.duration_seconds == null || current.duration_seconds == null) return 'incomparable'
+      const oldPace = derivePaceSecondsPerKilometre(previous.distance_meters, previous.duration_seconds)
+      const newPace = derivePaceSecondsPerKilometre(current.distance_meters, current.duration_seconds)
+      if (oldPace == null || newPace == null) return 'incomparable'
+      return pareto(
+        [current.distance_meters > previous.distance_meters, newPace < oldPace],
+        [current.distance_meters < previous.distance_meters, newPace > oldPace],
+      )
+    }
+    case 'interval': {
+      if (previous.rounds == null || current.rounds == null
+        || previous.work_seconds == null || current.work_seconds == null
+        || previous.recovery_seconds == null || current.recovery_seconds == null) return 'incomparable'
+      return pareto(
+        [current.rounds > previous.rounds, current.work_seconds > previous.work_seconds, current.recovery_seconds < previous.recovery_seconds],
+        [current.rounds < previous.rounds, current.work_seconds < previous.work_seconds, current.recovery_seconds > previous.recovery_seconds],
+      )
+    }
+    case 'mobility': return 'adherence'
+    case 'circuit': return 'incomparable'
+  }
+}
+
+function sameLoggedMovement(left: WorkoutLog, right: WorkoutLog): boolean {
+  if (left.user_id !== right.user_id) return false
+  const leftMovement = descriptorForExercise({ name: left.exercise_name, movement_id: left.movement_id }).movementId
+  const rightMovement = descriptorForExercise({ name: right.exercise_name, movement_id: right.movement_id }).movementId
+  if (leftMovement && rightMovement) return leftMovement === rightMovement
+  if (left.exercise_id && right.exercise_id && left.exercise_id === right.exercise_id) return true
+  return movementKey(left.exercise_name) === movementKey(right.exercise_name)
+}
+
+export function progressForWorkoutLog(data: AppData, current: WorkoutLog): ExerciseProgress | null {
+  const sessions = new Map(data.workout_sessions.map((session) => [session.id, session]))
+  const currentSession = sessions.get(current.session_id)
+  if (!currentSession) return null
+  const previous = data.workout_logs
+    .filter((candidate) => {
+      if (candidate.id === current.id || candidate.session_id === current.session_id || candidate.skipped) return false
+      if (candidate.set_no !== current.set_no || !sameLoggedMovement(candidate, current)) return false
+      const session = sessions.get(candidate.session_id)
+      if (!session || session.date > currentSession.date) return false
+      return session.date < currentSession.date || candidate.created_at < current.created_at
+    })
+    .sort((left, right) => {
+      const dateOrder = (sessions.get(left.session_id)?.date ?? '').localeCompare(sessions.get(right.session_id)?.date ?? '')
+      return dateOrder || left.created_at.localeCompare(right.created_at)
+    })
+    .at(-1)
+  if (!previous) return null
+  return compareExerciseProgress(
+    previous,
+    current,
+    descriptorForExercise({ name: current.exercise_name, movement_id: current.movement_id }),
+  )
+}
 
 export interface ExerciseHistoryPoint {
   date: string

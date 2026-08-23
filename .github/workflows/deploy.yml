@@ -24,6 +24,17 @@ jobs:
           node-version: 20
           cache: npm
       - run: npm ci
+      - name: Verify exercise log schema
+        env:
+          VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}
+          VITE_SUPABASE_ANON_KEY: ${{ secrets.VITE_SUPABASE_ANON_KEY }}
+        run: |
+          test -n "$VITE_SUPABASE_URL"
+          test -n "$VITE_SUPABASE_ANON_KEY"
+          curl --fail --silent --show-error \
+            --header "apikey: $VITE_SUPABASE_ANON_KEY" \
+            "$VITE_SUPABASE_URL/rest/v1/workout_logs?select=movement_id,duration_seconds,distance_meters,contacts,rounds,work_seconds,recovery_seconds&limit=0" \
+            >/dev/null
       - run: npm run build
         env:
           VITE_SUPABASE_URL: ${{ secrets.VITE_SUPABASE_URL }}

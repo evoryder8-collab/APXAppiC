@@ -438,6 +438,7 @@ struct Exercise: Codable, Identifiable, Hashable, Sendable {
     let userID: UUID
     let programDayID: UUID
     var name: String
+    var movementID: String? = nil
     var sets: Int
     var repMin: Int
     var repMax: Int
@@ -458,6 +459,7 @@ struct Exercise: Codable, Identifiable, Hashable, Sendable {
         case id, name, sets, notes, optional
         case userID = "user_id"
         case programDayID = "program_day_id"
+        case movementID = "movement_id"
         case repMin = "rep_min"
         case repMax = "rep_max"
         case repUnit = "rep_unit"
@@ -521,6 +523,13 @@ struct WorkoutLog: Codable, Identifiable, Hashable, Sendable {
     var weightKG: Double?
     var reps: Int?
     var rir: Int?
+    var movementID: String? = nil
+    var durationSeconds: Int? = nil
+    var distanceMeters: Double? = nil
+    var contacts: Int? = nil
+    var rounds: Int? = nil
+    var workSeconds: Int? = nil
+    var recoverySeconds: Int? = nil
     var skipped: Bool
     var overrideFlag: Bool
     var createdAt: String
@@ -533,6 +542,13 @@ struct WorkoutLog: Codable, Identifiable, Hashable, Sendable {
         case exerciseName = "exercise_name"
         case setNumber = "set_no"
         case weightKG = "weight_kg"
+        case movementID = "movement_id"
+        case durationSeconds = "duration_seconds"
+        case distanceMeters = "distance_meters"
+        case contacts
+        case rounds
+        case workSeconds = "work_seconds"
+        case recoverySeconds = "recovery_seconds"
         case overrideFlag = "override_flag"
         case createdAt = "created_at"
     }
@@ -545,21 +561,19 @@ struct WorkoutSetInput: Codable, Hashable, Sendable {
     var weightKG: Double?
     var reps: Int?
     var rir: Int?
+    var movementID: String? = nil
+    var durationSeconds: Int? = nil
+    var distanceMeters: Double? = nil
+    var contacts: Int? = nil
+    var rounds: Int? = nil
+    var workSeconds: Int? = nil
+    var recoverySeconds: Int? = nil
     var skipped: Bool
 
     /// A skipped set is an explicit absence of work, never a hidden completed
     /// set whose old measurements could influence history or progression.
     func normalizedForPersistence() -> WorkoutSetInput {
-        guard skipped else { return self }
-        return WorkoutSetInput(
-            exerciseID: exerciseID,
-            exerciseName: exerciseName,
-            setNumber: setNumber,
-            weightKG: nil,
-            reps: nil,
-            rir: nil,
-            skipped: true
-        )
+        ExerciseLogging.normalized(self)
     }
 }
 

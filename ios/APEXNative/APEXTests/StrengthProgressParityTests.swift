@@ -106,6 +106,34 @@ final class StrengthProgressParityTests: XCTestCase {
         }
     }
 
+    func testLegacyStrengthSeriesExcludesSignedBodyweightLoad() {
+        let userID = UUID()
+        let sessionID = UUID()
+        let session = WorkoutSession(
+            id: sessionID, userID: userID, date: "2026-08-23", programDayID: UUID(),
+            isLite: false, isDeload: false, isEventRecovery: false,
+            completed: true, qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+        )
+        let rows = [
+            WorkoutLog(
+                id: UUID(), userID: userID, sessionID: sessionID, exerciseID: nil,
+                exerciseName: "Bench Press", setNumber: 1, weightKG: 50, reps: 10,
+                rir: 2, skipped: false, overrideFlag: false, createdAt: "2026-08-23T08:00:00Z"
+            ),
+            WorkoutLog(
+                id: UUID(), userID: userID, sessionID: sessionID, exerciseID: nil,
+                exerciseName: "Pull-Up", setNumber: 1, weightKG: 10, reps: 8,
+                rir: 2, movementID: "pull_up", skipped: false, overrideFlag: false,
+                createdAt: "2026-08-23T08:01:00Z"
+            ),
+        ]
+
+        XCTAssertEqual(
+            StrengthProgress.buildSeries(sessions: [session], logs: rows).map(\.name),
+            ["Bench Press"]
+        )
+    }
+
     func testSessionInsightsMatchTheWeb() {
         for scenario in Self.fixture.insights {
             let rows = StrengthProgress.sessionInsights(

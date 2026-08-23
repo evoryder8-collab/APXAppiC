@@ -40,15 +40,28 @@ final class ManualWorkoutTests: XCTestCase {
         XCTAssertEqual(logs.first?.rir, 3)
     }
 
-    func testQuickAndGuidedDefaultsDoNotInventReportedEffort() throws {
-        let nativeRoot = URL(fileURLWithPath: #filePath)
-            .deletingLastPathComponent()
-            .deletingLastPathComponent()
-        let quickComplete = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
-        let guidedPlayer = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+    func testTrackedAndGuidedDefaultsDoNotInventReportedEffort() {
+        let exercise = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Bench Press",
+            sets: 2, repMin: 8, repMax: 10, repUnit: "reps", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+        let tracked = TrackedWorkout.setInputs(for: [exercise])
+        let guided = [
+            GuidedWorkout.setInput(
+                for: exercise, setNumber: 1, measuredWork: 8,
+                signedLoadKG: 42.5, skipped: false
+            ),
+            GuidedWorkout.setInput(
+                for: exercise, setNumber: 2, measuredWork: 9,
+                signedLoadKG: 42.5, skipped: false
+            ),
+        ]
 
-        XCTAssertTrue(quickComplete.contains("reps: exercise.repMax > 0 ? exercise.repMax : nil,\n                    rir: nil"))
-        XCTAssertTrue(guidedPlayer.contains("reps: skipped ? nil : actualReps,\n            rir: nil"))
+        XCTAssertEqual(tracked.map(\.rir), [nil, nil])
+        XCTAssertEqual(guided.map(\.rir), [nil, nil])
     }
 
     func testAPlannedSessionIsNotMistakenForAManualOne() {
@@ -132,6 +145,26 @@ final class ManualWorkoutTests: XCTestCase {
 
         XCTAssertNil(unreported.rir)
         XCTAssertEqual(reported.rir, 1)
+    }
+
+    func testLegacyDraftPreservesUnknownStrengthLoadAndResolvesBodyweightToZero() {
+        let strength = WorkoutLog(
+            id: UUID(), userID: user, sessionID: session, exerciseID: nil,
+            exerciseName: "Seated Cable Row", setNumber: 1, weightKG: nil,
+            reps: 10, rir: nil, movementID: "seated_cable_row",
+            skipped: false, overrideFlag: false, createdAt: "2026-01-05T10:00:00Z"
+        )
+        let bodyweight = WorkoutLog(
+            id: UUID(), userID: user, sessionID: session, exerciseID: nil,
+            exerciseName: "Pull-Up", setNumber: 1, weightKG: nil,
+            reps: 8, rir: nil, movementID: "pull_up",
+            skipped: false, overrideFlag: false, createdAt: "2026-01-05T10:01:00Z"
+        )
+
+        let drafts = ManualWorkout.drafts(from: [strength, bodyweight])
+
+        XCTAssertNil(drafts[0].sets[0].weightKG)
+        XCTAssertEqual(drafts[1].sets[0].weightKG, 0)
     }
 
     func testReportedEffortIsKeptInsideTheSupportedRange() {
@@ -218,6 +251,21 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         XCTAssertEqual(drafts[0].rir, 3)
         XCTAssertEqual(drafts.map(\.weightKG), [42.5, 47.5])
         XCTAssertTrue(TrackedWorkout.isReadyToFinish(drafts))
+    }
+
+    func testTrackedBodyweightDraftStartsAtNeutralSignedLoad() {
+        let exercise = Exercise(
+            id: UUID(), userID: user, programDayID: UUID(), name: "Pull-Up",
+            sets: 2, repMin: 5, repMax: 8, repUnit: "reps", perSide: false,
+            restSeconds: 120, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+
+        let drafts = TrackedWorkout.setInputs(for: [exercise])
+
+        XCTAssertEqual(drafts.map(\.weightKG), [0, 0])
+        XCTAssertEqual(drafts.map(\.rir), [nil, nil])
     }
 
     func testSkippingASetClearsEveryMeasurementAtTheSharedPersistenceBoundary() {
@@ -351,11 +399,12 @@ final class WorkoutSessionModeContractTests: XCTestCase {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
             .deletingLastPathComponent()
-        let programView = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift"))
+        let fields = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Training/ExerciseFactFieldsView.swift"))
 
-        XCTAssertTrue(programView.contains("TextField("))
-        XCTAssertTrue(programView.contains(".keyboardType(.numberPad)"))
-        XCTAssertTrue(programView.contains(".keyboardType(.decimalPad)"))
+        XCTAssertTrue(fields.contains("TextField("))
+        XCTAssertTrue(fields.contains(".numbersAndPunctuation"))
+        XCTAssertTrue(fields.contains(".decimalPad"))
+        XCTAssertTrue(fields.contains("exercise-fact-signed-load"))
     }
 
     func testEveryPlannedStartOffersAndRoutesBothSessionModes() throws {

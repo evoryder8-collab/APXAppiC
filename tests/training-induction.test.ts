@@ -235,7 +235,7 @@ test('a skipped settings-only account can build without becoming another persona
 test('a profileless installed plan remains followable without weight-derived activity', () => {
   const tracked = readFileSync(join(process.cwd(), 'src/pages/TrackedSession.tsx'), 'utf8')
   assert.match(tracked, /const ownerId = data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
-  assert.match(tracked, /if \(!plan\.programDay \|\| !ownerId\) return/)
+  assert.match(tracked, /if \([^\n]*!ownerId[^\n]*\) return/)
   assert.match(tracked, /userId: ownerId/)
   assert.doesNotMatch(tracked, /!data\.profile\) return/)
 

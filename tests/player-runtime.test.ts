@@ -59,10 +59,12 @@ test('speech announcements always have a bounded Safari fail-safe', () => {
 
 test('guided logging keeps RIR unreported per set until it is selected and can clear it again', () => {
   const player = readFileSync(new URL('../src/pages/Player.tsx', import.meta.url), 'utf8')
-  assert.match(player, /const \[rirs, setRirs\] = useState<Array<number \| null>>/)
-  assert.match(player, /\[0, 1, 2, 3, 4, 5\]\.map\(\(value\) =>/)
-  assert.match(player, /serializeExerciseSets\(weights, rirs, repsBySet, skippedAll\)/)
-  assert.match(player, /setRirs\(\(current\) => current\.map\(\(rir, index\) => index === i \? \(rir === value \? null : value\) : rir\)\)/)
+  const facts = readFileSync(new URL('../src/components/workout/ExerciseFactFields.tsx', import.meta.url), 'utf8')
+  assert.match(player, /rir: existing\?\.sets\[index\]\?\.rir \?\? null/)
+  assert.match(player, /<ExerciseFactFields/)
+  assert.match(player, /serializeExerciseSets\(/)
+  assert.match(facts, /rir: \{ label: 'RIR', key: 'rir'/)
+  assert.match(facts, /onChange\(null\)/)
 })
 
 test('exercise instructions are localized and available from the player list', () => {

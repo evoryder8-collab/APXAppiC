@@ -15,7 +15,12 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { MOVEMENTS, MOVEMENT_ALIASES } from '../../../src/data/movements.ts'
+import {
+  CARDIO_MODALITIES,
+  CARDIO_ALIASES,
+  MOVEMENTS,
+  MOVEMENT_ALIASES,
+} from '../../../src/data/movements.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(here, '..', 'APEX', 'Resources', 'movement-timing.json')
@@ -40,12 +45,32 @@ const movements = MOVEMENTS.map((m) => ({
    * you: 1s up, 2s down" and then asked how many reps and kilograms it took. */
   prescription_mode: m.prescriptionMode,
   loadable: m.loadable,
-}))
+  entity_type: m.entityType,
+  disciplines: m.disciplines,
+  prescription: m.prescription,
+})).concat(CARDIO_MODALITIES.map((modality) => ({
+  id: modality.id,
+  name: modality.name,
+  setup_seconds: 0,
+  fatigue_cost: 1,
+  unilateral: false,
+  repositioning: false,
+  prescription_mode: 'distance',
+  loadable: false,
+  entity_type: 'cardio_modality',
+  disciplines: ['cardio'],
+  prescription: 'duration_distance',
+})))
+
+const aliases = {
+  ...MOVEMENT_ALIASES,
+  ...Object.fromEntries(Object.entries(CARDIO_ALIASES).map(([name, value]) => [name, value.modality])),
+}
 
 writeFileSync(out, JSON.stringify({
   generated_note: 'Generated from src/data/movements.ts. Do not edit by hand.',
   movements,
-  aliases: MOVEMENT_ALIASES,
+  aliases,
 }, null, 1))
 
-console.log(`wrote ${movements.length} movements, ${Object.keys(MOVEMENT_ALIASES).length} aliases`)
+console.log(`wrote ${movements.length} movements, ${Object.keys(aliases).length} aliases`)

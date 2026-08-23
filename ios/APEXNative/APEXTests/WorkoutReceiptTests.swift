@@ -65,6 +65,17 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(summary.workingSets, 2)
     }
 
+    func testSignedBodyweightLoadNeverChangesExternalLoadedVolume() {
+        let summary = WorkoutReceipt.summarize([
+            log("Bench Press", set: 1, weight: 50, reps: 10),
+            log("Pull-Up", set: 1, weight: -20, reps: 8),
+            log("Pull-Up", set: 2, weight: 10, reps: 5),
+        ])
+
+        XCTAssertEqual(summary.loadedVolumeKG, 500, accuracy: 0.0001)
+        XCTAssertEqual(summary.workingSets, 3)
+    }
+
     func testGroupingKeepsThePerformedOrder() {
         let grouped = WorkoutReceipt.grouped([
             log("Bench press", set: 1, weight: 60, reps: 8),

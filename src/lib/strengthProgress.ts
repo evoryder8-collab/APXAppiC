@@ -1,4 +1,5 @@
 import type { AppData, JointCheckin, WorkoutLog } from './types'
+import { descriptorForExercise } from './exerciseLogging.ts'
 
 export type JointRegion = 'arms' | 'core' | 'legs'
 export type DeloadState = 'clear' | 'watch' | 'regional_deload' | 'whole_deload' | 'stop_and_review'
@@ -64,7 +65,9 @@ export function buildStrengthSeries(data: AppData): ExerciseStrengthSeries[] {
   }>()
 
   for (const log of data.workout_logs) {
-    if (log.skipped || log.weight_kg == null || log.weight_kg <= 0 || !sessions.has(log.session_id)) continue
+    const descriptor = descriptorForExercise({ name: log.exercise_name, movement_id: log.movement_id })
+    if (descriptor.kind !== 'strength' || log.skipped || log.weight_kg == null
+      || log.weight_kg <= 0 || !sessions.has(log.session_id)) continue
     const key = exerciseKey(log)
     const group = grouped.get(key) ?? {
       exerciseId: log.exercise_id,

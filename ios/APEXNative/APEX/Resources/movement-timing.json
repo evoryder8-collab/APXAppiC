@@ -9,7 +9,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dumbbell_romanian_deadlift",
@@ -19,7 +24,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_leg_romanian_deadlift",
@@ -29,7 +39,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "conventional_deadlift",
@@ -39,7 +54,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "trap_bar_deadlift",
@@ -49,7 +69,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hip_thrust_barbell",
@@ -59,7 +84,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hip_thrust_dumbbell",
@@ -69,7 +99,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "machine_hip_thrust",
@@ -79,7 +114,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "b_stance_hip_thrust",
@@ -89,7 +129,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "glute_bridge",
@@ -99,7 +144,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "frog_pump",
@@ -109,7 +160,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "back_extension",
@@ -119,7 +176,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "kettlebell_swing",
@@ -129,7 +191,14 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "good_morning",
@@ -139,7 +208,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "backpack_rdl",
@@ -149,7 +223,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "barbell_back_squat",
@@ -159,7 +238,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "barbell_front_squat",
@@ -169,7 +253,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "goblet_squat",
@@ -179,7 +268,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "heel_elevated_goblet_squat",
@@ -189,7 +283,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hack_squat",
@@ -199,7 +298,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "leg_press",
@@ -209,7 +313,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "bodyweight_squat",
@@ -219,7 +328,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "sit_to_stand",
@@ -229,7 +344,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pistol_squat",
@@ -239,7 +359,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "smith_machine_squat",
@@ -249,7 +374,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "bulgarian_split_squat",
@@ -259,7 +389,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "split_squat",
@@ -269,7 +404,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reverse_lunge",
@@ -279,7 +419,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "walking_lunge",
@@ -289,7 +434,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "forward_lunge",
@@ -299,7 +449,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "step_up",
@@ -309,7 +464,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "smith_split_squat",
@@ -319,7 +479,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "barbell_bench_press",
@@ -329,7 +494,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dumbbell_bench_press",
@@ -339,7 +509,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "incline_dumbbell_press",
@@ -349,7 +524,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dumbbell_floor_press",
@@ -359,7 +539,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "machine_chest_press",
@@ -369,7 +554,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "incline_smith_press",
@@ -379,7 +569,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "push_up",
@@ -389,7 +584,14 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength",
+    "hiit"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "incline_push_up",
@@ -399,7 +601,13 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "knee_push_up",
@@ -409,7 +617,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "feet_elevated_push_up",
@@ -419,7 +632,13 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "weighted_push_up",
@@ -429,7 +648,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "diamond_push_up",
@@ -439,7 +664,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dip",
@@ -449,7 +679,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_fly",
@@ -459,7 +695,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "barbell_overhead_press",
@@ -469,7 +710,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dumbbell_overhead_press",
@@ -479,7 +725,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "machine_shoulder_press",
@@ -489,7 +740,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "landmine_press",
@@ -499,7 +755,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pike_push_up",
@@ -509,7 +770,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "elevated_pike_push_up",
@@ -519,7 +785,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "handstand_push_up",
@@ -529,7 +800,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "barbell_row",
@@ -539,7 +815,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "one_arm_dumbbell_row",
@@ -549,7 +830,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "chest_supported_row",
@@ -559,7 +845,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "machine_row",
@@ -569,7 +860,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "t_bar_row",
@@ -579,7 +875,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_row",
@@ -589,7 +890,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_arm_cable_row",
@@ -599,7 +905,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "inverted_row",
@@ -609,7 +920,13 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_row",
@@ -619,7 +936,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "backpack_row",
@@ -629,7 +951,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pull_up",
@@ -639,7 +966,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "chin_up",
@@ -649,7 +982,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_assisted_pull_up",
@@ -659,7 +998,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "lat_pulldown",
@@ -669,7 +1014,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_lat_pulldown",
@@ -679,7 +1029,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dead_hang",
@@ -689,7 +1044,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "calisthenics",
+    "mobility"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "scapular_pull_up",
@@ -699,7 +1060,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "muscle_up_practice",
@@ -709,7 +1075,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "suitcase_carry",
@@ -719,7 +1090,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "farmers_carry",
@@ -729,7 +1105,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "plank",
@@ -739,7 +1120,14 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "calisthenics",
+    "strength",
+    "yoga"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "rkc_plank",
@@ -749,7 +1137,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "side_plank",
@@ -759,7 +1152,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "calisthenics",
+    "yoga"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "dead_bug",
@@ -769,7 +1168,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "bird_dog",
@@ -779,7 +1183,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "mobility"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pallof_press",
@@ -789,7 +1199,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hanging_knee_raise",
@@ -799,7 +1214,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hollow_body_hold",
@@ -809,7 +1230,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "dumbbell_curl",
@@ -819,7 +1245,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "incline_dumbbell_curl",
@@ -829,7 +1260,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hammer_curl",
@@ -839,7 +1275,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_curl",
@@ -849,7 +1290,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_curl",
@@ -859,7 +1305,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "overhead_triceps_extension",
@@ -869,7 +1320,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "lateral_raise",
@@ -879,7 +1335,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_lateral_raise",
@@ -889,7 +1350,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_lateral_raise",
@@ -899,7 +1365,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "face_pull",
@@ -909,7 +1380,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_face_pull",
@@ -919,7 +1395,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_pull_apart",
@@ -929,7 +1410,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reverse_pec_deck",
@@ -939,7 +1425,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_external_rotation",
@@ -949,7 +1440,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "lying_leg_curl",
@@ -959,7 +1455,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "seated_leg_curl",
@@ -969,7 +1470,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "sliding_leg_curl",
@@ -979,7 +1485,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "nordic_curl",
@@ -989,7 +1501,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "leg_extension",
@@ -999,7 +1517,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hip_abduction",
@@ -1009,7 +1532,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "standing_calf_raise",
@@ -1019,7 +1547,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "seated_calf_raise",
@@ -1029,7 +1562,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_leg_calf_raise",
@@ -1039,7 +1577,13 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "l_sit",
@@ -1049,7 +1593,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "tuck_planche_hold",
@@ -1059,7 +1608,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "wall_handstand_hold",
@@ -1069,7 +1623,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "archer_push_up",
@@ -1079,7 +1638,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "ring_dip",
@@ -1089,7 +1653,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "burpee",
@@ -1099,7 +1668,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "squat_thrust",
@@ -1109,7 +1684,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "mountain_climber",
@@ -1119,7 +1700,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "high_knees",
@@ -1129,7 +1716,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "marching_in_place",
@@ -1139,7 +1732,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "jumping_jack",
@@ -1149,7 +1748,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "box_jump",
@@ -1159,7 +1764,13 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength",
+    "hiit"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "squat_jump",
@@ -1169,7 +1780,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength",
+    "hiit"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "broad_jump",
@@ -1179,7 +1796,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "battle_ropes",
@@ -1189,7 +1811,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "downward_dog",
@@ -1199,7 +1827,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "childs_pose",
@@ -1209,7 +1843,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "cat_cow",
@@ -1219,7 +1859,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "cobra_pose",
@@ -1229,7 +1875,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "warrior_two",
@@ -1239,7 +1891,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "triangle_pose",
@@ -1249,7 +1906,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "pigeon_pose",
@@ -1259,7 +1921,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "forward_fold",
@@ -1269,7 +1937,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "bridge_pose",
@@ -1279,7 +1953,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "sun_salutation",
@@ -1289,7 +1969,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "ninety_ninety_hip",
@@ -1299,7 +1985,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility",
+    "yoga"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "figure_four_stretch",
@@ -1309,7 +2001,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility",
+    "yoga"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "couch_stretch",
@@ -1319,7 +2017,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "hip_flexor_stretch",
@@ -1329,7 +2032,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility",
+    "yoga"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "thoracic_extension",
@@ -1339,7 +2048,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "wall_slide",
@@ -1349,7 +2063,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "mobility_flow",
@@ -1359,7 +2078,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "movement_sequence",
+   "disciplines": [
+    "mobility",
+    "yoga"
+   ],
+   "prescription": "rounds_duration"
   },
   {
    "id": "diaphragmatic_breathing",
@@ -1369,7 +2094,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility",
+    "yoga"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "joint_circles",
@@ -1379,7 +2110,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "pec_deck",
@@ -1389,7 +2125,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "incline_chest_press_machine",
@@ -1399,7 +2140,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "converging_row_machine",
@@ -1409,7 +2155,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "straight_arm_pulldown",
@@ -1419,7 +2170,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pullover_machine",
@@ -1429,7 +2185,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "assisted_pull_up_machine",
@@ -1439,7 +2200,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "preacher_curl_machine",
@@ -1449,7 +2215,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "triceps_pushdown",
@@ -1459,7 +2230,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dip_machine",
@@ -1469,7 +2245,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "shrug",
@@ -1479,7 +2260,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "upright_row",
@@ -1489,7 +2275,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "machine_lateral_raise",
@@ -1499,7 +2290,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hip_adduction",
@@ -1509,7 +2305,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "copenhagen_plank",
@@ -1519,7 +2320,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "cable_kickback",
@@ -1529,7 +2335,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_pull_through",
@@ -1539,7 +2350,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "belt_squat",
@@ -1549,7 +2365,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pendulum_squat",
@@ -1559,7 +2380,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "calf_press_leg_press",
@@ -1569,7 +2395,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "machine_crunch",
@@ -1579,7 +2410,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_crunch",
@@ -1589,7 +2425,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "back_extension_machine",
@@ -1599,7 +2440,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hip_thrust_smith",
@@ -1609,7 +2455,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "landmine_row",
@@ -1619,7 +2470,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "landmine_squat",
@@ -1629,7 +2485,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_hundred",
@@ -1639,7 +2500,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "pilates_roll_up",
@@ -1649,7 +2515,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_single_leg_circle",
@@ -1659,7 +2530,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "pilates",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "pilates_single_leg_stretch",
@@ -1669,7 +2546,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_double_leg_stretch",
@@ -1679,7 +2561,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_scissors",
@@ -1689,7 +2576,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_teaser",
@@ -1699,7 +2591,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_swan",
@@ -1709,7 +2606,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "pilates",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "pilates_saw",
@@ -1719,7 +2622,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "pilates",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "pilates_spine_stretch",
@@ -1729,7 +2638,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "pilates",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "pilates_side_kick",
@@ -1739,7 +2654,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_clam",
@@ -1749,7 +2669,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "pilates_swimming",
@@ -1759,7 +2684,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "reformer_footwork",
@@ -1769,7 +2699,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reformer_long_stretch",
@@ -1779,7 +2714,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reformer_elephant",
@@ -1789,7 +2729,13 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "pilates",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "reformer_knee_stretch",
@@ -1799,7 +2745,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reformer_short_box",
@@ -1809,7 +2760,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "pilates"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reformer_mermaid",
@@ -1819,7 +2775,13 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "pilates",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "chair_pose",
@@ -1829,7 +2791,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "tree_pose",
@@ -1839,7 +2806,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "warrior_one",
@@ -1849,7 +2821,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "warrior_three",
@@ -1859,7 +2836,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "half_moon",
@@ -1869,7 +2851,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "extended_side_angle",
@@ -1879,7 +2866,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "revolved_triangle",
@@ -1889,7 +2881,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "crow_pose",
@@ -1899,7 +2897,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "yoga",
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "boat_pose",
@@ -1909,7 +2913,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "camel_pose",
@@ -1919,7 +2928,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "bow_pose",
@@ -1929,7 +2944,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "locust_pose",
@@ -1939,7 +2959,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "seated_forward_fold",
@@ -1949,7 +2974,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "butterfly_stretch",
@@ -1959,7 +2990,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "happy_baby",
@@ -1969,7 +3006,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "supine_twist",
@@ -1979,7 +3022,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "legs_up_wall",
@@ -1989,7 +3038,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "corpse_pose",
@@ -1999,7 +3054,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "chaturanga",
@@ -2009,7 +3069,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "upward_dog",
@@ -2019,7 +3084,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "low_lunge",
@@ -2029,7 +3099,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "lizard_pose",
@@ -2039,7 +3115,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "garland_pose",
@@ -2049,7 +3131,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga",
+    "mobility"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "eagle_pose",
@@ -2059,7 +3147,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "dancer_pose",
@@ -2069,7 +3162,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "breath",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "yoga_pose",
+   "disciplines": [
+    "yoga"
+   ],
+   "prescription": "hold_breaths_or_duration"
   },
   {
    "id": "sled_push",
@@ -2079,7 +3177,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning",
+    "hiit"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "sled_pull",
@@ -2089,7 +3193,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning",
+    "hiit"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "burpee_broad_jump",
@@ -2099,7 +3209,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning",
+    "hiit"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "sandbag_lunge",
@@ -2109,7 +3225,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "conditioning",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "wall_ball",
@@ -2119,7 +3241,14 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "conditioning",
+    "hiit",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "thruster",
@@ -2129,7 +3258,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "conditioning"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "power_clean",
@@ -2139,7 +3274,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "power_snatch",
@@ -2149,7 +3290,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "clean_and_jerk",
@@ -2159,7 +3306,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "push_press",
@@ -2169,7 +3322,13 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "overhead_squat",
@@ -2179,7 +3338,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "front_rack_lunge",
@@ -2189,7 +3353,13 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "double_under",
@@ -2199,7 +3369,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "crossfit",
+    "hiit"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "single_under",
@@ -2209,7 +3385,14 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "crossfit",
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "toes_to_bar",
@@ -2219,7 +3402,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "kettlebell_clean",
@@ -2229,7 +3418,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "turkish_get_up",
@@ -2239,7 +3434,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "crossfit",
+    "strength"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "devils_press",
@@ -2249,7 +3450,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "crossfit",
+    "hiit"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "man_maker",
@@ -2259,7 +3466,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "crossfit",
+    "hiit"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "sandbag_clean",
@@ -2269,7 +3482,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "conditioning",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "tire_flip",
@@ -2279,7 +3498,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "bear_crawl",
@@ -2289,7 +3513,14 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "calisthenics",
+    "hiit",
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "sled_drag",
@@ -2299,7 +3530,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "interval",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
   },
   {
    "id": "overhead_carry",
@@ -2309,7 +3545,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "front_rack_carry",
@@ -2319,7 +3560,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "sandbag_carry",
@@ -2329,7 +3575,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "conditioning",
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "yoke_walk",
@@ -2339,7 +3591,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strongman"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "zercher_carry",
@@ -2349,7 +3606,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strongman",
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "waiter_walk",
@@ -2359,7 +3622,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "bottoms_up_carry",
@@ -2369,7 +3637,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "mixed_carry",
@@ -2379,7 +3652,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "depth_jump",
@@ -2389,7 +3667,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "bounding",
@@ -2399,7 +3682,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "lateral_bound",
@@ -2409,7 +3697,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "lateral_hop",
@@ -2419,7 +3712,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "pogo_hop",
@@ -2429,7 +3727,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "tuck_jump",
@@ -2439,7 +3742,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength",
+    "hiit"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "split_jump",
@@ -2449,7 +3758,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "single_leg_hop",
@@ -2459,7 +3773,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "hurdle_hop",
@@ -2469,7 +3788,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "medicine_ball_slam",
@@ -2479,7 +3803,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength",
+    "hiit"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "medicine_ball_chest_pass",
@@ -2489,7 +3819,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "medicine_ball_rotational_throw",
@@ -2499,7 +3834,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "broad_jump_repeat",
@@ -2509,7 +3849,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "contacts",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_quality"
   },
   {
    "id": "landmine_rotation",
@@ -2519,7 +3864,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_chop",
@@ -2529,7 +3879,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "cable_lift",
@@ -2539,7 +3894,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "renegade_row",
@@ -2549,7 +3909,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "suitcase_deadlift",
@@ -2559,7 +3924,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "half_kneeling_press",
@@ -2569,7 +3939,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "plank_pull_through",
@@ -2579,7 +3954,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "bird_dog_row",
@@ -2589,7 +3969,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_arm_dumbbell_press",
@@ -2599,7 +3984,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_arm_floor_press",
@@ -2609,7 +3999,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_arm_bench_press",
@@ -2619,7 +4014,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_arm_landmine_press",
@@ -2629,7 +4029,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_arm_machine_press",
@@ -2639,7 +4044,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "arnold_press",
@@ -2649,7 +4059,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "front_raise",
@@ -2659,7 +4074,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "svend_press",
@@ -2669,7 +4089,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "decline_press",
@@ -2679,7 +4104,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "ab_wheel_rollout",
@@ -2689,7 +4119,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "reverse_crunch",
@@ -2699,7 +4134,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "decline_sit_up",
@@ -2709,7 +4149,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "front_lever_row",
@@ -2719,7 +4164,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "human_flag_progression",
@@ -2729,7 +4179,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "worlds_greatest_stretch",
@@ -2739,7 +4194,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "band_shoulder_dislocate",
@@ -2749,7 +4209,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "lower_body_foam_roll",
@@ -2759,7 +4224,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "single_leg_stand",
@@ -2769,7 +4239,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance",
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "tandem_stance",
@@ -2779,7 +4255,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "heel_toe_walk",
@@ -2789,7 +4270,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "single_leg_reach",
@@ -2799,7 +4285,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "airplane_balance",
@@ -2809,7 +4300,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance",
+    "yoga"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "eyes_closed_balance",
@@ -2819,7 +4316,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "step_down_control",
@@ -2829,7 +4331,13 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "balance",
+    "strength"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "bent_over_dumbbell_row",
@@ -2839,7 +4347,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "kettlebell_bent_over_row",
@@ -2849,7 +4362,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_bent_over_row",
@@ -2859,7 +4377,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "prone_floor_row",
@@ -2869,7 +4392,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "table_row",
@@ -2879,7 +4407,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "towel_door_row",
@@ -2889,7 +4422,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_lat_pullover",
@@ -2899,7 +4437,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "dumbbell_pullover",
@@ -2909,7 +4452,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "floor_pullover",
@@ -2919,7 +4467,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "towel_door_pulldown",
@@ -2929,7 +4482,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_straight_arm_pulldown",
@@ -2939,7 +4497,12 @@
    "unilateral": false,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "wall_sit",
@@ -2949,7 +4512,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "cossack_squat",
@@ -2959,7 +4527,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "mobility"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "lateral_lunge",
@@ -2969,7 +4543,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "shrimp_squat",
@@ -2979,7 +4558,13 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "chair_step_up",
@@ -2989,7 +4574,12 @@
    "unilateral": true,
    "repositioning": true,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "single_leg_glute_bridge",
@@ -2999,7 +4589,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "nordic_eccentric",
@@ -3009,7 +4604,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "hamstring_walkout",
@@ -3019,7 +4619,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_good_morning",
@@ -3029,7 +4634,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "band_overhead_press",
@@ -3039,7 +4649,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "wall_walk",
@@ -3049,7 +4664,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "calisthenics",
+    "conditioning"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "backpack_carry",
@@ -3059,7 +4680,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "suitcase_hold",
@@ -3069,7 +4695,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "carry",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "tibialis_raise",
@@ -3079,7 +4710,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "heel_walk",
@@ -3089,7 +4725,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "distance",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "short_foot",
@@ -3099,7 +4740,13 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "mobility",
+    "balance"
+   ],
+   "prescription": "sets_duration_quality"
   },
   {
    "id": "plate_pinch",
@@ -3109,7 +4756,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "towel_hang",
@@ -3119,7 +4771,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "wrist_roller",
@@ -3129,7 +4786,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "distance",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
   },
   {
    "id": "neck_isometric",
@@ -3139,7 +4801,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "chin_tuck",
@@ -3149,7 +4816,12 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "quality",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
   },
   {
    "id": "side_plank_knees",
@@ -3159,7 +4831,12 @@
    "unilateral": true,
    "repositioning": false,
    "prescription_mode": "hold",
-   "loadable": false
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "dumbbell_side_bend",
@@ -3169,7 +4846,237 @@
    "unilateral": false,
    "repositioning": false,
    "prescription_mode": "tempo_reps",
-   "loadable": true
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cycle_stationary",
+   "name": "Stationary Bike",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "cycle_outdoor",
+   "name": "Outdoor Cycling",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "treadmill",
+   "name": "Treadmill",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "run_outdoor",
+   "name": "Outdoor Running",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "walk",
+   "name": "Walking",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "incline_walk",
+   "name": "Incline Treadmill Walk",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "row_erg",
+   "name": "Rowing Machine",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "ski_erg",
+   "name": "Ski Erg",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "air_bike",
+   "name": "Air Bike",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "elliptical",
+   "name": "Elliptical",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "stair_climber",
+   "name": "Stair Climber",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "swim",
+   "name": "Swimming",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "jump_rope",
+   "name": "Jump Rope",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "sled_push_drag",
+   "name": "Sled Push or Drag",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
+  },
+  {
+   "id": "shadow_box",
+   "name": "Shadow Boxing",
+   "setup_seconds": 0,
+   "fatigue_cost": 1,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "distance",
+   "loadable": false,
+   "entity_type": "cardio_modality",
+   "disciplines": [
+    "cardio"
+   ],
+   "prescription": "duration_distance"
   }
  ],
  "aliases": {
@@ -3336,6 +5243,32 @@
   "cable_crossover": "cable_fly",
   "cable_triceps_extension": "triceps_pushdown",
   "machine_rear_delt": "reverse_pec_deck",
-  "ring_row": "inverted_row"
+  "ring_row": "inverted_row",
+  "Assault Bike Interval": "air_bike",
+  "Assault Bike Sprint": "air_bike",
+  "Brisk Walk": "walk",
+  "Easy Incline Treadmill Walk": "incline_walk",
+  "Easy Nasal Walk": "walk",
+  "Easy Run": "run_outdoor",
+  "Easy Walk": "walk",
+  "Incline Treadmill Walk": "incline_walk",
+  "Long Ride": "cycle_outdoor",
+  "Long Run": "run_outdoor",
+  "Recovery Spin": "cycle_stationary",
+  "Row 2k": "row_erg",
+  "Rowing Ergometer": "row_erg",
+  "Rowing Intervals": "row_erg",
+  "SkiErg 1 km Challenge": "ski_erg",
+  "SkiErg 500 m Controlled Challenge": "ski_erg",
+  "SkiErg 500 m Interval": "ski_erg",
+  "SkiErg 500 m Smooth Finish": "ski_erg",
+  "SkiErg Interval": "ski_erg",
+  "Stationary Bike Zone 2": "cycle_stationary",
+  "Stationary Bike, Zone 2": "cycle_stationary",
+  "Tempo Run": "run_outdoor",
+  "Threshold Run": "run_outdoor",
+  "Treadmill Run": "treadmill",
+  "Treadmill Walk": "treadmill",
+  "Walk-Run Intervals": "run_outdoor"
  }
 }

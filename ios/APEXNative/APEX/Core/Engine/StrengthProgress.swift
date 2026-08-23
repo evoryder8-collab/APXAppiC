@@ -120,7 +120,15 @@ enum StrengthProgress {
         var groupOrder: [String] = []
 
         for log in logs {
-            guard !log.skipped, let weight = log.weightKG, weight > 0, sessions[log.sessionID] != nil else { continue }
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: log.exerciseName,
+                movementID: log.movementID
+            )
+            guard descriptor.kind == .strength,
+                  !log.skipped,
+                  let weight = log.weightKG,
+                  weight > 0,
+                  sessions[log.sessionID] != nil else { continue }
             let key = exerciseKey(log)
             if grouped[key] == nil {
                 grouped[key] = Group(exerciseID: log.exerciseID, name: log.exerciseName)

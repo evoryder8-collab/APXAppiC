@@ -14,12 +14,15 @@
  */
 
 import type { WorkoutLog, WorkoutSession } from './types.ts'
+import {
+  descriptorForExercise,
+  isValidExerciseFacts,
+  normalizeExerciseFacts,
+  type ExerciseLoggingDescriptor,
+  type ExerciseLoggingFacts,
+} from './exerciseLogging.ts'
 
-export interface SetEntry {
-  weight: number | null
-  reps: number | null
-  rir: number | null
-}
+export interface SetEntry extends ExerciseLoggingFacts {}
 
 export interface LoggedSetEntry extends SetEntry {
   skipped: boolean
@@ -44,6 +47,7 @@ export interface ExerciseEntry {
   /* Null for anything not in the user's own exercise table, which is how the
    * guided player already treats substituted or ad-hoc movements. */
   exerciseId: string | null
+  movementId?: string | null
   name: string
   plannedSets: number
   sets: SetEntry[]
@@ -103,8 +107,14 @@ export function buildSessionRecords(
   const logs: WorkoutLog[] = []
   let order = 0
   for (const exercise of draft.exercises) {
+    const descriptor = descriptorForExercise({ name: exercise.name, movement_id: exercise.movementId })
     for (let setNo = 1; setNo <= exercise.plannedSets; setNo += 1) {
-      const entry = exercise.sets[setNo - 1]
+      const entry = exercise.sets[setNo - 1] ?? { weight: null, reps: null, rir: null }
+      const skipped = exercise.skipped || ('skipped' in entry && entry.skipped === true)
+      if (!skipped && !isValidExerciseFacts(entry, descriptor)) {
+        throw new Error(`Incomplete ${descriptor.kind} facts for ${exercise.name}, set ${setNo}`)
+      }
+      const facts = normalizeExerciseFacts(entry, descriptor, skipped)
       logs.push({
         id: newId(),
         user_id: draft.userId,
@@ -112,10 +122,17 @@ export function buildSessionRecords(
         exercise_id: exercise.exerciseId,
         exercise_name: exercise.name,
         set_no: setNo,
-        weight_kg: exercise.skipped ? null : entry?.weight ?? null,
-        reps: exercise.skipped ? null : entry?.reps ?? null,
-        rir: exercise.skipped ? null : entry?.rir ?? null,
-        skipped: exercise.skipped,
+        weight_kg: facts.weight,
+        reps: facts.reps,
+        rir: facts.rir,
+        movement_id: exercise.movementId ?? descriptor.movementId,
+        duration_seconds: facts.durationSeconds,
+        distance_meters: facts.distanceMeters,
+        contacts: facts.contacts,
+        rounds: facts.rounds,
+        work_seconds: facts.workSeconds,
+        recovery_seconds: facts.recoverySeconds,
+        skipped,
         override_flag: exercise.override,
         created_at: new Date(base + order++).toISOString(),
       })
@@ -132,8 +149,15 @@ export function buildSessionRecords(
 export function sessionQuality(exercises: ExerciseEntry[]): number {
   const planned = exercises.reduce((sum, e) => sum + e.plannedSets, 0)
   if (planned === 0) return 0
-  const done = exercises.reduce((sum, e) => e.skipped
-    ? sum
-    : sum + e.sets.filter((s) => (s.reps ?? 0) > 0).length, 0)
+  const done = exercises.reduce((sum, exercise) => {
+    if (exercise.skipped) return sum
+    const descriptor = descriptorForExercise({ name: exercise.name, movement_id: exercise.movementId })
+    if (descriptor.fields.includes('completion')) return sum + exercise.plannedSets
+    return sum + exercise.sets.filter((entry) => hasLoggedFact(entry, descriptor)).length
+  }, 0)
   return Math.min(1, done / planned)
+}
+
+export function hasLoggedFact(entry: SetEntry, descriptor: ExerciseLoggingDescriptor): boolean {
+  return isValidExerciseFacts(entry, descriptor)
 }

@@ -58,6 +58,29 @@ test('a saved manual workout reopens with its title, exercises, sets and weights
   assert.deepEqual(draft?.exercises[0]?.sets.map((set) => [set.reps, set.weightKg]), [[10, 80], [8, 86]])
 })
 
+test('reopening legacy rows preserves unknown strength load and resolves bodyweight to zero', () => {
+  const savedSession = session('legacy-load', '2026-07-15', 'Legacy loads')
+  const unknownStrength = {
+    ...log(savedSession.id, 'Seated Cable Row', 1),
+    weight_kg: null,
+  }
+  const bodyweight = {
+    ...log(savedSession.id, 'Pull-Up', 2),
+    id: 'legacy-load-pull-up',
+    movement_id: 'pull_up',
+    weight_kg: null,
+  }
+  const data: AppData = {
+    ...EMPTY_DATA,
+    workout_sessions: [savedSession],
+    workout_logs: [unknownStrength, bodyweight],
+  }
+
+  const draft = manualWorkoutEditorDraft(data, savedSession.id)
+  assert.equal(draft?.exercises[0]?.sets[0]?.weightKg, null)
+  assert.equal(draft?.exercises[1]?.sets[0]?.weightKg, 0)
+})
+
 test('repeated same-name exercises remain separate occurrences after reload', () => {
   const savedSession = session('repeat', '2026-07-15', 'Back and arms')
   const rows = [

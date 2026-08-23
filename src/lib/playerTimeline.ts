@@ -37,6 +37,23 @@ export type Block =
   | { kind: 'log'; exIdx: number; exercise: PlannedExercise }
   | { kind: 'done' }
 
+export function canAdvanceRest(
+  block: Extract<Block, { kind: 'rest' }>,
+  reviewFinalized: boolean | undefined,
+): boolean {
+  return !block.reviewExercise || reviewFinalized === true
+}
+
+export function canJumpToCheckpoint(
+  current: Block,
+  currentIndex: number,
+  targetIndex: number,
+  reviewFinalized: boolean | undefined,
+): boolean {
+  if (targetIndex <= currentIndex || current.kind !== 'rest') return true
+  return canAdvanceRest(current, reviewFinalized)
+}
+
 /**
  * Passive blocks are allowed to keep counting while the PWA is backgrounded.
  * Active sets are intentionally excluded: a throttled/hidden browser must

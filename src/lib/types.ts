@@ -185,6 +185,13 @@ export interface WorkoutLog {
   weight_kg: number | null
   reps: number | null
   rir: number | null
+  movement_id?: string | null
+  duration_seconds?: number | null
+  distance_meters?: number | null
+  contacts?: number | null
+  rounds?: number | null
+  work_seconds?: number | null
+  recovery_seconds?: number | null
   skipped: boolean
   override_flag: boolean
   created_at: string
