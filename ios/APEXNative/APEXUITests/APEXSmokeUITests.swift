@@ -180,12 +180,13 @@ final class APEXSmokeUITests: XCTestCase {
         main.tap()
 
         let today = calendarKey(offset: 0)
-        let tomorrow = calendarKey(offset: 1)
+        let weekday = Calendar.current.component(.weekday, from: Date())
+        let emptyDay = calendarKey(offset: weekday == 1 ? -1 : 1)
         let todayCell = app.buttons["calendar-day-\(today)"]
         XCTAssertTrue(scrollUntilVisible(todayCell, in: app))
         XCTAssertTrue(todayCell.label.contains("Scheduled"), todayCell.label)
 
-        let emptyCell = app.buttons["calendar-day-\(tomorrow)"]
+        let emptyCell = app.buttons["calendar-day-\(emptyDay)"]
         XCTAssertTrue(emptyCell.exists)
         XCTAssertTrue(emptyCell.label.contains("No prescription"), emptyCell.label)
         capture("training-calendar-states")
