@@ -6082,7 +6082,7 @@ export const MOVEMENTS: Movement[] = [
   },
   {
     id: 'kettlebell_clean', name: 'Kettlebell Clean', pattern: 'hip_hinge',
-    disciplines: ['crossfit', 'strength'], primaryMuscles: ['glutes', 'hamstrings'],
+    disciplines: ['crossfit', 'strength', 'kettlebell_sport'], primaryMuscles: ['glutes', 'hamstrings'],
     secondaryMuscles: ['traps', 'forearms'], equipment: ['kettlebell'],
     skill: 4, stabilityDemand: 2,
     canFailSafely: true, needsSpotter: false, needsSafeties: false,
@@ -6244,7 +6244,7 @@ export const MOVEMENTS: Movement[] = [
   },
   {
     id: 'bear_crawl', name: 'Bear Crawl', pattern: 'conditioning',
-    disciplines: ['calisthenics', 'hiit', 'conditioning'], primaryMuscles: ['core', 'front_delts'],
+    disciplines: ['calisthenics', 'hiit', 'conditioning', 'crossfit'], primaryMuscles: ['core', 'front_delts'],
     secondaryMuscles: ['quadriceps'], equipment: ['floor_space'],
     skill: 2, stabilityDemand: 2,
     canFailSafely: true, needsSpotter: false, needsSafeties: false,
