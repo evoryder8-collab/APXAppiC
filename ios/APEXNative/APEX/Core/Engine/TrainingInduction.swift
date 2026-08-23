@@ -555,6 +555,8 @@ enum TrainingInduction {
         var increment: Double = 0
         var notes: String?
         var optional = false
+        var workGroupKey: String?
+        var workGroupPosition: Int?
     }
 
     private struct SessionSpec {
@@ -614,8 +616,8 @@ enum TrainingInduction {
                 name: "Full Body A", type: "upper", minutes: main ? 52 : 38, warmup: warmup,
                 exercises: [
                     ExerciseSpec(name: "Leg Press", sets: sets, repMin: 8, repMax: 12, rest: 105, increment: 5),
-                    ExerciseSpec(name: "Machine Chest Press", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5),
-                    ExerciseSpec(name: "Seated Cable Row", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5),
+                    ExerciseSpec(name: "Machine Chest Press", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 1),
+                    ExerciseSpec(name: "Seated Cable Row", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 2),
                     ExerciseSpec(name: "Seated Leg Curl", sets: sets, repMin: 10, repMax: 15, rest: 75, increment: 2.5),
                     ExerciseSpec(name: "Pallof Press", repMin: 8, repMax: 12, perSide: true, rest: 45),
                 ]
@@ -624,8 +626,8 @@ enum TrainingInduction {
                 name: "Full Body B", type: "legs_b", minutes: main ? 54 : 40, warmup: warmup,
                 exercises: [
                     ExerciseSpec(name: "Dumbbell Romanian Deadlift", sets: sets, repMin: 8, repMax: 12, rest: 105, increment: 2.5),
-                    ExerciseSpec(name: "Lat Pulldown", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5),
-                    ExerciseSpec(name: "Machine Shoulder Press", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5),
+                    ExerciseSpec(name: "Lat Pulldown", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 1),
+                    ExerciseSpec(name: "Machine Shoulder Press", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 2),
                     ExerciseSpec(name: "Supported Split Squat", sets: sets, repMin: 8, repMax: 10, perSide: true, rest: 90, increment: 2.5),
                     ExerciseSpec(name: "Farmer Carry", sets: 3, repMin: 30, repMax: 45, unit: "seconds", rest: 60, increment: 2.5),
                 ]
@@ -634,8 +636,8 @@ enum TrainingInduction {
                 name: "Full Body C", type: "upper", minutes: main ? 52 : 38, warmup: warmup,
                 exercises: [
                     ExerciseSpec(name: "Hack Squat", sets: sets, repMin: 8, repMax: 12, rest: 105, increment: 5),
-                    ExerciseSpec(name: "Incline Dumbbell Press", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5),
-                    ExerciseSpec(name: "Chest-Supported Row", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5),
+                    ExerciseSpec(name: "Incline Dumbbell Press", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 1),
+                    ExerciseSpec(name: "Chest-Supported Row", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2.5, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 2),
                     ExerciseSpec(name: "Cable Lateral Raise", repMin: 12, repMax: 18, rest: 45, increment: 1),
                     ExerciseSpec(name: "Dead Bug", repMin: 8, repMax: 12, perSide: true, rest: 45),
                 ]
@@ -683,8 +685,8 @@ enum TrainingInduction {
                 name: "\(venueLabel) Full Body A", type: "upper", minutes: main ? 44 : 30, warmup: warmup,
                 exercises: [
                     ExerciseSpec(name: names["squat"] ?? "", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2),
-                    ExerciseSpec(name: names["push"] ?? "", sets: sets, repMin: 8, repMax: 15, rest: 75, increment: 2),
-                    ExerciseSpec(name: row, sets: sets, repMin: 8, repMax: 15, perSide: row.contains("One-Arm"), rest: 75, increment: 2),
+                    ExerciseSpec(name: names["push"] ?? "", sets: sets, repMin: 8, repMax: 15, rest: 75, increment: 2, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 1),
+                    ExerciseSpec(name: row, sets: sets, repMin: 8, repMax: 15, perSide: row.contains("One-Arm"), rest: 75, increment: 2, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 2),
                     ExerciseSpec(name: "Dead Bug", repMin: 8, repMax: 12, perSide: true, rest: 30),
                     ExerciseSpec(name: names["carry"] ?? "", sets: 3, repMin: 30, repMax: 45, unit: "seconds", perSide: true, rest: 45, increment: 2),
                 ]
@@ -693,8 +695,8 @@ enum TrainingInduction {
                 name: "\(venueLabel) Full Body B", type: "legs_b", minutes: main ? 46 : 32, warmup: warmup,
                 exercises: [
                     ExerciseSpec(name: names["hinge"] ?? "", sets: sets, repMin: 8, repMax: 12, rest: 90, increment: 2),
-                    ExerciseSpec(name: names["press"] ?? "", sets: sets, repMin: 8, repMax: 12, rest: 75, increment: 2),
-                    ExerciseSpec(name: names["pull"] ?? "", sets: sets, repMin: 6, repMax: 12, rest: 90, increment: 1),
+                    ExerciseSpec(name: names["press"] ?? "", sets: sets, repMin: 8, repMax: 12, rest: 75, increment: 2, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 1),
+                    ExerciseSpec(name: names["pull"] ?? "", sets: sets, repMin: 6, repMax: 12, rest: 90, increment: 1, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 2),
                     ExerciseSpec(name: "Supported Reverse Lunge", repMin: 8, repMax: 10, perSide: true, rest: 75),
                     ExerciseSpec(name: "Side Plank", repMin: 20, repMax: 35, unit: "seconds", perSide: true, rest: 30),
                 ]
@@ -703,8 +705,8 @@ enum TrainingInduction {
                 name: "\(venueLabel) Full Body C", type: "upper", minutes: main ? 44 : 30, warmup: warmup,
                 exercises: [
                     ExerciseSpec(name: "Step-Up", sets: sets, repMin: 8, repMax: 12, perSide: true, rest: 75, increment: 2),
-                    ExerciseSpec(name: names["push"] ?? "", sets: sets, repMin: 8, repMax: 15, rest: 75, increment: 2),
-                    ExerciseSpec(name: row, sets: sets, repMin: 8, repMax: 15, perSide: row.contains("One-Arm"), rest: 75, increment: 2),
+                    ExerciseSpec(name: names["push"] ?? "", sets: sets, repMin: 8, repMax: 15, rest: 75, increment: 2, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 1),
+                    ExerciseSpec(name: row, sets: sets, repMin: 8, repMax: 15, perSide: row.contains("One-Arm"), rest: 75, increment: 2, workGroupKey: main ? nil : "upper-pair", workGroupPosition: 2),
                     ExerciseSpec(name: "Hip Thrust", sets: sets, repMin: 10, repMax: 15, rest: 75, increment: 2),
                     ExerciseSpec(name: "Bird-Dog", repMin: 6, repMax: 10, perSide: true, rest: 30),
                 ]
@@ -841,6 +843,13 @@ enum TrainingInduction {
                             userID: userID,
                             programDayID: dayID,
                             name: spec.name,
+                            workGroupID: spec.workGroupKey.map { key in
+                                APEXStableID.inductionUUID(
+                                    userID: userID,
+                                    label: "\(slug):day:\(weekday):work-group:\(key)\(revisionSuffix)"
+                                )
+                            },
+                            workGroupPosition: spec.workGroupKey == nil ? nil : spec.workGroupPosition,
                             sets: max(1, spec.sets - (lite ? 1 : 0)),
                             repMin: spec.repMin,
                             repMax: spec.repMax,
@@ -864,6 +873,22 @@ enum TrainingInduction {
 
                 for (index, exercise) in spec.exercises.enumerated() { add(exercise, index: index, lite: false) }
                 for (index, exercise) in spec.exercises.prefix(3).enumerated() { add(exercise, index: index, lite: true) }
+
+                let full = exercises
+                    .filter { $0.programDayID == dayID && !$0.isLite }
+                    .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) }
+                if let dayIndex = programDays.firstIndex(where: { $0.id == dayID }), !full.isEmpty {
+                    var generatedDay = programDays[dayIndex]
+                    generatedDay.estimatedMinutes = PlayerTimeline.estimatedMinutes(
+                        PlannedDay(
+                            programDay: generatedDay,
+                            exercises: full,
+                            warmup: generatedDay.warmupNote,
+                            warmupDuration: 180
+                        )
+                    )
+                    programDays[dayIndex] = generatedDay
+                }
             }
         }
 

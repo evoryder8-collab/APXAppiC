@@ -97,9 +97,9 @@ export interface Prescription {
   /* A main slot fills one of the session's pillars; accessory work is what
    * gets added when there is time left after the pillars are covered. */
   slot: 'main' | 'accessory'
-  /* Movements sharing a group are alternated. Each one still gets its full
-   * rest, because the other one is what fills it. */
-  supersetGroup: number | null
+  /* Any linked work uses this one round model: two members are a superset and
+   * three or more are a circuit. Each member keeps its authored recovery. */
+  workGroup: { key: number; position: number } | null
   /* How the rep itself is performed. Null where timing a rep is meaningless:
    * a jump, an Olympic lift, a plank, a breath-paced flow. */
   tempo: Tempo | null
@@ -363,7 +363,7 @@ function prescribe(m: Movement, intake: GeneratorIntake): Prescription {
     incrementKg: m.minIncrementKg,
     repsInReserve: rir,
     estimatedSeconds: estimateSeconds(m, sets, repHigh, unit, intent),
-    supersetGroup: null,
+    workGroup: null,
     slot: 'main',
     tempo,
     tempoClass: cls.label,
@@ -493,16 +493,16 @@ export function generateWeek(intake: GeneratorIntake, kitName?: string): Generat
         const cost = pairSeconds(first.p, second.p, first.m, second.m, intentOf(intake))
         if (cost <= secondsLeft) {
           group += 1
-          blocks.push({ ...first.p, supersetGroup: group, estimatedSeconds: Math.round(cost / 2) })
-          blocks.push({ ...second.p, supersetGroup: group, estimatedSeconds: Math.round(cost / 2) })
+          blocks.push({ ...first.p, workGroup: { key: group, position: 1 }, estimatedSeconds: Math.round(cost / 2) })
+          blocks.push({ ...second.p, workGroup: { key: group, position: 2 }, estimatedSeconds: Math.round(cost / 2) })
           secondsLeft -= cost
         } else if (first.p.sets > 1) {
           const sets = first.p.sets - 1
           const trimmed = Math.round(cost * (sets / first.p.sets))
           if (trimmed <= secondsLeft) {
             group += 1
-            blocks.push({ ...first.p, sets, supersetGroup: group, estimatedSeconds: Math.round(trimmed / 2) })
-            blocks.push({ ...second.p, sets, supersetGroup: group, estimatedSeconds: Math.round(trimmed / 2) })
+            blocks.push({ ...first.p, sets, workGroup: { key: group, position: 1 }, estimatedSeconds: Math.round(trimmed / 2) })
+            blocks.push({ ...second.p, sets, workGroup: { key: group, position: 2 }, estimatedSeconds: Math.round(trimmed / 2) })
             secondsLeft -= trimmed
           }
         }

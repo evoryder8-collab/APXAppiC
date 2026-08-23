@@ -7,6 +7,13 @@ import {
   sideSwitchSeconds,
   transitionSeconds,
 } from './sessionShape.ts'
+import {
+  buildWorkSequence,
+  workGroupRecoverySeconds,
+  type WorkPosition,
+} from './workGrouping.ts'
+
+export { buildWorkSequence } from './workGrouping.ts'
 
 export type Block =
   | { kind: 'warmup'; text: string; duration: number }
@@ -22,6 +29,8 @@ export type Block =
       targetReps: number | null // null = max/failure set, count up
       repDuration: number // seconds per rep for the cadence engine
       timed: number | null // seconds, for holds/videos, replaces rep counting
+      groupLabel: string | null
+      round: number | null
     }
   | { kind: 'side_switch'; exIdx: number; setNo: number; duration: number; exercise: PlannedExercise; nextSide: 'right' }
   | {
@@ -33,6 +42,9 @@ export type Block =
       exercise: PlannedExercise
       captureLoad: boolean
       reviewExercise?: boolean
+      workGroupTransition: boolean
+      groupLabel: string | null
+      round: number | null
     }
   | { kind: 'log'; exIdx: number; exercise: PlannedExercise }
   | { kind: 'done' }
@@ -159,17 +171,30 @@ export function timedSeconds(e: PlannedExercise): number | null {
   return null
 }
 
+function workGroupRecovery(exercises: PlannedExercise[], groupId: string): number {
+  return workGroupRecoverySeconds(exercises, groupId, (exercise) => exercise.rest_sec)
+}
+
+function nextWorkLabel(position: WorkPosition, exercise: PlannedExercise): string {
+  return position.groupLabel
+    ? `${position.groupLabel} · ${exercise.name}, round ${position.setNo}`
+    : `${exercise.name}, set ${position.setNo}`
+}
+
 export function buildTimeline(plan: PlannedDay): Block[] {
   const movementOf = (e: PlannedExercise) => movementForExercise(e)
   const blocks: Block[] = []
   if (plan.warmup && plan.warmupDuration > 0) {
     blocks.push({ kind: 'warmup', text: plan.warmup, duration: plan.warmupDuration })
   }
-  plan.exercises.forEach((e, exIdx) => {
+  const sequence = buildWorkSequence(plan.exercises)
+  sequence.forEach((position, sequenceIndex) => {
+    const exIdx = position.exIdx
+    const e = plan.exercises[exIdx]
     if (e.rep_unit === 'check') {
       blocks.push({ kind: 'check', exIdx, exercise: e })
     } else {
-      for (let setNo = 1; setNo <= e.planned_sets; setNo++) {
+      const setNo = position.setNo
         const sides: Array<'left' | 'right' | null> = e.per_side ? ['left', 'right'] : [null]
         for (const [sideIndex, side] of sides.entries()) {
           blocks.push({
@@ -183,6 +208,8 @@ export function buildTimeline(plan: PlannedDay): Block[] {
             targetReps: repTarget(e),
             repDuration: repDuration(e),
             timed: timedSeconds(e),
+            groupLabel: position.groupLabel,
+            round: position.groupId ? setNo : null,
           })
           if (side === 'left' && sideIndex < sides.length - 1) {
             blocks.push({
@@ -195,34 +222,36 @@ export function buildTimeline(plan: PlannedDay): Block[] {
             })
           }
         }
-        const isLast = setNo === e.planned_sets
-        if (!isLast && e.rest_sec > 0) {
-          blocks.push({
-            kind: 'rest',
-            exIdx,
-            afterSet: setNo,
-            duration: e.rest_sec,
-            nextLabel: `${e.name}, set ${setNo + 1}`,
-            exercise: e,
-            captureLoad: shouldCaptureLoad(e),
-          })
-        }
-      }
-      const next = plan.exercises[exIdx + 1]
-      if (next) {
+      const nextPosition = sequence[sequenceIndex + 1]
+      const next = nextPosition ? plan.exercises[nextPosition.exIdx] : undefined
+      if (next && nextPosition) {
+        const sameGroup = position.groupId != null && position.groupId === nextPosition.groupId
+        const withinRound = sameGroup && position.setNo === nextPosition.setNo
+        const betweenRounds = sameGroup && nextPosition.setNo > position.setNo
+        const sameExercise = exIdx === nextPosition.exIdx
+        const reviewExercise = setNo === e.planned_sets && !sameExercise
+        const duration = withinRound
+          ? 15
+          : betweenRounds
+            ? workGroupRecovery(plan.exercises, position.groupId!)
+            : sameExercise
+              ? e.rest_sec
+              : transitionSeconds(movementOf(e), movementOf(next), e.rest_sec)
+        if (duration > 0 || reviewExercise) {
         blocks.push({
           kind: 'rest',
           exIdx,
-          afterSet: e.planned_sets,
-          duration: transitionSeconds(movementOf(e), movementOf(next), e.rest_sec),
-          nextLabel: next.name,
+          afterSet: setNo,
+          duration,
+          nextLabel: nextWorkLabel(nextPosition, next),
           exercise: e,
-          // The last set's load is confirmed in the exercise review this block
-          // renders, not in a per-set prompt, so asking here would be a second
-          // question about the same number.
-          captureLoad: false,
-          reviewExercise: true,
+          captureLoad: !reviewExercise && shouldCaptureLoad(e),
+          reviewExercise,
+          workGroupTransition: withinRound,
+          groupLabel: position.groupLabel,
+          round: position.groupId ? setNo : null,
         })
+        }
       } else {
         blocks.push({ kind: 'log', exIdx, exercise: e })
       }

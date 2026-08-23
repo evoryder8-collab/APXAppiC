@@ -21,6 +21,7 @@ import {
   type ExerciseLoggingDescriptor,
   type ExerciseLoggingFacts,
 } from './exerciseLogging.ts'
+import { buildWorkSequence } from './workGrouping.ts'
 
 export interface SetEntry extends ExerciseLoggingFacts {}
 
@@ -50,6 +51,9 @@ export interface ExerciseEntry {
   movementId?: string | null
   name: string
   plannedSets: number
+  repUnit?: string
+  workGroupId?: string | null
+  workGroupPosition?: number | null
   sets: SetEntry[]
   skipped: boolean
   override: boolean
@@ -106,37 +110,43 @@ export function buildSessionRecords(
   const base = Date.parse(draft.completedAt)
   const logs: WorkoutLog[] = []
   let order = 0
-  for (const exercise of draft.exercises) {
+  const sequence = buildWorkSequence(draft.exercises.map((exercise) => ({
+    sets: exercise.plannedSets,
+    rep_unit: exercise.repUnit ?? 'reps',
+    work_group_id: exercise.workGroupId,
+    work_group_position: exercise.workGroupPosition,
+  })))
+  for (const position of sequence) {
+    const exercise = draft.exercises[position.exIdx]
+    const setNo = position.setNo
     const descriptor = descriptorForExercise({ name: exercise.name, movement_id: exercise.movementId })
-    for (let setNo = 1; setNo <= exercise.plannedSets; setNo += 1) {
-      const entry = exercise.sets[setNo - 1] ?? { weight: null, reps: null, rir: null }
-      const skipped = exercise.skipped || ('skipped' in entry && entry.skipped === true)
-      if (!skipped && !isValidExerciseFacts(entry, descriptor)) {
-        throw new Error(`Incomplete ${descriptor.kind} facts for ${exercise.name}, set ${setNo}`)
-      }
-      const facts = normalizeExerciseFacts(entry, descriptor, skipped)
-      logs.push({
-        id: newId(),
-        user_id: draft.userId,
-        session_id: draft.sessionId,
-        exercise_id: exercise.exerciseId,
-        exercise_name: exercise.name,
-        set_no: setNo,
-        weight_kg: facts.weight,
-        reps: facts.reps,
-        rir: facts.rir,
-        movement_id: exercise.movementId ?? descriptor.movementId,
-        duration_seconds: facts.durationSeconds,
-        distance_meters: facts.distanceMeters,
-        contacts: facts.contacts,
-        rounds: facts.rounds,
-        work_seconds: facts.workSeconds,
-        recovery_seconds: facts.recoverySeconds,
-        skipped,
-        override_flag: exercise.override,
-        created_at: new Date(base + order++).toISOString(),
-      })
+    const entry = exercise.sets[setNo - 1] ?? { weight: null, reps: null, rir: null }
+    const skipped = exercise.skipped || ('skipped' in entry && entry.skipped === true)
+    if (!skipped && !isValidExerciseFacts(entry, descriptor)) {
+      throw new Error(`Incomplete ${descriptor.kind} facts for ${exercise.name}, set ${setNo}`)
     }
+    const facts = normalizeExerciseFacts(entry, descriptor, skipped)
+    logs.push({
+      id: newId(),
+      user_id: draft.userId,
+      session_id: draft.sessionId,
+      exercise_id: exercise.exerciseId,
+      exercise_name: exercise.name,
+      set_no: setNo,
+      weight_kg: facts.weight,
+      reps: facts.reps,
+      rir: facts.rir,
+      movement_id: exercise.movementId ?? descriptor.movementId,
+      duration_seconds: facts.durationSeconds,
+      distance_meters: facts.distanceMeters,
+      contacts: facts.contacts,
+      rounds: facts.rounds,
+      work_seconds: facts.workSeconds,
+      recovery_seconds: facts.recoverySeconds,
+      skipped,
+      override_flag: exercise.override,
+      created_at: new Date(base + order++).toISOString(),
+    })
   }
   return { session, logs }
 }

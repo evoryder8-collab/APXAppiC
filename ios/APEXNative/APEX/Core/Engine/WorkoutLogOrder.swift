@@ -25,13 +25,38 @@ enum WorkoutLogOrder {
     static func performedOrder(_ data: DashboardData, sessionID: UUID) -> [WorkoutLog] {
         let session = data.workoutSessions.first { $0.id == sessionID }
         let planned = data.exercises
-            .filter { $0.programDayID == session?.programDayID }
+            .filter {
+                $0.programDayID == session?.programDayID
+                    && $0.isLite == (session?.isLite ?? false)
+            }
             .sorted { $0.sortOrder < $1.sortOrder }
         var plannedByID: [UUID: Int] = [:]
         var plannedByName: [String: Int] = [:]
         for (index, exercise) in planned.enumerated() {
             plannedByID[exercise.id] = index
             plannedByName[exercise.name.trimmingCharacters(in: .whitespaces).lowercased()] = index
+        }
+
+        let workSequence = PlayerTimeline.workSequence(planned)
+        if workSequence.contains(where: { $0.groupID != nil }) {
+            var persistedRank: [String: Int] = [:]
+            for (rank, position) in workSequence.enumerated() {
+                let exercise = planned[position.exerciseIndex]
+                persistedRank["id:\(exercise.id.uuidString):\(position.setNumber)"] = rank
+                let name = exercise.name.trimmingCharacters(in: .whitespaces).lowercased()
+                persistedRank["name:\(name):\(position.setNumber)"] = rank
+            }
+            return data.workoutLogs.enumerated()
+                .filter { $0.element.sessionID == sessionID }
+                .sorted { left, right in
+                    let leftRank = persistedRank["\(key(for: left.element)):\(left.element.setNumber)"]
+                    let rightRank = persistedRank["\(key(for: right.element)):\(right.element.setNumber)"]
+                    if let leftRank, let rightRank, leftRank != rightRank { return leftRank < rightRank }
+                    if leftRank != nil && rightRank == nil { return true }
+                    if leftRank == nil && rightRank != nil { return false }
+                    return left.offset < right.offset
+                }
+                .map(\.element)
         }
 
         struct Group {

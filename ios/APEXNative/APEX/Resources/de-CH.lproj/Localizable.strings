@@ -1726,3 +1726,8 @@
 "7 days free, then" = "7 Täg gratis, dernah";
 "Monthly" = "Monatlich";
 "Yearly" = "Jährlich";
+"ROUND" = "RUNDE";
+"Round" = "Runde";
+"ROUND %d" = "RUNDE %d";
+"NEXT IN GROUP" = "ALS NÄCHSTES IN DER GRUPPE";
+"REST AFTER ROUND" = "PAUSE NACH DER RUNDE";

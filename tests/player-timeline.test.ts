@@ -104,3 +104,78 @@ test('every single-sided exercise gets a leg-change block sized to the movement'
   assert.equal(rowTimeline[rowLeft + 1]?.kind, 'side_switch',
     'a single-arm row sent the follower straight from one side to the other')
 })
+
+test('linked exercises run as labelled rounds with recovery after the pair', () => {
+  const group = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+  const grouped = (patch: Partial<PlannedExercise>, position: number): PlannedExercise => exercise({
+    ...patch,
+    ...({ work_group_id: group, work_group_position: position } as unknown as Partial<PlannedExercise>),
+    planned_sets: 2,
+    sets: 2,
+  })
+  const plan: PlannedDay = {
+    programDay: null,
+    exercises: [
+      grouped({ id: 'press', name: 'Machine Chest Press', rest_sec: 90 }, 1),
+      grouped({ id: 'row', name: 'Seated Cable Row', rest_sec: 75 }, 2),
+    ],
+    warmup: '', warmupDuration: 0, badges: [], isDeload: false, isEventDay: false,
+    isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+  }
+
+  const timeline = buildTimeline(plan)
+  const sets = timeline.filter((block) => block.kind === 'set')
+  assert.deepEqual(
+    sets.map((block) => [block.exIdx, block.setNo]),
+    [[0, 1], [1, 1], [0, 2], [1, 2]],
+    'exercise-major order silently flattens the linked work',
+  )
+  assert.deepEqual(
+    sets.map((block) => (block as typeof block & { groupLabel?: string }).groupLabel),
+    ['A1', 'A2', 'A1', 'A2'],
+  )
+
+  const firstPress = timeline.findIndex((block) => block.kind === 'set' && block.exIdx === 0 && block.setNo === 1)
+  const firstRow = timeline.findIndex((block) => block.kind === 'set' && block.exIdx === 1 && block.setNo === 1)
+  const transition = timeline[firstPress + 1]
+  const recovery = timeline[firstRow + 1]
+  assert.ok(transition?.kind === 'rest')
+  assert.equal((transition as typeof transition & { workGroupTransition?: boolean }).workGroupTransition, true)
+  assert.match(transition.nextLabel, /^A2 · Seated Cable Row, round 1$/)
+  assert.ok(recovery?.kind === 'rest')
+  assert.equal((recovery as typeof recovery & { workGroupTransition?: boolean }).workGroupTransition, false)
+  assert.equal(recovery.duration, 90, 'the long recovery belongs after the complete pair')
+  assert.match(recovery.nextLabel, /^A1 · Machine Chest Press, round 2$/)
+})
+
+test('an orphaned group id remains an ordinary sequential exercise', () => {
+  const groupedPatch = {
+    work_group_id: 'bbbbbbbb-cccc-4ddd-8eee-ffffffffffff',
+    work_group_position: 1,
+  } as unknown as Partial<PlannedExercise>
+  const plan: PlannedDay = {
+    programDay: null,
+    exercises: [
+      exercise({ id: 'press', name: 'Machine Chest Press', planned_sets: 2, sets: 2, ...groupedPatch }),
+      exercise({ id: 'row', name: 'Seated Cable Row', planned_sets: 2, sets: 2 }),
+    ],
+    warmup: '', warmupDuration: 0, badges: [], isDeload: false, isEventDay: false,
+    isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+  }
+
+  const order = buildTimeline(plan)
+    .filter((block) => block.kind === 'set')
+    .map((block) => [block.exIdx, block.setNo])
+  assert.deepEqual(order, [[0, 1], [0, 2], [1, 1], [1, 2]])
+})
+
+test('a decision checkpoint remains one checkpoint when legacy data carries multiple sets', () => {
+  const plan: PlannedDay = {
+    programDay: null,
+    exercises: [exercise({ rep_unit: 'check', sets: 3, planned_sets: 3 })],
+    warmup: '', warmupDuration: 0, badges: [], isDeload: false, isEventDay: false,
+    isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+  }
+
+  assert.equal(buildTimeline(plan).filter((block) => block.kind === 'check').length, 1)
+})

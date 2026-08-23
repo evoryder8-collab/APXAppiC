@@ -1261,6 +1261,46 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(transitionIDs.count, 3)
     }
 
+    func testShortGeneratedSessionsPersistOneGenericWorkGroupForThePair() throws {
+        let plan = TrainingInduction.generate(userID: user, input: input {
+            $0.venue = "home"
+            $0.equipment = ["adjustable_dumbbells", "resistance_bands"]
+            $0.sessionsPerWeek = 3
+        })
+        let transitionIDs = Set(
+            plan.induction["transition_day_ids"]?.arrayValue?.compactMap(\.stringValue) ?? []
+        )
+        let day = try XCTUnwrap(plan.programDays.first {
+            transitionIDs.contains($0.id.uuidString.lowercased()) && $0.name.contains("Full Body A")
+        })
+        let encoded = try JSONEncoder().encode(
+            plan.exercises.filter { $0.programDayID == day.id && !$0.isLite }
+        )
+        let rows = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [[String: Any]]
+        )
+        let grouped = rows.filter { $0["work_group_id"] is String }
+
+        XCTAssertEqual(grouped.count, 2)
+        XCTAssertEqual(Set(grouped.compactMap { $0["work_group_id"] as? String }).count, 1)
+        XCTAssertEqual(grouped.compactMap { $0["work_group_position"] as? Int }, [1, 2])
+        XCTAssertEqual(grouped.compactMap { $0["name"] as? String }, ["Dumbbell Floor Press", "One-Arm Dumbbell Row"])
+
+        let runnable = PlannedDay(
+            programDay: day,
+            exercises: plan.exercises
+                .filter { $0.programDayID == day.id && !$0.isLite }
+                .map { PlannedExercise(exercise: $0, plannedSets: $0.sets, swapped: false) },
+            warmup: day.warmupNote,
+            warmupDuration: 180
+        )
+        XCTAssertEqual(
+            day.estimatedMinutes,
+            PlayerTimeline.estimatedMinutes(runnable),
+            "the session card must advertise the grouped timeline it actually runs"
+        )
+    }
+
     func testTheMainPhaseOpensTwelveWeeksOut() {
         let plan = TrainingInduction.generate(userID: user, input: input())
         XCTAssertEqual(plan.induction["main_start_date"]?.stringValue, "2026-03-30")

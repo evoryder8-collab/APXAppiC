@@ -166,18 +166,21 @@ test('the main slots get primary movements, not accessories', () => {
   }
 })
 
-test('a superset alternates movements that do not compete for recovery', () => {
+test('a linked work group alternates movements without a superset-only representation', () => {
   const week = generateWeek(intake({ minutesPerSession: 20 }), 'home_gym')
+  let linkedGroups = 0
   for (const session of week.sessions) {
     const groups = new Map<number, typeof session.blocks>()
     for (const block of session.blocks) {
-      if (block.supersetGroup === null) continue
-      const list = groups.get(block.supersetGroup) ?? []
+      if (!block.workGroup) continue
+      const list = groups.get(block.workGroup.key) ?? []
       list.push(block)
-      groups.set(block.supersetGroup, list)
+      groups.set(block.workGroup.key, list)
     }
     for (const [group, blocks] of groups) {
+      linkedGroups += 1
       assert.equal(blocks.length, 2, `superset ${group} is not a pair`)
+      assert.deepEqual(blocks.map((block) => block.workGroup?.position), [1, 2])
       const [a, b] = blocks.map((x) => MOVEMENT_BY_ID.get(x.movementId)!)
       const shared = a.primaryMuscles.filter((muscle) => b.primaryMuscles.includes(muscle))
       assert.equal(shared.length, 0,
@@ -190,6 +193,7 @@ test('a superset alternates movements that do not compete for recovery', () => {
       }
     }
   }
+  assert.ok(linkedGroups > 0, 'short plans never exercise the linked-work model')
 })
 
 test('a kit that cannot fill a pattern says so rather than going quiet', () => {

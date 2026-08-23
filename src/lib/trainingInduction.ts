@@ -179,6 +179,8 @@ interface ExerciseSpec {
   increment?: number
   notes?: string
   optional?: boolean
+  workGroupKey?: string
+  workGroupPosition?: number
 }
 
 interface SessionSpec {
@@ -245,8 +247,8 @@ function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4 | 5): Sessio
       name: 'Full Body A', type: 'upper', minutes: main ? 52 : 38, warmup,
       exercises: [
         { name: 'Leg Press', sets, reps: [8, 12], rest: 105, increment: 5 },
-        { name: 'Machine Chest Press', sets, reps: [8, 12], rest: 90, increment: 2.5 },
-        { name: 'Seated Cable Row', sets, reps: [8, 12], rest: 90, increment: 2.5 },
+        { name: 'Machine Chest Press', sets, reps: [8, 12], rest: 90, increment: 2.5, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 1 },
+        { name: 'Seated Cable Row', sets, reps: [8, 12], rest: 90, increment: 2.5, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 2 },
         { name: 'Seated Leg Curl', sets, reps: [10, 15], rest: 75, increment: 2.5 },
         { name: 'Pallof Press', sets: 2, reps: [8, 12], perSide: true, rest: 45 },
       ],
@@ -255,8 +257,8 @@ function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4 | 5): Sessio
       name: 'Full Body B', type: 'legs_b', minutes: main ? 54 : 40, warmup,
       exercises: [
         { name: 'Dumbbell Romanian Deadlift', sets, reps: [8, 12], rest: 105, increment: 2.5 },
-        { name: 'Lat Pulldown', sets, reps: [8, 12], rest: 90, increment: 2.5 },
-        { name: 'Machine Shoulder Press', sets, reps: [8, 12], rest: 90, increment: 2.5 },
+        { name: 'Lat Pulldown', sets, reps: [8, 12], rest: 90, increment: 2.5, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 1 },
+        { name: 'Machine Shoulder Press', sets, reps: [8, 12], rest: 90, increment: 2.5, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 2 },
         { name: 'Supported Split Squat', sets, reps: [8, 10], perSide: true, rest: 90, increment: 2.5 },
         { name: 'Farmer Carry', sets: 3, reps: [30, 45], unit: 'seconds', rest: 60, increment: 2.5 },
       ],
@@ -265,8 +267,8 @@ function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4 | 5): Sessio
       name: 'Full Body C', type: 'upper', minutes: main ? 52 : 38, warmup,
       exercises: [
         { name: 'Hack Squat', sets, reps: [8, 12], rest: 105, increment: 5 },
-        { name: 'Incline Dumbbell Press', sets, reps: [8, 12], rest: 90, increment: 2.5 },
-        { name: 'Chest-Supported Row', sets, reps: [8, 12], rest: 90, increment: 2.5 },
+        { name: 'Incline Dumbbell Press', sets, reps: [8, 12], rest: 90, increment: 2.5, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 1 },
+        { name: 'Chest-Supported Row', sets, reps: [8, 12], rest: 90, increment: 2.5, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 2 },
         { name: 'Cable Lateral Raise', sets: 2, reps: [12, 18], rest: 45, increment: 1 },
         { name: 'Dead Bug', sets: 2, reps: [8, 12], perSide: true, rest: 45 },
       ],
@@ -309,8 +311,8 @@ function homeSessions(
       name: `${venueLabel} Full Body A`, type: 'upper', minutes: main ? 44 : 30, warmup,
       exercises: [
         { name: names.squat, sets, reps: [8, 12], rest: 90, increment: 2 },
-        { name: names.push, sets, reps: [8, 15], rest: 75, increment: 2 },
-        { name: names.row, sets, reps: [8, 15], perSide: names.row.includes('One-Arm'), rest: 75, increment: 2 },
+        { name: names.push, sets, reps: [8, 15], rest: 75, increment: 2, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 1 },
+        { name: names.row, sets, reps: [8, 15], perSide: names.row.includes('One-Arm'), rest: 75, increment: 2, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 2 },
         { name: 'Dead Bug', sets: 2, reps: [8, 12], perSide: true, rest: 30 },
         { name: names.carry, sets: 3, reps: [30, 45], unit: 'seconds', perSide: true, rest: 45, increment: 2 },
       ],
@@ -319,8 +321,8 @@ function homeSessions(
       name: `${venueLabel} Full Body B`, type: 'legs_b', minutes: main ? 46 : 32, warmup,
       exercises: [
         { name: names.hinge, sets, reps: [8, 12], rest: 90, increment: 2 },
-        { name: names.press, sets, reps: [8, 12], rest: 75, increment: 2 },
-        { name: names.pull, sets, reps: [6, 12], rest: 90, increment: 1 },
+        { name: names.press, sets, reps: [8, 12], rest: 75, increment: 2, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 1 },
+        { name: names.pull, sets, reps: [6, 12], rest: 90, increment: 1, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 2 },
         { name: 'Supported Reverse Lunge', sets: 2, reps: [8, 10], perSide: true, rest: 75 },
         { name: 'Side Plank', sets: 2, reps: [20, 35], unit: 'seconds', perSide: true, rest: 30 },
       ],
@@ -329,8 +331,8 @@ function homeSessions(
       name: `${venueLabel} Full Body C`, type: 'upper', minutes: main ? 44 : 30, warmup,
       exercises: [
         { name: 'Step-Up', sets, reps: [8, 12], perSide: true, rest: 75, increment: 2 },
-        { name: names.push, sets, reps: [8, 15], rest: 75, increment: 2 },
-        { name: names.row, sets, reps: [8, 15], perSide: names.row.includes('One-Arm'), rest: 75, increment: 2 },
+        { name: names.push, sets, reps: [8, 15], rest: 75, increment: 2, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 1 },
+        { name: names.row, sets, reps: [8, 15], perSide: names.row.includes('One-Arm'), rest: 75, increment: 2, workGroupKey: main ? undefined : 'upper-pair', workGroupPosition: 2 },
         { name: 'Hip Thrust', sets, reps: [10, 15], rest: 75, increment: 2 },
         { name: 'Bird-Dog', sets: 2, reps: [6, 10], perSide: true, rest: 30 },
       ],
@@ -634,6 +636,10 @@ export function generateTrainingPlan(
           user_id: userId,
           program_day_id: dayId,
           name: spec.name,
+          work_group_id: spec.workGroupKey
+            ? stableUuid(userId, `${slug}:day:${weekday}:work-group:${spec.workGroupKey}${revisionSuffix}`)
+            : null,
+          work_group_position: spec.workGroupKey ? (spec.workGroupPosition ?? null) : null,
           sets,
           rep_min: spec.reps[0],
           rep_max: spec.reps[1],

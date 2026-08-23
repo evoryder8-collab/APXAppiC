@@ -877,6 +877,16 @@ struct TrackedWorkoutView: View {
         _setInputs = State(initialValue: TrackedWorkout.setInputs(for: exercises))
     }
 
+    private var workGroupLabels: [UUID: String] {
+        var labels: [UUID: String] = [:]
+        for position in PlayerTimeline.workSequence(exercises) {
+            if let label = position.groupLabel {
+                labels[exercises[position.exerciseIndex].id] = label
+            }
+        }
+        return labels
+    }
+
     var body: some View {
         NavigationStack {
             ScrollView {
@@ -934,13 +944,22 @@ struct TrackedWorkoutView: View {
     private func trackedSetRow(_ input: Binding<WorkoutSetInput>) -> some View {
         let current = input.wrappedValue
         let exercise = exercises.first { $0.id == current.exerciseID }
+        let groupLabel = exercise.flatMap { workGroupLabels[$0.id] }
         return GlassCard(radius: 19, padding: 13) {
             VStack(alignment: .leading, spacing: 10) {
                 HStack {
+                    if let groupLabel {
+                        Text(groupLabel)
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .foregroundStyle(accent)
+                            .padding(.horizontal, 8)
+                            .padding(.vertical, 5)
+                            .background(accent.opacity(0.1), in: Capsule())
+                    }
                     Text(current.exerciseName)
                         .font(APEXFont.body(14, weight: .bold))
                     Spacer()
-                    Text(language.format("SET %d", current.setNumber))
+                    Text(language.format(groupLabel == nil ? "SET %d" : "ROUND %d", current.setNumber))
                         .font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(accent)
                 }
@@ -1097,6 +1116,16 @@ struct WorkoutDayView: View {
         }
     }
 
+    private var workGroupLabels: [UUID: String] {
+        var labels: [UUID: String] = [:]
+        for position in PlayerTimeline.workSequence(sessionExercises) {
+            if let label = position.groupLabel {
+                labels[sessionExercises[position.exerciseIndex].id] = label
+            }
+        }
+        return labels
+    }
+
     var body: some View {
         ScrollView {
             VStack(spacing: 17) {
@@ -1161,6 +1190,14 @@ struct WorkoutDayView: View {
                         HStack(alignment: .top) {
                             VStack(alignment: .leading, spacing: 6) {
                                 HStack(spacing: 7) {
+                                    if let groupLabel = workGroupLabels[exercise.id] {
+                                        Text(groupLabel)
+                                            .font(APEXFont.mono(9, weight: .bold))
+                                            .foregroundStyle(accent)
+                                            .padding(.horizontal, 7)
+                                            .padding(.vertical, 4)
+                                            .background(accent.opacity(0.1), in: Capsule())
+                                    }
                                     Text(language.text(exercise.name))
                                         .font(APEXFont.display(18))
                                     if planned.swapped {
@@ -1317,6 +1354,34 @@ struct WorkoutPlayerView: View {
         exercises.indices.contains(currentIndex) ? exercises[currentIndex] : nil
     }
 
+    private var workSequence: [PlayerTimeline.WorkPosition] {
+        PlayerTimeline.workSequence(exercises)
+    }
+
+    private var currentWorkOffset: Int? {
+        workSequence.firstIndex {
+            $0.exerciseIndex == currentIndex && $0.setNumber == currentSet
+        }
+    }
+
+    private var currentWorkPosition: PlayerTimeline.WorkPosition? {
+        currentWorkOffset.map { workSequence[$0] }
+    }
+
+    private var nextWorkPosition: PlayerTimeline.WorkPosition? {
+        guard let offset = currentWorkOffset, offset + 1 < workSequence.count else { return nil }
+        return workSequence[offset + 1]
+    }
+
+    private var currentBreakPlan: PlayerTimeline.BreakPlan? {
+        guard let currentWorkPosition, let nextWorkPosition else { return nil }
+        return PlayerTimeline.breakPlan(
+            after: currentWorkPosition,
+            before: nextWorkPosition,
+            exercises: exercises
+        )
+    }
+
     /* Web parity: target is the middle of the rep range; "max" sets count up */
     private func targetReps(_ exercise: Exercise) -> Int? {
         exercise.repUnit == "max"
@@ -1362,6 +1427,9 @@ struct WorkoutPlayerView: View {
     }
 
     private func setCounterLine(_ exercise: Exercise) -> String? {
+        if let label = currentWorkPosition?.groupLabel {
+            return "\(label) · \(language.text("ROUND")) \(currentSet) \(language.text("OF")) \(exercise.sets)"
+        }
         let movement = MovementTiming.movement(named: exercise.name)
         if movement?.showsSetCount == false && exercise.sets <= 1 { return nil }
         let noun = language.text(
@@ -1492,23 +1560,25 @@ struct WorkoutPlayerView: View {
                     ) { returnToWarmup() }
                         .id("warmup")
 
-                    ForEach(Array(exercises.enumerated()), id: \.element.id) { exerciseIndex, exercise in
-                        ForEach(1...max(1, exercise.sets), id: \.self) { set in
+                    ForEach(Array(workSequence.enumerated()), id: \.offset) { _, position in
+                            let exerciseIndex = position.exerciseIndex
+                            let exercise = exercises[exerciseIndex]
+                            let set = position.setNumber
                             let done = setInputs.contains { $0.exerciseID == exercise.id && $0.setNumber == set }
                             let noun = language.text(
                                 MovementTiming.movement(named: exercise.name)?.setNoun
                                 ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)
                             )
                             progressPill(
-                                label: exercise.perSide ? "\(exerciseIndex + 1)·\(set)" : "\(exerciseIndex + 1)\(set > 1 ? ".\(set)" : "")",
+                                label: position.groupLabel.map { "\($0)·\(set)" }
+                                    ?? (exercise.perSide ? "\(exerciseIndex + 1)·\(set)" : "\(exerciseIndex + 1)\(set > 1 ? ".\(set)" : "")"),
                                 selected: phase != .warmup && exerciseIndex == currentIndex && set == currentSet,
                                 complete: done,
-                                accessibilityName: language.format(
-                                    "%@, %@ %d", language.text(exercise.name), noun, set
-                                )
+                                accessibilityName: position.groupLabel.map {
+                                    "\($0), \(language.text(exercise.name)), \(language.text("Round")) \(set)"
+                                } ?? language.format("%@, %@ %d", language.text(exercise.name), noun, set)
                             ) { jump(toExercise: exerciseIndex, set: set) }
                                 .id("\(exerciseIndex)-\(set)")
-                        }
                     }
                 }
                 .padding(.vertical, 2)
@@ -1685,7 +1755,7 @@ struct WorkoutPlayerView: View {
     private var restCard: some View {
         GlassCard(radius: 34, padding: 22) {
             VStack(spacing: 18) {
-                Text(language.text("REST"))
+                Text(language.text(restHeading))
                     .font(APEXFont.mono(12))
                     .tracking(2)
                     .foregroundStyle(APEXColor.secondaryInk)
@@ -1702,6 +1772,13 @@ struct WorkoutPlayerView: View {
                         .contentTransition(.numericText())
                 }
                 .frame(width: 180, height: 180)
+
+                if let next = nextWorkDescription {
+                    Text(next)
+                        .font(APEXFont.body(12, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .multilineTextAlignment(.center)
+                }
 
                 if let lastIndex = setInputs.indices.last, !setInputs[lastIndex].skipped {
                     let last = setInputs[lastIndex]
@@ -1860,6 +1937,23 @@ struct WorkoutPlayerView: View {
             .first?.weightKG ?? 0
     }
 
+    private var restHeading: String {
+        switch currentBreakPlan?.kind {
+        case .groupTransition: "NEXT IN GROUP"
+        case .groupRecovery: "REST AFTER ROUND"
+        default: "REST"
+        }
+    }
+
+    private var nextWorkDescription: String? {
+        guard let nextWorkPosition else { return nil }
+        let next = exercises[nextWorkPosition.exerciseIndex]
+        if let label = nextWorkPosition.groupLabel {
+            return "\(label) · \(language.text(next.name)) · \(language.text("Round")) \(nextWorkPosition.setNumber)"
+        }
+        return language.text(next.name)
+    }
+
     private func progressPill(
         label: String,
         selected: Bool,
@@ -1979,13 +2073,13 @@ struct WorkoutPlayerView: View {
         currentWeight = suggestedWeight
         phase = .active
         WorkoutAudioCoach.shared.say(
-            language.format(
-                "%@. %@ %d of %d.",
-                language.text(exercise.name),
+            currentWorkPosition?.groupLabel.map {
+                "\($0). \(language.text(exercise.name)). \(language.text("Round")) \(currentSet) \(language.text("of")) \(exercise.sets)."
+            } ?? language.format(
+                "%@. %@ %d of %d.", language.text(exercise.name),
                 language.text(MovementTiming.movement(named: exercise.name)?.setNoun
                     ?? MovementTiming.fallbackNoun(repUnit: exercise.repUnit)).capitalized,
-                currentSet,
-                exercise.sets
+                currentSet, exercise.sets
             ),
             enabled: voiceOn
         )
@@ -2003,13 +2097,16 @@ struct WorkoutPlayerView: View {
         setInputs.removeAll { $0.exerciseID == current.id && $0.setNumber == currentSet }
         setInputs.append(input)
 
-        let finalSet = currentIndex == exercises.count - 1 && currentSet >= current.sets
+        let finalSet = nextWorkPosition == nil
         subSecond = 0
         if finalSet {
             phase = .review
             WorkoutAudioCoach.shared.say(language.text("Review the final set"), enabled: voiceOn)
         } else {
-            timerRemaining = max(15, current.restSeconds)
+            let rest = currentBreakPlan
+            timerRemaining = rest?.kind == .ordinary
+                ? max(15, rest?.duration ?? current.restSeconds)
+                : max(0, rest?.duration ?? current.restSeconds)
             timerTotal = timerRemaining
             paused = false
             phase = .rest
@@ -2018,21 +2115,17 @@ struct WorkoutPlayerView: View {
     }
 
     private func advanceAfterRest() {
-        guard let current else {
+        guard current != nil else {
             phase = .complete
             return
         }
-        if currentSet < max(1, current.sets) {
-            currentSet += 1
-        } else {
-            currentIndex += 1
-            currentSet = 1
-        }
-        if currentIndex >= exercises.count {
+        guard let next = nextWorkPosition else {
             phase = .complete
-        } else {
-            beginActiveSet()
+            return
         }
+        currentIndex = next.exerciseIndex
+        currentSet = next.setNumber
+        beginActiveSet()
     }
 
     private var lastSetResolved: Bool {

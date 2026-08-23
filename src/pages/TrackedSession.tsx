@@ -11,6 +11,7 @@ import { hasLoggedFact } from '../lib/workoutSession'
 import { descriptorForExercise, isValidExerciseFacts } from '../lib/exerciseLogging'
 import { ExerciseFactFields } from '../components/workout/ExerciseFactFields'
 import { movementForExercise } from '../lib/sessionShape'
+import { buildWorkSequence } from '../lib/playerTimeline'
 import type { ProgramSlug } from '../lib/types'
 
 /**
@@ -52,6 +53,9 @@ export function TrackedSession() {
         movementId: e.movement_id ?? movementForExercise(e)?.id ?? null,
         name: e.name,
         plannedSets: e.planned_sets,
+        repUnit: e.rep_unit,
+        workGroupId: e.work_group_id,
+        workGroupPosition: e.work_group_position,
         skipped: false,
         override: false,
         sets: Array.from({ length: e.planned_sets }, () => ({
@@ -71,6 +75,13 @@ export function TrackedSession() {
   })
 
   const startedAt = useMemo(() => new Date().toISOString(), [])
+  const groupLabels = useMemo(() => {
+    const labels = new Map<number, string>()
+    buildWorkSequence(plan.exercises).forEach((position) => {
+      if (position.groupLabel && !labels.has(position.exIdx)) labels.set(position.exIdx, position.groupLabel)
+    })
+    return labels
+  }, [plan.exercises])
 
   const patchSet = (exIdx: number, setIdx: number, patch: Partial<SetEntry>): void => {
     setEntries((current) => {
@@ -176,6 +187,7 @@ export function TrackedSession() {
           const entry = entries[exIdx]
           const movement = movementForExercise(exercise)
           const descriptor = descriptorForExercise({ name: exercise.name, movement_id: exercise.movement_id })
+          const groupLabel = groupLabels.get(exIdx)
           const target = exercise.rep_min === exercise.rep_max
             ? `${exercise.rep_min}`
             : `${exercise.rep_min}-${exercise.rep_max}`
@@ -183,7 +195,10 @@ export function TrackedSession() {
             <GlassCard key={exercise.id} className={`p-4 ${entry.skipped ? 'opacity-50' : ''}`}>
               <div className="flex items-start justify-between gap-3">
                 <div className="min-w-0">
-                  <h2 className="truncate text-sm font-black text-ink">{exercise.name}</h2>
+                  <div className="flex items-center gap-2">
+                    {groupLabel ? <span className="rounded-full bg-teal-500/10 px-2 py-1 font-mono text-[10px] font-black text-teal-800">{groupLabel}</span> : null}
+                    <h2 className="truncate text-sm font-black text-ink">{exercise.name}</h2>
+                  </div>
                   <p className="mt-0.5 text-[11px] text-ink-soft">
                     {entry.plannedSets} × {target} {exercise.rep_unit}
                     {exercise.per_side ? ` · ${t('per side')}` : ''}
@@ -201,7 +216,9 @@ export function TrackedSession() {
                 <>
                   {entry.sets.map((set, setIdx) => (
                     <div key={setIdx} className="mt-2 grid grid-cols-[1.6rem_minmax(0,1fr)] items-center gap-2">
-                      <span className="text-[11px] font-black text-ink-soft">{setIdx + 1}</span>
+                      <span className="text-[11px] font-black text-ink-soft" aria-label={groupLabel ? `${t('Round')} ${setIdx + 1}` : `${t('Set')} ${setIdx + 1}`}>
+                        {groupLabel ? `R${setIdx + 1}` : setIdx + 1}
+                      </span>
                       <ExerciseFactFields descriptor={descriptor} value={set} onChange={(patch) => patchSet(exIdx, setIdx, patch)} />
                     </div>
                   ))}
