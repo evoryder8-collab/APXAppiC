@@ -439,6 +439,11 @@ struct Exercise: Codable, Identifiable, Hashable, Sendable {
     let programDayID: UUID
     var name: String
     var movementID: String? = nil
+    /// Generic linked-work membership. Two members form a superset; more can
+    /// reuse the same round model for a circuit. `set_no` remains the round in
+    /// canonical workout history, so no second logging representation exists.
+    var workGroupID: UUID? = nil
+    var workGroupPosition: Int? = nil
     var sets: Int
     var repMin: Int
     var repMax: Int
@@ -460,6 +465,8 @@ struct Exercise: Codable, Identifiable, Hashable, Sendable {
         case userID = "user_id"
         case programDayID = "program_day_id"
         case movementID = "movement_id"
+        case workGroupID = "work_group_id"
+        case workGroupPosition = "work_group_position"
         case repMin = "rep_min"
         case repMax = "rep_max"
         case repUnit = "rep_unit"

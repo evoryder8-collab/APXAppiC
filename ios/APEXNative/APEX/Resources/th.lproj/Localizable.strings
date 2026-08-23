@@ -3985,3 +3985,8 @@
 "7 days free, then" = "ฟรี 7 วัน จากนั้น";
 "Monthly" = "รายเดือน";
 "Yearly" = "รายปี";
+"ROUND" = "รอบ";
+"Round" = "รอบ";
+"ROUND %d" = "รอบที่ %d";
+"NEXT IN GROUP" = "ถัดไปในกลุ่ม";
+"REST AFTER ROUND" = "พักหลังจบรอบ";

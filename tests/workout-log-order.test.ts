@@ -73,3 +73,25 @@ test('legacy logs sharing a timestamp fall back to planned exercise order', () =
     ['Weighted Push-up', 'Pike Push-up'],
   )
 })
+
+test('linked work history remains round-major instead of regrouping by exercise', () => {
+  const data = {
+    ...EMPTY_DATA,
+    workout_sessions: [session],
+    exercises: [
+      { id: 'push', user_id: 'user', program_day_id: 'day', name: 'Bench Press', sets: 2, rep_min: 8, rep_max: 8, rep_unit: 'reps' as const, per_side: false, rest_sec: 90, tempo_up_s: 1, tempo_down_s: 2, tempo_pause_s: 0, tempo_note: '', notes: '', increment_kg: 1, is_lite: false, optional: false, sort_order: 0, work_group_id: 'upper-pair', work_group_position: 1 },
+      { id: 'pull', user_id: 'user', program_day_id: 'day', name: 'Seated Row', sets: 2, rep_min: 8, rep_max: 8, rep_unit: 'reps' as const, per_side: false, rest_sec: 90, tempo_up_s: 1, tempo_down_s: 2, tempo_pause_s: 0, tempo_note: '', notes: '', increment_kg: 1, is_lite: false, optional: false, sort_order: 1, work_group_id: 'upper-pair', work_group_position: 2 },
+    ],
+    workout_logs: [
+      log('push-1', 'Bench Press', 1, '2026-08-23T10:10:00.000Z', 'push'),
+      log('pull-1', 'Seated Row', 1, '2026-08-23T10:10:00.001Z', 'pull'),
+      log('push-2', 'Bench Press', 2, '2026-08-23T10:10:00.002Z', 'push'),
+      log('pull-2', 'Seated Row', 2, '2026-08-23T10:10:00.003Z', 'pull'),
+    ],
+  }
+
+  assert.deepEqual(
+    workoutLogsInPerformedOrder(data, 'session').map((row) => `${row.exercise_name}:${row.set_no}`),
+    ['Bench Press:1', 'Seated Row:1', 'Bench Press:2', 'Seated Row:2'],
+  )
+})

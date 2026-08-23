@@ -1726,3 +1726,8 @@
 "7 days free, then" = "7 giorni gratis, poi";
 "Monthly" = "Mensile";
 "Yearly" = "Annuale";
+"ROUND" = "GIRO";
+"Round" = "Giro";
+"ROUND %d" = "GIRO %d";
+"NEXT IN GROUP" = "PROSSIMO NEL GRUPPO";
+"REST AFTER ROUND" = "RECUPERO DOPO IL GIRO";

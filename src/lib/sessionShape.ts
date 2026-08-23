@@ -15,6 +15,7 @@
 
 import { MOVEMENTS, MOVEMENT_ALIASES, type Movement } from '../data/movements.ts'
 import type { SessionMode } from './types.ts'
+import { buildWorkSequence, workGroupRecoverySeconds } from './workGrouping.ts'
 import {
   holdFor,
   resolveMovement,
@@ -193,11 +194,15 @@ export function estimateSessionSeconds(
     tempo_down_s: number
     tempo_pause_s: number
     tempo_up_s: number
+    work_group_id?: string | null
+    work_group_position?: number | null
   }>,
   warmupSeconds = 0,
 ): number {
   let total = warmupSeconds
-  exercises.forEach((e, index) => {
+  const sequence = buildWorkSequence(exercises)
+  sequence.forEach((position, index) => {
+    const e = exercises[position.exIdx]
     if (e.rep_unit === 'check') return
     const movement = movementForExercise(e)
     const perRep = Math.max(1.6, e.tempo_up_s + e.tempo_down_s + e.tempo_pause_s + 0.4)
@@ -206,14 +211,21 @@ export function estimateSessionSeconds(
       : e.rep_unit === 'minutes' ? mid * 60 : null
     const sides = isPerSide(e, movement) ? 2 : 1
 
-    for (let setNo = 1; setNo <= e.sets; setNo += 1) {
-      total += (timed ?? mid * perRep) * sides
-      if (sides === 2) total += sideSwitchSeconds(movement)
-      if (setNo < e.sets) total += e.rest_sec
-    }
-    const next = exercises[index + 1]
-    if (next) {
-      total += transitionSeconds(movement, movementForExercise(next), e.rest_sec)
+    total += (timed ?? mid * perRep) * sides
+    if (sides === 2) total += sideSwitchSeconds(movement)
+    const nextPosition = sequence[index + 1]
+    const next = nextPosition ? exercises[nextPosition.exIdx] : undefined
+    if (next && nextPosition) {
+      const sameGroup = position.groupId != null && position.groupId === nextPosition.groupId
+      if (sameGroup && position.setNo === nextPosition.setNo) {
+        total += 15
+      } else if (sameGroup && nextPosition.setNo > position.setNo) {
+        total += workGroupRecoverySeconds(exercises, position.groupId!, (exercise) => exercise.rest_sec)
+      } else if (position.exIdx === nextPosition.exIdx) {
+        total += e.rest_sec
+      } else {
+        total += transitionSeconds(movement, movementForExercise(next), e.rest_sec)
+      }
     } else {
       total += 20 // logging the last exercise
     }

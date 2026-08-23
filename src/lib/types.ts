@@ -148,6 +148,12 @@ export interface Exercise {
    * keep their own authored names, so this is what lets the player find the
    * timing, cues and side-switch behaviour behind one. */
   movement_id?: string | null
+  /* A nullable membership, not a separate superset/circuit shape. Members with
+   * the same id are performed in position order once per round; set_no is the
+   * completed round in history. A two-member group is a superset and a larger
+   * group can become a circuit without another representation. */
+  work_group_id?: string | null
+  work_group_position?: number | null
   tempo_up_s: number
   tempo_down_s: number
   tempo_pause_s: number

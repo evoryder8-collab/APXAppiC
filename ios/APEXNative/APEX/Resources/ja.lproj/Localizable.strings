@@ -1726,3 +1726,8 @@
 "7 days free, then" = "7日間無料、その後";
 "Monthly" = "月額";
 "Yearly" = "年額";
+"ROUND" = "ラウンド";
+"Round" = "ラウンド";
+"ROUND %d" = "ラウンド %d";
+"NEXT IN GROUP" = "グループ内の次へ";
+"REST AFTER ROUND" = "ラウンド後の休憩";

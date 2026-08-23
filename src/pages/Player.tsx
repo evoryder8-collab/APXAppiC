@@ -286,7 +286,10 @@ export function Player() {
       setSetAnnouncementReady(false)
       const entryIndex = state.idx
       const side = block.side ? ` ${voiceText(block.side === 'left' ? 'Left side' : 'Right side')}.` : ''
-      const announcement = `${voiceText(block.exercise.name)}.${side} ${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`
+      const work = block.groupLabel
+        ? `${block.groupLabel}. ${voiceText('Round')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`
+        : `${voiceText('Set')} ${block.setNo} ${voiceText('of')} ${block.totalSets}.`
+      const announcement = `${voiceText(block.exercise.name)}.${side} ${work}`
       let fallbackTimer: number | null = null
       let released = false
       const releaseAnnouncement = () => {
@@ -486,6 +489,9 @@ export function Player() {
           movementId: e.movement_id,
           name: e.name,
           plannedSets: e.planned_sets,
+          repUnit: e.rep_unit,
+          workGroupId: e.work_group_id,
+          workGroupPosition: e.work_group_position,
           skipped: r?.skippedAll ?? !r,
           override: r?.override ?? false,
           sets: Array.from({ length: e.planned_sets }, (_unused, index) => {
@@ -691,7 +697,7 @@ export function Player() {
             )
             let label = ''
             if (b.kind === 'warmup') label = 'W'
-            else if (b.kind === 'set') label = `${b.setNo}${b.side ? (b.side === 'left' ? 'L' : 'R') : ''}`
+            else if (b.kind === 'set') label = `${b.groupLabel ? `${b.groupLabel}·` : ''}${b.setNo}${b.side ? (b.side === 'left' ? 'L' : 'R') : ''}`
             else if (b.kind === 'side_switch') label = '↔'
             else if (b.kind === 'check') label = '✓'
             else if (b.kind === 'log') label = '✓'
@@ -839,6 +845,8 @@ function BlockView(props: {
     return exercise ? displayExerciseName(exercise, language) : translateInterfaceText(value, language)
   }
   const nextLabel = (value: string): string => {
+    const groupMatch = value.match(/^([A-Z]\d+) · (.+), round (\d+)$/i)
+    if (groupMatch) return `${groupMatch[1]} · ${t(groupMatch[2])}, ${t('Round')} ${groupMatch[3]}`
     const setMatch = value.match(/^(.+), set (\d+)$/i)
     return setMatch ? `${t(setMatch[1])}, ${t('Set')} ${setMatch[2]}` : t(value)
   }
@@ -902,7 +910,7 @@ function BlockView(props: {
       return (
         <CenterCard accent={accent}>
           <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
-            {t(e.name)} · {block.setNo}/{block.totalSets}
+            {block.groupLabel ? `${block.groupLabel} · ` : ''}{t(e.name)} · {block.groupLabel ? `${t('Round')} ` : ''}{block.setNo}/{block.totalSets}
             {block.side ? ` · ${t(block.side === 'left' ? 'Left side' : 'Right side')}` : ''}
           </p>
           <RestRing accent={accent} remaining={remaining} total={block.timed} label="hold" />
@@ -920,7 +928,7 @@ function BlockView(props: {
     return (
       <CenterCard accent={accent}>
         <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
-          {t('Set')} {block.setNo} {t('of')} {block.totalSets}
+          {block.groupLabel ? `${block.groupLabel} · ${t('Round')}` : t('Set')} {block.setNo} {t('of')} {block.totalSets}
           {block.side ? ` · ${t(block.side === 'left' ? 'Left side' : 'Right side')}` : ''}
         </p>
         <h2 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{t(e.name)}</h2>
@@ -987,7 +995,9 @@ function BlockView(props: {
     const captureReps = block.exercise.rep_unit === 'reps'
     return (
       <CenterCard accent={accent}>
-        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{t('Rest')}</p>
+        <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">
+          {t(block.workGroupTransition ? 'Next in group' : block.groupLabel ? 'Rest after round' : 'Rest')}
+        </p>
         <RestRing accent={accent} remaining={remaining} total={block.duration} label={`${t('next')}: ${nextLabel(block.nextLabel)}`} />
         {!block.reviewExercise && (block.captureLoad || captureReps) && (
           <RestSetCapture

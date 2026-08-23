@@ -4,6 +4,7 @@ import { join } from 'node:path'
 import test from 'node:test'
 import { buildSeedData } from '../src/data/seed.ts'
 import { planForDate } from '../src/lib/plan.ts'
+import { estimatedTimelineMinutes } from '../src/lib/playerTimeline.ts'
 import { repairSeedDefinitions } from '../src/lib/seedRepair.ts'
 import {
   activeTrainingProgramDays,
@@ -78,6 +79,42 @@ test('generated foundation occupies 12 dated weeks before its main phase takes o
   assert.ok(planForDate(data, 'transition', '2026-10-12', false).exercises.length === 0)
   assert.ok(planForDate(data, 'main', '2026-10-12', false).exercises.length > 0)
   assert.ok(planForDate(data, 'main', '2026-07-20', false).exercises.length === 0)
+})
+
+test('short generated sessions persist one generic work group for each paired movement', () => {
+  const generated = generateTrainingPlan(userId, baseInput)
+  const transitionDay = generated.program_days.find((day) => (
+    generated.induction.transition_day_ids.includes(day.id) && day.name.includes('Full Body A')
+  ))
+  assert.ok(transitionDay)
+  const rows = generated.exercises
+    .filter((exercise) => exercise.program_day_id === transitionDay.id && !exercise.is_lite)
+    .map((exercise) => exercise as typeof exercise & {
+      work_group_id?: string | null
+      work_group_position?: number | null
+    })
+  const grouped = rows.filter((exercise) => exercise.work_group_id != null)
+
+  assert.equal(grouped.length, 2)
+  assert.equal(new Set(grouped.map((exercise) => exercise.work_group_id)).size, 1)
+  assert.deepEqual(grouped.map((exercise) => exercise.work_group_position), [1, 2])
+  assert.deepEqual(grouped.map((exercise) => exercise.name), ['Dumbbell Floor Press', 'One-Arm Dumbbell Row'])
+})
+
+test('a generated grouped day advertises the duration its runnable timeline actually uses', () => {
+  const seeded = buildSeedData(userId, 'matthew')
+  const generated = generateTrainingPlan(userId, baseInput, seeded.programs)
+  const data = {
+    ...seeded,
+    settings: { ...seeded.settings!, addons: { ...seeded.settings!.addons, training_induction: generated.induction } },
+    programs: generated.programs,
+    program_days: generated.program_days,
+    exercises: generated.exercises,
+  }
+  const day = planForDate(data, 'transition', baseInput.start_date, false)
+
+  assert.ok(day.exercises.some((exercise) => exercise.work_group_id != null))
+  assert.equal(day.programDay?.est_minutes, estimatedTimelineMinutes(day))
 })
 
 test('native and web rebuild metadata archives history and activates only the committed revision', () => {

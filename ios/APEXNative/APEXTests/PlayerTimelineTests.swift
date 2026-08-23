@@ -56,6 +56,84 @@ final class PlayerTimelineTests: XCTestCase {
         XCTAssertEqual(blocks.last, .done)
     }
 
+    func testDecisionCheckpointRemainsSingleWhenLegacyDataCarriesMultipleSets() {
+        let positions = PlayerTimeline.workSequence([
+            exercise("Pain check", sets: 3, repUnit: "check")
+        ])
+
+        XCTAssertEqual(positions.count, 1)
+    }
+
+    func testLinkedExercisesRunAsRoundsWithRecoveryAfterThePair() throws {
+        let groupID = UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!
+        func grouped(_ source: Exercise, position: Int) throws -> Exercise {
+            let encoded = try JSONEncoder().encode(source)
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+            )
+            object["work_group_id"] = groupID.uuidString.lowercased()
+            object["work_group_position"] = position
+            return try JSONDecoder().decode(
+                Exercise.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
+        }
+
+        let press = try grouped(exercise("Machine Chest Press", sets: 2, rest: 90), position: 1)
+        let row = try grouped(exercise("Seated Cable Row", sets: 2, rest: 75), position: 2)
+        let blocks = PlayerTimeline.build(plan([press, row], warmup: "", warmupDuration: 0))
+        let order = blocks.compactMap { block -> String? in
+            if case .set(let exerciseIndex, let setNumber, _, _, _, _, _, _) = block {
+                return "\(exerciseIndex)-\(setNumber)"
+            }
+            return nil
+        }
+        XCTAssertEqual(order, ["0-1", "1-1", "0-2", "1-2"])
+
+        let rests = blocks.compactMap { block -> (Int, Int, Int, String)? in
+            if case .rest(let exerciseIndex, let afterSet, let duration, let nextLabel, _, _) = block {
+                return (exerciseIndex, afterSet, duration, nextLabel)
+            }
+            return nil
+        }
+        XCTAssertTrue(rests.contains { $0.0 == 0 && $0.1 == 1 && $0.2 == 15 && $0.3 == "A2 · Seated Cable Row, round 1" })
+        XCTAssertTrue(rests.contains { $0.0 == 1 && $0.1 == 1 && $0.2 == 90 && $0.3 == "A1 · Machine Chest Press, round 2" })
+    }
+
+    func testLinkedWorkIsCanonicalizedToPerformedRoundOrderBeforePersistence() throws {
+        let groupID = UUID(uuidString: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff")!
+        func grouped(_ source: Exercise, position: Int) throws -> Exercise {
+            let encoded = try JSONEncoder().encode(source)
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+            )
+            object["work_group_id"] = groupID.uuidString.lowercased()
+            object["work_group_position"] = position
+            return try JSONDecoder().decode(
+                Exercise.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
+        }
+
+        let push = try grouped(exercise("Bench Press", sets: 2), position: 1)
+        let pull = try grouped(exercise("Seated Row", sets: 2), position: 2)
+        let exerciseMajor = [
+            WorkoutSetInput(exerciseID: push.id, exerciseName: push.name, setNumber: 1, weightKG: 60, reps: 8, rir: 2, skipped: false),
+            WorkoutSetInput(exerciseID: push.id, exerciseName: push.name, setNumber: 2, weightKG: 60, reps: 7, rir: 1, skipped: false),
+            WorkoutSetInput(exerciseID: pull.id, exerciseName: pull.name, setNumber: 1, weightKG: 50, reps: 10, rir: 2, skipped: false),
+            WorkoutSetInput(exerciseID: pull.id, exerciseName: pull.name, setNumber: 2, weightKG: 50, reps: 9, rir: 1, skipped: false),
+        ]
+
+        let ordered = PlayerTimeline.persistenceOrder(exerciseMajor, exercises: [push, pull])
+
+        XCTAssertEqual(
+            ordered.map { "\($0.exerciseID!.uuidString):\($0.setNumber)" },
+            [push, pull, push, pull].enumerated().map {
+                "\($0.element.id.uuidString):\($0.offset / 2 + 1)"
+            }
+        )
+    }
+
     /// Every per-side movement gets a switch, and it lasts as long as that
     /// movement makes it last. Resetting a rear foot on a bench is not the same
     /// job as stepping off and swapping feet, so the two are not the same pause.

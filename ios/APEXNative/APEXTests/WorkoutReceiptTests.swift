@@ -10,10 +10,10 @@ import XCTest
 final class WorkoutReceiptTests: XCTestCase {
     private func log(
         _ name: String, set: Int, weight: Double?, reps: Int?,
-        skipped: Bool = false, session: UUID = UUID()
+        skipped: Bool = false, session: UUID = UUID(), exerciseID: UUID? = nil
     ) -> WorkoutLog {
         WorkoutLog(
-            id: UUID(), userID: UUID(), sessionID: session, exerciseID: nil,
+            id: UUID(), userID: UUID(), sessionID: session, exerciseID: exerciseID,
             exerciseName: name, setNumber: set, weightKG: weight, reps: reps,
             rir: 2, skipped: skipped, overrideFlag: false,
             createdAt: "2026-08-19T10:00:00.000Z"
@@ -84,6 +84,61 @@ final class WorkoutReceiptTests: XCTestCase {
         ])
         XCTAssertEqual(grouped.map(\.name), ["Bench press", "Back squat"])
         XCTAssertEqual(grouped.first?.logs.count, 2)
+    }
+
+    func testLinkedWorkHistoryKeepsThePerformedRoundOrder() throws {
+        let userID = UUID()
+        let programID = UUID()
+        let dayID = UUID()
+        let sessionID = UUID()
+        let groupID = UUID(uuidString: "cccccccc-dddd-4eee-8fff-aaaaaaaaaaaa")!
+        let day = ProgramDay(
+            id: dayID, userID: userID, programID: programID, weekday: 1,
+            name: "Upper", dayType: "strength", estimatedMinutes: 30,
+            warmupNote: "", sortOrder: 0
+        )
+        func grouped(_ name: String, position: Int) throws -> Exercise {
+            let source = Exercise(
+                id: UUID(), userID: userID, programDayID: dayID, name: name,
+                sets: 2, repMin: 8, repMax: 10, repUnit: "reps", perSide: false,
+                restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+                tempoNote: "", notes: "", incrementKG: 2.5,
+                isLite: false, optional: false, sortOrder: position - 1
+            )
+            var object = try XCTUnwrap(
+                JSONSerialization.jsonObject(with: JSONEncoder().encode(source)) as? [String: Any]
+            )
+            object["work_group_id"] = groupID.uuidString.lowercased()
+            object["work_group_position"] = position
+            return try JSONDecoder().decode(
+                Exercise.self,
+                from: JSONSerialization.data(withJSONObject: object)
+            )
+        }
+        let push = try grouped("Bench Press", position: 1)
+        let pull = try grouped("Seated Row", position: 2)
+        let workout = WorkoutSession(
+            id: sessionID, userID: userID, date: "2026-08-23",
+            programDayID: dayID, isLite: false, isDeload: false,
+            isEventRecovery: false, completed: true, qualityScore: 1,
+            startedAt: nil, completedAt: nil, notes: ""
+        )
+        var data = DashboardData()
+        data.programDays = [day]
+        data.exercises = [push, pull]
+        data.workoutSessions = [workout]
+        data.workoutLogs = [
+            log(push.name, set: 1, weight: 60, reps: 8, session: sessionID, exerciseID: push.id),
+            log(push.name, set: 2, weight: 60, reps: 7, session: sessionID, exerciseID: push.id),
+            log(pull.name, set: 1, weight: 50, reps: 10, session: sessionID, exerciseID: pull.id),
+            log(pull.name, set: 2, weight: 50, reps: 9, session: sessionID, exerciseID: pull.id),
+        ]
+
+        XCTAssertEqual(
+            WorkoutLogOrder.performedOrder(data, sessionID: sessionID)
+                .map { "\($0.exerciseName):\($0.setNumber)" },
+            ["Bench Press:1", "Seated Row:1", "Bench Press:2", "Seated Row:2"]
+        )
     }
 
     func testInsightTextReportsDirection() {

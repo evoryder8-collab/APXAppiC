@@ -74,6 +74,207 @@ enum PlayerTimeline {
         return nil
     }
 
+    struct WorkPosition: Hashable, Sendable {
+        let exerciseIndex: Int
+        let setNumber: Int
+        let groupID: UUID?
+        let groupLabel: String?
+        let groupPosition: Int?
+        let groupSize: Int
+    }
+
+    private struct PersistenceKey: Hashable {
+        let exerciseID: UUID
+        let setNumber: Int
+    }
+
+    enum BreakKind: Hashable, Sendable {
+        case ordinary
+        case groupTransition
+        case groupRecovery
+    }
+
+    struct BreakPlan: Hashable, Sendable {
+        let kind: BreakKind
+        let duration: Int
+        let nextLabel: String
+    }
+
+    private struct GroupMember: Hashable, Sendable {
+        let exerciseIndex: Int
+        let position: Int
+    }
+
+    private struct ValidGroup: Sendable {
+        let id: UUID
+        let label: String
+        let members: [GroupMember]
+    }
+
+    static func workSequence(_ exercises: [Exercise]) -> [WorkPosition] {
+        makeWorkSequence(exercises: exercises, plannedSets: exercises.map { max(1, $0.sets) })
+    }
+
+    static func workSequence(_ plan: PlannedDay) -> [WorkPosition] {
+        makeWorkSequence(
+            exercises: plan.exercises.map(\.exercise),
+            plannedSets: plan.exercises.map { max(1, $0.plannedSets) }
+        )
+    }
+
+    /// Both session modes can hand persistence exercise-major inputs. Once a
+    /// valid linked group exists, canonical history must instead match the
+    /// round-major sequence the athlete performed (A1, A2, A1, A2).
+    static func persistenceOrder(
+        _ inputs: [WorkoutSetInput],
+        exercises: [Exercise]
+    ) -> [WorkoutSetInput] {
+        let sequence = workSequence(exercises)
+        guard sequence.contains(where: { $0.groupID != nil }) else { return inputs }
+
+        var inputIndex: [PersistenceKey: Int] = [:]
+        for (index, input) in inputs.enumerated() {
+            guard let exerciseID = input.exerciseID else { continue }
+            let key = PersistenceKey(exerciseID: exerciseID, setNumber: input.setNumber)
+            if inputIndex[key] == nil { inputIndex[key] = index }
+        }
+        let orderedIndices = sequence.compactMap { position in
+            inputIndex[PersistenceKey(
+                exerciseID: exercises[position.exerciseIndex].id,
+                setNumber: position.setNumber
+            )]
+        }
+        let included = Set(orderedIndices)
+        return orderedIndices.map { inputs[$0] }
+            + inputs.indices.filter { !included.contains($0) }.map { inputs[$0] }
+    }
+
+    private static func makeWorkSequence(
+        exercises: [Exercise],
+        plannedSets: [Int]
+    ) -> [WorkPosition] {
+        let workSets = zip(exercises, plannedSets).map { exercise, sets in
+            exercise.repUnit == "check" ? 1 : max(1, sets)
+        }
+        var candidates: [UUID: [GroupMember]] = [:]
+        for (exerciseIndex, exercise) in exercises.enumerated() {
+            guard let id = exercise.workGroupID,
+                  let position = exercise.workGroupPosition,
+                  position > 0,
+                  exercise.repUnit != "check" else { continue }
+            candidates[id, default: []].append(
+                GroupMember(exerciseIndex: exerciseIndex, position: position)
+            )
+        }
+
+        let valid = candidates.compactMap { id, members -> (UUID, [GroupMember])? in
+            guard members.count >= 2,
+                  Set(members.map(\.position)).count == members.count else { return nil }
+            return (id, members.sorted {
+                $0.position == $1.position
+                    ? $0.exerciseIndex < $1.exerciseIndex
+                    : $0.position < $1.position
+            })
+        }
+        .sorted { left, right in
+            (left.1.map(\.exerciseIndex).min() ?? .max)
+                < (right.1.map(\.exerciseIndex).min() ?? .max)
+        }
+        .enumerated()
+        .map { index, entry in
+            ValidGroup(
+                id: entry.0,
+                label: index < 26 ? String(UnicodeScalar(65 + index)!) : "G\(index + 1)",
+                members: entry.1
+            )
+        }
+
+        var groupByExercise: [Int: ValidGroup] = [:]
+        for group in valid {
+            for member in group.members { groupByExercise[member.exerciseIndex] = group }
+        }
+
+        var consumed = Set<UUID>()
+        var sequence: [WorkPosition] = []
+        for exerciseIndex in exercises.indices {
+            guard let group = groupByExercise[exerciseIndex] else {
+                for setNumber in 1...workSets[exerciseIndex] {
+                    sequence.append(WorkPosition(
+                        exerciseIndex: exerciseIndex,
+                        setNumber: setNumber,
+                        groupID: nil,
+                        groupLabel: nil,
+                        groupPosition: nil,
+                        groupSize: 1
+                    ))
+                }
+                continue
+            }
+            guard consumed.insert(group.id).inserted else { continue }
+            let rounds = group.members.map { workSets[$0.exerciseIndex] }.max() ?? 1
+            for round in 1...rounds {
+                for member in group.members where round <= workSets[member.exerciseIndex] {
+                    sequence.append(WorkPosition(
+                        exerciseIndex: member.exerciseIndex,
+                        setNumber: round,
+                        groupID: group.id,
+                        groupLabel: "\(group.label)\(member.position)",
+                        groupPosition: member.position,
+                        groupSize: group.members.count
+                    ))
+                }
+            }
+        }
+        return sequence
+    }
+
+    private static func nextLabel(_ position: WorkPosition, exercise: Exercise) -> String {
+        if let label = position.groupLabel {
+            return "\(label) · \(exercise.name), round \(position.setNumber)"
+        }
+        return "\(exercise.name), set \(position.setNumber)"
+    }
+
+    static func breakPlan(
+        after current: WorkPosition,
+        before next: WorkPosition,
+        exercises: [Exercise]
+    ) -> BreakPlan {
+        let exercise = exercises[current.exerciseIndex]
+        let nextExercise = exercises[next.exerciseIndex]
+        let sameGroup = current.groupID != nil && current.groupID == next.groupID
+        if sameGroup, current.setNumber == next.setNumber {
+            return BreakPlan(
+                kind: .groupTransition,
+                duration: 15,
+                nextLabel: nextLabel(next, exercise: nextExercise)
+            )
+        }
+        if sameGroup, next.setNumber > current.setNumber, let groupID = current.groupID {
+            let recovery = exercises
+                .filter { $0.workGroupID == groupID }
+                .map(\.restSeconds)
+                .max() ?? 0
+            return BreakPlan(
+                kind: .groupRecovery,
+                duration: recovery,
+                nextLabel: nextLabel(next, exercise: nextExercise)
+            )
+        }
+        let duration = current.exerciseIndex == next.exerciseIndex
+            ? exercise.restSeconds
+            : MovementTiming.transitionSeconds(
+                finished: MovementTiming.movement(named: exercise.name),
+                next: MovementTiming.movement(named: nextExercise.name),
+                authoredRest: exercise.restSeconds
+            )
+        return BreakPlan(
+            kind: .ordinary,
+            duration: duration,
+            nextLabel: nextLabel(next, exercise: nextExercise)
+        )
+    }
+
     // MARK: - Timeline
 
     static func build(_ plan: PlannedDay) -> [Block] {
@@ -82,14 +283,17 @@ enum PlayerTimeline {
             blocks.append(.warmup(text: plan.warmup, duration: plan.warmupDuration))
         }
 
-        for (index, planned) in plan.exercises.enumerated() {
+        let sequence = workSequence(plan)
+        for (sequenceIndex, position) in sequence.enumerated() {
+            let index = position.exerciseIndex
+            let planned = plan.exercises[index]
             let exercise = planned.exercise
             if exercise.repUnit == "check" {
                 blocks.append(.check(exerciseIndex: index))
                 continue
             }
 
-            for setNumber in 1...max(1, planned.plannedSets) {
+            let setNumber = position.setNumber
                 let sides: [Side?] = exercise.perSide ? [.left, .right] : [nil]
                 for (sideIndex, side) in sides.enumerated() {
                     let suffix = side.map { "-\($0.rawValue)" } ?? ""
@@ -116,38 +320,25 @@ enum PlayerTimeline {
                     }
                 }
 
-                let isLast = setNumber == planned.plannedSets
-                if !isLast, exercise.restSeconds > 0 {
-                    blocks.append(.rest(
-                        exerciseIndex: index,
-                        afterSet: setNumber,
-                        duration: exercise.restSeconds,
-                        nextLabel: "\(exercise.name), set \(setNumber + 1)",
-                        captureLoad: exercise.incrementKG > 0,
-                        reviewExercise: false
-                    ))
-                }
-            }
-
-            let next = index + 1 < plan.exercises.count ? plan.exercises[index + 1] : nil
-            if let next {
-                /* The finished exercise still needs its recovery and the next
-                   one needs setting up, and those overlap rather than stack.
-                   Reusing the between-sets rest ignored the setup entirely: a
-                   ninety second hip thrust does not fit inside a sixty second
-                   rest. */
+            let nextPosition = sequenceIndex + 1 < sequence.count ? sequence[sequenceIndex + 1] : nil
+            if let nextPosition {
+                let sameExercise = index == nextPosition.exerciseIndex
+                let reviewExercise = setNumber == planned.plannedSets && !sameExercise
+                let rest = breakPlan(
+                    after: position,
+                    before: nextPosition,
+                    exercises: plan.exercises.map(\.exercise)
+                )
+                if rest.duration > 0 || reviewExercise {
                 blocks.append(.rest(
                     exerciseIndex: index,
-                    afterSet: planned.plannedSets,
-                    duration: MovementTiming.transitionSeconds(
-                        finished: MovementTiming.movement(named: exercise.name),
-                        next: MovementTiming.movement(named: next.exercise.name),
-                        authoredRest: exercise.restSeconds
-                    ),
-                    nextLabel: next.name,
-                    captureLoad: false,
-                    reviewExercise: true
+                    afterSet: setNumber,
+                    duration: rest.duration,
+                    nextLabel: rest.nextLabel,
+                    captureLoad: !reviewExercise && exercise.incrementKG > 0,
+                    reviewExercise: reviewExercise
                 ))
+                }
             } else {
                 blocks.append(.log(exerciseIndex: index))
             }

@@ -1,4 +1,5 @@
 import type { AppData, WorkoutLog } from './types'
+import { buildWorkSequence } from './workGrouping.ts'
 
 function exerciseKey(log: WorkoutLog): string {
   return log.exercise_id
@@ -22,8 +23,32 @@ export function workoutLogsInPerformedOrder(
 ): WorkoutLog[] {
   const session = data.workout_sessions.find((candidate) => candidate.id === sessionId)
   const planned = data.exercises
-    .filter((exercise) => exercise.program_day_id === session?.program_day_id)
+    .filter((exercise) => (
+      exercise.program_day_id === session?.program_day_id
+        && exercise.is_lite === (session?.is_lite ?? false)
+    ))
     .sort((left, right) => left.sort_order - right.sort_order)
+  const sessionLogs = data.workout_logs.filter((log) => log.session_id === sessionId)
+  const workSequence = buildWorkSequence(planned)
+  if (workSequence.some((position) => position.groupId != null)) {
+    const persistedRank = new Map<string, number>()
+    workSequence.forEach((position, rank) => {
+      const exercise = planned[position.exIdx]
+      persistedRank.set(`id:${exercise.id}:${position.setNo}`, rank)
+      persistedRank.set(`name:${exercise.name.trim().toLocaleLowerCase('en')}:${position.setNo}`, rank)
+    })
+    return sessionLogs
+      .map((log, index) => ({ log, index }))
+      .sort((left, right) => {
+        const leftRank = persistedRank.get(`${exerciseKey(left.log)}:${left.log.set_no}`)
+        const rightRank = persistedRank.get(`${exerciseKey(right.log)}:${right.log.set_no}`)
+        if (leftRank != null && rightRank != null && leftRank !== rightRank) return leftRank - rightRank
+        if (leftRank != null && rightRank == null) return -1
+        if (leftRank == null && rightRank != null) return 1
+        return left.index - right.index
+      })
+      .map(({ log }) => log)
+  }
   const plannedById = new Map(planned.map((exercise, index) => [exercise.id, index]))
   const plannedByName = new Map(planned.map((exercise, index) => [exercise.name.trim().toLocaleLowerCase('en'), index]))
   const groups = new Map<string, {
@@ -33,8 +58,7 @@ export function workoutLogsInPerformedOrder(
     logs: WorkoutLog[]
   }>()
 
-  data.workout_logs.forEach((log, index) => {
-    if (log.session_id !== sessionId) return
+  sessionLogs.forEach((log, index) => {
     const key = exerciseKey(log)
     const recordedAt = timestamp(log.created_at)
     const plannedOrder = (log.exercise_id ? plannedById.get(log.exercise_id) : undefined)

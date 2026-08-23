@@ -1877,7 +1877,17 @@ final class AppSession {
         startedAt: Date
     ) async -> UUID? {
         guard let ownerID = TrainingInduction.workoutOwnerID(in: data, day: day) else { return nil }
-        let normalizedInputs = setInputs.map { $0.normalizedForPersistence() }
+        let exercises = data.exercises
+            .filter {
+                $0.userID == ownerID
+                    && $0.programDayID == day.id
+                    && $0.isLite == lite
+            }
+            .sorted { $0.sortOrder < $1.sortOrder }
+        let normalizedInputs = PlayerTimeline.persistenceOrder(
+            setInputs.map { $0.normalizedForPersistence() },
+            exercises: exercises
+        )
         guard normalizedInputs.allSatisfy({ $0.skipped || ExerciseLogging.isValid($0) }) else {
             return nil
         }
