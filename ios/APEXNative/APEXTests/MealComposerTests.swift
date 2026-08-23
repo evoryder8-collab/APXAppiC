@@ -159,6 +159,81 @@ final class MealComposerTests: XCTestCase {
         XCTAssertEqual(draft.totals.fatG, 5.9, accuracy: 0.001)
     }
 
+    func testComposerHydrationSumsTheActualPortionsShownInTheMeal() {
+        var milk = food(
+            name: "High protein milk",
+            kcal100: 54,
+            protein100: 8,
+            carbs100: 5.2,
+            fat100: 0.2
+        )
+        milk.waterML100 = 86.4
+        var walnuts = food(
+            name: "Walnuts",
+            kcal100: 654,
+            protein100: 15.2,
+            carbs100: 13.7,
+            fat100: 65.2
+        )
+        walnuts.waterML100 = 4
+
+        let milkItem = MealComposerItem(food: milk, quantity: 251, unit: "g")
+        let walnutItem = MealComposerItem(food: walnuts, quantity: 27, unit: "g")
+
+        XCTAssertEqual(MealComposerHydration.itemWaterML(milkItem), 216.864, accuracy: 0.001)
+        XCTAssertEqual(MealComposerHydration.itemWaterML(walnutItem), 1.08, accuracy: 0.001)
+        XCTAssertEqual(
+            MealComposerHydration.totalWaterML(in: [milkItem, walnutItem]),
+            217.944,
+            accuracy: 0.001
+        )
+    }
+
+    func testDisplayedMealWaterEqualsTheSumOfDisplayedItemWater() {
+        var food = food(
+            name: "Low-water test food",
+            kcal100: 100,
+            protein100: 1,
+            carbs100: 1,
+            fat100: 1
+        )
+        food.waterML100 = 1
+        let first = MealComposerItem(food: food, quantity: 60, unit: "g")
+        let second = MealComposerItem(food: food, quantity: 60, unit: "g")
+
+        XCTAssertEqual(MealComposerHydration.displayedItemWaterML(first), 1)
+        XCTAssertEqual(MealComposerHydration.displayedItemWaterML(second), 1)
+        XCTAssertEqual(MealComposerHydration.displayedTotalWaterML(in: [first, second]), 2)
+    }
+
+    func testUndoRestoresTheRemovedFoodAtItsExactPosition() {
+        let first = MealComposerItem(
+            food: food(name: "Milk", kcal100: 54, protein100: 8, carbs100: 5, fat100: 0.2),
+            quantity: 250,
+            unit: "g"
+        )
+        let removed = MealComposerItem(
+            food: food(name: "Oats", kcal100: 370, protein100: 13, carbs100: 60, fat100: 7),
+            quantity: 75,
+            unit: "g"
+        )
+        let last = MealComposerItem(
+            food: food(name: "Walnuts", kcal100: 654, protein100: 15.2, carbs100: 13.7, fat100: 65.2),
+            quantity: 27,
+            unit: "g"
+        )
+        var items = [first, removed, last]
+        var undo = MealComposerUndoBuffer()
+
+        XCTAssertTrue(undo.remove(removed.id, from: &items))
+        XCTAssertEqual(items.map(\.id), [first.id, last.id])
+        XCTAssertEqual(undo.removedName, "Oats")
+
+        XCTAssertTrue(undo.restore(into: &items))
+        XCTAssertEqual(items.map(\.id), [first.id, removed.id, last.id])
+        XCTAssertNil(undo.removedName)
+    }
+
     func testPieceAndServingUnitsUseFoodEquivalents() {
         var egg = food(name: "Egg", kcal100: 143, protein100: 13, carbs100: 1, fat100: 10)
         egg.pieceGramsOrML = 50

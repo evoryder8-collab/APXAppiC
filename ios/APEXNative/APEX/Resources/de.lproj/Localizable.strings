@@ -334,6 +334,10 @@
 
 /* Common interface vocabulary */
 "Undo" = "Rückgängig";
+"%@ removed" = "%@ entfernt";
+"1 food" = "1 Lebensmittel";
+"%d millilitres water" = "%d ml Wasser";
+"%d millilitres water in this meal" = "%d ml Wasser in dieser Mahlzeit";
 "Remove" = "Entfernen";
 "Rename" = "Umbenennen";
 "Duplicate" = "Duplizieren";

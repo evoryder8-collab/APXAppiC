@@ -334,6 +334,10 @@
 
 /* Common interface vocabulary */
 "Undo" = "元に戻す";
+"%@ removed" = "%@を削除しました";
+"1 food" = "食品1件";
+"%d millilitres water" = "水分%dミリリットル";
+"%d millilitres water in this meal" = "この食事の水分は%dミリリットル";
 "Remove" = "削除";
 "Rename" = "名前を変更";
 "Duplicate" = "複製";

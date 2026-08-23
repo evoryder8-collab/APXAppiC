@@ -2757,6 +2757,10 @@
 "Under 5 km" = "Sub 5 km";
 "Under 5k steps · under 2h on feet" = "Sub 5.000 de pași · sub 2 ore în picioare";
 "Undo" = "Anulează";
+"%@ removed" = "%@ eliminat";
+"1 food" = "1 aliment";
+"%d millilitres water" = "%d mililitri de apă";
+"%d millilitres water in this meal" = "%d mililitri de apă în această masă";
 "Unexplained fainting or near-fainting" = "Leșin sau stare de leșin fără explicație";
 "Unfavourite" = "Scoate din favorite";
 "Unit" = "Unitate";

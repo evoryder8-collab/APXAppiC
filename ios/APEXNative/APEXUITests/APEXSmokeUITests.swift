@@ -217,6 +217,26 @@ final class APEXSmokeUITests: XCTestCase {
            built until the sheet is scrolled to it. */
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["FAST STARTS"], in: app))
         XCTAssertTrue(app.buttons["Select"].firstMatch.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["meal-total-water"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-water-")
+        ).firstMatch.exists)
+
+        /* The sticky save bar overlaps the lower edge of a merely "hittable"
+           card in XCTest. Move the row into clear space before proving X. */
+        app.swipeUp()
+        let compactDelete = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-delete-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(compactDelete, in: app))
+        XCTAssertTrue(compactDelete.isHittable)
+        compactDelete.tap()
+        let compactUndo = app.descendants(matching: .any)["meal-item-undo"]
+        XCTAssertTrue(compactUndo.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["1 food"].exists)
+        capture("meal-composer-undo")
+        compactUndo.tap()
+        XCTAssertFalse(compactUndo.exists)
         capture("meal-composer-compact")
 
         let displayControl = app.segmentedControls.firstMatch
@@ -224,6 +244,19 @@ final class APEXSmokeUITests: XCTestCase {
         displayControl.buttons["Expanded"].tap()
         XCTAssertTrue(app.switches["Adaptive"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.switches["Lock"].exists)
+        XCTAssertTrue(app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-water-")
+        ).firstMatch.exists)
+        app.swipeUp()
+        let expandedDelete = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-delete-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(expandedDelete, in: app))
+        XCTAssertTrue(expandedDelete.isHittable)
+        expandedDelete.tap()
+        let expandedUndo = app.descendants(matching: .any)["meal-item-undo"]
+        XCTAssertTrue(expandedUndo.waitForExistence(timeout: 2))
+        expandedUndo.tap()
         capture("meal-composer-expanded")
 
         app.buttons["Select"].tap()
@@ -234,6 +267,41 @@ final class APEXSmokeUITests: XCTestCase {
         /* The count label lands a frame after the button enables. */
         XCTAssertTrue(app.descendants(matching: .any)["meal-selection-count"].waitForExistence(timeout: 3))
         capture("meal-composer-selection")
+    }
+
+    func testFoodAmountDecimalPadHasDoneAndCanAddFood() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+        let breakfast = app.staticTexts["meal-dayline-title-breakfast"]
+        XCTAssertTrue(scrollUntilVisible(breakfast, in: app))
+        breakfast.tap()
+        XCTAssertTrue(app.staticTexts["Build this meal"].waitForExistence(timeout: 3))
+
+        let picker = app.buttons["meal-food-picker-open"]
+        XCTAssertTrue(scrollUntilVisible(picker, in: app))
+        picker.tap()
+        let food = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "food-row-")
+        ).firstMatch
+        XCTAssertTrue(food.waitForExistence(timeout: 3))
+        food.tap()
+
+        let quantity = app.textFields["food-amount-quantity"]
+        XCTAssertTrue(quantity.waitForExistence(timeout: 2))
+        quantity.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["food-amount-keyboard-done"].waitForExistence(timeout: 2))
+        capture("food-amount-keyboard-done")
+        app.buttons["food-amount-keyboard-done"].tap()
+        XCTAssertFalse(app.keyboards.firstMatch.exists)
+
+        let confirm = app.buttons["food-amount-confirm"]
+        XCTAssertTrue(confirm.isHittable)
+        confirm.tap()
+        XCTAssertFalse(app.descendants(matching: .any)["food-amount-quantity"].exists)
     }
 
     func testWorkoutPlayerGuidesAndRecordsActualSet() {
