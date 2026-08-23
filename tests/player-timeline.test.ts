@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { buildTimeline } from '../src/lib/playerTimeline.ts'
+import { buildTimeline, canAdvanceRest, canJumpToCheckpoint } from '../src/lib/playerTimeline.ts'
 import type { PlannedDay, PlannedExercise } from '../src/lib/plan.ts'
 
 function exercise(patch: Partial<PlannedExercise> = {}): PlannedExercise {
@@ -25,6 +25,45 @@ test('weighted sets request per-set load during rests but not between exercises'
   const transitionRestIndex = buildTimeline(plan).findIndex((block) => block.kind === 'rest' && block.exIdx === 0 && block.afterSet === 3)
   assert.ok(transitionRestIndex >= 0)
   assert.notEqual(buildTimeline(plan)[transitionRestIndex - 1]?.kind, 'log')
+})
+
+test('a final-set review rest cannot be skipped before its facts are resolved', () => {
+  const plan: PlannedDay = {
+    programDay: null,
+    exercises: [exercise(), exercise({ id: 'row', name: 'Row' })],
+    warmup: '', warmupDuration: 0, badges: [], isDeload: false, isEventDay: false,
+    isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+  }
+  const review = buildTimeline(plan).find((block) => (
+    block.kind === 'rest' && block.exIdx === 0 && block.reviewExercise
+  ))
+  assert.ok(review?.kind === 'rest')
+  assert.equal(canAdvanceRest(review, false), false)
+  assert.equal(canAdvanceRest(review, undefined), false)
+  assert.equal(canAdvanceRest(review, true), true)
+
+  const ordinary = buildTimeline(plan).find((block) => block.kind === 'rest' && !block.reviewExercise)
+  assert.ok(ordinary?.kind === 'rest')
+  assert.equal(canAdvanceRest(ordinary, false), true)
+})
+
+test('an unresolved review rest blocks forward checkpoint jumps but not going back', () => {
+  const plan: PlannedDay = {
+    programDay: null,
+    exercises: [exercise(), exercise({ id: 'row', name: 'Row' })],
+    warmup: '', warmupDuration: 0, badges: [], isDeload: false, isEventDay: false,
+    isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+  }
+  const blocks = buildTimeline(plan)
+  const reviewIndex = blocks.findIndex((block) => block.kind === 'rest' && block.reviewExercise)
+  assert.ok(reviewIndex > 0)
+  const review = blocks[reviewIndex]
+  assert.ok(review.kind === 'rest')
+
+  assert.equal(canJumpToCheckpoint(review, reviewIndex, reviewIndex + 1, false), false)
+  assert.equal(canJumpToCheckpoint(review, reviewIndex, blocks.length - 1, undefined), false)
+  assert.equal(canJumpToCheckpoint(review, reviewIndex, reviewIndex - 1, false), true)
+  assert.equal(canJumpToCheckpoint(review, reviewIndex, reviewIndex + 1, true), true)
 })
 
 test('bodyweight exercises do not ask for a meaningless kilogram entry', () => {

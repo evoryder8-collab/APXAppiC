@@ -24,9 +24,17 @@ struct ManualWorkoutLoggerView: View {
     @State private var problem: String?
 
     private var canSave: Bool {
-        exercises.contains { draft in
-            if let treadmill = draft.treadmill { return treadmill.durationMinutes > 0 }
-            return draft.sets.contains { $0.reps > 0 }
+        !exercises.isEmpty && exercises.allSatisfy { draft in
+            if let treadmill = draft.treadmill {
+                return treadmill.durationMinutes > 0 && treadmill.distanceKM > 0
+            }
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: draft.name,
+                movementID: draft.movementID
+            )
+            return descriptor.isSupported && !draft.sets.isEmpty && draft.sets.allSatisfy {
+                ManualWorkout.hasFacts($0, descriptor: descriptor)
+            }
         }
     }
 
@@ -99,14 +107,25 @@ struct ManualWorkoutLoggerView: View {
             }
             .sheet(isPresented: $showSearch) {
                 MovementPicker(query: $query) { item in
+                    let descriptor = ExerciseLogging.descriptor(movementNamed: item.name)
+                    let duration: Int? = descriptor.fields.contains(.duration)
+                        ? (item.unit == "minutes" ? item.reps * 60 : item.unit == "seconds" ? item.reps : nil)
+                        : nil
                     exercises.append(
                         ManualWorkout.ExerciseDraft(
                             catalogID: item.id,
                             name: item.name,
-                            sets: [ManualWorkout.SetDraft(reps: item.reps, weightKG: 0)],
-                            treadmill: item.category == "cardio"
-                                ? ManualWorkout.TreadmillDraft(durationMinutes: 20)
-                                : nil
+                            movementID: MovementTiming.movement(named: item.name)?.id,
+                            sets: [ManualWorkout.SetDraft(
+                                reps: descriptor.fields.contains(.reps) ? item.reps : 0,
+                                weightKG: descriptor.kind == .bodyweight ? 0 : nil,
+                                durationSeconds: duration,
+                                contacts: descriptor.fields.contains(.contacts) ? item.reps : nil,
+                                rounds: descriptor.fields.contains(.rounds) ? item.sets : nil,
+                                workSeconds: descriptor.fields.contains(.work) && item.unit == "seconds"
+                                    ? item.reps : nil
+                            )],
+                            treadmill: nil
                         )
                     )
                     showSearch = false
@@ -134,34 +153,7 @@ struct ManualWorkoutLoggerView: View {
     /// Rebuilds the editable draft from the rows a previous save wrote.
     private func draft(for workout: WorkoutSession) -> [ManualWorkout.ExerciseDraft] {
         let logs = WorkoutLogOrder.performedOrder(session.data, sessionID: workout.id)
-        var drafts: [ManualWorkout.ExerciseDraft] = []
-        for log in logs {
-            if let treadmill = ManualWorkout.parseTreadmill(log.exerciseName) {
-                drafts.append(
-                    ManualWorkout.ExerciseDraft(
-                        catalogID: nil,
-                        name: treadmill.name,
-                        sets: [],
-                        treadmill: treadmill.metrics
-                    )
-                )
-                continue
-            }
-            let set = ManualWorkout.SetDraft(
-                reps: log.reps ?? 0,
-                weightKG: log.weightKG ?? 0,
-                rir: log.rir
-            )
-            if let index = drafts.lastIndex(where: { $0.name == log.exerciseName && $0.treadmill == nil }),
-               log.setNumber > drafts[index].sets.count {
-                drafts[index].sets.append(set)
-            } else {
-                drafts.append(
-                    ManualWorkout.ExerciseDraft(catalogID: nil, name: log.exerciseName, sets: [set], treadmill: nil)
-                )
-            }
-        }
-        return drafts
+        return ManualWorkout.drafts(from: logs)
     }
 
     @ViewBuilder
@@ -184,54 +176,28 @@ struct ManualWorkoutLoggerView: View {
                     .buttonStyle(.plain)
                 }
 
-                if draft.wrappedValue.treadmill != nil {
-                    treadmillFields(draft)
-                } else {
-                    setFields(draft)
-                }
+                setFields(draft)
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 
-    private func treadmillFields(_ draft: Binding<ManualWorkout.ExerciseDraft>) -> some View {
-        let treadmill = Binding(
-            get: { draft.wrappedValue.treadmill ?? ManualWorkout.TreadmillDraft() },
-            set: { draft.wrappedValue.treadmill = $0 }
-        )
-        return HStack(spacing: 8) {
-            numberField(language.text("KM"), value: Binding(
-                get: { treadmill.wrappedValue.distanceKM },
-                set: { treadmill.wrappedValue.distanceKM = $0 }
-            ))
-            numberField(language.text("INCLINE"), value: Binding(
-                get: { treadmill.wrappedValue.inclineDegrees },
-                set: { treadmill.wrappedValue.inclineDegrees = $0 }
-            ))
-            numberField(language.text("MIN"), value: Binding(
-                get: { Double(treadmill.wrappedValue.durationMinutes) },
-                set: { treadmill.wrappedValue.durationMinutes = Int($0) }
-            ))
-        }
-    }
-
     private func setFields(_ draft: Binding<ManualWorkout.ExerciseDraft>) -> some View {
-        VStack(spacing: 8) {
+        let descriptor = ExerciseLogging.descriptor(
+            movementNamed: draft.wrappedValue.name,
+            movementID: draft.wrappedValue.movementID
+        )
+        return VStack(spacing: 8) {
             ForEach(Array(draft.sets.enumerated()), id: \.element.id) { index, set in
-                HStack(spacing: 8) {
+                HStack(alignment: .top, spacing: 8) {
                     Text(language.format("SET %d", index + 1))
                         .font(APEXFont.mono(9, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .frame(width: 44, alignment: .leading)
-                    numberField(language.text("REPS"), value: Binding(
-                        get: { Double(set.wrappedValue.reps) },
-                        set: { set.wrappedValue.reps = Int($0) }
-                    ))
-                    numberField(language.text("KG"), value: Binding(
-                        get: { set.wrappedValue.weightKG },
-                        set: { set.wrappedValue.weightKG = $0 }
-                    ))
-                    effortField(set)
+                    ExerciseFactFieldsView(
+                        descriptor: descriptor,
+                        values: factValues(set)
+                    )
                     if draft.wrappedValue.sets.count > 1 {
                         Button {
                             draft.wrappedValue.sets.removeAll { $0.id == set.wrappedValue.id }
@@ -245,10 +211,9 @@ struct ManualWorkoutLoggerView: View {
                 }
             }
             Button {
-                let last = draft.wrappedValue.sets.last
-                draft.wrappedValue.sets.append(
-                    ManualWorkout.SetDraft(reps: last?.reps ?? 10, weightKG: last?.weightKG ?? 0)
-                )
+                var next = draft.wrappedValue.sets.last ?? ManualWorkout.SetDraft()
+                next.id = UUID()
+                draft.wrappedValue.sets.append(next)
             } label: {
                 Label(language.text("Add set"), systemImage: "plus")
                     .font(APEXFont.body(11, weight: .bold))
@@ -259,40 +224,35 @@ struct ManualWorkoutLoggerView: View {
         }
     }
 
-    private func numberField(_ label: String, value: Binding<Double>) -> some View {
-        VStack(alignment: .leading, spacing: 3) {
-            Text(label)
-                .font(APEXFont.mono(8, weight: .bold))
-                .foregroundStyle(APEXColor.secondaryInk)
-            TextField("", value: value, format: .number)
-                .keyboardType(.decimalPad)
-                .font(APEXFont.mono(13, weight: .bold))
-                .padding(.horizontal, 9)
-                .frame(height: 34)
-                .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 10))
-        }
-        .frame(maxWidth: .infinity)
-    }
-
-    private func effortField(_ set: Binding<ManualWorkout.SetDraft>) -> some View {
-        Menu {
-            Button(language.text("Not reported")) { set.wrappedValue.rir = nil }
-            ForEach(0...5, id: \.self) { value in
-                Button("RIR \(value)") { set.wrappedValue.rir = value }
+    private func factValues(
+        _ set: Binding<ManualWorkout.SetDraft>
+    ) -> Binding<ExerciseFactValues> {
+        Binding(
+            get: {
+                ExerciseFactValues(
+                    reps: set.wrappedValue.reps > 0 ? set.wrappedValue.reps : nil,
+                    signedLoadKG: set.wrappedValue.weightKG,
+                    rir: set.wrappedValue.rir,
+                    durationSeconds: set.wrappedValue.durationSeconds,
+                    distanceMeters: set.wrappedValue.distanceMeters,
+                    contacts: set.wrappedValue.contacts,
+                    rounds: set.wrappedValue.rounds,
+                    workSeconds: set.wrappedValue.workSeconds,
+                    recoverySeconds: set.wrappedValue.recoverySeconds
+                )
+            },
+            set: { values in
+                set.wrappedValue.reps = values.reps ?? 0
+                set.wrappedValue.weightKG = values.signedLoadKG
+                set.wrappedValue.rir = values.rir
+                set.wrappedValue.durationSeconds = values.durationSeconds
+                set.wrappedValue.distanceMeters = values.distanceMeters
+                set.wrappedValue.contacts = values.contacts
+                set.wrappedValue.rounds = values.rounds
+                set.wrappedValue.workSeconds = values.workSeconds
+                set.wrappedValue.recoverySeconds = values.recoverySeconds
             }
-        } label: {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(language.text("RIR"))
-                    .font(APEXFont.mono(8, weight: .bold))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                Text(set.wrappedValue.rir.map { "\($0)" } ?? "—")
-                    .font(APEXFont.mono(13, weight: .bold))
-                    .frame(maxWidth: .infinity, minHeight: 34)
-                    .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 10))
-            }
-        }
-        .frame(maxWidth: .infinity)
-        .accessibilityLabel(language.text("Reps in reserve"))
+        )
     }
 
     private func save() {

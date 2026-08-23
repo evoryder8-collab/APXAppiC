@@ -7,6 +7,9 @@ import { useStore } from '../store/AppStore'
 import { planForDate } from '../lib/plan'
 import { recommendLoad } from '../lib/progression'
 import { buildSessionRecords, sessionQuality, type ExerciseEntry, type SetEntry } from '../lib/workoutSession'
+import { hasLoggedFact } from '../lib/workoutSession'
+import { descriptorForExercise, isValidExerciseFacts } from '../lib/exerciseLogging'
+import { ExerciseFactFields } from '../components/workout/ExerciseFactFields'
 import { movementForExercise } from '../lib/sessionShape'
 import type { ProgramSlug } from '../lib/types'
 
@@ -42,17 +45,25 @@ export function TrackedSession() {
     const seed: Record<number, ExerciseEntry> = {}
     plan.exercises.forEach((e, index) => {
       const known = data.exercises.some((x) => x.id === e.id)
+      const descriptor = descriptorForExercise({ name: e.name, movement_id: e.movement_id })
       const suggested = known ? recommendLoad(data, e).weight : null
       seed[index] = {
         exerciseId: known ? e.id : null,
+        movementId: e.movement_id ?? movementForExercise(e)?.id ?? null,
         name: e.name,
         plannedSets: e.planned_sets,
         skipped: false,
         override: false,
         sets: Array.from({ length: e.planned_sets }, () => ({
-          weight: suggested ?? null,
+          weight: suggested ?? (descriptor.kind === 'bodyweight' && descriptor.fields.includes('signedLoad') ? 0 : null),
           reps: null,
           rir: null,
+          durationSeconds: null,
+          distanceMeters: null,
+          contacts: null,
+          rounds: null,
+          workSeconds: null,
+          recoverySeconds: null,
         })),
       }
     })
@@ -90,6 +101,12 @@ export function TrackedSession() {
             weight: s.weight ?? first.weight,
             reps: s.reps ?? first.reps,
             rir: s.rir ?? first.rir,
+            durationSeconds: s.durationSeconds ?? first.durationSeconds,
+            distanceMeters: s.distanceMeters ?? first.distanceMeters,
+            contacts: s.contacts ?? first.contacts,
+            rounds: s.rounds ?? first.rounds,
+            workSeconds: s.workSeconds ?? first.workSeconds,
+            recoverySeconds: s.recoverySeconds ?? first.recoverySeconds,
           })),
         },
       }
@@ -97,12 +114,21 @@ export function TrackedSession() {
   }
 
   const list = Object.values(entries)
-  const setsLogged = list.reduce(
-    (sum, e) => e.skipped ? sum : sum + e.sets.filter((s) => (s.reps ?? 0) > 0).length, 0)
+  const setsLogged = list.reduce((sum, entry) => {
+    if (entry.skipped) return sum
+    const descriptor = descriptorForExercise({ name: entry.name, movement_id: entry.movementId })
+    return sum + entry.sets.filter((set) => hasLoggedFact(set, descriptor)).length
+  }, 0)
   const setsPlanned = list.reduce((sum, e) => sum + e.plannedSets, 0)
+  const canFinish = list.every((entry) => {
+    if (entry.skipped) return true
+    const descriptor = descriptorForExercise({ name: entry.name, movement_id: entry.movementId })
+    return entry.sets.length === entry.plannedSets
+      && entry.sets.every((set) => isValidExerciseFacts(set, descriptor))
+  })
 
   const finish = (): void => {
-    if (!plan.programDay || !ownerId) return
+    if (!plan.programDay || !ownerId || !canFinish) return
     const { session, logs } = buildSessionRecords({
       sessionId: crypto.randomUUID(),
       userId: ownerId,
@@ -149,6 +175,7 @@ export function TrackedSession() {
         {plan.exercises.map((exercise, exIdx) => {
           const entry = entries[exIdx]
           const movement = movementForExercise(exercise)
+          const descriptor = descriptorForExercise({ name: exercise.name, movement_id: exercise.movement_id })
           const target = exercise.rep_min === exercise.rep_max
             ? `${exercise.rep_min}`
             : `${exercise.rep_min}-${exercise.rep_max}`
@@ -172,31 +199,10 @@ export function TrackedSession() {
 
               {!entry.skipped && (
                 <>
-                  <div className="mt-3 grid grid-cols-[1.6rem_1fr_1fr_1fr] items-center gap-2 text-[10px] font-bold uppercase tracking-wide text-ink-soft">
-                    <span />
-                    <span>{t('kg')}</span>
-                    <span>{t('Reps')}</span>
-                    <span>{t('RIR')}</span>
-                  </div>
                   {entry.sets.map((set, setIdx) => (
-                    <div key={setIdx} className="mt-1.5 grid grid-cols-[1.6rem_1fr_1fr_1fr] items-center gap-2">
+                    <div key={setIdx} className="mt-2 grid grid-cols-[1.6rem_minmax(0,1fr)] items-center gap-2">
                       <span className="text-[11px] font-black text-ink-soft">{setIdx + 1}</span>
-                      <NumberField
-                        value={set.weight}
-                        step={exercise.increment_kg || 1}
-                        onChange={(weight) => patchSet(exIdx, setIdx, { weight })}
-                        disabled={exercise.increment_kg === 0}
-                      />
-                      <NumberField
-                        value={set.reps}
-                        step={1}
-                        onChange={(reps) => patchSet(exIdx, setIdx, { reps })}
-                      />
-                      <NumberField
-                        value={set.rir}
-                        step={1}
-                        onChange={(rir) => patchSet(exIdx, setIdx, { rir })}
-                      />
+                      <ExerciseFactFields descriptor={descriptor} value={set} onChange={(patch) => patchSet(exIdx, setIdx, patch)} />
                     </div>
                   ))}
                   {entry.plannedSets > 1 && (
@@ -220,35 +226,11 @@ export function TrackedSession() {
           <p className="text-[11px] font-bold text-ink-soft">
             {setsLogged}/{setsPlanned} {t('sets logged')}
           </p>
-          <GradientButton accent={ACCENTS.teal} onClick={finish}>
+          <GradientButton accent={ACCENTS.teal} onClick={finish} disabled={!canFinish}>
             {t('Finish session')}
           </GradientButton>
         </div>
       </div>
     </div>
-  )
-}
-
-function NumberField({
-  value, step, onChange, disabled = false,
-}: {
-  value: number | null
-  step: number
-  onChange: (next: number | null) => void
-  disabled?: boolean
-}) {
-  return (
-    <input
-      type="number"
-      inputMode="decimal"
-      step={step}
-      disabled={disabled}
-      value={value ?? ''}
-      onChange={(event) => {
-        const raw = event.target.value
-        onChange(raw === '' ? null : Number(raw))
-      }}
-      className="w-full rounded-xl border border-white/10 bg-white/60 px-2 py-2 text-center text-sm font-bold text-ink outline-none disabled:opacity-40"
-    />
   )
 }

@@ -26,12 +26,17 @@ enum MovementTiming {
         /// contacts, breath-paced work, and so on.
         let prescriptionMode: String
         let loadable: Bool
+        let entityType: String
+        let disciplines: [String]
+        let prescription: String
 
         private enum CodingKeys: String, CodingKey {
             case id, name, unilateral, repositioning, loadable
             case setupSeconds = "setup_seconds"
             case fatigueCost = "fatigue_cost"
             case prescriptionMode = "prescription_mode"
+            case entityType = "entity_type"
+            case disciplines, prescription
         }
 
         /// Whether counting a rep cadence means anything here. A stretch flow,
@@ -97,6 +102,8 @@ enum MovementTiming {
         uniqueKeysWithValues: payload.movements.map { ($0.id, $0) }
     )
 
+    static var cataloguedMovements: [Movement] { payload.movements }
+
     /// Programme rows carry their own authored names -- "Pull-Ups (different
     /// grip than Wed)", "Bulgarian Split Squat (backpack)" -- so resolving one
     /// has to survive the parenthetical.
@@ -105,6 +112,14 @@ enum MovementTiming {
         for movement in payload.movements {
             map[normalise(movement.name)] = movement
             map[normalise(movement.id)] = movement
+        }
+        return map
+    }()
+
+    private static let byNormalisedAlias: [String: Movement] = {
+        var map: [String: Movement] = [:]
+        for (alias, movementID) in payload.aliases {
+            if let movement = byID[movementID] { map[normalise(alias)] = movement }
         }
         return map
     }()
@@ -121,7 +136,8 @@ enum MovementTiming {
     static func movement(named name: String, movementID: String? = nil) -> Movement? {
         if let movementID, let hit = byID[movementID] { return hit }
         if let aliased = payload.aliases[name], let hit = byID[aliased] { return hit }
-        return byNormalisedName[normalise(name)]
+        let key = normalise(name)
+        return byNormalisedAlias[key] ?? byNormalisedName[key]
     }
 
     /// How long switching sides genuinely takes.

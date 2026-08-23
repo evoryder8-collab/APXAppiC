@@ -64,6 +64,9 @@
 		34DA301FFA047E8D56194F20 /* OnboardingAtmosphere.swift in Sources */ = {isa = PBXBuildFile; fileRef = 16AF7A7F8938AFF82F93E5CA /* OnboardingAtmosphere.swift */; };
 		352AACC240CD4D66A83DD10E /* FitnessBrainTargets.swift in Sources */ = {isa = PBXBuildFile; fileRef = 59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */; };
 		355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */; };
+		A15E10000000000000000002 /* ExerciseLoggingTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E10000000000000000001 /* ExerciseLoggingTests.swift */; };
+		A15E10000000000000000004 /* ExerciseLogging.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E10000000000000000003 /* ExerciseLogging.swift */; };
+		A15E10000000000000000006 /* ExerciseFactFieldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E10000000000000000005 /* ExerciseFactFieldsView.swift */; };
 		376BEAEBCF7B7C3D48642471 /* SimpleHomeLogicTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 20D9ABA6AE517DC03269E042 /* SimpleHomeLogicTests.swift */; };
 		37B855D4508C3A104F80E28C /* BarcodeScannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 78C21D6984CDA2C08F7DCA44 /* BarcodeScannerView.swift */; };
 		38EB2C8975984206CEB2D8EE /* Localizable.strings in Resources */ = {isa = PBXBuildFile; fileRef = F1559A542D707F22F3398326 /* Localizable.strings */; };
@@ -335,6 +338,9 @@
 		3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingAdjustmentEngineTests.swift; sourceTree = "<group>"; };
 		393564C9A7237B2AE2880001 /* ProgressionEngine.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressionEngine.swift; sourceTree = "<group>"; };
 		39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ManualAndInductionTests.swift; sourceTree = "<group>"; };
+		A15E10000000000000000001 /* ExerciseLoggingTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLoggingTests.swift; sourceTree = "<group>"; };
+		A15E10000000000000000003 /* ExerciseLogging.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseLogging.swift; sourceTree = "<group>"; };
+		A15E10000000000000000005 /* ExerciseFactFieldsView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ExerciseFactFieldsView.swift; sourceTree = "<group>"; };
 		3C588B0EDF217B6465E465A7 /* diaphragm_dif.jpg */ = {isa = PBXFileReference; lastKnownFileType = image.jpeg; path = diaphragm_dif.jpg; sourceTree = "<group>"; };
 		4211E4F924B1006E215C67A3 /* hydration-female.html */ = {isa = PBXFileReference; lastKnownFileType = text.html; path = "hydration-female.html"; sourceTree = "<group>"; };
 		4256EEE11E008BE9F2ABCE42 /* PortalHomeView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PortalHomeView.swift; sourceTree = "<group>"; };
@@ -568,6 +574,7 @@
 				0F22D3ABC94F97A0A6511460 /* ExerciseCatalog.swift */,
 				88FC672B13DFB786889784E8 /* HolographicBodyView.swift */,
 				06A527BACE95DC1F98A6D69D /* ManualWorkoutLoggerView.swift */,
+				A15E10000000000000000005 /* ExerciseFactFieldsView.swift */,
 				A80A4616A724F251A3020AE1 /* MuscleMapAssetHandler.swift */,
 				FBFC41CAA72D609132D9F23C /* MuscleMapCard.swift */,
 				9D7B65E53B361387C9EFF120 /* MuscleMapView.swift */,
@@ -725,6 +732,7 @@
 				74C7E3CF4E5AE5C8DEA117E5 /* LocalisationCoverageTests.swift */,
 				192E8BBA9FDA6A45AE0F11E8 /* LocalizationTests.swift */,
 				39EEEB9F8DC5CFCF18BFFF4E /* ManualAndInductionTests.swift */,
+				A15E10000000000000000001 /* ExerciseLoggingTests.swift */,
 				1461F2B1B2C5B0A79D5BE0B3 /* MealComposerTests.swift */,
 				CDC9B41B4934D3F2405AA4C3 /* MealMacroGuidanceParityTests.swift */,
 				833B254C2F34F220EBBF200A /* MealMemoryParityTests.swift */,
@@ -937,6 +945,7 @@
 				98541CD1971118A4B2DE05FA /* MealSlotDefault.swift */,
 				7601EE1C7E9A7AE48F0E81C6 /* MealTimingEngine.swift */,
 				5956DD731E5551C014950E65 /* MovementTiming.swift */,
+				A15E10000000000000000003 /* ExerciseLogging.swift */,
 				AE24B87D5C42CE0C27370C9C /* NudgeCenter.swift */,
 				FD93B4562F2F4883871B64E4 /* PlayerTimeline.swift */,
 				9ED7764E8EA64DAD55DEF65F /* ProgressComparison.swift */,
@@ -1271,6 +1280,7 @@
 				CD8B1FE6660C170BB63D95A2 /* ManualRouteEditorView.swift in Sources */,
 				BEFCCD551DF2AD37CF7A25AD /* ManualWorkout.swift in Sources */,
 				5E2E98B79FE3762B4E0EE4C9 /* ManualWorkoutLoggerView.swift in Sources */,
+				A15E10000000000000000006 /* ExerciseFactFieldsView.swift in Sources */,
 				3AA8A0C7384CBA70BE6DA42E /* MarathonCampaignView.swift in Sources */,
 				E227F2278FD58892015DA6B1 /* MarathonInductionView.swift in Sources */,
 				2A61FDD8CF11B5B70A53165C /* MealBlocks.swift in Sources */,
@@ -1281,6 +1291,7 @@
 				0D4DF9A23413663004E5490D /* MealSlotDefault.swift in Sources */,
 				85115AA3394E20C0EA86F5C0 /* MealTimingEngine.swift in Sources */,
 				218AAD6781C51180219C39F5 /* MovementTiming.swift in Sources */,
+				A15E10000000000000000004 /* ExerciseLogging.swift in Sources */,
 				42ED8A7CB4EA88FE1941CF09 /* MuscleMapAssetHandler.swift in Sources */,
 				B71C19C7366753A84F73BE7C /* MuscleMapCard.swift in Sources */,
 				9EEED55F9769ADB756BDB9AF /* MuscleMapView.swift in Sources */,
@@ -1377,6 +1388,7 @@
 				FB4AFC5F48F1651E0E7B1D52 /* LocalisationCoverageTests.swift in Sources */,
 				BEB1F478F3008351ADF7F2AE /* LocalizationTests.swift in Sources */,
 				355C40F68B13A6FBC400F7D5 /* ManualAndInductionTests.swift in Sources */,
+				A15E10000000000000000002 /* ExerciseLoggingTests.swift in Sources */,
 				0EE7E6645CFDDEC729502C7D /* MealComposerTests.swift in Sources */,
 				76C3F2FEE9DED4CD82BF8A01 /* MealMacroGuidanceParityTests.swift in Sources */,
 				D6E3A2C4EC98342E02B5BBCC /* MealMemoryParityTests.swift in Sources */,

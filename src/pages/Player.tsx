@@ -12,6 +12,8 @@ import { useStore } from '../store/AppStore'
 import { planForDate, type PlannedExercise } from '../lib/plan'
 import {
   buildTimeline,
+  canAdvanceRest,
+  canJumpToCheckpoint,
   countedRepsForSet,
   isPassiveTimerBlock,
   plannedWorkoutDurationBreakdown,
@@ -22,7 +24,8 @@ import {
   speechAnnouncementFallbackMs,
   type Block,
 } from '../lib/playerTimeline'
-import { buildSessionRecords, serializeExerciseSets } from '../lib/workoutSession'
+import { buildSessionRecords, serializeExerciseSets, type SetEntry } from '../lib/workoutSession'
+import { descriptorForExercise, isValidExerciseFacts, normalizeExerciseFacts } from '../lib/exerciseLogging'
 import { guardianCheck, recommendLoad, type Recommendation } from '../lib/progression'
 import { speak, stopSpeech, tick } from '../lib/audio'
 import { currentStreak } from '../lib/streak'
@@ -31,6 +34,7 @@ import { activityCatalogMap, activityLogFromBlock, emptyActivityBlock } from '..
 import { activityLogId } from '../lib/ids'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
+import { ExerciseFactFields } from '../components/workout/ExerciseFactFields'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 import { isConditioningFocusT25, isFocusT25Name } from '../lib/focusT25'
 import { exerciseExecutionCue } from '../lib/exerciseGuidance'
@@ -43,11 +47,8 @@ import {
 
 const PERSIST_KEY = 'apex.player.v1'
 
-interface SetResult {
-  reps: number | null
-  rir: number | null
+interface SetResult extends SetEntry {
   skipped: boolean
-  weight: number | null
 }
 
 interface ExerciseResult {
@@ -356,7 +357,7 @@ export function Player() {
       }
       if (ticks && remaining <= 3.05 && remaining > 0 && Math.abs(remaining % 1) < 0.11) tick('accent')
       if (remaining <= 0) {
-        if (block.reviewExercise && !state.results[block.exIdx]?.finalized) return
+        if (!canAdvanceRest(block, state.results[block.exIdx]?.finalized)) return
         if (voice) speak(`${voiceText('Rest over.')} ${voiceText(block.nextLabel)}.`, language)
         advance()
       }
@@ -403,9 +404,21 @@ export function Player() {
     [plan.exercises, data],
   )
 
-  const saveExerciseLog = (exIdx: number, weights: Array<number | null>, rirs: Array<number | null>, repsBySet: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter = true): void => {
+  const saveExerciseLog = (exIdx: number, entries: SetEntry[], skippedAll: boolean, override: boolean, advanceAfter = true): void => {
     const e = plan.exercises[exIdx]
-    const usableWeights = weights.filter((value): value is number => value != null)
+    const descriptor = descriptorForExercise({ name: e.name, movement_id: e.movement_id })
+    if (!skippedAll && (
+      entries.length !== e.planned_sets
+      || entries.some((entry) => !isValidExerciseFacts(entry, descriptor))
+    )) return
+    const normalizedEntries = entries.map((entry) => normalizeExerciseFacts(entry, descriptor, skippedAll))
+    const usableWeights = normalizedEntries.map((entry) => entry.weight).filter((value): value is number => value != null)
+    const reportedSets = serializeExerciseSets(
+      normalizedEntries.map((entry) => entry.weight),
+      normalizedEntries.map((entry) => entry.rir),
+      normalizedEntries.map((entry) => entry.reps),
+      skippedAll,
+    )
     dispatch({
       type: 'saveLog',
       exIdx,
@@ -414,7 +427,17 @@ export function Player() {
         override,
         skippedAll,
         finalized: true,
-        sets: serializeExerciseSets(weights, rirs, repsBySet, skippedAll),
+        sets: normalizedEntries.map((entry, index) => ({
+          ...entry,
+          ...reportedSets[index],
+          durationSeconds: skippedAll ? null : entry.durationSeconds,
+          distanceMeters: skippedAll ? null : entry.distanceMeters,
+          contacts: skippedAll ? null : entry.contacts,
+          rounds: skippedAll ? null : entry.rounds,
+          workSeconds: skippedAll ? null : entry.workSeconds,
+          recoverySeconds: skippedAll ? null : entry.recoverySeconds,
+          skipped: skippedAll,
+        })),
       },
     })
     if (voice && !skippedAll) speak(`${voiceText(e.name)}. ${voiceText('Exercise logged.')}`, language)
@@ -460,6 +483,7 @@ export function Player() {
         const isRealExercise = data.exercises.some((x) => x.id === e.id)
         return {
           exerciseId: isRealExercise ? e.id : null,
+          movementId: e.movement_id,
           name: e.name,
           plannedSets: e.planned_sets,
           skipped: r?.skippedAll ?? !r,
@@ -467,6 +491,7 @@ export function Player() {
           sets: Array.from({ length: e.planned_sets }, (_unused, index) => {
             const sr = r?.sets[index]
             return {
+              ...sr,
               weight: sr?.weight ?? r?.weight ?? null,
               reps: sr?.reps
                 ?? countedRepsForSet(state.countedReps, exIdx, index + 1, e.per_side)
@@ -633,7 +658,7 @@ export function Player() {
                   dispatch({ type: 'endSet', key: block.kind === 'set' ? block.resultKey : '', reps })
                   advance()
                 }}
-                onConfirmCheck={(exIdx, completed, usedModifier) => saveExerciseLog(exIdx, [null], [null], [completed ? 1 : null], !completed, usedModifier)}
+                onConfirmCheck={(exIdx, completed, usedModifier) => saveExerciseLog(exIdx, [{ weight: null, reps: completed ? 1 : null, rir: null }], !completed, usedModifier)}
                 recFor={recFor}
                 onSaveLog={saveExerciseLog}
                 results={state.results}
@@ -658,6 +683,12 @@ export function Player() {
           {blocks.map((b, i) => {
             const active = i === state.idx
             const past = i < state.idx
+            const checkpointEnabled = !block || canJumpToCheckpoint(
+              block,
+              state.idx,
+              i,
+              block.kind === 'rest' ? state.results[block.exIdx]?.finalized : undefined,
+            )
             let label = ''
             if (b.kind === 'warmup') label = 'W'
             else if (b.kind === 'set') label = `${b.setNo}${b.side ? (b.side === 'left' ? 'L' : 'R') : ''}`
@@ -672,9 +703,12 @@ export function Player() {
               <button
                 key={i}
                 type="button"
-                onClick={() => dispatch({ type: 'jump', idx: i })}
+                disabled={!checkpointEnabled}
+                onClick={() => {
+                  if (checkpointEnabled) dispatch({ type: 'jump', idx: i })
+                }}
                 aria-label={`Checkpoint ${i + 1}`}
-                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold transition-all active:scale-90 ${active ? 'breathe' : ''}`}
+                className={`flex h-8 w-8 shrink-0 items-center justify-center rounded-full font-mono text-[11px] font-bold transition-all active:scale-90 disabled:cursor-not-allowed disabled:opacity-40 ${active ? 'breathe' : ''}`}
                 style={
                   active
                     ? ({ background: accent.gradient, color: '#fff', '--glow-soft': accent.glowSoft, '--glow-strong': accent.glowStrong } as React.CSSProperties)
@@ -786,7 +820,7 @@ function BlockView(props: {
   onEndMaxSet: (reps: number) => void
   onConfirmCheck: (exIdx: number, completed: boolean, usedModifier: boolean) => void
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weights: Array<number | null>, rirs: Array<number | null>, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
+  onSaveLog: (exIdx: number, entries: SetEntry[], skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   onSetWeight: (exIdx: number, setNo: number, totalSets: number, weight: number | null) => void
   onSetReps: (exIdx: number, setNo: number, totalSets: number, reps: number) => void
@@ -986,9 +1020,11 @@ function BlockView(props: {
         )}
         <div className="mt-4 flex justify-center gap-2">
           <GhostButton onClick={props.onExtendRest}>+30s</GhostButton>
-          <GradientButton accent={accent} onClick={props.onSkipRest}>
-            {t('Skip')}
-          </GradientButton>
+          {canAdvanceRest(block, existing?.finalized) && (
+            <GradientButton accent={accent} onClick={props.onSkipRest}>
+              {t('Skip')}
+            </GradientButton>
+          )}
         </div>
       </CenterCard>
     )
@@ -1238,7 +1274,7 @@ function LogCard(props: {
   accent: Accent
   counted: Record<string, number>
   recFor: (exIdx: number) => Recommendation | null
-  onSaveLog: (exIdx: number, weights: Array<number | null>, rirs: Array<number | null>, reps: Array<number | null>, skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
+  onSaveLog: (exIdx: number, entries: SetEntry[], skippedAll: boolean, override: boolean, advanceAfter?: boolean) => void
   results: Record<number, ExerciseResult>
   guardian: { entered: number; safe: number; exIdx: number } | null
   setGuardian: (g: { entered: number; safe: number; exIdx: number } | null) => void
@@ -1250,31 +1286,40 @@ function LogCard(props: {
   const t = (value: string): string => translateInterfaceText(value, language)
   const rec = props.recFor(exIdx)
   const existing = props.results[exIdx]
-  const [weights, setWeights] = useState<Array<number | null>>(() =>
-    [...Array(e.planned_sets)].map((_, index) => prefillSetWeight(
-      existing?.sets.map((set) => set.weight) ?? [],
-      index + 1,
-      existing?.weight,
-      rec?.weight,
-    )),
-  )
-  const [rirs, setRirs] = useState<Array<number | null>>(() =>
-    [...Array(e.planned_sets)].map((_, index) => existing?.sets[index]?.rir ?? null),
-  )
-  const [reps, setReps] = useState<Array<number | null>>(() =>
-    [...Array(e.planned_sets)].map((_, i) => e.rep_unit === 'reps'
-      ? prefillSetReps(
-          existing?.sets.map((set) => set.reps) ?? [],
-          i + 1,
-          countedRepsForSet(props.counted, exIdx, i + 1, e.per_side),
-          Math.round((e.rep_min + e.rep_max) / 2),
-        )
-      : null),
-  )
+  const descriptor = descriptorForExercise({ name: e.name, movement_id: e.movement_id })
+  const [sets, setSets] = useState<SetEntry[]>(() => [...Array(e.planned_sets)].map((_, index) => {
+    const counted = countedRepsForSet(props.counted, exIdx, index + 1, e.per_side)
+    return {
+      weight: descriptor.fields.includes('signedLoad')
+        ? prefillSetWeight(
+            existing?.sets.map((set) => set.weight) ?? [],
+            index + 1,
+            existing?.weight,
+            rec?.weight ?? (descriptor.kind === 'bodyweight' ? 0 : null),
+          )
+        : null,
+      reps: descriptor.fields.includes('reps')
+        ? prefillSetReps(existing?.sets.map((set) => set.reps) ?? [], index + 1, counted, Math.round((e.rep_min + e.rep_max) / 2))
+        : null,
+      rir: existing?.sets[index]?.rir ?? null,
+      durationSeconds: existing?.sets[index]?.durationSeconds
+        ?? (descriptor.fields.includes('duration') ? counted : null),
+      distanceMeters: existing?.sets[index]?.distanceMeters ?? null,
+      contacts: existing?.sets[index]?.contacts
+        ?? (descriptor.fields.includes('contacts') ? counted : null),
+      rounds: existing?.sets[index]?.rounds ?? null,
+      workSeconds: existing?.sets[index]?.workSeconds ?? null,
+      recoverySeconds: existing?.sets[index]?.recoverySeconds ?? null,
+    }
+  }))
   const [overridden, setOverridden] = useState(false)
+  const canSave = descriptor.supported
+    && sets.length === e.planned_sets
+    && sets.every((set) => isValidExerciseFacts(set, descriptor))
 
   const trySave = (): void => {
-    const entered = Math.max(0, ...weights.filter((value): value is number => value != null))
+    if (!canSave) return
+    const entered = Math.max(0, ...sets.map((set) => set.weight).filter((value): value is number => value != null))
     if (entered > 0 && rec) {
       const verdict = guardianCheck(entered, rec, props.guardianFactor)
       if (verdict.triggered && !overridden) {
@@ -1282,7 +1327,7 @@ function LogCard(props: {
         return
       }
     }
-    props.onSaveLog(exIdx, weights, rirs, reps, false, overridden, !props.embedded)
+    props.onSaveLog(exIdx, sets, false, overridden, !props.embedded)
   }
 
   const content = (
@@ -1295,44 +1340,28 @@ function LogCard(props: {
         </p>
       )}
 
-      {e.increment_kg > 0 && <p className="mt-3 rounded-xl bg-violet-500/8 px-3 py-2 text-[10px] font-semibold text-violet-800">{t('Loads were captured during each rest. Correct any set below before saving.')}</p>}
+      {descriptor.fields.includes('signedLoad') && e.increment_kg > 0 && <p className="mt-3 rounded-xl bg-violet-500/8 px-3 py-2 text-[10px] font-semibold text-violet-800">{t('Loads were captured during each rest. Correct any set below before saving.')}</p>}
 
       <div className="mt-4 space-y-2">
-        {reps.map((r, i) => (
-          <div key={i} className="grid grid-cols-[3.2rem_minmax(0,1fr)_auto] items-center gap-2 rounded-2xl bg-white/55 p-2 font-mono text-xs font-semibold text-ink-soft">
-            <span>Set {i + 1}</span>
-            {e.increment_kg > 0 ? <label className="relative min-w-0"><input aria-label={`Set ${i + 1} weight in kilograms`} inputMode="decimal" type="number" min="0" step="0.5" value={weights[i] ?? ''} onChange={(event) => setWeights((current) => current.map((value, index) => index === i ? (event.target.value === '' ? null : Number(event.target.value)) : value))} className="w-full rounded-xl border border-white/80 bg-white/85 py-2 pr-8 pl-2 text-right font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-violet-300" /><span className="pointer-events-none absolute inset-y-0 right-2 flex items-center text-[8px] font-black text-ink-faint">KG</span></label> : <span />}
-            <div className="flex items-center gap-1"><button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? Math.max(0, (v ?? 0) - 1) : v)))}>-</button><span className="w-7 text-center font-bold text-ink">{r ?? '–'}</span><button type="button" className="glass h-8 w-8 rounded-lg font-bold" onClick={() => setReps((a) => a.map((v, j) => (j === i ? (v ?? 0) + 1 : v)))}>+</button></div>
-            <div className="col-span-3 flex items-center justify-between gap-2 border-t border-ink/5 pt-2">
-              <span className="text-[9px] font-bold tracking-widest text-ink-faint uppercase">{t('RIR')}</span>
-              <div className="flex gap-1">
-                {[0, 1, 2, 3, 4, 5].map((value) => (
-                  <button
-                    key={value}
-                    type="button"
-                    aria-label={`${t('Set')} ${i + 1} RIR ${value}`}
-                    onClick={() => setRirs((current) => current.map((rir, index) => index === i ? (rir === value ? null : value) : rir))}
-                    className="h-7 w-7 rounded-lg font-mono text-xs font-bold transition-all"
-                    style={
-                      rirs[i] === value
-                        ? { background: accent.gradient, color: '#fff' }
-                        : { background: 'rgba(255,255,255,0.6)', color: '#55555f', border: '1px solid rgba(26,26,34,0.08)' }
-                    }
-                  >
-                    {value}
-                  </button>
-                ))}
-              </div>
-            </div>
+        {sets.map((set, i) => (
+          <div key={i} className="rounded-2xl bg-white/55 p-2 text-left">
+            <span className="mb-2 block font-mono text-[10px] font-black text-ink-soft">{t('Set')} {i + 1}</span>
+            <ExerciseFactFields
+              descriptor={descriptor}
+              value={set}
+              onChange={(patch) => setSets((current) => current.map(
+                (value, index) => index === i ? { ...value, ...patch } : value,
+              ))}
+            />
           </div>
         ))}
       </div>
 
       <div className="mt-5 flex gap-2">
-        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, reps.map(() => null), reps.map(() => null), reps.map(() => null), true, false, !props.embedded)}>
+        <GhostButton className="flex-1" onClick={() => props.onSaveLog(exIdx, sets, true, false, !props.embedded)}>
           Skipped
         </GhostButton>
-        <GradientButton accent={accent} className="flex-[2]" onClick={trySave}>
+        <GradientButton accent={accent} className="flex-[2]" onClick={trySave} disabled={!canSave}>
           Save & continue
         </GradientButton>
       </div>
@@ -1357,7 +1386,12 @@ function LogCard(props: {
                 accent={ACCENTS.amber}
                 className="flex-1"
                 onClick={() => {
-                  setWeights((current) => current.map((value) => value != null && value > (props.guardian?.safe ?? value) ? (props.guardian?.safe ?? value) : value))
+                  setSets((current) => current.map((set) => ({
+                    ...set,
+                    weight: set.weight != null && set.weight > (props.guardian?.safe ?? set.weight)
+                      ? (props.guardian?.safe ?? set.weight)
+                      : set.weight,
+                  })))
                   props.setGuardian(null)
                 }}
               >

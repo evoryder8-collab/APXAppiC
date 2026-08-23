@@ -149,9 +149,19 @@ struct WorkoutReceiptSheet: View {
                                     .font(APEXFont.body(11, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             } else {
-                                setValue(log.weightKG.map { "\(formatted($0)) kg" } ?? "-")
-                                setValue(log.reps.map { "\($0) \(language.text("reps"))" } ?? "-")
-                                if let rir = log.rir { setValue("RIR \(rir)") }
+                                ScrollView(.horizontal, showsIndicators: false) {
+                                    HStack(spacing: 6) {
+                                        let facts = ExerciseLogging.factSummary(log)
+                                        if facts.isEmpty {
+                                            setValue("-")
+                                        } else {
+                                            ForEach(facts, id: \.self) { fact in setValue(fact) }
+                                        }
+                                        if let progress = ProgressionEngine.latestProgress(session.data, current: log) {
+                                            setValue(language.text(progressLabel(progress)))
+                                        }
+                                    }
+                                }
                             }
                             Spacer(minLength: 0)
                         }
@@ -170,7 +180,13 @@ struct WorkoutReceiptSheet: View {
             .foregroundStyle(APEXColor.ink)
     }
 
-    private func formatted(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
+    private func progressLabel(_ progress: ExerciseProgress) -> String {
+        switch progress {
+        case .improved: return "Improved from last time"
+        case .maintained: return "Matched last time"
+        case .regressed: return "Below last time"
+        case .adherence: return "Completed"
+        case .incomparable: return "Needs matching facts to compare"
+        }
     }
 }

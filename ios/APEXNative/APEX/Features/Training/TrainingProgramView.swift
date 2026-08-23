@@ -682,14 +682,21 @@ enum TrackedWorkout {
 
     static func setInputs(for exercises: [Exercise]) -> [WorkoutSetInput] {
         exercises.flatMap { exercise in
-            (1...max(exercise.sets, 1)).map { set in
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: exercise.name,
+                movementID: exercise.movementID
+            )
+            return (1...max(exercise.sets, 1)).map { set in
                 WorkoutSetInput(
                     exerciseID: exercise.id,
                     exerciseName: exercise.name,
                     setNumber: set,
-                    weightKG: nil,
+                    weightKG: descriptor.kind == .bodyweight
+                        && descriptor.fields.contains(.signedLoad) ? 0 : nil,
                     reps: nil,
                     rir: nil,
+                    movementID: exercise.movementID
+                        ?? MovementTiming.movement(named: exercise.name)?.id,
                     skipped: false
                 )
             }
@@ -738,6 +745,7 @@ enum TrackedWorkout {
             weightKG: nil,
             reps: nil,
             rir: nil,
+            movementID: input.movementID,
             skipped: decision == .skipped
         )
     }
@@ -746,7 +754,7 @@ enum TrackedWorkout {
         let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
         guard !trimmed.isEmpty,
               let value = Int(trimmed),
-              (0...maximum).contains(value) else {
+              (-maximum...maximum).contains(value) else {
             return nil
         }
         return value
@@ -768,7 +776,13 @@ enum TrackedWorkout {
     }
 
     static func isReadyToFinish(_ inputs: [WorkoutSetInput]) -> Bool {
-        inputs.allSatisfy { $0.skipped || ($0.reps ?? 0) > 0 }
+        inputs.allSatisfy { input in
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: input.exerciseName,
+                movementID: input.movementID
+            )
+            return input.skipped || hasFacts(input, descriptor: descriptor)
+        }
     }
 
     static func isReadyToFinish(
@@ -779,16 +793,64 @@ enum TrackedWorkout {
         inputs.allSatisfy { input in
             guard let exercise = exercises.first(where: { $0.id == input.exerciseID }),
                   workUnit(for: exercise) == .check else {
-                return input.skipped || (input.reps ?? 0) > 0
+                let descriptor = ExerciseLogging.descriptor(
+                    movementNamed: input.exerciseName,
+                    movementID: input.movementID
+                )
+                return input.skipped || hasFacts(input, descriptor: descriptor)
             }
             guard let decision = checkDecisions[setKey(for: input)] else { return false }
             switch decision {
             case .completed:
-                return !input.skipped && input.weightKG == nil && input.reps == nil && input.rir == nil
+                return !input.skipped && measurementsAreEmpty(input)
             case .skipped:
-                return input.skipped && input.weightKG == nil && input.reps == nil && input.rir == nil
+                return input.skipped && measurementsAreEmpty(input)
             }
         }
+    }
+
+    static func hasFacts(
+        _ input: WorkoutSetInput,
+        descriptor: ExerciseLoggingDescriptor
+    ) -> Bool {
+        descriptor.isSupported && ExerciseLogging.isValid(input)
+    }
+
+    private static func measurementsAreEmpty(_ input: WorkoutSetInput) -> Bool {
+        input.weightKG == nil && input.reps == nil && input.rir == nil
+            && input.durationSeconds == nil && input.distanceMeters == nil
+            && input.contacts == nil && input.rounds == nil
+            && input.workSeconds == nil && input.recoverySeconds == nil
+    }
+}
+
+enum GuidedWorkout {
+    static func setInput(
+        for exercise: Exercise,
+        setNumber: Int,
+        measuredWork: Int,
+        signedLoadKG: Double,
+        skipped: Bool
+    ) -> WorkoutSetInput {
+        let descriptor = ExerciseLogging.descriptor(
+            movementNamed: exercise.name,
+            movementID: exercise.movementID
+        )
+        return WorkoutSetInput(
+            exerciseID: exercise.id,
+            exerciseName: exercise.name,
+            setNumber: setNumber,
+            weightKG: !skipped && descriptor.fields.contains(.signedLoad)
+                ? (descriptor.kind == .bodyweight || signedLoadKG != 0 ? signedLoadKG : nil)
+                : nil,
+            reps: !skipped && descriptor.fields.contains(.reps) ? measuredWork : nil,
+            rir: nil,
+            movementID: exercise.movementID ?? MovementTiming.movement(named: exercise.name)?.id,
+            durationSeconds: !skipped && descriptor.fields.contains(.duration) ? measuredWork : nil,
+            contacts: !skipped && descriptor.fields.contains(.contacts) ? measuredWork : nil,
+            rounds: !skipped && descriptor.fields.contains(.rounds) ? measuredWork : nil,
+            skipped: skipped
+        )
     }
 }
 
@@ -802,8 +864,6 @@ struct TrackedWorkoutView: View {
     let lite: Bool
 
     @State private var setInputs: [WorkoutSetInput]
-    @State private var actualEntryTexts: [String: String] = [:]
-    @State private var loadEntryTexts: [String: String] = [:]
     @State private var checkDecisions: [String: TrackedWorkout.CheckDecision] = [:]
     @State private var startedAt = Date()
     @State private var isSaving = false
@@ -898,21 +958,19 @@ struct TrackedWorkoutView: View {
                             input.wrappedValue.skipped = skipped
                             if skipped {
                                 input.wrappedValue = input.wrappedValue.normalizedForPersistence()
-                                actualEntryTexts[entryKey(for: current)] = nil
-                                loadEntryTexts[entryKey(for: current)] = nil
                             }
                         }
                     ))
                     .tint(accent)
 
                     if !input.wrappedValue.skipped, let exercise {
-                        actualWorkControl(input, exercise: exercise)
-                        if exercise.incrementKG > 0 {
-                            loadControl(input, increment: exercise.incrementKG)
-                        }
-                        if TrackedWorkout.allowsRIR(for: exercise) {
-                            reportedEffortRow(input)
-                        }
+                        ExerciseFactFieldsView(
+                            descriptor: ExerciseLogging.descriptor(
+                                movementNamed: exercise.name,
+                                movementID: exercise.movementID
+                            ),
+                            values: factValues(input)
+                        )
                     }
                 }
             }
@@ -932,153 +990,33 @@ struct TrackedWorkoutView: View {
         )
     }
 
-    private func actualWorkControl(_ input: Binding<WorkoutSetInput>, exercise: Exercise) -> some View {
-        let unit = TrackedWorkout.workUnit(for: exercise)
-        let upperBound = unit == .minutes ? 180 : 600
-        let actualUnit = unit == .max ? TrackedWorkout.WorkUnit.reps : unit
-        return compactCounter(
-            label: language.text("Actual") + " " + language.text(actualUnit.rawValue),
-            value: Binding(
-                get: { input.wrappedValue.reps },
-                set: { input.wrappedValue.reps = $0 }
-            ),
-            text: actualWorkEntryText(input, maximum: upperBound),
-            step: unit == .seconds ? 5 : 1,
-            upperBound: upperBound
-        )
-    }
-
-    private func loadControl(_ input: Binding<WorkoutSetInput>, increment: Double) -> some View {
-        compactDecimalCounter(
-            label: language.text("Load") + " (kg)",
-            value: Binding(
-                get: { input.wrappedValue.weightKG },
-                set: { input.wrappedValue.weightKG = $0 }
-            ),
-            text: loadEntryText(input, maximum: 1_000),
-            step: increment
-        )
-    }
-
-    private func compactCounter(
-        label: String,
-        value: Binding<Int?>,
-        text: Binding<String>,
-        step: Int,
-        upperBound: Int
-    ) -> some View {
-        HStack(spacing: 9) {
-            Text(label)
-                .font(APEXFont.body(12, weight: .semibold))
-            Spacer(minLength: 8)
-            Button {
-                guard let current = value.wrappedValue else { return }
-                text.wrappedValue = String(max(1, current - step))
-            } label: {
-                Image(systemName: "minus")
-            }
-            .buttonStyle(.bordered)
-            .disabled(value.wrappedValue == nil)
-            TextField(
-                language.text("Not reported"),
-                text: text
-            )
-            .keyboardType(.numberPad)
-            .multilineTextAlignment(.center)
-            .textFieldStyle(.roundedBorder)
-                .font(APEXFont.mono(12, weight: .bold))
-                .frame(width: 76)
-            Button {
-                text.wrappedValue = String(min(upperBound, (value.wrappedValue ?? 0) + step))
-            } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    private func compactDecimalCounter(
-        label: String,
-        value: Binding<Double?>,
-        text: Binding<String>,
-        step: Double
-    ) -> some View {
-        HStack(spacing: 9) {
-            Text(label)
-                .font(APEXFont.body(12, weight: .semibold))
-            Spacer(minLength: 8)
-            Button {
-                guard let current = value.wrappedValue else { return }
-                let next = max(0, current - step)
-                text.wrappedValue = next > 0 ? loadText(next) : ""
-            } label: {
-                Image(systemName: "minus")
-            }
-            .buttonStyle(.bordered)
-            .disabled(value.wrappedValue == nil)
-            TextField(
-                language.text("Not reported"),
-                text: text
-            )
-            .keyboardType(.decimalPad)
-            .multilineTextAlignment(.center)
-            .textFieldStyle(.roundedBorder)
-                .font(APEXFont.mono(12, weight: .bold))
-                .frame(width: 76)
-            Button {
-                text.wrappedValue = loadText((value.wrappedValue ?? 0) + step)
-            } label: {
-                Image(systemName: "plus")
-            }
-            .buttonStyle(.bordered)
-        }
-    }
-
-    private func loadText(_ value: Double) -> String {
-        value == value.rounded() ? String(Int(value)) : String(value)
-    }
-
-    private func entryKey(for input: WorkoutSetInput) -> String {
-        TrackedWorkout.setKey(for: input)
-    }
-
-    private func actualWorkEntryText(_ input: Binding<WorkoutSetInput>, maximum: Int) -> Binding<String> {
-        let key = entryKey(for: input.wrappedValue)
-        return Binding(
-            get: { actualEntryTexts[key] ?? input.wrappedValue.reps.map(String.init) ?? "" },
-            set: {
-                actualEntryTexts[key] = $0
-                input.wrappedValue.reps = TrackedWorkout.optionalWholeNumber(from: $0, maximum: maximum)
+    private func factValues(_ input: Binding<WorkoutSetInput>) -> Binding<ExerciseFactValues> {
+        Binding(
+            get: {
+                ExerciseFactValues(
+                    reps: input.wrappedValue.reps,
+                    signedLoadKG: input.wrappedValue.weightKG,
+                    rir: input.wrappedValue.rir,
+                    durationSeconds: input.wrappedValue.durationSeconds,
+                    distanceMeters: input.wrappedValue.distanceMeters,
+                    contacts: input.wrappedValue.contacts,
+                    rounds: input.wrappedValue.rounds,
+                    workSeconds: input.wrappedValue.workSeconds,
+                    recoverySeconds: input.wrappedValue.recoverySeconds
+                )
+            },
+            set: { values in
+                input.wrappedValue.reps = values.reps
+                input.wrappedValue.weightKG = values.signedLoadKG
+                input.wrappedValue.rir = values.rir
+                input.wrappedValue.durationSeconds = values.durationSeconds
+                input.wrappedValue.distanceMeters = values.distanceMeters
+                input.wrappedValue.contacts = values.contacts
+                input.wrappedValue.rounds = values.rounds
+                input.wrappedValue.workSeconds = values.workSeconds
+                input.wrappedValue.recoverySeconds = values.recoverySeconds
             }
         )
-    }
-
-    private func loadEntryText(_ input: Binding<WorkoutSetInput>, maximum: Double) -> Binding<String> {
-        let key = entryKey(for: input.wrappedValue)
-        return Binding(
-            get: { loadEntryTexts[key] ?? input.wrappedValue.weightKG.map(loadText) ?? "" },
-            set: {
-                loadEntryTexts[key] = $0
-                input.wrappedValue.weightKG = TrackedWorkout.optionalDecimal(from: $0, maximum: maximum)
-            }
-        )
-    }
-
-    private func reportedEffortRow(_ input: Binding<WorkoutSetInput>) -> some View {
-        LazyVGrid(
-            columns: Array(repeating: GridItem(.flexible(minimum: 38), spacing: 6), count: 4),
-            spacing: 6
-        ) {
-            Button(language.text("Clear")) { input.wrappedValue.rir = nil }
-                .buttonStyle(.bordered)
-                .tint(input.wrappedValue.rir == nil ? accent : APEXColor.secondaryInk)
-            ForEach(0...5, id: \.self) { rir in
-                Button("\(rir)") { input.wrappedValue.rir = rir }
-                    .buttonStyle(.bordered)
-                    .tint(input.wrappedValue.rir == rir ? accent : APEXColor.secondaryInk)
-            }
-        }
-        .accessibilityIdentifier("tracked-workout-rir")
     }
 
     private func checkDecisionControl(_ input: Binding<WorkoutSetInput>) -> some View {
@@ -1323,6 +1261,7 @@ private enum WorkoutPlayerPhase: String, Codable {
     case warmup
     case active
     case rest
+    case review
     case complete
 }
 
@@ -1616,6 +1555,8 @@ struct WorkoutPlayerView: View {
             activeSetCard
         case .rest:
             restCard
+        case .review:
+            finalSetReviewCard
         case .complete:
             completionCard
         }
@@ -1725,6 +1666,7 @@ struct WorkoutPlayerView: View {
                         }
                             .buttonStyle(.plain)
                             .foregroundStyle(APEXColor.secondaryInk)
+                            .accessibilityIdentifier("workout-skip-active-set")
                         Spacer()
                         if let line = tempoLine(current) {
                             Text(line)
@@ -1761,44 +1703,44 @@ struct WorkoutPlayerView: View {
                 }
                 .frame(width: 180, height: 180)
 
-                /* Only ask about what the movement actually has. A stretch
-                   flow was being asked how many repetitions and how many
-                   kilograms it took, which has no answer -- and offering zero
-                   as the default made the question look answered. A hold is
-                   asked nothing; a bodyweight movement is asked for reps but
-                   not for load. */
-                if let last = setInputs.last {
-                    let movement = MovementTiming.movement(named: last.exerciseName)
-                    let asksReps = movement?.countsReps ?? true
-                    let asksLoad = movement?.recordsLoad ?? ((current?.incrementKG ?? 0) > 0)
-                    if asksReps || asksLoad {
-                        VStack(alignment: .leading, spacing: 13) {
-                            Text(language.text("LOG THIS SET DURING THE BREAK"))
-                                .font(APEXFont.mono(10))
-                                .tracking(1.5)
-                                .foregroundStyle(APEXColor.violet)
-                            Text(language.format(
-                                "%@ · %@ %d",
-                                language.text(last.exerciseName),
-                                language.text(movement?.setNoun.capitalized ?? "Set"),
-                                last.setNumber
-                            ))
-                                .font(APEXFont.display(19))
-                            if asksReps {
-                                restMetricRow(title: "Actual reps", value: Double(last.reps ?? 0), step: 1, unit: "") { delta in
-                                    adjustLastInput(repsDelta: Int(delta), weightDelta: 0)
-                                }
+                if let lastIndex = setInputs.indices.last, !setInputs[lastIndex].skipped {
+                    let last = setInputs[lastIndex]
+                    let movement = MovementTiming.movement(
+                        named: last.exerciseName,
+                        movementID: last.movementID
+                    )
+                    VStack(alignment: .leading, spacing: 13) {
+                        Text(language.text("LOG THIS SET DURING THE BREAK"))
+                            .font(APEXFont.mono(10))
+                            .tracking(1.5)
+                            .foregroundStyle(APEXColor.violet)
+                        Text(language.format(
+                            "%@ · %@ %d",
+                            language.text(last.exerciseName),
+                            language.text(movement?.setNoun.capitalized ?? "Set"),
+                            last.setNumber
+                        ))
+                            .font(APEXFont.display(19))
+                        ExerciseFactFieldsView(
+                            descriptor: ExerciseLogging.descriptor(
+                                movementNamed: last.exerciseName,
+                                movementID: last.movementID
+                            ),
+                            values: guidedFactValues($setInputs[lastIndex])
+                        )
+                        if !lastSetResolved {
+                            Text(language.text("Complete the required facts or mark this set skipped."))
+                                .font(APEXFont.body(10, weight: .semibold))
+                                .foregroundStyle(.orange)
+                            Button(language.text("Mark set skipped")) {
+                                resolveLastSetAsSkipped()
                             }
-                            if asksLoad {
-                                restMetricRow(title: "Weight used", value: last.weightKG ?? 0, step: current?.incrementKG ?? 1, unit: "kg") { delta in
-                                    adjustLastInput(repsDelta: 0, weightDelta: delta)
-                                }
-                            }
-                            reportedEffortRow(last.rir)
+                            .buttonStyle(.bordered)
+                            .accessibilityIdentifier("workout-mark-set-skipped")
                         }
-                        .padding(16)
-                        .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
                     }
+                    .padding(16)
+                    .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 23, style: .continuous))
                 }
 
                 HStack(spacing: 12) {
@@ -1807,9 +1749,10 @@ struct WorkoutPlayerView: View {
                         timerTotal += 30
                     }
                     .buttonStyle(.bordered)
-                    Button(language.text("Skip")) { advanceAfterRest() }
+                    Button(language.text("Continue")) { advanceAfterRest() }
                         .buttonStyle(.borderedProminent)
                         .tint(accent)
+                        .disabled(!lastSetResolved)
                         .accessibilityIdentifier("workout-skip-rest")
                 }
             }
@@ -1817,6 +1760,60 @@ struct WorkoutPlayerView: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("workout-phase-rest")
+    }
+
+    private var finalSetReviewCard: some View {
+        GlassCard(radius: 34, padding: 22) {
+            VStack(alignment: .leading, spacing: 16) {
+                Text(language.text("REVIEW FINAL SET"))
+                    .font(APEXFont.mono(10, weight: .bold))
+                    .tracking(1.5)
+                    .foregroundStyle(APEXColor.violet)
+                if let lastIndex = setInputs.indices.last {
+                    let last = setInputs[lastIndex]
+                    Text(language.format(
+                        "%@ · SET %d",
+                        language.text(last.exerciseName),
+                        last.setNumber
+                    ))
+                        .font(APEXFont.display(21))
+                    if last.skipped {
+                        Text(language.text("This set is explicitly skipped and will store no measurements."))
+                            .font(APEXFont.body(11, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    } else {
+                        ExerciseFactFieldsView(
+                            descriptor: ExerciseLogging.descriptor(
+                                movementNamed: last.exerciseName,
+                                movementID: last.movementID
+                            ),
+                            values: guidedFactValues($setInputs[lastIndex])
+                        )
+                        if !lastSetResolved {
+                            Text(language.text("Complete the required facts or mark this set skipped."))
+                                .font(APEXFont.body(10, weight: .semibold))
+                                .foregroundStyle(.orange)
+                        }
+                        Button(language.text("Mark set skipped")) {
+                            resolveLastSetAsSkipped()
+                        }
+                        .buttonStyle(.bordered)
+                        .accessibilityIdentifier("workout-mark-set-skipped")
+                    }
+                    Button(language.text("Finish review")) {
+                        guard lastSetResolved else { return }
+                        phase = .complete
+                        WorkoutAudioCoach.shared.say(language.text("Session complete"), enabled: voiceOn)
+                    }
+                    .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                    .disabled(!lastSetResolved)
+                    .accessibilityIdentifier("workout-finish-set-review")
+                }
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("workout-phase-review")
     }
 
     private var completionCard: some View {
@@ -1830,18 +1827,6 @@ struct WorkoutPlayerView: View {
                 Text(completionSummary)
                     .font(APEXFont.body(13, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
-                if let last = setInputs.last, !last.skipped {
-                    VStack(alignment: .leading, spacing: 8) {
-                        Text(language.text("LAST SET EFFORT"))
-                            .font(APEXFont.mono(9, weight: .bold))
-                            .tracking(1.2)
-                            .foregroundStyle(APEXColor.violet)
-                        reportedEffortRow(last.rir)
-                    }
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .padding(14)
-                    .background(.white.opacity(0.54), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-                }
                 Button {
                     finishWorkout()
                 } label: {
@@ -1852,7 +1837,7 @@ struct WorkoutPlayerView: View {
                     }
                 }
                 .buttonStyle(APEXPrimaryButtonStyle(color: accent))
-                .disabled(isSaving)
+                .disabled(isSaving || !canSaveWorkout)
             }
             .frame(maxWidth: .infinity)
             .padding(.vertical, 18)
@@ -1870,7 +1855,7 @@ struct WorkoutPlayerView: View {
     private var suggestedWeight: Double {
         guard let exercise = current else { return 0 }
         return session.data.workoutLogs
-            .filter { $0.exerciseID == exercise.id && ($0.weightKG ?? 0) > 0 }
+            .filter { $0.exerciseID == exercise.id && $0.weightKG != nil }
             .sorted { $0.createdAt > $1.createdAt }
             .first?.weightKG ?? 0
     }
@@ -1934,9 +1919,11 @@ struct WorkoutPlayerView: View {
                 }
             } else if phase == .warmup {
                 beginActiveSet()
-            } else {
+            } else if lastSetResolved {
                 advanceAfterRest()
             }
+        case .review:
+            break
         case .complete:
             break
         }
@@ -2006,13 +1993,11 @@ struct WorkoutPlayerView: View {
 
     private func endCurrentSet(skipped: Bool) {
         guard let current else { return }
-        let input = WorkoutSetInput(
-            exerciseID: current.id,
-            exerciseName: current.name,
+        let input = GuidedWorkout.setInput(
+            for: current,
             setNumber: currentSet,
-            weightKG: currentWeight > 0 ? currentWeight : nil,
-            reps: skipped ? nil : actualReps,
-            rir: nil,
+            measuredWork: actualReps,
+            signedLoadKG: currentWeight,
             skipped: skipped
         )
         setInputs.removeAll { $0.exerciseID == current.id && $0.setNumber == currentSet }
@@ -2021,8 +2006,8 @@ struct WorkoutPlayerView: View {
         let finalSet = currentIndex == exercises.count - 1 && currentSet >= current.sets
         subSecond = 0
         if finalSet {
-            phase = .complete
-            WorkoutAudioCoach.shared.say(language.text("Session complete"), enabled: voiceOn)
+            phase = .review
+            WorkoutAudioCoach.shared.say(language.text("Review the final set"), enabled: voiceOn)
         } else {
             timerRemaining = max(15, current.restSeconds)
             timerTotal = timerRemaining
@@ -2050,45 +2035,57 @@ struct WorkoutPlayerView: View {
         }
     }
 
-    private func adjustLastInput(repsDelta: Int, weightDelta: Double) {
-        guard !setInputs.isEmpty else { return }
-        let index = setInputs.index(before: setInputs.endIndex)
-        if repsDelta != 0 {
-            setInputs[index].reps = max(0, (setInputs[index].reps ?? 0) + repsDelta)
-        }
-        if weightDelta != 0 {
-            setInputs[index].weightKG = max(0, (setInputs[index].weightKG ?? 0) + weightDelta)
-            currentWeight = setInputs[index].weightKG ?? 0
-        }
+    private var lastSetResolved: Bool {
+        guard let last = setInputs.last else { return false }
+        return ExerciseLogging.isResolved(last)
     }
 
-    private func reportedEffortRow(_ value: Int?) -> some View {
-        VStack(alignment: .leading, spacing: 7) {
-            Text(language.text("Reps in reserve"))
-                .font(APEXFont.body(11, weight: .semibold))
-            HStack(spacing: 6) {
-                Button(language.text("Clear")) { setLastReportedEffort(nil) }
-                    .buttonStyle(.bordered)
-                    .tint(value == nil ? accent : APEXColor.secondaryInk)
-                ForEach(0...5, id: \.self) { rir in
-                    Button("\(rir)") { setLastReportedEffort(rir) }
-                        .buttonStyle(.bordered)
-                        .tint(value == rir ? accent : APEXColor.secondaryInk)
-                }
+    private var canSaveWorkout: Bool {
+        let expected = exercises.reduce(0) { $0 + max(1, $1.sets) }
+        return setInputs.count == expected
+            && setInputs.allSatisfy(ExerciseLogging.isResolved)
+    }
+
+    private func resolveLastSetAsSkipped() {
+        guard let lastIndex = setInputs.indices.last else { return }
+        setInputs[lastIndex] = ExerciseLogging.resolvingAsSkipped(setInputs[lastIndex])
+    }
+
+    private func guidedFactValues(
+        _ input: Binding<WorkoutSetInput>
+    ) -> Binding<ExerciseFactValues> {
+        Binding(
+            get: {
+                ExerciseFactValues(
+                    reps: input.wrappedValue.reps,
+                    signedLoadKG: input.wrappedValue.weightKG,
+                    rir: input.wrappedValue.rir,
+                    durationSeconds: input.wrappedValue.durationSeconds,
+                    distanceMeters: input.wrappedValue.distanceMeters,
+                    contacts: input.wrappedValue.contacts,
+                    rounds: input.wrappedValue.rounds,
+                    workSeconds: input.wrappedValue.workSeconds,
+                    recoverySeconds: input.wrappedValue.recoverySeconds
+                )
+            },
+            set: { values in
+                input.wrappedValue.reps = values.reps
+                input.wrappedValue.weightKG = values.signedLoadKG
+                input.wrappedValue.rir = values.rir
+                input.wrappedValue.durationSeconds = values.durationSeconds
+                input.wrappedValue.distanceMeters = values.distanceMeters
+                input.wrappedValue.contacts = values.contacts
+                input.wrappedValue.rounds = values.rounds
+                input.wrappedValue.workSeconds = values.workSeconds
+                input.wrappedValue.recoverySeconds = values.recoverySeconds
             }
-        }
-    }
-
-    private func setLastReportedEffort(_ rir: Int?) {
-        guard !setInputs.isEmpty else { return }
-        let index = setInputs.index(before: setInputs.endIndex)
-        setInputs[index].rir = rir
+        )
     }
 
     /* The session used to save and vanish. Showing the receipt is the only
        moment the work reported during the workout is handed back. */
     private func finishWorkout() {
-        guard !isSaving else { return }
+        guard !isSaving, canSaveWorkout else { return }
         isSaving = true
         Task {
             let finished = await session.completeWorkout(

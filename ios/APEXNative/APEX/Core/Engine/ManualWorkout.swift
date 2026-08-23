@@ -15,19 +15,37 @@ enum ManualWorkout {
     struct SetDraft: Identifiable, Hashable {
         var id: UUID
         var reps: Int
-        var weightKG: Double
+        var weightKG: Double?
         var rir: Int?
+        var durationSeconds: Int?
+        var distanceMeters: Double?
+        var contacts: Int?
+        var rounds: Int?
+        var workSeconds: Int?
+        var recoverySeconds: Int?
 
         init(
             id: UUID = UUID(),
             reps: Int = 10,
-            weightKG: Double = 0,
-            rir: Int? = nil
+            weightKG: Double? = nil,
+            rir: Int? = nil,
+            durationSeconds: Int? = nil,
+            distanceMeters: Double? = nil,
+            contacts: Int? = nil,
+            rounds: Int? = nil,
+            workSeconds: Int? = nil,
+            recoverySeconds: Int? = nil
         ) {
             self.id = id
             self.reps = reps
             self.weightKG = weightKG
             self.rir = rir.map { min(5, max(0, $0)) }
+            self.durationSeconds = durationSeconds
+            self.distanceMeters = distanceMeters
+            self.contacts = contacts
+            self.rounds = rounds
+            self.workSeconds = workSeconds
+            self.recoverySeconds = recoverySeconds
         }
     }
 
@@ -41,8 +59,61 @@ enum ManualWorkout {
         var id = UUID()
         var catalogID: String?
         var name: String
+        var movementID: String?
         var sets: [SetDraft] = [SetDraft()]
         var treadmill: TreadmillDraft?
+    }
+
+    static func drafts(from logs: [WorkoutLog]) -> [ExerciseDraft] {
+        var drafts: [ExerciseDraft] = []
+        for log in logs {
+            if let treadmill = parseTreadmill(log.exerciseName) {
+                drafts.append(
+                    ExerciseDraft(
+                        catalogID: nil,
+                        name: treadmill.name,
+                        movementID: MovementTiming.movement(named: treadmill.name)?.id,
+                        sets: [SetDraft(
+                            reps: 0,
+                            durationSeconds: treadmill.metrics.durationMinutes * 60,
+                            distanceMeters: treadmill.metrics.distanceKM * 1_000
+                        )],
+                        treadmill: nil
+                    )
+                )
+                continue
+            }
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: log.exerciseName,
+                movementID: log.movementID
+            )
+            let set = SetDraft(
+                reps: log.reps ?? 0,
+                weightKG: log.weightKG ?? (descriptor.kind == .bodyweight ? 0 : nil),
+                rir: log.rir,
+                durationSeconds: log.durationSeconds,
+                distanceMeters: log.distanceMeters,
+                contacts: log.contacts,
+                rounds: log.rounds,
+                workSeconds: log.workSeconds,
+                recoverySeconds: log.recoverySeconds
+            )
+            if let index = drafts.lastIndex(where: { $0.name == log.exerciseName && $0.treadmill == nil }),
+               log.setNumber > drafts[index].sets.count {
+                drafts[index].sets.append(set)
+            } else {
+                drafts.append(
+                    ExerciseDraft(
+                        catalogID: nil,
+                        name: log.exerciseName,
+                        movementID: log.movementID,
+                        sets: [set],
+                        treadmill: nil
+                    )
+                )
+            }
+        }
+        return drafts
     }
 
     // MARK: - The manual marker
@@ -121,13 +192,20 @@ enum ManualWorkout {
 
         for (index, draft) in exercises.enumerated() {
             let exerciseTime = base.timeIntervalSince1970 + Double(index) * 60
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: draft.name,
+                movementID: draft.movementID
+            )
             if let treadmill = draft.treadmill {
                 output.append(
                     WorkoutLog(
                         id: UUID(), userID: userID, sessionID: sessionID,
                         exerciseID: nil,
-                        exerciseName: encodeTreadmill(name: draft.name, metrics: treadmill),
+                        exerciseName: draft.name,
                         setNumber: 1, weightKG: nil, reps: nil, rir: nil,
+                        movementID: descriptorMovementID(draft),
+                        durationSeconds: treadmill.durationMinutes * 60,
+                        distanceMeters: treadmill.distanceKM * 1_000,
                         skipped: false, overrideFlag: false,
                         createdAt: formatter.string(from: Date(timeIntervalSince1970: exerciseTime))
                     )
@@ -135,14 +213,26 @@ enum ManualWorkout {
                 continue
             }
 
-            for (setIndex, set) in draft.sets.filter({ $0.reps > 0 }).enumerated() {
+            for (setIndex, set) in draft.sets.filter({ hasFacts($0, descriptor: descriptor) }).enumerated() {
+                let input = ExerciseLogging.normalized(
+                    setInput(set, name: draft.name, movementID: descriptorMovementID(draft)),
+                    descriptor: descriptor
+                )
                 output.append(
                     WorkoutLog(
                         id: UUID(), userID: userID, sessionID: sessionID,
                         exerciseID: nil, exerciseName: draft.name,
                         setNumber: setIndex + 1,
-                        weightKG: set.weightKG > 0 ? set.weightKG : nil,
-                        reps: set.reps, rir: set.rir,
+                        weightKG: input.weightKG,
+                        reps: input.reps,
+                        rir: input.rir,
+                        movementID: descriptorMovementID(draft),
+                        durationSeconds: input.durationSeconds,
+                        distanceMeters: input.distanceMeters,
+                        contacts: input.contacts,
+                        rounds: input.rounds,
+                        workSeconds: input.workSeconds,
+                        recoverySeconds: input.recoverySeconds,
                         skipped: false, overrideFlag: false,
                         createdAt: formatter.string(
                             from: Date(timeIntervalSince1970: exerciseTime + Double(setIndex) * 0.1)
@@ -193,6 +283,13 @@ enum ManualWorkout {
                 weightKG: log.weightKG,
                 reps: log.reps,
                 rir: log.rir,
+                movementID: log.movementID,
+                durationSeconds: log.durationSeconds,
+                distanceMeters: log.distanceMeters,
+                contacts: log.contacts,
+                rounds: log.rounds,
+                workSeconds: log.workSeconds,
+                recoverySeconds: log.recoverySeconds,
                 skipped: log.skipped,
                 overrideFlag: log.overrideFlag,
                 createdAt: log.createdAt
@@ -204,5 +301,42 @@ enum ManualWorkout {
 
     private static func number(_ value: Double) -> String {
         value == value.rounded() ? String(Int(value)) : String(format: "%.1f", value)
+    }
+
+    static func hasFacts(
+        _ set: SetDraft,
+        descriptor: ExerciseLoggingDescriptor
+    ) -> Bool {
+        ExerciseLogging.isValid(
+            setInput(set, name: "", movementID: nil),
+            descriptor: descriptor
+        )
+    }
+
+    private static func setInput(
+        _ set: SetDraft,
+        name: String,
+        movementID: String?
+    ) -> WorkoutSetInput {
+        WorkoutSetInput(
+            exerciseID: nil,
+            exerciseName: name,
+            setNumber: 1,
+            weightKG: set.weightKG,
+            reps: set.reps,
+            rir: set.rir,
+            movementID: movementID,
+            durationSeconds: set.durationSeconds,
+            distanceMeters: set.distanceMeters,
+            contacts: set.contacts,
+            rounds: set.rounds,
+            workSeconds: set.workSeconds,
+            recoverySeconds: set.recoverySeconds,
+            skipped: false
+        )
+    }
+
+    private static func descriptorMovementID(_ draft: ExerciseDraft) -> String? {
+        MovementTiming.movement(named: draft.name, movementID: draft.movementID)?.id
     }
 }

@@ -1868,23 +1868,6 @@ final class AppSession {
         try await service.signedProgressURL(path: thumbnail ? photo.thumbnailPath : photo.storagePath)
     }
 
-    func completeWorkout(day: ProgramDay, exercises: [Exercise], lite: Bool) async {
-        let inputs = exercises.flatMap { exercise in
-            (1...max(exercise.sets, 1)).map { set in
-                WorkoutSetInput(
-                    exerciseID: exercise.id,
-                    exerciseName: exercise.name,
-                    setNumber: set,
-                    weightKG: nil,
-                    reps: exercise.repMax > 0 ? exercise.repMax : nil,
-                    rir: nil,
-                    skipped: false
-                )
-            }
-        }
-        await completeWorkout(day: day, setInputs: inputs, lite: lite, startedAt: .now)
-    }
-
     /// Returns the finished session's id so the caller can show its receipt.
     @discardableResult
     func completeWorkout(
@@ -1894,6 +1877,10 @@ final class AppSession {
         startedAt: Date
     ) async -> UUID? {
         guard let ownerID = TrainingInduction.workoutOwnerID(in: data, day: day) else { return nil }
+        let normalizedInputs = setInputs.map { $0.normalizedForPersistence() }
+        guard normalizedInputs.allSatisfy({ $0.skipped || ExerciseLogging.isValid($0) }) else {
+            return nil
+        }
         let now = Date().ISO8601Format()
         let isDeload = TrainingAdjustmentEngine.isDeload(
             on: Date().apexDateKey,
@@ -1905,13 +1892,20 @@ final class AppSession {
             isEventRecovery: false, completed: true, qualityScore: 1,
             startedAt: startedAt.ISO8601Format(), completedAt: now, notes: "Completed in APEX iOS"
         )
-        let logs = setInputs.map { rawInput in
-            let input = rawInput.normalizedForPersistence()
+        let logs = normalizedInputs.map { input in
             return WorkoutLog(
                 id: UUID(), userID: ownerID, sessionID: workout.id,
                 exerciseID: input.exerciseID, exerciseName: input.exerciseName,
                 setNumber: input.setNumber, weightKG: input.weightKG,
-                reps: input.reps, rir: input.rir, skipped: input.skipped,
+                reps: input.reps, rir: input.rir,
+                movementID: input.movementID,
+                durationSeconds: input.durationSeconds,
+                distanceMeters: input.distanceMeters,
+                contacts: input.contacts,
+                rounds: input.rounds,
+                workSeconds: input.workSeconds,
+                recoverySeconds: input.recoverySeconds,
+                skipped: input.skipped,
                 overrideFlag: false, createdAt: now
             )
         }
@@ -2599,11 +2593,20 @@ final class AppSession {
         guard let profile else { return false }
         let userID = profile.userID
 
-        let usable = exercises.filter { draft in
-            if let treadmill = draft.treadmill { return treadmill.durationMinutes > 0 }
-            return draft.sets.contains { $0.reps > 0 }
+        let valid = !exercises.isEmpty && exercises.allSatisfy { draft in
+            if let treadmill = draft.treadmill {
+                return treadmill.durationMinutes > 0 && treadmill.distanceKM > 0
+            }
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: draft.name,
+                movementID: draft.movementID
+            )
+            return descriptor.isSupported && !draft.sets.isEmpty && draft.sets.allSatisfy {
+                ManualWorkout.hasFacts($0, descriptor: descriptor)
+            }
         }
-        guard !usable.isEmpty else { return false }
+        guard valid else { return false }
+        let usable = exercises
 
         let existingProgram = data.programs.first { $0.slug == "custom" }
         let program = existingProgram ?? Program(

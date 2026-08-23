@@ -270,10 +270,13 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["workout-end-set"].tap()
 
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-rest"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Actual reps"].exists)
-        XCTAssertTrue(app.staticTexts["Weight used"].exists)
+        let reps = app.textFields["exercise-fact-reps"]
+        XCTAssertTrue(reps.waitForExistence(timeout: 2))
+        reps.tap()
+        reps.typeText("8")
         XCTAssertTrue(app.buttons["+30s"].exists)
         capture("workout-rest")
+        XCTAssertTrue(app.buttons["workout-skip-rest"].isEnabled)
         app.buttons["workout-skip-rest"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
     }
@@ -308,8 +311,12 @@ final class APEXSmokeUITests: XCTestCase {
         while guardRail < 40 {
             guardRail += 1
             if app.descendants(matching: .any)["workout-phase-complete"].exists { break }
-            if app.buttons["workout-end-set"].exists {
-                app.buttons["workout-end-set"].tap()
+            if app.buttons["workout-finish-set-review"].exists {
+                app.buttons["workout-finish-set-review"].tap()
+                continue
+            }
+            if app.buttons["workout-skip-active-set"].exists {
+                app.buttons["workout-skip-active-set"].tap()
                 continue
             }
             if app.buttons["workout-skip-rest"].exists {

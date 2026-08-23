@@ -20,10 +20,14 @@ enum WorkoutReceipt {
     }
 
     static func summarize(_ logs: [WorkoutLog]) -> Summary {
-        let strength = logs.filter { !FocusT25.isFocusName($0.exerciseName) }
-        let volume = strength.reduce(0.0) { total, log in
-            guard !log.skipped else { return total }
-            return total + (log.weightKG ?? 0) * Double(log.reps ?? 0)
+        let working = logs.filter { !FocusT25.isFocusName($0.exerciseName) }
+        let volume = working.reduce(0.0) { total, log in
+            let descriptor = ExerciseLogging.descriptor(
+                movementNamed: log.exerciseName,
+                movementID: log.movementID
+            )
+            guard !log.skipped, descriptor.kind == .strength else { return total }
+            return total + max(0, log.weightKG ?? 0) * Double(max(0, log.reps ?? 0))
         }
         /* Movements count every exercise performed, conditioning included,
            because the session did contain them even without a load. */
@@ -31,7 +35,7 @@ enum WorkoutReceipt {
         for log in logs where !names.contains(log.exerciseName) { names.append(log.exerciseName) }
         return Summary(
             loadedVolumeKG: volume,
-            workingSets: strength.filter { !$0.skipped }.count,
+            workingSets: working.filter { !$0.skipped }.count,
             movements: names.count
         )
     }

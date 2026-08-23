@@ -6,13 +6,12 @@ import {
   EXERCISE_CATALOG,
   catalogExerciseByName,
   displayExerciseName,
-  isTreadmillExercise,
   searchExerciseCatalog,
   type ExerciseCatalogItem,
 } from '../../data/exerciseCatalog'
+import { descriptorForExercise, normalizeExerciseFacts } from '../../lib/exerciseLogging'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import {
-  encodeTreadmillLog,
   manualExerciseTimelineForDate,
   manualSessionsForDate,
   manualWorkoutDeletionPlan,
@@ -29,34 +28,56 @@ import {
 } from '../../lib/manualWorkout'
 import { ACCENTS, type Accent } from '../../lib/theme'
 import type { Program, ProgramDay, WorkoutLog, WorkoutSession } from '../../lib/types'
+import { hasLoggedFact, type SetEntry } from '../../lib/workoutSession'
 import { useStore } from '../../store/AppStore'
 import { GhostButton, GradientButton, Sheet } from '../ui'
+import { ExerciseFactFields } from './ExerciseFactFields'
 
 function uid(prefix: string): string {
   return `${prefix}-${crypto.randomUUID()}`
 }
 
-function numberValue(value: string, max = 999): number {
-  const parsed = Number(value.replace(',', '.'))
-  if (!Number.isFinite(parsed)) return 0
-  return Math.min(max, Math.max(0, parsed))
+function entryFromDraft(set: ManualSetDraft): SetEntry {
+  return {
+    weight: set.weightKg,
+    reps: set.reps,
+    rir: set.rir ?? null,
+    durationSeconds: set.durationSeconds,
+    distanceMeters: set.distanceMeters,
+    contacts: set.contacts,
+    rounds: set.rounds,
+    workSeconds: set.workSeconds,
+    recoverySeconds: set.recoverySeconds,
+  }
 }
 
 function starterSets(item: ExerciseCatalogItem): ManualSetDraft[] {
+  const descriptor = descriptorForExercise({ name: item.name })
   return [{
     id: uid('set-0'),
-    reps: item.unit === 'reps' ? item.reps : 0,
-    weightKg: 0,
+    reps: descriptor.fields.includes('reps') ? item.reps : 0,
+    weightKg: descriptor.kind === 'bodyweight' ? 0 : null,
+    rir: null,
+    durationSeconds: descriptor.fields.includes('duration')
+      ? item.unit === 'minutes' ? item.reps * 60 : item.unit === 'seconds' ? item.reps : null
+      : null,
+    distanceMeters: null,
+    contacts: descriptor.fields.includes('contacts') ? item.reps : null,
+    rounds: descriptor.fields.includes('rounds') ? item.sets : null,
+    workSeconds: descriptor.fields.includes('work') && item.unit === 'seconds' ? item.reps : null,
+    recoverySeconds: null,
   }]
 }
 
 function draftFromCatalog(item: ExerciseCatalogItem): ManualExerciseDraft {
+  const descriptor = descriptorForExercise({ name: item.name })
   return {
     id: uid('exercise'),
     catalogId: item.id,
     canonicalName: item.name,
-    sets: isTreadmillExercise(item) ? [] : starterSets(item),
-    treadmill: isTreadmillExercise(item) ? { distanceKm: 0, inclineDeg: 0, durationMin: 25 } : null,
+    movementId: descriptor.movementId,
+    sets: starterSets(item),
+    treadmill: null,
   }
 }
 
@@ -195,13 +216,16 @@ export function ManualWorkoutLogger({
       toast(t('Add at least one exercise.'))
       return
     }
-    const usable = exercises.filter((exercise) => exercise.treadmill
-      ? exercise.treadmill.durationMin > 0
-      : exercise.sets.some((set) => set.reps > 0))
-    if (usable.length === 0) {
-      toast(t('Add reps or cardio time before saving.'))
+    const valid = exercises.length > 0 && exercises.every((exercise) => {
+      const descriptor = descriptorForExercise({ name: exercise.canonicalName, movement_id: exercise.movementId })
+      return descriptor.supported && exercise.sets.length > 0
+        && exercise.sets.every((set) => hasLoggedFact(entryFromDraft(set), descriptor))
+    })
+    if (!valid) {
+      toast(t('Complete each set or remove it before saving.'))
       return
     }
+    const usable = exercises
 
     const existingProgram = data.programs.find((program) => program.slug === 'custom')
     const program: Program = existingProgram ?? {
@@ -256,21 +280,21 @@ export function ManualWorkoutLogger({
     const newExerciseBaseTime = existingTimes.length > 0 ? Math.min(...existingTimes) : Date.now()
     const proposedLogs = usable.flatMap<WorkoutLog>((exercise, exerciseIndex) => {
       const exerciseTime = newExerciseBaseTime + exerciseIndex * 60_000
-      if (exercise.treadmill) {
-        return [{
+      const descriptor = descriptorForExercise({ name: exercise.canonicalName, movement_id: exercise.movementId })
+      return exercise.sets.map((set, setIndex) => {
+        const facts = normalizeExerciseFacts(entryFromDraft(set), descriptor, false)
+        return {
           id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
-          exercise_name: encodeTreadmillLog(exercise.canonicalName, exercise.treadmill), set_no: 1,
-          weight_kg: null, reps: null, rir: null, skipped: false, override_flag: false,
-          created_at: new Date(exerciseTime).toISOString(),
-        }]
-      }
-      return exercise.sets.filter((set) => set.reps > 0).map((set, setIndex) => ({
-        id: crypto.randomUUID(), user_id: profile.user_id, session_id: session.id, exercise_id: null,
-        exercise_name: exercise.canonicalName, set_no: setIndex + 1,
-        weight_kg: set.weightKg > 0 ? set.weightKg : null, reps: Math.round(set.reps), rir: null,
-        skipped: false, override_flag: false,
-        created_at: new Date(exerciseTime + setIndex * 100).toISOString(),
-      }))
+          exercise_name: exercise.canonicalName, set_no: setIndex + 1,
+          weight_kg: facts.weight, reps: facts.reps, rir: facts.rir,
+          movement_id: exercise.movementId ?? descriptor.movementId,
+          duration_seconds: facts.durationSeconds, distance_meters: facts.distanceMeters,
+          contacts: facts.contacts, rounds: facts.rounds, work_seconds: facts.workSeconds,
+          recovery_seconds: facts.recoverySeconds,
+          skipped: false, override_flag: false,
+          created_at: new Date(exerciseTime + setIndex * 100).toISOString(),
+        }
+      })
     })
 
     const reconciled = reconcileManualWorkoutLogs(existingLogs, proposedLogs)
@@ -344,25 +368,12 @@ export function ManualWorkoutLogger({
               className={`rounded-[24px] border bg-white/72 p-3 shadow-[0_18px_40px_-34px_rgba(15,23,42,.7)] transition-[border-color,box-shadow] duration-500 ${focusedExercise === exercise.id ? 'border-cyan-300 ring-4 ring-cyan-200/35 shadow-[0_20px_54px_-28px_rgba(6,182,212,.9)]' : 'border-white'}`}
             >
               <div className="flex items-center justify-between gap-3"><p className="min-w-0 truncate text-sm font-black text-ink"><span className="mr-2 font-mono text-[9px] text-cyan-700">{String(exerciseIndex + 1).padStart(2, '0')}</span>{localizedDraftName(exercise, language)}</p><button type="button" onClick={() => setExercises((current) => current.filter((item) => item.id !== exercise.id))} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-black text-rose-600" aria-label={t('Remove exercise')}>×</button></div>
-              {exercise.treadmill ? (
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {([
-                    ['KM', 'distanceKm', exercise.treadmill.distanceKm, 100],
-                    ['Incline °', 'inclineDeg', exercise.treadmill.inclineDeg, 45],
-                    ['Time min', 'durationMin', exercise.treadmill.durationMin, 600],
-                  ] as const).map(([label, key, value, max]) => (
-                    <label key={key} className="min-w-0"><span className="mb-1 block truncate text-center font-mono text-[8px] font-black text-ink-faint uppercase">{t(label)}</span><input type="text" inputMode="decimal" value={value || ''} onChange={(event) => updateExercise(exercise.id, { treadmill: { ...exercise.treadmill!, [key]: numberValue(event.target.value, max) } })} className="w-full rounded-xl bg-slate-50 px-2 py-2.5 text-center font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-cyan-200" placeholder="0" /></label>
-                  ))}
-                </div>
-              ) : (
-                <div className="mt-2 space-y-1.5">
-                  <div className="grid grid-cols-[1.5rem_1fr_1fr_2rem] gap-2 px-1 font-mono text-[8px] font-black tracking-wide text-ink-faint uppercase"><span>#</span><span>{t('Reps')}</span><span>{t('KG')}</span><span /></div>
+              <div className="mt-2 space-y-1.5">
                   {exercise.sets.map((set, setIndex) => (
-                    <div key={set.id} className="grid grid-cols-[1.5rem_1fr_1fr_2rem] items-center gap-2"><span className="text-center font-mono text-[10px] font-black text-cyan-700">{setIndex + 1}</span><input aria-label={`${t('Reps')} ${setIndex + 1}`} type="number" inputMode="numeric" min="0" value={set.reps || ''} onChange={(event) => updateSet(exercise.id, set.id, { reps: numberValue(event.target.value, 999) })} className="min-w-0 rounded-xl bg-slate-50 px-2 py-2 text-center font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-cyan-200" placeholder="0" /><input aria-label={`${t('KG')} ${setIndex + 1}`} type="text" inputMode="decimal" value={set.weightKg || ''} onChange={(event) => updateSet(exercise.id, set.id, { weightKg: numberValue(event.target.value, 9999) })} className="min-w-0 rounded-xl bg-slate-50 px-2 py-2 text-center font-mono text-sm font-black text-ink outline-none focus:ring-2 focus:ring-cyan-200" placeholder="0" /><button type="button" onClick={() => updateExercise(exercise.id, { sets: exercise.sets.filter((item) => item.id !== set.id) })} className="grid h-8 w-8 place-items-center rounded-full text-ink-faint" aria-label={t('Remove set')}>×</button></div>
+                    <div key={set.id} className="grid grid-cols-[1.5rem_minmax(0,1fr)_2rem] items-center gap-2 rounded-xl bg-white/40 p-1"><span className="text-center font-mono text-[10px] font-black text-cyan-700">{setIndex + 1}</span><ExerciseFactFields descriptor={descriptorForExercise({ name: exercise.canonicalName, movement_id: exercise.movementId })} value={{ weight: set.weightKg, reps: set.reps, rir: set.rir ?? null, durationSeconds: set.durationSeconds, distanceMeters: set.distanceMeters, contacts: set.contacts, rounds: set.rounds, workSeconds: set.workSeconds, recoverySeconds: set.recoverySeconds }} onChange={(patch: Partial<SetEntry>) => updateSet(exercise.id, set.id, { weightKg: patch.weight === undefined ? set.weightKg : patch.weight, reps: patch.reps === undefined ? set.reps : patch.reps, rir: patch.rir === undefined ? set.rir : patch.rir, durationSeconds: patch.durationSeconds === undefined ? set.durationSeconds : patch.durationSeconds, distanceMeters: patch.distanceMeters === undefined ? set.distanceMeters : patch.distanceMeters, contacts: patch.contacts === undefined ? set.contacts : patch.contacts, rounds: patch.rounds === undefined ? set.rounds : patch.rounds, workSeconds: patch.workSeconds === undefined ? set.workSeconds : patch.workSeconds, recoverySeconds: patch.recoverySeconds === undefined ? set.recoverySeconds : patch.recoverySeconds })} /><button type="button" onClick={() => updateExercise(exercise.id, { sets: exercise.sets.filter((item) => item.id !== set.id) })} className="grid h-8 w-8 place-items-center rounded-full text-ink-faint" aria-label={t('Remove set')}>×</button></div>
                   ))}
-                  <button type="button" onClick={() => updateExercise(exercise.id, { sets: [...exercise.sets, { id: uid('set'), reps: exercise.sets.at(-1)?.reps ?? 10, weightKg: exercise.sets.at(-1)?.weightKg ?? 0 }] })} className="mt-1 w-full rounded-xl border border-dashed border-cyan-200 py-2 text-[10px] font-black text-cyan-800">+ {t('Add set')}</button>
+                  <button type="button" onClick={() => updateExercise(exercise.id, { sets: [...exercise.sets, { ...exercise.sets.at(-1), id: uid('set'), reps: exercise.sets.at(-1)?.reps ?? 10, weightKg: exercise.sets.at(-1)?.weightKg ?? (descriptorForExercise({ name: exercise.canonicalName, movement_id: exercise.movementId }).kind === 'bodyweight' ? 0 : null) }] })} className="mt-1 w-full rounded-xl border border-dashed border-cyan-200 py-2 text-[10px] font-black text-cyan-800">+ {t('Add set')}</button>
                 </div>
-              )}
             </div>
           ))}
           <button type="button" onClick={() => { setQuery(''); searchRef.current?.focus(); searchRef.current?.scrollIntoView({ behavior: 'smooth', block: 'center' }) }} className="w-full rounded-2xl border border-dashed border-cyan-300 bg-cyan-50/55 py-3 text-sm font-black text-cyan-900">+ {t('Add next exercise')}</button>
@@ -510,7 +521,7 @@ function ManualWorkoutTimelineItem({
             ) : (
               <div className="mt-1 space-y-0.5">
                 {item.exercise.sets.map((set, index) => (
-                  <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps} {t('reps')}{set.weightKg > 0 ? ` × ${set.weightKg} kg` : ''}</p>
+                  <p key={set.id} className="font-mono text-[11px] font-semibold text-ink-soft">{index + 1}. {set.reps ?? '-'} {t('reps')}{(set.weightKg ?? 0) !== 0 ? ` × ${set.weightKg} kg` : ''}</p>
                 ))}
               </div>
             )}

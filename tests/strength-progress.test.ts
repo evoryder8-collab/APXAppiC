@@ -70,6 +70,19 @@ test('strength series uses per-set loads and creates an honest 90-day comparison
   assert.ok((insight.estimated1rmDelta ?? 0) > 0)
 })
 
+test('legacy strength insights exclude signed bodyweight load', () => {
+  const data = strengthData()
+  data.workout_logs.push({
+    id: 'pull-up', user_id: 'u', session_id: 's2', exercise_id: 'pull-up',
+    exercise_name: 'Pull-Up', set_no: 1, weight_kg: 10, reps: 8, rir: 2,
+    movement_id: 'pull_up', duration_seconds: null, distance_meters: null, contacts: null,
+    rounds: null, work_seconds: null, recovery_seconds: null,
+    skipped: false, override_flag: false, created_at: '',
+  })
+
+  assert.deepEqual(buildStrengthSeries(data).map((series) => series.name), ['Bench Press'])
+})
+
 test('joint check-in separates isolated load reduction from whole-body deload signals', () => {
   const base: JointCheckin = { id: 'a', date: '2026-07-01', arms: 3, core: 3, legs: 3 }
   assert.equal(assessJointCheckin({ ...base, id: 'b', arms: 8 }).state, 'regional_deload')

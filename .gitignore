@@ -14,3 +14,6 @@ ios/APEXNative/APEXNative.xcodeproj/project.xcworkspace/xcuserdata/
 ios/APEXNative/APEXNative.xcodeproj/xcuserdata/
 ios/APEXNative/Config/Secrets.xcconfig
 *.xcuserstate
+
+# Supabase CLI project-link and version cache
+supabase/.temp/

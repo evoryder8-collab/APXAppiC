@@ -8,12 +8,60 @@ import { AccentChip, Sheet } from '../ui'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import { isFocusT25Name } from '../../lib/focusT25'
 import { workoutLogsInPerformedOrder } from '../../lib/workoutLogOrder'
+import {
+  descriptorForExercise,
+  isValidExerciseFacts,
+  loadedStrengthVolume,
+  normalizeExerciseFacts,
+  workoutLogFactSummary,
+} from '../../lib/exerciseLogging'
+import type { SetEntry } from '../../lib/workoutSession'
+import { ExerciseFactFields } from './ExerciseFactFields'
+import { progressForWorkoutLog, type ExerciseProgress } from '../../lib/progression'
 
 const COPY = {
   en: { eyebrow: 'WORKOUT RECEIPT', title: 'Stats at a glance', subtitle: 'Every strength set is editable. Secondary sessions keep their own completion details.', volume: 'Loaded volume', sets: 'Working sets', movements: 'Movements', signal: 'APEX strength signal', first: 'First clean baseline recorded. This becomes the comparison point for your next session.', saved: 'Corrections save automatically', close: 'Done', weight: 'Weight', reps: 'Reps', rir: 'RIR', secondary: 'Secondary session', full: 'Full version', modifier: 'Used modifier', incomplete: 'Not completed' },
   ro: { eyebrow: 'REZUMATUL ANTRENAMENTULUI', title: 'Statistici dintr-o privire', subtitle: 'Fiecare set de forță poate fi corectat. Sesiunile secundare păstrează detaliile lor proprii.', volume: 'Volum încărcat', sets: 'Seturi de lucru', movements: 'Mișcări', signal: 'Semnalul de forță APEX', first: 'Primul reper curat a fost înregistrat. Acesta devine comparația pentru următoarea sesiune.', saved: 'Corecțiile se salvează automat', close: 'Gata', weight: 'Greutate', reps: 'Repetări', rir: 'RIR', secondary: 'Sesiune secundară', full: 'Versiunea completă', modifier: 'Cu modificator', incomplete: 'Neefectuat' },
   th: { eyebrow: 'ใบสรุปการฝึก', title: 'สถิติโดยสรุป', subtitle: 'แก้ไขได้ทุกเซตเวท ส่วนเซสชันเสริมจะเก็บรายละเอียดการทำของตัวเอง', volume: 'ปริมาณน้ำหนักรวม', sets: 'เซตทำงาน', movements: 'ท่า', signal: 'สัญญาณความแข็งแรง APEX', first: 'บันทึกค่าฐานครั้งแรกแล้ว ค่านี้จะใช้เทียบกับการฝึกครั้งถัดไป', saved: 'บันทึกการแก้ไขอัตโนมัติ', close: 'เสร็จ', weight: 'น้ำหนัก', reps: 'ครั้ง', rir: 'RIR', secondary: 'เซสชันเสริม', full: 'เวอร์ชันเต็ม', modifier: 'ใช้ท่าปรับง่าย', incomplete: 'ไม่ได้ทำ' },
 } satisfies Record<IntroLanguage, Record<string, string>>
+
+function entryFromLog(log: WorkoutLog): SetEntry {
+  return {
+    weight: log.weight_kg,
+    reps: log.reps,
+    rir: log.rir,
+    durationSeconds: log.duration_seconds,
+    distanceMeters: log.distance_meters,
+    contacts: log.contacts,
+    rounds: log.rounds,
+    workSeconds: log.work_seconds,
+    recoverySeconds: log.recovery_seconds,
+  }
+}
+
+function logPatchFromEntry(patch: Partial<SetEntry>): Partial<WorkoutLog> {
+  const result: Partial<WorkoutLog> = {}
+  if ('weight' in patch) result.weight_kg = patch.weight ?? null
+  if ('reps' in patch) result.reps = patch.reps ?? null
+  if ('rir' in patch) result.rir = patch.rir ?? null
+  if ('durationSeconds' in patch) result.duration_seconds = patch.durationSeconds ?? null
+  if ('distanceMeters' in patch) result.distance_meters = patch.distanceMeters ?? null
+  if ('contacts' in patch) result.contacts = patch.contacts ?? null
+  if ('rounds' in patch) result.rounds = patch.rounds ?? null
+  if ('workSeconds' in patch) result.work_seconds = patch.workSeconds ?? null
+  if ('recoverySeconds' in patch) result.recovery_seconds = patch.recoverySeconds ?? null
+  return result
+}
+
+function progressLabel(progress: ExerciseProgress): string {
+  switch (progress) {
+    case 'improved': return 'Improved from last time'
+    case 'maintained': return 'Matched last time'
+    case 'regressed': return 'Below last time'
+    case 'adherence': return 'Completed'
+    case 'incomparable': return 'Needs matching facts to compare'
+  }
+}
 
 function insightText(insight: SessionStrengthInsight, language: IntroLanguage): string {
   if (insight.reference == null || insight.loadDelta == null || insight.daysCompared == null) return COPY[language].first
@@ -53,19 +101,20 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
     return [...map.entries()]
   }, [logs])
   const insights = sessionId ? sessionStrengthInsights(data, sessionId) : []
-  const strengthLogs = logs.filter((log) => !isFocusT25Name(log.exercise_name))
-  const volume = strengthLogs.reduce((sum, log) => sum + (log.skipped ? 0 : (log.weight_kg ?? 0) * (log.reps ?? 0)), 0)
-  const workingSets = strengthLogs.filter((log) => !log.skipped).length
+  const workingLogs = logs.filter((log) => !isFocusT25Name(log.exercise_name))
+  const volume = loadedStrengthVolume(workingLogs)
+  const workingSets = workingLogs.filter((log) => !log.skipped).length
 
-  const change = (id: string, patch: Partial<WorkoutLog>) => setLogs((current) => current.map((log) => log.id === id ? { ...log, ...patch } : log))
-  const commit = (id: string) => {
-    const log = logs.find((candidate) => candidate.id === id)
-    if (log) upsert('workout_logs', log)
-  }
   const persistPatch = (id: string, patch: Partial<WorkoutLog>) => {
     const current = logs.find((candidate) => candidate.id === id)
     if (!current) return
-    const next = { ...current, ...patch }
+    const candidate = { ...current, ...patch }
+    setLogs((rows) => rows.map((row) => row.id === id ? candidate : row))
+    const descriptor = descriptorForExercise({ name: candidate.exercise_name, movement_id: candidate.movement_id })
+    const entry = entryFromLog(candidate)
+    if (!candidate.skipped && !isValidExerciseFacts(entry, descriptor)) return
+    const facts = normalizeExerciseFacts(entry, descriptor, candidate.skipped)
+    const next = { ...candidate, ...logPatchFromEntry(facts) }
     setLogs((rows) => rows.map((row) => row.id === id ? next : row))
     upsert('workout_logs', next)
   }
@@ -115,7 +164,24 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
                 })}
               </div>
             ) : (
-              <div className="mt-2 space-y-2">{exerciseLogs.map((log) => <div key={log.id} className="grid grid-cols-[2.7rem_repeat(3,minmax(0,1fr))] items-end gap-1.5 rounded-xl bg-white/70 p-2"><span className="pb-2 text-center font-mono text-[9px] font-black text-ink-faint">S{log.set_no}</span><EditableNumber label={copy.weight} suffix="kg" value={log.weight_kg} step="0.5" onChange={(value) => change(log.id, { weight_kg: value })} onCommit={() => commit(log.id)} /><EditableNumber label={copy.reps} value={log.reps} step="1" onChange={(value) => change(log.id, { reps: value == null ? null : Math.round(value) })} onCommit={() => commit(log.id)} /><EditableNumber label={copy.rir} value={log.rir} step="1" max="10" onChange={(value) => change(log.id, { rir: value == null ? null : Math.round(value) })} onCommit={() => commit(log.id)} /></div>)}</div>
+              <div className="mt-2 space-y-2">{exerciseLogs.map((log) => {
+                const pace = workoutLogFactSummary(log).find((fact) => fact.includes('/km'))
+                const progress = progressForWorkoutLog(data, log)
+                return <div key={log.id} className="grid grid-cols-[2.7rem_minmax(0,1fr)] items-start gap-1.5 rounded-xl bg-white/70 p-2">
+                  <span className="pt-7 text-center font-mono text-[9px] font-black text-ink-faint">S{log.set_no}</span>
+                  <div>
+                    <ExerciseFactFields
+                      descriptor={descriptorForExercise({ name: log.exercise_name, movement_id: log.movement_id })}
+                      value={entryFromLog(log)}
+                      disabled={log.skipped}
+                      onChange={(patch) => persistPatch(log.id, logPatchFromEntry(patch))}
+                    />
+                    {(pace || progress) && <p className="mt-1 text-right font-mono text-[9px] font-black text-cyan-800">
+                      {[pace, progress ? t(progressLabel(progress)) : null].filter(Boolean).join(' · ')}
+                    </p>}
+                  </div>
+                </div>
+              })}</div>
             )}
           </section>
         )
@@ -127,8 +193,4 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
 
 function Metric({ label, value }: { label: string; value: string }) {
   return <div className="rounded-2xl border border-white/80 bg-white/65 px-2 py-3 text-center"><p className="text-[8px] leading-tight font-bold text-ink-faint">{label}</p><p className="mt-1 font-mono text-sm font-black text-ink">{value}</p></div>
-}
-
-function EditableNumber({ label, suffix, value, step, max, onChange, onCommit }: { label: string; suffix?: string; value: number | null; step: string; max?: string; onChange: (value: number | null) => void; onCommit: () => void }) {
-  return <label className="min-w-0"><span className="block truncate text-[7px] font-black tracking-wide text-ink-faint uppercase">{label}</span><span className="relative mt-1 block"><input type="number" inputMode="decimal" min="0" max={max} step={step} value={value ?? ''} onChange={(event) => onChange(event.target.value === '' ? null : Number(event.target.value))} onBlur={onCommit} onKeyDown={(event) => { if (event.key === 'Enter') event.currentTarget.blur() }} className={`w-full rounded-lg border border-ink/6 bg-white px-1.5 py-2 text-center font-mono text-xs font-black text-ink outline-none focus:ring-2 focus:ring-violet-300 ${suffix ? 'pr-5' : ''}`} />{suffix && <span className="pointer-events-none absolute inset-y-0 right-1 flex items-center text-[6px] font-black text-ink-faint">{suffix}</span>}</span></label>
 }

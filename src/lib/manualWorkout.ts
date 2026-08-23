@@ -1,6 +1,7 @@
 import { differenceInCalendarDays, format, getISODay, parseISO, subDays } from 'date-fns'
 import { catalogExerciseByName, type ExerciseCatalogItem } from '../data/exerciseCatalog.ts'
 import type { AppData, WorkoutLog, WorkoutSession } from './types'
+import { descriptorForExercise } from './exerciseLogging.ts'
 
 export const MANUAL_WORKOUT_PREFIX = 'APEX_MANUAL_V1'
 export const QUICK_WORKOUT_PRESET_LIMIT = 7
@@ -8,8 +9,15 @@ const AUTOMATIC_TITLE = '__APEX_AUTOMATIC_TITLE__'
 
 export interface ManualSetDraft {
   id: string
-  reps: number
-  weightKg: number
+  reps: number | null
+  weightKg: number | null
+  rir?: number | null
+  durationSeconds?: number | null
+  distanceMeters?: number | null
+  contacts?: number | null
+  rounds?: number | null
+  workSeconds?: number | null
+  recoverySeconds?: number | null
 }
 
 export interface TreadmillDraft {
@@ -22,6 +30,7 @@ export interface ManualExerciseDraft {
   id: string
   catalogId: string | null
   canonicalName: string
+  movementId?: string | null
   sets: ManualSetDraft[]
   treadmill: TreadmillDraft | null
 }
@@ -134,6 +143,9 @@ function exerciseOccurrencesFromLogs(logs: WorkoutLog[]): ManualExerciseOccurren
   return groups.map(({ canonicalName, rows }) => {
     const treadmill = rows.map((row) => parseTreadmillLog(row.exercise_name)).find(Boolean) ?? null
     const catalog = catalogExerciseByName(canonicalName)
+    const movementId = rows.find((row) => row.movement_id)?.movement_id
+      ?? descriptorForExercise({ name: canonicalName }).movementId
+    const descriptor = descriptorForExercise({ name: canonicalName, movement_id: movementId })
     const occurrenceId = rows[0].id
     return {
       occurrenceId,
@@ -142,14 +154,24 @@ function exerciseOccurrencesFromLogs(logs: WorkoutLog[]): ManualExerciseOccurren
         id: occurrenceId,
         catalogId: catalog?.id ?? null,
         canonicalName,
-        treadmill: treadmill?.metrics ?? null,
-        sets: treadmill ? [] : rows
+        movementId,
+        treadmill: null,
+        sets: rows
           .filter((row) => !row.skipped)
           .sort((a, b) => a.set_no - b.set_no)
           .map((row) => ({
             id: row.id,
             reps: Math.max(0, row.reps ?? 0),
-            weightKg: Math.max(0, row.weight_kg ?? 0),
+            weightKg: row.weight_kg ?? (descriptor.kind === 'bodyweight' ? 0 : null),
+            rir: row.rir,
+            durationSeconds: row.duration_seconds
+              ?? (treadmill ? Math.round(treadmill.metrics.durationMin * 60) : null),
+            distanceMeters: row.distance_meters
+              ?? (treadmill ? treadmill.metrics.distanceKm * 1_000 : null),
+            contacts: row.contacts ?? null,
+            rounds: row.rounds ?? null,
+            workSeconds: row.work_seconds ?? null,
+            recoverySeconds: row.recovery_seconds ?? null,
           })),
       },
     }

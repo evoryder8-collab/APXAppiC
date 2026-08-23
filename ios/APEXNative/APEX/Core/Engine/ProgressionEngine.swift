@@ -31,6 +31,168 @@ struct GuardianVerdict: Equatable, Sendable {
 }
 
 enum ProgressionEngine {
+    static func compare(
+        previous: WorkoutLog,
+        current: WorkoutLog,
+        descriptor: ExerciseLoggingDescriptor
+    ) -> ExerciseProgress {
+        guard !previous.skipped, !current.skipped else { return .incomparable }
+        let oldLoad = previous.weightKG
+        let newLoad = current.weightKG
+        let oneLoadMissing = (oldLoad == nil) != (newLoad == nil)
+        let loadImproved = oldLoad.flatMap { old in newLoad.map { $0 > old } } ?? false
+        let loadRegressed = oldLoad.flatMap { old in newLoad.map { $0 < old } } ?? false
+
+        switch descriptor.kind {
+        case .strength, .bodyweight:
+            if descriptor.fields == [.contacts] { return .adherence }
+            guard let oldReps = previous.reps, let newReps = current.reps else {
+                return .incomparable
+            }
+            guard let oldRIR = previous.rir, let newRIR = current.rir, !oneLoadMissing else {
+                return .incomparable
+            }
+            if newRIR < oldRIR { return .regressed }
+            return pareto(
+                improving: [newReps > oldReps, loadImproved],
+                regressing: [newReps < oldReps, loadRegressed]
+            )
+        case .isometric:
+            guard let oldDuration = previous.durationSeconds,
+                  let newDuration = current.durationSeconds,
+                  !oneLoadMissing
+            else { return .incomparable }
+            return pareto(
+                improving: [newDuration > oldDuration, loadImproved],
+                regressing: [newDuration < oldDuration, loadRegressed]
+            )
+        case .carry:
+            let dose: (old: Double, new: Double)
+            if let oldDistance = previous.distanceMeters,
+               let newDistance = current.distanceMeters,
+               previous.durationSeconds == nil,
+               current.durationSeconds == nil {
+                dose = (oldDistance, newDistance)
+            } else if let oldDuration = previous.durationSeconds,
+                      let newDuration = current.durationSeconds,
+                      previous.distanceMeters == nil,
+                      current.distanceMeters == nil {
+                dose = (Double(oldDuration), Double(newDuration))
+            } else {
+                return .incomparable
+            }
+            if oneLoadMissing { return .incomparable }
+            return pareto(
+                improving: [dose.new > dose.old, loadImproved],
+                regressing: [dose.new < dose.old, loadRegressed]
+            )
+        case .cardio:
+            guard let oldDistance = previous.distanceMeters,
+                  let newDistance = current.distanceMeters,
+                  let oldDuration = previous.durationSeconds,
+                  let newDuration = current.durationSeconds,
+                  let oldPace = ExerciseLogging.derivedPaceSecondsPerKilometre(
+                    distanceMeters: oldDistance,
+                    durationSeconds: oldDuration
+                  ),
+                  let newPace = ExerciseLogging.derivedPaceSecondsPerKilometre(
+                    distanceMeters: newDistance,
+                    durationSeconds: newDuration
+                  )
+            else { return .incomparable }
+            return pareto(
+                improving: [newDistance > oldDistance, newPace < oldPace],
+                regressing: [newDistance < oldDistance, newPace > oldPace]
+            )
+        case .interval:
+            guard let oldRounds = previous.rounds,
+                  let newRounds = current.rounds,
+                  let oldWork = previous.workSeconds,
+                  let newWork = current.workSeconds,
+                  let oldRecovery = previous.recoverySeconds,
+                  let newRecovery = current.recoverySeconds
+            else { return .incomparable }
+            return pareto(
+                improving: [newRounds > oldRounds, newWork > oldWork, newRecovery < oldRecovery],
+                regressing: [newRounds < oldRounds, newWork < oldWork, newRecovery > oldRecovery]
+            )
+        case .mobility:
+            return .adherence
+        case .circuit:
+            return .incomparable
+        }
+    }
+
+    static func latestProgress(
+        _ data: DashboardData,
+        current: WorkoutLog
+    ) -> ExerciseProgress? {
+        let sessions = Dictionary(
+            data.workoutSessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }
+        )
+        guard let currentSession = sessions[current.sessionID] else { return nil }
+        let previous = data.workoutLogs
+            .filter { candidate in
+                guard candidate.id != current.id,
+                      candidate.sessionID != current.sessionID,
+                      !candidate.skipped,
+                      candidate.setNumber == current.setNumber,
+                      sameLoggedMovement(candidate, current),
+                      let candidateSession = sessions[candidate.sessionID],
+                      candidateSession.date <= currentSession.date
+                else { return false }
+                return candidateSession.date < currentSession.date
+                    || candidate.createdAt < current.createdAt
+            }
+            .sorted { left, right in
+                let leftDate = sessions[left.sessionID]?.date ?? ""
+                let rightDate = sessions[right.sessionID]?.date ?? ""
+                return leftDate == rightDate
+                    ? left.createdAt < right.createdAt
+                    : leftDate < rightDate
+            }
+            .last
+        guard let previous else { return nil }
+        return compare(
+            previous: previous,
+            current: current,
+            descriptor: ExerciseLogging.descriptor(
+                movementNamed: current.exerciseName,
+                movementID: current.movementID
+            )
+        )
+    }
+
+    private static func sameLoggedMovement(_ left: WorkoutLog, _ right: WorkoutLog) -> Bool {
+        guard left.userID == right.userID else { return false }
+        let leftMovement = MovementTiming.movement(
+            named: left.exerciseName,
+            movementID: left.movementID
+        )?.id ?? left.movementID
+        let rightMovement = MovementTiming.movement(
+            named: right.exerciseName,
+            movementID: right.movementID
+        )?.id ?? right.movementID
+        if let leftMovement, let rightMovement {
+            return leftMovement == rightMovement
+        }
+        if let leftExercise = left.exerciseID,
+           let rightExercise = right.exerciseID,
+           leftExercise == rightExercise {
+            return true
+        }
+        return movementKey(left.exerciseName) == movementKey(right.exerciseName)
+    }
+
+    private static func pareto(
+        improving: [Bool],
+        regressing: [Bool]
+    ) -> ExerciseProgress {
+        if regressing.contains(true) { return .regressed }
+        if improving.contains(true) { return .improved }
+        return .maintained
+    }
+
     private static func movementKey(_ name: String) -> String {
         name
             .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
