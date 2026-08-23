@@ -31,6 +31,13 @@ struct GuardianVerdict: Equatable, Sendable {
 }
 
 enum ProgressionEngine {
+    private static func movementKey(_ name: String) -> String {
+        name
+            .folding(options: [.caseInsensitive, .diacriticInsensitive], locale: .current)
+            .split(whereSeparator: \.isWhitespace)
+            .joined(separator: " ")
+    }
+
     static func history(_ data: DashboardData, exercise: Exercise) -> [ExerciseHistoryPoint] {
         let sessionsByID = Dictionary(
             data.workoutSessions.map { ($0.id, $0) }, uniquingKeysWith: { first, _ in first }
@@ -40,8 +47,13 @@ enum ProgressionEngine {
             var reps: [(reps: Int?, rir: Int?)] = []
         }
         var byDate: [String: Bucket] = [:]
+        let targetMovement = movementKey(exercise.name)
         for log in data.workoutLogs {
-            guard log.exerciseID == exercise.id, !log.skipped else { continue }
+            let isSameMovement = log.exerciseID == exercise.id || (
+                log.userID == exercise.userID &&
+                movementKey(log.exerciseName) == targetMovement
+            )
+            guard isSameMovement, !log.skipped else { continue }
             guard let session = sessionsByID[log.sessionID] else { continue }
             var bucket = byDate[session.date] ?? Bucket()
             if let weight = log.weightKG { bucket.weights.append(weight) }

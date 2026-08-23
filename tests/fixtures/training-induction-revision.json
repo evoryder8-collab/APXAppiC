@@ -1,0 +1,19 @@
+{
+  "user_id": "19191919-aaaa-4bbb-8ccc-292929292929",
+  "generation_revision": 1,
+  "input": {
+    "start_date": "2026-07-15",
+    "inactivity": "under_three_months",
+    "venue": "home",
+    "equipment": ["adjustable_dumbbells", "resistance_bands"],
+    "pain_areas": [],
+    "recent_operation": false,
+    "chronic_lower_back_pain": false,
+    "sessions_per_week": 3,
+    "goal": "general"
+  },
+  "expected": {
+    "first_day_id": "c99754b0-cc5a-4f22-98fe-7f0e77d5c9a1",
+    "first_exercise_id": "1b305695-8bd0-4ef1-8dc7-5a55e11580a0"
+  }
+}

@@ -2,6 +2,7 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import { useNavigate } from 'react-router-dom'
 import { GlassCard, GhostButton, GradientButton } from '../../components/ui.tsx'
 import { ACCENTS } from '../../lib/theme.ts'
+import { activeTrainingProgramDays } from '../../lib/trainingInduction.ts'
 import { useStore } from '../../store/AppStore.tsx'
 import { assessInduction, coordinateCampaignWithEvents, createCampaign, EMPTY_INDUCTION_ANSWERS, generateCampaignSessions } from '../domain/campaign.ts'
 import { orbitUuid } from '../domain/ids.ts'
@@ -70,7 +71,8 @@ export function MarathonInductionPage() {
   const userId = app.data.profile?.user_id ?? ''
   const existing = [...orbit.state.inductions].sort((a, b) => b.updated_at.localeCompare(a.updated_at)).find((item) => !item.completed)
   const mainProgram = app.data.programs.find((program) => program.slug === 'main')
-  const strengthDays = new Set(app.data.program_days.filter((day) => day.program_id === mainProgram?.id).map((day) => day.weekday)).size
+  const activeProgramDays = activeTrainingProgramDays(app.data)
+  const strengthDays = new Set(activeProgramDays.filter((day) => day.program_id === mainProgram?.id).map((day) => day.weekday)).size
   const [inductionId] = useState(() => existing?.id ?? orbitUuid(userId || 'pending', `induction:${Date.now()}`))
   const [answers, setAnswers] = useState<MarathonInductionAnswers>(() => existing?.answers ?? { ...EMPTY_INDUCTION_ANSWERS, strength_days_per_week: strengthDays })
   const [step, setStep] = useState(existing?.current_step ?? 0)
@@ -144,7 +146,7 @@ export function MarathonInductionPage() {
     }
     const completed = await persist(step, true)
     const campaign = createCampaign(completed)
-    const lowerWeekdays = app.data.program_days.filter((day) => day.program_id === mainProgram?.id && ['legs_a', 'legs_b'].includes(day.day_type)).map((day) => day.weekday === 7 ? 0 : day.weekday)
+    const lowerWeekdays = activeProgramDays.filter((day) => day.program_id === mainProgram?.id && ['legs_a', 'legs_b'].includes(day.day_type)).map((day) => day.weekday === 7 ? 0 : day.weekday)
     const sessions = generateCampaignSessions(campaign, completed.answers, lowerWeekdays)
     const coordinated = coordinateCampaignWithEvents(campaign, sessions, app.data.events, lowerWeekdays)
     await orbit.saveCampaign(coordinated.campaign, coordinated.sessions)

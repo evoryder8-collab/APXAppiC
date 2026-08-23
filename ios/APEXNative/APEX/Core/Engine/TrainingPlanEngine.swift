@@ -250,7 +250,7 @@ enum TrainingPlanEngine {
     // MARK: - The plan
 
     static func plan(_ data: DashboardData, slug: String, date: String, lite: Bool) -> PlannedDay {
-        let ownerID = data.profile?.userID
+        let ownerID = data.profile?.userID ?? data.settings?.userID
         let program = data.programs
             .filter { $0.slug == slug && (ownerID == nil || $0.userID == ownerID) }
             .sorted { $0.id.uuidString < $1.id.uuidString }
@@ -265,7 +265,7 @@ enum TrainingPlanEngine {
             ? isInsideInductionWindow(data, slug: slug, date: date)
             : true
         let programDay: ProgramDay? = insideWindow
-            ? data.programDays
+            ? TrainingInduction.activeProgramDays(in: data)
                 .filter {
                     $0.programID == program?.id
                     && (effectiveUserID == nil || $0.userID == effectiveUserID)

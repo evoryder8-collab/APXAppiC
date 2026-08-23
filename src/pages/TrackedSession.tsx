@@ -29,6 +29,7 @@ export function TrackedSession() {
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const { data, upsert, bulkUpsert } = useStore()
+  const ownerId = data.profile?.user_id ?? data.settings?.user_id
 
   const plan = useMemo(
     () => planForDate(data, slug as ProgramSlug, date ?? '', lite),
@@ -101,10 +102,10 @@ export function TrackedSession() {
   const setsPlanned = list.reduce((sum, e) => sum + e.plannedSets, 0)
 
   const finish = (): void => {
-    if (!plan.programDay || !data.profile) return
+    if (!plan.programDay || !ownerId) return
     const { session, logs } = buildSessionRecords({
       sessionId: crypto.randomUUID(),
-      userId: data.profile.user_id,
+      userId: ownerId,
       date: date ?? '',
       programDayId: plan.programDay.id,
       isLite: lite,

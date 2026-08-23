@@ -389,11 +389,767 @@ final class WorkoutSessionModeContractTests: XCTestCase {
 final class TrainingInductionTests: XCTestCase {
     private let user = UUID()
 
+    private struct CrossClientRevisionFixture: Decodable {
+        struct Input: Decodable {
+            let start_date: String
+            let inactivity: String
+            let venue: String
+            let equipment: [String]
+            let pain_areas: [String]
+            let recent_operation: Bool
+            let chronic_lower_back_pain: Bool
+            let sessions_per_week: Int
+            let goal: String
+        }
+
+        struct Expected: Decodable {
+            let first_day_id: UUID
+            let first_exercise_id: UUID
+        }
+
+        let user_id: UUID
+        let generation_revision: Int
+        let input: Input
+        let expected: Expected
+    }
+
     private func input(_ mutate: (inout TrainingInduction.Input) -> Void = { _ in })
         -> TrainingInduction.Input {
         var value = TrainingInduction.Input(startDate: "2026-01-05")
         mutate(&value)
         return value
+    }
+
+    func testSkippingSubmitsNoQuestionnaireAnswersAndBuildsNoPlan() throws {
+        let submission = TrainingInduction.Submission.skipped
+
+        XCTAssertFalse(submission.requiresProfile)
+        XCTAssertNil(submission.profileGoal)
+        XCTAssertNil(submission.generatedPlan(userID: user, existingPrograms: []))
+
+        let settingsObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(
+                with: JSONEncoder().encode(SettingsCreationRequest(userID: user))
+            ) as? [String: Any]
+        )
+        XCTAssertEqual(Set(settingsObject.keys), ["user_id"])
+    }
+
+    func testSkippedAccountRoundTripKeepsProfileAndDerivedFactsAbsent() throws {
+        let base = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
+        let stored = TrainingInduction.Submission.skipped
+            .applyingAccountMetadata(to: base, plan: nil)
+        let decoded = try JSONDecoder().decode(
+            UserSettings.self,
+            from: JSONEncoder().encode(stored)
+        )
+
+        var data = APEXDebugFixture.dashboard()
+        data.profile = nil
+        data.settings = decoded
+        data.programs = []
+        data.programDays = []
+        data.exercises = []
+        data.snapshots = []
+
+        XCTAssertNil(data.profile)
+        XCTAssertEqual(decoded.addons[TrainingInduction.skippedMarkerKey], .bool(true))
+        XCTAssertTrue(TrainingInduction.belongsToAccount(data, userID: user))
+        XCTAssertTrue(TrainingInduction.isCompatibleDashboard(data, userID: user))
+        XCTAssertFalse(TrainingInduction.belongsToAccount(data, userID: UUID()))
+        XCTAssertFalse(TrainingInduction.isCompatibleDashboard(data, userID: UUID()))
+        XCTAssertTrue(TrainingInduction.shouldEnterPortal(profile: nil, settings: decoded))
+        XCTAssertNil(FitnessBrainService.engineInput(from: data))
+        XCTAssertTrue(data.programs.isEmpty)
+        XCTAssertTrue(data.programDays.isEmpty)
+        XCTAssertTrue(data.exercises.isEmpty)
+        XCTAssertTrue(data.snapshots.isEmpty)
+        XCTAssertFalse(TrainingInduction.hasUsablePrescription(in: data, slug: "transition"))
+
+        var uninitialized = data
+        uninitialized.settings = nil
+        XCTAssertTrue(
+            TrainingInduction.isCompatibleDashboard(uninitialized, userID: user),
+            "an authenticated account with no rows yet is a valid first run"
+        )
+    }
+
+    func testProfilelessWebInstalledPlanStillEntersPortal() throws {
+        var settings = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
+        settings.addons.removeValue(forKey: TrainingInduction.skippedMarkerKey)
+        settings.addons["newbie_mode"] = .bool(true)
+        settings.addons["training_induction"] = .object([
+            "generation_revision": .number(2),
+        ])
+
+        XCTAssertTrue(TrainingInduction.shouldEnterPortal(profile: nil, settings: settings))
+    }
+
+    func testProfilelessRestoredPlanStillEntersPortalButBlankSettingsDoNot() throws {
+        var settings = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
+        settings.addons = [:]
+        XCTAssertFalse(TrainingInduction.shouldEnterPortal(profile: nil, settings: settings))
+
+        settings.addons[TrainingInduction.archivedMarkerKey] = .array([.string(UUID().uuidString)])
+        settings.addons[TrainingInduction.generationRevisionKey] = .number(3)
+        XCTAssertTrue(TrainingInduction.shouldEnterPortal(profile: nil, settings: settings))
+    }
+
+    func testProfilelessInstalledPlanCanOwnWorkoutFactsWithoutInventedWeight() throws {
+        var data = APEXDebugFixture.dashboard()
+        data.profile = nil
+        data.settings = try XCTUnwrap(data.settings?.rebound(to: user))
+        let plan = TrainingInduction.generate(
+            userID: user,
+            input: input(),
+            existingPrograms: []
+        )
+        let day = try XCTUnwrap(plan.programDays.first)
+        XCTAssertEqual(TrainingInduction.workoutOwnerID(in: data, day: day), user)
+
+        let foreignPlan = TrainingInduction.generate(
+            userID: UUID(),
+            input: input(),
+            existingPrograms: []
+        )
+        XCTAssertNil(TrainingInduction.workoutOwnerID(
+            in: data,
+            day: try XCTUnwrap(foreignPlan.programDays.first)
+        ))
+
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSession = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(appSession.range(of: "func completeWorkout(\n        day: ProgramDay,\n        setInputs:"))
+        let end = try XCTUnwrap(
+            appSession.range(of: "func toggleDeload", range: start.upperBound..<appSession.endIndex)
+        )
+        let completion = String(appSession[start.lowerBound..<end.lowerBound])
+        XCTAssertTrue(completion.contains("guard let ownerID = TrainingInduction.workoutOwnerID"))
+        XCTAssertFalse(completion.contains("guard let profile else { return nil }"))
+        XCTAssertTrue(completion.contains("if let profile, profile.userID == ownerID"))
+        XCTAssertGreaterThanOrEqual(
+            completion.components(separatedBy: "ownerID: ownerID").count - 1,
+            2,
+            "profileless session and set failures must enqueue under the verified account owner"
+        )
+
+        let persistStart = try XCTUnwrap(appSession.range(of: "private func persistUpsert"))
+        let persistEnd = try XCTUnwrap(
+            appSession.range(of: "private func saveLocalSnapshot", range: persistStart.upperBound..<appSession.endIndex)
+        )
+        let persistence = String(appSession[persistStart.lowerBound..<persistEnd.lowerBound])
+        XCTAssertTrue(persistence.contains("let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)"))
+        XCTAssertGreaterThanOrEqual(
+            persistence.components(separatedBy: "guard let userID = persistenceOwnerID else { return }").count - 1,
+            2,
+            "both upsert and delete failures must retain settings-only account writes"
+        )
+
+        let waterStart = try XCTUnwrap(appSession.range(of: "func adjustWater"))
+        let waterEnd = try XCTUnwrap(appSession.range(of: "func setWaterTotal", range: waterStart.upperBound..<appSession.endIndex))
+        let water = String(appSession[waterStart.lowerBound..<waterEnd.lowerBound])
+        XCTAssertTrue(water.contains("guard let ownerID = verifiedPersistenceOwnerID()"))
+        XCTAssertFalse(water.contains("guard let profile"))
+
+        let deloadStart = try XCTUnwrap(appSession.range(of: "func toggleDeload"))
+        let deloadEnd = try XCTUnwrap(appSession.range(of: "func exportOrbitData", range: deloadStart.upperBound..<appSession.endIndex))
+        let deload = String(appSession[deloadStart.lowerBound..<deloadEnd.lowerBound])
+        XCTAssertTrue(deload.contains("guard let ownerID = verifiedPersistenceOwnerID()"))
+        XCTAssertFalse(deload.contains("guard let profile"))
+    }
+
+    func testSkipArchivesAnInterruptedAnsweredAttemptAndClearsItsMarkers() throws {
+        let activeDay = UUID()
+        let pendingDay = UUID()
+        var settings = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
+        settings.addons["newbie_mode"] = .bool(true)
+        settings.addons["training_induction"] = .object([
+            "generation_revision": .number(1),
+            "transition_day_ids": .array([.string(activeDay.uuidString)]),
+            "main_day_ids": .array([]),
+        ])
+        settings.addons[TrainingInduction.pendingMarkerKey] = .array([
+            .string(pendingDay.uuidString),
+        ])
+
+        let skipped = TrainingInduction.Submission.skipped
+            .applyingAccountMetadata(to: settings, plan: nil)
+
+        XCTAssertEqual(TrainingInduction.archivedDayIDs(skipped), [activeDay, pendingDay])
+        XCTAssertNil(skipped.addons["training_induction"])
+        XCTAssertNil(skipped.addons[TrainingInduction.pendingMarkerKey])
+        XCTAssertEqual(skipped.addons["newbie_mode"], .bool(false))
+        XCTAssertEqual(skipped.addons[TrainingInduction.skippedMarkerKey], .bool(true))
+        XCTAssertEqual(TrainingInduction.generationRevision(skipped), 2)
+    }
+
+    func testSkipArchivesUnmarkedLegacyGeneratedRows() throws {
+        let plan = TrainingInduction.generate(
+            userID: user,
+            input: input(),
+            existingPrograms: [],
+            generationRevision: 0
+        )
+        var settings = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
+        settings.addons.removeValue(forKey: "training_induction")
+        settings.addons.removeValue(forKey: TrainingInduction.pendingMarkerKey)
+        settings.addons.removeValue(forKey: TrainingInduction.archivedMarkerKey)
+
+        var legacy = DashboardData.empty
+        legacy.settings = settings
+        legacy.programs = plan.programs
+        legacy.programDays = plan.programDays
+        legacy.exercises = plan.exercises
+        XCTAssertFalse(TrainingInduction.legacyGeneratedDayIDs(in: legacy, userID: user).isEmpty)
+        XCTAssertTrue(TrainingInduction.hasUsablePrescription(in: legacy, slug: "transition"))
+
+        legacy.settings = TrainingInduction.Submission.skipped.applyingAccountMetadata(
+            to: settings,
+            plan: nil,
+            existingData: legacy
+        )
+
+        XCTAssertTrue(
+            Set(plan.programDays.map(\.id)).isSubset(of: TrainingInduction.archivedDayIDs(try XCTUnwrap(legacy.settings)))
+        )
+        XCTAssertFalse(TrainingInduction.hasUsablePrescription(in: legacy, slug: "transition"))
+        XCTAssertFalse(TrainingInduction.hasUsablePrescription(in: legacy, slug: "main"))
+    }
+
+    func testAnsweredSubmissionKeepsItsGoalAndProducesTheRequestedPlan() throws {
+        let answers = input {
+            $0.goal = "strength"
+            $0.venue = "outdoors"
+            $0.equipment = ["barbell_plates", "rack"]
+            $0.sessionsPerWeek = 5
+        }
+        let submission = TrainingInduction.Submission.answered(answers)
+
+        XCTAssertTrue(submission.requiresProfile)
+        XCTAssertEqual(submission.profileGoal, "maintain")
+        let plan = try XCTUnwrap(submission.generatedPlan(userID: user, existingPrograms: []))
+        XCTAssertEqual(plan.induction["venue"]?.stringValue, "outdoors")
+        XCTAssertEqual(
+            plan.induction["equipment"]?.arrayValue?.compactMap(\.stringValue),
+            ["barbell_plates", "rack"]
+        )
+        XCTAssertEqual(plan.induction["sessions_per_week"]?.numberValue, 5)
+        for slug in ["transition", "main"] {
+            let program = try XCTUnwrap(plan.programs.first { $0.slug == slug })
+            let days = plan.programDays.filter { $0.programID == program.id }
+            XCTAssertEqual(days.count, 5, "a five-session answer needs five \(slug) days")
+            XCTAssertTrue(days.allSatisfy { $0.name.hasPrefix("Outdoor ") })
+            XCTAssertTrue(days.allSatisfy { day in
+                plan.exercises.contains { $0.programDayID == day.id && !$0.isLite }
+            })
+            let key = slug == "transition" ? "transition_day_ids" : "main_day_ids"
+            XCTAssertEqual(plan.induction[key]?.arrayValue?.count, 5)
+        }
+
+        let settings = try XCTUnwrap(APEXDebugFixture.dashboard().settings)
+        let installed = submission.applyingAccountMetadata(to: settings, plan: plan)
+        XCTAssertEqual(installed.addons["newbie_mode"], .bool(true))
+        XCTAssertEqual(installed.addons["training_induction"], .object(plan.induction))
+
+        let skipped = TrainingInduction.Submission.skipped
+            .applyingAccountMetadata(to: settings, plan: nil)
+        XCTAssertEqual(skipped.addons[TrainingInduction.skippedMarkerKey], .bool(true))
+    }
+
+    func testRebuildDraftRoundTripsEveryPersistedAnswer() {
+        let answers = input {
+            $0.startDate = "2026-04-03"
+            $0.inactivity = "over_one_year"
+            $0.venue = "outdoors"
+            $0.equipment = ["adjustable_dumbbells", "resistance_bands"]
+            $0.painAreas = ["knee", "shoulder"]
+            $0.recentOperation = false
+            $0.chronicLowerBackPain = true
+            $0.sessionsPerWeek = 5
+            $0.goal = "strength"
+        }
+        let plan = TrainingInduction.generate(userID: user, input: answers)
+
+        let restored = TrainingInduction.input(
+            from: plan.induction,
+            fallbackStartDate: "2099-01-01"
+        )
+
+        XCTAssertEqual(restored.startDate, answers.startDate)
+        XCTAssertEqual(restored.inactivity, answers.inactivity)
+        XCTAssertEqual(restored.venue, answers.venue)
+        XCTAssertEqual(restored.equipment, answers.equipment)
+        XCTAssertEqual(restored.painAreas, answers.painAreas)
+        XCTAssertEqual(restored.recentOperation, answers.recentOperation)
+        XCTAssertEqual(restored.chronicLowerBackPain, answers.chronicLowerBackPain)
+        XCTAssertEqual(restored.sessionsPerWeek, 3, "the form must show the persisted safety-resolved frequency")
+        XCTAssertEqual(restored.goal, answers.goal)
+    }
+
+    func testWebMetadataNormalizesIntoNativeReturnBuilderVocabulary() {
+        let restored = TrainingInduction.input(
+            from: [
+                "start_date": .string("2026-08-22"),
+                "inactivity": .string("one_to_three_months"),
+                "venue": .string("outdoors"),
+                "equipment": .array([.string("resistance_bands")]),
+                "pain_areas": .array([.string("knees"), .string("shoulders")]),
+                "recent_operation": .bool(false),
+                "chronic_lower_back_pain": .bool(true),
+                "sessions_per_week": .number(5),
+                "goal": .string("rebuild"),
+            ],
+            fallbackStartDate: "2099-01-01"
+        )
+
+        XCTAssertEqual(restored.inactivity, "under_three_months")
+        XCTAssertEqual(restored.painAreas, ["knee", "shoulder"])
+        XCTAssertEqual(restored.goal, "general")
+        XCTAssertEqual(restored.venue, "outdoors")
+        XCTAssertEqual(restored.sessionsPerWeek, 5)
+    }
+
+    func testReturnBuilderOffersEveryStoredQuestionAndChoice() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let panel = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingInductionPanel.swift")
+        )
+
+        for requiredControl in [
+            "$draft.goal", "$draft.inactivity", "$draft.venue",
+            "draft.equipment", "$draft.sessionsPerWeek", "$draft.recentOperation",
+            "$draft.chronicLowerBackPain", "draft.painAreas",
+        ] {
+            XCTAssertTrue(panel.contains(requiredControl), "missing return-builder control: \(requiredControl)")
+        }
+        XCTAssertTrue(panel.contains("Text(language.text(\"Outdoors\")).tag(\"outdoors\")"))
+        XCTAssertTrue(panel.contains("ForEach(2...5"))
+        XCTAssertFalse(
+            panel.contains("if draft.venue == \"home\""),
+            "equipment answers must remain available for gym and outdoor training"
+        )
+        XCTAssertTrue(panel.contains("session.installInductionPlan(draft)"))
+        XCTAssertFalse(
+            panel.contains("input.startDate = Date().apexDateKey"),
+            "rebuilding must preserve the persisted phase boundary instead of silently restarting it today"
+        )
+    }
+
+    func testReturnBuilderInstallAndRestoreAreSingleFlight() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSession = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let panel = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingInductionPanel.swift")
+        )
+        let settings = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Settings/SettingsView.swift")
+        )
+
+        let installStart = try XCTUnwrap(appSession.range(of: "func installInductionPlan"))
+        let installEnd = try XCTUnwrap(
+            appSession.range(of: "private func applyInductionPlan", range: installStart.upperBound..<appSession.endIndex)
+        )
+        let install = String(appSession[installStart.lowerBound..<installEnd.lowerBound])
+        XCTAssertTrue(install.contains("guard !isBusy else { return }\n        isBusy = true"))
+        XCTAssertTrue(install.contains(
+            "if accountGeneration.accepts(accountToken) { isBusy = false }"
+        ))
+
+        let restoreStart = try XCTUnwrap(appSession.range(of: "func restoreOriginalProgramme"))
+        let restore = String(appSession[restoreStart.lowerBound...])
+        XCTAssertTrue(restore.contains("guard !isBusy else { return }\n        isBusy = true"))
+        XCTAssertTrue(restore.contains(
+            "if accountGeneration.accepts(accountToken) { isBusy = false }"
+        ))
+
+        XCTAssertGreaterThanOrEqual(
+            panel.components(separatedBy: ".disabled(session.isBusy)").count - 1,
+            3,
+            "open, install, and restore must reject another tap while a plan mutation is running"
+        )
+        XCTAssertGreaterThanOrEqual(
+            settings.components(separatedBy: ".disabled(session.isBusy)").count - 1,
+            2,
+            "both Settings restore entry points must stop accepting taps during a plan mutation"
+        )
+    }
+
+    func testOnlyACompleteGeneratedPlanIsDescribedAsActive() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let panel = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingInductionPanel.swift")
+        )
+
+        XCTAssertTrue(panel.contains(
+            "TrainingInduction.hasCompleteGeneratedPlan(in: session.data, slug: slug)"
+        ))
+        XCTAssertTrue(panel.contains("if hasActiveGeneratedPlan, let current"))
+        XCTAssertTrue(panel.contains(
+            "hasActiveGeneratedPlan ? \"Your generated plan is active. Rebuild it any time, or restore your original programme from Settings.\""
+        ))
+        XCTAssertTrue(panel.contains(
+            "hasActiveGeneratedPlan ? \"Rebuild my plan\" : \"Build my plan\""
+        ))
+    }
+
+    func testSettingsRestoresGeneratedRowsThroughTheCleanupAPI() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let settingsView = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Settings/SettingsView.swift")
+        )
+        let service = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Core/Networking/SupabaseService.swift")
+        )
+
+        XCTAssertEqual(
+            settingsView.components(separatedBy: "Task { await session.restoreOriginalProgramme() }").count - 1,
+            2,
+            "both switching starter mode off and the explicit Restore action must archive generated rows"
+        )
+        XCTAssertFalse(
+            settingsView.contains("setAddon(\"training_induction\", .null)"),
+            "clearing only the marker strands generated rows in every calendar"
+        )
+        XCTAssertFalse(
+            service.contains("func deleteInductionRows"),
+            "deleting a generated day cascades through its completed workout sessions and logs"
+        )
+    }
+
+    func testFirstRunSubmissionIsSingleFlightAndDisablesEveryDecisionControl() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSession = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let inductionView = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Onboarding/InductionView.swift")
+        )
+
+        XCTAssertTrue(appSession.contains("guard !isBusy else { return }\n        isBusy = true"))
+        XCTAssertGreaterThanOrEqual(
+            inductionView.components(separatedBy: ".disabled(session.isBusy)").count - 1,
+            3,
+            "Back, Build/Continue, and Skip must all stop accepting a second choice during submission"
+        )
+    }
+
+    func testCommittedInductionRefreshIsBestEffortAndCachesSettingsOnlyAccounts() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSession = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+
+        XCTAssertTrue(appSession.contains("profile?.userID ?? data.settings?.userID"))
+        let submitStart = try XCTUnwrap(appSession.range(of: "private func submitInduction"))
+        let submitEnd = try XCTUnwrap(
+            appSession.range(
+                of: "/// Deterministic authenticated first-run",
+                range: submitStart.upperBound..<appSession.endIndex
+            )
+        )
+        let submit = String(appSession[submitStart.lowerBound..<submitEnd.lowerBound])
+        let pendingApply = try XCTUnwrap(submit.range(of: "data.settings = settings"))
+        let pendingSnapshot = try XCTUnwrap(
+            submit.range(of: "await saveLocalSnapshot()", range: pendingApply.upperBound..<submit.endIndex)
+        )
+        let generatedRowWrite = try XCTUnwrap(submit.range(of: "service.saveInductionPlan(plan)"))
+        XCTAssertLessThan(pendingApply.lowerBound, pendingSnapshot.lowerBound)
+        XCTAssertLessThan(
+            pendingSnapshot.lowerBound,
+            generatedRowWrite.lowerBound,
+            "first-run pending metadata must reach the account cache before generated row writes"
+        )
+        let finalSnapshot = try XCTUnwrap(submit.range(of: "await saveLocalSnapshot()", options: .backwards))
+        let refresh = try XCTUnwrap(submit.range(of: "refreshDashboard(expectedUserID: userID)"))
+        let bestEffortFallback = try XCTUnwrap(submit.range(of: "lastSyncAt = .now"))
+        XCTAssertLessThan(finalSnapshot.lowerBound, refresh.lowerBound)
+        XCTAssertLessThan(refresh.lowerBound, bestEffortFallback.lowerBound)
+        let finalMetadata = try XCTUnwrap(submit.range(of: "submission.applyingAccountMetadata"))
+        let profileCreation = try XCTUnwrap(submit.range(of: "service.createProfileIfNeeded"))
+        XCTAssertLessThan(
+            finalMetadata.lowerBound,
+            profileCreation.lowerBound,
+            "a failed plan write must never strand a synthetic profile before Skip can recover"
+        )
+        let installStart = try XCTUnwrap(appSession.range(of: "func installInductionPlan"))
+        let installEnd = try XCTUnwrap(
+            appSession.range(of: "private func applyInductionPlan", range: installStart.upperBound..<appSession.endIndex)
+        )
+        let install = String(appSession[installStart.lowerBound..<installEnd.lowerBound])
+        XCTAssertEqual(
+            install.components(separatedBy: "await saveLocalSnapshot()").count - 1,
+            3,
+            "offline relaunch must retain invalidated, pending, and finally committed plan state"
+        )
+        XCTAssertFalse(
+            install.contains("service.createProfileIfNeeded"),
+            "a profileless Skip account must remain settings-only instead of persisting unanswered body defaults"
+        )
+    }
+
+    func testPlanBuilderIgnoresNewbieModeAndWaitsForScopedGeneratedRows() throws {
+        var data = APEXDebugFixture.dashboard()
+        data.settings?.addons["newbie_mode"] = .bool(false)
+
+        XCTAssertTrue(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"))
+        XCTAssertFalse(TrainingInduction.hasCompleteGeneratedPlan(in: data, slug: "transition"))
+        XCTAssertFalse(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "custom"))
+
+        let transitionProgram = try XCTUnwrap(data.programs.first { $0.slug == "transition" })
+        let transitionDay = try XCTUnwrap(data.programDays.first { $0.programID == transitionProgram.id })
+        data.settings?.addons["training_induction"] = .object([
+            "transition_day_ids": .array([.string(UUID().uuidString)]),
+        ])
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"),
+            "a stale marker is not a generated plan"
+        )
+
+        let generated = TrainingInduction.generate(
+            userID: transitionDay.userID,
+            input: input(),
+            existingPrograms: data.programs
+        )
+        data.programs = generated.programs
+        data.programDays = generated.programDays
+        data.settings?.addons["training_induction"] = .object(generated.induction)
+        XCTAssertFalse(TrainingInduction.hasUsablePrescription(in: data, slug: "transition"))
+        XCTAssertTrue(
+            TrainingInduction.visibleProgramDays(in: data, slug: "transition").isEmpty,
+            "interrupted rows must not remain runnable in the phase list"
+        )
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"),
+            "days without exercises are an interrupted save, not a usable plan"
+        )
+        data.exercises = generated.exercises.filter(\.isLite)
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"),
+            "a lite-only save cannot satisfy the default Full prescription"
+        )
+        XCTAssertFalse(TrainingInduction.hasUsablePrescription(in: data, slug: "transition"))
+        data.exercises = generated.exercises
+        XCTAssertTrue(TrainingInduction.hasUsablePrescription(in: data, slug: "transition"))
+        XCTAssertFalse(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"))
+
+        var wrongCount = generated.induction
+        wrongCount["sessions_per_week"] = .number(5)
+        data.settings?.addons["training_induction"] = .object(wrongCount)
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"),
+            "a marker claiming five sessions cannot hide a three-day saved plan"
+        )
+    }
+
+    func testSimpleHomeSeparatesMissingPrescriptionFromARealRestDay() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let simpleHome = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Portal/SimpleHomeView.swift")
+        )
+
+        XCTAssertTrue(simpleHome.contains("private var hasUsableTrainingPlan"))
+        XCTAssertTrue(simpleHome.contains("guard hasUsableTrainingPlan else { return false }"))
+        XCTAssertTrue(simpleHome.contains("language.text(\"No plan\")"))
+        XCTAssertTrue(simpleHome.contains("hasUsablePrescription: hasUsableTrainingPlan"))
+        XCTAssertTrue(simpleHome.contains("Text(language.text(\"No training plan yet\"))"))
+        XCTAssertTrue(simpleHome.contains("Text(language.text(\"Build plan\"))"))
+    }
+
+    func testMarkerlessGeneratedRowsKeepTheRepairRouteVisible() throws {
+        var data = APEXDebugFixture.dashboard()
+        let profile = try XCTUnwrap(data.profile)
+        let generated = TrainingInduction.generate(
+            userID: profile.userID,
+            input: input(),
+            existingPrograms: data.programs
+        )
+        data.programs = generated.programs
+        data.programDays = generated.programDays
+        data.exercises = generated.exercises
+        data.settings?.addons.removeValue(forKey: "training_induction")
+
+        XCTAssertTrue(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"))
+        XCTAssertTrue(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "main"))
+    }
+
+    func testRelaunchAfterInterruptedExerciseSaveKeepsBuilderAvailable() throws {
+        var data = APEXDebugFixture.dashboard()
+        let profile = try XCTUnwrap(data.profile)
+        let generated = TrainingInduction.generate(
+            userID: profile.userID,
+            input: input(),
+            existingPrograms: data.programs
+        )
+        let transitionProgram = try XCTUnwrap(generated.programs.first { $0.slug == "transition" })
+        let transitionDays = generated.programDays.filter { $0.programID == transitionProgram.id }
+        let unfinishedDay = try XCTUnwrap(transitionDays.last?.id)
+
+        data.programs = generated.programs
+        data.programDays = generated.programDays
+        data.exercises = generated.exercises.filter { $0.programDayID != unfinishedDay }
+        data.settings?.addons["training_induction"] = .object(generated.induction)
+
+        let relaunched = data
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: relaunched, slug: "transition"),
+            "a failed exercise batch must recover through the builder on relaunch"
+        )
+
+        data.exercises = generated.exercises
+        XCTAssertFalse(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"))
+    }
+
+    func testRebuildInvalidatesTheOldMarkerBeforeReplacementRows() throws {
+        var data = APEXDebugFixture.dashboard()
+        let profile = try XCTUnwrap(data.profile)
+        let generated = TrainingInduction.generate(
+            userID: profile.userID,
+            input: input(),
+            existingPrograms: data.programs
+        )
+        data.programs = generated.programs
+        data.programDays = generated.programDays
+        data.exercises = generated.exercises
+        data.settings?.addons["training_induction"] = .object(generated.induction)
+        XCTAssertFalse(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"))
+
+        data.settings = data.settings.map { TrainingInduction.invalidatingPlanMetadata($0) }
+
+        XCTAssertNil(data.settings?.addons["training_induction"])
+        XCTAssertEqual(
+            data.settings.map(TrainingInduction.archivedDayIDs),
+            Set(generated.programDays.map(\.id))
+        )
+        XCTAssertEqual(data.settings.map(TrainingInduction.generationRevision), 1)
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"),
+            "a failed rebuild must not let complete old rows hide the repair route"
+        )
+        XCTAssertFalse(
+            TrainingInduction.hasUsablePrescription(in: data, slug: "transition"),
+            "invalidated rows pending cleanup cannot drive Today, the calendar, or muscle signal"
+        )
+    }
+
+    func testPendingRebuildRevisionSurvivesRetryUntilTheNewMarkerCommits() throws {
+        var data = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(data.profile?.userID)
+        let generated = TrainingInduction.generate(
+            userID: owner,
+            input: input { $0.sessionsPerWeek = 5 },
+            existingPrograms: data.programs
+        )
+        data = TrainingInduction.applyingGeneratedPlan(
+            generated,
+            settings: TrainingInduction.Submission.answered(input { $0.sessionsPerWeek = 5 })
+                .applyingAccountMetadata(to: try XCTUnwrap(data.settings), plan: generated),
+            to: data
+        )
+
+        data.settings = data.settings.map { TrainingInduction.invalidatingPlanMetadata($0) }
+        data.settings = data.settings.map { TrainingInduction.invalidatingPlanMetadata($0) }
+        XCTAssertEqual(
+            data.settings.map(TrainingInduction.archivedDayIDs),
+            Set(generated.programDays.map(\.id))
+        )
+        XCTAssertEqual(data.settings.map(TrainingInduction.generationRevision), 1)
+        XCTAssertTrue(
+            Set(TrainingInduction.activeProgramDays(in: data).map(\.id))
+                .isDisjoint(with: Set(generated.programDays.map(\.id)))
+        )
+
+        let retrySettings = try XCTUnwrap(data.settings)
+        let replacement = TrainingInduction.generate(
+            userID: owner,
+            input: input(),
+            existingPrograms: data.programs,
+            generationRevision: TrainingInduction.generationRevision(retrySettings)
+        )
+        XCTAssertTrue(
+            Set(replacement.programDays.map(\.id)).isDisjoint(with: Set(generated.programDays.map(\.id)))
+        )
+        let committed = TrainingInduction.Submission.answered(input())
+            .applyingAccountMetadata(
+                to: retrySettings,
+                plan: replacement
+            )
+        XCTAssertEqual(TrainingInduction.archivedDayIDs(committed), Set(generated.programDays.map(\.id)))
+        XCTAssertEqual(TrainingInduction.generationRevision(committed), 1)
+        XCTAssertNotNil(committed.addons["training_induction"])
+    }
+
+    func testRowsSavedBeforeFinalMarkerStayInactiveAndRestorable() throws {
+        var data = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(data.profile?.userID)
+        let plan = TrainingInduction.generate(
+            userID: owner,
+            input: input(),
+            existingPrograms: data.programs
+        )
+        let pending = TrainingInduction.markingPendingPlan(
+            try XCTUnwrap(data.settings),
+            plan: plan
+        )
+        data.programs = plan.programs
+        data.programDays = plan.programDays
+        data.exercises = plan.exercises
+        data.settings = pending
+
+        XCTAssertNil(pending.addons["training_induction"])
+        XCTAssertEqual(TrainingInduction.pendingDayIDs(pending), Set(plan.programDays.map(\.id)))
+        XCTAssertFalse(TrainingInduction.hasUsablePrescription(in: data, slug: "transition"))
+        XCTAssertTrue(TrainingInduction.visibleProgramDays(in: data, slug: "transition").isEmpty)
+
+        let restored = try XCTUnwrap(
+            TrainingInduction.restoration(in: data, userID: owner)
+        ).dashboard
+        XCTAssertEqual(restored.settings.map(TrainingInduction.archivedDayIDs), Set(plan.programDays.map(\.id)))
+        XCTAssertTrue(restored.programDays.contains { $0.id == plan.programDays[0].id })
+    }
+
+    func testGeneratedPlanDetectionIsAccountAndPhaseScoped() throws {
+        var data = APEXDebugFixture.dashboard()
+        let profile = try XCTUnwrap(data.profile)
+        let generated = TrainingInduction.generate(
+            userID: profile.userID,
+            input: input(),
+            existingPrograms: data.programs
+        )
+        let mainProgram = try XCTUnwrap(generated.programs.first { $0.slug == "main" })
+        data.programs = generated.programs
+        data.programDays = generated.programDays.filter { $0.programID == mainProgram.id }
+        let mainDayIDs = Set(data.programDays.map(\.id))
+        data.exercises = generated.exercises.filter { mainDayIDs.contains($0.programDayID) }
+        data.settings?.addons["training_induction"] = .object(generated.induction)
+
+        XCTAssertFalse(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "main"))
+        XCTAssertTrue(TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "transition"))
+
+        data.settings = data.settings?.rebound(to: UUID())
+        XCTAssertTrue(
+            TrainingInduction.shouldOfferPlanBuilder(in: data, slug: "main"),
+            "another account's generated row must not hide this account's plan route"
+        )
     }
 
     func testARecentOperationStopsLoadedTraining() {
@@ -412,11 +1168,37 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(assessment.sessionsPerWeek, 3)
     }
 
+    func testJointPainCapsAFiveSessionRequestAtThree() throws {
+        let answers = input {
+            $0.painAreas = ["knee"]
+            $0.sessionsPerWeek = 5
+        }
+        let assessment = TrainingInduction.assess(answers)
+        XCTAssertEqual(assessment.caution, "cautious")
+        XCTAssertEqual(assessment.sessionsPerWeek, 3)
+
+        let plan = TrainingInduction.generate(userID: user, input: answers)
+        XCTAssertEqual(
+            plan.induction["pain_areas"]?.arrayValue?.compactMap(\.stringValue),
+            ["knee"]
+        )
+        XCTAssertEqual(plan.induction["sessions_per_week"]?.numberValue, 3)
+        for program in plan.programs {
+            XCTAssertEqual(plan.programDays.filter { $0.programID == program.id }.count, 3)
+        }
+    }
+
     func testAReadyBodyKeepsWhatItAskedFor() {
         let assessment = TrainingInduction.assess(input { $0.sessionsPerWeek = 4 })
         XCTAssertEqual(assessment.caution, "standard")
         XCTAssertEqual(assessment.sessionsPerWeek, 4)
         XCTAssertTrue(assessment.reasons.isEmpty)
+    }
+
+    func testVenueDisplayNamesKeepOutdoorsDistinctFromHome() {
+        XCTAssertEqual(TrainingInduction.venueDisplayName(for: "home"), "Home")
+        XCTAssertEqual(TrainingInduction.venueDisplayName(for: "gym"), "Gym")
+        XCTAssertEqual(TrainingInduction.venueDisplayName(for: "outdoors"), "Outdoors")
     }
 
     func testTheGeneratedPlanCoversBothPhases() {
@@ -457,6 +1239,359 @@ final class TrainingInductionTests: XCTestCase {
         let second = TrainingInduction.generate(userID: user, input: input())
         XCTAssertEqual(first.programDays.map(\.id), second.programDays.map(\.id))
         XCTAssertEqual(first.exercises.map(\.id), second.exercises.map(\.id))
+    }
+
+    func testNativeGenerationMatchesTheSharedWebRevisionFixture() throws {
+        let fixtureURL = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appendingPathComponent("tests/fixtures/training-induction-revision.json")
+        let fixture = try JSONDecoder().decode(
+            CrossClientRevisionFixture.self,
+            from: Data(contentsOf: fixtureURL)
+        )
+        var answers = TrainingInduction.Input(startDate: fixture.input.start_date)
+        answers.inactivity = fixture.input.inactivity
+        answers.venue = fixture.input.venue
+        answers.equipment = fixture.input.equipment
+        answers.painAreas = fixture.input.pain_areas
+        answers.recentOperation = fixture.input.recent_operation
+        answers.chronicLowerBackPain = fixture.input.chronic_lower_back_pain
+        answers.sessionsPerWeek = fixture.input.sessions_per_week
+        answers.goal = fixture.input.goal
+
+        let generated = TrainingInduction.generate(
+            userID: fixture.user_id,
+            input: answers,
+            generationRevision: fixture.generation_revision
+        )
+
+        XCTAssertEqual(generated.programDays.first?.id, fixture.expected.first_day_id)
+        XCTAssertEqual(generated.exercises.first?.id, fixture.expected.first_exercise_id)
+    }
+
+    func testGenerationNeverReusesAnotherAccountsProgram() throws {
+        let foreign = Program(
+            id: UUID(),
+            userID: UUID(),
+            slug: "transition",
+            name: "Someone else's plan",
+            description: "Foreign"
+        )
+
+        let plan = TrainingInduction.generate(
+            userID: user,
+            input: input(),
+            existingPrograms: [foreign]
+        )
+        let transition = try XCTUnwrap(plan.programs.first { $0.slug == "transition" })
+        XCTAssertEqual(transition.userID, user)
+        XCTAssertNotEqual(transition.id, foreign.id)
+    }
+
+    func testRebuildRefreshesGeneratorOwnedVenueButPreservesAuthoredMetadata() throws {
+        let home = TrainingInduction.generate(
+            userID: user,
+            input: input { $0.venue = "home" }
+        )
+        let outdoors = TrainingInduction.generate(
+            userID: user,
+            input: input { $0.venue = "outdoors" },
+            existingPrograms: home.programs,
+            generationRevision: 1
+        )
+        let outdoorTransition = try XCTUnwrap(outdoors.programs.first { $0.slug == "transition" })
+        XCTAssertEqual(outdoorTransition.id, home.programs.first { $0.slug == "transition" }?.id)
+        XCTAssertTrue(outdoorTransition.name.contains("Outdoor"))
+        XCTAssertFalse(outdoorTransition.name.contains("Home"))
+
+        let authored = Program(
+            id: UUID(),
+            userID: user,
+            slug: "transition",
+            name: "My own foundation",
+            description: "Keep this exact text"
+        )
+        let withAuthored = TrainingInduction.generate(
+            userID: user,
+            input: input { $0.venue = "outdoors" },
+            existingPrograms: [authored]
+        )
+        XCTAssertEqual(withAuthored.programs.first { $0.slug == "transition" }, authored)
+    }
+
+    func testRestoreRoundTripPreservesAuthoredProgramAndArchivesGeneratedRows() throws {
+        var installed = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(installed.profile?.userID)
+        let originalPrograms = installed.programs
+        let originalDayIDs = Set(installed.programDays.map(\.id))
+        let originalExerciseIDs = Set(installed.exercises.map(\.id))
+        let generated = TrainingInduction.generate(
+            userID: owner,
+            input: input(),
+            existingPrograms: installed.programs
+        )
+        for program in generated.programs {
+            let index = try XCTUnwrap(installed.programs.firstIndex { $0.id == program.id })
+            installed.programs[index] = program
+        }
+        installed.programDays.append(contentsOf: generated.programDays)
+        installed.exercises.append(contentsOf: generated.exercises)
+        installed.settings = installed.settings.map {
+            TrainingInduction.Submission.answered(input())
+                .applyingAccountMetadata(to: $0, plan: generated)
+        }
+
+        let restoration = try XCTUnwrap(
+            TrainingInduction.restoration(in: installed, userID: owner)
+        )
+        XCTAssertEqual(restoration.dashboard.programs, originalPrograms)
+        XCTAssertEqual(
+            Set(restoration.dashboard.programDays.map(\.id)),
+            originalDayIDs.union(generated.programDays.map(\.id))
+        )
+        XCTAssertEqual(
+            Set(restoration.dashboard.exercises.map(\.id)),
+            originalExerciseIDs.union(generated.exercises.map(\.id))
+        )
+        XCTAssertEqual(Set(restoration.archivedProgramDays.map(\.id)), Set(generated.programDays.map(\.id)))
+        XCTAssertEqual(Set(restoration.preservedExercises.map(\.id)), Set(generated.exercises.map(\.id)))
+        XCTAssertEqual(
+            restoration.dashboard.settings.map(TrainingInduction.archivedDayIDs),
+            Set(generated.programDays.map(\.id))
+        )
+        XCTAssertEqual(
+            Set(TrainingInduction.activeProgramDays(in: restoration.dashboard).map(\.id)),
+            originalDayIDs
+        )
+        XCTAssertNil(restoration.dashboard.settings?.addons["training_induction"])
+        XCTAssertEqual(restoration.dashboard.settings?.addons["newbie_mode"], .bool(false))
+    }
+
+    func testRestorePreservesCompletedGeneratedWorkoutHistoryAndItsReferences() throws {
+        let original = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(original.profile?.userID)
+        let answers = input()
+        let generated = TrainingInduction.generate(
+            userID: owner,
+            input: answers,
+            existingPrograms: original.programs
+        )
+        let settings = TrainingInduction.Submission.answered(answers)
+            .applyingAccountMetadata(to: try XCTUnwrap(original.settings), plan: generated)
+        var installed = TrainingInduction.applyingGeneratedPlan(
+            generated,
+            settings: settings,
+            to: original
+        )
+        let completedDay = try XCTUnwrap(generated.programDays.first)
+        let completedExercise = try XCTUnwrap(
+            generated.exercises.first { $0.programDayID == completedDay.id }
+        )
+        let session = WorkoutSession(
+            id: UUID(),
+            userID: owner,
+            date: "2026-08-22",
+            programDayID: completedDay.id,
+            isLite: false,
+            isDeload: false,
+            isEventRecovery: false,
+            completed: true,
+            qualityScore: 1,
+            startedAt: "2026-08-22T10:00:00Z",
+            completedAt: "2026-08-22T11:00:00Z",
+            notes: "Completed"
+        )
+        let log = WorkoutLog(
+            id: UUID(),
+            userID: owner,
+            sessionID: session.id,
+            exerciseID: completedExercise.id,
+            exerciseName: completedExercise.name,
+            setNumber: 1,
+            weightKG: 40,
+            reps: 8,
+            rir: 2,
+            skipped: false,
+            overrideFlag: false,
+            createdAt: "2026-08-22T11:00:00Z"
+        )
+        installed.workoutSessions.append(session)
+        installed.workoutLogs.append(log)
+
+        let restored = try XCTUnwrap(
+            TrainingInduction.restoration(in: installed, userID: owner)
+        ).dashboard
+
+        XCTAssertTrue(restored.programDays.contains { $0.id == completedDay.id })
+        XCTAssertTrue(restored.exercises.contains { $0.id == completedExercise.id })
+        XCTAssertTrue(restored.workoutSessions.contains(session))
+        XCTAssertTrue(restored.workoutLogs.contains(log))
+        XCTAssertTrue(
+            restored.settings.map(TrainingInduction.archivedDayIDs)?.contains(completedDay.id) == true
+        )
+    }
+
+    func testRebuildKeepsProgressionHistoryForTheSameOwnedMovement() throws {
+        var data = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(data.profile?.userID)
+        let answers = input()
+        let original = TrainingInduction.generate(
+            userID: owner,
+            input: answers,
+            existingPrograms: data.programs
+        )
+        let originalExercise = try XCTUnwrap(original.exercises.first { !$0.isLite })
+        let session = WorkoutSession(
+            id: UUID(), userID: owner, date: "2026-08-22",
+            programDayID: originalExercise.programDayID,
+            isLite: false, isDeload: false, isEventRecovery: false,
+            completed: true, qualityScore: 1, startedAt: nil,
+            completedAt: "2026-08-22T11:00:00Z", notes: "Completed"
+        )
+        data.workoutSessions = [session]
+        data.workoutLogs = [WorkoutLog(
+            id: UUID(), userID: owner, sessionID: session.id,
+            exerciseID: originalExercise.id, exerciseName: originalExercise.name,
+            setNumber: 1, weightKG: 40, reps: originalExercise.repMax, rir: 2,
+            skipped: false, overrideFlag: false, createdAt: "2026-08-22T11:00:00Z"
+        )]
+        let rebuilt = TrainingInduction.generate(
+            userID: owner,
+            input: answers,
+            existingPrograms: original.programs,
+            generationRevision: 1
+        )
+        let rebuiltExercise = try XCTUnwrap(
+            rebuilt.exercises.first {
+                !$0.isLite && $0.name == originalExercise.name
+            }
+        )
+
+        XCTAssertNotEqual(rebuiltExercise.id, originalExercise.id)
+        let recommendation = ProgressionEngine.recommend(data, exercise: rebuiltExercise)
+        XCTAssertEqual(recommendation.history.count, 1)
+        XCTAssertEqual(recommendation.weight, 40 + rebuiltExercise.incrementKG)
+    }
+
+    func testRestoreCanClearLegacyEmptyMarkerOrNewbieFlagWithoutGeneratedRows() throws {
+        var data = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(data.profile?.userID)
+        data.settings?.addons["training_induction"] = .object([:])
+        data.settings?.addons["newbie_mode"] = .bool(true)
+
+        let restoration = try XCTUnwrap(
+            TrainingInduction.restoration(in: data, userID: owner)
+        )
+        XCTAssertTrue(restoration.claimedProgramDayIDs.isEmpty)
+        XCTAssertNil(restoration.dashboard.settings?.addons["training_induction"])
+        XCTAssertEqual(restoration.dashboard.settings?.addons["newbie_mode"], .bool(false))
+
+        data.settings?.addons.removeValue(forKey: "training_induction")
+        XCTAssertNotNil(
+            TrainingInduction.restoration(in: data, userID: owner),
+            "the historical newbie toggle remains reversible even without marker metadata"
+        )
+    }
+
+    func testGeneratedOverlayListsOnlyItsClaimedDaysFromTheOwnedProgram() throws {
+        let original = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(original.profile?.userID)
+        let authoredProgram = try XCTUnwrap(
+            original.programs.first { $0.userID == owner && $0.slug == "transition" }
+        )
+        let authoredDayIDs = Set(
+            original.programDays.filter { $0.programID == authoredProgram.id }.map(\.id)
+        )
+        let generated = TrainingInduction.generate(
+            userID: owner,
+            input: input(),
+            existingPrograms: original.programs
+        )
+        let settings = TrainingInduction.Submission.answered(input())
+            .applyingAccountMetadata(to: try XCTUnwrap(original.settings), plan: generated)
+        var installed = TrainingInduction.applyingGeneratedPlan(
+            generated,
+            settings: settings,
+            to: original
+        )
+        let expectedIDs = Set(
+            generated.programDays.filter { $0.programID == authoredProgram.id }.map(\.id)
+        )
+
+        XCTAssertEqual(
+            Set(TrainingInduction.visibleProgramDays(in: installed, slug: "transition").map(\.id)),
+            expectedIDs
+        )
+        XCTAssertTrue(authoredDayIDs.isDisjoint(with: expectedIDs))
+
+        installed.programs.insert(
+            Program(
+                id: UUID(),
+                userID: UUID(),
+                slug: "transition",
+                name: "Foreign transition",
+                description: "Another account"
+            ),
+            at: 0
+        )
+        XCTAssertEqual(
+            TrainingInduction.ownedProgram(in: installed, slug: "transition")?.id,
+            authoredProgram.id,
+            "profileless and profiled dashboards must never select another account's same-slug programme"
+        )
+    }
+
+    func testFiveToThreeRebuildArchivesBothGenerationsAndRestoresOnlyAuthoredRows() throws {
+        let original = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(original.profile?.userID)
+        let originalDayIDs = Set(original.programDays.map(\.id))
+        let originalExerciseIDs = Set(original.exercises.map(\.id))
+
+        let fiveInput = input { $0.sessionsPerWeek = 5 }
+        let five = TrainingInduction.generate(
+            userID: owner,
+            input: fiveInput,
+            existingPrograms: original.programs
+        )
+        let fiveSettings = TrainingInduction.Submission.answered(fiveInput)
+            .applyingAccountMetadata(to: try XCTUnwrap(original.settings), plan: five)
+        let firstInstall = TrainingInduction.applyingGeneratedPlan(
+            five,
+            settings: fiveSettings,
+            to: original
+        )
+
+        var rebuilding = firstInstall
+        rebuilding.settings = rebuilding.settings.map { TrainingInduction.invalidatingPlanMetadata($0) }
+        let rebuildSettings = try XCTUnwrap(rebuilding.settings)
+        let threeInput = input { $0.sessionsPerWeek = 3 }
+        let three = TrainingInduction.generate(
+            userID: owner,
+            input: threeInput,
+            existingPrograms: rebuilding.programs,
+            generationRevision: TrainingInduction.generationRevision(rebuildSettings)
+        )
+        let threeSettings = TrainingInduction.Submission.answered(threeInput)
+            .applyingAccountMetadata(to: rebuildSettings, plan: three)
+        let secondInstall = TrainingInduction.applyingGeneratedPlan(
+            three,
+            settings: threeSettings,
+            to: rebuilding
+        )
+        let restored = try XCTUnwrap(
+            TrainingInduction.restoration(in: secondInstall, userID: owner)
+        ).dashboard
+
+        let generatedDayIDs = Set(five.programDays.map(\.id)).union(three.programDays.map(\.id))
+        let generatedExerciseIDs = Set(five.exercises.map(\.id)).union(three.exercises.map(\.id))
+        XCTAssertTrue(Set(five.programDays.map(\.id)).isDisjoint(with: Set(three.programDays.map(\.id))))
+        XCTAssertEqual(Set(restored.programDays.map(\.id)), originalDayIDs.union(generatedDayIDs))
+        XCTAssertEqual(Set(restored.exercises.map(\.id)), originalExerciseIDs.union(generatedExerciseIDs))
+        XCTAssertEqual(restored.settings.map(TrainingInduction.archivedDayIDs), generatedDayIDs)
+        XCTAssertEqual(Set(TrainingInduction.activeProgramDays(in: restored).map(\.id)), originalDayIDs)
     }
 
     func testCautionSlowsTheTempoAndSaysWhy() {

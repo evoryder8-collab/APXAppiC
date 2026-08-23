@@ -25,6 +25,7 @@ export interface SyncOp {
   /* single row, or a batch of rows for bulk imports */
   payload: Record<string, unknown> | Array<Record<string, unknown>>
   ts: number
+  sync_group?: string
 }
 
 export function loadCache(scope = 'local'): AppData | null {

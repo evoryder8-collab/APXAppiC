@@ -21,6 +21,8 @@ export interface PendingSyncOperation {
   table: string
   type: 'upsert' | 'delete'
   payload: Record<string, unknown> | Array<Record<string, unknown>>
+  /** Local-only transaction identity. It is never sent as a database field. */
+  sync_group?: string
 }
 
 export interface DurableSyncOperation extends PendingSyncOperation {
@@ -126,7 +128,10 @@ function singleRowKey(operation: PendingSyncOperation): string | null {
  * Adds a durable write without ever mutating the operation currently being
  * sent to Supabase. Updating an in-flight operation in place and then deleting
  * its id after the older request succeeds loses the newer edit. Only the most
- * recent, not-in-flight upsert for the same row is safe to coalesce.
+ * recent, not-in-flight upsert for the same row is safe to coalesce only when
+ * it is the queue tail. Writes to other tables between two versions are an
+ * ordering barrier (for example pending settings, generated rows, then the
+ * final settings marker) and must remain between them during offline replay.
  */
 export function enqueuePendingSyncOperation(
   queue: readonly DurableSyncOperation[],
@@ -144,8 +149,19 @@ export function enqueuePendingSyncOperation(
       }
     }
     const latest = latestMatchingIndex >= 0 ? next[latestMatchingIndex] : null
-    if (latest?.type === 'upsert' && latest.id !== options.inFlightId) {
-      next[latestMatchingIndex] = { ...latest, payload: operation.payload, ts: options.ts }
+    if (
+      latestMatchingIndex === next.length - 1 &&
+      latest?.type === 'upsert' &&
+      latest.id !== options.inFlightId &&
+      !latest.sync_group &&
+      !operation.sync_group
+    ) {
+      next[latestMatchingIndex] = {
+        ...latest,
+        ...operation,
+        sync_group: operation.sync_group,
+        ts: options.ts,
+      }
       return next
     }
   }
@@ -179,9 +195,71 @@ export function syncFailureBlockKeys(operation: PendingSyncOperation): string[] 
   return Array.isArray(operation.payload) ? [`${operation.table}:*`] : syncOperationKeys(operation)
 }
 
-export function syncOperationConflicts(operation: PendingSyncOperation, blockedKeys: ReadonlySet<string>): boolean {
+/** A grouped plan install is committed by a settings marker. If any earlier
+ * grouped write fails, ordinary optimistic settings writes must not leak that
+ * marker past the transaction boundary. Keep the barrier account-scoped when
+ * the failed rows identify their owner; fall back to the current scope. */
+export function syncGroupFailureBlockKeys(operation: PendingSyncOperation): string[] {
+  if (!operation.sync_group) return []
+  const userIDs = operationRows(operation)
+    .map((row) => row.user_id)
+    .filter((userID): userID is string => typeof userID === 'string')
+  return userIDs.length > 0
+    ? [...new Set(userIDs)].map((userID) => `settings:user:${userID}`)
+    : ['settings:*']
+}
+
+export function syncOperationConflicts(
+  operation: PendingSyncOperation,
+  blockedKeys: ReadonlySet<string>,
+  blockedGroups?: ReadonlySet<string>,
+): boolean {
+  if (operation.sync_group && blockedGroups?.has(operation.sync_group)) return true
   const wildcard = `${operation.table}:*`
   return blockedKeys.has(wildcard) || syncOperationKeys(operation).some((key) => blockedKeys.has(key))
+}
+
+function syncOperationsShareLogicalRecord(
+  left: PendingSyncOperation,
+  right: PendingSyncOperation,
+): boolean {
+  const leftKeys = syncOperationKeys(left)
+  const rightKeys = syncOperationKeys(right)
+  return leftKeys.some((leftKey) => rightKeys.some((rightKey) => {
+    const leftTable = leftKey.slice(0, leftKey.indexOf(':'))
+    const rightTable = rightKey.slice(0, rightKey.indexOf(':'))
+    if (leftTable !== rightTable) return false
+    return leftKey === rightKey || leftKey === `${leftTable}:*` || rightKey === `${rightTable}:*`
+  }))
+}
+
+export function nextPendingSyncOperation<T extends DurableSyncOperation>(
+  queue: readonly T[],
+  attemptedIds: ReadonlySet<string>,
+  blockedKeys: ReadonlySet<string>,
+  blockedGroups: ReadonlySet<string>,
+): T | undefined {
+  return queue.find((candidate, index) => {
+    if (attemptedIds.has(candidate.id) || syncOperationConflicts(candidate, blockedKeys, blockedGroups)) {
+      return false
+    }
+    /* A blocked transaction may have a later settings snapshot already in the
+     * optimistic queue. Never let that snapshot overtake an earlier write to
+     * the same account record, because it can expose the final plan marker
+     * before the plan rows exist remotely. Unrelated records can still flush. */
+    if (queue.slice(0, index).some((earlier) =>
+      !attemptedIds.has(earlier.id) && syncOperationsShareLogicalRecord(earlier, candidate))) {
+      return false
+    }
+    /* A group is an ordered transaction, not just a shared failure label. If
+     * its pending marker is blocked behind an older plan, its rows must wait
+     * too instead of appearing remotely as unmarked authored work. */
+    if (candidate.sync_group && queue.slice(0, index).some((earlier) =>
+      earlier.sync_group === candidate.sync_group && !attemptedIds.has(earlier.id))) {
+      return false
+    }
+    return true
+  })
 }
 
 /**

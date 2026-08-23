@@ -2,6 +2,26 @@ import Foundation
 import AuthenticationServices
 import Supabase
 
+struct ProfileCreationRequest: Encodable, Sendable {
+    let userID: UUID
+    let goal: String?
+    let trialStartedAt: String
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+        case goal
+        case trialStartedAt = "trial_started_at"
+    }
+}
+
+struct SettingsCreationRequest: Encodable, Sendable {
+    let userID: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case userID = "user_id"
+    }
+}
+
 actor SupabaseService {
     static let shared = SupabaseService()
 
@@ -95,38 +115,48 @@ actor SupabaseService {
         try await client.auth.signOut()
     }
 
-    func handleAuthCallback(_ url: URL) async throws {
+    func handleAuthCallback(_ url: URL) async throws -> UUID {
         guard let client else { throw APEXServiceError.configurationMissing }
-        _ = try await client.auth.session(from: url)
+        return try await client.auth.session(from: url).user.id
     }
 
     /// Create the profile row for a brand-new account, or return the one that
     /// is already there.
     ///
-    /// Only the goal is written. Every other column has a database default, and
-    /// inventing a height and a weight for someone who has not given them would
-    /// put made-up numbers behind every calorie target in the app.
-    func createProfileIfNeeded(userID: UUID, goal: String) async throws -> Profile {
+    /// Only an answered goal is written. Skipping omits it as well; height,
+    /// weight and every workout answer stay out of the request entirely.
+    func createProfileIfNeeded(userID: UUID, goal: String?) async throws -> Profile {
         guard let client else { throw APEXServiceError.configurationMissing }
         let existing: [Profile] = try await client.from("profile")
             .select().eq("user_id", value: userID).limit(1).execute().value
         if let profile = existing.first { return profile }
 
-        struct NewProfile: Encodable {
-            let user_id: UUID
-            let goal: String
-            let trial_started_at: String
-        }
         let inserted: [Profile] = try await client.from("profile")
-            .insert(NewProfile(
-                user_id: userID,
+            .insert(ProfileCreationRequest(
+                userID: userID,
                 goal: goal,
-                trial_started_at: ISO8601DateFormatter().string(from: .now)
+                trialStartedAt: ISO8601DateFormatter().string(from: .now)
             ))
             .select()
             .execute().value
         guard let profile = inserted.first else { throw APEXServiceError.configurationMissing }
         return profile
+    }
+
+    /// A skipped questionnaire still needs writable account settings so the
+    /// plan builder it leaves behind can install a programme later.
+    func createSettingsIfNeeded(userID: UUID) async throws -> UserSettings {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        let existing: [UserSettings] = try await client.from("settings")
+            .select().eq("user_id", value: userID).limit(1).execute().value
+        if let settings = existing.first { return settings }
+
+        let inserted: [UserSettings] = try await client.from("settings")
+            .insert(SettingsCreationRequest(userID: userID))
+            .select()
+            .execute().value
+        guard let settings = inserted.first else { throw APEXServiceError.configurationMissing }
+        return settings
     }
 
     /// Write the generated first twelve weeks.

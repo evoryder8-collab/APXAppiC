@@ -153,6 +153,7 @@ export function Player() {
   const lite = params.get('lite') === '1'
   const navigate = useNavigate()
   const { data, upsert, toast } = useStore()
+  const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const { language } = useLanguage()
   const voiceText = useCallback((value: string) => {
     const exercise = catalogExerciseByName(value)
@@ -427,7 +428,7 @@ export function Player() {
   const [showStats, setShowStats] = useState(false)
 
   useEffect(() => {
-    if (!finished || savedRef.current || !plan.programDay) return
+    if (!finished || savedRef.current || !plan.programDay || !ownerId) return
     savedRef.current = true
 
     const planned = plannedSetCount(plan)
@@ -445,7 +446,7 @@ export function Player() {
     // here and a set typed in there are stored identically.
     const { session, logs } = buildSessionRecords({
       sessionId,
-      userId: data.profile?.user_id ?? '',
+      userId: ownerId,
       date,
       programDayId: plan.programDay.id,
       isLite: lite,

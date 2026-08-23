@@ -1,7 +1,11 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildSeedData } from '../src/data/seed.ts'
-import { CURRENT_SEED_VERSION, repairSeedDefinitions } from '../src/lib/seedRepair.ts'
+import {
+  CURRENT_SEED_VERSION,
+  repairSeedDefinitions,
+  shouldRepairSeedDefinitions,
+} from '../src/lib/seedRepair.ts'
 
 const userId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
 
@@ -92,6 +96,55 @@ test('versioned repair completes a partial seed without replacing existing rows'
   )
   assert.equal(repair.missing.meals.length, seeded.meals.length - 1)
   assert.equal(repair.missing.supplements.length, seeded.supplements.length - 1)
+})
+
+test('a skipped settings-only account is never expanded into fabricated seed facts', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  const skipped = {
+    ...seeded,
+    profile: null,
+    settings: {
+      ...seeded.settings!,
+      addons: {
+        ...seeded.settings!.addons,
+        newbie_mode: false,
+        training_induction: null,
+        training_induction_skipped: true,
+      },
+    },
+    meals: [],
+    supplements: [],
+    programs: [],
+    program_days: [],
+    exercises: [],
+  }
+
+  assert.equal(shouldRepairSeedDefinitions(skipped), false)
+  const repair = repairSeedDefinitions(skipped, seeded)
+  assert.equal(repair.needsRepair, false)
+  assert.equal(repair.data.profile, null)
+  assert.deepEqual(repair.data.programs, [])
+  assert.deepEqual(repair.data.program_days, [])
+  assert.deepEqual(repair.data.exercises, [])
+})
+
+test('an interrupted ordinary seed with settings but no onboarding state is still repaired', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  const addons = { ...seeded.settings!.addons }
+  delete addons.training_induction_skipped
+  delete addons.training_induction
+  delete addons.training_induction_pending_day_ids
+  delete addons.training_induction_archived_day_ids
+  delete addons.training_induction_generation_revision
+  delete addons.newbie_mode
+  const interrupted = {
+    ...seeded,
+    profile: null,
+    settings: { ...seeded.settings!, addons },
+  }
+
+  assert.equal(shouldRepairSeedDefinitions(interrupted), true)
+  assert.equal(repairSeedDefinitions(interrupted, seeded).needsRepair, true)
 })
 
 test('V3 nutrition upgrade clears prescriptions and installs only the PDF supplement core', () => {

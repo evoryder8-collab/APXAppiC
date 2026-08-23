@@ -8,7 +8,7 @@ import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
-import { isTrainingInductionEligible } from '../lib/trainingInduction'
+import { isTrainingInductionEligible, restoreTrainingPlanAddons } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
 import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, detectedTimeZone, normalizeMealDaylineDensity, normalizeMealTimelineSnap, searchTimeZoneOptions, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 
@@ -62,6 +62,7 @@ export function Settings() {
   }
   const profile = data.profile
   const settings = data.settings
+  const restorableStarterAddons = restoreTrainingPlanAddons(data)
   const [birth, setBirth] = useState(profile?.birthdate ?? '1992-07-25')
   const [customBmrDraft, setCustomBmrDraft] = useState(profile?.custom_bmr == null ? '' : String(profile.custom_bmr))
   const resolvedTimeZone = timeZoneFromSettings(settings)
@@ -609,16 +610,20 @@ export function Settings() {
                        generated beginner block, which reads as "my protocol
                        vanished". Ask before that happens, never on the way out. */
                     if (value && !window.confirm(t('Starter mode replaces the plan shown in your calendars with a generated beginner block. Your existing programme is kept and returns when you switch this off. Continue?'))) return
-                    setSettings({ addons: { ...settings.addons, newbie_mode: value, ...(value ? {} : { training_induction: null }) } })
+                    if (value) {
+                      setSettings({ addons: { ...settings.addons, newbie_mode: true } })
+                    } else {
+                      setSettings({ addons: restorableStarterAddons ?? { ...settings.addons, newbie_mode: false } })
+                    }
                   }}
                 />
               </div>
-              {(settings.addons.newbie_mode || settings.addons.training_induction) && (
+              {restorableStarterAddons && (
                 <button
                   type="button"
                   onClick={() => {
                     if (!window.confirm(t('Restore your original programme and clear the generated starter plan?'))) return
-                    setSettings({ addons: { ...settings.addons, newbie_mode: false, training_induction: null } })
+                    setSettings({ addons: restorableStarterAddons })
                   }}
                   className="mt-4 w-full rounded-2xl border border-emerald-300/60 bg-emerald-50/70 px-4 py-3 text-sm font-bold text-emerald-800 transition-colors hover:bg-emerald-100/80"
                 >

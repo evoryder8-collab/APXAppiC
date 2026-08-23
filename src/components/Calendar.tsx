@@ -16,7 +16,7 @@ import {
 import type { Accent } from '../lib/theme'
 import type { AppData, DayType, ProgramSlug } from '../lib/types'
 import { approachRamp, eventContextFor } from '../lib/plan'
-import { activeInductionDayIds, isInsideInductionWindow } from '../lib/trainingInduction'
+import { activeInductionDayIds, activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import type { CampaignSession } from '../orbit/domain/types'
 import { useOrbitText } from '../orbit/ui/i18n'
 
@@ -53,6 +53,7 @@ function hexToRgba(hex: string, alpha: number): string {
 export function Calendar({ month, data, slug, accent, orbitSessions = [], onSelectDay, onLongPressDay }: CalendarProps) {
   const t = useOrbitText()
   const program = data.programs.find((p) => p.slug === slug)
+  const activeProgramDays = useMemo(() => activeTrainingProgramDays(data), [data])
 
   const cells = useMemo(() => {
     const first = startOfMonth(month)
@@ -65,11 +66,11 @@ export function Calendar({ month, data, slug, accent, orbitSessions = [], onSele
   const typeByWeekday = useMemo(() => {
     const map = new Map<number, DayType>()
     const activeIds = activeInductionDayIds(data.settings?.addons.training_induction, slug)
-    for (const d of data.program_days) {
+    for (const d of activeProgramDays) {
       if (d.program_id === program?.id && (!activeIds || activeIds.has(d.id))) map.set(d.weekday, d.day_type)
     }
     return map
-  }, [data.program_days, data.settings?.addons.training_induction, program, slug])
+  }, [activeProgramDays, data.settings?.addons.training_induction, program, slug])
 
   const completedByDate = useMemo(() => {
     const dayById = new Map(

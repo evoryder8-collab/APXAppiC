@@ -2,6 +2,18 @@ import Foundation
 import Observation
 import UIKit
 
+struct AccountGenerationGate: Sendable {
+    private(set) var token: UInt64 = 0
+
+    mutating func advance() {
+        token &+= 1
+    }
+
+    func accepts(_ candidate: UInt64) -> Bool {
+        candidate == token
+    }
+}
+
 @MainActor
 @Observable
 final class AppSession {
@@ -32,6 +44,23 @@ final class AppSession {
     private let defaults = UserDefaults.standard
     private var bootstrapped = false
     private var realtimeDebounceTask: Task<Void, Never>?
+    @ObservationIgnored private var accountGeneration = AccountGenerationGate()
+
+    @discardableResult
+    private func beginAccountBoundary() -> UInt64 {
+        accountGeneration.advance()
+        realtimeDebounceTask?.cancel()
+        realtimeDebounceTask = nil
+        isBusy = false
+        isRefreshing = false
+        return accountGeneration.token
+    }
+
+    @discardableResult
+    private func completeAccountBoundary() -> UInt64 {
+        accountGeneration.advance()
+        return accountGeneration.token
+    }
 
     var profile: Profile? { data.profile }
     var isAuthenticated: Bool { data.profile != nil }
@@ -54,7 +83,9 @@ final class AppSession {
 
     func bootstrap() async {
         guard !bootstrapped else { return }
+        let accountToken = accountGeneration.token
         bootstrapped = true
+        EntitlementStore.shared.resetAccount()
 
         #if DEBUG
         /* Jump straight to a first-run screen for visual checking. Debug only,
@@ -62,6 +93,9 @@ final class AppSession {
            does not leave a stray account behind. */
         if let index = ProcessInfo.processInfo.arguments.firstIndex(of: "-apex-preview"),
            index + 1 < ProcessInfo.processInfo.arguments.count {
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+                LanguageState.shared.language = .english
+            }
             switch ProcessInfo.processInfo.arguments[index + 1] {
             case "welcome": route = .welcome
             case "induction": route = .induction
@@ -85,6 +119,24 @@ final class AppSession {
             }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-incomplete-plan"),
+               var settings = data.settings {
+                func claimedIDs(_ slug: String) -> JSONValue {
+                    let programIDs = Set(data.programs.filter { $0.slug == slug }.map(\.id))
+                    return .array(
+                        data.programDays
+                            .filter { programIDs.contains($0.programID) }
+                            .prefix(1)
+                            .map { .string($0.id.uuidString.lowercased()) }
+                    )
+                }
+                settings.addons["training_induction"] = .object([
+                    "sessions_per_week": .number(3),
+                    "transition_day_ids": claimedIDs("transition"),
+                    "main_day_ids": claimedIDs("main"),
+                ])
+                data.settings = settings
+            }
             selectedPersona = .constantine
             route = .portal
             return
@@ -92,22 +144,31 @@ final class AppSession {
         #endif
 
         if let userID = await service.currentUserID() {
-            if let cached = try? await offlineStore.loadDashboard(for: userID),
-               cached.profile?.userID == userID {
+            guard accountGeneration.accepts(accountToken) else { return }
+            EntitlementStore.shared.prepareForAccount(userID)
+            let cached = try? await offlineStore.loadDashboard(for: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
+            if let cached, TrainingInduction.belongsToAccount(cached, userID: userID) {
                 data = cached
                 selectedPersona = cached.profile?.persona
-                route = .portal
+                route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                    ? .portal : .induction
             }
             do {
                 await flushPendingChanges(for: userID)
+                guard accountGeneration.accepts(accountToken) else { return }
                 try await refreshDashboard(expectedUserID: userID)
+                guard accountGeneration.accepts(accountToken) else { return }
                 selectedPersona = data.profile?.persona
-                route = .portal
+                route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                    ? .portal : .induction
                 await startRealtimeSync()
+                guard accountGeneration.accepts(accountToken) else { return }
                 await importHealthQuietly()
                 return
             } catch {
-                if data.profile?.userID == userID {
+                guard accountGeneration.accepts(accountToken) else { return }
+                if TrainingInduction.belongsToAccount(data, userID: userID) {
                     /* No alert: the sync indicator already shows this, and a modal on
                        every launch without signal trains people to dismiss modals. */
                     /* Health still imports. It comes off the phone, not the
@@ -121,6 +182,7 @@ final class AppSession {
 
         /* No session: the public front door, not the portrait wall. The four
            bespoke accounts reach their portraits from a link on it. */
+        guard accountGeneration.accepts(accountToken) else { return }
         route = .welcome
     }
 
@@ -135,11 +197,20 @@ final class AppSession {
     }
 
     func signIn(email: String, password: String) async {
+        var accountToken = beginAccountBoundary()
+        var boundaryCompleted = false
+        EntitlementStore.shared.resetAccount()
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
         do {
             let userID = try await service.signIn(email: email, password: password)
+            guard accountGeneration.accepts(accountToken) else { return }
+            accountToken = completeAccountBoundary()
+            boundaryCompleted = true
             try await refreshDashboard(expectedUserID: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
             /* The portrait entrance promises a particular person, so it still
                checks. The public email door promises nothing and skips it. */
             if let expected = selectedPersona {
@@ -148,6 +219,7 @@ final class AppSession {
                 }
                 guard actual == expected else {
                     try await service.signOut()
+                    guard accountGeneration.accepts(accountToken) else { return }
                     data = .empty
                     throw APEXServiceError.personaMismatch(expected: expected, actual: actual)
                 }
@@ -162,9 +234,15 @@ final class AppSession {
                     greetingPersona = persona
                 }
             }
-            route = data.profile == nil ? .induction : .portal
+            route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                ? .portal : .induction
             await startRealtimeSync()
         } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            if !boundaryCompleted {
+                accountToken = completeAccountBoundary()
+                boundaryCompleted = true
+            }
             alertMessage = error.localizedDescription
         }
     }
@@ -179,11 +257,21 @@ final class AppSession {
     /// all six questions and then discarded the answers at the end, because
     /// saving them needs an authenticated request.
     func signUp(email: String, password: String) async {
+        var accountToken = beginAccountBoundary()
+        var boundaryCompleted = false
+        EntitlementStore.shared.resetAccount()
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
         do {
-            switch try await service.signUp(email: email, password: password) {
-            case .signedIn:
+            let outcome = try await service.signUp(email: email, password: password)
+            guard accountGeneration.accepts(accountToken) else { return }
+            accountToken = completeAccountBoundary()
+            boundaryCompleted = true
+            switch outcome {
+            case .signedIn(let userID):
+                EntitlementStore.shared.prepareForAccount(userID)
                 selectedPersona = nil
                 data = .empty
                 route = .induction
@@ -191,54 +279,151 @@ final class AppSession {
                 awaitingConfirmationFor = email
             }
         } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            if !boundaryCompleted {
+                accountToken = completeAccountBoundary()
+                boundaryCompleted = true
+            }
             alertMessage = error.localizedDescription
         }
     }
 
     func signInWithApple(idToken: String, nonce: String) async {
+        var accountToken = beginAccountBoundary()
+        var boundaryCompleted = false
+        EntitlementStore.shared.resetAccount()
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
         do {
             let userID = try await service.signInWithApple(idToken: idToken, nonce: nonce)
+            guard accountGeneration.accepts(accountToken) else { return }
+            accountToken = completeAccountBoundary()
+            boundaryCompleted = true
             selectedPersona = nil
             try await refreshDashboard(expectedUserID: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
             /* A returning Apple account already has a profile and goes home. A
                first-time one has none, and answers the questionnaire instead. */
-            route = data.profile == nil ? .induction : .portal
+            route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                ? .portal : .induction
             await startRealtimeSync()
         } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            if !boundaryCompleted {
+                accountToken = completeAccountBoundary()
+                boundaryCompleted = true
+            }
             alertMessage = error.localizedDescription
         }
     }
 
-    /// Turn the questionnaire into a profile and a first twelve weeks.
+    /// Turn questionnaire answers into a profile and a first twelve weeks.
     func completeInduction(_ input: TrainingInduction.Input) async {
+        await submitInduction(.answered(input))
+    }
+
+    /// Continue without turning questionnaire defaults into claimed facts.
+    /// Only an account-scoped settings marker is stored; there is deliberately
+    /// no profile, generated programme or derived fitness snapshot.
+    func skipInduction() async {
+        await submitInduction(.skipped)
+    }
+
+    private func submitInduction(_ submission: TrainingInduction.Submission) async {
+        let accountToken = accountGeneration.token
+        guard !isBusy else { return }
         isBusy = true
-        defer { isBusy = false }
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+            submitInductionToFirstRunFixture(submission)
+            return
+        }
+        #endif
         guard let userID = await service.currentUserID() else {
+            guard accountGeneration.accepts(accountToken) else { return }
             alertMessage = "Sign in again to continue."
             route = .welcome
             return
         }
+        guard accountGeneration.accepts(accountToken) else { return }
         do {
-            /* The row is created with the column defaults and only the answers
-               that map onto it, rather than inventing a height and a weight
-               nobody gave. Those are asked for later, in the body profile. */
-            let profile = try await service.createProfileIfNeeded(
-                userID: userID,
-                goal: TrainingInduction.goalColumn(for: input.goal)
-            )
-            data.profile = profile
+            var settings = try await service.createSettingsIfNeeded(userID: userID).rebound(to: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
 
-            let plan = TrainingInduction.generate(userID: userID, input: input)
-            try await service.saveInductionPlan(plan)
-            try await refreshDashboard(expectedUserID: userID)
+            let plan = submission.generatedPlan(
+                userID: userID,
+                existingPrograms: data.programs,
+                generationRevision: TrainingInduction.generationRevision(settings)
+            )
+            if let plan {
+                settings = TrainingInduction.markingPendingPlan(settings, plan: plan)
+                try await service.upsert(settings, table: "settings", onConflict: "user_id")
+                guard accountGeneration.accepts(accountToken) else { return }
+                data.settings = settings
+                await saveLocalSnapshot()
+                guard accountGeneration.accepts(accountToken) else { return }
+                try await service.saveInductionPlan(plan)
+                guard accountGeneration.accepts(accountToken) else { return }
+            }
+            settings = submission.applyingAccountMetadata(
+                to: settings,
+                plan: plan,
+                existingData: data
+            )
+            try await service.upsert(settings, table: "settings", onConflict: "user_id")
+            guard accountGeneration.accepts(accountToken) else { return }
+            if let plan { applyInductionPlan(plan, settings: settings) }
+            else { data.settings = settings }
+            if submission.requiresProfile {
+                let profile = try await service.createProfileIfNeeded(
+                    userID: userID,
+                    goal: submission.profileGoal
+                )
+                guard accountGeneration.accepts(accountToken) else { return }
+                data.profile = profile
+            }
+            await saveLocalSnapshot()
+            guard accountGeneration.accepts(accountToken) else { return }
+            do { try await refreshDashboard(expectedUserID: userID) }
+            catch {
+                guard accountGeneration.accepts(accountToken) else { return }
+                lastSyncAt = .now
+            }
+            guard accountGeneration.accepts(accountToken) else { return }
             await resolveEntitlements()
+            guard accountGeneration.accepts(accountToken) else { return }
             route = .consent
         } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
             alertMessage = error.localizedDescription
         }
     }
+
+    #if DEBUG
+    /// Deterministic authenticated first-run account used only by UI tests.
+    /// It exercises the real submission and routing decisions without touching
+    /// production Supabase data or allowing a preview-only no-op to pass.
+    private func submitInductionToFirstRunFixture(_ submission: TrainingInduction.Submission) {
+        let userID = UUID(uuidString: "7d3e70bf-c420-4b66-90ae-5a103465f1c1")!
+        var settings = APEXDebugFixture.dashboard().settings!.rebound(to: userID)
+        settings.addons = [:]
+        let plan = submission.generatedPlan(userID: userID, existingPrograms: [])
+        settings = submission.applyingAccountMetadata(to: settings, plan: plan, existingData: data)
+
+        data.profile = nil
+        data.settings = settings
+        data.programs = plan?.programs ?? []
+        data.programDays = plan?.programDays ?? []
+        data.exercises = plan?.exercises ?? []
+        data.snapshots = []
+        route = .consent
+    }
+    #endif
 
     /// The last step of a first run: permissions have been offered, the trial
     /// is running, and the app opens for real.
@@ -249,35 +434,75 @@ final class AppSession {
     }
 
     func signOut() async {
+        var accountToken = beginAccountBoundary()
         isBusy = true
-        defer { isBusy = false }
-        do { try await service.signOut() }
-        catch { alertMessage = error.localizedDescription }
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
+        do {
+            try await service.signOut()
+            guard accountGeneration.accepts(accountToken) else { return }
+            accountToken = completeAccountBoundary()
+        }
+        catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            accountToken = completeAccountBoundary()
+            alertMessage = error.localizedDescription
+        }
+        guard accountGeneration.accepts(accountToken) else { return }
         data = .empty
         pendingSyncCount = 0
         navigationPath.removeAll()
         selectedPersona = nil
+        EntitlementStore.shared.resetAccount()
         route = .welcome
     }
 
     func refreshDashboard(expectedUserID: UUID? = nil) async throws {
+        let accountToken = accountGeneration.token
         isRefreshing = true
-        defer { isRefreshing = false }
+        defer {
+            if accountGeneration.accepts(accountToken) { isRefreshing = false }
+        }
         var next = try await service.loadDashboard()
-        if let expectedUserID, next.profile?.userID != expectedUserID {
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+        let currentUserID = await service.currentUserID()
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+        if let profileID = next.profile?.userID,
+           let settingsID = next.settings?.userID,
+           profileID != settingsID {
             throw APEXServiceError.configurationMissing
         }
-        if let authenticatedUserID = next.profile?.userID {
+        if let expectedUserID,
+           !TrainingInduction.isCompatibleDashboard(next, userID: expectedUserID) {
+            throw APEXServiceError.configurationMissing
+        }
+        if let currentUserID {
+            guard expectedUserID == nil || expectedUserID == currentUserID,
+                  TrainingInduction.isCompatibleDashboard(next, userID: currentUserID)
+            else { throw APEXServiceError.configurationMissing }
+        }
+        let authenticatedUserID = next.profile?.userID
+            ?? next.settings?.userID
+            ?? expectedUserID
+            ?? currentUserID
+        if let authenticatedUserID {
+            EntitlementStore.shared.prepareForAccount(authenticatedUserID)
             next.settings = next.settings?.rebound(to: authenticatedUserID)
         }
         data = next
         lastSyncAt = .now
-        if let userID = next.profile?.userID {
+        if let userID = authenticatedUserID {
             try? await offlineStore.saveDashboard(next, for: userID)
-            pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? 0
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+            let count = try? await offlineStore.pendingOperations(for: userID).count
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+            pendingSyncCount = count ?? 0
         }
         await considerWeeklyCalibration()
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         await resolveEntitlements()
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
     }
 
     /// Store a new profile picture.
@@ -313,12 +538,17 @@ final class AppSession {
     /// first open rather than at account creation, so an account made in
     /// advance does not expire sitting unopened.
     func resolveEntitlements() async {
+        let accountToken = accountGeneration.token
+        if let userID = data.profile?.userID ?? data.settings?.userID {
+            EntitlementStore.shared.prepareForAccount(userID)
+        }
         guard var profile else { return }
         if profile.foundingMember != true, profile.trialStartedAt == nil {
             profile.trialStartedAt = Date().ISO8601Format()
             profile.updatedAt = Date().ISO8601Format()
             data.profile = profile
             await persistUpsert(profile, table: "profile", onConflict: "user_id")
+            guard accountGeneration.accepts(accountToken) else { return }
         }
         EntitlementStore.shared.resolve(profile: profile)
     }
@@ -389,12 +619,37 @@ final class AppSession {
     }
 
     func handleAuthCallback(_ url: URL) async {
+        var accountToken = beginAccountBoundary()
+        var switchedAccounts = false
+        EntitlementStore.shared.resetAccount()
+        await service.stopRealtime()
+        guard accountGeneration.accepts(accountToken) else { return }
         do {
-            try await service.handleAuthCallback(url)
-            try await refreshDashboard()
+            let userID = try await service.handleAuthCallback(url)
+            guard accountGeneration.accepts(accountToken) else { return }
+            accountToken = completeAccountBoundary()
+            switchedAccounts = true
+            EntitlementStore.shared.prepareForAccount(userID)
+            data = .empty
+            pendingSyncCount = 0
+            navigationPath.removeAll()
+            selectedPersona = nil
+            route = .induction
+            try await refreshDashboard(expectedUserID: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
             selectedPersona = data.profile?.persona
-            route = .portal
+            route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
+                ? .portal : .induction
+            if route == .portal { await startRealtimeSync() }
         } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            if !switchedAccounts {
+                accountToken = completeAccountBoundary()
+                await resolveEntitlements()
+                guard accountGeneration.accepts(accountToken) else { return }
+                if route == .portal { await startRealtimeSync() }
+            }
+            guard accountGeneration.accepts(accountToken) else { return }
             alertMessage = error.localizedDescription
         }
     }
@@ -630,13 +885,18 @@ final class AppSession {
         data.supplements.filter { !$0.archived }.sorted { $0.sortOrder < $1.sortOrder }
     }
 
-    func updateDailyLog(_ row: DailyLog) async {
+    func updateDailyLog(_ row: DailyLog, ownerID: UUID? = nil) async {
         if let index = data.dailyLogs.firstIndex(where: { $0.id == row.id }) {
             data.dailyLogs[index] = row
         } else {
             data.dailyLogs.append(row)
         }
-        await persistUpsert(row, table: "daily_logs", onConflict: "user_id,date")
+        await persistUpsert(
+            row,
+            table: "daily_logs",
+            onConflict: "user_id,date",
+            ownerID: ownerID
+        )
     }
 
     /// Water naturally present in foods logged for the selected day. This is
@@ -704,23 +964,23 @@ final class AppSession {
      */
     @discardableResult
     func adjustWater(deltaLiters: Double, on date: Date) async -> Double {
-        guard let profile else { return 0 }
+        guard let ownerID = verifiedPersistenceOwnerID() else { return 0 }
         let key = date.apexDateKey
-        let existing = data.dailyLogs.first { $0.date == key }
+        let existing = data.dailyLogs.first { $0.userID == ownerID && $0.date == key }
         let current = existing?.waterL ?? 0
         let next = min(6, max(0, ((current + deltaLiters) * 100).rounded() / 100))
         guard next != current else { return current }
 
         var row = existing ?? DailyLog(
-            id: APEXStableID.scopedUUID(namespace: "daily-log", date: key, userID: profile.userID),
-            userID: profile.userID, date: key,
+            id: APEXStableID.scopedUUID(namespace: "daily-log", date: key, userID: ownerID),
+            userID: ownerID, date: key,
             kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
             estimatedTDEE: nil, computedPAL: nil,
             activityMode: data.activityLogs.contains { $0.date == key } ? "precise" : "quick",
             weightKG: nil
         )
         row.waterL = next
-        await updateDailyLog(row)
+        await updateDailyLog(row, ownerID: ownerID)
 
         let applied = next - current
         if applied > 0 {
@@ -1633,14 +1893,14 @@ final class AppSession {
         lite: Bool,
         startedAt: Date
     ) async -> UUID? {
-        guard let profile else { return nil }
+        guard let ownerID = TrainingInduction.workoutOwnerID(in: data, day: day) else { return nil }
         let now = Date().ISO8601Format()
         let isDeload = TrainingAdjustmentEngine.isDeload(
             on: Date().apexDateKey,
             marks: data.deloadMarks ?? []
         )
         let workout = WorkoutSession(
-            id: UUID(), userID: profile.userID, date: Date().apexDateKey,
+            id: UUID(), userID: ownerID, date: Date().apexDateKey,
             programDayID: day.id, isLite: lite, isDeload: isDeload,
             isEventRecovery: false, completed: true, qualityScore: 1,
             startedAt: startedAt.ISO8601Format(), completedAt: now, notes: "Completed in APEX iOS"
@@ -1648,7 +1908,7 @@ final class AppSession {
         let logs = setInputs.map { rawInput in
             let input = rawInput.normalizedForPersistence()
             return WorkoutLog(
-                id: UUID(), userID: profile.userID, sessionID: workout.id,
+                id: UUID(), userID: ownerID, sessionID: workout.id,
                 exerciseID: input.exerciseID, exerciseName: input.exerciseName,
                 setNumber: input.setNumber, weightKG: input.weightKG,
                 reps: input.reps, rir: input.rir, skipped: input.skipped,
@@ -1659,11 +1919,12 @@ final class AppSession {
         data.workoutLogs.append(contentsOf: logs)
 
         var linkedActivity: ActivityLog?
-        if let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
+        if let profile, profile.userID == ownerID,
+           let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
             let activity = ActivityLog(
                 id: UUID(),
-                userID: profile.userID,
+                userID: ownerID,
                 date: Date().apexDateKey,
                 typeID: activityType.id,
                 quantity: 1,
@@ -1692,26 +1953,28 @@ final class AppSession {
            first, then let the normal offline-aware sync path drain in the
            background. */
         await saveLocalSnapshot()
-        let ownerID = profile.userID
         Task { @MainActor [weak self] in
-            guard let self, self.profile?.userID == ownerID else { return }
+            guard let self, TrainingInduction.belongsToAccount(self.data, userID: ownerID) else { return }
             await self.persistUpsert(
                 workout,
                 table: "workout_sessions",
+                ownerID: ownerID,
                 surfacePermanentFailure: false
             )
             for log in logs {
-                guard self.profile?.userID == ownerID else { return }
+                guard TrainingInduction.belongsToAccount(self.data, userID: ownerID) else { return }
                 await self.persistUpsert(
                     log,
                     table: "workout_logs",
+                    ownerID: ownerID,
                     surfacePermanentFailure: false
                 )
             }
-            if let linkedActivity, self.profile?.userID == ownerID {
+            if let linkedActivity, TrainingInduction.belongsToAccount(self.data, userID: ownerID) {
                 await self.persistUpsert(
                     linkedActivity,
                     table: "activity_logs",
+                    ownerID: ownerID,
                     surfacePermanentFailure: false
                 )
             }
@@ -1720,16 +1983,23 @@ final class AppSession {
     }
 
     func toggleDeload(on date: Date = .now) async {
-        guard let profile else { return }
+        guard let ownerID = verifiedPersistenceOwnerID() else { return }
         let day = date.apexDateKey
-        if let existing = (data.deloadMarks ?? []).first(where: { $0.date == day }) {
+        if let existing = (data.deloadMarks ?? []).first(where: {
+            $0.userID == ownerID && $0.date == day
+        }) {
             data.deloadMarks?.removeAll { $0.id == existing.id }
-            await persistDelete(table: "deload_marks", id: existing.id)
+            await persistDelete(table: "deload_marks", id: existing.id, ownerID: ownerID)
         } else {
-            let mark = DeloadMark(id: UUID(), userID: profile.userID, date: day)
+            let mark = DeloadMark(id: UUID(), userID: ownerID, date: day)
             if data.deloadMarks == nil { data.deloadMarks = [] }
             data.deloadMarks?.append(mark)
-            await persistUpsert(mark, table: "deload_marks", onConflict: "user_id,date")
+            await persistUpsert(
+                mark,
+                table: "deload_marks",
+                onConflict: "user_id,date",
+                ownerID: ownerID
+            )
         }
     }
 
@@ -1930,7 +2200,7 @@ final class AppSession {
         await saveOrbitInduction(induction)
         let generated = OrbitCampaignEngine.createCampaign(
             induction: induction,
-            programDays: data.programDays,
+            programDays: TrainingInduction.activeProgramDays(in: data),
             events: data.events
         )
         data.orbitCampaigns.removeAll { $0.id == generated.campaign.id }
@@ -2427,55 +2697,127 @@ final class AppSession {
      * programme is not deleted and returns from Settings, but from the outside
      * it simply vanishes, which is indistinguishable from data loss. The caller
      * is responsible for confirming before this runs.
-     */
+    */
     func installInductionPlan(_ input: TrainingInduction.Input) async {
-        guard let profile, var settings = data.settings else { return }
-        settings = settings.rebound(to: profile.userID)
-        let plan = TrainingInduction.generate(
-            userID: profile.userID,
-            input: input,
-            existingPrograms: data.programs
-        )
+        let accountToken = accountGeneration.token
+        guard !isBusy else { return }
+        isBusy = true
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run"),
+           var settings = data.settings {
+            if TrainingInduction.hasRestorableOverlay(in: data) {
+                settings = TrainingInduction.invalidatingPlanMetadata(
+                    settings,
+                    additionalDayIDs: TrainingInduction.legacyGeneratedDayIDs(
+                        in: data,
+                        userID: settings.userID
+                    )
+                )
+                data.settings = settings
+            }
+            let plan = TrainingInduction.generate(
+                userID: settings.userID,
+                input: input,
+                existingPrograms: data.programs,
+                generationRevision: TrainingInduction.generationRevision(settings)
+            )
+            settings = TrainingInduction.markingPendingPlan(settings, plan: plan)
+            settings = TrainingInduction.Submission.answered(input)
+                .applyingAccountMetadata(to: settings, plan: plan)
+            applyInductionPlan(plan, settings: settings)
+            return
+        }
+        #endif
 
-        for program in plan.programs {
-            if let index = data.programs.firstIndex(where: { $0.id == program.id }) {
-                data.programs[index] = program
-            } else {
-                data.programs.append(program)
-            }
+        guard let userID = await service.currentUserID() else {
+            guard accountGeneration.accepts(accountToken) else { return }
+            alertMessage = "Sign in again to build your plan."
+            return
         }
-        for day in plan.programDays {
-            if let index = data.programDays.firstIndex(where: { $0.id == day.id }) {
-                data.programDays[index] = day
-            } else {
-                data.programDays.append(day)
-            }
-        }
-        for exercise in plan.exercises {
-            if let index = data.exercises.firstIndex(where: { $0.id == exercise.id }) {
-                data.exercises[index] = exercise
-            } else {
-                data.exercises.append(exercise)
-            }
-        }
-        settings.addons["newbie_mode"] = .bool(true)
-        settings.addons["training_induction"] = .object(plan.induction)
-        data.settings = settings
+        guard accountGeneration.accepts(accountToken) else { return }
+        do {
+            var settings = try await service.createSettingsIfNeeded(userID: userID)
+                .rebound(to: userID)
+            guard accountGeneration.accepts(accountToken) else { return }
 
-        for program in plan.programs { await persistUpsert(program, table: "programs") }
-        for day in plan.programDays { await persistUpsert(day, table: "program_days") }
-        for exercise in plan.exercises { await persistUpsert(exercise, table: "exercises") }
-        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+            /* Archive the current overlay before saving its replacement. The
+               revision is persisted first, so a failed retry reuses the same
+               new IDs without overwriting rows referenced by workout history. */
+            var current = data
+            current.settings = settings
+            if TrainingInduction.hasRestorableOverlay(in: current) {
+                settings = TrainingInduction.invalidatingPlanMetadata(
+                    settings,
+                    additionalDayIDs: TrainingInduction.legacyGeneratedDayIDs(
+                        in: current,
+                        userID: userID
+                    )
+                )
+                try await service.upsert(settings, table: "settings", onConflict: "user_id")
+                guard accountGeneration.accepts(accountToken) else { return }
+                data.settings = settings
+                await saveLocalSnapshot()
+                guard accountGeneration.accepts(accountToken) else { return }
+            }
+            let plan = TrainingInduction.generate(
+                userID: userID,
+                input: input,
+                existingPrograms: data.programs,
+                generationRevision: TrainingInduction.generationRevision(settings)
+            )
+            settings = TrainingInduction.markingPendingPlan(settings, plan: plan)
+            try await service.upsert(settings, table: "settings", onConflict: "user_id")
+            guard accountGeneration.accepts(accountToken) else { return }
+            data.settings = settings
+            await saveLocalSnapshot()
+            guard accountGeneration.accepts(accountToken) else { return }
+            try await service.saveInductionPlan(plan)
+            guard accountGeneration.accepts(accountToken) else { return }
+            settings = TrainingInduction.Submission.answered(input)
+                .applyingAccountMetadata(to: settings, plan: plan)
+            try await service.upsert(settings, table: "settings", onConflict: "user_id")
+            guard accountGeneration.accepts(accountToken) else { return }
+            applyInductionPlan(plan, settings: settings)
+            await saveLocalSnapshot()
+            guard accountGeneration.accepts(accountToken) else { return }
+        } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            alertMessage = error.localizedDescription
+        }
     }
 
-    /// Puts the original programme back by clearing the generated overlay.
+    private func applyInductionPlan(
+        _ plan: TrainingInduction.GeneratedPlan,
+        settings: UserSettings
+    ) {
+        data = TrainingInduction.applyingGeneratedPlan(plan, settings: settings, to: data)
+    }
+
+    /// Puts the original programme back and removes only generated overlay rows.
     func restoreOriginalProgramme() async {
-        guard let profile, var settings = data.settings else { return }
-        settings = settings.rebound(to: profile.userID)
-        settings.addons["newbie_mode"] = .bool(false)
-        settings.addons.removeValue(forKey: "training_induction")
-        data.settings = settings
-        await persistUpsert(settings, table: "settings", onConflict: "user_id")
+        let accountToken = accountGeneration.token
+        guard !isBusy else { return }
+        isBusy = true
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
+        guard let userID = profile?.userID ?? data.settings?.userID,
+              let restoration = TrainingInduction.restoration(in: data, userID: userID),
+              let restoredSettings = restoration.dashboard.settings else { return }
+        do {
+            try await service.upsert(restoredSettings, table: "settings", onConflict: "user_id")
+            guard accountGeneration.accepts(accountToken) else { return }
+            data = restoration.dashboard
+            data.settings = restoredSettings
+            await saveLocalSnapshot()
+            guard accountGeneration.accepts(accountToken) else { return }
+        } catch {
+            guard accountGeneration.accepts(accountToken) else { return }
+            alertMessage = error.localizedDescription
+        }
     }
 
     /// Store a rewritten predefined list, keyed so an edit to one meal on one
@@ -2495,18 +2837,28 @@ final class AppSession {
         await persistUpsert(settings, table: "settings", onConflict: "user_id")
     }
 
+    private func verifiedPersistenceOwnerID(_ expectedOwnerID: UUID? = nil) -> UUID? {
+        guard let ownerID = expectedOwnerID ?? data.profile?.userID ?? data.settings?.userID,
+              TrainingInduction.belongsToAccount(data, userID: ownerID) else {
+            return nil
+        }
+        return ownerID
+    }
+
     private func persistUpsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,
         onConflict: String? = nil,
+        ownerID: UUID? = nil,
         surfacePermanentFailure: Bool = true
     ) async {
+        let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         await saveLocalSnapshot()
         do {
             try await service.upsert(value, table: table, onConflict: onConflict)
             lastSyncAt = .now
         } catch {
-            guard let userID = profile?.userID else { return }
+            guard let userID = persistenceOwnerID else { return }
             do {
                 let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
                 switch SyncFailurePolicy.classify(error) {
@@ -2534,13 +2886,14 @@ final class AppSession {
         }
     }
 
-    private func persistDelete(table: String, id: UUID) async {
+    private func persistDelete(table: String, id: UUID, ownerID: UUID? = nil) async {
+        let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         await saveLocalSnapshot()
         do {
             try await service.delete(table: table, id: id)
             lastSyncAt = .now
         } catch {
-            guard let userID = profile?.userID else { return }
+            guard let userID = persistenceOwnerID else { return }
             do {
                 let operation = OfflineOperation.delete(table: table, id: id)
                 switch SyncFailurePolicy.classify(error) {
@@ -2565,7 +2918,7 @@ final class AppSession {
     }
 
     private func saveLocalSnapshot() async {
-        guard let userID = profile?.userID else { return }
+        guard let userID = verifiedPersistenceOwnerID() else { return }
         try? await offlineStore.saveDashboard(data, for: userID)
     }
 

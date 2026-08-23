@@ -37,13 +37,14 @@ import {
   type Tempo,
 } from './liftingTempo.ts'
 
-/* The questionnaire offers three goals; the generator understands five. Mapping
- * rather than widening the shared union means adding an intent here can never
- * change what the existing web questionnaire renders. */
+/* Keep the account-facing answer vocabulary separate from generator intent.
+ * Fat loss uses conservative rebuild timing; endurance has its own prescription. */
 export const GOAL_INTENT: Record<TrainingGoal, TrainingIntent> = {
   rebuild: 'rebuild',
   muscle: 'hypertrophy',
+  fat_loss: 'rebuild',
   strength: 'strength',
+  endurance: 'endurance',
 }
 
 /* Which movement restrictions each reported body area rules out. The intake
@@ -62,8 +63,7 @@ export type Experience = 'novice' | 'intermediate' | 'advanced'
 
 export interface GeneratorIntake {
   goal: TrainingGoal
-  /* Overrides the goal mapping when the user wants work capacity or power,
-   * which the three-option questionnaire cannot express. */
+  /* Overrides the goal mapping for generator-only intent such as power. */
   intent?: TrainingIntent
   sessionsPerWeek: 2 | 3 | 4
   minutesPerSession: number

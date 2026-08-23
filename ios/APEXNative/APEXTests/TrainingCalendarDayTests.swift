@@ -125,6 +125,29 @@ final class TrainingCalendarDayTests: XCTestCase {
         XCTAssertTrue(completedDeload.isDeload)
     }
 
+    func testArchivedGeneratedDayStillResolvesCompletedHistory() {
+        var data = baseData(day: monday(name: "Archived foundation"))
+        data.settings = UserSettings(
+            userID: owner,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: false,
+            guardianFactor: 1.4,
+            addons: [
+                TrainingInduction.archivedMarkerKey: .array([
+                    .string(mondayID.uuidString.lowercased())
+                ])
+            ]
+        )
+        data.workoutSessions = [session(completed: true)]
+
+        let result = resolve(data)
+
+        XCTAssertEqual(result.state, .completed)
+        XCTAssertEqual(result.title, "Archived foundation")
+        XCTAssertEqual(result.programDayID, mondayID)
+    }
+
     func testRecordedSessionKeepsItsAuthoredDayWhenCompletedOffSchedule() {
         let actualDayID = UUID(uuidString: "00000000-0000-0000-0000-000000000402")!
         let actualDay = ProgramDay(

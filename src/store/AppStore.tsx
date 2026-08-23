@@ -45,18 +45,20 @@ import {
   enqueuePendingSyncOperation,
   hasPendingSyncForRecord,
   mergePendingSyncOperations,
+  nextPendingSyncOperation,
   normalizeDailyLogIntegers,
   normalizeSyncPayload,
   normalizeSyncRecord,
   replayPendingList,
   replayPendingSingleton,
+  syncGroupFailureBlockKeys,
   syncFailureBlockKeys,
-  syncOperationConflicts,
   upsertConflictTarget,
 } from '../lib/sync'
 import {
   CURRENT_SEED_VERSION,
   repairSeedDefinitions,
+  shouldRepairSeedDefinitions,
   type SeedDefinitionTable,
 } from '../lib/seedRepair'
 import { normalizeMealBlockSettings } from '../lib/mealBlocks'
@@ -111,12 +113,16 @@ interface StoreValue {
   signIn: (email: string, password: string) => Promise<{ error: string | null; persona: PersonaSlug | null }>
   signOut: () => Promise<void>
   upsert: <T extends { id: string }>(table: ListTable, row: T) => void
-  bulkUpsert: <T extends { id: string }>(table: ListTable, rows: T[]) => void
+  bulkUpsert: <T extends { id: string }>(table: ListTable, rows: T[], options?: SyncWriteOptions) => void
   remove: (table: ListTable, id: string) => void
   setProfile: (patch: Partial<AppData['profile']> & object) => void
-  setSettings: (patch: Partial<Settings>) => void
+  setSettings: (patch: Partial<Settings>, options?: SyncWriteOptions) => void
   toast: (message: string, kind?: 'error' | 'ok') => void
   toasts: Array<{ id: number; message: string; kind: 'error' | 'ok' }>
+}
+
+interface SyncWriteOptions {
+  syncGroup?: string
 }
 
 const Ctx = createContext<StoreValue | null>(null)
@@ -337,11 +343,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       let queue = loadQueue(scope)
       const attemptedIds = new Set<string>()
       const blockedKeys = new Set<string>()
+      const blockedGroups = new Set<string>()
       while (queue.length > 0) {
         if (scopeRef.current !== scope) break
-        const op = queue.find((candidate) =>
-          !attemptedIds.has(candidate.id) && !syncOperationConflicts(candidate, blockedKeys),
-        )
+        const op = nextPendingSyncOperation(queue, attemptedIds, blockedKeys, blockedGroups)
         if (!op) break
         attemptedIds.add(op.id)
         const conflictTarget = upsertConflictTarget(op.table)
@@ -372,6 +377,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }
         if (scopeRef.current !== scope) break
         if (error) {
+          if (op.sync_group) {
+            blockedGroups.add(op.sync_group)
+            syncGroupFailureBlockKeys(op).forEach((key) => blockedKeys.add(key))
+          }
           /* A PostgREST schema refresh can lag just after a migration. Keep the
              write queued instead of dropping user data as a validation error. */
           if (isSchemaCacheError(error)) {
@@ -410,7 +419,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [toast])
 
   const enqueue = useCallback(
-    (op: { table: string; type: 'upsert' | 'delete'; payload: object }) => {
+    (op: { table: string; type: 'upsert' | 'delete'; payload: object; sync_group?: string }) => {
       if (!supabase) return
       const queue = loadQueue(scopeRef.current)
       const rawPayload = op.payload as Record<string, unknown> | Array<Record<string, unknown>>
@@ -448,7 +457,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   /* bulk merge for imports: one state update, chunked sync ops */
   const bulkUpsert = useCallback(
-    <T extends { id: string }>(table: ListTable, rows: T[]) => {
+    <T extends { id: string }>(table: ListTable, rows: T[], options?: SyncWriteOptions) => {
       if (rows.length === 0) return
       const normalizedRows = dedupeUpsertRows(
         table,
@@ -467,6 +476,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           table,
           type: 'upsert',
           payload: normalizedRows.slice(i, i + 400) as unknown as Array<Record<string, unknown>>,
+          sync_group: options?.syncGroup,
         })
       }
     },
@@ -497,7 +507,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   )
 
   const setSettings = useCallback(
-    (patch: Partial<Settings>) => {
+    (patch: Partial<Settings>, options?: SyncWriteOptions) => {
       const cur = dataRef.current
       if (!cur.settings) return
       mutationRevision.current += 1
@@ -507,7 +517,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ? { ...cur.profile, custom_bmr: patch.addons?.custom_bmr ?? null, updated_at: new Date().toISOString() }
         : cur.profile
       persist({ ...cur, settings, profile })
-      enqueue({ table: 'settings', type: 'upsert', payload: settings })
+      enqueue({ table: 'settings', type: 'upsert', payload: settings, sync_group: options?.syncGroup })
     },
     [persist, enqueue],
   )
@@ -524,7 +534,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       /* One-time migration from the original single-account cache. Only the
          legacy Constantine account may inherit it; friend accounts always
          start with isolated storage. */
-      if (!cached && personaFromUserMetadata(nextSession.user.user_metadata) === 'constantine') {
+      if (!cached && nextSession.user.user_metadata?.persona === 'constantine') {
         const legacyCache = loadCache('local')
         const legacyQueue = loadQueue('local')
         if (legacyCache) {
@@ -649,7 +659,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       })
       next.daily_logs = next.daily_logs.map(normalizeDailyLog)
 
-      const needsSeedRepair = !next.profile || Number(next.profile.seed_version ?? 0) < CURRENT_SEED_VERSION
+      const needsSeedRepair = shouldRepairSeedDefinitions(next)
       if (needsSeedRepair) {
         const { buildSeedData } = await import('../data/seed')
         if (
