@@ -86,7 +86,7 @@ struct TrainingCalendarDay: Equatable, Identifiable, Sendable {
             return empty(date: date)
         }
 
-        let userID = explicitUserID ?? data.profile?.userID
+        let userID = explicitUserID ?? data.profile?.userID ?? data.settings?.userID
         func belongsToUser(_ candidate: UUID) -> Bool {
             userID.map { $0 == candidate } ?? true
         }
@@ -97,10 +97,13 @@ struct TrainingCalendarDay: Equatable, Identifiable, Sendable {
         let programByID = Dictionary(uniqueKeysWithValues: programs.map { ($0.id, $0) })
         let program = programs.first { $0.slug == slug }
 
-        let allDays = data.programDays.filter { day in
+        let historicalDays = data.programDays.filter { day in
             belongsToUser(day.userID) && programByID[day.programID] != nil
         }
-        let dayByID = Dictionary(uniqueKeysWithValues: allDays.map { ($0.id, $0) })
+        let dayByID = Dictionary(uniqueKeysWithValues: historicalDays.map { ($0.id, $0) })
+        let activeDays = TrainingInduction.activeProgramDays(in: data, userID: userID).filter { day in
+            belongsToUser(day.userID) && programByID[day.programID] != nil
+        }
 
         let settingsBelongToUser = data.settings.map { belongsToUser($0.userID) } ?? true
         let activeIDs = settingsBelongToUser
@@ -111,7 +114,7 @@ struct TrainingCalendarDay: Equatable, Identifiable, Sendable {
             ? TrainingPlanEngine.isInsideInductionWindow(data, slug: slug, date: date)
             : true
 
-        let programmeDays = allDays.filter { $0.programID == program?.id }
+        let programmeDays = activeDays.filter { $0.programID == program?.id }
         let activeProgrammeDays = programmeDays.filter { day in
             activeIDs.map { $0.contains(day.id.uuidString.lowercased()) } ?? true
         }

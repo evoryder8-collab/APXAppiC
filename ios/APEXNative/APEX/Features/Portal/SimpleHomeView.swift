@@ -65,18 +65,20 @@ struct SimpleHomeView: View {
         }
     }
 
-    private var transitionProgram: Program? { session.data.programs.first { $0.slug == "transition" } }
     private var todayWeekday: Int {
         let weekday = Calendar.current.component(.weekday, from: selectedDate)
         return weekday == 1 ? 7 : weekday - 1
     }
+    private var hasUsableTrainingPlan: Bool {
+        TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition")
+    }
     private var todayProgramDay: ProgramDay? {
-        guard let transitionProgram else { return nil }
-        return session.data.programDays.first {
-            $0.programID == transitionProgram.id && $0.weekday == todayWeekday
-        }
+        guard hasUsableTrainingPlan else { return nil }
+        return TrainingInduction.visibleProgramDays(in: session.data, slug: "transition")
+            .first { $0.weekday == todayWeekday }
     }
     private var workoutDone: Bool {
+        guard hasUsableTrainingPlan else { return false }
         guard let todayProgramDay else { return true }
         return session.data.workoutSessions.contains {
             $0.date == today && $0.programDayID == todayProgramDay.id && $0.completed
@@ -294,6 +296,7 @@ struct SimpleHomeView: View {
             case .training:
                 TrainingQuickSheet(
                     day: todayProgramDay,
+                    hasUsablePrescription: hasUsableTrainingPlan,
                     isDeload: todayIsDeload,
                     completed: workoutDone,
                     onClose: { quickPanel = nil }
@@ -371,7 +374,13 @@ struct SimpleHomeView: View {
             )
             SimpleMetric(
                 icon: "figure.strengthtraining.traditional",
-                value: todayProgramDay == nil ? language.text("Rest") : workoutDone ? language.text("Done") : todayProgramDay.map { "\($0.estimatedMinutes)m" } ?? language.text("Rest"),
+                value: !hasUsableTrainingPlan
+                    ? language.text("No plan")
+                    : todayProgramDay == nil
+                        ? language.text("Rest")
+                        : workoutDone
+                            ? language.text("Done")
+                            : todayProgramDay.map { "\($0.estimatedMinutes)m" } ?? language.text("Rest"),
                 label: "Training",
                 done: workoutDone,
                 color: APEXColor.teal,
@@ -1373,6 +1382,7 @@ private struct TrainingQuickSheet: View {
     @State private var language = LanguageState.shared
     @State private var lite = false
     let day: ProgramDay?
+    let hasUsablePrescription: Bool
     let isDeload: Bool
     let completed: Bool
     var onClose: () -> Void = {}
@@ -1581,7 +1591,7 @@ private struct TrainingQuickSheet: View {
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("start-light")
                 }
-            } else {
+            } else if hasUsablePrescription {
                 VStack(spacing: 14) {
                     Image(systemName: "moon.zzz.fill")
                         .font(.system(size: 38))
@@ -1594,6 +1604,27 @@ private struct TrainingQuickSheet: View {
                         .foregroundStyle(APEXColor.secondaryInk)
                     Button { dismiss(); start(false) } label: {
                         Text(language.text("Open plan"))
+                            .font(APEXFont.body(12, weight: .bold))
+                            .foregroundStyle(.white)
+                            .frame(maxWidth: .infinity, minHeight: 48)
+                            .background(APEXColor.teal.gradient, in: RoundedRectangle(cornerRadius: 16))
+                    }
+                    .buttonStyle(.plain)
+                }
+                .padding(.vertical, 8)
+            } else {
+                VStack(spacing: 14) {
+                    Image(systemName: "list.bullet.clipboard")
+                        .font(.system(size: 38))
+                        .foregroundStyle(APEXColor.teal.opacity(0.75))
+                    Text(language.text("No training plan yet"))
+                        .font(APEXFont.display(21))
+                    Text(language.text("Build a plan before APEX labels any day as training or recovery."))
+                        .font(APEXFont.body(12))
+                        .multilineTextAlignment(.center)
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    Button { dismiss(); start(false) } label: {
+                        Text(language.text("Build plan"))
                             .font(APEXFont.body(12, weight: .bold))
                             .foregroundStyle(.white)
                             .frame(maxWidth: .infinity, minHeight: 48)

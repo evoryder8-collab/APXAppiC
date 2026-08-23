@@ -6,10 +6,19 @@ import { buildSeedData } from '../src/data/seed.ts'
 import { planForDate } from '../src/lib/plan.ts'
 import { repairSeedDefinitions } from '../src/lib/seedRepair.ts'
 import {
+  activeTrainingProgramDays,
+  archivedTrainingDayIds,
   assessTrainingInput,
+  commitTrainingPlanAddons,
   generateTrainingPlan,
+  invalidateTrainingPlanAddons,
   isTrainingInductionEligible,
+  markPendingTrainingPlanAddons,
+  pendingTrainingDayIds,
+  restoreTrainingPlanAddons,
   searchEquipment,
+  trainingInputFromProfile,
+  trainingGenerationRevision,
   type TrainingInductionInput,
 } from '../src/lib/trainingInduction.ts'
 
@@ -69,6 +78,220 @@ test('generated foundation occupies 12 dated weeks before its main phase takes o
   assert.ok(planForDate(data, 'transition', '2026-10-12', false).exercises.length === 0)
   assert.ok(planForDate(data, 'main', '2026-10-12', false).exercises.length > 0)
   assert.ok(planForDate(data, 'main', '2026-07-20', false).exercises.length === 0)
+})
+
+test('native and web rebuild metadata archives history and activates only the committed revision', () => {
+  const seeded = buildSeedData(userId, 'matthew')
+  const first = generateTrainingPlan(userId, baseInput, seeded.programs, '2026-07-15T08:00:00.000Z')
+  let addons = commitTrainingPlanAddons(seeded.settings!.addons, first)
+  let data = {
+    ...seeded,
+    settings: { ...seeded.settings!, addons },
+    programs: first.programs,
+    program_days: [...seeded.program_days, ...first.program_days],
+    exercises: [...seeded.exercises, ...first.exercises],
+  }
+
+  addons = invalidateTrainingPlanAddons(addons)
+  assert.deepEqual(
+    [...archivedTrainingDayIds(addons)].sort(),
+    first.program_days.map((day) => day.id).sort(),
+  )
+  assert.equal(trainingGenerationRevision(addons), 1)
+
+  const second = generateTrainingPlan(
+    userId,
+    { ...baseInput, venue: 'outdoors' },
+    data.programs,
+    '2026-08-22T08:00:00.000Z',
+    trainingGenerationRevision(addons),
+  )
+  assert.equal(
+    second.program_days.some((day) => first.program_days.some((old) => old.id === day.id)),
+    false,
+  )
+  addons = markPendingTrainingPlanAddons(addons, second)
+  data = {
+    ...data,
+    settings: { ...data.settings, addons },
+    programs: second.programs,
+    program_days: [...data.program_days, ...second.program_days],
+    exercises: [...data.exercises, ...second.exercises],
+  }
+  assert.deepEqual([...pendingTrainingDayIds(addons)].sort(), second.program_days.map((day) => day.id).sort())
+  assert.equal(
+    activeTrainingProgramDays(data).some((day) => second.program_days.some((pending) => pending.id === day.id)),
+    false,
+  )
+
+  addons = commitTrainingPlanAddons(addons, second)
+  data = { ...data, settings: { ...data.settings, addons } }
+  assert.equal(
+    activeTrainingProgramDays(data).every((day) => !first.program_days.some((old) => old.id === day.id)),
+    true,
+  )
+  assert.equal(
+    second.program_days.every((day) => activeTrainingProgramDays(data).some((active) => active.id === day.id)),
+    true,
+  )
+  const planned = planForDate(data, 'transition', '2026-08-24', false)
+  assert.equal(second.program_days.some((day) => day.id === planned.programDay?.id), true)
+
+  const restored = restoreTrainingPlanAddons(data)
+  assert.ok(restored)
+  data = { ...data, settings: { ...data.settings, addons: restored } }
+  assert.equal(
+    activeTrainingProgramDays(data).some((day) =>
+      [...first.program_days, ...second.program_days].some((generated) => generated.id === day.id)),
+    false,
+  )
+  const restoredPlan = planForDate(data, 'transition', '2026-08-24', false)
+  assert.ok(restoredPlan.programDay)
+  assert.equal(
+    [...first.program_days, ...second.program_days].some((day) => day.id === restoredPlan.programDay?.id),
+    false,
+  )
+})
+
+test('native-shaped induction metadata is canonical before the web form or generator uses it', () => {
+  const nativeMetadata = {
+    start_date: '2026-08-22',
+    inactivity: 'under_three_months',
+    venue: 'outdoors',
+    equipment: ['resistance_bands'],
+    pain_areas: ['knee', 'shoulder'],
+    recent_operation: false,
+    chronic_lower_back_pain: true,
+    sessions_per_week: 5,
+    goal: 'general',
+  }
+  const input = trainingInputFromProfile(nativeMetadata, '2026-01-01')
+
+  assert.deepEqual(input, {
+    ...nativeMetadata,
+    inactivity: 'one_to_three_months',
+    pain_areas: ['knees', 'shoulders'],
+    goal: 'rebuild',
+  })
+  const generated = generateTrainingPlan(userId, nativeMetadata as unknown as TrainingInductionInput)
+  assert.equal(generated.induction.goal, 'rebuild')
+  assert.equal(generated.exercises.every((exercise) => Number.isFinite(exercise.rest_sec)), true)
+})
+
+test('native fat-loss and endurance goals remain honest through a web rebuild', () => {
+  for (const goal of ['fat_loss', 'endurance'] as const) {
+    const input = trainingInputFromProfile({ ...baseInput, goal }, '2026-01-01')
+    assert.equal(input.goal, goal)
+    assert.equal(generateTrainingPlan(userId, input).induction.goal, goal)
+  }
+
+  const panel = readFileSync(
+    join(process.cwd(), 'src/components/workout/TrainingInductionPanel.tsx'),
+    'utf8',
+  )
+  assert.match(panel, /\['fat_loss', copy\.fatLoss\]/)
+  assert.match(panel, /\['endurance', copy\.endurance\]/)
+})
+
+test('a skipped settings-only account can build without becoming another persona', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  const generated = generateTrainingPlan(userId, baseInput, [])
+  const committed = commitTrainingPlanAddons({
+    ...seeded.settings!.addons,
+    newbie_mode: false,
+    training_induction: null,
+    training_induction_skipped: true,
+  }, generated)
+  assert.equal(committed.training_induction_skipped, undefined)
+
+  const reloaded = repairSeedDefinitions({
+    ...seeded,
+    profile: null,
+    settings: { ...seeded.settings!, addons: committed },
+    meals: [],
+    supplements: [],
+    programs: generated.programs,
+    program_days: generated.program_days,
+    exercises: generated.exercises,
+    snapshots: [],
+  }, seeded)
+  assert.equal(reloaded.needsRepair, false)
+  assert.equal(reloaded.data.profile, null)
+  assert.deepEqual(reloaded.data.programs, generated.programs)
+  assert.deepEqual(reloaded.data.program_days, generated.program_days)
+
+  const panel = readFileSync(
+    join(process.cwd(), 'src/components/workout/TrainingInductionPanel.tsx'),
+    'utf8',
+  )
+  assert.match(panel, /data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
+  const workout = readFileSync(join(process.cwd(), 'src/pages/WorkoutSection.tsx'), 'utf8')
+  assert.match(workout, /training_induction_skipped/)
+  const app = readFileSync(join(process.cwd(), 'src/App.tsx'), 'utf8')
+  assert.match(app, /data\.profile\?\.user_id \?\? data\.settings\?\.user_id \?\? 'signed-out'/)
+  assert.match(app, /settingsOnly \? <WorkoutSection/)
+})
+
+test('a profileless installed plan remains followable without weight-derived activity', () => {
+  const tracked = readFileSync(join(process.cwd(), 'src/pages/TrackedSession.tsx'), 'utf8')
+  assert.match(tracked, /const ownerId = data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
+  assert.match(tracked, /if \(!plan\.programDay \|\| !ownerId\) return/)
+  assert.match(tracked, /userId: ownerId/)
+  assert.doesNotMatch(tracked, /!data\.profile\) return/)
+
+  const player = readFileSync(join(process.cwd(), 'src/pages/Player.tsx'), 'utf8')
+  assert.match(player, /const ownerId = data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
+  assert.match(player, /if \(!finished \|\| savedRef\.current \|\| !plan\.programDay \|\| !ownerId\) return/)
+  assert.match(player, /userId: ownerId/)
+  assert.match(player, /if \(activityType && data\.profile\)/)
+
+  for (const relativePath of ['src/components/DaySheet.tsx', 'src/pages/WorkoutSection.tsx']) {
+    const source = readFileSync(join(process.cwd(), relativePath), 'utf8')
+    assert.match(source, /const ownerId = data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
+    assert.doesNotMatch(source, /user_id: data\.profile\?\.user_id \?\? ''/)
+  }
+})
+
+test('web generation matches the shared native revision fixture', () => {
+  const fixture = JSON.parse(readFileSync(
+    join(process.cwd(), 'tests/fixtures/training-induction-revision.json'),
+    'utf8',
+  )) as {
+    user_id: string
+    generation_revision: number
+    input: unknown
+    expected: { first_day_id: string; first_exercise_id: string }
+  }
+  const generated = generateTrainingPlan(
+    fixture.user_id,
+    fixture.input as TrainingInductionInput,
+    [],
+    '2026-08-22T08:00:00.000Z',
+    fixture.generation_revision,
+  )
+
+  assert.equal(generated.program_days[0].id, fixture.expected.first_day_id)
+  assert.equal(generated.exercises[0].id, fixture.expected.first_exercise_id)
+})
+
+test('an empty legacy induction marker remains safely restorable', () => {
+  const seeded = buildSeedData(userId, 'matthew')
+  const data = {
+    ...seeded,
+    program_days: [],
+    settings: {
+      ...seeded.settings!,
+      addons: {
+        ...seeded.settings!.addons,
+        newbie_mode: false,
+        training_induction: {} as never,
+      },
+    },
+  }
+
+  const restored = restoreTrainingPlanAddons(data)
+  assert.ok(restored)
+  assert.equal(restored.training_induction, null)
 })
 
 test('Iulian-Andrei receives concise gym bodybuilding definitions and versioned upgrades rewrite inherited rows', () => {

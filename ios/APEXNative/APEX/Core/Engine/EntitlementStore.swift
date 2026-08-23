@@ -10,6 +10,7 @@ final class EntitlementStore {
     static let shared = EntitlementStore()
 
     private(set) var access: Entitlement.Access = .trial(daysRemaining: Entitlement.trialDays)
+    private(set) var resolvedUserID: UUID?
 
     var isUnlocked: Bool { Entitlement.isUnlocked(access) }
 
@@ -93,8 +94,24 @@ final class EntitlementStore {
 
     // MARK: - Resolution
 
+    /// Temporary account boundary for the pre-Phase-4 entitlement model. It
+    /// prevents a founding/subscriber decision leaking across sign-ins while
+    /// preserving the existing trial behavior until the server gate replaces
+    /// it atomically.
+    func prepareForAccount(_ userID: UUID) {
+        guard resolvedUserID != userID else { return }
+        resolvedUserID = userID
+        access = .trial(daysRemaining: Entitlement.trialDays)
+    }
+
+    func resetAccount() {
+        resolvedUserID = nil
+        access = .trial(daysRemaining: Entitlement.trialDays)
+    }
+
     func resolve(profile: Profile?) {
         guard let profile else { return }
+        prepareForAccount(profile.userID)
         access = Entitlement.access(
             foundingMember: profile.foundingMember ?? false,
             developerCodeRedeemed: developerCodeRedeemed,

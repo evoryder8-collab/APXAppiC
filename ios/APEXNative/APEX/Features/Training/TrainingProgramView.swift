@@ -16,10 +16,11 @@ struct TrainingProgramView: View {
     @State private var showManualLogger = false
     @State private var exportURL: ExportedReport?
 
-    private var program: Program? { session.data.programs.first { $0.slug == slug } }
+    private var program: Program? {
+        TrainingInduction.ownedProgram(in: session.data, slug: slug)
+    }
     private var days: [ProgramDay] {
-        guard let program else { return [] }
-        return session.data.programDays.filter { $0.programID == program.id }.sorted { $0.weekday < $1.weekday }
+        TrainingInduction.visibleProgramDays(in: session.data, slug: slug)
     }
     private var todayWeekday: Int {
         let weekday = Calendar.current.component(.weekday, from: .now)
@@ -32,12 +33,50 @@ struct TrainingProgramView: View {
         )
     }
 
-    /// Web parity: the starter-plan builder belongs to newbie mode. Showing it
-    /// to everyone pushed the day the person came for below three other cards.
+    /// A skipped questionnaire leaves no generated rows, so the plan builder
+    /// stays reachable regardless of experience mode. A marker alone is not a
+    /// plan: it must still resolve to this account's rows for this phase.
     private var showInduction: Bool {
-        (session.data.settings?.addons["newbie_mode"]?.boolValue ?? false)
-            && (slug == "transition" || slug == "main")
+        TrainingInduction.shouldOfferPlanBuilder(in: session.data, slug: slug)
     }
+
+    private var hasUsablePrescription: Bool {
+        TrainingInduction.hasUsablePrescription(in: session.data, slug: slug)
+    }
+
+    #if DEBUG
+    /// End-to-end UI evidence that the return builder's controls reached both
+    /// server-shaped metadata and concrete plan rows. This exists only in
+    /// debug UI-test launches and has no production rendering or authority.
+    private var inductionInstallEvidence: String? {
+        guard ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run"),
+              let settings = session.data.settings,
+              let metadata = settings.addons["training_induction"]?.objectValue else {
+            return nil
+        }
+        let persistedDayIDs = Set(
+            session.data.programDays
+                .filter { $0.userID == settings.userID }
+                .map { $0.id.uuidString.lowercased() }
+        )
+        func values(_ key: String) -> [String] {
+            metadata[key]?.arrayValue?.compactMap(\.stringValue).sorted() ?? []
+        }
+        func persistedCount(_ key: String) -> Int {
+            values(key).filter { persistedDayIDs.contains($0.lowercased()) }.count
+        }
+        let sessions = Int(metadata["sessions_per_week"]?.numberValue ?? 0)
+        return [
+            "goal=\(metadata["goal"]?.stringValue ?? "")",
+            "venue=\(metadata["venue"]?.stringValue ?? "")",
+            "sessions=\(sessions)",
+            "equipment=\(values("equipment").joined(separator: ","))",
+            "pain=\(values("pain_areas").joined(separator: ","))",
+            "transitionRows=\(persistedCount("transition_day_ids"))",
+            "mainRows=\(persistedCount("main_day_ids"))",
+        ].joined(separator: ";")
+    }
+    #endif
 
     private var todayPlan: PlannedDay {
         TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
@@ -47,6 +86,7 @@ struct TrainingProgramView: View {
     /// Looking up the weekly template independently allowed a generated rest
     /// day to keep an upper-body hologram and explanation.
     private var todayMuscleDayType: String {
+        guard hasUsablePrescription else { return "none" }
         if todayPlan.isRecoveryMicro { return "mobility" }
         return todayPlan.programDay?.dayType ?? "rest"
     }
@@ -103,39 +143,49 @@ struct TrainingProgramView: View {
                     .background(readinessTint(readiness.state).opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
                     .accessibilityIdentifier("training-readiness")
                 }
-                Text(language.text(
-                    plan.isRecoveryMicro ? "Recovery micro-session" : (plan.programDay?.name ?? "Rest day")
-                ))
+                Text(language.text(!hasUsablePrescription
+                    ? "No workout prescribed"
+                    : plan.isRecoveryMicro
+                        ? "Recovery micro-session"
+                        : (plan.programDay?.name ?? "Rest day")))
                 .font(APEXFont.display(21))
-                if let day = plan.programDay {
-                    Text(language.format("~%d min · %d exercises", day.estimatedMinutes, plan.exercises.count))
+                .accessibilityIdentifier(hasUsablePrescription ? "training-today-title" : "training-no-plan")
+                if !hasUsablePrescription {
+                    Text(language.text("Build your plan above before APEX labels any day as training or rest."))
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
-                if !plan.badges.isEmpty {
-                    VStack(alignment: .leading, spacing: 5) {
-                        ForEach(plan.badges.prefix(3), id: \.self) { badge in
-                            Text(language.text(badge))
-                                .font(APEXFont.body(10, weight: .bold))
-                                .foregroundStyle(badgeTint(badge))
-                                .padding(.horizontal, 8)
-                                .padding(.vertical, 4)
-                                .background(badgeTint(badge).opacity(0.12), in: Capsule())
+                if hasUsablePrescription {
+                    if let day = plan.programDay {
+                        Text(language.format("~%d min · %d exercises", day.estimatedMinutes, plan.exercises.count))
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    if !plan.badges.isEmpty {
+                        VStack(alignment: .leading, spacing: 5) {
+                            ForEach(plan.badges.prefix(3), id: \.self) { badge in
+                                Text(language.text(badge))
+                                    .font(APEXFont.body(10, weight: .bold))
+                                    .foregroundStyle(badgeTint(badge))
+                                    .padding(.horizontal, 8)
+                                    .padding(.vertical, 4)
+                                    .background(badgeTint(badge).opacity(0.12), in: Capsule())
+                            }
                         }
                     }
-                }
-                if !plan.exercises.isEmpty {
-                    Button {
-                        selectedDay = CalendarDaySelection(date: Date().apexDateKey)
-                    } label: {
-                        Label(language.text("Open today"), systemImage: "arrow.right")
-                            .font(APEXFont.body(13, weight: .bold))
-                            .frame(maxWidth: .infinity, minHeight: 44)
-                            .foregroundStyle(.white)
-                            .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14))
+                    if !plan.exercises.isEmpty {
+                        Button {
+                            selectedDay = CalendarDaySelection(date: Date().apexDateKey)
+                        } label: {
+                            Label(language.text("Open today"), systemImage: "arrow.right")
+                                .font(APEXFont.body(13, weight: .bold))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .foregroundStyle(.white)
+                                .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("training-today-open")
                     }
-                    .buttonStyle(.plain)
-                    .accessibilityIdentifier("training-today-open")
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -193,9 +243,12 @@ struct TrainingProgramView: View {
     }
 
     private var fallbackDescription: String {
-        slug == "custom"
-            ? "Search the movement library and assemble a session that belongs to you."
-            : "Your programme is syncing from APEX."
+        if slug == "custom" {
+            return "Search the movement library and assemble a session that belongs to you."
+        }
+        return hasUsablePrescription
+            ? "Your programme is syncing from APEX."
+            : "No programme exists yet. Build your plan below."
     }
 
     var body: some View {
@@ -223,6 +276,17 @@ struct TrainingProgramView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 14)
 
+                #if DEBUG
+                if let inductionInstallEvidence {
+                    Text("Induction installed")
+                        .font(.system(size: 1))
+                        .frame(width: 1, height: 1)
+                        .opacity(0.02)
+                        .accessibilityIdentifier("induction-installed-state")
+                        .accessibilityValue(inductionInstallEvidence)
+                }
+                #endif
+
                 if showInduction {
                     TrainingInductionPanel(slug: slug)
                         .environment(session)
@@ -230,16 +294,19 @@ struct TrainingProgramView: View {
 
                 if slug != "custom" { todayHero }
 
-                MuscleMapCard(
-                    dayType: todayMuscleDayType,
-                    exerciseNames: todayExerciseNames,
-                    height: 442,
-                    accent: accent,
-                    eyebrow: language.text("TODAY'S SIGNAL"),
-                    focus: language.text(muscleFocus)
-                )
+                if slug == "custom" || hasUsablePrescription {
+                    MuscleMapCard(
+                        dayType: todayMuscleDayType,
+                        exerciseNames: todayExerciseNames,
+                        height: 442,
+                        accent: accent,
+                        eyebrow: language.text("TODAY'S SIGNAL"),
+                        focus: language.text(muscleFocus)
+                    )
+                    .accessibilityIdentifier("training-muscle-signal")
+                }
 
-                if slug != "custom" {
+                if slug != "custom" && hasUsablePrescription {
                     Picker("Mode", selection: $lite) {
                         Text(language.text("Full session")).tag(false)
                         Text(language.text("Minimum effective")).tag(true)
@@ -249,12 +316,13 @@ struct TrainingProgramView: View {
 
                 /* The month, as on the web: every planned day carries its type,
                    and tapping one opens what that date actually prescribes. */
-                if slug != "custom" {
+                if slug != "custom" && hasUsablePrescription {
                     GlassCard(radius: 26, padding: 16) {
                         TrainingCalendarView(slug: slug, accent: accent) { day in
                             selectedDay = CalendarDaySelection(date: day)
                         }
                     }
+                    .accessibilityIdentifier("training-calendar")
                 }
 
                 /* Web parity: the studio opens from any training screen, not

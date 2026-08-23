@@ -329,6 +329,10 @@ export interface Settings {
        training. Constantine and June retain their bespoke programmes. */
     newbie_mode?: boolean
     training_induction?: TrainingInductionProfile | null
+    training_induction_skipped?: boolean
+    training_induction_archived_day_ids?: string[]
+    training_induction_pending_day_ids?: string[]
+    training_induction_generation_revision?: number
     /* Start of the current bespoke 12-week prescription. It is independent
        from the RPG baseline so a programme refresh never erases history. */
     training_protocol?: {
@@ -437,8 +441,8 @@ export type TrainingInactivity =
   | 'six_to_twelve_months'
   | 'over_one_year'
 
-export type TrainingVenue = 'home' | 'gym'
-export type TrainingGoal = 'rebuild' | 'muscle' | 'strength'
+export type TrainingVenue = 'home' | 'gym' | 'outdoors'
+export type TrainingGoal = 'rebuild' | 'muscle' | 'fat_loss' | 'strength' | 'endurance'
 export type TrainingPainArea =
   | 'shoulders'
   | 'elbows'
@@ -461,11 +465,12 @@ export interface TrainingInductionProfile {
   pain_areas: TrainingPainArea[]
   recent_operation: boolean
   chronic_lower_back_pain: boolean
-  sessions_per_week: 2 | 3 | 4
+  sessions_per_week: 2 | 3 | 4 | 5
   goal: TrainingGoal
   caution: TrainingPlanCaution
   transition_day_ids: string[]
   main_day_ids: string[]
+  generation_revision?: number
 }
 
 export interface JointCheckin {

@@ -18,7 +18,7 @@ import {
   resolveFocusT25,
   trainingProtocolWeek,
 } from './focusT25.ts'
-import { activeInductionDayIds, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
+import { activeInductionDayIds, activeTrainingProgramDays, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
 
 export interface PlannedExercise extends Exercise {
   planned_sets: number
@@ -174,7 +174,7 @@ export function planForDate(
   const activeDayIds = activeInductionDayIds(induction, slug)
   const insideWindow = isInsideInductionWindow(induction, slug, date)
   const programDay = insideWindow
-    ? data.program_days.find((d) =>
+    ? activeTrainingProgramDays(data).find((d) =>
         d.program_id === program?.id &&
         d.weekday === weekday &&
         (!activeDayIds || activeDayIds.has(d.id)),

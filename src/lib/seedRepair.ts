@@ -53,6 +53,23 @@ function emptyMissing(): Pick<AppData, SeedDefinitionTable> {
   }
 }
 
+export function shouldRepairSeedDefinitions(current: AppData): boolean {
+  const addons = current.settings?.addons
+  const hasSettingsOnlyTrainingState = Boolean(addons && (
+    addons.training_induction_skipped === true ||
+    (addons.training_induction != null && typeof addons.training_induction === 'object') ||
+    addons.newbie_mode === true ||
+    Array.isArray(addons.training_induction_pending_day_ids) ||
+    Array.isArray(addons.training_induction_archived_day_ids) ||
+    typeof addons.training_induction_generation_revision === 'number'
+  ))
+  /* Skip, an installed plan, an interrupted install and a restored plan are
+   * explicit profileless account states. Preserve those facts, while still
+   * repairing an ordinary persona seed interrupted after its settings insert. */
+  if (!current.profile && hasSettingsOnlyTrainingState) return false
+  return !current.profile || Number(current.profile.seed_version ?? 0) < CURRENT_SEED_VERSION
+}
+
 function replaceRowsBySeedId<T extends { id: string }>(current: T[], seeded: T[]): T[] {
   const seededById = new Map(seeded.map((row) => [row.id, row]))
   const replaced = current.map((row) => seededById.get(row.id) ?? row)
@@ -281,7 +298,7 @@ function upgradeV5PersonalProtocol(
    the permanent re-creation of definitions a user may later remove. */
 export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRepairResult {
   const currentVersion = Number(current.profile?.seed_version ?? 0)
-  const needsRepair = !current.profile || currentVersion < CURRENT_SEED_VERSION
+  const needsRepair = shouldRepairSeedDefinitions(current)
   if (!needsRepair) {
     return {
       data: current,

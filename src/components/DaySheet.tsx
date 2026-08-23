@@ -44,6 +44,7 @@ function completedSessionFor(
 
 export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps) {
   const { data, upsert, remove } = useStore()
+  const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
@@ -57,9 +58,10 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
   const dayLog = data.daily_logs.find((d) => d.date === dateIso)
   const water = dayLog?.water_l ?? 0
   const setWater = (v: number): void => {
+    if (!ownerId) return
     upsert('daily_logs', {
-      id: dayLog?.id ?? dailyLogId(dateIso, data.profile?.user_id ?? 'local'),
-      user_id: data.profile?.user_id ?? '',
+      id: dayLog?.id ?? dailyLogId(dateIso, ownerId),
+      user_id: ownerId,
       date: dateIso,
       kcal: dayLog?.kcal ?? null,
       protein_g: dayLog?.protein_g ?? null,
@@ -74,11 +76,12 @@ export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps
   }
 
   const toggleDeload = (): void => {
+    if (!ownerId) return
     if (deloadMark) remove('deload_marks', deloadMark.id)
     else
       upsert('deload_marks', {
         id: crypto.randomUUID(),
-        user_id: data.profile?.user_id ?? '',
+        user_id: ownerId,
         date: dateIso,
       })
   }

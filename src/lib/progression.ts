@@ -16,11 +16,24 @@ export interface Recommendation {
   typicalIncrement: number
 }
 
+function movementKey(name: string): string {
+  return name
+    .normalize('NFD')
+    .replace(/[\u0300-\u036f]/g, '')
+    .toLocaleLowerCase()
+    .trim()
+    .replace(/\s+/g, ' ')
+}
+
 export function exerciseHistory(data: AppData, exercise: Exercise): ExerciseHistoryPoint[] {
   const sessionsById = new Map(data.workout_sessions.map((s) => [s.id, s]))
   const byDate = new Map<string, { weights: number[]; reps: Array<{ reps: number | null; rir: number | null; skipped: boolean }> }>()
+  const targetMovement = movementKey(exercise.name)
   for (const log of data.workout_logs) {
-    if (log.exercise_id !== exercise.id || log.skipped) continue
+    const sameMovement = log.exercise_id === exercise.id || (
+      log.user_id === exercise.user_id && movementKey(log.exercise_name) === targetMovement
+    )
+    if (!sameMovement || log.skipped) continue
     const session = sessionsById.get(log.session_id)
     if (!session) continue
     const entry = byDate.get(session.date) ?? { weights: [], reps: [] }

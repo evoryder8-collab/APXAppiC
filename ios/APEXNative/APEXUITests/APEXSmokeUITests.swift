@@ -6,6 +6,103 @@ final class APEXSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    func testInductionOffersSkipAndNoPlanAccountCanReturnToTheBuilder() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-apex-preview", "induction", "-apex-ui-test-first-run", "-AppleLanguages", "(en)",
+        ]
+        app.launchEnvironment["APEX_UI_TESTING"] = "1"
+        app.launch()
+
+        let skip = app.buttons["induction-skip"]
+        XCTAssertTrue(skip.waitForExistence(timeout: 4))
+        XCTAssertTrue(skip.isHittable)
+        skip.tap()
+
+        let finishConsent = app.buttons["consent-finish"]
+        XCTAssertTrue(finishConsent.waitForExistence(timeout: 4), "skip must advance to consent")
+        finishConsent.tap()
+
+        let transition = app.buttons["portal.transition"]
+        XCTAssertTrue(transition.waitForExistence(timeout: 4))
+        XCTAssertTrue(scrollUntilVisible(transition, in: app, attempts: 4))
+        tapClearOfDock(transition)
+        XCTAssertTrue(
+            app.buttons["induction-open"].waitForExistence(timeout: 4),
+            "the same skipped account needs a route back with no generated rows"
+        )
+        XCTAssertTrue(app.staticTexts["training-no-plan"].exists)
+        XCTAssertFalse(app.staticTexts["Rest day"].exists)
+        XCTAssertFalse(
+            app.staticTexts["TODAY'S SIGNAL"].exists,
+            "a skipped induction must not fabricate a muscle signal"
+        )
+        XCTAssertFalse(app.descendants(matching: .any)["training-muscle-signal"].exists)
+
+        app.buttons["induction-open"].tap()
+        let allElements = app.descendants(matching: .any)
+        let goal = allElements["induction-return-goal"]
+        XCTAssertTrue(goal.waitForExistence(timeout: 4))
+        XCTAssertTrue(allElements["induction-return-venue"].exists)
+        XCTAssertTrue(allElements["induction-return-sessions"].exists)
+
+        goal.tap()
+        let strength = allElements["induction-return-goal-strength"]
+        XCTAssertTrue(strength.waitForExistence(timeout: 2))
+        strength.tap()
+        allElements["induction-return-venue-outdoors"].tap()
+        allElements["induction-return-sessions-5"].tap()
+
+        let equipment = allElements["induction-return-equipment-adjustable_dumbbells"]
+        XCTAssertTrue(
+            scrollUntilVisible(
+                equipment,
+                in: app,
+                attempts: 12
+            )
+        )
+        equipment.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        XCTAssertEqual(equipment.value as? String, "1")
+        let pain = allElements["induction-return-pain-knee"]
+        XCTAssertTrue(
+            scrollUntilVisible(pain, in: app, attempts: 12)
+        )
+        pain.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
+        XCTAssertEqual(pain.value as? String, "1")
+
+        app.buttons["induction-install"].tap()
+        XCTAssertFalse(
+            app.buttons["induction-open"].waitForExistence(timeout: 5),
+            "a complete saved plan must close the return route"
+        )
+        let installedState = app.staticTexts["induction-installed-state"]
+        XCTAssertTrue(
+            installedState.waitForExistence(timeout: 3),
+            "the UI-selected answers must reach plan metadata and rows"
+        )
+        XCTAssertEqual(
+            installedState.value as? String,
+            "goal=strength;venue=outdoors;sessions=3;equipment=adjustable_dumbbells;pain=knee;transitionRows=3;mainRows=3"
+        )
+    }
+
+    func testIncompleteGeneratedPlanCannotExposeARunnableDay() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-incomplete-plan")
+        app.launch()
+
+        let transition = app.buttons["portal.transition"]
+        XCTAssertTrue(transition.waitForExistence(timeout: 4))
+        XCTAssertTrue(scrollUntilVisible(transition, in: app, attempts: 4))
+        tapClearOfDock(transition)
+
+        XCTAssertTrue(app.staticTexts["training-no-plan"].waitForExistence(timeout: 4))
+        XCTAssertFalse(app.buttons["training-today-open"].exists)
+        XCTAssertFalse(app.otherElements["training-calendar"].exists)
+        XCTAssertFalse(app.staticTexts["TODAY'S SIGNAL"].exists)
+        XCTAssertFalse(app.descendants(matching: .any)["training-muscle-signal"].exists)
+    }
+
     func testFivePortalNavigationAndCoreScreens() {
         let app = configuredApp()
         app.launch()

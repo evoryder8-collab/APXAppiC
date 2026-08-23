@@ -124,6 +124,42 @@ on the frozen commit `909cd63` and are **not** on `codex/main-critical-repair`:
 **Do not re-implement these from scratch.** Read `909cd63` in `~/APXAppiC-codex-release` first and
 port what is sound, with tests.
 
+## LAUNCH SCOPE AND WORKING POLICY — decided 22 Aug
+
+**Order is unchanged: finish the work, then launch paid.** A free or code-only beta was
+considered and rejected. Phases run in their existing numbered order; do not pull Phase 4 or 5
+forward, and do not ship an interim free release.
+
+### Launch scope, decided
+- **Two products only**: Premium monthly and Premium yearly. Do not create Coach products —
+  a subscription with no platform behind it is a 3.1.2 rejection risk. The Coach card stays
+  visible, greyed, "Coming soon", excluded from StoreKit.
+- Pricing cards are purchasable at launch. The five beta codes bypass the paywall for family
+  accounts, per 4.2.
+- **Defer App Store Server Notifications V2 to 1.1.** For launch, `Transaction.currentEntitlements`
+  checked on launch and on foreground, mirrored to Supabase, is sufficient. Do not build the
+  JWS-verifying Edge Function now; it processes renewals that will not exist for a month.
+
+### Owner-side, runs in parallel and blocks nothing you build
+The Paid Applications agreement (App Store Connect → Business) must be Active before IAP products
+can be created. That is the owner's task. **The StoreKit client code does not depend on it** — only
+sandbox testing does. When you reach Phase 4, build and unit-test against a local `.storekit`
+configuration file so the two never block each other.
+
+### Review-effort policy, effective now
+This matters more than it looks. The Task 5 review loop ran roughly ten rounds and consumed a
+disproportionate share of the owner's weekly budget. It found real defects — the fabricated profile
+defaults were worth every round — but it is not the right setting for everything, and at that burn
+rate "finish everything first" is not affordable.
+
+- **Full independent review**: anything touching persistence, account isolation, entitlements,
+  money, or health data.
+- **Single-pass review**: UI, copy, layout, labels, animation.
+
+A chip label does not earn a review cycle. Spend the budget where a defect would cost data or money.
+
+---
+
 ## PHASE 1 — Native workout repair
 
 ### 1.1 Honest RIR
@@ -569,6 +605,67 @@ one — ask rather than choose.
 Every report carries the provenance work above: date range, source per figure, method, and an honest
 missing-data disclosure. That is what makes it a document a sports-science coach will sign their name
 to.
+
+
+## PHASE 8 — Supplement scheduling
+
+Post-launch. The supplement widget currently shows one flat list. This turns it into a schedule the
+user builds themselves, with the app filling in sensible defaults it can always be overruled on.
+
+### 8.1 User-defined blocks
+Separator rows inside the supplement list, each carrying a name, an anchor and an order. The user
+creates, renames, reorders and deletes them freely, and can add blocks that appear on no standard
+list because their schedule needs them.
+
+Starting set, all editable: Morning – empty stomach · Morning – with breakfast · Mid-morning ·
+Before lunch · With lunch · Pre-workout · Intra-workout · Post-workout · With dinner ·
+With your largest meal · Before sleep · Situational.
+
+**The user's structure wins.** If someone renames "Before sleep" to "Night stack" or deletes it, the
+app maps to what actually exists rather than recreating its own version.
+
+### 8.2 Two kinds of anchor — this is the part that matters
+The list above mixes two different things, and treating them the same is why most supplement
+trackers feel stupid.
+
+- **Absolute**: a clock time the user sets.
+- **Relative**: an offset from an event that moves — "30 minutes before the session", "with lunch".
+
+APEX already knows both anchors. The dayline knows when meals land, Settings holds the default
+training time, and the plan knows which days have sessions. A relative block therefore **resolves to
+a real time each day on its own**. Someone training at 07:00 on Monday and 19:00 on Thursday gets a
+correct pre-workout time both days without touching anything.
+
+A relative anchor with nothing to resolve against — a pre-workout block on a rest day — hides for
+that day rather than firing at a guessed time.
+
+### 8.3 Reminders, per block, opt-in
+Each block carries its own reminder switch, default off. A reminder fires at the **resolved** time,
+not a stored one, and **suppresses itself if the block is already ticked off**. Nobody gets nagged
+for something they have done.
+
+### 8.4 Compound-aware default placement — suggestion, never a lock
+125 compounds already carry dosing, timing and interaction data. Use it. When a supplement is added
+it arrives with a block already selected, and moving it is one tap.
+
+- Magnesium glycinate proposes the night block.
+- Iron proposes a fasted block, and **warns if it shares a block with calcium or coffee**.
+- Fat-soluble vitamins propose the largest meal, because that meal is not the same one for everyone.
+- Caffeine refuses to schedule itself inside the user's sleep window.
+- Creatine says timing does not matter and to put it wherever it will be remembered.
+
+An override is permanent. A supplement the user moved does not get re-suggested next time.
+
+### 8.5 Mechanics
+- Empty blocks hide entirely. No header with nothing under it.
+- Interaction warnings are per block, shown where the conflict is, and never block saving.
+- Blocks and their assignments are per account and sync like everything else.
+
+### 8.6 Shared with the coach platform
+6.8 already has a coach assigning supplements and timing to a client. That must use **this same block
+model**, so a coach-authored schedule arrives as real blocks the client can see and reason about,
+rather than a second parallel representation. Whether a client may edit a coach-assigned block is a
+permission question that belongs with the other scopes in 6.3.
 
 
 ## VOICE AND TRAINING-SCIENCE ITEMS

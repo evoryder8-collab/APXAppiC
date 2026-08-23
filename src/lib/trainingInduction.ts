@@ -1,6 +1,7 @@
 import type { PersonaSlug } from './persona'
 import type {
   DayType,
+  AppData,
   Exercise,
   Program,
   ProgramDay,
@@ -13,6 +14,7 @@ import type {
   TrainingPainArea,
   TrainingPlanCaution,
   TrainingVenue,
+  Settings,
 } from './types'
 
 import { estimateSessionSeconds, followAlongFields } from './sessionShape.ts'
@@ -73,14 +75,75 @@ export interface TrainingInductionInput {
   pain_areas: TrainingPainArea[]
   recent_operation: boolean
   chronic_lower_back_pain: boolean
-  sessions_per_week: 2 | 3 | 4
+  sessions_per_week: 2 | 3 | 4 | 5
   goal: TrainingGoal
 }
 
 export interface TrainingAssessment {
   caution: TrainingPlanCaution
-  sessions_per_week: 2 | 3 | 4
+  sessions_per_week: 2 | 3 | 4 | 5
   reasons: string[]
+}
+
+function jsonRecord(value: unknown): Record<string, unknown> | null {
+  return value != null && typeof value === 'object' && !Array.isArray(value)
+    ? value as Record<string, unknown>
+    : null
+}
+
+function stringArray(value: unknown): string[] {
+  return Array.isArray(value) ? value.filter((item): item is string => typeof item === 'string') : []
+}
+
+function profileGenerationRevision(value: unknown): number {
+  const raw = jsonRecord(value)?.generation_revision
+  return typeof raw === 'number' && Number.isFinite(raw) ? Math.max(0, Math.trunc(raw)) : 0
+}
+
+/** Supabase settings JSON is shared with native and legacy builds, so validate
+ * and translate it before the typed web form or generator sees it. */
+export function trainingInputFromProfile(value: unknown, fallbackStartDate: string): TrainingInductionInput {
+  const raw = jsonRecord(value) ?? {}
+  const inactivityMap: Record<string, TrainingInactivity> = {
+    currently_training: 'currently_training',
+    under_1_month: 'under_1_month',
+    one_to_three_months: 'one_to_three_months',
+    under_three_months: 'one_to_three_months',
+    three_to_six_months: 'three_to_six_months',
+    six_to_twelve_months: 'six_to_twelve_months',
+    over_one_year: 'over_one_year',
+  }
+  const painMap: Record<string, TrainingPainArea> = {
+    shoulder: 'shoulders', shoulders: 'shoulders',
+    elbow: 'elbows', elbows: 'elbows',
+    wrist: 'wrists', wrists: 'wrists',
+    hip: 'hips', hips: 'hips',
+    knee: 'knees', knees: 'knees',
+    ankle: 'ankles', ankles: 'ankles',
+  }
+  const goalMap: Record<string, TrainingGoal> = {
+    rebuild: 'rebuild', general: 'rebuild', fat_loss: 'fat_loss', endurance: 'endurance',
+    muscle: 'muscle', hypertrophy: 'muscle', strength: 'strength',
+  }
+  const venue: TrainingVenue = raw.venue === 'gym' || raw.venue === 'outdoors' ? raw.venue : 'home'
+  const rawSessions = typeof raw.sessions_per_week === 'number' && Number.isFinite(raw.sessions_per_week)
+    ? Math.trunc(raw.sessions_per_week)
+    : 3
+  return {
+    start_date: typeof raw.start_date === 'string' && raw.start_date ? raw.start_date : fallbackStartDate,
+    inactivity: typeof raw.inactivity === 'string'
+      ? inactivityMap[raw.inactivity] ?? 'one_to_three_months'
+      : 'one_to_three_months',
+    venue,
+    equipment: stringArray(raw.equipment),
+    pain_areas: sortedIds(
+      stringArray(raw.pain_areas).flatMap((area) => painMap[area] ? [painMap[area]] : []),
+    ) as TrainingPainArea[],
+    recent_operation: raw.recent_operation === true,
+    chronic_lower_back_pain: raw.chronic_lower_back_pain === true,
+    sessions_per_week: Math.min(5, Math.max(2, rawSessions)) as 2 | 3 | 4 | 5,
+    goal: typeof raw.goal === 'string' ? goalMap[raw.goal] ?? 'rebuild' : 'rebuild',
+  }
 }
 
 export function assessTrainingInput(input: TrainingInductionInput): TrainingAssessment {
@@ -95,7 +158,9 @@ export function assessTrainingInput(input: TrainingInductionInput): TrainingAsse
   const cautious = longLayoff || input.chronic_lower_back_pain || input.pain_areas.length > 0
   return {
     caution: cautious ? 'cautious' : 'standard',
-    sessions_per_week: cautious && input.sessions_per_week === 4 ? 3 : input.sessions_per_week,
+    sessions_per_week: cautious
+      ? Math.min(input.sessions_per_week, 3) as 2 | 3
+      : input.sessions_per_week,
     reasons: [
       ...(longLayoff ? ['Long training gap reported'] : []),
       ...(input.chronic_lower_back_pain ? ['Chronic lower-back pain reported'] : []),
@@ -171,7 +236,7 @@ function clearanceSessions(): SessionSpec[] {
   ]
 }
 
-function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4): SessionSpec[] {
+function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4 | 5): SessionSpec[] {
   const main = phase === 'main'
   const sets = main ? 3 : 2
   const warmup = 'Five minutes easy cardio, then two gradual practice sets for the first loaded movement.'
@@ -208,7 +273,7 @@ function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4): SessionSpe
     },
   ]
   if (count < 4) return fullBody.slice(0, count)
-  return [
+  const split: SessionSpec[] = [
     { ...fullBody[0], name: 'Upper A', type: 'upper', exercises: fullBody[0].exercises.slice(1) },
     {
       name: 'Lower A', type: 'legs_a', minutes: main ? 50 : 36, warmup,
@@ -220,16 +285,28 @@ function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4): SessionSpe
       exercises: [fullBody[2].exercises[0], fullBody[1].exercises[0], fullBody[0].exercises[3], fullBody[1].exercises[4]],
     },
   ]
+  if (count >= 5) {
+    split.push({
+      name: 'Capacity & Core', type: 'fix', minutes: main ? 38 : 28, warmup,
+      exercises: [fullBody[1].exercises[1], fullBody[2].exercises[4], fullBody[1].exercises[4]],
+    })
+  }
+  return split
 }
 
-function homeSessions(phase: 'transition' | 'main', count: 2 | 3 | 4, equipment: string[]): SessionSpec[] {
+function homeSessions(
+  phase: 'transition' | 'main',
+  count: 2 | 3 | 4 | 5,
+  equipment: string[],
+  venueLabel: string,
+): SessionSpec[] {
   const main = phase === 'main'
   const sets = main ? 3 : 2
   const names = homeExerciseNames(equipment)
   const warmup = 'Five minutes of pain-free joint preparation, then one easy practice set.'
   const fullBody: SessionSpec[] = [
     {
-      name: 'Home Full Body A', type: 'upper', minutes: main ? 44 : 30, warmup,
+      name: `${venueLabel} Full Body A`, type: 'upper', minutes: main ? 44 : 30, warmup,
       exercises: [
         { name: names.squat, sets, reps: [8, 12], rest: 90, increment: 2 },
         { name: names.push, sets, reps: [8, 15], rest: 75, increment: 2 },
@@ -239,7 +316,7 @@ function homeSessions(phase: 'transition' | 'main', count: 2 | 3 | 4, equipment:
       ],
     },
     {
-      name: 'Home Full Body B', type: 'legs_b', minutes: main ? 46 : 32, warmup,
+      name: `${venueLabel} Full Body B`, type: 'legs_b', minutes: main ? 46 : 32, warmup,
       exercises: [
         { name: names.hinge, sets, reps: [8, 12], rest: 90, increment: 2 },
         { name: names.press, sets, reps: [8, 12], rest: 75, increment: 2 },
@@ -249,7 +326,7 @@ function homeSessions(phase: 'transition' | 'main', count: 2 | 3 | 4, equipment:
       ],
     },
     {
-      name: 'Home Full Body C', type: 'upper', minutes: main ? 44 : 30, warmup,
+      name: `${venueLabel} Full Body C`, type: 'upper', minutes: main ? 44 : 30, warmup,
       exercises: [
         { name: 'Step-Up', sets, reps: [8, 12], perSide: true, rest: 75, increment: 2 },
         { name: names.push, sets, reps: [8, 15], rest: 75, increment: 2 },
@@ -260,12 +337,22 @@ function homeSessions(phase: 'transition' | 'main', count: 2 | 3 | 4, equipment:
     },
   ]
   if (count < 4) return fullBody.slice(0, count)
-  return [
-    { ...fullBody[0], name: 'Home Upper A', type: 'upper', exercises: fullBody[0].exercises.slice(1) },
-    { ...fullBody[0], name: 'Home Lower A', type: 'legs_a', exercises: [fullBody[0].exercises[0], fullBody[1].exercises[0], fullBody[1].exercises[3], fullBody[0].exercises[3]] },
-    { ...fullBody[2], name: 'Home Upper B', type: 'upper', exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], fullBody[1].exercises[1], fullBody[2].exercises[4]] },
-    { ...fullBody[1], name: 'Home Lower B', type: 'legs_b', exercises: [fullBody[2].exercises[0], fullBody[2].exercises[3], fullBody[1].exercises[0], fullBody[1].exercises[4]] },
+  const split: SessionSpec[] = [
+    { ...fullBody[0], name: `${venueLabel} Upper A`, type: 'upper', exercises: fullBody[0].exercises.slice(1) },
+    { ...fullBody[0], name: `${venueLabel} Lower A`, type: 'legs_a', exercises: [fullBody[0].exercises[0], fullBody[1].exercises[0], fullBody[1].exercises[3], fullBody[0].exercises[3]] },
+    { ...fullBody[2], name: `${venueLabel} Upper B`, type: 'upper', exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], fullBody[1].exercises[1], fullBody[2].exercises[4]] },
+    { ...fullBody[1], name: `${venueLabel} Lower B`, type: 'legs_b', exercises: [fullBody[2].exercises[0], fullBody[2].exercises[3], fullBody[1].exercises[0], fullBody[1].exercises[4]] },
   ]
+  if (count >= 5) {
+    split.push({
+      ...fullBody[0],
+      name: `${venueLabel} Capacity & Core`,
+      type: 'fix',
+      minutes: main ? 34 : 24,
+      exercises: [fullBody[0].exercises[4], fullBody[1].exercises[4], fullBody[2].exercises[4]],
+    })
+  }
+  return split
 }
 
 function hash32(value: string, seed: number): number {
@@ -295,10 +382,11 @@ function addDaysIso(dateIso: string, days: number): string {
   return date.toISOString().slice(0, 10)
 }
 
-function weekdaysFor(count: 2 | 3 | 4): number[] {
+function weekdaysFor(count: 2 | 3 | 4 | 5): number[] {
   if (count === 2) return [1, 4]
   if (count === 3) return [1, 3, 5]
-  return [1, 2, 4, 6]
+  if (count === 4) return [1, 2, 4, 6]
+  return [1, 2, 4, 5, 7]
 }
 
 export interface GeneratedTrainingPlan {
@@ -308,20 +396,164 @@ export interface GeneratedTrainingPlan {
   induction: TrainingInductionProfile
 }
 
+type TrainingAddons = Settings['addons']
+
+const ARCHIVED_DAY_IDS_KEY = 'training_induction_archived_day_ids' as const
+const PENDING_DAY_IDS_KEY = 'training_induction_pending_day_ids' as const
+const GENERATION_REVISION_KEY = 'training_induction_generation_revision' as const
+
+function sortedIds(ids: Iterable<string>): string[] {
+  return [...new Set(ids)].sort()
+}
+
+function claimedDayIds(induction: unknown): string[] {
+  const raw = jsonRecord(induction)
+  return raw ? [...stringArray(raw.transition_day_ids), ...stringArray(raw.main_day_ids)] : []
+}
+
+export function archivedTrainingDayIds(addons: TrainingAddons | null | undefined): Set<string> {
+  return new Set(stringArray(addons?.[ARCHIVED_DAY_IDS_KEY]))
+}
+
+export function pendingTrainingDayIds(addons: TrainingAddons | null | undefined): Set<string> {
+  return new Set(stringArray(addons?.[PENDING_DAY_IDS_KEY]))
+}
+
+export function trainingGenerationRevision(addons: TrainingAddons | null | undefined): number {
+  const value = addons?.[GENERATION_REVISION_KEY]
+  return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
+}
+
+export function invalidateTrainingPlanAddons(
+  addons: TrainingAddons,
+  additionalDayIds: Iterable<string> = [],
+): TrainingAddons {
+  const active = claimedDayIds(addons.training_induction)
+  const additional = [...additionalDayIds]
+  const hasMarker = Object.prototype.hasOwnProperty.call(addons, 'training_induction')
+  const activeRevision = profileGenerationRevision(addons.training_induction)
+  const revision = hasMarker || additional.length > 0
+    ? Math.max(trainingGenerationRevision(addons), activeRevision) + 1
+    : trainingGenerationRevision(addons)
+  return {
+    ...addons,
+    newbie_mode: false,
+    training_induction: null,
+    [ARCHIVED_DAY_IDS_KEY]: sortedIds([
+      ...archivedTrainingDayIds(addons),
+      ...active,
+      ...additional,
+    ]),
+    [GENERATION_REVISION_KEY]: revision,
+  }
+}
+
+export function markPendingTrainingPlanAddons(
+  addons: TrainingAddons,
+  plan: GeneratedTrainingPlan,
+): TrainingAddons {
+  const nextPending = plan.program_days.map((day) => day.id)
+  const nextPendingSet = new Set(nextPending)
+  const stalePending = [...pendingTrainingDayIds(addons)].filter((id) => !nextPendingSet.has(id))
+  return {
+    ...addons,
+    [ARCHIVED_DAY_IDS_KEY]: sortedIds([...archivedTrainingDayIds(addons), ...stalePending]),
+    [PENDING_DAY_IDS_KEY]: sortedIds(nextPending),
+    [GENERATION_REVISION_KEY]: plan.induction.generation_revision ?? 0,
+  }
+}
+
+export function commitTrainingPlanAddons(
+  addons: TrainingAddons,
+  plan: GeneratedTrainingPlan,
+): TrainingAddons {
+  const committed = { ...addons }
+  delete committed[PENDING_DAY_IDS_KEY]
+  delete committed.training_induction_skipped
+  return {
+    ...committed,
+    newbie_mode: true,
+    training_induction: plan.induction,
+    [GENERATION_REVISION_KEY]: plan.induction.generation_revision ?? 0,
+  }
+}
+
+function legacyGeneratedDayIds(data: AppData, userId: string): string[] {
+  const candidates = new Set<string>()
+  for (const slug of ['transition', 'main'] as const) {
+    for (let weekday = 1; weekday <= 7; weekday += 1) {
+      candidates.add(stableUuid(userId, `${slug}:day:${weekday}`))
+    }
+  }
+  const archived = archivedTrainingDayIds(data.settings?.addons)
+  return data.program_days
+    .filter((day) => day.user_id === userId && candidates.has(day.id) && !archived.has(day.id))
+    .map((day) => day.id)
+}
+
+export function restoreTrainingPlanAddons(data: AppData): TrainingAddons | null {
+  const settings = data.settings
+  if (!settings) return null
+  const addons = settings.addons
+  const userId = data.profile?.user_id ?? settings.user_id
+  const active = claimedDayIds(addons.training_induction)
+  const pending = [...pendingTrainingDayIds(addons)]
+  const legacy = legacyGeneratedDayIds(data, userId)
+  const hasObjectMarker = jsonRecord(addons.training_induction) != null
+  if (!addons.newbie_mode && !hasObjectMarker && active.length === 0 && pending.length === 0 && legacy.length === 0) return null
+
+  const restored = { ...addons }
+  delete restored[PENDING_DAY_IDS_KEY]
+  return {
+    ...restored,
+    newbie_mode: false,
+    training_induction: null,
+    [ARCHIVED_DAY_IDS_KEY]: sortedIds([
+      ...archivedTrainingDayIds(addons),
+      ...active,
+      ...pending,
+      ...legacy,
+    ]),
+    [GENERATION_REVISION_KEY]: Math.max(
+      trainingGenerationRevision(addons),
+      profileGenerationRevision(addons.training_induction),
+    ) + 1,
+  }
+}
+
+export function activeTrainingProgramDays(data: AppData): ProgramDay[] {
+  const userId = data.profile?.user_id ?? data.settings?.user_id
+  if (!userId) return []
+  const archived = archivedTrainingDayIds(data.settings?.addons)
+  const pending = pendingTrainingDayIds(data.settings?.addons)
+  return data.program_days.filter((day) =>
+    day.user_id === userId && !archived.has(day.id) && !pending.has(day.id))
+}
+
 export function generateTrainingPlan(
   userId: string,
   input: TrainingInductionInput,
   existingPrograms: Program[] = [],
   completedAt = new Date().toISOString(),
+  generationRevision = 0,
 ): GeneratedTrainingPlan {
+  const rawInput = jsonRecord(input)
+  input = trainingInputFromProfile(
+    input,
+    typeof rawInput?.start_date === 'string'
+      ? rawInput.start_date
+      : new Date().toISOString().slice(0, 10),
+  )
   const assessment = assessTrainingInput(input)
   const count = assessment.sessions_per_week
   const mainStart = addDaysIso(input.start_date, 84)
   const programFor = (slug: 'transition' | 'main'): Program => {
-    const existing = existingPrograms.find((program) => program.slug === slug)
-    const venue = input.venue === 'gym' ? 'Gym' : 'Home'
+    const generatedId = stableUuid(userId, `program:${slug}`)
+    const existing = existingPrograms.find((program) => program.user_id === userId && program.slug === slug)
+    if (existing && existing.id !== generatedId) return existing
+    const venue = input.venue === 'gym' ? 'Gym' : input.venue === 'outdoors' ? 'Outdoor' : 'Home'
     return {
-      id: existing?.id ?? stableUuid(userId, `program:${slug}`),
+      id: generatedId,
       user_id: userId,
       slug,
       name: slug === 'transition' ? `12-Week ${venue} Foundation` : `Personal ${venue} Main Phase`,
@@ -337,6 +569,8 @@ export function generateTrainingPlan(
    * guessing it makes the behaviour unpredictable. Every generated day is
    * offered both ways, equally, at the point of starting one. */
   const sessionMode: SessionMode = 'guided'
+  const revisionSuffix = generationRevision > 0 ? `:generation:${generationRevision}` : ''
+  const venueLabel = input.venue === 'gym' ? 'Gym' : input.venue === 'outdoors' ? 'Outdoor' : 'Home'
 
   const program_days: ProgramDay[] = []
   const exercises: Exercise[] = []
@@ -349,11 +583,11 @@ export function generateTrainingPlan(
       ? clearanceSessions()
       : input.venue === 'gym'
         ? gymSessions(phase, count)
-        : homeSessions(phase, count, input.equipment)
+        : homeSessions(phase, count, input.equipment, venueLabel)
     const weekdays = weekdaysFor(count)
     sessions.forEach((session, sessionIndex) => {
       const weekday = weekdays[sessionIndex]
-      const dayId = stableUuid(userId, `${slug}:day:${weekday}`)
+      const dayId = stableUuid(userId, `${slug}:day:${weekday}${revisionSuffix}`)
       dayIds[slug].push(dayId)
       program_days.push({
         id: dayId,
@@ -396,7 +630,7 @@ export function generateTrainingPlan(
       const addExercise = (spec: ExerciseSpec, index: number, lite: boolean): void => {
         const sets = Math.max(1, (spec.sets ?? 2) - (lite ? 1 : 0))
         exercises.push({
-          id: stableUuid(userId, `${slug}:day:${weekday}:${lite ? 'lite' : 'full'}:${index}`),
+          id: stableUuid(userId, `${slug}:day:${weekday}:${lite ? 'lite' : 'full'}:${index}${revisionSuffix}`),
           user_id: userId,
           program_day_id: dayId,
           name: spec.name,
@@ -436,6 +670,7 @@ export function generateTrainingPlan(
     exercises,
     induction: {
       version: 1,
+      generation_revision: generationRevision,
       completed_at: completedAt,
       start_date: input.start_date,
       main_start_date: mainStart,
@@ -460,7 +695,8 @@ export function activeInductionDayIds(
   slug: ProgramSlug,
 ): Set<string> | null {
   if (!induction || (slug !== 'transition' && slug !== 'main')) return null
-  return new Set(slug === 'transition' ? induction.transition_day_ids : induction.main_day_ids)
+  const raw = jsonRecord(induction)
+  return new Set(stringArray(raw?.[slug === 'transition' ? 'transition_day_ids' : 'main_day_ids']))
 }
 
 export function isInsideInductionWindow(
@@ -469,8 +705,12 @@ export function isInsideInductionWindow(
   dateIso: string,
 ): boolean {
   if (!induction || (slug !== 'transition' && slug !== 'main')) return true
-  if (slug === 'transition') return dateIso >= induction.start_date && dateIso < induction.main_start_date
-  return dateIso >= induction.main_start_date
+  const raw = jsonRecord(induction)
+  const start = raw?.start_date
+  const mainStart = raw?.main_start_date
+  if (typeof start !== 'string' || typeof mainStart !== 'string') return false
+  if (slug === 'transition') return dateIso >= start && dateIso < mainStart
+  return dateIso >= mainStart
 }
 
 export function inductionWeek(induction: TrainingInductionProfile, dateIso: string): number {

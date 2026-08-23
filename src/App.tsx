@@ -74,10 +74,11 @@ function AnimatedRoutes() {
   const location = useLocation()
   const { data } = useStore()
   const simple = uiModeFromSettings(data.settings) === 'simple'
+  const settingsOnly = !data.profile && Boolean(data.settings)
   return (
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
-        <Route path="/" element={<Page>{simple ? <SimpleHome /> : <Portal />}</Page>} />
+        <Route path="/" element={<Page>{settingsOnly ? <WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /> : simple ? <SimpleHome /> : <Portal />}</Page>} />
         <Route path="/nutrition" element={<Page><Nutrition /></Page>} />
         <Route
           path="/transition"
@@ -237,7 +238,7 @@ function Shell() {
 
 function PrivateStoreScope({ children }: { children: ReactNode }) {
   const { data } = useStore()
-  const ownerKey = data.profile?.user_id ?? 'signed-out'
+  const ownerKey = data.profile?.user_id ?? data.settings?.user_id ?? 'signed-out'
   /* Food, photo and Orbit stores contain private owner-scoped state. Remount
      the complete subtree at the account boundary so React can never render a
      previous owner's rows while the next owner's IndexedDB hydration begins. */

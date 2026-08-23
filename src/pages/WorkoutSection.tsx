@@ -44,6 +44,7 @@ const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
 
 export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; accent: Accent; title: string }) {
   const { data, upsert, remove, toast } = useStore()
+  const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
   const navigate = useNavigate()
@@ -72,9 +73,9 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const todayPlan = useMemo(() => planForDate(data, slug, today, false), [data, slug, today])
   const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
   const showTrainingInduction = Boolean(
-    data.profile &&
-    isTrainingInductionEligible(data.profile.persona) &&
-    data.settings?.addons.newbie_mode &&
+    data.settings &&
+    (!data.profile || isTrainingInductionEligible(data.profile.persona)) &&
+    (!data.profile || data.settings.addons.newbie_mode || data.settings.addons.training_induction_skipped) &&
     (slug === 'transition' || slug === 'main'),
   )
   const planText = (value: string): string => {
@@ -104,9 +105,10 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
 
   /* Deload marking via long-press */
   const toggleDeload = (dateIso: string): void => {
+    if (!ownerId) return
     const mark = data.deload_marks.find((m) => m.date === dateIso)
     if (mark) remove('deload_marks', mark.id)
-    else upsert('deload_marks', { id: crypto.randomUUID(), user_id: data.profile?.user_id ?? '', date: dateIso })
+    else upsert('deload_marks', { id: crypto.randomUUID(), user_id: ownerId, date: dateIso })
     toast(mark ? 'Deload removed' : 'Deload marked', 'ok')
   }
 
@@ -117,13 +119,14 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [evEnd, setEvEnd] = useState(today)
 
   const saveEvent = (): void => {
+    if (!ownerId) return
     if (!evName.trim() || evEnd < evStart) {
       toast('Give the event a name and a valid range')
       return
     }
     upsert('events', {
       id: crypto.randomUUID(),
-      user_id: data.profile?.user_id ?? '',
+      user_id: ownerId,
       name: evName.trim(),
       type: evType,
       start_date: evStart,

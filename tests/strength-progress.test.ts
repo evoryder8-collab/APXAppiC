@@ -51,6 +51,14 @@ test('progression requires explicit reserve at or above the two-RIR target', () 
   }
 })
 
+test('a revisioned exercise keeps same-account movement progression without borrowing another account', () => {
+  const { data, exercise } = progressionData(2)
+  const rebuilt = { ...exercise, id: 'bench-generation-2' }
+
+  assert.equal(recommendLoad(data, rebuilt).weight, 62.5)
+  assert.equal(recommendLoad(data, { ...rebuilt, user_id: 'other-user' }).weight, null)
+})
+
 test('strength series uses per-set loads and creates an honest 90-day comparison', () => {
   const data = strengthData()
   const series = buildStrengthSeries(data)

@@ -66,6 +66,7 @@ struct ConsentView: View {
                 }
             }
             .buttonStyle(APEXPrimaryButtonStyle())
+            .accessibilityIdentifier("consent-finish")
             .padding(22)
             }
         }

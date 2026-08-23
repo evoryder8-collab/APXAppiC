@@ -23,10 +23,14 @@ struct TrainingInductionPanel: View {
 
     private var assessment: TrainingInduction.Assessment { TrainingInduction.assess(draft) }
 
+    private var hasActiveGeneratedPlan: Bool {
+        TrainingInduction.hasCompleteGeneratedPlan(in: session.data, slug: slug)
+    }
+
     /// Installing over an established programme hides it, so that case is
     /// confirmed rather than performed silently.
     private var replacingExistingPlan: Bool {
-        !session.data.programDays.isEmpty && current == nil
+        !TrainingInduction.activeProgramDays(in: session.data).isEmpty && current == nil
     }
 
     var body: some View {
@@ -38,15 +42,19 @@ struct TrainingInductionPanel: View {
                     .foregroundStyle(APEXColor.violet)
                 Text(language.text(slug == "main" ? "Your personal main phase" : "Your 12-week foundation"))
                     .font(APEXFont.display(21))
-                Text(language.text(current == nil
-                    ? "Answer a few questions and APEX writes a starting programme around your equipment, your recovery and the days you can train."
-                    : "Your generated plan is active. Rebuild it any time, or restore your original programme from Settings."))
+                Text(language.text(hasActiveGeneratedPlan ? "Your generated plan is active. Rebuild it any time, or restore your original programme from Settings."
+                    : "Answer a few questions and APEX writes a starting programme around your equipment, your recovery and the days you can train."))
                     .font(APEXFont.body(12, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
 
-                if let current {
+                if hasActiveGeneratedPlan, let current {
                     HStack(spacing: 7) {
-                        chip(current["venue"]?.stringValue == "gym" ? "Gym" : "Home", APEXColor.violet)
+                        chip(
+                            TrainingInduction.venueDisplayName(
+                                for: current["venue"]?.stringValue ?? "home"
+                            ),
+                            APEXColor.violet
+                        )
                         chip(
                             language.format("%d sessions", Int(current["sessions_per_week"]?.numberValue ?? 3)),
                             APEXColor.teal
@@ -59,9 +67,9 @@ struct TrainingInductionPanel: View {
                 }
 
                 Button {
-                    showBuilder = true
+                    openBuilder()
                 } label: {
-                    Text(language.text(current == nil ? "Build my plan" : "Rebuild my plan"))
+                    Text(language.text(hasActiveGeneratedPlan ? "Rebuild my plan" : "Build my plan"))
                         .font(APEXFont.body(14, weight: .bold))
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .foregroundStyle(.white)
@@ -69,6 +77,7 @@ struct TrainingInductionPanel: View {
                 }
                 .buttonStyle(.plain)
                 .accessibilityIdentifier("induction-open")
+                .disabled(session.isBusy)
 
                 if current != nil {
                     Button {
@@ -80,6 +89,7 @@ struct TrainingInductionPanel: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityIdentifier("induction-restore")
+                    .disabled(session.isBusy)
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
@@ -92,8 +102,17 @@ struct TrainingInductionPanel: View {
             isPresented: $confirmReplace
         ) {
             Button(language.text("Install the plan"), role: .destructive) { install() }
+                .disabled(session.isBusy)
             Button(language.text("Cancel"), role: .cancel) {}
         }
+    }
+
+    private func openBuilder() {
+        draft = TrainingInduction.input(
+            from: current,
+            fallbackStartDate: Date().apexDateKey
+        )
+        showBuilder = true
     }
 
     private func chip(_ text: String, _ color: Color) -> some View {
@@ -116,30 +135,55 @@ struct TrainingInductionPanel: View {
     private var builder: some View {
         NavigationStack {
             Form {
+                Section(language.text("What you are training for")) {
+                    Picker(language.text("Goal"), selection: $draft.goal) {
+                        Text(language.text("General fitness")).tag("general")
+                            .accessibilityIdentifier("induction-return-goal-general")
+                        Text(language.text("Build muscle")).tag("muscle")
+                            .accessibilityIdentifier("induction-return-goal-muscle")
+                        Text(language.text("Lose fat")).tag("fat_loss")
+                            .accessibilityIdentifier("induction-return-goal-fat_loss")
+                        Text(language.text("Get stronger")).tag("strength")
+                            .accessibilityIdentifier("induction-return-goal-strength")
+                        Text(language.text("Build endurance")).tag("endurance")
+                            .accessibilityIdentifier("induction-return-goal-endurance")
+                    }
+                    .pickerStyle(.menu)
+                    .accessibilityIdentifier("induction-return-goal")
+                }
+
                 Section(language.text("Where you train")) {
                     Picker(language.text("Venue"), selection: $draft.venue) {
                         Text(language.text("Home")).tag("home")
+                            .accessibilityIdentifier("induction-return-venue-home")
                         Text(language.text("Gym")).tag("gym")
+                            .accessibilityIdentifier("induction-return-venue-gym")
+                        Text(language.text("Outdoors")).tag("outdoors")
+                            .accessibilityIdentifier("induction-return-venue-outdoors")
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier("induction-return-venue")
                     Picker(language.text("Sessions per week"), selection: $draft.sessionsPerWeek) {
-                        ForEach([2, 3, 4], id: \.self) { Text("\($0)").tag($0) }
+                        ForEach(2...5, id: \.self) {
+                            Text("\($0)").tag($0)
+                                .accessibilityIdentifier("induction-return-sessions-\($0)")
+                        }
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier("induction-return-sessions")
                 }
 
-                if draft.venue == "home" {
-                    Section(language.text("What you have")) {
-                        ForEach(TrainingInduction.equipmentCatalog) { option in
-                            Toggle(language.text(option.label), isOn: Binding(
-                                get: { draft.equipment.contains(option.id) },
-                                set: { on in
-                                    if on { draft.equipment.append(option.id) }
-                                    else { draft.equipment.removeAll { $0 == option.id } }
-                                }
-                            ))
-                            .font(APEXFont.body(13, weight: .semibold))
-                        }
+                Section(language.text("What you have")) {
+                    ForEach(TrainingInduction.equipmentCatalog) { option in
+                        Toggle(language.text(option.label), isOn: Binding(
+                            get: { draft.equipment.contains(option.id) },
+                            set: { on in
+                                if on { draft.equipment.append(option.id) }
+                                else { draft.equipment.removeAll { $0 == option.id } }
+                            }
+                        ))
+                        .font(APEXFont.body(13, weight: .semibold))
+                        .accessibilityIdentifier("induction-return-equipment-\(option.id)")
                     }
                 }
 
@@ -152,6 +196,16 @@ struct TrainingInductionPanel: View {
                     }
                     Toggle(language.text("Recent operation"), isOn: $draft.recentOperation)
                     Toggle(language.text("Chronic lower-back pain"), isOn: $draft.chronicLowerBackPain)
+                    ForEach(["knee", "shoulder", "elbow", "hip", "ankle", "wrist"], id: \.self) { area in
+                        Toggle(language.text(area.capitalized), isOn: Binding(
+                            get: { draft.painAreas.contains(area) },
+                            set: { on in
+                                if on { draft.painAreas.append(area) }
+                                else { draft.painAreas.removeAll { $0 == area } }
+                            }
+                        ))
+                        .accessibilityIdentifier("induction-return-pain-\(area)")
+                    }
                 }
 
                 Section(language.text("What APEX will do")) {
@@ -180,14 +234,13 @@ struct TrainingInductionPanel: View {
                     }
                     .fontWeight(.bold)
                     .accessibilityIdentifier("induction-install")
+                    .disabled(session.isBusy)
                 }
             }
         }
     }
 
     private func install() {
-        var input = draft
-        input.startDate = Date().apexDateKey
-        Task { await session.installInductionPlan(input) }
+        Task { await session.installInductionPlan(draft) }
     }
 }

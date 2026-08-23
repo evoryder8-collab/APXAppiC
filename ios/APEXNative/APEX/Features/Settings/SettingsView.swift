@@ -292,10 +292,10 @@ struct SettingsView: View {
                     if enabled {
                         pendingNewbieMode = true
                     } else {
-                        setAddon("newbie_mode", .bool(false))
-                        setAddon("training_induction", .null)
+                        Task { await session.restoreOriginalProgramme() }
                     }
                 }
+                .disabled(session.isBusy)
 
                 if addonBool("newbie_mode", default: false) || hasInduction {
                     Button {
@@ -308,6 +308,7 @@ struct SettingsView: View {
                             .background(APEXColor.green.opacity(0.1), in: RoundedRectangle(cornerRadius: 15))
                     }
                     .buttonStyle(.plain)
+                    .disabled(session.isBusy)
                 }
             }
         }
@@ -320,18 +321,16 @@ struct SettingsView: View {
         .alert(language.text("Restore your original programme?"), isPresented: $confirmRestorePlan) {
             Button(language.text("Cancel"), role: .cancel) {}
             Button(language.text("Restore")) {
-                setAddon("newbie_mode", .bool(false))
-                setAddon("training_induction", .null)
+                Task { await session.restoreOriginalProgramme() }
             }
+            .disabled(session.isBusy)
         } message: {
             Text(language.text("This clears the generated starter plan and brings your own programme back into every calendar."))
         }
     }
 
     private var hasInduction: Bool {
-        guard let value = session.data.settings?.addons["training_induction"] else { return false }
-        if case .null = value { return false }
-        return true
+        TrainingInduction.hasRestorableOverlay(in: session.data)
     }
 
     private var bodyProfileCard: some View {

@@ -4,9 +4,15 @@ import { useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
 import {
   EQUIPMENT_CATALOG,
+  activeTrainingProgramDays,
   assessTrainingInput,
+  commitTrainingPlanAddons,
   generateTrainingPlan,
+  invalidateTrainingPlanAddons,
+  markPendingTrainingPlanAddons,
   searchEquipment,
+  trainingInputFromProfile,
+  trainingGenerationRevision,
   type TrainingInductionInput,
 } from '../../lib/trainingInduction'
 import { ACCENTS } from '../../lib/theme'
@@ -21,17 +27,17 @@ const COPY = {
     emptyBody: 'Answer four short questions. APEX will build a minimal plan around your training gap, body, location and equipment.',
     activeBody: 'Your plan is installed in the calendar. Every block has one job, so progress stays obvious.',
     build: 'Build my first 12 weeks', review: 'Review plan', mainButton: 'Set up my main phase',
-    starts: 'Starts', mainStarts: 'Main phase', sessions: 'sessions / week', home: 'Home', gym: 'Gym',
+    starts: 'Starts', mainStarts: 'Main phase', sessions: 'sessions / week', home: 'Home', gym: 'Gym', outdoors: 'Outdoors',
     wizard: 'Training induction', step: 'Step', back: 'Back', next: 'Continue', install: 'Install my plan',
     gapTitle: 'How long has regular strength training been absent?', gapBody: 'This changes the starting volume, not your potential.',
     frequency: 'How many weekly sessions can you repeat in a normal week?',
     bodyTitle: 'Anything the plan must protect?', bodyBody: 'Choose current joint pain or fatigue. Do not count normal muscle soreness.',
     operation: 'Recent operation', lowerBack: 'Chronic lower-back pain', none: 'Nothing to flag',
     venueTitle: 'Where will you train?', venueBody: 'Every exercise will stay inside the setup you actually have.',
-    homeLabel: 'At home', homeBody: 'Bodyweight and only the tools you select', gymLabel: 'In a gym', gymBody: 'Machines, cables and free weights',
+    homeLabel: 'At home', homeBody: 'Bodyweight and only the tools you select', gymLabel: 'In a gym', gymBody: 'Machines, cables and free weights', outdoorLabel: 'Outdoors', outdoorBody: 'Open-air training with only the tools you select',
     equipmentTitle: 'What equipment is available?', equipmentBody: 'Type a few letters. “dum” immediately finds both dumbbell types.',
     equipmentPlaceholder: 'Search equipment', noEquipment: 'No equipment is completely fine. A bodyweight version will be built.',
-    goalTitle: 'What should the next phase prioritize?', rebuild: 'Rebuild consistency', muscle: 'Build muscle', strength: 'Build strength',
+    goalTitle: 'What should the next phase prioritize?', rebuild: 'Rebuild consistency', muscle: 'Build muscle', fatLoss: 'Lose fat', strength: 'Build strength', endurance: 'Build endurance',
     reviewTitle: 'Your plan logic', standard: 'Standard foundation', cautious: 'Conservative foundation', clearance: 'Clearance-first path',
     standardBody: 'A repeatable schedule with gradual volume and logged-load progression.',
     cautiousBody: 'Volume is reduced and every movement begins with 3 to 4 reps in reserve.',
@@ -43,17 +49,17 @@ const COPY = {
     emptyBody: 'Răspunde la patru întrebări scurte. APEX construiește un plan minimal pe baza pauzei, corpului, locului și echipamentului tău.',
     activeBody: 'Planul este instalat în calendar. Fiecare etapă are un singur scop, iar progresul rămâne clar.',
     build: 'Construiește primele 12 săptămâni', review: 'Revizuiește planul', mainButton: 'Configurează faza principală',
-    starts: 'Începe', mainStarts: 'Faza principală', sessions: 'sesiuni / săptămână', home: 'Acasă', gym: 'Sală',
+    starts: 'Începe', mainStarts: 'Faza principală', sessions: 'sesiuni / săptămână', home: 'Acasă', gym: 'Sală', outdoors: 'În aer liber',
     wizard: 'Inducție pentru antrenament', step: 'Pasul', back: 'Înapoi', next: 'Continuă', install: 'Instalează planul',
     gapTitle: 'De cât timp lipsește antrenamentul regulat de forță?', gapBody: 'Răspunsul schimbă volumul de început, nu potențialul tău.',
     frequency: 'Câte sesiuni poți repeta într-o săptămână normală?',
     bodyTitle: 'Ce trebuie să protejeze planul?', bodyBody: 'Alege durerea sau oboseala articulară actuală. Nu include febra musculară normală.',
     operation: 'Operație recentă', lowerBack: 'Durere lombară cronică', none: 'Nimic de semnalat',
     venueTitle: 'Unde te vei antrena?', venueBody: 'Fiecare exercițiu va folosi doar spațiul și resursele pe care le ai.',
-    homeLabel: 'Acasă', homeBody: 'Greutatea corpului și doar echipamentul selectat', gymLabel: 'La sală', gymBody: 'Aparate, cabluri și greutăți libere',
+    homeLabel: 'Acasă', homeBody: 'Greutatea corpului și doar echipamentul selectat', gymLabel: 'La sală', gymBody: 'Aparate, cabluri și greutăți libere', outdoorLabel: 'În aer liber', outdoorBody: 'Antrenament afară cu doar echipamentul selectat',
     equipmentTitle: 'Ce echipament ai disponibil?', equipmentBody: 'Scrie câteva litere. „gan” găsește imediat ambele tipuri de gantere.',
     equipmentPlaceholder: 'Caută echipament', noEquipment: 'Este în regulă și fără echipament. Va fi creată o variantă cu greutatea corpului.',
-    goalTitle: 'Care este prioritatea fazei următoare?', rebuild: 'Refacerea consecvenței', muscle: 'Masă musculară', strength: 'Forță',
+    goalTitle: 'Care este prioritatea fazei următoare?', rebuild: 'Refacerea consecvenței', muscle: 'Masă musculară', fatLoss: 'Pierdere de grăsime', strength: 'Forță', endurance: 'Rezistență',
     reviewTitle: 'Logica planului tău', standard: 'Fundație standard', cautious: 'Fundație conservatoare', clearance: 'Traseu cu aviz medical',
     standardBody: 'Un program repetabil, cu volum gradual și progresie bazată pe greutățile înregistrate.',
     cautiousBody: 'Volumul este redus, iar fiecare mișcare începe cu 3 sau 4 repetări în rezervă.',
@@ -65,17 +71,17 @@ const COPY = {
     emptyBody: 'ตอบคำถามสั้น ๆ 4 ข้อ APEX จะสร้างแผนที่เรียบง่ายจากช่วงที่หยุดฝึก สภาพร่างกาย สถานที่ และอุปกรณ์ของคุณ',
     activeBody: 'ติดตั้งแผนลงในปฏิทินแล้ว แต่ละช่วงมีเป้าหมายเดียว จึงเห็นความก้าวหน้าได้ชัดเจน',
     build: 'สร้างแผน 12 สัปดาห์แรก', review: 'ทบทวนแผน', mainButton: 'ตั้งค่าช่วงหลัก',
-    starts: 'เริ่ม', mainStarts: 'ช่วงหลัก', sessions: 'ครั้ง / สัปดาห์', home: 'ที่บ้าน', gym: 'ยิม',
+    starts: 'เริ่ม', mainStarts: 'ช่วงหลัก', sessions: 'ครั้ง / สัปดาห์', home: 'ที่บ้าน', gym: 'ยิม', outdoors: 'กลางแจ้ง',
     wizard: 'แบบประเมินก่อนเริ่มฝึก', step: 'ขั้นตอน', back: 'ย้อนกลับ', next: 'ต่อไป', install: 'ติดตั้งแผนของฉัน',
     gapTitle: 'หยุดฝึกเวทอย่างสม่ำเสมอมานานเท่าไร?', gapBody: 'คำตอบนี้เปลี่ยนปริมาณเริ่มต้น ไม่ได้จำกัดศักยภาพของคุณ',
     frequency: 'ในสัปดาห์ปกติ คุณทำได้กี่ครั้งอย่างสม่ำเสมอ?',
     bodyTitle: 'มีส่วนใดที่แผนต้องระวัง?', bodyBody: 'เลือกอาการปวดหรือความล้าของข้อต่อในตอนนี้ ไม่นับอาการปวดกล้ามเนื้อตามปกติ',
     operation: 'เพิ่งผ่าตัด', lowerBack: 'ปวดหลังส่วนล่างเรื้อรัง', none: 'ไม่มีสิ่งที่ต้องแจ้ง',
     venueTitle: 'คุณจะฝึกที่ไหน?', venueBody: 'ทุกท่าจะใช้เฉพาะสถานที่และอุปกรณ์ที่คุณมีจริง',
-    homeLabel: 'ที่บ้าน', homeBody: 'น้ำหนักตัวและอุปกรณ์ที่คุณเลือกเท่านั้น', gymLabel: 'ในยิม', gymBody: 'เครื่อง เคเบิล และฟรีเวท',
+    homeLabel: 'ที่บ้าน', homeBody: 'น้ำหนักตัวและอุปกรณ์ที่คุณเลือกเท่านั้น', gymLabel: 'ในยิม', gymBody: 'เครื่อง เคเบิล และฟรีเวท', outdoorLabel: 'กลางแจ้ง', outdoorBody: 'ฝึกกลางแจ้งด้วยอุปกรณ์ที่คุณเลือกเท่านั้น',
     equipmentTitle: 'คุณมีอุปกรณ์อะไรบ้าง?', equipmentBody: 'พิมพ์เพียงไม่กี่ตัว ระบบจะแสดงตัวเลือกที่ใกล้เคียงทันที',
     equipmentPlaceholder: 'ค้นหาอุปกรณ์', noEquipment: 'ไม่มีอุปกรณ์ก็ได้ ระบบจะสร้างเวอร์ชันน้ำหนักตัวให้',
-    goalTitle: 'ช่วงถัดไปควรเน้นอะไร?', rebuild: 'กลับมาสม่ำเสมอ', muscle: 'สร้างกล้ามเนื้อ', strength: 'เพิ่มความแข็งแรง',
+    goalTitle: 'ช่วงถัดไปควรเน้นอะไร?', rebuild: 'กลับมาสม่ำเสมอ', muscle: 'สร้างกล้ามเนื้อ', fatLoss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'เพิ่มความทนทาน',
     reviewTitle: 'เหตุผลของแผน', standard: 'พื้นฐานมาตรฐาน', cautious: 'พื้นฐานแบบระมัดระวัง', clearance: 'เริ่มหลังได้รับอนุญาต',
     standardBody: 'ตารางที่ทำซ้ำได้ เพิ่มปริมาณทีละน้อย และใช้ค่าน้ำหนักที่บันทึกเพื่อพัฒนา',
     cautiousBody: 'ลดปริมาณฝึก และเริ่มทุกท่าโดยเหลือแรงอีก 3 ถึง 4 ครั้ง',
@@ -123,20 +129,23 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const lang = language as Language
   const copy = COPY[lang]
   const current = data.settings?.addons.training_induction
+  const draftFromCurrent = (): TrainingInductionInput => current
+    ? trainingInputFromProfile(current, todayIso())
+    : {
+        start_date: todayIso(),
+        inactivity: 'one_to_three_months',
+        venue: 'gym',
+        equipment: [],
+        pain_areas: [],
+        recent_operation: false,
+        chronic_lower_back_pain: false,
+        sessions_per_week: 3,
+        goal: 'rebuild',
+      }
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [search, setSearch] = useState('')
-  const [draft, setDraft] = useState<TrainingInductionInput>(() => ({
-    start_date: current?.start_date ?? todayIso(),
-    inactivity: current?.inactivity ?? 'one_to_three_months',
-    venue: current?.venue ?? 'gym',
-    equipment: current?.equipment ?? [],
-    pain_areas: current?.pain_areas ?? [],
-    recent_operation: current?.recent_operation ?? false,
-    chronic_lower_back_pain: current?.chronic_lower_back_pain ?? false,
-    sessions_per_week: current?.sessions_per_week ?? 3,
-    goal: current?.goal ?? 'rebuild',
-  }))
+  const [draft, setDraft] = useState<TrainingInductionInput>(draftFromCurrent)
   const assessment = useMemo(() => assessTrainingInput(draft), [draft])
   const equipmentResults = useMemo(() => searchEquipment(search, lang).filter((item) => !draft.equipment.includes(item.id)).slice(0, 6), [draft.equipment, lang, search])
   const labelForEquipment = (id: string): string => {
@@ -147,8 +156,14 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     ...value,
     pain_areas: value.pain_areas.includes(area) ? value.pain_areas.filter((item) => item !== area) : [...value.pain_areas, area],
   }))
+  const openBuilder = (): void => {
+    setDraft(draftFromCurrent())
+    setSearch('')
+    setStep(0)
+    setOpen(true)
+  }
   const install = (): void => {
-    const userId = data.profile?.user_id
+    const userId = data.profile?.user_id ?? data.settings?.user_id
     const settings = data.settings
     if (!userId || !settings) return
     /*
@@ -157,21 +172,44 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
      * which is indistinguishable from data loss for the person looking at it.
      * Confirm before that happens, and say plainly that it is reversible.
      */
-    const replacingExistingPlan = data.program_days.length > 0 && !settings.addons.training_induction
+    const replacingExistingPlan = activeTrainingProgramDays(data).length > 0 && !settings.addons.training_induction
     if (replacingExistingPlan && !window.confirm(
       'This installs a generated beginner plan and shows it instead of your current programme. Your existing programme is kept and returns from Settings, Restore my original programme. Continue?',
     )) return
-    const generated = generateTrainingPlan(userId, draft, data.programs)
-    bulkUpsert('programs', generated.programs)
-    bulkUpsert('program_days', generated.program_days)
-    bulkUpsert('exercises', generated.exercises)
-    setSettings({ addons: { ...settings.addons, newbie_mode: true, training_induction: generated.induction } })
+    let addons = settings.addons
+    if (settings.addons.training_induction) {
+      addons = invalidateTrainingPlanAddons(addons)
+    }
+    const generated = generateTrainingPlan(
+      userId,
+      draft,
+      data.programs,
+      new Date().toISOString(),
+      trainingGenerationRevision(addons),
+    )
+    const syncGroup = `training-induction:${userId}:${generated.induction.generation_revision ?? 0}:${generated.induction.completed_at}`
+    addons = markPendingTrainingPlanAddons(addons, generated)
+    /* One durable pre-row write carries both invalidation and pending IDs.
+       Separate settings writes can coalesce in the offline queue and drop the
+       pending barrier before the generated rows reach the server. */
+    setSettings({ addons }, { syncGroup })
+    bulkUpsert('programs', generated.programs, { syncGroup })
+    bulkUpsert('program_days', generated.program_days, { syncGroup })
+    bulkUpsert('exercises', generated.exercises, { syncGroup })
+    setSettings({ addons: commitTrainingPlanAddons(addons, generated) }, { syncGroup })
     toast(copy.installed, 'ok')
     setOpen(false)
     setStep(0)
   }
   const cautionTitle = assessment.caution === 'clearance' ? copy.clearance : assessment.caution === 'cautious' ? copy.cautious : copy.standard
   const cautionBody = assessment.caution === 'clearance' ? copy.clearanceBody : assessment.caution === 'cautious' ? copy.cautiousBody : copy.standardBody
+  const goalLabel: Record<TrainingGoal, string> = {
+    rebuild: copy.rebuild,
+    muscle: copy.muscle,
+    fat_loss: copy.fatLoss,
+    strength: copy.strength,
+    endurance: copy.endurance,
+  }
 
   return (
     <div data-no-translate>
@@ -183,14 +221,14 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
             <p className="mt-2 max-w-xl text-sm leading-relaxed font-medium text-ink-soft">{current ? copy.activeBody : copy.emptyBody}</p>
             {current && (
               <div className="mt-3 flex flex-wrap gap-2">
-                <AccentChip accent={ACCENTS.violet}>{current.venue === 'gym' ? copy.gym : copy.home}</AccentChip>
+                <AccentChip accent={ACCENTS.violet}>{current.venue === 'gym' ? copy.gym : current.venue === 'outdoors' ? copy.outdoors : copy.home}</AccentChip>
                 <AccentChip accent={ACCENTS.teal}>{current.sessions_per_week} {copy.sessions}</AccentChip>
                 <AccentChip accent={current.caution === 'standard' ? ACCENTS.emerald : ACCENTS.amber}>{current.caution === 'clearance' ? copy.clearance : current.caution === 'cautious' ? copy.cautious : copy.standard}</AccentChip>
               </div>
             )}
             {current && <p className="mt-3 font-mono text-[10px] font-bold text-ink-faint">{copy.starts}: {current.start_date} · {copy.mainStarts}: {current.main_start_date}</p>}
           </div>
-          <GradientButton accent={ACCENTS.violet} onClick={() => setOpen(true)} className="w-full sm:w-auto">
+          <GradientButton accent={ACCENTS.violet} onClick={openBuilder} className="w-full sm:w-auto">
             {current ? copy.review : slug === 'main' ? copy.mainButton : copy.build}
           </GradientButton>
         </div>
@@ -222,8 +260,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                   {INACTIVITY.map((option) => <Choice key={option.value} active={draft.inactivity === option.value} onClick={() => setDraft((value) => ({ ...value, inactivity: option.value }))}>{option[lang]}</Choice>)}
                 </div>
                 <h3 className="mt-7 font-display text-lg font-bold text-ink">{copy.frequency}</h3>
-                <div className="mt-3 grid grid-cols-3 gap-2">
-                  {([2, 3, 4] as const).map((count) => <Choice key={count} active={draft.sessions_per_week === count} onClick={() => setDraft((value) => ({ ...value, sessions_per_week: count }))} className="text-center"><span className="font-mono text-xl text-ink">{count}</span></Choice>)}
+                <div className="mt-3 grid grid-cols-4 gap-2">
+                  {([2, 3, 4, 5] as const).map((count) => <Choice key={count} active={draft.sessions_per_week === count} onClick={() => setDraft((value) => ({ ...value, sessions_per_week: count }))} className="text-center"><span className="font-mono text-xl text-ink">{count}</span></Choice>)}
                 </div>
               </div>
             )}
@@ -245,8 +283,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
               <div>
                 <h3 className="font-display text-xl font-bold text-ink">{copy.venueTitle}</h3>
                 <p className="mt-1 text-sm font-medium text-ink-soft">{copy.venueBody}</p>
-                <div className="mt-5 grid gap-3 sm:grid-cols-2">
-                  {([['home', copy.homeLabel, copy.homeBody], ['gym', copy.gymLabel, copy.gymBody]] as Array<[TrainingVenue, string, string]>).map(([venue, title, body]) => (
+                <div className="mt-5 grid gap-3 sm:grid-cols-3">
+                  {([['home', copy.homeLabel, copy.homeBody], ['gym', copy.gymLabel, copy.gymBody], ['outdoors', copy.outdoorLabel, copy.outdoorBody]] as Array<[TrainingVenue, string, string]>).map(([venue, title, body]) => (
                     <Choice key={venue} active={draft.venue === venue} onClick={() => setDraft((value) => ({ ...value, venue }))} className="min-h-28">
                       <span className="block font-display text-lg text-ink">{title}</span><span className="mt-1 block text-xs leading-relaxed font-medium text-ink-soft">{body}</span>
                     </Choice>
@@ -256,7 +294,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
             )}
             {step === 3 && (
               <div>
-                {draft.venue === 'home' && (
+                {draft.venue !== 'gym' && (
                   <>
                     <h3 className="font-display text-xl font-bold text-ink">{copy.equipmentTitle}</h3>
                     <p className="mt-1 text-sm font-medium text-ink-soft">{copy.equipmentBody}</p>
@@ -267,9 +305,9 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                     {draft.equipment.length > 0 ? <div className="mt-3 flex flex-wrap gap-2">{draft.equipment.map((id) => <button key={id} type="button" onClick={() => setDraft((value) => ({ ...value, equipment: value.equipment.filter((item) => item !== id) }))} className="rounded-full bg-violet-100 px-3 py-1.5 text-xs font-bold text-violet-800">{labelForEquipment(id)} ×</button>)}</div> : <p className="mt-3 text-xs font-medium text-ink-faint">{copy.noEquipment}</p>}
                   </>
                 )}
-                <h3 className={`${draft.venue === 'home' ? 'mt-7' : ''} font-display text-xl font-bold text-ink`}>{copy.goalTitle}</h3>
+                <h3 className={`${draft.venue !== 'gym' ? 'mt-7' : ''} font-display text-xl font-bold text-ink`}>{copy.goalTitle}</h3>
                 <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {([['rebuild', copy.rebuild], ['muscle', copy.muscle], ['strength', copy.strength]] as Array<[TrainingGoal, string]>).map(([goal, label]) => <Choice key={goal} active={draft.goal === goal} onClick={() => setDraft((value) => ({ ...value, goal }))}>{label}</Choice>)}
+                  {([['rebuild', copy.rebuild], ['muscle', copy.muscle], ['fat_loss', copy.fatLoss], ['strength', copy.strength], ['endurance', copy.endurance]] as Array<[TrainingGoal, string]>).map(([goal, label]) => <Choice key={goal} active={draft.goal === goal} onClick={() => setDraft((value) => ({ ...value, goal }))}>{label}</Choice>)}
                 </div>
               </div>
             )}
@@ -282,7 +320,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                   <p className="mt-4 font-mono text-[10px] font-black tracking-[.08em] text-violet-800 uppercase">{copy.phases}</p>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-                  {[draft.venue === 'gym' ? copy.gym : copy.home, `${assessment.sessions_per_week} ${copy.sessions}`, draft.start_date, draft.goal === 'rebuild' ? copy.rebuild : draft.goal === 'muscle' ? copy.muscle : copy.strength].map((value) => <div key={value} className="rounded-2xl bg-white/65 px-2 py-3 text-xs font-bold text-ink-soft">{value}</div>)}
+                  {[draft.venue === 'gym' ? copy.gym : draft.venue === 'outdoors' ? copy.outdoors : copy.home, `${assessment.sessions_per_week} ${copy.sessions}`, draft.start_date, goalLabel[draft.goal]].map((value) => <div key={value} className="rounded-2xl bg-white/65 px-2 py-3 text-xs font-bold text-ink-soft">{value}</div>)}
                 </div>
               </div>
             )}

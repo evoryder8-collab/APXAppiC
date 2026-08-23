@@ -77,31 +77,46 @@ struct InductionView: View {
     }
 
     private var footer: some View {
-        HStack(spacing: 12) {
-            if step > 0 {
-                Button(language.text(.back)) {
-                    withAnimation(.snappy) { step -= 1 }
+        VStack(spacing: 8) {
+            HStack(spacing: 12) {
+                if step > 0 {
+                    Button(language.text(.back)) {
+                        withAnimation(.snappy) { step -= 1 }
+                    }
+                    .font(APEXFont.body(15, weight: .semibold))
+                    .buttonStyle(.plain)
+                    .disabled(session.isBusy)
                 }
-                .font(APEXFont.body(15, weight: .semibold))
+                Spacer()
+                Button {
+                    if step == stepCount - 1 {
+                        Task { await session.completeInduction(input) }
+                    } else {
+                        withAnimation(.snappy) { step += 1 }
+                    }
+                } label: {
+                    HStack {
+                        Text(language.text(step == stepCount - 1 ? "Build my plan" : "Continue"))
+                        Image(systemName: "arrow.right")
+                    }
+                }
+                .buttonStyle(APEXPrimaryButtonStyle())
+                .frame(maxWidth: 220)
+                .disabled(session.isBusy)
+            }
+
+            Button("Skip", action: skip)
+                .font(APEXFont.body(14, weight: .semibold))
+                .frame(minWidth: 88, minHeight: 44)
                 .buttonStyle(.plain)
-            }
-            Spacer()
-            Button {
-                if step == stepCount - 1 {
-                    Task { await session.completeInduction(input) }
-                } else {
-                    withAnimation(.snappy) { step += 1 }
-                }
-            } label: {
-                HStack {
-                    Text(language.text(step == stepCount - 1 ? "Build my plan" : "Continue"))
-                    Image(systemName: "arrow.right")
-                }
-            }
-            .buttonStyle(APEXPrimaryButtonStyle())
-            .frame(maxWidth: 220)
+                .disabled(session.isBusy)
+                .accessibilityIdentifier("induction-skip")
         }
         .padding(22)
+    }
+
+    private func skip() {
+        Task { await session.skipInduction() }
     }
 
     // MARK: - Questions

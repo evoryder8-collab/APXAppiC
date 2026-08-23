@@ -189,7 +189,9 @@ struct MarathonInductionView: View {
             step = min(existing.completed ? 0 : existing.currentStep, questions.count - 1)
             createdAt = existing.createdAt
         }
-        let lowerBodyDays = session.data.programDays.filter { ["legs_a", "legs_b"].contains($0.dayType) }.count
+        let lowerBodyDays = TrainingInduction.activeProgramDays(in: session.data)
+            .filter { ["legs_a", "legs_b"].contains($0.dayType) }
+            .count
         answers["strength_days_per_week"] = .number(Double(lowerBodyDays))
         if answers["race_date"]?.stringValue?.isEmpty != false {
             answers["race_date"] = .string(Calendar.current.date(byAdding: .month, value: 6, to: .now)!.apexDateKey)

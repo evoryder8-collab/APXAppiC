@@ -93,6 +93,124 @@ final class EntitlementTests: XCTestCase {
         XCTAssertTrue(Entitlement.allows(.planAuthoring, access: .trial(daysRemaining: 3)))
         XCTAssertFalse(Entitlement.allows(.planAuthoring, access: .expired))
     }
+
+    @MainActor
+    func testProfilelessAccountCannotInheritAnotherAccountsAccess() throws {
+        let store = EntitlementStore()
+        var founder = try XCTUnwrap(APEXDebugFixture.dashboard().profile)
+        founder.foundingMember = true
+
+        store.resolve(profile: founder)
+        XCTAssertEqual(store.access, .founding)
+
+        let profilelessAccount = UUID()
+        store.prepareForAccount(profilelessAccount)
+        XCTAssertEqual(store.resolvedUserID, profilelessAccount)
+        XCTAssertEqual(store.access, .trial(daysRemaining: Entitlement.trialDays))
+        XCTAssertNotEqual(store.access, .founding)
+
+        store.resetAccount()
+        XCTAssertNil(store.resolvedUserID)
+        XCTAssertEqual(store.access, .trial(daysRemaining: Entitlement.trialDays))
+    }
+
+    func testAuthCallbackDropsTheOldAccountBeforeAFallibleDashboardRefresh() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSession = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        let start = try XCTUnwrap(appSession.range(of: "func handleAuthCallback"))
+        let end = try XCTUnwrap(
+            appSession.range(of: "func toggleMeal", range: start.upperBound..<appSession.endIndex)
+        )
+        let callback = String(appSession[start.lowerBound..<end.lowerBound])
+
+        let reset = try XCTUnwrap(callback.range(of: "EntitlementStore.shared.resetAccount()"))
+        let authenticate = try XCTUnwrap(
+            callback.range(of: "let userID = try await service.handleAuthCallback(url)")
+        )
+        let scope = try XCTUnwrap(
+            callback.range(of: "EntitlementStore.shared.prepareForAccount(userID)")
+        )
+        let clear = try XCTUnwrap(callback.range(of: "data = .empty"))
+        let refresh = try XCTUnwrap(
+            callback.range(of: "try await refreshDashboard(expectedUserID: userID)")
+        )
+
+        XCTAssertLessThan(reset.lowerBound, authenticate.lowerBound)
+        XCTAssertLessThan(authenticate.lowerBound, scope.lowerBound)
+        XCTAssertLessThan(scope.lowerBound, clear.lowerBound)
+        XCTAssertLessThan(clear.lowerBound, refresh.lowerBound)
+        XCTAssertTrue(callback.contains("var switchedAccounts = false"))
+        XCTAssertTrue(callback.contains("switchedAccounts = true"))
+        XCTAssertTrue(callback.contains("if !switchedAccounts {"))
+        XCTAssertTrue(callback.contains("await resolveEntitlements()"))
+        XCTAssertTrue(callback.contains("if route == .portal { await startRealtimeSync() }"))
+    }
+
+    func testAccountGenerationRejectsACompletionFromBeforeAnAuthBoundary() {
+        var generation = AccountGenerationGate()
+        let accountA = generation.token
+        XCTAssertTrue(generation.accepts(accountA))
+
+        generation.advance()
+        let capturedDuringTransition = generation.token
+        XCTAssertTrue(generation.accepts(capturedDuringTransition))
+        generation.advance()
+
+        XCTAssertFalse(generation.accepts(accountA))
+        XCTAssertFalse(generation.accepts(capturedDuringTransition))
+        XCTAssertTrue(generation.accepts(generation.token))
+    }
+
+    func testRefreshAndInductionMutationsCheckTheAccountGeneration() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift")
+        )
+        func body(_ start: String, before end: String) throws -> String {
+            let lower = try XCTUnwrap(source.range(of: start))
+            let upper = try XCTUnwrap(source.range(of: end, range: lower.upperBound..<source.endIndex))
+            return String(source[lower.lowerBound..<upper.lowerBound])
+        }
+
+        for boundary in ["func signIn(email:", "func signUp(email:", "func signInWithApple(", "func signOut()", "func handleAuthCallback("] {
+            let start = try XCTUnwrap(source.range(of: boundary))
+            let tail = String(source[start.lowerBound...])
+            XCTAssertTrue(
+                tail.prefix(500).contains("var accountToken = beginAccountBoundary()"),
+                "missing account boundary in \(boundary)"
+            )
+            XCTAssertTrue(
+                tail.prefix(1_500).contains("accountToken = completeAccountBoundary()"),
+                "missing completed account boundary in \(boundary)"
+            )
+        }
+
+        let refresh = try body("func refreshDashboard", before: "/// Store a new profile picture")
+        XCTAssertTrue(refresh.contains("let accountToken = accountGeneration.token"))
+        XCTAssertTrue(refresh.contains("guard accountGeneration.accepts(accountToken) else { throw CancellationError() }"))
+        XCTAssertTrue(refresh.contains("let currentUserID = await service.currentUserID()"))
+        XCTAssertTrue(refresh.contains("TrainingInduction.isCompatibleDashboard(next, userID: currentUserID)"))
+
+        let mutations = [
+            (try body("private func submitInduction", before: "/// Deterministic authenticated first-run"), 6),
+            (try body("func installInductionPlan", before: "private func applyInductionPlan"), 8),
+            (try body("func restoreOriginalProgramme", before: "/// Store a rewritten predefined list"), 2),
+        ]
+        for (mutation, minimumChecks) in mutations {
+            XCTAssertTrue(mutation.contains("let accountToken = accountGeneration.token"))
+            XCTAssertGreaterThanOrEqual(
+                mutation.components(separatedBy: "guard accountGeneration.accepts(accountToken) else { return }").count - 1,
+                minimumChecks
+            )
+        }
+    }
+
 }
 
 /// A dashboard cached by an earlier build has none of the entitlement columns.
