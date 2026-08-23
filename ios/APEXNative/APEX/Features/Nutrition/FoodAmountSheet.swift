@@ -156,6 +156,16 @@ struct FoodAmountSheet: View {
             unit = start.unit
             quantityText = formatted(start.quantity)
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(language.text("Done")) {
+                    quantityFocused = false
+                }
+                .font(APEXFont.body(15, weight: .bold))
+                .accessibilityIdentifier("food-amount-keyboard-done")
+            }
+        }
     }
 
     private var header: some View {

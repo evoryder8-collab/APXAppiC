@@ -2757,6 +2757,10 @@
 "Under 5 km" = "น้อยกว่า 5 กม.";
 "Under 5k steps · under 2h on feet" = "ต่ำกว่า 5,000 ก้าว · ยืนหรือเดินไม่ถึง 2 ชม.";
 "Undo" = "ย้อนกลับ";
+"%@ removed" = "ลบ %@ แล้ว";
+"1 food" = "อาหาร 1 รายการ";
+"%d millilitres water" = "น้ำ %d มิลลิลิตร";
+"%d millilitres water in this meal" = "น้ำในมื้อนี้ %d มิลลิลิตร";
 "Unexplained fainting or near-fainting" = "เป็นลมหรือเกือบเป็นลมโดยไม่ทราบสาเหตุ";
 "Unfavourite" = "นำออกจากรายการโปรด";
 "Unit" = "หน่วย";

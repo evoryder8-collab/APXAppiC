@@ -39,6 +39,49 @@ private enum MealComposerDensity: String, CaseIterable {
     case expanded
 }
 
+enum MealComposerHydration {
+    static func itemWaterML(_ item: MealComposerItem) -> Double {
+        max(0, item.waterML)
+    }
+
+    static func totalWaterML(in items: [MealComposerItem]) -> Double {
+        items.reduce(0) { total, item in total + itemWaterML(item) }
+    }
+
+    static func displayedItemWaterML(_ item: MealComposerItem) -> Int {
+        Int(itemWaterML(item).rounded())
+    }
+
+    static func displayedTotalWaterML(in items: [MealComposerItem]) -> Int {
+        items.reduce(0) { total, item in total + displayedItemWaterML(item) }
+    }
+}
+
+struct MealComposerUndoBuffer {
+    private struct Removal {
+        let item: MealComposerItem
+        let index: Int
+    }
+
+    private var removal: Removal?
+
+    var removedName: String? { removal?.item.name }
+
+    mutating func remove(_ id: UUID, from items: inout [MealComposerItem]) -> Bool {
+        guard let index = items.firstIndex(where: { $0.id == id }) else { return false }
+        removal = Removal(item: items.remove(at: index), index: index)
+        return true
+    }
+
+    mutating func restore(into items: inout [MealComposerItem]) -> Bool {
+        guard let removal else { return false }
+        items.insert(removal.item, at: min(removal.index, items.endIndex))
+        self.removal = nil
+        return true
+    }
+
+}
+
 struct MealComposerView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -60,6 +103,7 @@ struct MealComposerView: View {
     @State private var guideEditing = false
     @State private var guideDraft: [String] = []
     @State private var guideQuery: MealProtocolGuide.Query?
+    @State private var undoBuffer = MealComposerUndoBuffer()
 
     /* Food Memory scores history against the block and clock this meal sits in,
        so a 07:00 breakfast start is not ranked by a 22:00 one. */
@@ -72,6 +116,10 @@ struct MealComposerView: View {
         formatter.locale = Locale(identifier: "en_US_POSIX")
         formatter.dateFormat = "HH:mm"
         return formatter.string(from: draft.finishedAt)
+    }
+
+    private var displayedWaterML: Int {
+        MealComposerHydration.displayedTotalWaterML(in: draft.items)
     }
 
     init(request: MealComposerRequest) {
@@ -460,6 +508,7 @@ struct MealComposerView: View {
                 }
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("meal-food-picker-open")
         }
     }
 
@@ -508,8 +557,26 @@ struct MealComposerView: View {
                         .font(APEXFont.mono(10))
                         .tracking(1.5)
                         .foregroundStyle(APEXColor.amberDeep)
-                    Text(language.format("%d foods", draft.items.count))
-                        .font(APEXFont.display(20))
+                    HStack(alignment: .firstTextBaseline, spacing: 10) {
+                        Text(
+                            draft.items.count == 1
+                                ? language.text("1 food")
+                                : language.format("%d foods", draft.items.count)
+                        )
+                            .font(APEXFont.display(20))
+                        if draft.items.isEmpty == false {
+                            Label(
+                                language.format("%d ml", displayedWaterML),
+                                systemImage: "drop.fill"
+                            )
+                            .font(APEXFont.mono(10, weight: .bold))
+                            .foregroundStyle(APEXColor.cyan)
+                            .accessibilityLabel(
+                                language.format("%d millilitres water in this meal", displayedWaterML)
+                            )
+                            .accessibilityIdentifier("meal-total-water")
+                        }
+                    }
                 }
                 Spacer()
                 if !selectionMode {
@@ -555,6 +622,28 @@ struct MealComposerView: View {
     private var saveBar: some View {
         VStack(spacing: 0) {
             Divider().opacity(0.4)
+            if let removedName = undoBuffer.removedName {
+                HStack(spacing: 10) {
+                    Image(systemName: "fork.knife")
+                        .foregroundStyle(APEXColor.danger)
+                    Text(language.format("%@ removed", removedName))
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .lineLimit(1)
+                    Spacer(minLength: 4)
+                    Button(language.text("Undo")) { undoRemoval() }
+                        .font(APEXFont.body(13, weight: .bold))
+                        .foregroundStyle(APEXColor.amberDeep)
+                        .padding(.horizontal, 14)
+                        .frame(height: 44)
+                        .background(APEXColor.amber.opacity(0.13), in: Capsule())
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("meal-item-undo")
+                }
+                .padding(.horizontal, 18)
+                .padding(.top, 9)
+                .transition(.move(edge: .bottom).combined(with: .opacity))
+            }
             Button {
                 Task { await save() }
             } label: {
@@ -645,8 +734,24 @@ struct MealComposerView: View {
     }
 
     private func remove(_ id: UUID) {
-        withAnimation(.snappy) { draft.items.removeAll { $0.id == id } }
+        var items = draft.items
+        var nextUndo = undoBuffer
+        guard nextUndo.remove(id, from: &items) else { return }
+        withAnimation(.snappy) {
+            draft.items = items
+            undoBuffer = nextUndo
+        }
         selectedItemIDs.remove(id)
+    }
+
+    private func undoRemoval() {
+        var items = draft.items
+        var nextUndo = undoBuffer
+        guard nextUndo.restore(into: &items) else { return }
+        withAnimation(.snappy) {
+            draft.items = items
+            undoBuffer = nextUndo
+        }
     }
 
     private func add(_ food: Food, amount: Double, unit: String) {
@@ -785,6 +890,7 @@ private struct MealComposerItemCard: View {
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .lineLimit(1)
+                            waterBadge
                         }
                         .frame(maxWidth: .infinity, alignment: .leading)
 
@@ -828,6 +934,8 @@ private struct MealComposerItemCard: View {
                                 .background(APEXColor.danger.opacity(0.09), in: RoundedRectangle(cornerRadius: 10, style: .continuous))
                         }
                         .buttonStyle(.plain)
+                        .accessibilityLabel(language.format("Remove %@", item.name))
+                        .accessibilityIdentifier("meal-item-delete-\(item.id.uuidString)")
                     }
                 }
 
@@ -858,6 +966,7 @@ private struct MealComposerItemCard: View {
                         ))
                         .font(APEXFont.mono(9))
                         .foregroundStyle(APEXColor.secondaryInk)
+                        waterBadge
                     }
                     Spacer(minLength: 3)
                     if !selecting {
@@ -909,6 +1018,8 @@ private struct MealComposerItemCard: View {
                             .background(APEXColor.danger.opacity(0.09), in: RoundedRectangle(cornerRadius: 13, style: .continuous))
                     }
                     .buttonStyle(.plain)
+                    .accessibilityLabel(language.format("Remove %@", item.name))
+                    .accessibilityIdentifier("meal-item-delete-\(item.id.uuidString)")
                 }
                 } // end expanded two-row layout
 
@@ -934,6 +1045,19 @@ private struct MealComposerItemCard: View {
                 }
             }
         }
+    }
+
+    private var waterBadge: some View {
+        Label(
+            language.format("%d ml", MealComposerHydration.displayedItemWaterML(item)),
+            systemImage: "drop.fill"
+        )
+        .font(APEXFont.mono(8, weight: .bold))
+        .foregroundStyle(APEXColor.cyan)
+        .accessibilityLabel(
+            language.format("%d millilitres water", MealComposerHydration.displayedItemWaterML(item))
+        )
+        .accessibilityIdentifier("meal-item-water-\(item.id.uuidString)")
     }
 }
 
