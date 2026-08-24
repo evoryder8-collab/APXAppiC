@@ -75,7 +75,7 @@ final class CustomWorkoutBuilderTests: XCTestCase {
             ExerciseCatalog.search("", category: "hyrox", language: .english).map(\.id),
             [
                 "ski_erg", "sled_push", "sled_pull", "burpee_broad_jump",
-                "row_erg", "farmers_carry", "sandbag_lunge", "wall_ball",
+                "row_erg", "kettlebell_farmers_walk", "sandbag_lunge", "wall_ball",
             ],
             "the HYROX shelf follows the official station order from SkiErg to Wall Balls"
         )

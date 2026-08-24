@@ -134,6 +134,42 @@ test('a movement that cannot be failed alone says what would make it safe', () =
   }
 })
 
+test('barbell safety facts distinguish controlled pulls from high-consequence failures', () => {
+  for (const id of ['barbell_romanian_deadlift', 'conventional_deadlift', 'barbell_row']) {
+    assert.equal(MOVEMENT_BY_ID.get(id)?.canFailSafely, true, `${id} can be returned to the floor`)
+  }
+
+  const goodMorning = MOVEMENT_BY_ID.get('good_morning')!
+  assert.equal(goodMorning.canFailSafely, false)
+  assert.equal(goodMorning.needsSafeties, true)
+  assert.ok(goodMorning.failSafeConditions.includes('rack_safeties_set'))
+
+  for (const id of ['barbell_overhead_press', 'thruster', 'push_press']) {
+    const movement = MOVEMENT_BY_ID.get(id)!
+    assert.equal(movement.canFailSafely, false, id)
+    assert.ok(movement.failSafeConditions.includes('clear_lifting_platform'), id)
+  }
+
+  for (const id of ['power_clean', 'power_snatch', 'clean_and_jerk', 'overhead_squat']) {
+    const movement = MOVEMENT_BY_ID.get(id)!
+    assert.equal(movement.canFailSafely, false, id)
+    assert.equal(movement.coachedOnly, true, id)
+    assert.ok(movement.failSafeConditions.includes('qualified_coach_present'), id)
+    assert.ok(movement.failSafeConditions.includes('clear_lifting_platform'), id)
+  }
+
+  for (const id of ['landmine_press', 'landmine_squat', 'single_arm_landmine_press']) {
+    assert.equal(MOVEMENT_BY_ID.get(id)?.requiresBailSkill, false, `${id} is anchored, not a free bar`)
+  }
+
+  const snatchGripRDL = MOVEMENT_BY_ID.get('snatch_grip_romanian_deadlift')!
+  assert.equal(snatchGripRDL.ballistic, false)
+  assert.equal(snatchGripRDL.overhead, false)
+  assert.equal(snatchGripRDL.requiresBailSkill, false)
+  assert.equal(snatchGripRDL.tempoApplies, true)
+  assert.equal(snatchGripRDL.prescriptionMode, 'tempo_reps')
+})
+
 test('every entity type carries a prescription it can actually take', () => {
   const schemas: Record<string, string> = {
     resistance_dynamic: 'sets_reps_load',
