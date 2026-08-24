@@ -56,6 +56,7 @@ struct ExerciseCatalogCategory: Codable, Identifiable, Hashable, Sendable {
 enum ExerciseCatalog {
     private struct Payload: Codable {
         let categories: [ExerciseCatalogCategory]
+        let categoryOrders: [String: [String]]
         let exercises: [ExerciseCatalogItem]
     }
 
@@ -66,7 +67,7 @@ enum ExerciseCatalog {
         else {
             /* An empty catalogue still lets the builder open and explain
                itself, rather than taking the screen down with it. */
-            return Payload(categories: [], exercises: [])
+            return Payload(categories: [], categoryOrders: [:], exercises: [])
         }
         return decoded
     }()
@@ -75,8 +76,13 @@ enum ExerciseCatalog {
     static var categories: [ExerciseCatalogCategory] { payload.categories }
 
     static func search(_ query: String, category: String, language: AppLanguage) -> [ExerciseCatalogItem] {
-        all.filter { item in
+        let matches = all.filter { item in
             (category == "all" || item.categories.contains(category)) && item.matches(query, language: language)
+        }
+        guard let order = payload.categoryOrders[category] else { return matches }
+        let ranks = Dictionary(uniqueKeysWithValues: order.enumerated().map { ($1, $0) })
+        return matches.sorted { left, right in
+            (ranks[left.id] ?? Int.max) < (ranks[right.id] ?? Int.max)
         }
     }
 }

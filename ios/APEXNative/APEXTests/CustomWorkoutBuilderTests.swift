@@ -36,8 +36,8 @@ final class CustomWorkoutBuilderTests: XCTestCase {
     }
 
     func testCatalogueShipsEntireCanonicalLibraryInsideTheBundle() {
-        XCTAssertEqual(ExerciseCatalog.all.count, 332)
-        XCTAssertEqual(Set(ExerciseCatalog.all.map(\.id)).count, 332)
+        XCTAssertEqual(ExerciseCatalog.all.count, 549)
+        XCTAssertEqual(Set(ExerciseCatalog.all.map(\.id)).count, 549)
         XCTAssertEqual(
             Set(ExerciseCatalog.all.map(\.id)),
             Set(MovementTiming.cataloguedMovements.map(\.id))
@@ -56,12 +56,12 @@ final class CustomWorkoutBuilderTests: XCTestCase {
 
         let expectedCounts = [
             "hyrox": 8,
-            "crossfit": 16,
-            "olympic_weightlifting": 3,
-            "powerlifting": 3,
-            "kettlebell_sport": 1,
-            "strongman": 2,
-            "mobility": 42,
+            "crossfit": 40,
+            "olympic_weightlifting": 7,
+            "powerlifting": 4,
+            "kettlebell_sport": 6,
+            "strongman": 9,
+            "mobility": 54,
         ]
         for (category, count) in expectedCounts {
             XCTAssertEqual(
@@ -72,20 +72,29 @@ final class CustomWorkoutBuilderTests: XCTestCase {
         }
 
         XCTAssertEqual(
-            Set(ExerciseCatalog.search("", category: "hyrox", language: .english).map(\.id)),
-            Set([
+            ExerciseCatalog.search("", category: "hyrox", language: .english).map(\.id),
+            [
                 "ski_erg", "sled_push", "sled_pull", "burpee_broad_jump",
                 "row_erg", "farmers_carry", "sandbag_lunge", "wall_ball",
-            ])
+            ],
+            "the HYROX shelf follows the official station order from SkiErg to Wall Balls"
         )
         XCTAssertEqual(
             Set(ExerciseCatalog.search("", category: "olympic_weightlifting", language: .english).map(\.id)),
-            Set(["power_clean", "power_snatch", "clean_and_jerk"])
+            Set([
+                "power_clean", "power_snatch", "clean_and_jerk",
+                "snatch_grip_romanian_deadlift", "barbell_split_jerk",
+                "barbell_push_jerk", "barbell_power_jerk",
+            ])
         )
         XCTAssertEqual(
             Set(ExerciseCatalog.search("", category: "powerlifting", language: .english).map(\.id)),
-            Set(["barbell_back_squat", "barbell_bench_press", "conventional_deadlift"])
+            Set(["barbell_back_squat", "barbell_bench_press", "conventional_deadlift", "barbell_rack_pull"])
         )
+
+        let mace = ExerciseCatalog.search("mace", category: "street", language: .english)
+        XCTAssertEqual(mace.count, 8)
+        XCTAssertTrue(mace.allSatisfy { $0.categories.contains("street") })
     }
 
     func testEveryCataloguedCategoryIsSelectable() {

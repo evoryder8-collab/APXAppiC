@@ -18,8 +18,8 @@ test('the workout studio exposes every canonical movement exactly once', () => {
   ])
   const offered = new Set(EXERCISE_CATALOG.map((exercise) => exercise.id))
 
-  assert.equal(EXERCISE_CATALOG.length, 332)
-  assert.equal(offered.size, 332)
+  assert.equal(EXERCISE_CATALOG.length, 549)
+  assert.equal(offered.size, 549)
   assert.deepEqual(offered, expected)
 })
 
@@ -34,31 +34,36 @@ test('the workout studio exposes the canonical sport and training filters', () =
 
   const expectedCounts = {
     hyrox: 8,
-    crossfit: 16,
-    olympic_weightlifting: 3,
-    powerlifting: 3,
-    kettlebell_sport: 1,
-    strongman: 2,
-    mobility: 42,
+    crossfit: 40,
+    olympic_weightlifting: 7,
+    powerlifting: 4,
+    kettlebell_sport: 6,
+    strongman: 9,
+    mobility: 54,
   }
   for (const [category, count] of Object.entries(expectedCounts)) {
     assert.equal(searchExerciseCatalog('', category as never).length, count, category)
   }
 
   assert.deepEqual(
-    new Set(searchExerciseCatalog('', 'hyrox' as never).map((exercise) => exercise.id)),
-    new Set([
+    searchExerciseCatalog('', 'hyrox' as never).map((exercise) => exercise.id),
+    [
       'ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump',
       'row_erg', 'farmers_carry', 'sandbag_lunge', 'wall_ball',
-    ]),
+    ],
+    'the HYROX shelf follows the official station order from SkiErg to Wall Balls',
   )
   assert.deepEqual(
     new Set(searchExerciseCatalog('', 'olympic_weightlifting' as never).map((exercise) => exercise.id)),
-    new Set(['power_clean', 'power_snatch', 'clean_and_jerk']),
+    new Set([
+      'power_clean', 'power_snatch', 'clean_and_jerk',
+      'snatch_grip_romanian_deadlift', 'barbell_split_jerk',
+      'barbell_push_jerk', 'barbell_power_jerk',
+    ]),
   )
   assert.deepEqual(
     new Set(searchExerciseCatalog('', 'powerlifting' as never).map((exercise) => exercise.id)),
-    new Set(['barbell_back_squat', 'barbell_bench_press', 'conventional_deadlift']),
+    new Set(['barbell_back_squat', 'barbell_bench_press', 'conventional_deadlift', 'barbell_rack_pull']),
   )
 })
 

@@ -74,6 +74,18 @@
    "label": "Balance"
   }
  ],
+ "categoryOrders": {
+  "hyrox": [
+   "ski_erg",
+   "sled_push",
+   "sled_pull",
+   "burpee_broad_jump",
+   "row_erg",
+   "farmers_carry",
+   "sandbag_lunge",
+   "wall_ball"
+  ]
+ },
  "exercises": [
   {
    "id": "barbell_romanian_deadlift",
@@ -11009,6 +11021,7528 @@
     "en": "Dumbbell Side Bend",
     "ro": "Dumbbell Side Bend",
     "th": "Dumbbell Side Bend"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_turkish_get_up",
+   "movementID": "kettlebell_turkish_get_up",
+   "name": "Kettlebell Turkish Get-Up",
+   "category": "weights",
+   "categories": [
+    "kettlebell_sport",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques",
+    "frontDelts"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Turkish Get-Up",
+    "ro": "Kettlebell Turkish Get-Up",
+    "th": "Kettlebell Turkish Get-Up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "half_turkish_get_up",
+   "movementID": "half_turkish_get_up",
+   "name": "Half Turkish Get-Up",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques",
+    "frontDelts"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Half Turkish Get-Up",
+    "ro": "Half Turkish Get-Up",
+    "th": "Half Turkish Get-Up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_windmill",
+   "movementID": "kettlebell_windmill",
+   "name": "Kettlebell Windmill",
+   "category": "weights",
+   "categories": [
+    "kettlebell_sport",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "obliques",
+    "hamstrings",
+    "glutes"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Windmill",
+    "ro": "Kettlebell Windmill",
+    "th": "Kettlebell Windmill"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_around_the_world",
+   "movementID": "kettlebell_around_the_world",
+   "name": "Kettlebell Around-the-World",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Around-the-World",
+    "ro": "Kettlebell Around-the-World",
+    "th": "Kettlebell Around-the-World"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_halo",
+   "movementID": "kettlebell_halo",
+   "name": "Kettlebell Halo",
+   "category": "weights",
+   "categories": [
+    "mobility",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Halo",
+    "ro": "Kettlebell Halo",
+    "th": "Kettlebell Halo"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_figure_8",
+   "movementID": "kettlebell_figure_8",
+   "name": "Kettlebell Figure-8",
+   "category": "weights",
+   "categories": [
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Figure-8",
+    "ro": "Kettlebell Figure-8",
+    "th": "Kettlebell Figure-8"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_figure_8_to_hold",
+   "movementID": "kettlebell_figure_8_to_hold",
+   "name": "Kettlebell Figure-8 to Hold",
+   "category": "weights",
+   "categories": [
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Figure-8 to Hold",
+    "ro": "Kettlebell Figure-8 to Hold",
+    "th": "Kettlebell Figure-8 to Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dual_kettlebell_clean",
+   "movementID": "dual_kettlebell_clean",
+   "name": "Dual-Kettlebell Clean",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "kettlebell_sport",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dual-Kettlebell Clean",
+    "ro": "Dual-Kettlebell Clean",
+    "th": "Dual-Kettlebell Clean"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_clean_and_jerk",
+   "movementID": "kettlebell_clean_and_jerk",
+   "name": "Kettlebell Clean and Jerk",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "kettlebell_sport",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Clean and Jerk",
+    "ro": "Kettlebell Clean and Jerk",
+    "th": "Kettlebell Clean and Jerk"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_clean_and_push_press",
+   "movementID": "kettlebell_clean_and_push_press",
+   "name": "Kettlebell Clean and Push Press",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Clean and Push Press",
+    "ro": "Kettlebell Clean and Push Press",
+    "th": "Kettlebell Clean and Push Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_snatch",
+   "movementID": "kettlebell_snatch",
+   "name": "Kettlebell Snatch",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "kettlebell_sport",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Snatch",
+    "ro": "Kettlebell Snatch",
+    "th": "Kettlebell Snatch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_snatch_to_overhead_carry",
+   "movementID": "kettlebell_snatch_to_overhead_carry",
+   "name": "Kettlebell Snatch to Overhead Carry",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 120,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Snatch to Overhead Carry",
+    "ro": "Kettlebell Snatch to Overhead Carry",
+    "th": "Kettlebell Snatch to Overhead Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_swing_to_squat",
+   "movementID": "kettlebell_swing_to_squat",
+   "name": "Kettlebell Swing to Squat",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Swing to Squat",
+    "ro": "Kettlebell Swing to Squat",
+    "th": "Kettlebell Swing to Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_squat_to_press",
+   "movementID": "kettlebell_squat_to_press",
+   "name": "Kettlebell Squat to Press",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Squat to Press",
+    "ro": "Kettlebell Squat to Press",
+    "th": "Kettlebell Squat to Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_front_rack_squat",
+   "movementID": "kettlebell_front_rack_squat",
+   "name": "Kettlebell Front Rack Squat",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Front Rack Squat",
+    "ro": "Kettlebell Front Rack Squat",
+    "th": "Kettlebell Front Rack Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_lateral_squat",
+   "movementID": "kettlebell_lateral_squat",
+   "name": "Kettlebell Lateral Squat",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Lateral Squat",
+    "ro": "Kettlebell Lateral Squat",
+    "th": "Kettlebell Lateral Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_curtsy_lunge",
+   "movementID": "kettlebell_curtsy_lunge",
+   "name": "Kettlebell Curtsy Lunge",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Curtsy Lunge",
+    "ro": "Kettlebell Curtsy Lunge",
+    "th": "Kettlebell Curtsy Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_lunge_with_rotation",
+   "movementID": "kettlebell_lunge_with_rotation",
+   "name": "Kettlebell Lunge with Rotation",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Lunge with Rotation",
+    "ro": "Kettlebell Lunge with Rotation",
+    "th": "Kettlebell Lunge with Rotation"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_reverse_lunge_to_press",
+   "movementID": "kettlebell_reverse_lunge_to_press",
+   "name": "Kettlebell Reverse Lunge to Press",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Reverse Lunge to Press",
+    "ro": "Kettlebell Reverse Lunge to Press",
+    "th": "Kettlebell Reverse Lunge to Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_step_up",
+   "movementID": "kettlebell_step_up",
+   "name": "Kettlebell Step-up",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Step-up",
+    "ro": "Kettlebell Step-up",
+    "th": "Kettlebell Step-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_walking_lunge",
+   "movementID": "kettlebell_walking_lunge",
+   "name": "Kettlebell Walking Lunge",
+   "category": "weights",
+   "categories": [
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Walking Lunge",
+    "ro": "Kettlebell Walking Lunge",
+    "th": "Kettlebell Walking Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_suitcase_deadlift",
+   "movementID": "kettlebell_suitcase_deadlift",
+   "name": "Kettlebell Suitcase Deadlift",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Suitcase Deadlift",
+    "ro": "Kettlebell Suitcase Deadlift",
+    "th": "Kettlebell Suitcase Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_romanian_deadlift",
+   "movementID": "kettlebell_romanian_deadlift",
+   "name": "Kettlebell Romanian Deadlift",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Romanian Deadlift",
+    "ro": "Kettlebell Romanian Deadlift",
+    "th": "Kettlebell Romanian Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_leg_kettlebell_deadlift",
+   "movementID": "single_leg_kettlebell_deadlift",
+   "name": "Single-leg Kettlebell Deadlift",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Single-leg Kettlebell Deadlift",
+    "ro": "Single-leg Kettlebell Deadlift",
+    "th": "Single-leg Kettlebell Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_sumo_deadlift",
+   "movementID": "kettlebell_sumo_deadlift",
+   "name": "Kettlebell Sumo Deadlift",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Sumo Deadlift",
+    "ro": "Kettlebell Sumo Deadlift",
+    "th": "Kettlebell Sumo Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_good_morning",
+   "movementID": "kettlebell_good_morning",
+   "name": "Kettlebell Good Morning",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Good Morning",
+    "ro": "Kettlebell Good Morning",
+    "th": "Kettlebell Good Morning"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_row",
+   "movementID": "kettlebell_row",
+   "name": "Kettlebell Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Row",
+    "ro": "Kettlebell Row",
+    "th": "Kettlebell Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_renegade_row",
+   "movementID": "kettlebell_renegade_row",
+   "name": "Kettlebell Renegade Row",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "chest",
+    "biceps",
+    "triceps"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Renegade Row",
+    "ro": "Kettlebell Renegade Row",
+    "th": "Kettlebell Renegade Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_gorilla_row",
+   "movementID": "kettlebell_gorilla_row",
+   "name": "Kettlebell Gorilla Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Gorilla Row",
+    "ro": "Kettlebell Gorilla Row",
+    "th": "Kettlebell Gorilla Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_suitcase_row",
+   "movementID": "kettlebell_suitcase_row",
+   "name": "Kettlebell Suitcase Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Suitcase Row",
+    "ro": "Kettlebell Suitcase Row",
+    "th": "Kettlebell Suitcase Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_chest_supported_row",
+   "movementID": "kettlebell_chest_supported_row",
+   "name": "Kettlebell Chest-Supported Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Chest-Supported Row",
+    "ro": "Kettlebell Chest-Supported Row",
+    "th": "Kettlebell Chest-Supported Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_floor_press",
+   "movementID": "kettlebell_floor_press",
+   "name": "Kettlebell Floor Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Floor Press",
+    "ro": "Kettlebell Floor Press",
+    "th": "Kettlebell Floor Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_alternating_floor_press",
+   "movementID": "kettlebell_alternating_floor_press",
+   "name": "Kettlebell Alternating Floor Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Alternating Floor Press",
+    "ro": "Kettlebell Alternating Floor Press",
+    "th": "Kettlebell Alternating Floor Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_bench_press",
+   "movementID": "kettlebell_bench_press",
+   "name": "Kettlebell Bench Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Bench Press",
+    "ro": "Kettlebell Bench Press",
+    "th": "Kettlebell Bench Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_incline_bench_press",
+   "movementID": "kettlebell_incline_bench_press",
+   "name": "Kettlebell Incline Bench Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Incline Bench Press",
+    "ro": "Kettlebell Incline Bench Press",
+    "th": "Kettlebell Incline Bench Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_see_saw_press",
+   "movementID": "kettlebell_see_saw_press",
+   "name": "Kettlebell See-Saw Press",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell See-Saw Press",
+    "ro": "Kettlebell See-Saw Press",
+    "th": "Kettlebell See-Saw Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_bottoms_up_press",
+   "movementID": "kettlebell_bottoms_up_press",
+   "name": "Kettlebell Bottoms-Up Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Bottoms-Up Press",
+    "ro": "Kettlebell Bottoms-Up Press",
+    "th": "Kettlebell Bottoms-Up Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_bottoms_up_clean",
+   "movementID": "kettlebell_bottoms_up_clean",
+   "name": "Kettlebell Bottoms-Up Clean",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Bottoms-Up Clean",
+    "ro": "Kettlebell Bottoms-Up Clean",
+    "th": "Kettlebell Bottoms-Up Clean"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_bottoms_up_carry",
+   "movementID": "kettlebell_bottoms_up_carry",
+   "name": "Kettlebell Bottoms-Up Carry",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Bottoms-Up Carry",
+    "ro": "Kettlebell Bottoms-Up Carry",
+    "th": "Kettlebell Bottoms-Up Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_overhead_carry",
+   "movementID": "kettlebell_overhead_carry",
+   "name": "Kettlebell Overhead Carry",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Overhead Carry",
+    "ro": "Kettlebell Overhead Carry",
+    "th": "Kettlebell Overhead Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "double_overhead_kettlebell_carry",
+   "movementID": "double_overhead_kettlebell_carry",
+   "name": "Double Overhead Kettlebell Carry",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Double Overhead Kettlebell Carry",
+    "ro": "Double Overhead Kettlebell Carry",
+    "th": "Double Overhead Kettlebell Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_rack_carry",
+   "movementID": "kettlebell_rack_carry",
+   "name": "Kettlebell Rack Carry",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Rack Carry",
+    "ro": "Kettlebell Rack Carry",
+    "th": "Kettlebell Rack Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_farmers_walk",
+   "movementID": "kettlebell_farmers_walk",
+   "name": "Kettlebell Farmer's Walk",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Farmer's Walk",
+    "ro": "Kettlebell Farmer's Walk",
+    "th": "Kettlebell Farmer's Walk"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_cross_body_carry",
+   "movementID": "kettlebell_cross_body_carry",
+   "name": "Kettlebell Cross-Body Carry",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Cross-Body Carry",
+    "ro": "Kettlebell Cross-Body Carry",
+    "th": "Kettlebell Cross-Body Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_crush_grip_push_up",
+   "movementID": "kettlebell_crush_grip_push_up",
+   "name": "Kettlebell Crush-Grip Push-up",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Crush-Grip Push-up",
+    "ro": "Kettlebell Crush-Grip Push-up",
+    "th": "Kettlebell Crush-Grip Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_push_up_to_row",
+   "movementID": "kettlebell_push_up_to_row",
+   "name": "Kettlebell Push-up to Row",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "chest",
+    "biceps",
+    "triceps"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Push-up to Row",
+    "ro": "Kettlebell Push-up to Row",
+    "th": "Kettlebell Push-up to Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_pullover",
+   "movementID": "kettlebell_pullover",
+   "name": "Kettlebell Pullover",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats",
+    "chest",
+    "triceps"
+   ],
+   "dayType": "pull",
+   "sets": 3,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Pullover",
+    "ro": "Kettlebell Pullover",
+    "th": "Kettlebell Pullover"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_russian_twist",
+   "movementID": "kettlebell_russian_twist",
+   "name": "Kettlebell Russian Twist",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Russian Twist",
+    "ro": "Kettlebell Russian Twist",
+    "th": "Kettlebell Russian Twist"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_side_bend",
+   "movementID": "kettlebell_side_bend",
+   "name": "Kettlebell Side Bend",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Side Bend",
+    "ro": "Kettlebell Side Bend",
+    "th": "Kettlebell Side Bend"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_dead_bug",
+   "movementID": "kettlebell_dead_bug",
+   "name": "Kettlebell Dead Bug",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Dead Bug",
+    "ro": "Kettlebell Dead Bug",
+    "th": "Kettlebell Dead Bug"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_hollow_body_hold",
+   "movementID": "kettlebell_hollow_body_hold",
+   "name": "Kettlebell Hollow Body Hold",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 23,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Hollow Body Hold",
+    "ro": "Kettlebell Hollow Body Hold",
+    "th": "Kettlebell Hollow Body Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_sit_up",
+   "movementID": "kettlebell_sit_up",
+   "name": "Kettlebell Sit-up",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Sit-up",
+    "ro": "Kettlebell Sit-up",
+    "th": "Kettlebell Sit-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_v_up",
+   "movementID": "kettlebell_v_up",
+   "name": "Kettlebell V-Up",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell V-Up",
+    "ro": "Kettlebell V-Up",
+    "th": "Kettlebell V-Up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_woodchopper",
+   "movementID": "kettlebell_woodchopper",
+   "name": "Kettlebell Woodchopper",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Woodchopper",
+    "ro": "Kettlebell Woodchopper",
+    "th": "Kettlebell Woodchopper"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_slasher_to_halo",
+   "movementID": "kettlebell_slasher_to_halo",
+   "name": "Kettlebell Slasher-to-Halo",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Slasher-to-Halo",
+    "ro": "Kettlebell Slasher-to-Halo",
+    "th": "Kettlebell Slasher-to-Halo"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_armbar",
+   "movementID": "kettlebell_armbar",
+   "name": "Kettlebell Armbar",
+   "category": "weights",
+   "categories": [
+    "mobility",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "lats"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Armbar",
+    "ro": "Kettlebell Armbar",
+    "th": "Kettlebell Armbar"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_surrender",
+   "movementID": "kettlebell_surrender",
+   "name": "Kettlebell Surrender",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Surrender",
+    "ro": "Kettlebell Surrender",
+    "th": "Kettlebell Surrender"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_deck_squat",
+   "movementID": "kettlebell_deck_squat",
+   "name": "Kettlebell Deck Squat",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Deck Squat",
+    "ro": "Kettlebell Deck Squat",
+    "th": "Kettlebell Deck Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "kettlebell_man_maker",
+   "movementID": "kettlebell_man_maker",
+   "name": "Kettlebell Man Maker",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Kettlebell",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 150,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Kettlebell Man Maker",
+    "ro": "Kettlebell Man Maker",
+    "th": "Kettlebell Man Maker"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "split_squat_jump",
+   "movementID": "split_squat_jump",
+   "name": "Split Squat Jump",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Split Squat Jump",
+    "ro": "Split Squat Jump",
+    "th": "Split Squat Jump"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "jumping_lunge",
+   "movementID": "jumping_lunge",
+   "name": "Jumping Lunge",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Jumping Lunge",
+    "ro": "Jumping Lunge",
+    "th": "Jumping Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "box_step_up_bodyweight",
+   "movementID": "box_step_up_bodyweight",
+   "name": "Box Step-up (Bodyweight)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Box Step-up (Bodyweight)",
+    "ro": "Box Step-up (Bodyweight)",
+    "th": "Box Step-up (Bodyweight)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "curtsy_lunge_bodyweight",
+   "movementID": "curtsy_lunge_bodyweight",
+   "name": "Curtsy Lunge (Bodyweight)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Curtsy Lunge (Bodyweight)",
+    "ro": "Curtsy Lunge (Bodyweight)",
+    "th": "Curtsy Lunge (Bodyweight)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_leg_box_squat",
+   "movementID": "single_leg_box_squat",
+   "name": "Single-leg Box Squat",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Single-leg Box Squat",
+    "ro": "Single-leg Box Squat",
+    "th": "Single-leg Box Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "assisted_pistol_squat",
+   "movementID": "assisted_pistol_squat",
+   "name": "Assisted Pistol Squat",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Assisted Pistol Squat",
+    "ro": "Assisted Pistol Squat",
+    "th": "Assisted Pistol Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "jumping_pistol_squat",
+   "movementID": "jumping_pistol_squat",
+   "name": "Jumping Pistol Squat",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics",
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Jumping Pistol Squat",
+    "ro": "Jumping Pistol Squat",
+    "th": "Jumping Pistol Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "sissy_squat_unloaded",
+   "movementID": "sissy_squat_unloaded",
+   "name": "Sissy Squat (Unloaded)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Sissy Squat (Unloaded)",
+    "ro": "Sissy Squat (Unloaded)",
+    "th": "Sissy Squat (Unloaded)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "glute_ham_walkout",
+   "movementID": "glute_ham_walkout",
+   "name": "Glute-Ham Walkout",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Glute-Ham Walkout",
+    "ro": "Glute-Ham Walkout",
+    "th": "Glute-Ham Walkout"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hip_thrust_bodyweight",
+   "movementID": "hip_thrust_bodyweight",
+   "name": "Hip Thrust (Bodyweight)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Hip Thrust (Bodyweight)",
+    "ro": "Hip Thrust (Bodyweight)",
+    "th": "Hip Thrust (Bodyweight)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_leg_hip_thrust_bodyweight",
+   "movementID": "single_leg_hip_thrust_bodyweight",
+   "name": "Single-leg Hip Thrust (Bodyweight)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Single-leg Hip Thrust (Bodyweight)",
+    "ro": "Single-leg Hip Thrust (Bodyweight)",
+    "th": "Single-leg Hip Thrust (Bodyweight)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "reverse_lunge_to_knee_drive",
+   "movementID": "reverse_lunge_to_knee_drive",
+   "name": "Reverse Lunge to Knee Drive",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Reverse Lunge to Knee Drive",
+    "ro": "Reverse Lunge to Knee Drive",
+    "th": "Reverse Lunge to Knee Drive"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "step_back_lunge_with_twist",
+   "movementID": "step_back_lunge_with_twist",
+   "name": "Step-back Lunge with Twist",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Step-back Lunge with Twist",
+    "ro": "Step-back Lunge with Twist",
+    "th": "Step-back Lunge with Twist"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "lateral_step_up",
+   "movementID": "lateral_step_up",
+   "name": "Lateral Step-up",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Lateral Step-up",
+    "ro": "Lateral Step-up",
+    "th": "Lateral Step-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "calf_raise_on_step",
+   "movementID": "calf_raise_on_step",
+   "name": "Calf Raise on Step",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Calf Raise on Step",
+    "ro": "Calf Raise on Step",
+    "th": "Calf Raise on Step"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "donkey_calf_raise",
+   "movementID": "donkey_calf_raise",
+   "name": "Donkey Calf Raise",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Donkey Calf Raise",
+    "ro": "Donkey Calf Raise",
+    "th": "Donkey Calf Raise"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "wall_calf_raise",
+   "movementID": "wall_calf_raise",
+   "name": "Wall Calf Raise",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Wall Calf Raise",
+    "ro": "Wall Calf Raise",
+    "th": "Wall Calf Raise"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "decline_push_up_high_feet",
+   "movementID": "decline_push_up_high_feet",
+   "name": "Decline Push-up (High Feet)",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Decline Push-up (High Feet)",
+    "ro": "Decline Push-up (High Feet)",
+    "th": "Decline Push-up (High Feet)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "clap_push_up",
+   "movementID": "clap_push_up",
+   "name": "Clap Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics",
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Clap Push-up",
+    "ro": "Clap Push-up",
+    "th": "Clap Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "wide_grip_push_up",
+   "movementID": "wide_grip_push_up",
+   "name": "Wide-Grip Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Wide-Grip Push-up",
+    "ro": "Wide-Grip Push-up",
+    "th": "Wide-Grip Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "close_grip_push_up",
+   "movementID": "close_grip_push_up",
+   "name": "Close-Grip Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Close-Grip Push-up",
+    "ro": "Close-Grip Push-up",
+    "th": "Close-Grip Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "clock_push_up",
+   "movementID": "clock_push_up",
+   "name": "Clock Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics",
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Clock Push-up",
+    "ro": "Clock Push-up",
+    "th": "Clock Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "planche_lean",
+   "movementID": "planche_lean",
+   "name": "Planche Lean",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Planche Lean",
+    "ro": "Planche Lean",
+    "th": "Planche Lean"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "planche_push_up",
+   "movementID": "planche_push_up",
+   "name": "Planche Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Planche Push-up",
+    "ro": "Planche Push-up",
+    "th": "Planche Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hindu_push_up",
+   "movementID": "hindu_push_up",
+   "name": "Hindu Push-up",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Hindu Push-up",
+    "ro": "Hindu Push-up",
+    "th": "Hindu Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "divebomber_push_up",
+   "movementID": "divebomber_push_up",
+   "name": "Divebomber Push-up",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Divebomber Push-up",
+    "ro": "Divebomber Push-up",
+    "th": "Divebomber Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "spiderman_push_up",
+   "movementID": "spiderman_push_up",
+   "name": "Spiderman Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Spiderman Push-up",
+    "ro": "Spiderman Push-up",
+    "th": "Spiderman Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ring_push_up",
+   "movementID": "ring_push_up",
+   "name": "Ring Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Ring Push-up",
+    "ro": "Ring Push-up",
+    "th": "Ring Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ring_archer_push_up",
+   "movementID": "ring_archer_push_up",
+   "name": "Ring Archer Push-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Ring Archer Push-up",
+    "ro": "Ring Archer Push-up",
+    "th": "Ring Archer Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ring_fly",
+   "movementID": "ring_fly",
+   "name": "Ring Fly",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Ring Fly",
+    "ro": "Ring Fly",
+    "th": "Ring Fly"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "bench_dip_feet_on_floor",
+   "movementID": "bench_dip_feet_on_floor",
+   "name": "Bench Dip (Feet on Floor)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Bench Dip (Feet on Floor)",
+    "ro": "Bench Dip (Feet on Floor)",
+    "th": "Bench Dip (Feet on Floor)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "bench_dip_feet_elevated",
+   "movementID": "bench_dip_feet_elevated",
+   "name": "Bench Dip (Feet Elevated)",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Bench Dip (Feet Elevated)",
+    "ro": "Bench Dip (Feet Elevated)",
+    "th": "Bench Dip (Feet Elevated)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ring_dip_forward_lean",
+   "movementID": "ring_dip_forward_lean",
+   "name": "Ring Dip - Forward Lean",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Ring Dip - Forward Lean",
+    "ro": "Ring Dip - Forward Lean",
+    "th": "Ring Dip - Forward Lean"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "assisted_ring_dip",
+   "movementID": "assisted_ring_dip",
+   "name": "Assisted Ring Dip",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Assisted Ring Dip",
+    "ro": "Assisted Ring Dip",
+    "th": "Assisted Ring Dip"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "isometric_dip_hold",
+   "movementID": "isometric_dip_hold",
+   "name": "Isometric Dip Hold",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Dip Bars",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 23,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Isometric Dip Hold",
+    "ro": "Isometric Dip Hold",
+    "th": "Isometric Dip Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "mixed_grip_pull_up",
+   "movementID": "mixed_grip_pull_up",
+   "name": "Mixed-Grip Pull-up",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Mixed-Grip Pull-up",
+    "ro": "Mixed-Grip Pull-up",
+    "th": "Mixed-Grip Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "archer_pull_up",
+   "movementID": "archer_pull_up",
+   "name": "Archer Pull-up",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Archer Pull-up",
+    "ro": "Archer Pull-up",
+    "th": "Archer Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "typewriter_pull_up",
+   "movementID": "typewriter_pull_up",
+   "name": "Typewriter Pull-up",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Typewriter Pull-up",
+    "ro": "Typewriter Pull-up",
+    "th": "Typewriter Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "commando_pull_up",
+   "movementID": "commando_pull_up",
+   "name": "Commando Pull-up",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Commando Pull-up",
+    "ro": "Commando Pull-up",
+    "th": "Commando Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "behind_the_neck_pull_up",
+   "movementID": "behind_the_neck_pull_up",
+   "name": "Behind-the-Neck Pull-up",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Behind-the-Neck Pull-up",
+    "ro": "Behind-the-Neck Pull-up",
+    "th": "Behind-the-Neck Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "one_arm_pull_up_assisted",
+   "movementID": "one_arm_pull_up_assisted",
+   "name": "One-Arm Pull-up (Assisted)",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "calisthenics"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "One-Arm Pull-up (Assisted)",
+    "ro": "One-Arm Pull-up (Assisted)",
+    "th": "One-Arm Pull-up (Assisted)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "false_grip_pull_up",
+   "movementID": "false_grip_pull_up",
+   "name": "False-Grip Pull-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "False-Grip Pull-up",
+    "ro": "False-Grip Pull-up",
+    "th": "False-Grip Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "chest_to_bar_pull_up_strict",
+   "movementID": "chest_to_bar_pull_up_strict",
+   "name": "Chest-to-Bar Pull-up (Strict)",
+   "category": "calisthenics",
+   "categories": [
+    "crossfit",
+    "strength",
+    "calisthenics",
+    "hiit"
+   ],
+   "equipment": "Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Chest-to-Bar Pull-up (Strict)",
+    "ro": "Chest-to-Bar Pull-up (Strict)",
+    "th": "Chest-to-Bar Pull-up (Strict)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "inverted_row_underhand",
+   "movementID": "inverted_row_underhand",
+   "name": "Inverted Row - Underhand",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Inverted Row - Underhand",
+    "ro": "Inverted Row - Underhand",
+    "th": "Inverted Row - Underhand"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "inverted_row_wide_grip",
+   "movementID": "inverted_row_wide_grip",
+   "name": "Inverted Row - Wide Grip",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Inverted Row - Wide Grip",
+    "ro": "Inverted Row - Wide Grip",
+    "th": "Inverted Row - Wide Grip"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ring_row_supinated",
+   "movementID": "ring_row_supinated",
+   "name": "Ring Row (Supinated)",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Ring Row (Supinated)",
+    "ro": "Ring Row (Supinated)",
+    "th": "Ring Row (Supinated)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "rope_climb_feet_clamp",
+   "movementID": "rope_climb_feet_clamp",
+   "name": "Rope Climb (Feet Clamp)",
+   "category": "hiit",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit"
+   ],
+   "equipment": "Rope",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Rope Climb (Feet Clamp)",
+    "ro": "Rope Climb (Feet Clamp)",
+    "th": "Rope Climb (Feet Clamp)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "rope_climb_legless",
+   "movementID": "rope_climb_legless",
+   "name": "Rope Climb (Legless)",
+   "category": "hiit",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit"
+   ],
+   "equipment": "Rope",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Rope Climb (Legless)",
+    "ro": "Rope Climb (Legless)",
+    "th": "Rope Climb (Legless)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "towel_pull_up",
+   "movementID": "towel_pull_up",
+   "name": "Towel Pull-up",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Towel · Pull Up Bar",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Towel Pull-up",
+    "ro": "Towel Pull-up",
+    "th": "Towel Pull-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "skin_the_cat",
+   "movementID": "skin_the_cat",
+   "name": "Skin-the-Cat",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Skin-the-Cat",
+    "ro": "Skin-the-Cat",
+    "th": "Skin-the-Cat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "german_hang",
+   "movementID": "german_hang",
+   "name": "German Hang",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "adductors",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "German Hang",
+    "ro": "German Hang",
+    "th": "German Hang"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "front_lever_tuck_hold",
+   "movementID": "front_lever_tuck_hold",
+   "name": "Front Lever Tuck Hold",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Front Lever Tuck Hold",
+    "ro": "Front Lever Tuck Hold",
+    "th": "Front Lever Tuck Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "front_lever_advanced_tuck",
+   "movementID": "front_lever_advanced_tuck",
+   "name": "Front Lever Advanced Tuck",
+   "category": "calisthenics",
+   "categories": [
+    "street",
+    "calisthenics"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Front Lever Advanced Tuck",
+    "ro": "Front Lever Advanced Tuck",
+    "th": "Front Lever Advanced Tuck"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "back_lever_tuck_hold",
+   "movementID": "back_lever_tuck_hold",
+   "name": "Back Lever Tuck Hold",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Back Lever Tuck Hold",
+    "ro": "Back Lever Tuck Hold",
+    "th": "Back Lever Tuck Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "back_lever_full_hold",
+   "movementID": "back_lever_full_hold",
+   "name": "Back Lever Full Hold",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Rings",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Back Lever Full Hold",
+    "ro": "Back Lever Full Hold",
+    "th": "Back Lever Full Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hollow_rock",
+   "movementID": "hollow_rock",
+   "name": "Hollow Rock",
+   "category": "calisthenics",
+   "categories": [
+    "crossfit",
+    "strength",
+    "calisthenics",
+    "hiit"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Hollow Rock",
+    "ro": "Hollow Rock",
+    "th": "Hollow Rock"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "v_sit_hold",
+   "movementID": "v_sit_hold",
+   "name": "V-Sit Hold",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "V-Sit Hold",
+    "ro": "V-Sit Hold",
+    "th": "V-Sit Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "straddle_l_sit",
+   "movementID": "straddle_l_sit",
+   "name": "Straddle L-Sit",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Parallettes",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Straddle L-Sit",
+    "ro": "Straddle L-Sit",
+    "th": "Straddle L-Sit"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "open_tuck_l_sit",
+   "movementID": "open_tuck_l_sit",
+   "name": "Open Tuck L-Sit",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Parallettes",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Open Tuck L-Sit",
+    "ro": "Open Tuck L-Sit",
+    "th": "Open Tuck L-Sit"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "manna_progression_hold",
+   "movementID": "manna_progression_hold",
+   "name": "Manna Progression Hold",
+   "category": "calisthenics",
+   "categories": [
+    "calisthenics"
+   ],
+   "equipment": "Parallettes",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Manna Progression Hold",
+    "ro": "Manna Progression Hold",
+    "th": "Manna Progression Hold"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dragon_flag_eccentrics",
+   "movementID": "dragon_flag_eccentrics",
+   "name": "Dragon Flag Eccentrics",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bench",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Dragon Flag Eccentrics",
+    "ro": "Dragon Flag Eccentrics",
+    "th": "Dragon Flag Eccentrics"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dragon_flag_full",
+   "movementID": "dragon_flag_full",
+   "name": "Dragon Flag Full",
+   "category": "calisthenics",
+   "categories": [
+    "strength",
+    "calisthenics"
+   ],
+   "equipment": "Bench",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Dragon Flag Full",
+    "ro": "Dragon Flag Full",
+    "th": "Dragon Flag Full"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hip_raise_on_bench",
+   "movementID": "hip_raise_on_bench",
+   "name": "Hip Raise on Bench",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bench",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Hip Raise on Bench",
+    "ro": "Hip Raise on Bench",
+    "th": "Hip Raise on Bench"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "jackknife_sit_up",
+   "movementID": "jackknife_sit_up",
+   "name": "Jackknife Sit-up",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Jackknife Sit-up",
+    "ro": "Jackknife Sit-up",
+    "th": "Jackknife Sit-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "bicycle_crunch",
+   "movementID": "bicycle_crunch",
+   "name": "Bicycle Crunch",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Bicycle Crunch",
+    "ro": "Bicycle Crunch",
+    "th": "Bicycle Crunch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cross_body_mountain_climber",
+   "movementID": "cross_body_mountain_climber",
+   "name": "Cross-Body Mountain Climber",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Cross-Body Mountain Climber",
+    "ro": "Cross-Body Mountain Climber",
+    "th": "Cross-Body Mountain Climber"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "plank_with_shoulder_tap",
+   "movementID": "plank_with_shoulder_tap",
+   "name": "Plank with Shoulder Tap",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Plank with Shoulder Tap",
+    "ro": "Plank with Shoulder Tap",
+    "th": "Plank with Shoulder Tap"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_arm_single_leg_plank",
+   "movementID": "single_arm_single_leg_plank",
+   "name": "Single-Arm Single-Leg Plank",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Single-Arm Single-Leg Plank",
+    "ro": "Single-Arm Single-Leg Plank",
+    "th": "Single-Arm Single-Leg Plank"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "side_plank_with_leg_lift",
+   "movementID": "side_plank_with_leg_lift",
+   "name": "Side Plank with Leg Lift",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Side Plank with Leg Lift",
+    "ro": "Side Plank with Leg Lift",
+    "th": "Side Plank with Leg Lift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "copenhagen_side_plank_long_lever",
+   "movementID": "copenhagen_side_plank_long_lever",
+   "name": "Copenhagen Side Plank - Long Lever",
+   "category": "strength",
+   "categories": [
+    "strength"
+   ],
+   "equipment": "Bench",
+   "muscles": [
+    "obliques",
+    "abs",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Copenhagen Side Plank - Long Lever",
+    "ro": "Copenhagen Side Plank - Long Lever",
+    "th": "Copenhagen Side Plank - Long Lever"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "crab_walk",
+   "movementID": "crab_walk",
+   "name": "Crab Walk",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Crab Walk",
+    "ro": "Crab Walk",
+    "th": "Crab Walk"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "inchworm_walkout",
+   "movementID": "inchworm_walkout",
+   "name": "Inchworm Walkout",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Inchworm Walkout",
+    "ro": "Inchworm Walkout",
+    "th": "Inchworm Walkout"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "walkout_to_push_up",
+   "movementID": "walkout_to_push_up",
+   "name": "Walkout to Push-up",
+   "category": "hiit",
+   "categories": [
+    "hiit"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Walkout to Push-up",
+    "ro": "Walkout to Push-up",
+    "th": "Walkout to Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hollow_body_arch_rock",
+   "movementID": "hollow_body_arch_rock",
+   "name": "Hollow Body Arch Rock",
+   "category": "calisthenics",
+   "categories": [
+    "crossfit",
+    "calisthenics",
+    "hiit"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 30,
+   "rest": 60,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Hollow Body Arch Rock",
+    "ro": "Hollow Body Arch Rock",
+    "th": "Hollow Body Arch Rock"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_rack_pull",
+   "movementID": "barbell_rack_pull",
+   "name": "Barbell Rack Pull",
+   "category": "weights",
+   "categories": [
+    "powerlifting",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Rack Pull",
+    "ro": "Barbell Rack Pull",
+    "th": "Barbell Rack Pull"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "deficit_romanian_deadlift",
+   "movementID": "deficit_romanian_deadlift",
+   "name": "Deficit Romanian Deadlift",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Deficit Romanian Deadlift",
+    "ro": "Deficit Romanian Deadlift",
+    "th": "Deficit Romanian Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "snatch_grip_romanian_deadlift",
+   "movementID": "snatch_grip_romanian_deadlift",
+   "name": "Snatch-Grip Romanian Deadlift",
+   "category": "weights",
+   "categories": [
+    "olympic_weightlifting",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Snatch-Grip Romanian Deadlift",
+    "ro": "Snatch-Grip Romanian Deadlift",
+    "th": "Snatch-Grip Romanian Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_hip_thrust_single_leg",
+   "movementID": "barbell_hip_thrust_single_leg",
+   "name": "Barbell Hip Thrust - Single-Leg",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Hip Thrust - Single-Leg",
+    "ro": "Barbell Hip Thrust - Single-Leg",
+    "th": "Barbell Hip Thrust - Single-Leg"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_glute_bridge",
+   "movementID": "barbell_glute_bridge",
+   "name": "Barbell Glute Bridge",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Glute Bridge",
+    "ro": "Barbell Glute Bridge",
+    "th": "Barbell Glute Bridge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_step_up",
+   "movementID": "barbell_step_up",
+   "name": "Barbell Step-up",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Step-up",
+    "ro": "Barbell Step-up",
+    "th": "Barbell Step-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_walking_lunge_front_rack",
+   "movementID": "barbell_walking_lunge_front_rack",
+   "name": "Barbell Walking Lunge (Front Rack)",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Walking Lunge (Front Rack)",
+    "ro": "Barbell Walking Lunge (Front Rack)",
+    "th": "Barbell Walking Lunge (Front Rack)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_split_jerk",
+   "movementID": "barbell_split_jerk",
+   "name": "Barbell Split Jerk",
+   "category": "weights",
+   "categories": [
+    "olympic_weightlifting",
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Split Jerk",
+    "ro": "Barbell Split Jerk",
+    "th": "Barbell Split Jerk"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_push_jerk",
+   "movementID": "barbell_push_jerk",
+   "name": "Barbell Push Jerk",
+   "category": "weights",
+   "categories": [
+    "olympic_weightlifting",
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Push Jerk",
+    "ro": "Barbell Push Jerk",
+    "th": "Barbell Push Jerk"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_power_jerk",
+   "movementID": "barbell_power_jerk",
+   "name": "Barbell Power Jerk",
+   "category": "weights",
+   "categories": [
+    "olympic_weightlifting",
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 5,
+   "rest": 120,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Power Jerk",
+    "ro": "Barbell Power Jerk",
+    "th": "Barbell Power Jerk"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "barbell_floor_row",
+   "movementID": "barbell_floor_row",
+   "name": "Barbell Floor Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Barbell Floor Row",
+    "ro": "Barbell Floor Row",
+    "th": "Barbell Floor Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "landmine_reverse_lunge",
+   "movementID": "landmine_reverse_lunge",
+   "name": "Landmine Reverse Lunge",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Landmine · Plates",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Landmine Reverse Lunge",
+    "ro": "Landmine Reverse Lunge",
+    "th": "Landmine Reverse Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "landmine_lateral_lunge",
+   "movementID": "landmine_lateral_lunge",
+   "name": "Landmine Lateral Lunge",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Landmine · Plates",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Landmine Lateral Lunge",
+    "ro": "Landmine Lateral Lunge",
+    "th": "Landmine Lateral Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "landmine_single_arm_row",
+   "movementID": "landmine_single_arm_row",
+   "name": "Landmine Single-Arm Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Landmine · Plates",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Landmine Single-Arm Row",
+    "ro": "Landmine Single-Arm Row",
+    "th": "Landmine Single-Arm Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "landmine_meadows_row",
+   "movementID": "landmine_meadows_row",
+   "name": "Landmine Meadows Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Landmine · Plates",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Landmine Meadows Row",
+    "ro": "Landmine Meadows Row",
+    "th": "Landmine Meadows Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "landmine_single_arm_press_half_kneeling",
+   "movementID": "landmine_single_arm_press_half_kneeling",
+   "name": "Landmine Single-Arm Press (Half-Kneeling)",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Landmine · Plates",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Landmine Single-Arm Press (Half-Kneeling)",
+    "ro": "Landmine Single-Arm Press (Half-Kneeling)",
+    "th": "Landmine Single-Arm Press (Half-Kneeling)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_sumo_squat",
+   "movementID": "dumbbell_sumo_squat",
+   "name": "Dumbbell Sumo Squat",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Sumo Squat",
+    "ro": "Dumbbell Sumo Squat",
+    "th": "Dumbbell Sumo Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_step_up_with_knee_drive",
+   "movementID": "dumbbell_step_up_with_knee_drive",
+   "name": "Dumbbell Step-up with Knee Drive",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Step-up with Knee Drive",
+    "ro": "Dumbbell Step-up with Knee Drive",
+    "th": "Dumbbell Step-up with Knee Drive"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_curtsy_lunge",
+   "movementID": "dumbbell_curtsy_lunge",
+   "name": "Dumbbell Curtsy Lunge",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Curtsy Lunge",
+    "ro": "Dumbbell Curtsy Lunge",
+    "th": "Dumbbell Curtsy Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_rdl_to_row",
+   "movementID": "dumbbell_rdl_to_row",
+   "name": "Dumbbell RDL to Row",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell RDL to Row",
+    "ro": "Dumbbell RDL to Row",
+    "th": "Dumbbell RDL to Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_renegade_row_with_push_up",
+   "movementID": "dumbbell_renegade_row_with_push_up",
+   "name": "Dumbbell Renegade Row with Push-up",
+   "category": "weights",
+   "categories": [
+    "crossfit",
+    "strength",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "lats",
+    "chest",
+    "biceps",
+    "triceps"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Renegade Row with Push-up",
+    "ro": "Dumbbell Renegade Row with Push-up",
+    "th": "Dumbbell Renegade Row with Push-up"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_pullover_to_press",
+   "movementID": "dumbbell_pullover_to_press",
+   "name": "Dumbbell Pullover to Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "lats",
+    "chest",
+    "triceps"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Pullover to Press",
+    "ro": "Dumbbell Pullover to Press",
+    "th": "Dumbbell Pullover to Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "alternating_dumbbell_bench_press",
+   "movementID": "alternating_dumbbell_bench_press",
+   "name": "Alternating Dumbbell Bench Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Alternating Dumbbell Bench Press",
+    "ro": "Alternating Dumbbell Bench Press",
+    "th": "Alternating Dumbbell Bench Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_cross_body_hammer_curl",
+   "movementID": "dumbbell_cross_body_hammer_curl",
+   "name": "Dumbbell Cross-Body Hammer Curl",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Cross-Body Hammer Curl",
+    "ro": "Dumbbell Cross-Body Hammer Curl",
+    "th": "Dumbbell Cross-Body Hammer Curl"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_zottman_curl",
+   "movementID": "dumbbell_zottman_curl",
+   "name": "Dumbbell Zottman Curl",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Zottman Curl",
+    "ro": "Dumbbell Zottman Curl",
+    "th": "Dumbbell Zottman Curl"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_concentration_curl",
+   "movementID": "dumbbell_concentration_curl",
+   "name": "Dumbbell Concentration Curl",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Concentration Curl",
+    "ro": "Dumbbell Concentration Curl",
+    "th": "Dumbbell Concentration Curl"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_reverse_fly_incline",
+   "movementID": "dumbbell_reverse_fly_incline",
+   "name": "Dumbbell Reverse Fly (Incline)",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "rearDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Reverse Fly (Incline)",
+    "ro": "Dumbbell Reverse Fly (Incline)",
+    "th": "Dumbbell Reverse Fly (Incline)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_y_raise",
+   "movementID": "dumbbell_y_raise",
+   "name": "Dumbbell Y-Raise",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "sideDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Y-Raise",
+    "ro": "Dumbbell Y-Raise",
+    "th": "Dumbbell Y-Raise"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_cuban_press",
+   "movementID": "dumbbell_cuban_press",
+   "name": "Dumbbell Cuban Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "rearDelts",
+    "sideDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Cuban Press",
+    "ro": "Dumbbell Cuban Press",
+    "th": "Dumbbell Cuban Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_tate_press",
+   "movementID": "dumbbell_tate_press",
+   "name": "Dumbbell Tate Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Tate Press",
+    "ro": "Dumbbell Tate Press",
+    "th": "Dumbbell Tate Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_floor_fly",
+   "movementID": "dumbbell_floor_fly",
+   "name": "Dumbbell Floor Fly",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "chest",
+    "frontDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Floor Fly",
+    "ro": "Dumbbell Floor Fly",
+    "th": "Dumbbell Floor Fly"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "dumbbell_squeeze_press",
+   "movementID": "dumbbell_squeeze_press",
+   "name": "Dumbbell Squeeze Press",
+   "category": "weights",
+   "categories": [
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Dumbbell Squeeze Press",
+    "ro": "Dumbbell Squeeze Press",
+    "th": "Dumbbell Squeeze Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "farmers_walk_with_trap_bar",
+   "movementID": "farmers_walk_with_trap_bar",
+   "name": "Farmer's Walk with Trap Bar",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Trap Bar · Plates",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Farmer's Walk with Trap Bar",
+    "ro": "Farmer's Walk with Trap Bar",
+    "th": "Farmer's Walk with Trap Bar"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "suitcase_carry_single_dumbbell",
+   "movementID": "suitcase_carry_single_dumbbell",
+   "name": "Suitcase Carry (Single Dumbbell)",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Dumbbells",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2,
+   "names": {
+    "en": "Suitcase Carry (Single Dumbbell)",
+    "ro": "Suitcase Carry (Single Dumbbell)",
+    "th": "Suitcase Carry (Single Dumbbell)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "front_rack_carry_barbell",
+   "movementID": "front_rack_carry_barbell",
+   "name": "Front Rack Carry (Barbell)",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Barbell · Plates",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Front Rack Carry (Barbell)",
+    "ro": "Front Rack Carry (Barbell)",
+    "th": "Front Rack Carry (Barbell)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "sandbag_bear_hug_carry",
+   "movementID": "sandbag_bear_hug_carry",
+   "name": "Sandbag Bear-Hug Carry",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Sandbag",
+   "muscles": [
+    "forearms",
+    "abs",
+    "obliques",
+    "neckTraps",
+    "glutes"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 5,
+   "names": {
+    "en": "Sandbag Bear-Hug Carry",
+    "ro": "Sandbag Bear-Hug Carry",
+    "th": "Sandbag Bear-Hug Carry"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "sandbag_shouldering",
+   "movementID": "sandbag_shouldering",
+   "name": "Sandbag Shouldering",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Sandbag",
+   "muscles": [
+    "glutes",
+    "hamstrings",
+    "upperBack",
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 5,
+   "names": {
+    "en": "Sandbag Shouldering",
+    "ro": "Sandbag Shouldering",
+    "th": "Sandbag Shouldering"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "sandbag_over_the_shoulder_throw",
+   "movementID": "sandbag_over_the_shoulder_throw",
+   "name": "Sandbag Over-the-Shoulder Throw",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "hiit",
+    "weights"
+   ],
+   "equipment": "Sandbag",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "t25",
+   "sets": 4,
+   "reps": 4,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 5,
+   "names": {
+    "en": "Sandbag Over-the-Shoulder Throw",
+    "ro": "Sandbag Over-the-Shoulder Throw",
+    "th": "Sandbag Over-the-Shoulder Throw"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "atlas_stone_to_platform",
+   "movementID": "atlas_stone_to_platform",
+   "name": "Atlas Stone to Platform",
+   "category": "weights",
+   "categories": [
+    "strongman",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Atlas Stone",
+   "muscles": [
+    "glutes",
+    "hamstrings",
+    "upperBack",
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 150,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 10,
+   "names": {
+    "en": "Atlas Stone to Platform",
+    "ro": "Atlas Stone to Platform",
+    "th": "Atlas Stone to Platform"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "smith_machine_back_squat",
+   "movementID": "smith_machine_back_squat",
+   "name": "Smith Machine Back Squat",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Smith Machine",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Smith Machine Back Squat",
+    "ro": "Smith Machine Back Squat",
+    "th": "Smith Machine Back Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "smith_machine_bench_press",
+   "movementID": "smith_machine_bench_press",
+   "name": "Smith Machine Bench Press",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Smith Machine",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Smith Machine Bench Press",
+    "ro": "Smith Machine Bench Press",
+    "th": "Smith Machine Bench Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "smith_machine_incline_bench_press",
+   "movementID": "smith_machine_incline_bench_press",
+   "name": "Smith Machine Incline Bench Press",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Smith Machine",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Smith Machine Incline Bench Press",
+    "ro": "Smith Machine Incline Bench Press",
+    "th": "Smith Machine Incline Bench Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "smith_machine_shoulder_press",
+   "movementID": "smith_machine_shoulder_press",
+   "name": "Smith Machine Shoulder Press",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Smith Machine",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Smith Machine Shoulder Press",
+    "ro": "Smith Machine Shoulder Press",
+    "th": "Smith Machine Shoulder Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hack_squat_reverse",
+   "movementID": "hack_squat_reverse",
+   "name": "Hack Squat - Reverse",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Hack Squat Machine",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Hack Squat - Reverse",
+    "ro": "Hack Squat - Reverse",
+    "th": "Hack Squat - Reverse"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "pendulum_squat_machine",
+   "movementID": "pendulum_squat_machine",
+   "name": "Pendulum Squat Machine",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Pendulum Squat Machine",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Pendulum Squat Machine",
+    "ro": "Pendulum Squat Machine",
+    "th": "Pendulum Squat Machine"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "vertical_leg_press_machine",
+   "movementID": "vertical_leg_press_machine",
+   "name": "Vertical Leg Press Machine",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Leg Press Machine",
+   "muscles": [
+    "quads",
+    "glutes",
+    "hamstrings",
+    "adductors"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Vertical Leg Press Machine",
+    "ro": "Vertical Leg Press Machine",
+    "th": "Vertical Leg Press Machine"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "reverse_hyper_machine",
+   "movementID": "reverse_hyper_machine",
+   "name": "Reverse Hyper Machine",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Reverse Hyper Machine",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Reverse Hyper Machine",
+    "ro": "Reverse Hyper Machine",
+    "th": "Reverse Hyper Machine"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_cross_over_high_to_low",
+   "movementID": "cable_cross_over_high_to_low",
+   "name": "Cable Cross-Over - High to Low",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Cross-Over - High to Low",
+    "ro": "Cable Cross-Over - High to Low",
+    "th": "Cable Cross-Over - High to Low"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_cross_over_low_to_high",
+   "movementID": "cable_cross_over_low_to_high",
+   "name": "Cable Cross-Over - Low to High",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Cross-Over - Low to High",
+    "ro": "Cable Cross-Over - Low to High",
+    "th": "Cable Cross-Over - Low to High"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_arm_cable_chest_press",
+   "movementID": "single_arm_cable_chest_press",
+   "name": "Single-Arm Cable Chest Press",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Single-Arm Cable Chest Press",
+    "ro": "Single-Arm Cable Chest Press",
+    "th": "Single-Arm Cable Chest Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "standing_cable_fly",
+   "movementID": "standing_cable_fly",
+   "name": "Standing Cable Fly",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Standing Cable Fly",
+    "ro": "Standing Cable Fly",
+    "th": "Standing Cable Fly"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_arm_cable_lateral_raise",
+   "movementID": "single_arm_cable_lateral_raise",
+   "name": "Single-Arm Cable Lateral Raise",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "sideDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Single-Arm Cable Lateral Raise",
+    "ro": "Single-Arm Cable Lateral Raise",
+    "th": "Single-Arm Cable Lateral Raise"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_rear_delt_fly_standing",
+   "movementID": "cable_rear_delt_fly_standing",
+   "name": "Cable Rear-Delt Fly (Standing)",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "rearDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Rear-Delt Fly (Standing)",
+    "ro": "Cable Rear-Delt Fly (Standing)",
+    "th": "Cable Rear-Delt Fly (Standing)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_rope_overhead_triceps_extension",
+   "movementID": "cable_rope_overhead_triceps_extension",
+   "name": "Cable Rope Overhead Triceps Extension",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Rope Overhead Triceps Extension",
+    "ro": "Cable Rope Overhead Triceps Extension",
+    "th": "Cable Rope Overhead Triceps Extension"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_overhead_curl",
+   "movementID": "cable_overhead_curl",
+   "name": "Cable Overhead Curl",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Overhead Curl",
+    "ro": "Cable Overhead Curl",
+    "th": "Cable Overhead Curl"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_rope_hammer_curl",
+   "movementID": "cable_rope_hammer_curl",
+   "name": "Cable Rope Hammer Curl",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "biceps",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Rope Hammer Curl",
+    "ro": "Cable Rope Hammer Curl",
+    "th": "Cable Rope Hammer Curl"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_hip_flexion",
+   "movementID": "cable_hip_flexion",
+   "name": "Cable Hip Flexion",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Hip Flexion",
+    "ro": "Cable Hip Flexion",
+    "th": "Cable Hip Flexion"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_kickback_glutes",
+   "movementID": "cable_kickback_glutes",
+   "name": "Cable Kickback (Glutes)",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "glutes"
+   ],
+   "dayType": "legs_a",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Kickback (Glutes)",
+    "ro": "Cable Kickback (Glutes)",
+    "th": "Cable Kickback (Glutes)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_deadlift",
+   "movementID": "cable_deadlift",
+   "name": "Cable Deadlift",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "hamstrings",
+    "glutes",
+    "lowerBack",
+    "abs",
+    "obliques"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 9,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Deadlift",
+    "ro": "Cable Deadlift",
+    "th": "Cable Deadlift"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "cable_squat_row",
+   "movementID": "cable_squat_row",
+   "name": "Cable Squat Row",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "chest",
+    "upperBack",
+    "abs",
+    "glutes",
+    "quads",
+    "obliques"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Cable Squat Row",
+    "ro": "Cable Squat Row",
+    "th": "Cable Squat Row"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "lat_pulldown_single_arm",
+   "movementID": "lat_pulldown_single_arm",
+   "name": "Lat Pulldown - Single-Arm",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Cable Stack",
+   "muscles": [
+    "lats",
+    "biceps",
+    "upperBack",
+    "forearms"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Lat Pulldown - Single-Arm",
+    "ro": "Lat Pulldown - Single-Arm",
+    "th": "Lat Pulldown - Single-Arm"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "machine_chest_fly",
+   "movementID": "machine_chest_fly",
+   "name": "Machine Chest Fly",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Pec Deck Machine",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 3,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Machine Chest Fly",
+    "ro": "Machine Chest Fly",
+    "th": "Machine Chest Fly"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "machine_reverse_fly",
+   "movementID": "machine_reverse_fly",
+   "name": "Machine Reverse Fly",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Pec Deck Machine",
+   "muscles": [
+    "rearDelts"
+   ],
+   "dayType": "upper",
+   "sets": 3,
+   "reps": 12,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Machine Reverse Fly",
+    "ro": "Machine Reverse Fly",
+    "th": "Machine Reverse Fly"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hammer_strength_row_machine",
+   "movementID": "hammer_strength_row_machine",
+   "name": "Hammer-Strength Row Machine",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Row Machine",
+   "muscles": [
+    "lats",
+    "upperBack",
+    "biceps",
+    "rearDelts"
+   ],
+   "dayType": "pull",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Hammer-Strength Row Machine",
+    "ro": "Hammer-Strength Row Machine",
+    "th": "Hammer-Strength Row Machine"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "hammer_strength_incline_press",
+   "movementID": "hammer_strength_incline_press",
+   "name": "Hammer-Strength Incline Press",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Chest Press Machine",
+   "muscles": [
+    "chest",
+    "triceps",
+    "frontDelts"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Hammer-Strength Incline Press",
+    "ro": "Hammer-Strength Incline Press",
+    "th": "Hammer-Strength Incline Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "seated_machine_shoulder_press_neutral",
+   "movementID": "seated_machine_shoulder_press_neutral",
+   "name": "Seated Machine Shoulder Press (Neutral)",
+   "category": "machine",
+   "categories": [
+    "strength",
+    "machine"
+   ],
+   "equipment": "Shoulder Press Machine",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "sideDelts",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 9,
+   "rest": 60,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Seated Machine Shoulder Press (Neutral)",
+    "ro": "Seated Machine Shoulder Press (Neutral)",
+    "th": "Seated Machine Shoulder Press (Neutral)"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "standing_hip_cars",
+   "movementID": "standing_hip_cars",
+   "name": "Standing Hip CARs",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "adductors",
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 4,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Standing Hip CARs",
+    "ro": "Standing Hip CARs",
+    "th": "Standing Hip CARs"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "shoulder_cars",
+   "movementID": "shoulder_cars",
+   "name": "Shoulder CARs",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "lats"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 4,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Shoulder CARs",
+    "ro": "Shoulder CARs",
+    "th": "Shoulder CARs"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "ankle_cars",
+   "movementID": "ankle_cars",
+   "name": "Ankle CARs",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "calves"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 4,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Ankle CARs",
+    "ro": "Ankle CARs",
+    "th": "Ankle CARs"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "90_90_shin_box_switch",
+   "movementID": "90_90_shin_box_switch",
+   "name": "90/90 Shin Box Switch",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "adductors",
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "90/90 Shin Box Switch",
+    "ro": "90/90 Shin Box Switch",
+    "th": "90/90 Shin Box Switch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "frog_stretch",
+   "movementID": "frog_stretch",
+   "name": "Frog Stretch",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "adductors",
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Frog Stretch",
+    "ro": "Frog Stretch",
+    "th": "Frog Stretch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "pigeon_stretch",
+   "movementID": "pigeon_stretch",
+   "name": "Pigeon Stretch",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "adductors",
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Pigeon Stretch",
+    "ro": "Pigeon Stretch",
+    "th": "Pigeon Stretch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "thread_the_needle_stretch",
+   "movementID": "thread_the_needle_stretch",
+   "name": "Thread-the-Needle Stretch",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "lats"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Thread-the-Needle Stretch",
+    "ro": "Thread-the-Needle Stretch",
+    "th": "Thread-the-Needle Stretch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "brettzel_stretch",
+   "movementID": "brettzel_stretch",
+   "name": "Brettzel Stretch",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "lats"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 15,
+   "unit": "seconds",
+   "perSide": false,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Brettzel Stretch",
+    "ro": "Brettzel Stretch",
+    "th": "Brettzel Stretch"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "jefferson_curl",
+   "movementID": "jefferson_curl",
+   "name": "Jefferson Curl",
+   "category": "weights",
+   "categories": [
+    "mobility",
+    "weights"
+   ],
+   "equipment": "Bodyweight",
+   "muscles": [
+    "hamstrings",
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 7,
+   "rest": 15,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 2.5,
+   "names": {
+    "en": "Jefferson Curl",
+    "ro": "Jefferson Curl",
+    "th": "Jefferson Curl"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "single_leg_balance_reach",
+   "movementID": "single_leg_balance_reach",
+   "name": "Single-Leg Balance Reach",
+   "category": "mobility",
+   "categories": [
+    "mobility"
+   ],
+   "equipment": "Mat",
+   "muscles": [
+    "glutes"
+   ],
+   "dayType": "mobility",
+   "sets": 2,
+   "reps": 20,
+   "rest": 30,
+   "unit": "seconds",
+   "perSide": true,
+   "loadable": false,
+   "incrementKG": 0,
+   "names": {
+    "en": "Single-Leg Balance Reach",
+    "ro": "Single-Leg Balance Reach",
+    "th": "Single-Leg Balance Reach"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_360",
+   "movementID": "steel_mace_360",
+   "name": "Steel Mace 360",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "abs",
+    "obliques",
+    "upperBack",
+    "triceps"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace 360",
+    "ro": "Steel Mace 360",
+    "th": "Steel Mace 360"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_10_to_2",
+   "movementID": "steel_mace_10_to_2",
+   "name": "Steel Mace 10-to-2",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "frontDelts",
+    "sideDelts",
+    "abs",
+    "obliques",
+    "upperBack",
+    "triceps"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 10,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": false,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace 10-to-2",
+    "ro": "Steel Mace 10-to-2",
+    "th": "Steel Mace 10-to-2"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_uppercut",
+   "movementID": "steel_mace_uppercut",
+   "name": "Steel Mace Uppercut",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "obliques",
+    "frontDelts",
+    "glutes",
+    "triceps"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace Uppercut",
+    "ro": "Steel Mace Uppercut",
+    "th": "Steel Mace Uppercut"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_offset_press",
+   "movementID": "steel_mace_offset_press",
+   "name": "Steel Mace Offset Press",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "frontDelts",
+    "triceps",
+    "obliques",
+    "chest"
+   ],
+   "dayType": "push",
+   "sets": 4,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace Offset Press",
+    "ro": "Steel Mace Offset Press",
+    "th": "Steel Mace Offset Press"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_offset_squat",
+   "movementID": "steel_mace_offset_squat",
+   "name": "Steel Mace Offset Squat",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "quads",
+    "glutes",
+    "obliques",
+    "hamstrings"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace Offset Squat",
+    "ro": "Steel Mace Offset Squat",
+    "th": "Steel Mace Offset Squat"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_rotational_lunge",
+   "movementID": "steel_mace_rotational_lunge",
+   "name": "Steel Mace Rotational Lunge",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "quads",
+    "glutes",
+    "obliques",
+    "hamstrings",
+    "frontDelts"
+   ],
+   "dayType": "legs_b",
+   "sets": 4,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace Rotational Lunge",
+    "ro": "Steel Mace Rotational Lunge",
+    "th": "Steel Mace Rotational Lunge"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_single_arm_swing",
+   "movementID": "steel_mace_single_arm_swing",
+   "name": "Steel Mace Single-Arm Swing",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "glutes",
+    "hamstrings",
+    "obliques",
+    "forearms"
+   ],
+   "dayType": "legs_a",
+   "sets": 4,
+   "reps": 8,
+   "rest": 90,
+   "unit": "reps",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace Single-Arm Swing",
+    "ro": "Steel Mace Single-Arm Swing",
+    "th": "Steel Mace Single-Arm Swing"
+   },
+   "aliases": {
+    "en": [],
+    "ro": [],
+    "th": []
+   }
+  },
+  {
+   "id": "steel_mace_overhead_carry",
+   "movementID": "steel_mace_overhead_carry",
+   "name": "Steel Mace Overhead Carry",
+   "category": "weights",
+   "categories": [
+    "street",
+    "strength",
+    "weights"
+   ],
+   "equipment": "Steel Mace",
+   "muscles": [
+    "abs",
+    "obliques",
+    "frontDelts",
+    "neckTraps",
+    "forearms"
+   ],
+   "dayType": "upper",
+   "sets": 4,
+   "reps": 30,
+   "rest": 90,
+   "unit": "metres",
+   "perSide": true,
+   "loadable": true,
+   "incrementKG": 1,
+   "names": {
+    "en": "Steel Mace Overhead Carry",
+    "ro": "Steel Mace Overhead Carry",
+    "th": "Steel Mace Overhead Carry"
    },
    "aliases": {
     "en": [],
