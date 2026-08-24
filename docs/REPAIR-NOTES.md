@@ -514,3 +514,11 @@ GitHub publication evidence:
 - Fix: the catalogue UI test now asserts the verified 549-row headline and waits for selected results to leave through their animation; the meal-name field has a stable semantic identifier, and the preset workflow taps the uniquely identified Breakfast title rather than an overlapping combined Dayline frame.
 - Behaviour retained: selection must persist in the authored workout, and the meal test must open the Breakfast composer, expose its food picker, preserve water facts, exercise preset selection, removal/undo, and selection mode.
 - Green proof: isolated meal-composer flow 1/1 in 45.0 s; workout-builder flow passed in the focused run; complete native suite 406/406, 0 failed, 0 skipped in 681.0 s using the official XcodeBuildMCP runner.
+
+## 2026-08-24 — Integrity batch production integration
+
+- Feature branch published at `1f864a19971d`; normal merge commit `e39b7637aedc` has parents `5a0ac19da67b` (`origin/main`) and `1f864a19971d` (the tested repair branch). The merge tree was verified byte-identical to the tested feature tree before push.
+- GitHub Pages workflow `32704767164` succeeded from `main`: build 22 s, deploy 10 s. `https://evoryder8-collab.github.io/APXAppiC/` loaded as APEX in the browser and independently returned HTTP 200.
+- Production shared-record proof: inserted food probe `e39b7637-aedc-424c-8807-c7475c419dc8`, independently read it back with `owner_user_id = null` and `is_shared = true`, deleted that exact probe, then confirmed `remaining = 0`.
+- Physical device proof for merge SHA `e39b7637aedc`: official XcodeBuildMCP device build succeeded in 186.1 s, installed on `iConstantine Main` (iOS 27.0), and launched as PID 3620.
+- Signature proof: the iPhone app (`ch.apexperformance.APEX`), embedded Watch app (`ch.apexperformance.APEX.watchkitapp`), and Watch widget (`ch.apexperformance.APEX.watchkitapp.widgets`) all passed strict deep verification and carry Apple Development signer Constantin Barbu (`YYWFU4Y9QV`), team `UG979XDY72`.
