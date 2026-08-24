@@ -441,3 +441,35 @@ GitHub publication evidence:
 - Evidence check: ISSN identifies `1.4–2.0 g/kg/day` as sufficient for most exercising people, with higher needs possible in energy restriction; EFSA places adult fat within a broad `20–35%` energy reference range. APEX's outputs remain personalised estimates rather than medical prescriptions.
 - Red/green and verification: the replacement native suite first failed because no shared policy existed and the old implementation held protein/fat constant. Final `EnergyEngineTests` passed `8/8`; web activity parity passed `12/12`; `git diff --check` passed.
 - Git: implementation commit `c5ad789d` (`fix: recalculate nutrition macros by goal`). Publication and exact-device evidence will be recorded after the complete user integrity batch is merged, deployed, and installed.
+
+## 2026-08-24 — Food water provenance and honest disclosure
+
+- Finding: the catalogue's water values were not uniformly fact-checked. The bundled catalogue contains 1,511 foods with water values, but only 31 are reference-backed; 1,457 are macro-difference estimates and 23 are name-based estimates.
+- Retailer audit (bundled): Migros 216 estimated / 0 exact, Aldi 215 / 0, Lidl 215 / 0, REWE 224 / 0, Coop 0, Denner 0.
+- Retailer audit (live): Migros 12 estimated / 0 exact, Aldi 3 estimated + 1 missing, Lidl 3 estimated + 1 missing, REWE 1 estimated + 1 missing, Coop 1 estimated, Denner 0.
+- Regulatory/source finding: EU Regulation 1169/2011 does not require water in the mandatory nutrition declaration, and Open Food Facts is community-contributed data subject to quality controls. A retailer label or provider result therefore cannot be treated as a measured water assay by default.
+- Repair:
+  - added a controlled water provenance vocabulary: `measured`, `provider_reported`, `reference`, `name`, `difference`, `legacy`, `user_entered`, and `unknown`;
+  - persisted provenance/source IDs through Food, structured meal requests, immutable logged-food snapshots, and Open Food Facts normalization;
+  - marked every non-measured value as estimated in native item, portion, meal-total, and accessibility output;
+  - classified seed-derived water values explicitly instead of presenting them as exact;
+  - added and remotely applied `025_food_water_provenance.sql`, including conservative legacy backfill and snapshot trigger propagation.
+- Live migration verification: 148 foods total; 124 legacy values, 4 traceable reference values, and 20 unknown/missing. New provenance columns and constraints exist on `foods` and `logged_food_entries`.
+- Implementation commit: `b41df74b` (`fix: disclose food water provenance`).
+- Files changed:
+  - `src/lib/hydration.ts`, `src/lib/food.ts`, `src/data/foodSeeds.ts`, `src/store/FoodStore.tsx`, `src/components/food/MealComposer.tsx`, `shared/openFoodFacts.ts`
+  - `ios/APEXNative/APEX/Core/Engine/FoodHydration.swift`, `MealMemory.swift`, `APEXModels.swift`, `AppSession.swift`, `FoodAmountSheet.swift`, `MealComposerView.swift`
+  - `tests/hydration.test.ts`, `FoodHydrationTests.swift`, `MealComposerTests.swift`
+  - `supabase/migrations/025_food_water_provenance.sql`
+- Tests added:
+  - web disclosure/provenance tests for measured, estimated, and unknown values;
+  - native disclosure/provenance tests and mixed-provenance meal-total behavior.
+- Test output:
+  - web food/hydration/sync suites: 68/68 passed;
+  - native FoodHydration + MealComposer suites: 21/21 passed in 44.0 s;
+  - production web build: succeeded, 1,170 modules transformed in 633 ms;
+  - `git diff --check`: clean.
+- Sources:
+  - https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32011R1169
+  - https://openfoodfacts.github.io/documentation/docs/
+  - https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/tutorials/how-to-create-data-quality-controls-in-your-app/
