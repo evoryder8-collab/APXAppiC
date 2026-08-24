@@ -493,3 +493,15 @@ GitHub publication evidence:
 - Hardware limit stated explicitly: no physical Apple Watch is connected to this Mac. Executable behavior was therefore verified on the Watch simulator, while the exact device provisioning/signature chain was verified inside the build installed on the physical iPhone.
 - Files changed: `docs/REPAIR-NOTES.md` only.
 - Tests added: none; this task is a build, launch, and signature-verification gate.
+
+## 2026-08-24 — Movement catalogue fact audit
+
+- Implementation commit: `26633ea7` (`fix: audit movement catalogue facts`).
+- Files changed: `src/lib/eventCampaign.ts`, `src/data/exerciseCatalog.ts`, `src/data/movements.ts`, `tools/export-exercise-catalog.mts`, `docs/APEX-CURRENT-EXERCISE-CATALOG.csv`, `ios/APEXNative/APEX/Resources/exercise-catalog.json`, `ios/APEXNative/APEX/Resources/movement-timing.json`, `tests/exercise-catalog.test.ts`, `tests/exercise-catalog-export.test.ts`, `tests/movement-library.test.ts`, and `ios/APEXNative/APEXTests/CustomWorkoutBuilderTests.swift`.
+- Canonical count remains 549 unique rows: 534 selectable movement entities plus 15 separately modelled cardio modalities. Entity types and the lowercase controlled discipline vocabulary were already explicit and valid.
+- Accepted audit findings: HYROX station 6 now resolves to the kettlebell farmer's walk; `equipmentAnyOf` is visible instead of incorrectly projecting resistance movements as Bodyweight; the audit CSV now exports canonical primary, secondary, and stabilizer anatomy; high-consequence barbell movements and an erroneous snatch-grip RDL record received evidence-bounded safety corrections.
+- Rejected unsupported findings: the ten allegedly missing muscle mappings were already present in the canonical source; cardio modalities intentionally do not pretend to have resistance-only tempo or spotter facts; provenance and aliases remain unknown where no source supports a backfill; controlled floor-returned pulls were not blanket-labelled unsafe.
+- Tests added: alternative-equipment projection, canonical anatomy export, official HYROX station identity/order, barbell failure-mode distinctions, anchored-landmine bail behaviour, and native HYROX parity.
+- Red proof: the new web assertions failed five times against the old HYROX/equipment/safety behaviour; the canonical-anatomy assertion then failed with an empty exported muscle value; the native parity test failed on the old generic farmer's-carry ID.
+- Green proof: targeted web catalogue suite 71/71; full web suite 502/502 in 5.83 s; native `CustomWorkoutBuilderTests` 30/30 in 13.6 s; production web build succeeded (1,170 modules transformed in 0.70 s); `git diff --check` passed.
+- Evidence used: official HYROX race/rules material for station order and kettlebells; ACE exercise guidance for Pallof resistance requirements; NSCA strength-and-conditioning safety guidance for rack safeties, platforms, and high-consequence barbell failure handling.
