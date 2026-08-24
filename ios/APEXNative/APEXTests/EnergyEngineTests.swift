@@ -65,13 +65,43 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(result.pal, 2)
     }
 
-    func testGoalChangePinsProteinAndFlexesCarbohydrate() {
-        let recomp = EnergyEngine.targets(profile: profile(weight: 70, goal: .recomp), logs: [], catalog: [])
-        let bulk = EnergyEngine.targets(profile: profile(weight: 70, goal: .bulk), logs: [], catalog: [])
+    func testGoalChangeRecalculatesEveryMacroAndEnergyStillBalances() {
+        let recomp = EnergyEngine.targets(profile: profile(weight: 70, level: .moderate, goal: .recomp), logs: [], catalog: [])
+        let maintain = EnergyEngine.targets(profile: profile(weight: 70, level: .moderate, goal: .maintain), logs: [], catalog: [])
+        let bulk = EnergyEngine.targets(profile: profile(weight: 70, level: .moderate, goal: .bulk), logs: [], catalog: [])
 
-        XCTAssertEqual(recomp.proteinG, bulk.proteinG)
-        XCTAssertEqual(recomp.fatG, bulk.fatG)
-        XCTAssertGreaterThan(bulk.carbsG, recomp.carbsG)
+        XCTAssertGreaterThan(recomp.proteinG, maintain.proteinG)
+        XCTAssertGreaterThan(maintain.proteinG, bulk.proteinG)
+        XCTAssertLessThan(recomp.fatG, maintain.fatG)
+        XCTAssertLessThan(maintain.fatG, bulk.fatG)
+        XCTAssertLessThan(recomp.carbsG, maintain.carbsG)
+        XCTAssertLessThan(maintain.carbsG, bulk.carbsG)
+
+        for target in [recomp, maintain, bulk] {
+            let macroCalories = target.proteinG * 4 + target.fatG * 9 + target.carbsG * 4
+            XCTAssertLessThanOrEqual(abs(macroCalories - target.targetCalories), 2)
+        }
+    }
+
+    func testMacroPolicyMatchesCrossClientLiteralFixtures() {
+        XCTAssertEqual(
+            EnergyEngine.macroTargets(
+                weightKG: 70, level: .moderate, goal: .recomp, targetCalories: 2_200
+            ),
+            .init(proteinG: 147, fatG: 61, carbsG: 266)
+        )
+        XCTAssertEqual(
+            EnergyEngine.macroTargets(
+                weightKG: 70, level: .moderate, goal: .maintain, targetCalories: 2_400
+            ),
+            .init(proteinG: 133, fatG: 73, carbsG: 303)
+        )
+        XCTAssertEqual(
+            EnergyEngine.macroTargets(
+                weightKG: 70, level: .moderate, goal: .bulk, targetCalories: 2_600
+            ),
+            .init(proteinG: 126, fatG: 81, carbsG: 342)
+        )
     }
 
     func testCalibrationNudgesUpwardAndClamps() {
