@@ -9,6 +9,8 @@
 /* Begin PBXBuildFile section */
 		A15E20000000000000000002 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
 		A15E20000000000000000003 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
+		A15E20000000000000000004 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
+		A15E20000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
 		002E4BE70CF5D1D92C5D4094 /* ProgressPhotoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C60B17BD340219024A2F7711 /* ProgressPhotoEngine.swift */; };
 		019A4C7BDFBE9550A37412B7 /* TrainingInduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5F4855EBFA6D7681E2FF1E /* TrainingInduction.swift */; };
 		0327CDA9CA16B4BC55580464 /* legs_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 840094548F0DA24D2ADA77C0 /* legs_dif.jpg */; };
@@ -1079,6 +1081,7 @@
 			buildConfigurationList = 1527996CCE63F8B7FD91A555 /* Build configuration list for PBXNativeTarget "APEXWatch" */;
 			buildPhases = (
 				048DBF7B1F78A7A64DC84463 /* Sources */,
+				A15E20000000000000000006 /* Resources */,
 				F3575C115524204FC0EAA0FA /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -1160,6 +1163,14 @@
 /* End PBXProject section */
 
 /* Begin PBXResourcesBuildPhase section */
+		A15E20000000000000000006 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A15E20000000000000000005 /* Assets.xcassets in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
 		3F3EA13A3309B9571CCB7979 /* Resources */ = {
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
@@ -1370,6 +1381,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A15E20000000000000000004 /* WatchHydrationFillState.swift in Sources */,
 				120C3902EDDC837DDE52C8B2 /* APEXWaterComplication.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

@@ -234,3 +234,59 @@ enum FoodHydration {
         )
     }
 }
+
+/*
+ * HealthKit is the exchange ledger, while APEX keeps drinks and food water as
+ * separate facts. The classification and delta merge live outside HealthKit
+ * so the no-double-count contract is deterministic and testable.
+ */
+enum HydrationReconciliation {
+    enum Source: Hashable, Sendable {
+        case apexPhone
+        case apexWatch
+        case apexFood
+        case external
+    }
+
+    struct Sample: Hashable, Sendable {
+        let liters: Double
+        let source: Source
+    }
+
+    static let phoneBundleIdentifier = "ch.apexperformance.APEX"
+    static let watchBundleIdentifier = "ch.apexperformance.APEX.watchkitapp"
+    static let foodMetadataKey = "ch.apexperformance.APEX.hydration.kind"
+    static let foodMetadataValue = "food"
+
+    static func importableDrinkLiters(_ samples: [Sample]) -> Double {
+        samples.reduce(0) { total, sample in
+            guard sample.liters.isFinite, sample.liters > 0 else { return total }
+            switch sample.source {
+            case .apexWatch, .external:
+                return total + sample.liters
+            case .apexPhone, .apexFood:
+                return total
+            }
+        }
+    }
+
+    static func mergedDrinkLiters(
+        localDrinkLiters: Double,
+        previousImportableLiters: Double,
+        currentImportableLiters: Double
+    ) -> Double {
+        let local = localDrinkLiters.isFinite ? localDrinkLiters : 0
+        let previous = previousImportableLiters.isFinite ? previousImportableLiters : 0
+        let current = currentImportableLiters.isFinite ? currentImportableLiters : 0
+        let merged = local + (current - previous)
+        return min(6, max(0, (merged * 100).rounded() / 100))
+    }
+
+    static func foodSyncIdentifier(accountID: UUID, dateKey: String) -> String {
+        "apex.hydration.food.\(accountID.uuidString.lowercased()).\(dateKey)"
+    }
+
+    static func canDeleteOnWatch(sourceBundleIdentifier: String) -> Bool {
+        sourceBundleIdentifier == watchBundleIdentifier
+    }
+}

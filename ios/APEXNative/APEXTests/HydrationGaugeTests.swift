@@ -120,4 +120,11 @@ final class WatchHydrationFillStateTests: XCTestCase {
             }
         }
     }
+
+    func testComplicationModesDeriveFromLitersWithoutStoringConvertedValues() {
+        let state = WatchHydrationFillState(liters: 1.375, targetLiters: 2.75)
+        XCTAssertEqual(WatchHydrationDisplayMode.percent.shortValue(for: state), "50%")
+        XCTAssertEqual(WatchHydrationDisplayMode.liters.shortValue(for: state), "1.38L")
+        XCTAssertEqual(WatchHydrationDisplayMode.gallons.shortValue(for: state), "0.36gal")
+    }
 }

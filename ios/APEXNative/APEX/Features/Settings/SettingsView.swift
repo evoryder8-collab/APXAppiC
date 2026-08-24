@@ -457,10 +457,51 @@ struct SettingsView: View {
                         healthMetric("ACTIVE", snapshot.activeEnergyKcal, "kcal")
                     }
                 }
+                waterSharingStatus
                 if let message = health.message {
                     Text(language.text(message)).font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                 }
             }
+        }
+    }
+
+    @ViewBuilder
+    private var waterSharingStatus: some View {
+        HStack(alignment: .top, spacing: 10) {
+            Image(systemName: health.waterWriteState == .authorized ? "checkmark.circle.fill" : "exclamationmark.triangle.fill")
+                .foregroundStyle(health.waterWriteState == .authorized ? APEXColor.teal : .orange)
+            VStack(alignment: .leading, spacing: 4) {
+                Text(language.text("Apple Health water sharing"))
+                    .font(APEXFont.body(12, weight: .bold))
+                Text(language.text(waterSharingExplanation))
+                    .font(APEXFont.body(11, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+
+        if health.waterWriteState != .authorized {
+            Button {
+                Task { await health.reconnectWaterAccess() }
+            } label: {
+                Label(language.text("Reconnect water access"), systemImage: "drop.fill")
+                    .frame(maxWidth: .infinity)
+            }
+            .buttonStyle(.borderedProminent)
+            .tint(APEXColor.teal)
+        }
+    }
+
+    private var waterSharingExplanation: String {
+        switch health.waterWriteState {
+        case .authorized:
+            return "Connected. APEX, your Watch and other allowed apps share the HealthKit dietary-water ledger."
+        case .denied:
+            return "Water write access is off. Open Health > profile > Apps and Services > APEX and enable Water."
+        case .notDetermined:
+            return "Connect to publish APEX drink and food water and import water recorded by your Watch or other apps."
+        case .unavailable:
+            return "Apple Health water tracking is unavailable on this device."
         }
     }
 

@@ -23,3 +23,21 @@ struct WatchHydrationFillState: Equatable, Sendable {
         return min(1, max(0, (1 - progress) + wave))
     }
 }
+
+enum WatchHydrationDisplayMode: String, CaseIterable, Sendable {
+    case percent
+    case liters
+    case gallons
+
+    func shortValue(for state: WatchHydrationFillState) -> String {
+        switch self {
+        case .percent:
+            return "\(Int((state.progress * 100).rounded()))%"
+        case .liters:
+            return "\(state.liters.formatted(.number.precision(.fractionLength(2))))L"
+        case .gallons:
+            let gallons = state.liters * 0.264_172_052
+            return "\(gallons.formatted(.number.precision(.fractionLength(2))))gal"
+        }
+    }
+}

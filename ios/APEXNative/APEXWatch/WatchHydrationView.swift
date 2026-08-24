@@ -3,6 +3,8 @@ import SwiftUI
 struct WatchHydrationView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var showsCustomAmount = false
+    @State private var showsHistory = false
 
     private let aqua = Color(red: 0.08, green: 0.80, blue: 0.92)
     private let violet = Color(red: 0.55, green: 0.34, blue: 0.98)
@@ -51,6 +53,24 @@ struct WatchHydrationView: View {
                         quickAdd(500)
                     }
 
+                    HStack(spacing: 6) {
+                        utilityButton("Custom", systemImage: "slider.horizontal.3") {
+                            showsCustomAmount = true
+                        }
+                        utilityButton("History", systemImage: "clock.arrow.circlepath") {
+                            showsHistory = true
+                        }
+                    }
+
+                    if !hydration.isAuthorized {
+                        Button("Reconnect Apple Health") {
+                            Task { await hydration.reconnect() }
+                        }
+                        .font(.system(size: 11, weight: .bold, design: .rounded))
+                        .buttonStyle(.borderedProminent)
+                        .tint(aqua)
+                    }
+
                     if let message = hydration.message {
                         Text(message)
                             .font(.system(size: 10, weight: .semibold, design: .rounded))
@@ -69,6 +89,14 @@ struct WatchHydrationView: View {
                 await hydration.start()
             }
         }
+        .sheet(isPresented: $showsCustomAmount) {
+            CustomHydrationAmountView()
+                .environmentObject(hydration)
+        }
+        .sheet(isPresented: $showsHistory) {
+            HydrationHistoryView()
+                .environmentObject(hydration)
+        }
     }
 
     private var hydrationCard: some View {
@@ -79,11 +107,11 @@ struct WatchHydrationView: View {
                 violet: violet,
                 reduceMotion: reduceMotion
             )
-            .frame(width: 68, height: 104)
+            .frame(width: 60, height: 88)
 
             VStack(alignment: .leading, spacing: 5) {
                 Text(displayedLiters.formatted(.number.precision(.fractionLength(2))))
-                    .font(.system(size: 23, weight: .bold, design: .rounded))
+                    .font(.system(size: 21, weight: .bold, design: .rounded))
                     .contentTransition(.numericText())
                     .minimumScaleFactor(0.72)
                 Text("L TODAY")
@@ -111,8 +139,8 @@ struct WatchHydrationView: View {
             }
             .frame(maxWidth: .infinity, alignment: .leading)
         }
-        .padding(.horizontal, 10)
-        .padding(.vertical, 6)
+        .padding(.horizontal, 9)
+        .padding(.vertical, 4)
         .background(
             LinearGradient(
                 colors: [.white.opacity(0.105), aqua.opacity(0.055), violet.opacity(0.07)],
@@ -138,16 +166,16 @@ struct WatchHydrationView: View {
         Button {
             Task { await hydration.add(milliliters: Double(milliliters)) }
         } label: {
-            VStack(spacing: 2) {
+            VStack(spacing: 1) {
                 Image(systemName: "drop.fill")
-                    .font(.system(size: 9, weight: .bold))
+                    .font(.system(size: 8, weight: .bold))
                     .foregroundStyle(aqua)
                 Text("+\(milliliters)")
-                    .font(.system(size: 12, weight: .bold, design: .rounded))
+                    .font(.system(size: 11, weight: .bold, design: .rounded))
                     .foregroundStyle(.white)
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 44)
+            .frame(minHeight: 36)
             .background(.white.opacity(0.085), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -157,6 +185,115 @@ struct WatchHydrationView: View {
         .buttonStyle(.plain)
         .disabled(hydration.isSaving)
         .accessibilityLabel("Add \(milliliters) milliliters of water")
+    }
+
+    private func utilityButton(
+        _ title: String,
+        systemImage: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            Label(title, systemImage: systemImage)
+                .font(.system(size: 10, weight: .bold, design: .rounded))
+                .frame(maxWidth: .infinity, minHeight: 30)
+                .background(
+                    .white.opacity(0.08),
+                    in: RoundedRectangle(cornerRadius: 12, style: .continuous)
+                )
+                .overlay {
+                    RoundedRectangle(cornerRadius: 12, style: .continuous)
+                        .stroke(.white.opacity(0.12), lineWidth: 0.7)
+                }
+        }
+        .buttonStyle(.plain)
+    }
+}
+
+private struct CustomHydrationAmountView: View {
+    @EnvironmentObject private var hydration: WatchHydrationStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var milliliters = 350.0
+
+    var body: some View {
+        ScrollView {
+            VStack(spacing: 10) {
+                Label("CUSTOM WATER", systemImage: "drop.fill")
+                    .font(.system(size: 11, weight: .heavy, design: .monospaced))
+                    .foregroundStyle(.cyan)
+
+                Stepper(value: $milliliters, in: 50...3_000, step: 10) {
+                    VStack(spacing: 2) {
+                        Text("\(Int(milliliters))")
+                            .font(.system(size: 29, weight: .bold, design: .rounded))
+                            .contentTransition(.numericText())
+                        Text("MILLILITRES")
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(.secondary)
+                    }
+                }
+
+                Button("Add \(Int(milliliters)) mL") {
+                    Task {
+                        await hydration.add(milliliters: milliliters)
+                        if hydration.isAuthorized { dismiss() }
+                    }
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(.cyan)
+                .disabled(hydration.isSaving)
+            }
+            .padding(.horizontal, 6)
+        }
+        .navigationTitle("Custom")
+    }
+}
+
+private struct HydrationHistoryView: View {
+    @EnvironmentObject private var hydration: WatchHydrationStore
+
+    var body: some View {
+        Group {
+            if hydration.entries.isEmpty {
+                ContentUnavailableView(
+                    "No water yet",
+                    systemImage: "drop",
+                    description: Text("Today’s entries will appear here.")
+                )
+            } else {
+                List(hydration.entries) { entry in
+                    HStack(spacing: 6) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text("\(Int(entry.milliliters.rounded())) mL")
+                                .font(.system(size: 15, weight: .bold, design: .rounded))
+                            Text(entry.date, style: .time)
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                            Text(entry.sourceName)
+                                .font(.caption2)
+                                .foregroundStyle(.cyan)
+                                .lineLimit(2)
+                        }
+                        Spacer(minLength: 0)
+                        if entry.canDelete {
+                            Button(role: .destructive) {
+                                Task { await hydration.delete(entry) }
+                            } label: {
+                                Image(systemName: "trash")
+                            }
+                            .buttonStyle(.plain)
+                            .accessibilityLabel("Remove \(Int(entry.milliliters.rounded())) milliliters")
+                        } else {
+                            Image(systemName: "lock.fill")
+                                .font(.caption2)
+                                .foregroundStyle(.secondary)
+                                .accessibilityLabel("Read only")
+                        }
+                    }
+                }
+            }
+        }
+        .navigationTitle("Today")
+        .task { await hydration.refresh() }
     }
 }
 

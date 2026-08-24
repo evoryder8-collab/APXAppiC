@@ -15,32 +15,79 @@ import WidgetKit
 
 private let targetLiters = 2.75
 
+enum WaterDisplayMode: String, AppEnum {
+    case percent
+    case liters
+    case gallons
+
+    static var typeDisplayRepresentation: TypeDisplayRepresentation { "Hydration display" }
+    static var caseDisplayRepresentations: [WaterDisplayMode: DisplayRepresentation] {
+        [
+            .percent: "Percent",
+            .liters: "Litres",
+            .gallons: "US gallons",
+        ]
+    }
+
+    var sharedMode: WatchHydrationDisplayMode {
+        WatchHydrationDisplayMode(rawValue: rawValue) ?? .percent
+    }
+}
+
 struct WaterConfigurationIntent: WidgetConfigurationIntent {
     static var title: LocalizedStringResource { "APEX Water" }
     static var description: IntentDescription { "Today's hydration against your target." }
+
+    @Parameter(title: "Show")
+    var displayMode: WaterDisplayMode?
+
+    init() {
+        displayMode = .percent
+    }
 }
 
 struct WaterEntry: TimelineEntry {
     let date: Date
     let liters: Double
+    let displayMode: WaterDisplayMode
 
     var progress: Double { min(1, max(0, liters / targetLiters)) }
     var shortText: String {
-        liters >= 10 ? String(format: "%.0fL", liters) : String(format: "%.1fL", liters)
+        displayMode.sharedMode.shortValue(
+            for: WatchHydrationFillState(liters: liters, targetLiters: targetLiters)
+        )
+    }
+    var detailText: String {
+        switch displayMode {
+        case .percent:
+            return "\(String(format: "%.2f", liters)) of \(String(format: "%.2f", targetLiters)) L"
+        case .liters:
+            return "of \(String(format: "%.2f", targetLiters)) L today"
+        case .gallons:
+            return "of \(String(format: "%.2f", targetLiters * 0.264_172_052)) gal today"
+        }
     }
 }
 
 struct WaterProvider: AppIntentTimelineProvider {
     func placeholder(in context: Context) -> WaterEntry {
-        WaterEntry(date: Date(), liters: 1.5)
+        WaterEntry(date: Date(), liters: 1.5, displayMode: .percent)
     }
 
     func snapshot(for configuration: WaterConfigurationIntent, in context: Context) async -> WaterEntry {
-        WaterEntry(date: Date(), liters: await Self.todayLiters())
+        WaterEntry(
+            date: Date(),
+            liters: await Self.todayLiters(),
+            displayMode: configuration.displayMode ?? .percent
+        )
     }
 
     func timeline(for configuration: WaterConfigurationIntent, in context: Context) async -> Timeline<WaterEntry> {
-        let entry = WaterEntry(date: Date(), liters: await Self.todayLiters())
+        let entry = WaterEntry(
+            date: Date(),
+            liters: await Self.todayLiters(),
+            displayMode: configuration.displayMode ?? .percent
+        )
         /* Refresh on the half hour. Logging from the watch app or the phone
            also reloads timelines directly. */
         return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60)))
@@ -48,7 +95,11 @@ struct WaterProvider: AppIntentTimelineProvider {
 
     /* Offered in the watch-face complication gallery. */
     func recommendations() -> [AppIntentRecommendation<WaterConfigurationIntent>] {
-        [AppIntentRecommendation(intent: WaterConfigurationIntent(), description: "APEX Water")]
+        WaterDisplayMode.allCases.map { mode in
+            let intent = WaterConfigurationIntent()
+            intent.displayMode = mode
+            return AppIntentRecommendation(intent: intent, description: "APEX Water · \(mode.rawValue)")
+        }
     }
 
     private static func todayLiters() async -> Double {
@@ -99,9 +150,7 @@ struct APEXWaterComplicationView: View {
                 }
 
         case .accessoryInline:
-            Label(
-                "\(entry.shortText) of \(String(format: "%.2f", targetLiters))L",
-                systemImage: "drop.fill")
+            Label("\(entry.shortText) · \(entry.detailText)", systemImage: "drop.fill")
 
         case .accessoryRectangular:
             HStack(spacing: 10) {
@@ -116,9 +165,11 @@ struct APEXWaterComplicationView: View {
                         .foregroundStyle(.cyan)
                     Text(entry.shortText)
                         .font(.system(size: 20, weight: .bold, design: .rounded))
-                    Text("of \(String(format: "%.2f", targetLiters))L today")
+                    Text(entry.detailText)
                         .font(.system(size: 11, weight: .medium, design: .rounded))
                         .foregroundStyle(.secondary)
+                    ProgressView(value: entry.progress)
+                        .tint(.cyan)
                 }
                 Spacer(minLength: 0)
             }

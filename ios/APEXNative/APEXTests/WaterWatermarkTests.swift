@@ -16,9 +16,11 @@ final class WaterWatermarkTests: XCTestCase {
     /// without a live HealthKit store or Supabase session.
     private func merged(local: Double, healthKit: Double, watermark: Double?) -> Double {
         guard let watermark else { return max(local, healthKit) }
-        let newlyLogged = healthKit - watermark
-        guard newlyLogged > 0.001 else { return local }
-        return min(6, ((local + newlyLogged) * 100).rounded() / 100)
+        return HydrationReconciliation.mergedDrinkLiters(
+            localDrinkLiters: local,
+            previousImportableLiters: watermark,
+            currentImportableLiters: healthKit
+        )
     }
 
     func testFirstSyncOfADayAdoptsTheRicherRecord() {
@@ -46,6 +48,14 @@ final class WaterWatermarkTests: XCTestCase {
         /* The Watch adds 300 ml: HealthKit moves past the watermark. */
         let result = merged(local: 2.85, healthKit: 3.40, watermark: 3.10)
         XCTAssertEqual(result, 3.15, accuracy: 0.0001, "New external water is imported as a delta")
+    }
+
+    func testDeletingExternalWaterRemovesOnlyThatExternalDelta() {
+        XCTAssertEqual(
+            merged(local: 3.15, healthKit: 3.10, watermark: 3.40),
+            2.85,
+            accuracy: 0.0001
+        )
     }
 
     func testAppExAdditionsDoNotDoubleCount() {

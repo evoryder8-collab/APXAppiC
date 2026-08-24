@@ -78,4 +78,60 @@ final class FoodHydrationTests: XCTestCase {
         XCTAssertEqual(breakdown.foodL, 0.62)
         XCTAssertEqual(breakdown.totalL, 2.12)
     }
+
+    func testHealthKitFoodAndPhoneMirrorsNeverBecomeNewDrinkWater() {
+        let samples = [
+            HydrationReconciliation.Sample(liters: 0.42, source: .apexFood),
+            HydrationReconciliation.Sample(liters: 0.25, source: .apexPhone),
+            HydrationReconciliation.Sample(liters: 0.30, source: .apexWatch),
+            HydrationReconciliation.Sample(liters: 0.18, source: .external),
+        ]
+
+        XCTAssertEqual(
+            HydrationReconciliation.importableDrinkLiters(samples),
+            0.48,
+            accuracy: 0.0001,
+            "food is displayed in the combined total and an iPhone mirror is already local"
+        )
+    }
+
+    func testExternalEditsAndDeletesReconcileInBothDirections() {
+        XCTAssertEqual(
+            HydrationReconciliation.mergedDrinkLiters(
+                localDrinkLiters: 1.8,
+                previousImportableLiters: 0.5,
+                currentImportableLiters: 0.8
+            ),
+            2.1,
+            accuracy: 0.0001
+        )
+        XCTAssertEqual(
+            HydrationReconciliation.mergedDrinkLiters(
+                localDrinkLiters: 2.1,
+                previousImportableLiters: 0.8,
+                currentImportableLiters: 0.55
+            ),
+            1.85,
+            accuracy: 0.0001,
+            "removing a mistaken Watch or third-party entry must remove it from APEX"
+        )
+    }
+
+    func testFoodSyncIdentifierIsStablePerAccountAndDay() {
+        let account = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let first = HydrationReconciliation.foodSyncIdentifier(accountID: account, dateKey: "2026-08-24")
+        XCTAssertEqual(first, HydrationReconciliation.foodSyncIdentifier(accountID: account, dateKey: "2026-08-24"))
+        XCTAssertNotEqual(first, HydrationReconciliation.foodSyncIdentifier(accountID: account, dateKey: "2026-08-25"))
+        XCTAssertNotEqual(
+            first,
+            HydrationReconciliation.foodSyncIdentifier(accountID: UUID(), dateKey: "2026-08-24"),
+            "food samples must remain account-scoped on a shared device"
+        )
+    }
+
+    func testWatchHistoryOnlyDeletesWaterAuthoredByThisWatchApp() {
+        XCTAssertTrue(HydrationReconciliation.canDeleteOnWatch(sourceBundleIdentifier: "ch.apexperformance.APEX.watchkitapp"))
+        XCTAssertFalse(HydrationReconciliation.canDeleteOnWatch(sourceBundleIdentifier: "ch.apexperformance.APEX"))
+        XCTAssertFalse(HydrationReconciliation.canDeleteOnWatch(sourceBundleIdentifier: "com.thirdparty.water"))
+    }
 }

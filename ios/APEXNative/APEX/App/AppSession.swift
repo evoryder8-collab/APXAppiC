@@ -529,7 +529,14 @@ final class AppSession {
     /// so there is nothing to wait for and no reason to make anyone press a
     /// button for data the system already has.
     func importHealthQuietly() async {
-        guard profile != nil else { return }
+        guard let profile else { return }
+        if HealthKitManager.shared.waterWriteState == .authorized {
+            try? await HealthKitManager.shared.syncFoodWater(
+                liters: foodHydrationLiters(on: .now),
+                on: .now,
+                accountID: profile.userID
+            )
+        }
         guard let snapshot = await HealthKitManager.shared.silentRefresh() else { return }
         await applyHealthSnapshot(snapshot)
     }
@@ -774,7 +781,7 @@ final class AppSession {
         await refreshNudges()
         data.loggedFoodEntries.insert(localEntry, at: 0)
         data.mealLogs.append(check)
-        recalculateLocalStructuredDay(day, userID: profile.userID)
+        await recalculateLocalStructuredDay(day, userID: profile.userID)
         await persistUpsert(check, table: "meal_logs", onConflict: "user_id,date,meal_id")
 
         do {
@@ -954,15 +961,15 @@ final class AppSession {
         }
     }
 
-    static func waterWatermarkKey(_ date: String) -> String { "apex.hk.water.applied.\(date)" }
+    static func waterWatermarkKey(_ date: String, userID: UUID) -> String {
+        "apex.hk.water.external.\(userID.uuidString.lowercased()).\(date)"
+    }
 
     /*
      * Every water change flows through here so the HealthKit watermark stays
-     * consistent. Additions are mirrored into HealthKit and raise the
-     * watermark by the same amount, so the next sync sees no new water and
-     * cannot double count. Reductions stay local: HealthKit samples APEX did
-     * not author are not ours to delete, and leaving the watermark where it
-     * is means the removed amount is never re-imported.
+     * consistent. iPhone additions are tagged as APEX mirrors and excluded
+     * from the external total, while Watch and third-party water flows back as
+     * a reversible delta. A local correction therefore stays corrected.
      */
     @discardableResult
     func adjustWater(deltaLiters: Double, on date: Date) async -> Double {
@@ -986,11 +993,10 @@ final class AppSession {
 
         let applied = next - current
         if applied > 0 {
-            try? await HealthKitManager.shared.saveWater(liters: applied, date: date)
-            let defaults = UserDefaults.standard
-            let watermark = defaults.object(forKey: Self.waterWatermarkKey(key)) as? Double
-            if let watermark {
-                defaults.set(watermark + applied, forKey: Self.waterWatermarkKey(key))
+            do {
+                try await HealthKitManager.shared.saveWater(liters: applied, date: date)
+            } catch {
+                HealthKitManager.shared.message = error.localizedDescription
             }
         }
         return next
@@ -1004,6 +1010,14 @@ final class AppSession {
 
     func applyHealthSnapshot(_ snapshot: HealthSnapshot) async {
         guard let profile else { return }
+        if HealthKitManager.shared.waterWriteState == .authorized,
+           let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
+            try? await HealthKitManager.shared.syncFoodWater(
+                liters: foodHydrationLiters(on: resolvedDate),
+                on: resolvedDate,
+                accountID: profile.userID
+            )
+        }
         if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
             let existing = data.healthMetrics.first { $0.date == snapshot.date }
             let metric = HealthMetric(
@@ -1019,7 +1033,7 @@ final class AppSession {
             await persistUpsert(metric, table: "health_metrics", onConflict: "user_id,date")
         }
 
-        if let dietaryWaterL = snapshot.dietaryWaterL, dietaryWaterL > 0 {
+        if let importableWaterL = snapshot.importableDietaryWaterL {
             let existing = data.dailyLogs.first { $0.date == snapshot.date }
             /*
              * Import only water HealthKit has learned since the last sync.
@@ -1029,21 +1043,22 @@ final class AppSession {
              * The watermark keeps the person's edit authoritative while water
              * logged elsewhere (the Watch, another app) still arrives.
              */
-            let watermarkKey = Self.waterWatermarkKey(snapshot.date)
+            let watermarkKey = Self.waterWatermarkKey(snapshot.date, userID: profile.userID)
             let defaults = UserDefaults.standard
             let previouslyApplied = defaults.object(forKey: watermarkKey) as? Double
             var nextWater = existing?.waterL ?? 0
             if let previouslyApplied {
-                let newlyLogged = dietaryWaterL - previouslyApplied
-                if newlyLogged > 0.001 {
-                    nextWater = min(6, ((nextWater + newlyLogged) * 100).rounded() / 100)
-                }
+                nextWater = HydrationReconciliation.mergedDrinkLiters(
+                    localDrinkLiters: nextWater,
+                    previousImportableLiters: previouslyApplied,
+                    currentImportableLiters: importableWaterL
+                )
             } else {
-                /* First sight of this date on this device: adopt whichever
-                   record is richer, then track from there. */
-                nextWater = max(nextWater, dietaryWaterL)
+                /* Existing rows may already contain a legacy import, so the
+                   first classified observation never blindly adds it again. */
+                nextWater = max(nextWater, importableWaterL)
             }
-            defaults.set(dietaryWaterL, forKey: watermarkKey)
+            defaults.set(importableWaterL, forKey: watermarkKey)
 
             if nextWater != existing?.waterL || existing == nil {
                 let row = DailyLog(
@@ -1375,7 +1390,7 @@ final class AppSession {
         await refreshNudges()
         data.loggedFoodEntries.removeAll { $0.mealID == draft.id }
         data.loggedFoodEntries.insert(contentsOf: localEntries, at: 0)
-        recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
+        await recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
         await saveLocalSnapshot()
 
         do {
@@ -1510,7 +1525,7 @@ final class AppSession {
             await persistDelete(table: "meal_logs", id: check.id)
         }
         if let userID = profile?.userID {
-            recalculateLocalStructuredDay(key, userID: userID)
+            await recalculateLocalStructuredDay(key, userID: userID)
             await saveLocalSnapshot()
         }
         UINotificationFeedbackGenerator().notificationOccurred(.success)
@@ -1793,7 +1808,7 @@ final class AppSession {
         data.loggedMeals.insert(localMeal, at: 0)
         await refreshNudges()
         data.loggedFoodEntries.insert(localEntry, at: 0)
-        recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
+        await recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
         await saveLocalSnapshot()
 
         do {
@@ -1814,7 +1829,7 @@ final class AppSession {
         guard let profile else { return }
         data.loggedMeals.removeAll { $0.id == meal.id }
         data.loggedFoodEntries.removeAll { $0.mealID == meal.id }
-        recalculateLocalStructuredDay(meal.localDate, userID: profile.userID)
+        await recalculateLocalStructuredDay(meal.localDate, userID: profile.userID)
         await saveLocalSnapshot()
         do {
             try await service.deleteStructuredMeal(meal.id)
@@ -2946,7 +2961,7 @@ final class AppSession {
         try? await offlineStore.saveDashboard(data, for: userID)
     }
 
-    private func recalculateLocalStructuredDay(_ date: String, userID: UUID) {
+    private func recalculateLocalStructuredDay(_ date: String, userID: UUID) async {
         let meals = data.loggedMeals.filter { $0.localDate == date }
         let existing = data.dailyLogs.first { $0.date == date }
         let manualKcal = existing?.nutritionSource == "manual" ? existing?.kcal : existing?.manualKcal
@@ -2974,6 +2989,14 @@ final class AppSession {
         )
         data.dailyLogs.removeAll { $0.date == date }
         data.dailyLogs.append(row)
+        if HealthKitManager.shared.waterWriteState == .authorized,
+           let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
+            try? await HealthKitManager.shared.syncFoodWater(
+                liters: foodHydrationLiters(on: resolvedDate),
+                on: resolvedDate,
+                accountID: userID
+            )
+        }
     }
 
     private func plannedMealSlot(_ meal: Meal) -> String {
