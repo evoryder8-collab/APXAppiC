@@ -416,3 +416,11 @@ GitHub publication evidence:
 - GitHub Pages: Actions run `32694056427` succeeded for merge SHA `718643f4ed22056b04df95a9dae83719f87ec64e` (build `23 s`, deploy `8 s`); `https://evoryder8-collab.github.io/APXAppiC/?task12=718643f4ed22056b04df95a9dae83719f87ec64e` returned HTTP `200` with `1248` bytes.
 - Authenticated shared-record round trip: the deployed Constantine session changed `settings.addons.uiMode` from `simple` to `advanced`, rendered the detailed interface with `Synced`, and a direct Supabase read returned `advanced`; it was restored to `simple`, rendered the simple interface with `Synced`, and a second direct read returned `simple`. No account data was left changed.
 - Physical iPhone: exact shipped merge SHA `718643f4ed22056b04df95a9dae83719f87ec64e` built and signed successfully with `xcodebuild` exit `0`, installed as `ch.apexperformance.APEX` on paired `iConstantine Main` (iPhone 15 Pro Max, device `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`) at installation URL UUID `EA843891-24E2-489A-B707-E2C74F0785B0`, and launched successfully with process-verified PID `2814`.
+
+### User integrity repair — barcode camera lifecycle (2026-08-24)
+
+- Root cause: the found-food card was an overlay over a still-mounted `AVCaptureSession`; capture stopped only when the scanner view disappeared, so resolving a barcode left the camera running behind the result.
+- Fix: modelled the scanner lifecycle explicitly, stopped capture on the dedicated session queue immediately after a code leaves the scanning phase, dismantled the camera view outside scanning, and allowed restart only when returning to scanning.
+- Regression test: `testBarcodeCameraStopsAsSoonAsCaptureLeavesScanning` covers scanning, lookup, found-food, message, and portion-selection phases. It first failed because the lifecycle resolver did not exist, then passed after the session wiring was implemented.
+- Verification: focused regression `1/1` passed; complete `FoodPortionParityTests` `7/7` passed with zero failures in `18.8 s`; `git diff --check` passed.
+- Git: implementation commit `7a6d9bf2` (`fix: stop barcode camera after capture`). Publication and exact-device evidence will be recorded after the complete user integrity batch is merged, deployed, and installed.
