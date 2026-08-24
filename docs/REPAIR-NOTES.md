@@ -373,7 +373,7 @@ GitHub publication evidence:
 ## 2026-08-24 — Task 10: expose the canonical workout catalogue
 
 - Scope: replaced the workout studio's independent 96-row legacy mirror with the canonical 317 typed movements plus 15 cardio modalities, removed the native/web/manual result caps, and kept the 209 unreviewed owner-CSV rows out of selection until their safety and progression facts are verified.
-- Implementation commit: `3fd697d40ba5282805f4aa701f3add7f8113dab5` (`fix: expose the canonical workout catalogue`).
+- Implementation commit: `3fd697d5146acd3b7448e32bc934102e534d713d` (`fix: expose the canonical workout catalogue`).
 - Files changed: 12 files across the shared catalogue and web builder/logger, native catalogue resource/decoder/builder/logger/save boundary, web/native catalogue tests, and the native builder flow test.
 - Catalogue truth: 332 selectable unique IDs on web and native, with exact ID-set parity. Requested overlapping filters contain HYROX 8, CrossFit 16, Olympic Weightlifting 3, Powerlifting 3, Kettlebell Sport 1, Strongman 2, and Mobility & prehab 42. The filters are views over the same canonical rows, not duplicate exercises.
 - Behavior delivered: Build a Workout now displays the full count and lazily renders every result; manual logging no longer stops at 60; web no longer stops at 14/24; multi-category sport/equipment filters share the same items; saves persist the exact canonical movement ID and authored load increment; steps and rounds display their real units; legacy localized aliases and reviewed hologram metadata remain attached without creating duplicate catalogue rows.
