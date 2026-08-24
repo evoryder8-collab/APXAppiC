@@ -151,6 +151,9 @@ struct FoodAmountSheet: View {
     private var portion: FoodPortionResult? {
         FoodPortionMath.portion(food, quantity: quantity, unit: unit)
     }
+    private var waterDisclosure: FoodHydration.Disclosure {
+        FoodHydration.disclosure(for: food.waterBasis)
+    }
     private var basisLabel: String { food.nutritionBasis == "per_100ml" ? "ml" : "g" }
 
     var body: some View {
@@ -231,7 +234,12 @@ struct FoodAmountSheet: View {
                 macroTile(value: food.carbs100, label: "CARBS", suffix: "g")
                 macroTile(value: food.fat100, label: "FAT", suffix: "g")
                 if food.waterML100 != nil {
-                    macroTile(value: food.waterML100, label: "WATER", suffix: "ml")
+                    macroTile(
+                        value: food.waterML100,
+                        label: waterDisclosure.isEstimated ? "EST. WATER" : "WATER",
+                        suffix: "ml",
+                        prefix: waterDisclosure.prefix
+                    )
                 }
             }
         }
@@ -239,9 +247,14 @@ struct FoodAmountSheet: View {
         .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
-    private func macroTile(value: Double?, label: String, suffix: String) -> some View {
+    private func macroTile(
+        value: Double?,
+        label: String,
+        suffix: String,
+        prefix: String = ""
+    ) -> some View {
         VStack(spacing: 3) {
-            Text(value == nil ? language.text("N/A") : "\(formatted(value!))\(suffix)")
+            Text(value == nil ? language.text("N/A") : "\(prefix)\(formatted(value!))\(suffix)")
                 .font(APEXFont.mono(19, weight: .bold))
                 .foregroundStyle(APEXColor.ink)
                 .lineLimit(1)
@@ -334,7 +347,7 @@ struct FoodAmountSheet: View {
                 Text("C \(portion.map { formatted($0.carbsG) } ?? language.text("N/A"))g")
                 Text("F \(portion.map { formatted($0.fatG) } ?? language.text("N/A"))g")
                 if let water = portion?.waterML, water > 0 {
-                    Text("\(language.text("W")) \(formatted(water))ml")
+                    Text("\(language.text("W")) \(waterDisclosure.prefix)\(formatted(water))ml")
                         .foregroundStyle(APEXColor.cyan)
                 }
             }

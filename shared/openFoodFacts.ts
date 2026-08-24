@@ -42,6 +42,8 @@ export interface NormalizedProviderFood {
   fat_100: number | null
   fibre_100: number | null
   water_ml_100: number | null
+  water_basis: 'provider_reported' | 'unknown'
+  water_source_id: string | null
   sugar_100: number | null
   saturated_fat_100: number | null
   salt_100: number | null
@@ -132,6 +134,7 @@ export function normalizeOpenFoodFactsProduct(
   const basis = quantityUnit === 'ml' || quantityUnit === 'l' ? 'per_100ml' : 'per_100g'
   const servingQuantity = safeNutrient(product.serving_quantity, 5000)
   const providerTimestamp = finiteNumber(product.last_modified_t)
+  const reportedWater = safeNutrient(nutriments.water_100g, 100)
   const names_i18n = Object.fromEntries(
     Object.entries(localized).filter((entry): entry is [string, string] => Boolean(entry[1])),
   ) as NormalizedProviderFood['names_i18n']
@@ -156,7 +159,9 @@ export function normalizeOpenFoodFactsProduct(
     salt_100: safeNutrient(nutriments.salt_100g, 50),
     /* Open Food Facts rarely publishes water, so this is usually null and the
        hydration estimator fills it from the composition instead. */
-    water_ml_100: safeNutrient(nutriments.water_100g, 100),
+    water_ml_100: reportedWater,
+    water_basis: reportedWater == null ? 'unknown' : 'provider_reported',
+    water_source_id: reportedWater == null ? null : `open-food-facts:${barcode}`,
     serving_amount: servingQuantity,
     serving_unit: servingQuantity == null ? null : basis === 'per_100ml' ? 'ml' : 'g',
     serving_grams_or_ml: servingQuantity,

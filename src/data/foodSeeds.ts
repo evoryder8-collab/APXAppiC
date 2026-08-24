@@ -159,6 +159,15 @@ function food(
   preparation: FoodRecord['preparation_state'] = 'as_sold',
   options: FoodOptions = {},
 ): FoodRecord {
+  const estimatedWater = estimateWaterContent({
+    name, nutrition_basis: options.nutritionBasis ?? 'per_100g',
+    kcal_100: kcal, protein_100: protein, carbs_100: carbs,
+    fat_100: fat, fibre_100: options.fibre ?? null, salt_100: options.salt ?? null,
+  })
+  const referencedWater = options.water ?? CURATED_WATER[id]
+  const waterBasis: NonNullable<FoodRecord['water_basis']> = referencedWater != null
+    ? 'reference'
+    : estimatedWater?.basis ?? 'unknown'
   return {
     id,
     owner_user_id: null,
@@ -180,11 +189,9 @@ function food(
     sugar_100: options.sugar ?? null,
     saturated_fat_100: options.saturatedFat ?? null,
     salt_100: options.salt ?? null,
-    water_ml_100: options.water ?? CURATED_WATER[id] ?? estimateWaterContent({
-      name, nutrition_basis: options.nutritionBasis ?? 'per_100g',
-      kcal_100: kcal, protein_100: protein, carbs_100: carbs,
-      fat_100: fat, fibre_100: options.fibre ?? null, salt_100: options.salt ?? null,
-    })?.water_ml_100 ?? null,
+    water_ml_100: referencedWater ?? estimatedWater?.water_ml_100 ?? null,
+    water_basis: waterBasis,
+    water_source_id: null,
     serving_amount: options.servingAmount ?? options.servingGrams ?? null,
     serving_unit: options.servingUnit ?? (options.servingGrams ? 'g' : null),
     serving_grams_or_ml: options.servingAmount ?? options.servingGrams ?? null,

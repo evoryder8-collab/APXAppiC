@@ -55,6 +55,17 @@ final class FoodHydrationTests: XCTestCase {
         XCTAssertEqual(estimate?.basis, .measured)
     }
 
+    func testOnlyMeasuredWaterIsPresentedAsExact() {
+        XCTAssertFalse(FoodHydration.disclosure(for: "measured").isEstimated)
+        XCTAssertEqual(FoodHydration.disclosure(for: "measured").prefix, "")
+
+        for basis in ["provider_reported", "reference", "name", "difference", "legacy", nil] {
+            let disclosure = FoodHydration.disclosure(for: basis)
+            XCTAssertTrue(disclosure.isEstimated, "\(basis ?? "missing") must not look measured")
+            XCTAssertEqual(disclosure.prefix, "≈")
+        }
+    }
+
     func testPortionWaterScalesWithTheAmountEaten() {
         XCTAssertEqual(FoodHydration.portionWater(90.4, equivalentAmount: 200), 180.8)
         XCTAssertNil(FoodHydration.portionWater(nil, equivalentAmount: 200))

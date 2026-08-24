@@ -4,6 +4,7 @@ import {
   estimateWaterContent,
   hydrationBreakdown,
   portionWater,
+  waterDisclosure,
   waterByDifference,
 } from '../src/lib/hydration.ts'
 import { COMMON_FOODS } from '../src/data/foodSeeds.ts'
@@ -11,6 +12,8 @@ import { COMMON_FOODS } from '../src/data/foodSeeds.ts'
 test('curated catalogue foods all carry a water value', () => {
   const missing = COMMON_FOODS.filter((food) => food.water_ml_100 == null)
   assert.deepEqual(missing.map((food) => food.name), [])
+  const missingProvenance = COMMON_FOODS.filter((food) => !food.water_basis)
+  assert.deepEqual(missingProvenance.map((food) => food.name), [])
 })
 
 test('curated water values match the researched references', () => {
@@ -60,6 +63,17 @@ test('a measured value always wins', () => {
   const measured = estimateWaterContent({ name: 'Cucumber', protein_100: 0.7, carbs_100: 3.6, fat_100: 0.1 }, 95.2)
   assert.equal(measured?.water_ml_100, 95.2)
   assert.equal(measured?.basis, 'measured')
+})
+
+test('only measured water is presented as exact', () => {
+  assert.deepEqual(waterDisclosure('measured'), { isEstimated: false, prefix: '', label: 'Measured water' })
+  for (const basis of ['provider_reported', 'reference', 'name', 'difference', 'legacy', null]) {
+    assert.deepEqual(
+      waterDisclosure(basis),
+      { isEstimated: true, prefix: '≈', label: 'Estimated water' },
+      String(basis),
+    )
+  }
 })
 
 test('portion water scales with the amount eaten', () => {

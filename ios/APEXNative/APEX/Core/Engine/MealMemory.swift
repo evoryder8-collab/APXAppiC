@@ -159,6 +159,8 @@ enum MealMemory {
             saturatedFat100: entry.snapshotSaturatedFat100,
             salt100: entry.snapshotSalt100,
             waterML100: entry.snapshotWaterML100,
+            waterBasis: entry.snapshotWaterBasis ?? "legacy",
+            waterSourceID: entry.snapshotWaterSourceID,
             servingAmount: entry.unit == "serving" ? 1 : nil,
             servingUnit: entry.unit == "serving" ? "serving" : nil,
             servingGramsOrML: entry.unit == "serving" ? entry.equivalentAmount / divisor : nil,

@@ -55,6 +55,14 @@ enum MealComposerHydration {
     static func displayedTotalWaterML(in items: [MealComposerItem]) -> Int {
         items.reduce(0) { total, item in total + displayedItemWaterML(item) }
     }
+
+    static func itemWaterIsEstimated(_ item: MealComposerItem) -> Bool {
+        item.waterML100 != nil && FoodHydration.disclosure(for: item.waterBasis).isEstimated
+    }
+
+    static func totalWaterIsEstimated(in items: [MealComposerItem]) -> Bool {
+        items.contains(where: itemWaterIsEstimated)
+    }
 }
 
 struct MealComposerUndoBuffer {
@@ -120,6 +128,10 @@ struct MealComposerView: View {
 
     private var displayedWaterML: Int {
         MealComposerHydration.displayedTotalWaterML(in: draft.items)
+    }
+    private var displayedWaterLabel: String {
+        let prefix = MealComposerHydration.totalWaterIsEstimated(in: draft.items) ? "≈" : ""
+        return prefix + language.format("%d ml", displayedWaterML)
     }
 
     init(request: MealComposerRequest) {
@@ -566,13 +578,15 @@ struct MealComposerView: View {
                             .font(APEXFont.display(20))
                         if draft.items.isEmpty == false {
                             Label(
-                                language.format("%d ml", displayedWaterML),
+                                displayedWaterLabel,
                                 systemImage: "drop.fill"
                             )
                             .font(APEXFont.mono(10, weight: .bold))
                             .foregroundStyle(APEXColor.cyan)
                             .accessibilityLabel(
-                                language.format("%d millilitres water in this meal", displayedWaterML)
+                                MealComposerHydration.totalWaterIsEstimated(in: draft.items)
+                                    ? language.format("Approximately %d millilitres water in this meal", displayedWaterML)
+                                    : language.format("%d millilitres water in this meal", displayedWaterML)
                             )
                             .accessibilityIdentifier("meal-total-water")
                         }
@@ -1048,14 +1062,17 @@ private struct MealComposerItemCard: View {
     }
 
     private var waterBadge: some View {
-        Label(
-            language.format("%d ml", MealComposerHydration.displayedItemWaterML(item)),
+        let disclosure = FoodHydration.disclosure(for: item.waterBasis)
+        return Label(
+            disclosure.prefix + language.format("%d ml", MealComposerHydration.displayedItemWaterML(item)),
             systemImage: "drop.fill"
         )
         .font(APEXFont.mono(8, weight: .bold))
         .foregroundStyle(APEXColor.cyan)
         .accessibilityLabel(
-            language.format("%d millilitres water", MealComposerHydration.displayedItemWaterML(item))
+            disclosure.isEstimated
+                ? language.format("Approximately %d millilitres water", MealComposerHydration.displayedItemWaterML(item))
+                : language.format("%d millilitres water", MealComposerHydration.displayedItemWaterML(item))
         )
         .accessibilityIdentifier("meal-item-water-\(item.id.uuidString)")
     }

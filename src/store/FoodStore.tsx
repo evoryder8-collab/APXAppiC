@@ -171,11 +171,16 @@ async function searchPublicFoodCatalog(query: string): Promise<FoodRecord[]> {
       /* Open Food Facts almost never publishes water, so a barcode food would
          otherwise contribute nothing to hydration. Estimate from what it does
          publish, and keep a provider figure whenever one exists. */
+      const water = normalized
+        ? estimateWaterContent(normalized, normalized.water_ml_100)
+        : null
       return normalized ? [{
         id: `off:${code}`,
         owner_user_id: null,
         ...normalized,
-        water_ml_100: estimateWaterContent(normalized, normalized.water_ml_100)?.water_ml_100 ?? null,
+        water_ml_100: water?.water_ml_100 ?? null,
+        water_basis: normalized.water_ml_100 != null ? 'provider_reported' : water?.basis ?? 'unknown',
+        water_source_id: normalized.water_ml_100 != null ? `open-food-facts:${code}` : null,
         piece_grams_or_ml: null,
         created_at: now,
         updated_at: now,

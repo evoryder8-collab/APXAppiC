@@ -1,9 +1,9 @@
 /*
  * Water content of foods, and the share of it that counts as hydration.
  *
- * Every logged food carries grams of water per 100 g. Curated catalogue rows
- * carry a measured value; anything arriving from a provider or created by
- * hand is estimated here.
+ * Every logged food may carry grams of water per 100 g. Only a value with
+ * measured provenance is presented as exact; provider, reference and derived
+ * values remain visibly approximate.
  *
  * Reference values: Swiss Food Composition Database V7.1 (FSVO/BLV,
  * naehrwertdaten.ch) and USDA FoodData Central. Estimation by difference -
@@ -26,7 +26,30 @@ export interface WaterEstimate {
   /** Grams of water per 100 g of food. */
   water_ml_100: number
   /** How the number was reached, so the UI can hedge an estimate honestly. */
-  basis: 'measured' | 'name' | 'difference'
+  basis: WaterBasis
+}
+
+export type WaterBasis =
+  | 'measured'
+  | 'provider_reported'
+  | 'reference'
+  | 'name'
+  | 'difference'
+  | 'legacy'
+  | 'user_entered'
+  | 'unknown'
+
+export interface WaterDisclosure {
+  isEstimated: boolean
+  prefix: '' | '≈'
+  label: 'Measured water' | 'Estimated water'
+}
+
+export function waterDisclosure(basis?: string | null): WaterDisclosure {
+  const measured = basis === 'measured'
+  return measured
+    ? { isEstimated: false, prefix: '', label: 'Measured water' }
+    : { isEstimated: true, prefix: '≈', label: 'Estimated water' }
 }
 
 /* Whole foods whose water content is stable enough to key off the name, in

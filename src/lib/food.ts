@@ -1,4 +1,5 @@
 import { portionWater } from './hydration.ts'
+import type { WaterBasis } from './hydration.ts'
 import type { IntroLanguage } from './introLanguage'
 
 export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack'
@@ -30,6 +31,8 @@ export interface FoodRecord {
   saturated_fat_100: number | null
   salt_100: number | null
   water_ml_100: number | null
+  water_basis?: WaterBasis | null
+  water_source_id?: string | null
   serving_amount: number | null
   serving_unit: FoodUnit | null
   serving_grams_or_ml: number | null
@@ -241,6 +244,8 @@ export interface LoggedFoodEntry {
   snapshot_saturated_fat_100: number | null
   snapshot_salt_100: number | null
   snapshot_water_ml_100: number | null
+  snapshot_water_basis?: WaterBasis | null
+  snapshot_water_source_id?: string | null
   quantity: number
   unit: FoodUnit
   equivalent_amount: number
@@ -304,6 +309,8 @@ export function foodFromLoggedEntry(entry: LoggedFoodEntry): FoodRecord {
     saturated_fat_100: entry.snapshot_saturated_fat_100,
     salt_100: entry.snapshot_salt_100,
     water_ml_100: entry.snapshot_water_ml_100,
+    water_basis: entry.snapshot_water_basis ?? 'legacy',
+    water_source_id: entry.snapshot_water_source_id ?? null,
     serving_amount: entry.unit === 'serving' ? 1 : null,
     serving_unit: entry.unit === 'serving' ? 'serving' : null,
     serving_grams_or_ml: entry.unit === 'serving' ? entry.equivalent_amount / Math.max(1, entry.quantity) : null,
@@ -847,6 +854,8 @@ export function snapshotEntry(
     snapshot_saturated_fat_100: item.food.saturated_fat_100,
     snapshot_salt_100: item.food.salt_100,
     snapshot_water_ml_100: item.food.water_ml_100,
+    snapshot_water_basis: item.food.water_basis ?? 'unknown',
+    snapshot_water_source_id: item.food.water_source_id ?? null,
     quantity: item.quantity,
     unit: item.unit,
     ...portion,
