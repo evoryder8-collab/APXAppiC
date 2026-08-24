@@ -540,3 +540,14 @@ GitHub publication evidence:
 - Tests added: web policy coverage for both bespoke personas and ordinary-account fallbacks; native policy parity; a seeded Constantine integration assertion resolving `Upper strength`; and an end-to-end Simple-mode Training-square assertion that the widget projects `Upper strength` rather than `Full-body foundation`.
 - Red proof: the web and native policy tests initially failed because no resolver existed; the seeded native assertion failed against the old transition-only behaviour. The first UI attempts also exposed an offline-fixture sync alert and an oversized Dayline traversal, after which the final test was narrowed to the reported Training square itself.
 - Green proof: focused Simple-mode UI flow 1/1 in 36.5 s; complete web suite 505/505 in 4.86 s; complete native `APEXTests` 400/400 in 134.3 s; production web build succeeded with 1,170 modules transformed; `git diff --check` passed.
+
+## 2026-08-24 — Physical Apple Watch Ultra 3 recovery
+
+- Device identity: `Constantin’s Apple Watch` is an Apple Watch Ultra 3 (`Watch7,12`) running watchOS 27.0 (`24R5325h`), hardware UDID `00008310-001C23162680E01E`. It is paired to Xcode, connected through its developer tunnel, and has Developer Mode enabled.
+- Toolchain repair: the existing Xcode 26.6 installation did not support watchOS 27. The cached Apple Xcode 27 beta 3 archive was expanded side-by-side to `/Users/jaxoncorrey/Downloads/Xcode-beta.app`; the system-wide Xcode selection was not changed.
+- Signing repair: Xcode created Watch provisioning profile `69426bb7-fdc2-49dc-a9e6-26c0ba4bf150` for `ch.apexperformance.APEX.watchkitapp`. Its `ProvisionedDevices` list contains both the Ultra 3 UDID and iPhone UDID `00008130-001618C60843401C`.
+- Build and signature proof: the `APEXWatch` physical-device build succeeded against the Ultra 3 destination. Xcode's embedded-binary validation passed, and both the standalone Watch bundle and containing iPhone bundle passed `codesign --verify --deep --strict`.
+- Physical Watch proof: `APEX Water` installed at database sequence 987 and launched successfully on the Ultra 3. A subsequent process query showed the Watch app running as PID 511 and `APEXWatchWidgets.appex` running as PID 503.
+- Matching iPhone proof: the containing `ch.apexperformance.APEX` build installed at database sequence 5508 and launched successfully on `iConstantine Main`.
+- Source SHA installed on both devices: `09048c9adeff9ab6b0b6f11ab728b1994f32f234`.
+- Files changed: `docs/REPAIR-NOTES.md` only. Tests added: none; this closes the physical provisioning, build, signature, installation, and launch gate for the already-tested bespoke-plan source commit.
