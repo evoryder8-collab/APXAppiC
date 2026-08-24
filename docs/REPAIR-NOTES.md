@@ -551,3 +551,15 @@ GitHub publication evidence:
 - Matching iPhone proof: the containing `ch.apexperformance.APEX` build installed at database sequence 5508 and launched successfully on `iConstantine Main`.
 - Source SHA installed on both devices: `09048c9adeff9ab6b0b6f11ab728b1994f32f234`.
 - Files changed: `docs/REPAIR-NOTES.md` only. Tests added: none; this closes the physical provisioning, build, signature, installation, and launch gate for the already-tested bespoke-plan source commit.
+
+## 2026-08-24 — Native barcode scanner usability
+
+- Implementation commits: `4d9a90785` (`fix: make barcode scanning immediately usable`) and `31b6c7907` (`fix: defer denied camera state update`).
+- Files changed: `ios/APEXNative/APEX/Features/Nutrition/BarcodeScannerView.swift`, `ios/APEXNative/APEX/Features/Nutrition/MealComposerView.swift`, `ios/APEXNative/APEXTests/FoodPortionParityTests.swift`, and `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`.
+- Fix: scanned-food macro facts now render as bold monospaced text on an opaque near-black capsule whose production colour values are guarded at WCAG AAA contrast. The meal discovery card now has independent search and barcode controls: the text region opens Food Memory and the 58 × 54 point orange target opens the scanner directly.
+- Additional runtime repair: a previously denied camera permission called back synchronously from `UIViewControllerRepresentable.viewDidLoad`, producing `Modifying state during view update`. The permission binding write is now deferred to the next main-queue turn.
+- Tests added: a production-palette contrast-ratio assertion and an end-to-end meal-composer test that taps `meal-barcode-scanner-open`, reaches `SCAN FOOD BARCODE`, and proves the Food Memory navigation bar never appeared.
+- Red proof: the contrast test failed to compile against the old UI because no guaranteed scanner-result palette existed. The old discovery card also exposed no independent barcode target, so the UI test's required control did not exist.
+- Green proof: contrast test 1/1; final focused scanner UI flow 1/1 with zero runtime warnings; complete native unit suite 401/401; web suite 505/505 in 4.87 s; production web build succeeded with 1,170 modules transformed; `git diff --check` passed.
+- Physical-device proof: Xcode 27 physical build succeeded, the final iPhone bundle passed strict deep signature verification, and source SHA `31b6c7907` installed at database sequence 5524 and launched on `iConstantine Main` as PID 7124.
+- Next: restore the animated water-filled body silhouette to the Apple Watch hydration surface as its own tested task.
