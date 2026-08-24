@@ -1,6 +1,30 @@
 @preconcurrency import AVFoundation
 import SwiftUI
 
+enum BarcodeScannerPhase: Equatable {
+    case scanning
+    case lookingUp
+    case foodFound
+    case message
+    case choosingPortion
+
+    var shouldRunCamera: Bool { self == .scanning }
+
+    static func resolve(
+        codeCaptured: Bool,
+        lookingUp: Bool,
+        hasFood: Bool,
+        hasMessage: Bool,
+        choosingPortion: Bool
+    ) -> Self {
+        if choosingPortion { return .choosingPortion }
+        if hasFood { return .foodFound }
+        if hasMessage { return .message }
+        if lookingUp || codeCaptured { return .lookingUp }
+        return .scanning
+    }
+}
+
 struct BarcodeScannerView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -14,11 +38,27 @@ struct BarcodeScannerView: View {
     @State private var lookupMessage: String?
     @State private var showPortion = false
 
+    private var scannerPhase: BarcodeScannerPhase {
+        BarcodeScannerPhase.resolve(
+            codeCaptured: code != nil,
+            lookingUp: isLookingUp,
+            hasFood: food != nil,
+            hasMessage: lookupMessage != nil,
+            choosingPortion: showPortion
+        )
+    }
+
     var body: some View {
         ZStack {
             Color.black.ignoresSafeArea()
-            CameraBarcodeScanner(code: $code, permissionDenied: $permissionDenied)
-                .ignoresSafeArea()
+            if scannerPhase.shouldRunCamera {
+                CameraBarcodeScanner(
+                    code: $code,
+                    permissionDenied: $permissionDenied,
+                    isActive: true
+                )
+                    .ignoresSafeArea()
+            }
 
             LinearGradient(colors: [.black.opacity(0.7), .clear, .black.opacity(0.72)], startPoint: .top, endPoint: .bottom)
                 .ignoresSafeArea()
@@ -151,16 +191,28 @@ struct BarcodeScannerView: View {
 private struct CameraBarcodeScanner: UIViewControllerRepresentable {
     @Binding var code: String?
     @Binding var permissionDenied: Bool
+    let isActive: Bool
 
     func makeCoordinator() -> Coordinator { Coordinator(parent: self) }
 
     func makeUIViewController(context: Context) -> BarcodeCameraController {
         let controller = BarcodeCameraController()
         controller.delegate = context.coordinator
+        controller.setCaptureActive(isActive)
         return controller
     }
 
-    func updateUIViewController(_ uiViewController: BarcodeCameraController, context: Context) {}
+    func updateUIViewController(_ uiViewController: BarcodeCameraController, context: Context) {
+        context.coordinator.parent = self
+        uiViewController.setCaptureActive(isActive)
+    }
+
+    static func dismantleUIViewController(
+        _ uiViewController: BarcodeCameraController,
+        coordinator: Coordinator
+    ) {
+        uiViewController.setCaptureActive(false)
+    }
 
     final class Coordinator: NSObject, BarcodeCameraControllerDelegate {
         var parent: CameraBarcodeScanner
@@ -187,6 +239,9 @@ private final class BarcodeCameraController: UIViewController, @preconcurrency A
     weak var delegate: BarcodeCameraControllerDelegate?
     private let session = AVCaptureSession()
     private let preview = AVCaptureVideoPreviewLayer()
+    private let sessionQueue = DispatchQueue(label: "ch.apexperformance.barcode-camera-session")
+    private var captureRequested = false
+    private var sessionConfigured = false
 
     override func viewDidLoad() {
         super.viewDidLoad()
@@ -203,7 +258,20 @@ private final class BarcodeCameraController: UIViewController, @preconcurrency A
 
     override func viewWillDisappear(_ animated: Bool) {
         super.viewWillDisappear(animated)
-        session.stopRunning()
+        setCaptureActive(false)
+    }
+
+    func setCaptureActive(_ isActive: Bool) {
+        captureRequested = isActive
+        guard sessionConfigured else { return }
+        let captureSession = session
+        sessionQueue.async {
+            if isActive {
+                if !captureSession.isRunning { captureSession.startRunning() }
+            } else if captureSession.isRunning {
+                captureSession.stopRunning()
+            }
+        }
     }
 
     private func configurePermission() {
@@ -220,6 +288,7 @@ private final class BarcodeCameraController: UIViewController, @preconcurrency A
     }
 
     private func configureSession() {
+        guard !sessionConfigured else { return }
         guard let device = AVCaptureDevice.default(for: .video),
               let input = try? AVCaptureDeviceInput(device: device),
               session.canAddInput(input)
@@ -230,7 +299,8 @@ private final class BarcodeCameraController: UIViewController, @preconcurrency A
         session.addOutput(output)
         output.setMetadataObjectsDelegate(self, queue: .main)
         output.metadataObjectTypes = [.ean8, .ean13, .upce]
-        DispatchQueue.global(qos: .userInitiated).async { [session] in session.startRunning() }
+        sessionConfigured = true
+        setCaptureActive(captureRequested)
     }
 
     func metadataOutput(_ output: AVCaptureMetadataOutput, didOutput metadataObjects: [AVMetadataObject], from connection: AVCaptureConnection) {

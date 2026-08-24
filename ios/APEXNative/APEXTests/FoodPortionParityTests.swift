@@ -7,6 +7,27 @@ import XCTest
 @testable import APEX
 
 final class FoodPortionParityTests: XCTestCase {
+    func testBarcodeCameraStopsAsSoonAsCaptureLeavesScanning() {
+        let cases: [(BarcodeScannerPhase, Bool, Bool, Bool, Bool, Bool)] = [
+            (.scanning, false, false, false, false, false),
+            (.lookingUp, true, true, false, false, false),
+            (.foodFound, true, false, true, false, false),
+            (.message, true, false, false, true, false),
+            (.choosingPortion, true, false, true, false, true),
+        ]
+        for (expected, codeCaptured, lookingUp, hasFood, hasMessage, choosingPortion) in cases {
+            let phase = BarcodeScannerPhase.resolve(
+                codeCaptured: codeCaptured,
+                lookingUp: lookingUp,
+                hasFood: hasFood,
+                hasMessage: hasMessage,
+                choosingPortion: choosingPortion
+            )
+            XCTAssertEqual(phase, expected)
+            XCTAssertEqual(phase.shouldRunCamera, expected == .scanning)
+        }
+    }
+
     private func food(
         basis: String = "per_100g",
         kcal: Double? = 364,
