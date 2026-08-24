@@ -331,7 +331,13 @@ private final class BarcodeCameraController: UIViewController, @preconcurrency A
                     granted ? self?.configureSession() : self?.delegate?.scannerPermissionDenied()
                 }
             }
-        default: delegate?.scannerPermissionDenied()
+        default:
+            /* viewDidLoad runs inside SwiftUI's representable update. Defer the
+               binding write so a previously denied camera permission cannot
+               mutate SwiftUI state during that update transaction. */
+            DispatchQueue.main.async { [weak self] in
+                self?.delegate?.scannerPermissionDenied()
+            }
         }
     }
 
