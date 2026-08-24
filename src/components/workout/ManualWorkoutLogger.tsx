@@ -52,7 +52,7 @@ function entryFromDraft(set: ManualSetDraft): SetEntry {
 }
 
 function starterSets(item: ExerciseCatalogItem): ManualSetDraft[] {
-  const descriptor = descriptorForExercise({ name: item.name })
+  const descriptor = descriptorForExercise({ name: item.name, movement_id: item.movementID })
   return [{
     id: uid('set-0'),
     reps: descriptor.fields.includes('reps') ? item.reps : 0,
@@ -70,7 +70,7 @@ function starterSets(item: ExerciseCatalogItem): ManualSetDraft[] {
 }
 
 function draftFromCatalog(item: ExerciseCatalogItem): ManualExerciseDraft {
-  const descriptor = descriptorForExercise({ name: item.name })
+  const descriptor = descriptorForExercise({ name: item.name, movement_id: item.movementID })
   return {
     id: uid('exercise'),
     catalogId: item.id,

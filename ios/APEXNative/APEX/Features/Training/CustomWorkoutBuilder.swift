@@ -42,6 +42,8 @@ struct CustomWorkoutBuilder: View {
         switch unit {
         case "minutes": return "MIN"
         case "seconds": return "SEC"
+        case "steps": return "STEPS"
+        case "rounds": return "ROUNDS"
         default: return "REPS"
         }
     }
@@ -163,6 +165,11 @@ struct CustomWorkoutBuilder: View {
                             }
                         }
 
+                        Text(language.format("%d movements", results.count))
+                            .font(APEXFont.mono(9, weight: .bold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .accessibilityIdentifier("custom-workout-result-count")
+
                         if results.isEmpty {
                             Text(language.text("Nothing matches that search yet."))
                                 .font(APEXFont.body(12, weight: .medium))
@@ -170,35 +177,38 @@ struct CustomWorkoutBuilder: View {
                                 .padding(.vertical, 10)
                         }
 
-                        ForEach(results.prefix(24)) { item in
-                            Button {
-                                withAnimation(.snappy(duration: 0.2)) {
-                                    picks.append(Pick(item: item, sets: item.sets, reps: item.reps, rest: item.rest))
-                                }
-                            } label: {
-                                HStack(spacing: 11) {
-                                    VStack(alignment: .leading, spacing: 2) {
-                                        Text(item.localizedName(language.language))
-                                            .font(APEXFont.body(14, weight: .bold))
-                                            .foregroundStyle(APEXColor.ink)
-                                            .lineLimit(1)
-                                        Text("\(item.equipment) · \(item.muscles.joined(separator: ", "))")
-                                            .font(APEXFont.mono(8))
-                                            .foregroundStyle(APEXColor.secondaryInk)
-                                            .lineLimit(1)
+                        LazyVStack(spacing: 9) {
+                            ForEach(results) { item in
+                                Button {
+                                    withAnimation(.snappy(duration: 0.2)) {
+                                        picks.append(Pick(item: item, sets: item.sets, reps: item.reps, rest: item.rest))
                                     }
-                                    Spacer(minLength: 6)
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 13, weight: .bold))
-                                        .foregroundStyle(APEXColor.violet)
-                                        .frame(width: 30, height: 30)
-                                        .background(APEXColor.violet.opacity(0.12), in: Circle())
+                                } label: {
+                                    HStack(spacing: 11) {
+                                        VStack(alignment: .leading, spacing: 2) {
+                                            Text(item.localizedName(language.language))
+                                                .font(APEXFont.body(14, weight: .bold))
+                                                .foregroundStyle(APEXColor.ink)
+                                                .lineLimit(1)
+                                            Text("\(item.equipment) · \(item.muscles.joined(separator: ", "))")
+                                                .font(APEXFont.mono(8))
+                                                .foregroundStyle(APEXColor.secondaryInk)
+                                                .lineLimit(1)
+                                        }
+                                        Spacer(minLength: 6)
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundStyle(APEXColor.violet)
+                                            .frame(width: 30, height: 30)
+                                            .background(APEXColor.violet.opacity(0.12), in: Circle())
+                                    }
+                                    .padding(.horizontal, 13)
+                                    .padding(.vertical, 10)
+                                    .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 14))
                                 }
-                                .padding(.horizontal, 13)
-                                .padding(.vertical, 10)
-                                .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 14))
+                                .buttonStyle(.plain)
+                                .accessibilityIdentifier("custom-workout-item-\(item.id)")
                             }
-                            .buttonStyle(.plain)
                         }
                     }
                 }
@@ -256,6 +266,7 @@ struct CustomWorkoutBuilder: View {
                 }
             }
         }
+        .accessibilityIdentifier("custom-workout-selected-\(pick.wrappedValue.item.id)")
     }
 
     private func counter(_ label: String, value: Binding<Int>, range: ClosedRange<Int>, step: Int = 1) -> some View {

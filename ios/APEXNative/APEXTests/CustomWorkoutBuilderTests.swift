@@ -16,8 +16,10 @@ final class CustomWorkoutBuilderTests: XCTestCase {
     ) -> ExerciseCatalogItem {
         ExerciseCatalogItem(
             id: id,
+            movementID: id,
             name: "Push-Up",
             category: category,
+            categories: [category],
             equipment: "Bodyweight",
             muscles: muscles,
             dayType: "push",
@@ -26,21 +28,73 @@ final class CustomWorkoutBuilderTests: XCTestCase {
             rest: 90,
             unit: unit,
             perSide: false,
+            loadable: category == "weights" || category == "machine",
+            incrementKG: category == "weights" || category == "machine" ? 2.5 : 0,
             names: names,
             aliases: aliases
         )
     }
 
-    func testCatalogueShipsInsideTheBundle() {
-        XCTAssertEqual(ExerciseCatalog.all.count, 96)
-        XCTAssertEqual(ExerciseCatalog.categories.count, 8)
+    func testCatalogueShipsEntireCanonicalLibraryInsideTheBundle() {
+        XCTAssertEqual(ExerciseCatalog.all.count, 332)
+        XCTAssertEqual(Set(ExerciseCatalog.all.map(\.id)).count, 332)
+        XCTAssertEqual(
+            Set(ExerciseCatalog.all.map(\.id)),
+            Set(MovementTiming.cataloguedMovements.map(\.id))
+        )
         XCTAssertEqual(ExerciseCatalog.categories.first?.id, "all")
+    }
+
+    func testSportAndTrainingFiltersAreActuallySelectable() {
+        let offered = Set(ExerciseCatalog.categories.map(\.id))
+        for category in [
+            "hyrox", "crossfit", "olympic_weightlifting", "powerlifting",
+            "kettlebell_sport", "strongman", "mobility",
+        ] {
+            XCTAssertTrue(offered.contains(category), "\(category) is missing from the workout studio")
+        }
+
+        let expectedCounts = [
+            "hyrox": 8,
+            "crossfit": 16,
+            "olympic_weightlifting": 3,
+            "powerlifting": 3,
+            "kettlebell_sport": 1,
+            "strongman": 2,
+            "mobility": 42,
+        ]
+        for (category, count) in expectedCounts {
+            XCTAssertEqual(
+                ExerciseCatalog.search("", category: category, language: .english).count,
+                count,
+                category
+            )
+        }
+
+        XCTAssertEqual(
+            Set(ExerciseCatalog.search("", category: "hyrox", language: .english).map(\.id)),
+            Set([
+                "ski_erg", "sled_push", "sled_pull", "burpee_broad_jump",
+                "row_erg", "farmers_carry", "sandbag_lunge", "wall_ball",
+            ])
+        )
+        XCTAssertEqual(
+            Set(ExerciseCatalog.search("", category: "olympic_weightlifting", language: .english).map(\.id)),
+            Set(["power_clean", "power_snatch", "clean_and_jerk"])
+        )
+        XCTAssertEqual(
+            Set(ExerciseCatalog.search("", category: "powerlifting", language: .english).map(\.id)),
+            Set(["barbell_back_squat", "barbell_bench_press", "conventional_deadlift"])
+        )
     }
 
     func testEveryCataloguedCategoryIsSelectable() {
         let offered = Set(ExerciseCatalog.categories.map(\.id))
         for exercise in ExerciseCatalog.all {
-            XCTAssertTrue(offered.contains(exercise.category), "\(exercise.id) sits in an unreachable category")
+            XCTAssertFalse(exercise.categories.isEmpty, "\(exercise.id) has no browse category")
+            for category in exercise.categories {
+                XCTAssertTrue(offered.contains(category), "\(exercise.id) sits in unreachable category \(category)")
+            }
         }
     }
 
@@ -49,7 +103,7 @@ final class CustomWorkoutBuilderTests: XCTestCase {
         let weights = ExerciseCatalog.search("", category: "weights", language: .english)
         XCTAssertEqual(all.count, ExerciseCatalog.all.count)
         XCTAssertLessThan(weights.count, all.count)
-        XCTAssertTrue(weights.allSatisfy { $0.category == "weights" })
+        XCTAssertTrue(weights.allSatisfy { $0.categories.contains("weights") })
     }
 
     func testSearchFindsAMovementThroughAnAliasInAnotherLanguage() {
@@ -104,5 +158,7 @@ final class CustomWorkoutBuilderTests: XCTestCase {
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "reps"), "REPS")
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "seconds"), "SEC")
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "minutes"), "MIN")
+        XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "steps"), "STEPS")
+        XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "rounds"), "ROUNDS")
     }
 }

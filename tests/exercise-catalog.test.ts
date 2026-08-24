@@ -1,12 +1,76 @@
 import assert from 'node:assert/strict'
+import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import {
+  EXERCISE_CATEGORIES,
   EXERCISE_CATALOG,
   catalogExerciseByName,
   displayExerciseName,
   searchExerciseCatalog,
 } from '../src/data/exerciseCatalog.ts'
+import { CARDIO_MODALITIES, MOVEMENTS } from '../src/data/movements.ts'
 import { UI_TRANSLATIONS } from '../src/lib/translations.ts'
+
+test('the workout studio exposes every canonical movement exactly once', () => {
+  const expected = new Set([
+    ...MOVEMENTS.map((movement) => movement.id),
+    ...CARDIO_MODALITIES.map((modality) => modality.id),
+  ])
+  const offered = new Set(EXERCISE_CATALOG.map((exercise) => exercise.id))
+
+  assert.equal(EXERCISE_CATALOG.length, 332)
+  assert.equal(offered.size, 332)
+  assert.deepEqual(offered, expected)
+})
+
+test('the workout studio exposes the canonical sport and training filters', () => {
+  const offered = new Set(EXERCISE_CATEGORIES.map((category) => category.id))
+  for (const category of [
+    'hyrox', 'crossfit', 'olympic_weightlifting', 'powerlifting',
+    'kettlebell_sport', 'strongman', 'mobility',
+  ]) {
+    assert.ok(offered.has(category as never), `${category} is missing from the workout studio`)
+  }
+
+  const expectedCounts = {
+    hyrox: 8,
+    crossfit: 16,
+    olympic_weightlifting: 3,
+    powerlifting: 3,
+    kettlebell_sport: 1,
+    strongman: 2,
+    mobility: 42,
+  }
+  for (const [category, count] of Object.entries(expectedCounts)) {
+    assert.equal(searchExerciseCatalog('', category as never).length, count, category)
+  }
+
+  assert.deepEqual(
+    new Set(searchExerciseCatalog('', 'hyrox' as never).map((exercise) => exercise.id)),
+    new Set([
+      'ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump',
+      'row_erg', 'farmers_carry', 'sandbag_lunge', 'wall_ball',
+    ]),
+  )
+  assert.deepEqual(
+    new Set(searchExerciseCatalog('', 'olympic_weightlifting' as never).map((exercise) => exercise.id)),
+    new Set(['power_clean', 'power_snatch', 'clean_and_jerk']),
+  )
+  assert.deepEqual(
+    new Set(searchExerciseCatalog('', 'powerlifting' as never).map((exercise) => exercise.id)),
+    new Set(['barbell_back_squat', 'barbell_bench_press', 'conventional_deadlift']),
+  )
+})
+
+test('workout pickers do not silently truncate the canonical library', () => {
+  const webBuilder = readFileSync('src/components/CustomWorkoutBuilder.tsx', 'utf8')
+  const nativeBuilder = readFileSync('ios/APEXNative/APEX/Features/Training/CustomWorkoutBuilder.swift', 'utf8')
+  const nativeManual = readFileSync('ios/APEXNative/APEX/Features/Training/ManualWorkoutLoggerView.swift', 'utf8')
+
+  assert.doesNotMatch(webBuilder, /searchExerciseCatalog\([^\n]+\.slice\(/)
+  assert.doesNotMatch(nativeBuilder, /results\.prefix\(/)
+  assert.doesNotMatch(nativeManual, /ExerciseCatalog\.search\([^\n]+\.prefix\(/)
+})
 
 test('every exercise has Romanian and Thai display names', () => {
   assert.ok(EXERCISE_CATALOG.length >= 80)
@@ -16,10 +80,10 @@ test('every exercise has Romanian and Thai display names', () => {
   }
 })
 
-test('every exercise result subtitle has Romanian and Thai equipment metadata', () => {
+test('every exercise result subtitle has readable equipment metadata', () => {
   for (const exercise of EXERCISE_CATALOG) {
-    assert.ok(UI_TRANSLATIONS[exercise.equipment]?.ro, `${exercise.id} Romanian equipment`)
-    assert.ok(UI_TRANSLATIONS[exercise.equipment]?.th, `${exercise.id} Thai equipment`)
+    assert.ok(exercise.equipment.trim(), `${exercise.id} equipment`)
+    assert.doesNotMatch(exercise.equipment, /_/, `${exercise.id} exposes a storage key`)
   }
   assert.equal(UI_TRANSLATIONS['Leg press']?.ro, 'Presă pentru picioare')
   assert.equal(UI_TRANSLATIONS['Step and dumbbells']?.ro, 'Treaptă și gantere')
@@ -28,32 +92,28 @@ test('every exercise result subtitle has Romanian and Thai equipment metadata', 
 })
 
 test('Romanian partial searches resolve common gym vocabulary', () => {
-  assert.ok(searchExerciseCatalog('tra', 'all', 'ro').some((exercise) => exercise.id === 'pull-up'))
-  assert.ok(searchExerciseCatalog('fandari', 'all', 'ro').some((exercise) => exercise.id === 'walking-lunge'))
-  assert.ok(searchExerciseCatalog('ramat', 'all', 'ro').some((exercise) => exercise.id === 'barbell-row'))
-  assert.equal(searchExerciseCatalog('ciocane', 'all', 'ro')[0]?.id, 'hammer-curl')
-  assert.deepEqual(
-    searchExerciseCatalog('ban', 'all', 'ro').slice(0, 2).map((exercise) => exercise.id).sort(),
-    ['treadmill-run', 'treadmill-walk'],
-  )
-  assert.ok(searchExerciseCatalog('gambe', 'all', 'ro').some((exercise) => exercise.id === 'standing-calf-machine'))
-  assert.ok(searchExerciseCatalog('gambe', 'all', 'ro').some((exercise) => exercise.id === 'calf-press-leg-press'))
-  assert.ok(searchExerciseCatalog('gambe', 'all', 'ro').some((exercise) => exercise.id === 'elevated-calf-raise'))
-  assert.ok(searchExerciseCatalog('abdomene', 'all', 'ro').some((exercise) => exercise.id === 'ab-crunch-machine'))
-  assert.ok(searchExerciseCatalog('aductori', 'all', 'ro').some((exercise) => exercise.id === 'hip-adduction'))
+  assert.ok(searchExerciseCatalog('tra', 'all', 'ro').some((exercise) => exercise.id === 'pull_up'))
+  assert.ok(searchExerciseCatalog('fandari', 'all', 'ro').some((exercise) => exercise.id === 'walking_lunge'))
+  assert.ok(searchExerciseCatalog('ramat', 'all', 'ro').some((exercise) => exercise.id === 'barbell_row'))
+  assert.equal(searchExerciseCatalog('ciocane', 'all', 'ro')[0]?.id, 'hammer_curl')
+  assert.ok(searchExerciseCatalog('banda', 'all', 'ro').some((exercise) => exercise.id === 'treadmill'))
+  assert.ok(searchExerciseCatalog('gambe', 'all', 'ro').some((exercise) => exercise.id === 'standing_calf_raise'))
+  assert.ok(searchExerciseCatalog('gambe', 'all', 'ro').some((exercise) => exercise.id === 'calf_press_leg_press'))
+  assert.ok(searchExerciseCatalog('abdomene', 'all', 'ro').some((exercise) => exercise.id === 'machine_crunch'))
+  assert.ok(searchExerciseCatalog('aductori', 'all', 'ro').some((exercise) => exercise.id === 'hip_adduction'))
 })
 
 test('exercise discovery tolerates common spelling errors', () => {
-  assert.ok(searchExerciseCatalog('gammbe', 'all', 'ro').slice(0, 5).some((exercise) => exercise.id === 'standing-calf-machine'))
-  assert.ok(searchExerciseCatalog('abdomeen', 'all', 'ro').some((exercise) => exercise.id === 'ab-crunch-machine'))
-  assert.ok(searchExerciseCatalog('adutori', 'all', 'ro').some((exercise) => exercise.id === 'hip-adduction'))
+  assert.ok(searchExerciseCatalog('gammbe', 'all', 'ro').slice(0, 5).some((exercise) => exercise.id === 'standing_calf_raise'))
+  assert.ok(searchExerciseCatalog('abdomeen', 'all', 'ro').some((exercise) => exercise.id === 'machine_crunch'))
+  assert.ok(searchExerciseCatalog('adutori', 'all', 'ro').some((exercise) => exercise.id === 'hip_adduction'))
   assert.ok(searchExerciseCatalog('chset', 'all', 'en').some((exercise) => exercise.muscles.includes('chest')))
 })
 
 test('Thai search and native names resolve to canonical exercises', () => {
-  assert.ok(searchExerciseCatalog('ลู่วิ่ง', 'all', 'th').some((exercise) => exercise.id === 'treadmill-run'))
-  assert.equal(catalogExerciseByName('เดินบนลู่วิ่ง')?.id, 'treadmill-walk')
-  assert.equal(catalogExerciseByName('Tracțiuni la bară')?.id, 'pull-up')
-  assert.ok(searchExerciseCatalog('น่อง', 'all', 'th').some((exercise) => exercise.id === 'standing-calf-machine'))
-  assert.ok(searchExerciseCatalog('หน้าท้อง', 'all', 'th').some((exercise) => exercise.id === 'ab-crunch-machine'))
+  assert.ok(searchExerciseCatalog('ลู่วิ่ง', 'all', 'th').some((exercise) => exercise.id === 'treadmill'))
+  assert.equal(catalogExerciseByName('เดินบนลู่วิ่ง')?.id, 'treadmill')
+  assert.equal(catalogExerciseByName('Tracțiuni la bară')?.id, 'pull_up')
+  assert.ok(searchExerciseCatalog('น่อง', 'all', 'th').some((exercise) => exercise.id === 'standing_calf_raise'))
+  assert.ok(searchExerciseCatalog('หน้าท้อง', 'all', 'th').some((exercise) => exercise.id === 'machine_crunch'))
 })

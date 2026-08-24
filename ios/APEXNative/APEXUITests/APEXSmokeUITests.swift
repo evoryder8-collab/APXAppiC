@@ -198,6 +198,41 @@ final class APEXSmokeUITests: XCTestCase {
         capture("training-calendar-no-prescription")
     }
 
+    func testCustomWorkoutBuilderExposesTheCanonicalLibraryAndSelectsASportMovement() {
+        let app = configuredApp()
+        app.launch()
+
+        let training = app.buttons["portal.transition"]
+        XCTAssertTrue(training.waitForExistence(timeout: 4))
+        XCTAssertTrue(scrollUntilVisible(training, in: app))
+        tapClearOfDock(training)
+
+        let build = app.buttons["custom-workout-build"]
+        XCTAssertTrue(build.waitForExistence(timeout: 4))
+        XCTAssertTrue(scrollUntilVisible(build, in: app, attempts: 12))
+        tapClearOfDock(build)
+
+        let count = app.staticTexts["custom-workout-result-count"]
+        XCTAssertTrue(count.waitForExistence(timeout: 4))
+        XCTAssertEqual(count.label, "332 movements")
+        capture("custom-workout-full-catalog")
+
+        let search = app.textFields["custom-workout-search"]
+        XCTAssertTrue(search.exists)
+        search.tap()
+        search.typeText("Power Snatch")
+
+        let result = app.buttons["custom-workout-item-power_snatch"]
+        XCTAssertTrue(result.waitForExistence(timeout: 3))
+        result.tap()
+        XCTAssertFalse(result.exists)
+        XCTAssertTrue(
+            app.descendants(matching: .any)["custom-workout-selected-power_snatch"]
+                .waitForExistence(timeout: 3)
+        )
+        capture("custom-workout-sport-movement-selected")
+    }
+
     func testMealComposerPreservesFoodMemoryAndPresetWorkflow() {
         let app = configuredApp()
         app.launch()
