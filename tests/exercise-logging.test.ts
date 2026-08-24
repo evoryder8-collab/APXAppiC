@@ -26,7 +26,7 @@ function log(facts: Partial<WorkoutLog>): WorkoutLog {
   }
 }
 
-test('the seven supported kinds cover 331 of 332 canonical library rows', () => {
+test('the supported kinds classify all 549 selectable catalogue rows', () => {
   const counts = new Map<ExerciseLoggingKind, number>()
   for (const movement of MOVEMENTS) {
     const kind = descriptorForExercise({ name: movement.name, movement_id: movement.id }).kind
@@ -37,10 +37,10 @@ test('the seven supported kinds cover 331 of 332 canonical library rows', () => 
     counts.set(kind, (counts.get(kind) ?? 0) + 1)
   }
   assert.deepEqual(Object.fromEntries(counts), {
-    strength: 129, bodyweight: 79, isometric: 15, carry: 12,
-    mobility: 65, interval: 16, circuit: 1, cardio: 15,
+    strength: 242, bodyweight: 132, isometric: 17, carry: 24,
+    mobility: 90, interval: 28, circuit: 1, cardio: 15,
   })
-  assert.equal([...counts.entries()].filter(([kind]) => kind !== 'circuit').reduce((sum, [, count]) => sum + count, 0), 331)
+  assert.equal([...counts.values()].reduce((sum, count) => sum + count, 0), 549)
 })
 
 test('one descriptor drives the facts shown by manual, guided and tracked logging', () => {

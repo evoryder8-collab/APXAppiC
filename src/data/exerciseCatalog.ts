@@ -9,6 +9,7 @@ import {
   type CardioModality,
   type Movement,
 } from './movements.ts'
+import { HYROX_STATIONS } from '../lib/eventCampaign.ts'
 
 export type ExerciseCategory =
   | 'hyrox' | 'crossfit' | 'olympic_weightlifting' | 'powerlifting'
@@ -327,10 +328,19 @@ for (const [alias, pair] of Object.entries(CARDIO_ALIASES)) {
   authoredAliasesByCanonicalID.set(pair.modality, aliases)
 }
 
-const HYROX_IDS = new Set([
-  'ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump',
-  'row_erg', 'farmers_carry', 'sandbag_lunge', 'wall_ball',
-])
+const HYROX_ORDER = HYROX_STATIONS.map((station) =>
+  station.movementId ?? station.cardio!.modality
+)
+
+/* Category shelves normally follow search relevance. A competition whose
+ * stations have a fixed sequence is different: the list itself should teach
+ * the race from the first station to the finish. This map is also exported
+ * into the generated native catalogue, so web and iPhone cannot drift. */
+export const EXERCISE_CATEGORY_ORDERS: Partial<Record<ExerciseCategory, string[]>> = {
+  hyrox: HYROX_ORDER,
+}
+
+const HYROX_IDS = new Set(HYROX_ORDER)
 const OLYMPIC_WEIGHTLIFTING_IDS = new Set(['power_clean', 'power_snatch', 'clean_and_jerk'])
 const POWERLIFTING_IDS = new Set(['barbell_back_squat', 'barbell_bench_press', 'conventional_deadlift'])
 const STREET_WORKOUT_IDS = new Set(
@@ -341,6 +351,7 @@ const STREET_WORKOUT_IDS = new Set(
 const FREE_WEIGHT_EQUIPMENT = new Set([
   'barbell', 'plates', 'dumbbells', 'kettlebell', 'trap_bar', 'ez_bar',
   'landmine', 'medicine_ball', 'sandbag', 'weight_plate', 'backpack',
+  'steel_mace', 'atlas_stone',
 ])
 
 function movementCategories(movement: Movement): ExerciseCategory[] {
@@ -352,6 +363,9 @@ function movementCategories(movement: Movement): ExerciseCategory[] {
   if (OLYMPIC_WEIGHTLIFTING_IDS.has(movement.id)) categories.add('olympic_weightlifting')
   if (POWERLIFTING_IDS.has(movement.id)) categories.add('powerlifting')
   if (STREET_WORKOUT_IDS.has(movement.id)) categories.add('street')
+  if (disciplines.has('olympic_weightlifting')) categories.add('olympic_weightlifting')
+  if (disciplines.has('powerlifting')) categories.add('powerlifting')
+  if (disciplines.has('street_workout')) categories.add('street')
   for (const discipline of ['crossfit', 'kettlebell_sport', 'strongman', 'strength', 'calisthenics', 'yoga', 'pilates', 'balance'] as const) {
     if (disciplines.has(discipline)) categories.add(discipline)
   }
@@ -592,6 +606,8 @@ export function searchExerciseCatalog(
   language: IntroLanguage = 'en',
 ): ExerciseCatalogItem[] {
   const terms = searchable(query).split(/\s+/).filter(Boolean)
+  const categoryOrder = category === 'all' ? [] : EXERCISE_CATEGORY_ORDERS[category] ?? []
+  const categoryRank = new Map(categoryOrder.map((id, index) => [id, index]))
   return EXERCISE_CATALOG
     .filter((item) => category === 'all' || item.categories.includes(category))
     .map((item) => {
@@ -618,6 +634,11 @@ export function searchExerciseCatalog(
       return { item, score: directMatchBonus + (nativeStart ? 200 : 0) + (aliasStart ? 150 : 0) + nativeHits * 20 + fuzzyScore - nativeName.length / 100 }
     })
     .filter((value): value is { item: ExerciseCatalogItem; score: number } => value != null)
-    .sort((a, b) => b.score - a.score || a.item.names[language].localeCompare(b.item.names[language], language))
+    .sort((a, b) => {
+      const order = (categoryRank.get(a.item.id) ?? Number.MAX_SAFE_INTEGER)
+        - (categoryRank.get(b.item.id) ?? Number.MAX_SAFE_INTEGER)
+      return order || b.score - a.score
+        || a.item.names[language].localeCompare(b.item.names[language], language)
+    })
     .map(({ item }) => item)
 }

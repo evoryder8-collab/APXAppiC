@@ -1,0 +1,191 @@
+[
+  {
+    "id": "acsm_resistance_2002",
+    "title": "Progression Models in Resistance Training for Healthy Adults",
+    "publisher": "American College of Sports Medicine",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/11828249/",
+    "evidenceType": "position_stand",
+    "appliesTo": "Dynamic resistance exercise repetition ranges, progression, rest and controlled execution",
+    "limitations": "Family-level programming evidence; it does not validate every named variation independently"
+  },
+  {
+    "id": "acsm_resistance_2026",
+    "title": "Resistance Training Guidelines infographic",
+    "publisher": "American College of Sports Medicine",
+    "url": "https://www.acsm.org/wp-content/uploads/2026/03/Resistance-Training-Position-Stand-infographic.pdf",
+    "evidenceType": "official_guideline",
+    "appliesTo": "Strength, hypertrophy and power loading ranges plus gradual progression",
+    "limitations": "Summary infographic; record-level mechanics come from the movement-specific sources below"
+  },
+  {
+    "id": "aha_flexibility",
+    "title": "Flexibility Exercise (Stretching)",
+    "publisher": "American Heart Association",
+    "url": "https://www.heart.org/en/healthy-living/exercise-and-physical-activity/fitness-basics/flexibility-exercise-stretching",
+    "evidenceType": "official_guideline",
+    "appliesTo": "Comfortable, pain-free stretching performed slowly for 10 to 30 seconds",
+    "limitations": "General flexibility guidance, not a rehabilitation prescription"
+  },
+  {
+    "id": "aha_balance",
+    "title": "Balance Exercise",
+    "publisher": "American Heart Association",
+    "url": "https://www.heart.org/en/healthy-living/exercise-and-physical-activity/fitness-basics/balance-exercise",
+    "evidenceType": "official_guideline",
+    "appliesTo": "Supported-to-unsupported balance progression and short single-leg holds",
+    "limitations": "General-population guidance; people at fall risk should seek clinical advice"
+  },
+  {
+    "id": "nsca_plyometric",
+    "title": "Plyometric Exercises",
+    "publisher": "National Strength and Conditioning Association",
+    "url": "https://www.nsca.com/education/articles/kinetic-select/plyometric-exercises/",
+    "evidenceType": "official_coaching_guidance",
+    "appliesTo": "Low-volume, high-quality plyometric contacts with movement mastery before progression",
+    "limitations": "Family-level guidance rather than a dose for a particular athlete"
+  },
+  {
+    "id": "nsca_loaded_carries",
+    "title": "Increase Hip and Trunk Stability with Loaded Carries",
+    "publisher": "National Strength and Conditioning Association",
+    "url": "https://www.nsca.com/education/articles/nsca-coach/increase-hip-and-trunk-stability-with-loaded-carries/",
+    "evidenceType": "official_coaching_review",
+    "appliesTo": "Farmer, suitcase, rack, overhead and bottoms-up carries prescribed by time or distance",
+    "limitations": "The article explicitly notes limited evidence for universal loading and volume rules"
+  },
+  {
+    "id": "nsca_weightlifting_2023",
+    "title": "Weightlifting for Sports Performance",
+    "publisher": "National Strength and Conditioning Association",
+    "url": "https://dxpprod.nsca.com/globalassets/about/position-statements/weighlifting-for-sports-performance.pdf",
+    "evidenceType": "position_statement",
+    "appliesTo": "Staged teaching, technical quality and coached progression for clean and jerk derivatives",
+    "limitations": "Sport-performance guidance, not a substitute for in-person coaching"
+  },
+  {
+    "id": "crossfit_gymnastics_guide",
+    "title": "CrossFit Gymnastics Course Seminar Guide",
+    "publisher": "CrossFit",
+    "url": "https://assets.crossfit.com/pdfs/seminars/SMERefs/Gymnastics/GymnasticsCourse_SeminarGuide.pdf",
+    "evidenceType": "official_coaching_manual",
+    "appliesTo": "Prerequisite strength and progression for ring, pull-up, dip and body-control skills",
+    "limitations": "A coaching manual rather than comparative clinical evidence"
+  },
+  {
+    "id": "crossfit_rope_climb",
+    "title": "The Rope Climb (Wrapping)",
+    "publisher": "CrossFit",
+    "url": "https://www.crossfit.com/essentials/the-rope-climb-wrapping",
+    "evidenceType": "official_technique_standard",
+    "appliesTo": "Foot-clamp rope-climb progression and controlled ascent/descent",
+    "limitations": "Technique reference; ceiling, anchor and landing safety still require local inspection"
+  },
+  {
+    "id": "world_gymnastics_mag_2025",
+    "title": "Men's Artistic Gymnastics Code of Points 2025–2028",
+    "publisher": "World Gymnastics",
+    "url": "https://www.gymnastics.sport/publicdir/rules/files/en_1.1%20-%20MAG%20Code%20of%20Points%202025-2028.pdf",
+    "evidenceType": "official_sport_standard",
+    "appliesTo": "Named planche, lever, L-sit and rings holds, including two-second competition recognition",
+    "limitations": "Competition recognition is not a beginner training prescription"
+  },
+  {
+    "id": "iwf_tcrr_2025",
+    "title": "IWF Technical and Competition Rules & Regulations 2025",
+    "publisher": "International Weightlifting Federation",
+    "url": "https://iwf.sport/wp-content/uploads/downloads/2025/05/IWF-TCRR-2025-as-of-01-June-2025.pdf",
+    "evidenceType": "official_sport_standard",
+    "appliesTo": "Clean-and-jerk receiving, lockout and completion standards",
+    "limitations": "Competition rules define valid execution but do not prescribe novice training volume"
+  },
+  {
+    "id": "ikmf_kettlebell_rules",
+    "title": "Rules During Performance",
+    "publisher": "International Kettlebell Marathon Federation",
+    "url": "https://www.ikmf-world.com/rules/rules-during-performance/rules-as-athletes/",
+    "evidenceType": "official_sport_standard",
+    "appliesTo": "Kettlebell clean, jerk, long-cycle, snatch, rack and fixation standards",
+    "limitations": "Competition standards; general-population defaults remain conservative"
+  },
+  {
+    "id": "ace_kettlebell_study",
+    "title": "ACE-Sponsored Research: Kettlebell Training Kicks Butt",
+    "publisher": "American Council on Exercise",
+    "url": "https://www.acefitness.org/continuing-education/prosource/equipment-special-issue/4992/ace-sponsored-research-study-kettlebell-training-kicks-butt/",
+    "evidenceType": "sponsored_training_study",
+    "appliesTo": "Coached familiarisation with swings, snatches, cleans, presses, lunges and Turkish get-ups",
+    "limitations": "Small study and not a technique authority for every kettlebell variation"
+  },
+  {
+    "id": "ace_kettlebell_swing",
+    "title": "The Two-Handed Kettlebell Swing",
+    "publisher": "American Council on Exercise",
+    "url": "https://www.acefitness.org/continuing-education/certified/january-2025/8788/the-ace-do-it-better-series-the-two-handed-kettlebell-swing/",
+    "evidenceType": "official_technique_guidance",
+    "appliesTo": "Ballistic hip-hinge mechanics and quality-stop cues",
+    "limitations": "Technique article, not a universal loading prescription"
+  },
+  {
+    "id": "steel_mace_rct_2026",
+    "title": "Effects of Functional Steel Mace Training on Physical Fitness and Sport-Specific Performance in Elite Wrestlers",
+    "publisher": "Peer-reviewed trial indexed by PubMed",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/41566515/",
+    "evidenceType": "randomized_controlled_trial",
+    "appliesTo": "Steel mace 360, 10-to-2, offset press, offset squat, rotational lunge and single-arm swing",
+    "limitations": "Elite supervised male wrestlers; the study's 20% body-mass load must not be generalized to novices"
+  },
+  {
+    "id": "onnit_steel_mace",
+    "title": "Steel Mace Benefits and Uses",
+    "publisher": "Onnit Academy",
+    "url": "https://www.onnit.com/blogs/the-edge/the-steel-mace-benefits-and-uses",
+    "evidenceType": "first_party_technique_guidance",
+    "appliesTo": "Steel mace 360, uppercut, cross-body lunge, pressing and overhead walking mechanics",
+    "limitations": "Manufacturer coaching content; used only for named mechanics, not efficacy claims"
+  },
+  {
+    "id": "world_strongman_rules",
+    "title": "Rules & Regulations",
+    "publisher": "World Strongman",
+    "url": "https://worldstrongman.org/rules-regulations/",
+    "evidenceType": "official_sport_standard",
+    "appliesTo": "Strongman carry, sandbag and atlas-stone event identity and completion standards",
+    "limitations": "Event rules do not establish safe novice loads"
+  },
+  {
+    "id": "nsca_higher_risk_resistance",
+    "title": "The Safest and Riskiest Forms of Resistance Training",
+    "publisher": "National Strength and Conditioning Association",
+    "url": "https://www.nsca.com/education/articles/ptq/the-safest-and-riskiest-forms-of-resistance-training/",
+    "evidenceType": "official_risk_guidance",
+    "appliesTo": "Gradual coached introduction of Olympic lifting, strongman and high-intensity power work",
+    "limitations": "Risk-management guidance rather than exercise-specific efficacy evidence"
+  },
+  {
+    "id": "jefferson_curl_rct_2024",
+    "title": "Comparison of Resistance Training versus Static Stretching on Flexibility and Maximal Strength",
+    "publisher": "BMC Sports Science, Medicine and Rehabilitation",
+    "url": "https://pmc.ncbi.nlm.nih.gov/articles/PMC11212372/",
+    "evidenceType": "randomized_controlled_trial",
+    "appliesTo": "Modified, light Jefferson curl executed with a three-second eccentric and one-second concentric",
+    "limitations": "Healthy active adults and a modified exercise; no basis for heavy loading or symptomatic spines"
+  },
+  {
+    "id": "hip_cars_rct_2026",
+    "title": "Comparison of Controlled Articular Rotations and Static Stretching on Hip Internal Rotation Range of Motion",
+    "publisher": "International Journal of Exercise Science",
+    "url": "https://pubmed.ncbi.nlm.nih.gov/42517070/",
+    "evidenceType": "randomized_controlled_trial",
+    "appliesTo": "Slow hip controlled articular rotations through available range",
+    "limitations": "Acute hip-ROM study in young adults; shoulder and ankle CAR entries use the same quality principle but are not claimed to share the outcome evidence"
+  },
+  {
+    "id": "hyrox_race_format",
+    "title": "The Fitness Race",
+    "publisher": "HYROX",
+    "url": "https://hyrox.com/the-fitness-race/",
+    "evidenceType": "official_sport_standard",
+    "appliesTo": "Official eight-station race order",
+    "limitations": "Event order only"
+  }
+]

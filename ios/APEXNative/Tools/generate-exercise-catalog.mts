@@ -10,7 +10,11 @@
 import { writeFileSync } from 'node:fs'
 import { dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
-import { EXERCISE_CATALOG, EXERCISE_CATEGORIES } from '../../../src/data/exerciseCatalog.ts'
+import {
+  EXERCISE_CATALOG,
+  EXERCISE_CATEGORIES,
+  EXERCISE_CATEGORY_ORDERS,
+} from '../../../src/data/exerciseCatalog.ts'
 
 const here = dirname(fileURLToPath(import.meta.url))
 const out = join(here, '..', 'APEX', 'Resources', 'exercise-catalog.json')
@@ -18,6 +22,7 @@ const out = join(here, '..', 'APEX', 'Resources', 'exercise-catalog.json')
 writeFileSync(out, JSON.stringify({
   generated_note: 'Generated from src/data/exerciseCatalog.ts. Do not edit by hand.',
   categories: EXERCISE_CATEGORIES,
+  categoryOrders: EXERCISE_CATEGORY_ORDERS,
   exercises: EXERCISE_CATALOG,
 }, null, 1))
 

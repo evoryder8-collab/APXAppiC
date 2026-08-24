@@ -23,6 +23,8 @@ Columns that carry judgement rather than fact, and why they exist:
 
 import json
 
+from exercise_enrichment import build_enriched_movements
+
 M = []
 
 # How a movement is prescribed. A plank cannot take sets x reps x load, and a
@@ -70,7 +72,8 @@ def mv(id, name, pattern, primary, secondary=(), equipment=(), skill=2,
        fail_safe_if=(), complexity=None, ballistic=False, impact="none",
        overhead=False, axial=False, bail_skill=False, prereqs=(),
        family=None, variant=None, review="internally_reviewed",
-       min_ceiling_m=None, space="minimal"):
+       min_ceiling_m=None, space="minimal", source_ids=(),
+       import_source_name=None, origin="core", peak=None, role=None):
     entity = etype or _default_entity(pattern, rep_unit, loadable)
     M.append(dict(
         id=id, name=name, pattern=pattern, primary=list(primary),
@@ -105,6 +108,11 @@ def mv(id, name, pattern, primary, secondary=(), equipment=(), skill=2,
         review=review,
         min_ceiling_m=min_ceiling_m,
         space=space,
+        evidence_source_ids=list(source_ids),
+        import_source_name=import_source_name,
+        origin=origin,
+        peak_override=peak,
+        role_override=role,
         # Youth eligibility is derived from policy below, never hand-set, so
         # it cannot drift into 244 separate opinions.
         youth_override=youth,
@@ -1734,6 +1742,13 @@ mv("dumbbell_side_bend", "Dumbbell Side Bend", "core_anti_lateral_flexion",
    subs=["suitcase_hold"],
    notes="Loaded on one side only. Trains the side that resists, not the side that bends.")
 
+# The owner's 219-row encyclopedia is kept as provenance. Ten names already
+# resolve exactly to canonical movements; these are the 209 distinct queued
+# rows plus the separately researched steel-mace family. The loader refuses an
+# unknown source, count drift or an identifier collision before generation.
+for _enriched in build_enriched_movements({x["id"] for x in M}):
+    mv(**_enriched)
+
 # --------------------------------------------------------------------------
 # Aliases: the names already used in authored programmes, mapped onto canonical
 # movements. This is where "Pull-Ups (different grip than Wed)" stops being a
@@ -1969,7 +1984,9 @@ _PEAK_MID = {
 }
 
 for _x in M:
-    if _x["id"] in _PEAK_SHORTENED:
+    if _x["peak_override"] is not None:
+        _x["peak_tension"] = _x["peak_override"]
+    elif _x["id"] in _PEAK_SHORTENED:
         _x["peak_tension"] = "shortened"
     elif _x["id"] in _PEAK_MID:
         _x["peak_tension"] = "mid"
@@ -2007,7 +2024,9 @@ _ACCESSORY = {
 }
 
 for _x in M:
-    if _x["id"] in _ACCESSORY:
+    if _x["role_override"] is not None:
+        _x["role"] = _x["role_override"]
+    elif _x["id"] in _ACCESSORY:
         _x["role"] = "accessory"
     elif _x["pattern"].startswith("isolation_") or _x["pattern"] in ("calf", "mobility", "yoga_pose"):
         _x["role"] = "accessory"
@@ -2545,6 +2564,159 @@ def coverage_report(youth=False):
     return rows
 
 
+def emit_enrichment_migration():
+    """Deploy only the 209 approved import rows plus the researched mace set.
+
+    Migration 015 remains historical. This delta is what makes the expanded
+    generated catalogue available to an already-deployed database and closes
+    the protected review queue without weakening its RLS boundary.
+    """
+    selected = [m for m in M if m["origin"] in (
+        "owner_csv_enrichment", "steel_mace_research")]
+    if len(selected) != 217:
+        raise SystemExit(f"expected 217 enrichment movements, found {len(selected)}")
+
+    rows = []
+    for m in selected:
+        rows.append(
+            "  (" + ", ".join([
+                q(m["id"]), q(m["name"]), q(m["pattern"]), arr(m["disciplines"]),
+                arr(m["primary"]), arr(m["secondary"]), arr(m["equipment"]),
+                str(m["skill"]), str(m["stability"]),
+                str(m["fail_safe"]).lower(), str(m["spotter"]).lower(),
+                str(m["safeties"]).lower(), str(m["unilateral"]).lower(),
+                str(m["setup"]), q(m["rep_unit"]),
+                str(m["low"]) if m["low"] is not None else "null",
+                str(m["high"]) if m["high"] is not None else "null",
+                str(m["loadable"]).lower(),
+                str(m["increment"]) if m["increment"] is not None else "null",
+                str(m["fatigue"]), arr(m["contra"]), arr(m["subs"]),
+                str(m["youth"]).lower(), str(m["glute"]).lower(), q(m["notes"]),
+                q(m["etype"]), q(m["prescription"]), arr(m["patterns2"]),
+                arr(m["stabilizers"]), jsonb(m["equip_any"]),
+                arr(m["fail_safe_if"]), str(m["complexity"]),
+                str(m["ballistic"]).lower(), q(m["impact"]),
+                str(m["overhead"]).lower(), str(m["axial"]).lower(),
+                str(m["bail_skill"]).lower(), arr(m["prereqs"]),
+                q(m["family"]), q(m["variant"]) if m["variant"] else "null",
+                q(m["review"]), str(m["youth_auto"]).lower(),
+                str(m["adult_auto"]).lower(), str(m["coached_only"]).lower(),
+                str(m["youth_rep_floor"]) if m["youth_rep_floor"] is not None else "null",
+                jsonb(m["implementations"]), arr(m["sequence"]),
+                q(m["space"]), q(m["role"]), q(m["peak_tension"]),
+                str(m["tempo_applies"]).lower(), q(m["tempo_class"]),
+                q(m["prescription_mode"]), arr(m["evidence_source_ids"]),
+                q(m["import_source_name"]) if m["import_source_name"] else "null",
+            ]) + ")"
+        )
+
+    reviewed = [m for m in selected if m["import_source_name"]]
+    review_rows = ",\n".join(
+        "  (" + ", ".join([
+            q(m["import_source_name"]), q(m["id"]), arr(m["evidence_source_ids"]),
+        ]) + ")" for m in reviewed)
+    joined_rows = ",\n".join(rows)
+
+    sql = f"""-- Approves and deploys the source-backed movement encyclopedia expansion.
+-- Regenerate rather than editing by hand:
+--   python3 tools/movement-library.py --enrichment-sql > supabase/migrations/024_movement_catalog_enrichment.sql
+-- 209 approved owner rows plus 8 researched steel-mace movements.
+
+alter table public.movement_library
+  add column if not exists evidence_source_ids text[] not null default '{{}}',
+  add column if not exists import_source_name text;
+
+comment on column public.movement_library.evidence_source_ids is
+  'Stable IDs in data/research/exercise-enrichment-sources.json; sources support mechanics and conservative defaults, not individualized efficacy claims.';
+comment on column public.movement_library.import_source_name is
+  'Exact owner-supplied CSV name when this canonical row came through the protected review queue.';
+
+insert into public.movement_library (
+  id, name, pattern, disciplines, primary_muscles, secondary_muscles, equipment,
+  skill, stability_demand, can_fail_safely, needs_spotter, needs_safeties,
+  unilateral, setup_seconds, rep_unit, rep_low, rep_high, loadable,
+  min_increment_kg, fatigue_cost, contraindications, substitutions,
+  youth_safe, glute_emphasis, notes,
+  entity_type, prescription_schema, secondary_patterns, stabilizer_muscles,
+  equipment_any_of, fail_safe_conditions, technical_complexity, is_ballistic,
+  impact_level, is_overhead, is_axial_load, requires_bail_skill, prerequisites,
+  family, variant, review_status, youth_auto_assignable, adult_auto_assignable,
+  coached_only, youth_rep_floor, implementations, sequence_steps,
+  space_requirement, role, peak_tension, tempo_applies, tempo_class,
+  prescription_mode, evidence_source_ids, import_source_name
+) values
+{joined_rows}
+on conflict (id) do update set
+  name = excluded.name, pattern = excluded.pattern,
+  disciplines = excluded.disciplines,
+  primary_muscles = excluded.primary_muscles,
+  secondary_muscles = excluded.secondary_muscles,
+  equipment = excluded.equipment, skill = excluded.skill,
+  stability_demand = excluded.stability_demand,
+  can_fail_safely = excluded.can_fail_safely,
+  needs_spotter = excluded.needs_spotter,
+  needs_safeties = excluded.needs_safeties,
+  unilateral = excluded.unilateral, setup_seconds = excluded.setup_seconds,
+  rep_unit = excluded.rep_unit, rep_low = excluded.rep_low,
+  rep_high = excluded.rep_high, loadable = excluded.loadable,
+  min_increment_kg = excluded.min_increment_kg,
+  fatigue_cost = excluded.fatigue_cost,
+  contraindications = excluded.contraindications,
+  substitutions = excluded.substitutions, youth_safe = excluded.youth_safe,
+  glute_emphasis = excluded.glute_emphasis, notes = excluded.notes,
+  entity_type = excluded.entity_type,
+  prescription_schema = excluded.prescription_schema,
+  secondary_patterns = excluded.secondary_patterns,
+  stabilizer_muscles = excluded.stabilizer_muscles,
+  equipment_any_of = excluded.equipment_any_of,
+  fail_safe_conditions = excluded.fail_safe_conditions,
+  technical_complexity = excluded.technical_complexity,
+  is_ballistic = excluded.is_ballistic, impact_level = excluded.impact_level,
+  is_overhead = excluded.is_overhead, is_axial_load = excluded.is_axial_load,
+  requires_bail_skill = excluded.requires_bail_skill,
+  prerequisites = excluded.prerequisites, family = excluded.family,
+  variant = excluded.variant, review_status = excluded.review_status,
+  youth_auto_assignable = excluded.youth_auto_assignable,
+  adult_auto_assignable = excluded.adult_auto_assignable,
+  coached_only = excluded.coached_only,
+  youth_rep_floor = excluded.youth_rep_floor,
+  implementations = excluded.implementations,
+  sequence_steps = excluded.sequence_steps,
+  space_requirement = excluded.space_requirement, role = excluded.role,
+  peak_tension = excluded.peak_tension, tempo_applies = excluded.tempo_applies,
+  tempo_class = excluded.tempo_class,
+  prescription_mode = excluded.prescription_mode,
+  evidence_source_ids = excluded.evidence_source_ids,
+  import_source_name = excluded.import_source_name,
+  updated_at = now();
+
+update public.movement_import_review_queue
+set review_status = 'approved',
+    review_notes = coalesce(review_notes, 'Exact canonical match verified before enrichment.'),
+    reviewed_at = coalesce(reviewed_at, now())
+where source_sha256 = '8ae1056ec3787059a70623de7d2d56572e7760c3da97a7b505495d684d779e1d'
+  and match_status = 'canonical_exact';
+
+with approved(name, movement_id, evidence_source_ids) as (
+  values
+{review_rows}
+)
+update public.movement_import_review_queue as queue
+set match_status = 'canonical_exact',
+    matched_movement_id = approved.movement_id,
+    review_status = 'approved',
+    review_notes = 'Source-backed canonical enrichment; evidence: ' || array_to_string(approved.evidence_source_ids::text[], ', '),
+    reviewed_at = now()
+from approved
+where queue.source_sha256 = '8ae1056ec3787059a70623de7d2d56572e7760c3da97a7b505495d684d779e1d'
+  and queue.name = approved.name
+  and queue.match_status = 'pending_review';
+
+notify pgrst, 'reload schema';
+"""
+    print(sql, end="")
+
+
 def emit():
     seen = set()
     for m in M:
@@ -2842,6 +3014,8 @@ def emit_ts():
         "  prescriptionMode: 'tempo_reps' | 'quality_reps' | 'hold' | 'carry'",
         "    | 'contacts' | 'breath' | 'quality' | 'distance' | 'interval'",
         "  reviewStatus: string",
+        "  evidenceSourceIds: string[]",
+        "  importSourceName: string | null",
         "}",
         "",
         "export interface Implementation {",
@@ -2886,6 +3060,8 @@ def emit_ts():
         lines.append(f"    role: {js(m['role'])}, peakTension: {js(m['peak_tension'])},")
         lines.append(f"    tempoApplies: {jb(m['tempo_applies'])}, tempoClass: {js(m['tempo_class'])},")
         lines.append(f"    prescriptionMode: {js(m['prescription_mode'])},")
+        lines.append(f"    evidenceSourceIds: {jsa(m['evidence_source_ids'])},")
+        lines.append(f"    importSourceName: {js(m['import_source_name']) if m['import_source_name'] else 'null'},")
         lines.append("  },")
     lines.append("]")
     lines.append("")
@@ -2992,5 +3168,7 @@ if __name__ == "__main__":
     import sys
     if "--ts" in sys.argv:
         emit_ts()
+    elif "--enrichment-sql" in sys.argv:
+        emit_enrichment_migration()
     else:
         emit()

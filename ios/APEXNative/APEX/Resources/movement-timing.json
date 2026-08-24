@@ -3422,7 +3422,8 @@
    "entity_type": "resistance_dynamic",
    "disciplines": [
     "crossfit",
-    "strength"
+    "strength",
+    "kettlebell_sport"
    ],
    "prescription": "sets_reps_load"
   },
@@ -3518,7 +3519,8 @@
    "disciplines": [
     "calisthenics",
     "hiit",
-    "conditioning"
+    "conditioning",
+    "crossfit"
    ],
    "prescription": "rounds_work_rest"
   },
@@ -4852,6 +4854,3368 @@
     "strength"
    ],
    "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_turkish_get_up",
+   "name": "Kettlebell Turkish Get-Up",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "kettlebell_sport"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "half_turkish_get_up",
+   "name": "Half Turkish Get-Up",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_windmill",
+   "name": "Kettlebell Windmill",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "kettlebell_sport"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_around_the_world",
+   "name": "Kettlebell Around-the-World",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_halo",
+   "name": "Kettlebell Halo",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": true,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "kettlebell_figure_8",
+   "name": "Kettlebell Figure-8",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "kettlebell_figure_8_to_hold",
+   "name": "Kettlebell Figure-8 to Hold",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "dual_kettlebell_clean",
+   "name": "Dual-Kettlebell Clean",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit",
+    "kettlebell_sport"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_clean_and_jerk",
+   "name": "Kettlebell Clean and Jerk",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit",
+    "kettlebell_sport"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_clean_and_push_press",
+   "name": "Kettlebell Clean and Push Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_snatch",
+   "name": "Kettlebell Snatch",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit",
+    "kettlebell_sport"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_snatch_to_overhead_carry",
+   "name": "Kettlebell Snatch to Overhead Carry",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_swing_to_squat",
+   "name": "Kettlebell Swing to Squat",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning",
+    "crossfit"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "kettlebell_squat_to_press",
+   "name": "Kettlebell Squat to Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_front_rack_squat",
+   "name": "Kettlebell Front Rack Squat",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_lateral_squat",
+   "name": "Kettlebell Lateral Squat",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_curtsy_lunge",
+   "name": "Kettlebell Curtsy Lunge",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_lunge_with_rotation",
+   "name": "Kettlebell Lunge with Rotation",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_reverse_lunge_to_press",
+   "name": "Kettlebell Reverse Lunge to Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_step_up",
+   "name": "Kettlebell Step-up",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_walking_lunge",
+   "name": "Kettlebell Walking Lunge",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": true,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "kettlebell_suitcase_deadlift",
+   "name": "Kettlebell Suitcase Deadlift",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_romanian_deadlift",
+   "name": "Kettlebell Romanian Deadlift",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "single_leg_kettlebell_deadlift",
+   "name": "Single-leg Kettlebell Deadlift",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_sumo_deadlift",
+   "name": "Kettlebell Sumo Deadlift",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_good_morning",
+   "name": "Kettlebell Good Morning",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_row",
+   "name": "Kettlebell Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_renegade_row",
+   "name": "Kettlebell Renegade Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_gorilla_row",
+   "name": "Kettlebell Gorilla Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_suitcase_row",
+   "name": "Kettlebell Suitcase Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_chest_supported_row",
+   "name": "Kettlebell Chest-Supported Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_floor_press",
+   "name": "Kettlebell Floor Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_alternating_floor_press",
+   "name": "Kettlebell Alternating Floor Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_bench_press",
+   "name": "Kettlebell Bench Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_incline_bench_press",
+   "name": "Kettlebell Incline Bench Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_see_saw_press",
+   "name": "Kettlebell See-Saw Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_bottoms_up_press",
+   "name": "Kettlebell Bottoms-Up Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_bottoms_up_clean",
+   "name": "Kettlebell Bottoms-Up Clean",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_bottoms_up_carry",
+   "name": "Kettlebell Bottoms-Up Carry",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_overhead_carry",
+   "name": "Kettlebell Overhead Carry",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "double_overhead_kettlebell_carry",
+   "name": "Double Overhead Kettlebell Carry",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_rack_carry",
+   "name": "Kettlebell Rack Carry",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_farmers_walk",
+   "name": "Kettlebell Farmer's Walk",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "hyrox",
+    "conditioning"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_cross_body_carry",
+   "name": "Kettlebell Cross-Body Carry",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_crush_grip_push_up",
+   "name": "Kettlebell Crush-Grip Push-up",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_push_up_to_row",
+   "name": "Kettlebell Push-up to Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_pullover",
+   "name": "Kettlebell Pullover",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_russian_twist",
+   "name": "Kettlebell Russian Twist",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_side_bend",
+   "name": "Kettlebell Side Bend",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_dead_bug",
+   "name": "Kettlebell Dead Bug",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_hollow_body_hold",
+   "name": "Kettlebell Hollow Body Hold",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "hold",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "kettlebell_sit_up",
+   "name": "Kettlebell Sit-up",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_v_up",
+   "name": "Kettlebell V-Up",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_woodchopper",
+   "name": "Kettlebell Woodchopper",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_slasher_to_halo",
+   "name": "Kettlebell Slasher-to-Halo",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_armbar",
+   "name": "Kettlebell Armbar",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": true,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "kettlebell_surrender",
+   "name": "Kettlebell Surrender",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_deck_squat",
+   "name": "Kettlebell Deck Squat",
+   "setup_seconds": 25,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "kettlebell_man_maker",
+   "name": "Kettlebell Man Maker",
+   "setup_seconds": 25,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "split_squat_jump",
+   "name": "Split Squat Jump",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "contacts",
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "sets_reps_quality"
+  },
+  {
+   "id": "jumping_lunge",
+   "name": "Jumping Lunge",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "contacts",
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "sets_reps_quality"
+  },
+  {
+   "id": "box_step_up_bodyweight",
+   "name": "Box Step-up (Bodyweight)",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "curtsy_lunge_bodyweight",
+   "name": "Curtsy Lunge (Bodyweight)",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "single_leg_box_squat",
+   "name": "Single-leg Box Squat",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "assisted_pistol_squat",
+   "name": "Assisted Pistol Squat",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "jumping_pistol_squat",
+   "name": "Jumping Pistol Squat",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "contacts",
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "conditioning",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_quality"
+  },
+  {
+   "id": "sissy_squat_unloaded",
+   "name": "Sissy Squat (Unloaded)",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "glute_ham_walkout",
+   "name": "Glute-Ham Walkout",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "hip_thrust_bodyweight",
+   "name": "Hip Thrust (Bodyweight)",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "single_leg_hip_thrust_bodyweight",
+   "name": "Single-leg Hip Thrust (Bodyweight)",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "reverse_lunge_to_knee_drive",
+   "name": "Reverse Lunge to Knee Drive",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "step_back_lunge_with_twist",
+   "name": "Step-back Lunge with Twist",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "lateral_step_up",
+   "name": "Lateral Step-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "calf_raise_on_step",
+   "name": "Calf Raise on Step",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "donkey_calf_raise",
+   "name": "Donkey Calf Raise",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "wall_calf_raise",
+   "name": "Wall Calf Raise",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "decline_push_up_high_feet",
+   "name": "Decline Push-up (High Feet)",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "clap_push_up",
+   "name": "Clap Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "contacts",
+   "loadable": false,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "conditioning",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_quality"
+  },
+  {
+   "id": "wide_grip_push_up",
+   "name": "Wide-Grip Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "close_grip_push_up",
+   "name": "Close-Grip Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "clock_push_up",
+   "name": "Clock Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning",
+    "calisthenics"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "planche_lean",
+   "name": "Planche Lean",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "planche_push_up",
+   "name": "Planche Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "hindu_push_up",
+   "name": "Hindu Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "divebomber_push_up",
+   "name": "Divebomber Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "spiderman_push_up",
+   "name": "Spiderman Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "ring_push_up",
+   "name": "Ring Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "ring_archer_push_up",
+   "name": "Ring Archer Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "ring_fly",
+   "name": "Ring Fly",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "bench_dip_feet_on_floor",
+   "name": "Bench Dip (Feet on Floor)",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "bench_dip_feet_elevated",
+   "name": "Bench Dip (Feet Elevated)",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "ring_dip_forward_lean",
+   "name": "Ring Dip - Forward Lean",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "assisted_ring_dip",
+   "name": "Assisted Ring Dip",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "isometric_dip_hold",
+   "name": "Isometric Dip Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "hold",
+   "loadable": false,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "mixed_grip_pull_up",
+   "name": "Mixed-Grip Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "archer_pull_up",
+   "name": "Archer Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "typewriter_pull_up",
+   "name": "Typewriter Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "commando_pull_up",
+   "name": "Commando Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "behind_the_neck_pull_up",
+   "name": "Behind-the-Neck Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "one_arm_pull_up_assisted",
+   "name": "One-Arm Pull-up (Assisted)",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "false_grip_pull_up",
+   "name": "False-Grip Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "chest_to_bar_pull_up_strict",
+   "name": "Chest-to-Bar Pull-up (Strict)",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "inverted_row_underhand",
+   "name": "Inverted Row - Underhand",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "inverted_row_wide_grip",
+   "name": "Inverted Row - Wide Grip",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "ring_row_supinated",
+   "name": "Ring Row (Supinated)",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "rope_climb_feet_clamp",
+   "name": "Rope Climb (Feet Clamp)",
+   "setup_seconds": 90,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "rope_climb_legless",
+   "name": "Rope Climb (Legless)",
+   "setup_seconds": 90,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "towel_pull_up",
+   "name": "Towel Pull-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "skin_the_cat",
+   "name": "Skin-the-Cat",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "german_hang",
+   "name": "German Hang",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "front_lever_tuck_hold",
+   "name": "Front Lever Tuck Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "front_lever_advanced_tuck",
+   "name": "Front Lever Advanced Tuck",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "street_workout"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "back_lever_tuck_hold",
+   "name": "Back Lever Tuck Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "back_lever_full_hold",
+   "name": "Back Lever Full Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "hollow_rock",
+   "name": "Hollow Rock",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "gymnastics",
+    "calisthenics",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "v_sit_hold",
+   "name": "V-Sit Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "straddle_l_sit",
+   "name": "Straddle L-Sit",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "open_tuck_l_sit",
+   "name": "Open Tuck L-Sit",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "calisthenics",
+    "gymnastics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "manna_progression_hold",
+   "name": "Manna Progression Hold",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "skill_drill",
+   "disciplines": [
+    "gymnastics",
+    "calisthenics"
+   ],
+   "prescription": "sets_duration_quality"
+  },
+  {
+   "id": "dragon_flag_eccentrics",
+   "name": "Dragon Flag Eccentrics",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dragon_flag_full",
+   "name": "Dragon Flag Full",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "calisthenics"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "hip_raise_on_bench",
+   "name": "Hip Raise on Bench",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "jackknife_sit_up",
+   "name": "Jackknife Sit-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "bicycle_crunch",
+   "name": "Bicycle Crunch",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cross_body_mountain_climber",
+   "name": "Cross-Body Mountain Climber",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "plank_with_shoulder_tap",
+   "name": "Plank with Shoulder Tap",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "single_arm_single_leg_plank",
+   "name": "Single-Arm Single-Leg Plank",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "side_plank_with_leg_lift",
+   "name": "Side Plank with Leg Lift",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "copenhagen_side_plank_long_lever",
+   "name": "Copenhagen Side Plank - Long Lever",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": false,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "crab_walk",
+   "name": "Crab Walk",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "inchworm_walkout",
+   "name": "Inchworm Walkout",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "walkout_to_push_up",
+   "name": "Walkout to Push-up",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "hollow_body_arch_rock",
+   "name": "Hollow Body Arch Rock",
+   "setup_seconds": 10,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "interval",
+   "loadable": false,
+   "entity_type": "conditioning_complex",
+   "disciplines": [
+    "conditioning",
+    "gymnastics",
+    "calisthenics",
+    "crossfit"
+   ],
+   "prescription": "rounds_work_rest"
+  },
+  {
+   "id": "barbell_rack_pull",
+   "name": "Barbell Rack Pull",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "powerlifting"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "deficit_romanian_deadlift",
+   "name": "Deficit Romanian Deadlift",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "snatch_grip_romanian_deadlift",
+   "name": "Snatch-Grip Romanian Deadlift",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "olympic_weightlifting"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_hip_thrust_single_leg",
+   "name": "Barbell Hip Thrust - Single-Leg",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_glute_bridge",
+   "name": "Barbell Glute Bridge",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_step_up",
+   "name": "Barbell Step-up",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_walking_lunge_front_rack",
+   "name": "Barbell Walking Lunge (Front Rack)",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_split_jerk",
+   "name": "Barbell Split Jerk",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "olympic_weightlifting",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_push_jerk",
+   "name": "Barbell Push Jerk",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "olympic_weightlifting",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_power_jerk",
+   "name": "Barbell Power Jerk",
+   "setup_seconds": 60,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "olympic_weightlifting",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "barbell_floor_row",
+   "name": "Barbell Floor Row",
+   "setup_seconds": 60,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "landmine_reverse_lunge",
+   "name": "Landmine Reverse Lunge",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "landmine_lateral_lunge",
+   "name": "Landmine Lateral Lunge",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "landmine_single_arm_row",
+   "name": "Landmine Single-Arm Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "landmine_meadows_row",
+   "name": "Landmine Meadows Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "landmine_single_arm_press_half_kneeling",
+   "name": "Landmine Single-Arm Press (Half-Kneeling)",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_sumo_squat",
+   "name": "Dumbbell Sumo Squat",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_step_up_with_knee_drive",
+   "name": "Dumbbell Step-up with Knee Drive",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_curtsy_lunge",
+   "name": "Dumbbell Curtsy Lunge",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_rdl_to_row",
+   "name": "Dumbbell RDL to Row",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_renegade_row_with_push_up",
+   "name": "Dumbbell Renegade Row with Push-up",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "crossfit"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_pullover_to_press",
+   "name": "Dumbbell Pullover to Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "alternating_dumbbell_bench_press",
+   "name": "Alternating Dumbbell Bench Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_cross_body_hammer_curl",
+   "name": "Dumbbell Cross-Body Hammer Curl",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_zottman_curl",
+   "name": "Dumbbell Zottman Curl",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_concentration_curl",
+   "name": "Dumbbell Concentration Curl",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_reverse_fly_incline",
+   "name": "Dumbbell Reverse Fly (Incline)",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_y_raise",
+   "name": "Dumbbell Y-Raise",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_cuban_press",
+   "name": "Dumbbell Cuban Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_tate_press",
+   "name": "Dumbbell Tate Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_floor_fly",
+   "name": "Dumbbell Floor Fly",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "dumbbell_squeeze_press",
+   "name": "Dumbbell Squeeze Press",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "farmers_walk_with_trap_bar",
+   "name": "Farmer's Walk with Trap Bar",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "strongman"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "suitcase_carry_single_dumbbell",
+   "name": "Suitcase Carry (Single Dumbbell)",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "strongman"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "front_rack_carry_barbell",
+   "name": "Front Rack Carry (Barbell)",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "strongman"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "sandbag_bear_hug_carry",
+   "name": "Sandbag Bear-Hug Carry",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "strongman"
+   ],
+   "prescription": "sets_duration_load"
+  },
+  {
+   "id": "sandbag_shouldering",
+   "name": "Sandbag Shouldering",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "strongman"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "sandbag_over_the_shoulder_throw",
+   "name": "Sandbag Over-the-Shoulder Throw",
+   "setup_seconds": 45,
+   "fatigue_cost": 4,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "contacts",
+   "loadable": true,
+   "entity_type": "plyometric",
+   "disciplines": [
+    "conditioning",
+    "strongman"
+   ],
+   "prescription": "sets_reps_quality"
+  },
+  {
+   "id": "atlas_stone_to_platform",
+   "name": "Atlas Stone to Platform",
+   "setup_seconds": 60,
+   "fatigue_cost": 5,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "strongman"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "smith_machine_back_squat",
+   "name": "Smith Machine Back Squat",
+   "setup_seconds": 60,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "smith_machine_bench_press",
+   "name": "Smith Machine Bench Press",
+   "setup_seconds": 60,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "smith_machine_incline_bench_press",
+   "name": "Smith Machine Incline Bench Press",
+   "setup_seconds": 60,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "smith_machine_shoulder_press",
+   "name": "Smith Machine Shoulder Press",
+   "setup_seconds": 60,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "hack_squat_reverse",
+   "name": "Hack Squat - Reverse",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "pendulum_squat_machine",
+   "name": "Pendulum Squat Machine",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "vertical_leg_press_machine",
+   "name": "Vertical Leg Press Machine",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "reverse_hyper_machine",
+   "name": "Reverse Hyper Machine",
+   "setup_seconds": 25,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_cross_over_high_to_low",
+   "name": "Cable Cross-Over - High to Low",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_cross_over_low_to_high",
+   "name": "Cable Cross-Over - Low to High",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "single_arm_cable_chest_press",
+   "name": "Single-Arm Cable Chest Press",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "standing_cable_fly",
+   "name": "Standing Cable Fly",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "single_arm_cable_lateral_raise",
+   "name": "Single-Arm Cable Lateral Raise",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_rear_delt_fly_standing",
+   "name": "Cable Rear-Delt Fly (Standing)",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_rope_overhead_triceps_extension",
+   "name": "Cable Rope Overhead Triceps Extension",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_overhead_curl",
+   "name": "Cable Overhead Curl",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_rope_hammer_curl",
+   "name": "Cable Rope Hammer Curl",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_hip_flexion",
+   "name": "Cable Hip Flexion",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_kickback_glutes",
+   "name": "Cable Kickback (Glutes)",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_deadlift",
+   "name": "Cable Deadlift",
+   "setup_seconds": 45,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "cable_squat_row",
+   "name": "Cable Squat Row",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "lat_pulldown_single_arm",
+   "name": "Lat Pulldown - Single-Arm",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": true,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "machine_chest_fly",
+   "name": "Machine Chest Fly",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "machine_reverse_fly",
+   "name": "Machine Reverse Fly",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "hammer_strength_row_machine",
+   "name": "Hammer-Strength Row Machine",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "hammer_strength_incline_press",
+   "name": "Hammer-Strength Incline Press",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "seated_machine_shoulder_press_neutral",
+   "name": "Seated Machine Shoulder Press (Neutral)",
+   "setup_seconds": 45,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "standing_hip_cars",
+   "name": "Standing Hip CARs",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "shoulder_cars",
+   "name": "Shoulder CARs",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "ankle_cars",
+   "name": "Ankle CARs",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "90_90_shin_box_switch",
+   "name": "90/90 Shin Box Switch",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "frog_stretch",
+   "name": "Frog Stretch",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "pigeon_stretch",
+   "name": "Pigeon Stretch",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "thread_the_needle_stretch",
+   "name": "Thread-the-Needle Stretch",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "brettzel_stretch",
+   "name": "Brettzel Stretch",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "jefferson_curl",
+   "name": "Jefferson Curl",
+   "setup_seconds": 25,
+   "fatigue_cost": 2,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": true,
+   "entity_type": "mobility_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "single_leg_balance_reach",
+   "name": "Single-Leg Balance Reach",
+   "setup_seconds": 10,
+   "fatigue_cost": 2,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "quality",
+   "loadable": false,
+   "entity_type": "balance_drill",
+   "disciplines": [
+    "mobility"
+   ],
+   "prescription": "sets_duration_or_reps"
+  },
+  {
+   "id": "steel_mace_360",
+   "name": "Steel Mace 360",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_10_to_2",
+   "name": "Steel Mace 10-to-2",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": false,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_uppercut",
+   "name": "Steel Mace Uppercut",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_offset_press",
+   "name": "Steel Mace Offset Press",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_offset_squat",
+   "name": "Steel Mace Offset Squat",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_rotational_lunge",
+   "name": "Steel Mace Rotational Lunge",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "tempo_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_single_arm_swing",
+   "name": "Steel Mace Single-Arm Swing",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "quality_reps",
+   "loadable": true,
+   "entity_type": "resistance_dynamic",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_reps_load"
+  },
+  {
+   "id": "steel_mace_overhead_carry",
+   "name": "Steel Mace Overhead Carry",
+   "setup_seconds": 20,
+   "fatigue_cost": 3,
+   "unilateral": true,
+   "repositioning": false,
+   "prescription_mode": "carry",
+   "loadable": true,
+   "entity_type": "resistance_isometric",
+   "disciplines": [
+    "strength",
+    "street_workout"
+   ],
+   "prescription": "sets_duration_load"
   },
   {
    "id": "cycle_stationary",

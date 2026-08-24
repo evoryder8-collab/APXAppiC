@@ -67,7 +67,9 @@ test('the parser handles quoted commas and escaped quotes without changing field
 
 test('review matching is exact after punctuation folding and never fuzzy', () => {
   const canonical = [
-    ...MOVEMENTS.map(({ id, name }) => ({ id, name })),
+    ...MOVEMENTS
+      .filter((movement) => movement.importSourceName == null && !movement.id.startsWith('steel_mace_'))
+      .map(({ id, name }) => ({ id, name })),
     ...CARDIO_MODALITIES.map(({ id, name }) => ({ id, name })),
   ]
   const rows = parseExerciseImportCsv(readFileSync(importPath, 'utf8'))
@@ -120,7 +122,9 @@ test('migration is generated from the audited rows and protects the review queue
   if (!existsSync(migrationPath)) return
 
   const canonical = [
-    ...MOVEMENTS.map(({ id, name }) => ({ id, name })),
+    ...MOVEMENTS
+      .filter((movement) => movement.importSourceName == null && !movement.id.startsWith('steel_mace_'))
+      .map(({ id, name }) => ({ id, name })),
     ...CARDIO_MODALITIES.map(({ id, name }) => ({ id, name })),
   ]
   const candidates = buildReviewCandidates(
@@ -147,7 +151,7 @@ test('migration is generated from the audited rows and protects the review queue
   assert.match(migration, /219 source rows: 10 exact canonical matches, 209 pending review/i)
 })
 
-test('only verified exact-match sport tags enter the canonical movement source', () => {
+test('exact matches keep verified tags and approved enrichments keep source provenance', () => {
   assert.deepEqual(
     MOVEMENT_BY_ID.get('kettlebell_clean')?.disciplines,
     ['crossfit', 'strength', 'kettlebell_sport'],
@@ -156,5 +160,10 @@ test('only verified exact-match sport tags enter the canonical movement source',
     MOVEMENT_BY_ID.get('bear_crawl')?.disciplines,
     ['calisthenics', 'hiit', 'conditioning', 'crossfit'],
   )
-  assert.equal(MOVEMENT_BY_ID.get('archer_pull_up'), undefined)
+  assert.equal(MOVEMENT_BY_ID.get('archer_pull_up')?.importSourceName, 'Archer Pull-up')
+  assert.deepEqual(
+    MOVEMENT_BY_ID.get('archer_pull_up')?.disciplines,
+    ['strength', 'calisthenics', 'street_workout'],
+  )
+  assert.ok((MOVEMENT_BY_ID.get('archer_pull_up')?.evidenceSourceIds.length ?? 0) > 0)
 })

@@ -9,14 +9,14 @@ final class ExerciseLoggingTests: XCTestCase {
             counts[kind, default: 0] += 1
         }
 
-        XCTAssertEqual(MovementTiming.cataloguedMovements.count, 332)
-        XCTAssertEqual(counts[.strength], 129)
-        XCTAssertEqual(counts[.bodyweight], 79)
-        XCTAssertEqual(counts[.isometric], 15)
-        XCTAssertEqual(counts[.carry], 12)
+        XCTAssertEqual(MovementTiming.cataloguedMovements.count, 549)
+        XCTAssertEqual(counts[.strength], 242)
+        XCTAssertEqual(counts[.bodyweight], 132)
+        XCTAssertEqual(counts[.isometric], 17)
+        XCTAssertEqual(counts[.carry], 24)
         XCTAssertEqual(counts[.cardio], 15)
-        XCTAssertEqual(counts[.mobility], 65)
-        XCTAssertEqual(counts[.interval], 16)
+        XCTAssertEqual(counts[.mobility], 90)
+        XCTAssertEqual(counts[.interval], 28)
         XCTAssertEqual(counts[.circuit], 1)
     }
 
