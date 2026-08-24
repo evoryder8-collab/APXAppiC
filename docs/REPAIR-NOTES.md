@@ -563,3 +563,17 @@ GitHub publication evidence:
 - Green proof: contrast test 1/1; final focused scanner UI flow 1/1 with zero runtime warnings; complete native unit suite 401/401; web suite 505/505 in 4.87 s; production web build succeeded with 1,170 modules transformed; `git diff --check` passed.
 - Physical-device proof: Xcode 27 physical build succeeded, the final iPhone bundle passed strict deep signature verification, and source SHA `31b6c7907` installed at database sequence 5524 and launched on `iConstantine Main` as PID 7124.
 - Next: restore the animated water-filled body silhouette to the Apple Watch hydration surface as its own tested task.
+
+## 2026-08-24 — Animated Apple Watch hydration silhouette
+
+- Implementation commit: `3050eb8c1` (`feat: animate hydration silhouette on watch`).
+- Files changed: `ios/APEXNative/APEXNative.xcodeproj/project.pbxproj`, `ios/APEXNative/APEX/Core/Engine/WatchHydrationFillState.swift`, `ios/APEXNative/APEXTests/HydrationGaugeTests.swift`, `ios/APEXNative/APEXWatch/WatchHydrationStore.swift`, and `ios/APEXNative/APEXWatch/WatchHydrationView.swift`.
+- Fix: the Watch hydration surface now uses a custom human silhouette filled by an animated cyan-blue-violet water wave at the account's true hydration percentage. Empty and full states do not show phantom water or air; Reduce Motion freezes the wave; litres, percentage, target, a mini progress bar, and 44-point `+250`, `+300`, and `+500` controls remain readable on the Ultra display. The whole hydration card exposes a combined VoiceOver label and value.
+- Shared model: `WatchHydrationFillState` is compiled into both native targets and owns progress clamping, proportional waterline placement, and bounded wave geometry, keeping UI rendering separate from hydration math.
+- Tests added: four `WatchHydrationFillStateTests` cover empty/target clamping, proportional quarter/half/three-quarter waterlines, exact endpoint fill behaviour, and the invariant that every animated wave sample remains in `[0, 1]`.
+- Red proof: the new focused test target failed to compile while `WatchHydrationFillState` was absent. Green proof: focused tests 4/4; complete native suite 405/405 with zero failed or skipped; complete web suite 505/505 in 4.93 s; production web build succeeded with 1,170 modules transformed; final Watch Ultra 3 simulator build succeeded under Xcode 27; `git diff --check` passed.
+- Visual and animation proof: a final Ultra 3 render at 1.65/2.75 L showed the 60% waterline around the upper abdomen with all three quick-add controls fully visible. A 13.688-second, 165-frame capture ran at approximately 12 fps; silhouette-only frames six seconds apart produced different hashes, proving that the clipped water surface moves rather than remaining a static gradient.
+- Signing proof: the physical Xcode 27 Watch build succeeded, and both `APEX Water.app` and the containing `APEX.app` passed strict deep signature verification.
+- Physical Watch proof: source SHA `3050eb8c1` installed on Apple Watch Ultra 3 at database sequence 989 and launched successfully; the Watch app is running as PID 601 and `APEXWatchWidgets.appex` as PID 591.
+- Matching iPhone proof: the same source SHA installed on `iConstantine Main` at database sequence 5540 and launched successfully as PID 7277.
+- Next: resume the roadmap at the next numbered task only after this evidence commit is pushed and Pages succeeds.
