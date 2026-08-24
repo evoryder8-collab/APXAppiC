@@ -60,7 +60,7 @@ enum TrainingInduction {
         restored.recentOperation = induction["recent_operation"]?.boolValue ?? false
         restored.chronicLowerBackPain = induction["chronic_lower_back_pain"]?.boolValue ?? false
         if let sessions = induction["sessions_per_week"]?.numberValue.map(Int.init) {
-            restored.sessionsPerWeek = min(5, max(2, sessions))
+            restored.sessionsPerWeek = min(7, max(2, sessions))
         }
         switch induction["goal"]?.stringValue {
         case "rebuild": restored.goal = "general"
@@ -483,6 +483,42 @@ enum TrainingInduction {
         let reasons: [String]
     }
 
+    struct HighFrequencyAdvisory: Equatable, Sendable {
+        let days: Int
+        let title: String
+        let summary: String
+        let adaptations: [String]
+        let recoveryTips: [String]
+        let disclaimer: String
+    }
+
+    /// Copy and behavior share one evidence-aware model. Frequency alone is not
+    /// treated as progress; volume is redistributed (PMID 30558493), recovery
+    /// signals are monitored (PMID 29345524), and sleep/hydration guidance stays
+    /// individualized (PMIDs 33144349 and 28985128).
+    static func highFrequencyAdvisory(for days: Int) -> HighFrequencyAdvisory? {
+        guard days == 6 || days == 7 else { return nil }
+        return HighFrequencyAdvisory(
+            days: days,
+            title: days == 7 ? "Seven days needs one low-load day" : "Six days needs distributed load",
+            summary: "APEX will keep all \(days) training days while changing how stress is placed across the week.",
+            adaptations: [
+                "Upper and lower loading alternate so the same muscle group is not trained hard on consecutive days.",
+                "Loaded movements are capped at two hard sets per exercise.",
+                days == 7
+                    ? "Mobility and conversational-pace capacity replace a seventh hard session."
+                    : "A low-load mobility session separates repeated muscle-group work.",
+            ],
+            recoveryTips: [
+                "Protect a consistent sleep window and aim for at least seven hours.",
+                "Meet your APEX protein target across the day.",
+                "Use your personal hydration target. More water is not always better.",
+                "Reduce load if performance, soreness, sleep or motivation worsen.",
+            ],
+            disclaimer: "This lowers avoidable load stacking, but it cannot guarantee recovery or prevent overtraining."
+        )
+    }
+
     /// A recent operation stops loaded training until a clinician says otherwise;
     /// a long layoff, back pain or current joint discomfort softens the plan.
     static func assess(_ input: Input) -> Assessment {
@@ -528,6 +564,8 @@ enum TrainingInduction {
     }
 
     static let equipmentCatalog: [EquipmentOption] = [
+        EquipmentOption(id: "weighted_vest", label: "Weighted vest"),
+        EquipmentOption(id: "weighted_backpack", label: "Weighted backpack"),
         EquipmentOption(id: "adjustable_dumbbells", label: "Adjustable dumbbells"),
         EquipmentOption(id: "fixed_dumbbells", label: "Fixed dumbbells"),
         EquipmentOption(id: "resistance_bands", label: "Resistance bands"),
@@ -567,18 +605,68 @@ enum TrainingInduction {
         let exercises: [ExerciseSpec]
     }
 
+    /// High frequency distributes work instead of multiplying it. Volume-equated
+    /// reviews find no meaningful hypertrophy advantage from frequency alone
+    /// (PMID 30558493), so loaded sessions use no more than two hard sets and
+    /// alternate with low-load mobility and capacity work.
+    private static func cappedHardSets(_ session: SessionSpec, at cap: Int = 2) -> SessionSpec {
+        SessionSpec(
+            name: session.name,
+            type: session.type,
+            minutes: session.minutes,
+            warmup: session.warmup,
+            exercises: session.exercises.map { exercise in
+                var adjusted = exercise
+                adjusted.sets = min(adjusted.sets, cap)
+                return adjusted
+            }
+        )
+    }
+
+    private static func mobilityAndCoreSession(prefix: String = "") -> SessionSpec {
+        SessionSpec(
+            name: "\(prefix)Mobility & Core",
+            type: "mobility",
+            minutes: 26,
+            warmup: "Keep this session deliberately easy. Finish feeling better than you started.",
+            exercises: [
+                ExerciseSpec(name: "90/90 Hip Mobility", sets: 1, repMin: 60, repMax: 90, unit: "seconds", perSide: true, rest: 20),
+                ExerciseSpec(name: "Cat-Cow", repMin: 6, repMax: 10, rest: 20),
+                ExerciseSpec(name: "Thoracic Extension", repMin: 6, repMax: 10, rest: 20),
+                ExerciseSpec(name: "Dead Bug", repMin: 6, repMax: 10, perSide: true, rest: 30),
+                ExerciseSpec(name: "Walking", sets: 1, repMin: 10, repMax: 15, unit: "minutes", rest: 0),
+            ]
+        )
+    }
+
+    private static func recoverySession(prefix: String = "") -> SessionSpec {
+        SessionSpec(
+            name: "\(prefix)Recovery Session",
+            type: "mobility",
+            minutes: 30,
+            warmup: "This is a training day, not another hard day. Keep breathing conversational and every movement pain-free.",
+            exercises: [
+                ExerciseSpec(name: "Walking", sets: 1, repMin: 18, repMax: 25, unit: "minutes", rest: 0),
+                ExerciseSpec(name: "90/90 Hip Mobility", sets: 1, repMin: 60, repMax: 90, unit: "seconds", perSide: true, rest: 20),
+                ExerciseSpec(name: "Diaphragmatic Breathing", sets: 1, repMin: 90, repMax: 120, unit: "seconds", rest: 0),
+            ]
+        )
+    }
+
     private static func homeNames(_ equipment: [String]) -> [String: String] {
         let dumbbells = equipment.contains("adjustable_dumbbells") || equipment.contains("fixed_dumbbells")
         let bands = equipment.contains("resistance_bands")
         let pullup = equipment.contains("pullup_bar")
+        let weightedVest = equipment.contains("weighted_vest")
+        let weightedBackpack = equipment.contains("weighted_backpack")
         return [
-            "squat": dumbbells ? "Goblet Squat" : "Controlled Chair Squat",
-            "hinge": dumbbells ? "Dumbbell Romanian Deadlift" : (bands ? "Band Hip Hinge" : "Bodyweight Hip Hinge"),
-            "push": dumbbells ? "Dumbbell Floor Press" : "Incline Push-Up",
-            "row": dumbbells ? "One-Arm Dumbbell Row" : (bands ? "Band Row" : "Towel Isometric Row"),
+            "squat": dumbbells ? "Goblet Squat" : (weightedVest ? "Weighted Vest Squat" : (weightedBackpack ? "Backpack Front Squat" : "Controlled Chair Squat")),
+            "hinge": dumbbells ? "Dumbbell Romanian Deadlift" : (weightedBackpack ? "Backpack Romanian Deadlift" : (bands ? "Band Hip Hinge" : "Bodyweight Hip Hinge")),
+            "push": dumbbells ? "Dumbbell Floor Press" : (weightedVest ? "Weighted Vest Push-Up" : "Incline Push-Up"),
+            "row": dumbbells ? "One-Arm Dumbbell Row" : (weightedBackpack ? "Backpack Row" : (bands ? "Band Row" : "Towel Isometric Row")),
             "press": dumbbells ? "Seated Dumbbell Press" : (bands ? "Band Overhead Press" : "Incline Pike Press"),
             "pull": pullup ? "Assisted Pull-Up" : (bands ? "Band Lat Pulldown" : "Prone Lat Sweep"),
-            "carry": dumbbells ? "Suitcase Carry" : "Backpack Carry",
+            "carry": dumbbells ? "Suitcase Carry" : (weightedBackpack ? "Loaded Backpack Carry" : (weightedVest ? "Weighted Vest March" : "March in Place")),
         ]
     }
 
@@ -644,7 +732,7 @@ enum TrainingInduction {
             ),
         ]
         if count < 4 { return Array(fullBody.prefix(count)) }
-        var split = [
+        let split = [
             SessionSpec(name: "Upper A", type: "upper", minutes: fullBody[0].minutes, warmup: warmup,
                         exercises: Array(fullBody[0].exercises.dropFirst())),
             SessionSpec(name: "Lower A", type: "legs_a", minutes: main ? 50 : 36, warmup: warmup,
@@ -654,17 +742,25 @@ enum TrainingInduction {
             SessionSpec(name: "Lower B", type: "legs_b", minutes: main ? 50 : 36, warmup: warmup,
                         exercises: [fullBody[2].exercises[0], fullBody[1].exercises[0], fullBody[0].exercises[3], fullBody[1].exercises[4]]),
         ]
-        if count >= 5 {
-            split.append(
-                SessionSpec(
-                    name: "Capacity & Core", type: "fix", minutes: main ? 38 : 28, warmup: warmup,
-                    exercises: [
-                        fullBody[1].exercises[1],
-                        fullBody[2].exercises[4],
-                        fullBody[1].exercises[4],
-                    ]
-                )
-            )
+        let capacity = SessionSpec(
+            name: "Capacity & Core", type: "fix", minutes: main ? 38 : 28, warmup: warmup,
+            exercises: [
+                fullBody[1].exercises[1],
+                fullBody[2].exercises[4],
+                fullBody[1].exercises[4],
+            ]
+        )
+        if count == 5 { return split + [capacity] }
+        if count >= 6 {
+            return Array([
+                cappedHardSets(split[0]),
+                cappedHardSets(split[1]),
+                mobilityAndCoreSession(),
+                cappedHardSets(split[2]),
+                cappedHardSets(split[3]),
+                cappedHardSets(capacity),
+                recoverySession(),
+            ].prefix(count))
         }
         return split
     }
@@ -713,7 +809,7 @@ enum TrainingInduction {
             ),
         ]
         if count < 4 { return Array(fullBody.prefix(count)) }
-        var split = [
+        let split = [
             SessionSpec(name: "\(venueLabel) Upper A", type: "upper", minutes: fullBody[0].minutes, warmup: warmup,
                         exercises: Array(fullBody[0].exercises.dropFirst())),
             SessionSpec(name: "\(venueLabel) Lower A", type: "legs_a", minutes: fullBody[0].minutes, warmup: warmup,
@@ -723,18 +819,27 @@ enum TrainingInduction {
             SessionSpec(name: "\(venueLabel) Lower B", type: "legs_b", minutes: fullBody[1].minutes, warmup: warmup,
                         exercises: [fullBody[2].exercises[0], fullBody[2].exercises[3], fullBody[1].exercises[0], fullBody[1].exercises[4]]),
         ]
-        if count >= 5 {
-            split.append(
-                SessionSpec(
-                    name: "\(venueLabel) Capacity & Core", type: "fix",
-                    minutes: main ? 34 : 24, warmup: warmup,
-                    exercises: [
-                        fullBody[0].exercises[4],
-                        fullBody[1].exercises[4],
-                        fullBody[2].exercises[4],
-                    ]
-                )
-            )
+        let capacity = SessionSpec(
+            name: "\(venueLabel) Capacity & Core", type: "fix",
+            minutes: main ? 34 : 24, warmup: warmup,
+            exercises: [
+                fullBody[0].exercises[4],
+                fullBody[1].exercises[4],
+                fullBody[2].exercises[4],
+            ]
+        )
+        if count == 5 { return split + [capacity] }
+        if count >= 6 {
+            let prefix = "\(venueLabel) "
+            return Array([
+                cappedHardSets(split[0]),
+                cappedHardSets(split[1]),
+                mobilityAndCoreSession(prefix: prefix),
+                cappedHardSets(split[2]),
+                cappedHardSets(split[3]),
+                cappedHardSets(capacity),
+                recoverySession(prefix: prefix),
+            ].prefix(count))
         }
         return split
     }
@@ -743,7 +848,8 @@ enum TrainingInduction {
         if count == 2 { return [1, 4] }
         if count == 3 { return [1, 3, 5] }
         if count == 4 { return [1, 2, 4, 6] }
-        return [1, 2, 4, 5, 7]
+        if count == 5 { return [1, 2, 4, 5, 7] }
+        return Array(1...count)
     }
 
     // MARK: - Generation
@@ -892,7 +998,7 @@ enum TrainingInduction {
             }
         }
 
-        let induction: [String: JSONValue] = [
+        var induction: [String: JSONValue] = [
             "version": .number(1),
             "generation_revision": .number(Double(generationRevision)),
             "completed_at": .string(completedAt),
@@ -908,9 +1014,13 @@ enum TrainingInduction {
             "sessions_per_week": .number(Double(count)),
             "goal": .string(input.goal),
             "caution": .string(assessment.caution),
+            "weekly_load_strategy": .string(
+                count >= 7 ? "distributed_with_recovery" : (count >= 6 ? "distributed" : "standard")
+            ),
             "transition_day_ids": .array((dayIDs["transition"] ?? []).map { .string($0) }),
             "main_day_ids": .array((dayIDs["main"] ?? []).map { .string($0) }),
         ]
+        if count >= 6 { induction["hard_set_cap"] = .number(2) }
 
         return GeneratedPlan(
             programs: programs,

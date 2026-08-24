@@ -771,14 +771,16 @@ final class TrainingInductionTests: XCTestCase {
         )
 
         for requiredControl in [
-            "$draft.goal", "$draft.inactivity", "$draft.venue",
-            "draft.equipment", "$draft.sessionsPerWeek", "$draft.recentOperation",
+            "induction-return-goal-general", "induction-return-goal-muscle",
+            "induction-return-goal-fat_loss", "induction-return-goal-strength",
+            "induction-return-goal-endurance", "induction-return-venue-home",
+            "induction-return-venue-gym", "induction-return-venue-outdoors",
+            "TrainingInduction.equipmentCatalog", "$draft.recentOperation",
             "$draft.chronicLowerBackPain", "draft.painAreas",
         ] {
             XCTAssertTrue(panel.contains(requiredControl), "missing return-builder control: \(requiredControl)")
         }
-        XCTAssertTrue(panel.contains("Text(language.text(\"Outdoors\")).tag(\"outdoors\")"))
-        XCTAssertTrue(panel.contains("ForEach(2...5"))
+        XCTAssertTrue(panel.contains("ForEach(2...7"))
         XCTAssertFalse(
             panel.contains("if draft.venue == \"home\""),
             "equipment answers must remain available for gym and outdoor training"
@@ -1206,6 +1208,86 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(assessment.caution, "clearance")
         XCTAssertEqual(assessment.sessionsPerWeek, 2)
         XCTAssertTrue(assessment.reasons.contains("Recent operation reported"))
+    }
+
+    func testSixAndSevenDayRequestsStaySelectableAndDistributeWeeklyLoad() throws {
+        for requested in [6, 7] {
+            let answers = input { $0.sessionsPerWeek = requested }
+            let restored = TrainingInduction.input(
+                from: ["sessions_per_week": .number(Double(requested))],
+                fallbackStartDate: answers.startDate
+            )
+            XCTAssertEqual(restored.sessionsPerWeek, requested)
+
+            let plan = TrainingInduction.generate(userID: user, input: answers)
+            XCTAssertEqual(plan.induction["sessions_per_week"]?.numberValue, Double(requested))
+            XCTAssertEqual(
+                plan.induction["weekly_load_strategy"]?.stringValue,
+                requested == 7 ? "distributed_with_recovery" : "distributed"
+            )
+            XCTAssertEqual(plan.induction["hard_set_cap"]?.numberValue, 2)
+
+            for program in plan.programs {
+                let days = plan.programDays
+                    .filter { $0.programID == program.id }
+                    .sorted { $0.sortOrder < $1.sortOrder }
+                XCTAssertEqual(days.count, requested)
+                XCTAssertEqual(days.map(\.weekday), Array(1...requested))
+                XCTAssertTrue(days.contains { $0.name.contains("Mobility") || $0.name.contains("Recovery") })
+
+                let dayIDs = Set(days.map(\.id))
+                let loaded = plan.exercises.filter {
+                    dayIDs.contains($0.programDayID) && $0.incrementKG > 0 && !$0.isLite
+                }
+                XCTAssertFalse(loaded.isEmpty)
+                XCTAssertTrue(loaded.allSatisfy { $0.sets <= 2 })
+            }
+        }
+    }
+
+    func testHomeEquipmentLeadsWithWearableLoadsAndChangesMovements() {
+        XCTAssertEqual(
+            Array(TrainingInduction.equipmentCatalog.prefix(2)).map(\.id),
+            ["weighted_vest", "weighted_backpack"]
+        )
+
+        let vest = TrainingInduction.generate(userID: user, input: input {
+            $0.equipment = ["weighted_vest"]
+        })
+        XCTAssertTrue(vest.exercises.contains { $0.name.contains("Weighted Vest") })
+
+        let backpack = TrainingInduction.generate(userID: user, input: input {
+            $0.equipment = ["weighted_backpack"]
+        })
+        XCTAssertTrue(backpack.exercises.contains { $0.name.contains("Backpack") })
+    }
+
+    func testHighFrequencyWarningExplainsAdaptationRecoveryAndLimits() throws {
+        XCTAssertNil(TrainingInduction.highFrequencyAdvisory(for: 5))
+        let guidance = try XCTUnwrap(TrainingInduction.highFrequencyAdvisory(for: 7))
+        XCTAssertEqual(guidance.days, 7)
+        XCTAssertTrue(guidance.adaptations.contains { $0.contains("two hard sets") })
+        XCTAssertTrue(guidance.adaptations.contains { $0.contains("seventh hard session") })
+        XCTAssertTrue(guidance.recoveryTips.contains { $0.localizedCaseInsensitiveContains("sleep") })
+        XCTAssertTrue(guidance.recoveryTips.contains { $0.localizedCaseInsensitiveContains("protein") })
+        XCTAssertTrue(guidance.recoveryTips.contains { $0.localizedCaseInsensitiveContains("hydration") })
+        XCTAssertTrue(guidance.disclaimer.contains("cannot guarantee recovery"))
+        XCTAssertTrue(guidance.disclaimer.contains("cannot") && guidance.disclaimer.contains("overtraining"))
+    }
+
+    func testPlanBuilderUsesExplicitDayLabelsGoalCardsAndHighFrequencyGuidance() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingInductionPanel.swift"),
+            encoding: .utf8
+        )
+        XCTAssertTrue(source.contains("Training days per week"))
+        XCTAssertTrue(source.contains("ForEach(2...7"))
+        XCTAssertTrue(source.contains("highFrequencyAdvisory"))
+        XCTAssertFalse(source.contains("Picker(language.text(\"Goal\")"))
+        XCTAssertFalse(source.contains(".pickerStyle(.menu)"))
     }
 
     func testALongLayoffTrimsAFourthSession() {

@@ -7,6 +7,7 @@ import { planForDate } from '../src/lib/plan.ts'
 import { estimatedTimelineMinutes } from '../src/lib/playerTimeline.ts'
 import { repairSeedDefinitions } from '../src/lib/seedRepair.ts'
 import {
+  EQUIPMENT_CATALOG,
   activeTrainingProgramDays,
   archivedTrainingDayIds,
   assessTrainingInput,
@@ -41,6 +42,68 @@ test('predictive equipment search finds both dumbbell formats from dum', () => {
   const ids = searchEquipment('dum').map((item) => item.id)
   assert.ok(ids.includes('adjustable_dumbbells'))
   assert.ok(ids.includes('fixed_dumbbells'))
+})
+
+test('six and seven day requests remain selectable and distribute weekly load', () => {
+  for (const requested of [6, 7] as const) {
+    const input = { ...baseInput, sessions_per_week: requested } as unknown as TrainingInductionInput
+    assert.equal(trainingInputFromProfile(input, input.start_date).sessions_per_week, requested)
+
+    const generated = generateTrainingPlan(userId, input)
+    const induction = generated.induction as typeof generated.induction & {
+      weekly_load_strategy?: string
+      hard_set_cap?: number
+    }
+    assert.equal(induction.sessions_per_week, requested)
+    assert.equal(induction.weekly_load_strategy, requested === 7 ? 'distributed_with_recovery' : 'distributed')
+    assert.equal(induction.hard_set_cap, 2)
+
+    for (const program of generated.programs) {
+      const days = generated.program_days
+        .filter((day) => day.program_id === program.id)
+        .sort((left, right) => left.sort_order - right.sort_order)
+      assert.equal(days.length, requested)
+      assert.deepEqual(days.map((day) => day.weekday), Array.from({ length: requested }, (_, index) => index + 1))
+
+      const loadedExercises = generated.exercises.filter((exercise) => (
+        days.some((day) => day.id === exercise.program_day_id) && exercise.increment_kg > 0 && !exercise.is_lite
+      ))
+      assert.ok(loadedExercises.length > 0)
+      assert.ok(loadedExercises.every((exercise) => exercise.sets <= 2))
+      assert.ok(days.some((day) => /Mobility|Recovery/.test(day.name)))
+    }
+  }
+})
+
+test('home equipment leads with wearable loads and changes the generated movements', () => {
+  assert.deepEqual(
+    EQUIPMENT_CATALOG.slice(0, 2).map((item) => item.id),
+    ['weighted_vest', 'weighted_backpack'],
+  )
+
+  const vest = generateTrainingPlan(userId, {
+    ...baseInput,
+    equipment: ['weighted_vest'],
+  })
+  assert.ok(vest.exercises.some((exercise) => exercise.name.includes('Weighted Vest')))
+
+  const backpack = generateTrainingPlan(userId, {
+    ...baseInput,
+    equipment: ['weighted_backpack'],
+  })
+  assert.ok(backpack.exercises.some((exercise) => exercise.name.includes('Backpack')))
+})
+
+test('web plan builder labels days explicitly and warns without banning six or seven', () => {
+  const panel = readFileSync(
+    join(process.cwd(), 'src/components/workout/TrainingInductionPanel.tsx'),
+    'utf8',
+  )
+  assert.match(panel, /\[2, 3, 4, 5, 6, 7\]/)
+  assert.match(panel, /days \/ week/)
+  assert.match(panel, /pendingFrequency/)
+  assert.match(panel, /cannot guarantee recovery or prevent overtraining/i)
+  assert.doesNotMatch(panel, /<select[^>]*goal/i)
 })
 
 test('every profile can explicitly enable the beginner induction without replacing bespoke plans by default', () => {
@@ -226,8 +289,8 @@ test('native fat-loss and endurance goals remain honest through a web rebuild', 
     join(process.cwd(), 'src/components/workout/TrainingInductionPanel.tsx'),
     'utf8',
   )
-  assert.match(panel, /\['fat_loss', copy\.fatLoss\]/)
-  assert.match(panel, /\['endurance', copy\.endurance\]/)
+  assert.match(panel, /fat_loss: copy\.fatLoss/)
+  assert.match(panel, /endurance: copy\.endurance/)
 })
 
 test('a skipped settings-only account can build without becoming another persona', () => {

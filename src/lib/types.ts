@@ -465,6 +465,7 @@ export type TrainingPainArea =
   | 'ankles'
 
 export type TrainingPlanCaution = 'standard' | 'cautious' | 'clearance'
+export type TrainingSessionsPerWeek = 2 | 3 | 4 | 5 | 6 | 7
 
 export interface TrainingInductionProfile {
   version: 1
@@ -478,9 +479,11 @@ export interface TrainingInductionProfile {
   pain_areas: TrainingPainArea[]
   recent_operation: boolean
   chronic_lower_back_pain: boolean
-  sessions_per_week: 2 | 3 | 4 | 5
+  sessions_per_week: TrainingSessionsPerWeek
   goal: TrainingGoal
   caution: TrainingPlanCaution
+  weekly_load_strategy?: 'standard' | 'distributed' | 'distributed_with_recovery'
+  hard_set_cap?: number
   transition_day_ids: string[]
   main_day_ids: string[]
   generation_revision?: number

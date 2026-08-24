@@ -15,6 +15,8 @@ struct TrainingInductionPanel: View {
 
     @State private var showBuilder = false
     @State private var confirmReplace = false
+    @State private var builderStep = 0
+    @State private var pendingHighFrequencyDays: Int?
     @State private var draft = TrainingInduction.Input(startDate: Date().apexDateKey)
 
     private var current: [String: JSONValue]? {
@@ -112,6 +114,8 @@ struct TrainingInductionPanel: View {
             from: current,
             fallbackStartDate: Date().apexDateKey
         )
+        builderStep = 0
+        pendingHighFrequencyDays = nil
         showBuilder = true
     }
 
@@ -133,114 +137,621 @@ struct TrainingInductionPanel: View {
     }
 
     private var builder: some View {
-        NavigationStack {
-            Form {
-                Section(language.text("What you are training for")) {
-                    Picker(language.text("Goal"), selection: $draft.goal) {
-                        Text(language.text("General fitness")).tag("general")
-                            .accessibilityIdentifier("induction-return-goal-general")
-                        Text(language.text("Build muscle")).tag("muscle")
-                            .accessibilityIdentifier("induction-return-goal-muscle")
-                        Text(language.text("Lose fat")).tag("fat_loss")
-                            .accessibilityIdentifier("induction-return-goal-fat_loss")
-                        Text(language.text("Get stronger")).tag("strength")
-                            .accessibilityIdentifier("induction-return-goal-strength")
-                        Text(language.text("Build endurance")).tag("endurance")
-                            .accessibilityIdentifier("induction-return-goal-endurance")
-                    }
-                    .pickerStyle(.menu)
-                    .accessibilityIdentifier("induction-return-goal")
-                }
+        ZStack {
+            LinearGradient(
+                colors: [
+                    Color(uiColor: .systemBackground),
+                    APEXColor.violet.opacity(0.10),
+                    APEXColor.teal.opacity(0.08),
+                    Color(uiColor: .systemBackground),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
 
-                Section(language.text("Where you train")) {
-                    Picker(language.text("Venue"), selection: $draft.venue) {
-                        Text(language.text("Home")).tag("home")
-                            .accessibilityIdentifier("induction-return-venue-home")
-                        Text(language.text("Gym")).tag("gym")
-                            .accessibilityIdentifier("induction-return-venue-gym")
-                        Text(language.text("Outdoors")).tag("outdoors")
-                            .accessibilityIdentifier("induction-return-venue-outdoors")
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("induction-return-venue")
-                    Picker(language.text("Sessions per week"), selection: $draft.sessionsPerWeek) {
-                        ForEach(2...5, id: \.self) {
-                            Text("\($0)").tag($0)
-                                .accessibilityIdentifier("induction-return-sessions-\($0)")
-                        }
-                    }
-                    .pickerStyle(.segmented)
-                    .accessibilityIdentifier("induction-return-sessions")
+            VStack(spacing: 0) {
+                builderHeader
+                builderProgress
+                ScrollView {
+                    builderStepContent
+                        .padding(.horizontal, 20)
+                        .padding(.top, 24)
+                        .padding(.bottom, 28)
                 }
-
-                Section(language.text("What you have")) {
-                    ForEach(TrainingInduction.equipmentCatalog) { option in
-                        Toggle(language.text(option.label), isOn: Binding(
-                            get: { draft.equipment.contains(option.id) },
-                            set: { on in
-                                if on { draft.equipment.append(option.id) }
-                                else { draft.equipment.removeAll { $0 == option.id } }
-                            }
-                        ))
-                        .font(APEXFont.body(13, weight: .semibold))
-                        .accessibilityIdentifier("induction-return-equipment-\(option.id)")
-                    }
-                }
-
-                Section(language.text("How your body is")) {
-                    Picker(language.text("Time since consistent training"), selection: $draft.inactivity) {
-                        Text(language.text("Under three months")).tag("under_three_months")
-                        Text(language.text("Three to six months")).tag("three_to_six_months")
-                        Text(language.text("Six to twelve months")).tag("six_to_twelve_months")
-                        Text(language.text("Over a year")).tag("over_one_year")
-                    }
-                    Toggle(language.text("Recent operation"), isOn: $draft.recentOperation)
-                    Toggle(language.text("Chronic lower-back pain"), isOn: $draft.chronicLowerBackPain)
-                    ForEach(["knee", "shoulder", "elbow", "hip", "ankle", "wrist"], id: \.self) { area in
-                        Toggle(language.text(area.capitalized), isOn: Binding(
-                            get: { draft.painAreas.contains(area) },
-                            set: { on in
-                                if on { draft.painAreas.append(area) }
-                                else { draft.painAreas.removeAll { $0 == area } }
-                            }
-                        ))
-                        .accessibilityIdentifier("induction-return-pain-\(area)")
-                    }
-                }
-
-                Section(language.text("What APEX will do")) {
-                    Text(language.text(cautionLabel(assessment.caution)))
-                        .font(APEXFont.body(14, weight: .bold))
-                    ForEach(assessment.reasons, id: \.self) { reason in
-                        Text(language.text(reason))
-                            .font(APEXFont.body(12, weight: .medium))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                    }
-                    Text(language.format("%d sessions a week", assessment.sessionsPerWeek))
-                        .font(APEXFont.body(12, weight: .semibold))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                }
+                .scrollIndicators(.hidden)
+                builderFooter
             }
-            .navigationTitle(language.text("Build my plan"))
-            .navigationBarTitleDisplayMode(.inline)
-            .toolbar {
-                ToolbarItem(placement: .cancellationAction) {
-                    Button(language.text("Cancel")) { showBuilder = false }
-                }
-                ToolbarItem(placement: .confirmationAction) {
-                    Button(language.text("Install")) {
-                        showBuilder = false
-                        if replacingExistingPlan { confirmReplace = true } else { install() }
-                    }
-                    .fontWeight(.bold)
-                    .accessibilityIdentifier("induction-install")
-                    .disabled(session.isBusy)
+        }
+        .overlay {
+            if let days = pendingHighFrequencyDays {
+                highFrequencyAdvisory(days: days)
+                    .transition(.opacity.combined(with: .scale(scale: 0.96)))
+            }
+        }
+        .animation(.snappy(duration: 0.28), value: builderStep)
+        .animation(.snappy(duration: 0.24), value: pendingHighFrequencyDays)
+        .interactiveDismissDisabled(pendingHighFrequencyDays != nil)
+    }
+
+    private var builderHeader: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 5) {
+                Text(language.text("APEX PLAN INTELLIGENCE"))
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .tracking(1.8)
+                    .foregroundStyle(APEXColor.violet)
+                Text(language.text("Build your training week"))
+                    .font(APEXFont.display(24))
+                Text(language.format("Step %d of 4", builderStep + 1))
+                    .font(APEXFont.body(12, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            Spacer()
+            Button {
+                showBuilder = false
+            } label: {
+                Image(systemName: "xmark")
+                    .font(.system(size: 15, weight: .bold))
+                    .frame(width: 42, height: 42)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(language.text("Close plan builder"))
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, 14)
+    }
+
+    private var builderProgress: some View {
+        HStack(spacing: 7) {
+            ForEach(0..<4, id: \.self) { index in
+                Capsule()
+                    .fill(index <= builderStep ? APEXColor.violet : APEXColor.violet.opacity(0.14))
+                    .frame(height: 5)
+            }
+        }
+        .padding(.horizontal, 20)
+    }
+
+    @ViewBuilder
+    private var builderStepContent: some View {
+        switch builderStep {
+        case 0: goalStep
+        case 1: venueAndFrequencyStep
+        case 2: equipmentStep
+        default: recoveryAndReviewStep
+        }
+    }
+
+    private var goalStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeading(
+                eyebrow: "YOUR DIRECTION",
+                title: "What should this plan move toward?",
+                body: "Choose the outcome that matters most now. You can rebuild the plan when that priority changes."
+            )
+            ForEach(goalOptions) { option in
+                selectionCard(
+                    option: option,
+                    selected: draft.goal == option.id,
+                    accessibilityID: option.accessibilityID ?? "induction-return-goal-\(option.id)"
+                ) {
+                    draft.goal = option.id
                 }
             }
         }
     }
 
+    private var venueAndFrequencyStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeading(
+                eyebrow: "TRAINING ENVIRONMENT",
+                title: "Where will the work happen?",
+                body: "APEX keeps every prescribed movement inside the setup you actually have."
+            )
+            ForEach(venueOptions) { option in
+                selectionCard(
+                    option: option,
+                    selected: draft.venue == option.id,
+                    accessibilityID: option.accessibilityID ?? "induction-return-venue-\(option.id)"
+                ) {
+                    draft.venue = option.id
+                }
+            }
+
+            VStack(alignment: .leading, spacing: 6) {
+                Text(language.text("TRAINING RHYTHM"))
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .tracking(1.6)
+                    .foregroundStyle(APEXColor.teal)
+                Text(language.text("Training days per week"))
+                    .font(APEXFont.display(21))
+                Text(language.text("These are training days, not an unexplained score. Six and seven stay available with a recovery-aware structure."))
+                    .font(APEXFont.body(12, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            .padding(.top, 8)
+
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 10), count: 3), spacing: 10) {
+                ForEach(2...7, id: \.self) { days in
+                    frequencyCard(days)
+                }
+            }
+        }
+    }
+
+    private var equipmentStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeading(
+                eyebrow: "YOUR EQUIPMENT",
+                title: draft.venue == "gym" ? "What do you prefer to use?" : "What can APEX build around?",
+                body: draft.venue == "gym"
+                    ? "Your gym floor is assumed. Select personal tools you reliably have so the plan can prefer them."
+                    : "No equipment is required. Select only what is genuinely available."
+            )
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 11) {
+                ForEach(TrainingInduction.equipmentCatalog) { option in
+                    equipmentCard(option)
+                }
+            }
+
+            if draft.equipment.isEmpty {
+                Label(
+                    language.text("A bodyweight plan will be built. Nothing is being assumed."),
+                    systemImage: "figure.strengthtraining.functional"
+                )
+                .font(APEXFont.body(12, weight: .semibold))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .padding(14)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 18))
+            }
+        }
+    }
+
+    private var recoveryAndReviewStep: some View {
+        VStack(alignment: .leading, spacing: 18) {
+            sectionHeading(
+                eyebrow: "RECOVERY INPUTS",
+                title: "Give the plan an honest starting point",
+                body: "These answers lower initial stress when needed. They do not rate your potential."
+            )
+
+            Text(language.text("Time since consistent training"))
+                .font(APEXFont.body(13, weight: .bold))
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 10) {
+                ForEach(inactivityOptions) { option in
+                    compactChoice(option, selected: draft.inactivity == option.id) {
+                        draft.inactivity = option.id
+                    }
+                }
+            }
+
+            VStack(spacing: 10) {
+                recoveryToggle(
+                    title: "Recent operation",
+                    subtitle: "Loaded work waits for clinician clearance",
+                    isOn: $draft.recentOperation
+                )
+                recoveryToggle(
+                    title: "Chronic lower-back pain",
+                    subtitle: "Start conservatively and keep ranges pain-free",
+                    isOn: $draft.chronicLowerBackPain
+                )
+            }
+
+            Text(language.text("Current joint discomfort"))
+                .font(APEXFont.body(13, weight: .bold))
+            LazyVGrid(columns: Array(repeating: GridItem(.flexible(), spacing: 8), count: 3), spacing: 8) {
+                ForEach(["knee", "shoulder", "elbow", "hip", "ankle", "wrist"], id: \.self) { area in
+                    painChoice(area)
+                }
+            }
+
+            planLogicCard
+        }
+    }
+
+    private var builderFooter: some View {
+        HStack(spacing: 12) {
+            if builderStep > 0 {
+                Button {
+                    builderStep -= 1
+                } label: {
+                    Text(language.text("Back"))
+                        .font(APEXFont.body(14, weight: .bold))
+                        .frame(maxWidth: .infinity, minHeight: 50)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 17))
+                }
+                .buttonStyle(.plain)
+            }
+
+            Button {
+                if builderStep < 3 {
+                    builderStep += 1
+                } else {
+                    showBuilder = false
+                    if replacingExistingPlan { confirmReplace = true } else { install() }
+                }
+            } label: {
+                HStack(spacing: 8) {
+                    Text(language.text(builderStep < 3 ? "Continue" : "Install my plan"))
+                    Image(systemName: builderStep < 3 ? "arrow.right" : "sparkles")
+                }
+                .font(APEXFont.body(14, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: 50)
+                .foregroundStyle(.white)
+                .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 17))
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(builderStep < 3 ? "induction-next" : "induction-install")
+            .disabled(session.isBusy)
+        }
+        .padding(.horizontal, 20)
+        .padding(.vertical, 14)
+        .background(.ultraThinMaterial)
+    }
+
+    private func sectionHeading(eyebrow: String, title: String, body: String) -> some View {
+        VStack(alignment: .leading, spacing: 7) {
+            Text(language.text(eyebrow))
+                .font(APEXFont.mono(9, weight: .bold))
+                .tracking(1.6)
+                .foregroundStyle(APEXColor.violet)
+            Text(language.text(title))
+                .font(APEXFont.display(23))
+            Text(language.text(body))
+                .font(APEXFont.body(13, weight: .medium))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func selectionCard(
+        option: PlanBuilderOption,
+        selected: Bool,
+        accessibilityID: String,
+        action: @escaping () -> Void
+    ) -> some View {
+        Button(action: action) {
+            HStack(spacing: 14) {
+                Image(systemName: option.icon)
+                    .font(.system(size: 18, weight: .semibold))
+                    .foregroundStyle(selected ? .white : option.color)
+                    .frame(width: 42, height: 42)
+                    .background(selected ? option.color : option.color.opacity(0.12), in: Circle())
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(language.text(option.title))
+                        .font(APEXFont.body(15, weight: .bold))
+                        .foregroundStyle(.primary)
+                    Text(language.text(option.subtitle))
+                        .font(APEXFont.body(11, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                Spacer(minLength: 8)
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .semibold))
+                    .foregroundStyle(selected ? option.color : APEXColor.secondaryInk.opacity(0.35))
+            }
+            .padding(15)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 21))
+            .overlay {
+                RoundedRectangle(cornerRadius: 21)
+                    .stroke(selected ? option.color.opacity(0.65) : Color.white.opacity(0.35), lineWidth: selected ? 1.5 : 1)
+            }
+            .shadow(color: selected ? option.color.opacity(0.14) : .clear, radius: 16, y: 8)
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(accessibilityID)
+        .accessibilityValue(selected ? "1" : "0")
+    }
+
+    private func frequencyCard(_ days: Int) -> some View {
+        let selected = draft.sessionsPerWeek == days
+        let elevated = days >= 6
+        return Button {
+            if elevated { pendingHighFrequencyDays = days }
+            else { draft.sessionsPerWeek = days }
+        } label: {
+            VStack(spacing: 3) {
+                Text("\(days)")
+                    .font(APEXFont.display(25))
+                Text(language.text("DAYS / WEEK"))
+                    .font(APEXFont.mono(7, weight: .bold))
+                    .tracking(0.7)
+                if elevated {
+                    Text(language.text("RECOVERY PLAN"))
+                        .font(APEXFont.mono(6, weight: .bold))
+                        .foregroundStyle(APEXColor.amberDeep)
+                }
+            }
+            .foregroundStyle(selected ? APEXColor.violet : .primary)
+            .frame(maxWidth: .infinity, minHeight: 82)
+            .background(selected ? APEXColor.violet.opacity(0.13) : Color.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 18))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(selected ? APEXColor.violet : Color.primary.opacity(0.07), lineWidth: selected ? 1.5 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(language.format("%d training days per week", days))
+        .accessibilityIdentifier("induction-return-sessions-\(days)")
+        .accessibilityValue(selected ? "1" : "0")
+    }
+
+    private func equipmentCard(_ option: TrainingInduction.EquipmentOption) -> some View {
+        let selected = draft.equipment.contains(option.id)
+        let featured = option.id == "weighted_vest" || option.id == "weighted_backpack"
+        return Button {
+            if selected { draft.equipment.removeAll { $0 == option.id } }
+            else { draft.equipment.append(option.id) }
+        } label: {
+            VStack(alignment: .leading, spacing: 10) {
+                HStack {
+                    Image(systemName: equipmentIcon(option.id))
+                        .font(.system(size: 17, weight: .semibold))
+                        .foregroundStyle(selected ? .white : APEXColor.teal)
+                        .frame(width: 36, height: 36)
+                        .background(selected ? APEXColor.teal : APEXColor.teal.opacity(0.12), in: Circle())
+                    Spacer()
+                    if featured {
+                        Text(language.text("HOME LOAD"))
+                            .font(APEXFont.mono(6, weight: .bold))
+                            .foregroundStyle(APEXColor.violet)
+                    }
+                }
+                Text(language.text(option.label))
+                    .font(APEXFont.body(12, weight: .bold))
+                    .foregroundStyle(.primary)
+                    .multilineTextAlignment(.leading)
+            }
+            .padding(13)
+            .frame(maxWidth: .infinity, minHeight: 104, alignment: .leading)
+            .background(selected ? APEXColor.teal.opacity(0.11) : Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 19))
+            .overlay {
+                RoundedRectangle(cornerRadius: 19)
+                    .stroke(selected ? APEXColor.teal : Color.primary.opacity(0.07), lineWidth: selected ? 1.5 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("induction-return-equipment-\(option.id)")
+        .accessibilityValue(selected ? "1" : "0")
+    }
+
+    private func compactChoice(_ option: PlanBuilderOption, selected: Bool, action: @escaping () -> Void) -> some View {
+        Button(action: action) {
+            HStack(spacing: 8) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .foregroundStyle(selected ? APEXColor.violet : APEXColor.secondaryInk.opacity(0.4))
+                Text(language.text(option.title))
+                    .font(APEXFont.body(11, weight: .bold))
+                    .multilineTextAlignment(.leading)
+                Spacer(minLength: 0)
+            }
+            .padding(12)
+            .frame(maxWidth: .infinity, minHeight: 52, alignment: .leading)
+            .background(selected ? APEXColor.violet.opacity(0.11) : Color.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 16))
+        }
+        .buttonStyle(.plain)
+    }
+
+    private func recoveryToggle(title: String, subtitle: String, isOn: Binding<Bool>) -> some View {
+        HStack(spacing: 12) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text(language.text(title))
+                    .font(APEXFont.body(13, weight: .bold))
+                Text(language.text(subtitle))
+                    .font(APEXFont.body(10, weight: .medium))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            Spacer()
+            Toggle("", isOn: isOn)
+                .labelsHidden()
+                .tint(APEXColor.violet)
+        }
+        .padding(14)
+        .background(Color.white.opacity(0.56), in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private func painChoice(_ area: String) -> some View {
+        let selected = draft.painAreas.contains(area)
+        return Button {
+            if selected { draft.painAreas.removeAll { $0 == area } }
+            else { draft.painAreas.append(area) }
+        } label: {
+            Text(language.text(area.capitalized))
+                .font(APEXFont.body(10, weight: .bold))
+                .frame(maxWidth: .infinity, minHeight: 42)
+                .foregroundStyle(selected ? APEXColor.violet : .primary)
+                .background(selected ? APEXColor.violet.opacity(0.12) : Color.white.opacity(0.54), in: Capsule())
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("induction-return-pain-\(area)")
+        .accessibilityValue(selected ? "1" : "0")
+    }
+
+    private var planLogicCard: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            HStack(alignment: .center) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(language.text("YOUR PLAN LOGIC"))
+                        .font(APEXFont.mono(8, weight: .bold))
+                        .tracking(1.3)
+                        .foregroundStyle(APEXColor.violet)
+                    Text(language.text(cautionLabel(assessment.caution)))
+                        .font(APEXFont.display(20))
+                }
+                Spacer()
+                Text(language.format("%d days / week", assessment.sessionsPerWeek))
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .foregroundStyle(APEXColor.teal)
+                    .padding(.horizontal, 10)
+                    .padding(.vertical, 7)
+                    .background(APEXColor.teal.opacity(0.11), in: Capsule())
+            }
+
+            if assessment.sessionsPerWeek != draft.sessionsPerWeek {
+                Text(language.format("You selected %d days. Your recovery answers currently set the starting plan to %d.", draft.sessionsPerWeek, assessment.sessionsPerWeek))
+                    .font(APEXFont.body(11, weight: .semibold))
+                    .foregroundStyle(APEXColor.amberDeep)
+            }
+            ForEach(assessment.reasons, id: \.self) { reason in
+                Label(language.text(reason), systemImage: "shield.lefthalf.filled")
+                    .font(APEXFont.body(11, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            if let advisory = TrainingInduction.highFrequencyAdvisory(for: assessment.sessionsPerWeek) {
+                ForEach(advisory.adaptations, id: \.self) { adaptation in
+                    Label(language.text(adaptation), systemImage: "checkmark.circle.fill")
+                        .font(APEXFont.body(11, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+            }
+        }
+        .padding(17)
+        .background(
+            LinearGradient(
+                colors: [APEXColor.violet.opacity(0.12), APEXColor.teal.opacity(0.10)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 23)
+        )
+        .overlay { RoundedRectangle(cornerRadius: 23).stroke(Color.white.opacity(0.5)) }
+    }
+
+    @ViewBuilder
+    private func highFrequencyAdvisory(days: Int) -> some View {
+        if let advisory = TrainingInduction.highFrequencyAdvisory(for: days) {
+            ZStack {
+                Color.black.opacity(0.38)
+                    .ignoresSafeArea()
+                ScrollView {
+                    VStack(alignment: .leading, spacing: 16) {
+                        Image(systemName: "waveform.path.ecg.rectangle.fill")
+                            .font(.system(size: 22, weight: .semibold))
+                            .foregroundStyle(.white)
+                            .frame(width: 48, height: 48)
+                            .background(APEXColor.amberDeep.gradient, in: Circle())
+                        Text(language.text(advisory.title))
+                            .font(APEXFont.display(25))
+                        Text(language.text(advisory.summary))
+                            .font(APEXFont.body(13, weight: .medium))
+                            .foregroundStyle(APEXColor.secondaryInk)
+
+                        advisoryGroup("HOW APEX ADAPTS", items: advisory.adaptations, icon: "arrow.triangle.2.circlepath")
+                        advisoryGroup("RECOVERY ANCHORS", items: advisory.recoveryTips, icon: "heart.text.square.fill")
+
+                        Text(language.text(advisory.disclaimer))
+                            .font(APEXFont.body(10, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .padding(12)
+                            .background(APEXColor.amberDeep.opacity(0.10), in: RoundedRectangle(cornerRadius: 14))
+
+                        Button {
+                            draft.sessionsPerWeek = days
+                            pendingHighFrequencyDays = nil
+                        } label: {
+                            Text(language.format("Use %d training days", days))
+                                .font(APEXFont.body(14, weight: .bold))
+                                .frame(maxWidth: .infinity, minHeight: 50)
+                                .foregroundStyle(.white)
+                                .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 17))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("induction-high-frequency-confirm")
+
+                        Button {
+                            pendingHighFrequencyDays = nil
+                        } label: {
+                            Text(language.text("Choose fewer days"))
+                                .font(APEXFont.body(13, weight: .bold))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("induction-high-frequency-cancel")
+                    }
+                    .padding(22)
+                    .background(.regularMaterial, in: RoundedRectangle(cornerRadius: 30))
+                    .overlay { RoundedRectangle(cornerRadius: 30).stroke(Color.white.opacity(0.62)) }
+                    .shadow(color: .black.opacity(0.18), radius: 30, y: 16)
+                    .padding(.horizontal, 18)
+                    .padding(.vertical, 28)
+                }
+                .scrollIndicators(.hidden)
+            }
+        }
+    }
+
+    private func advisoryGroup(_ title: String, items: [String], icon: String) -> some View {
+        VStack(alignment: .leading, spacing: 9) {
+            Text(language.text(title))
+                .font(APEXFont.mono(8, weight: .bold))
+                .tracking(1.4)
+                .foregroundStyle(APEXColor.violet)
+            ForEach(items, id: \.self) { item in
+                Label(language.text(item), systemImage: icon)
+                    .font(APEXFont.body(11, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+        }
+    }
+
+    private func equipmentIcon(_ id: String) -> String {
+        switch id {
+        case "weighted_vest": "figure.walk.motion"
+        case "weighted_backpack": "backpack.fill"
+        case "resistance_bands": "arrow.left.and.right"
+        case "pullup_bar": "figure.strengthtraining.traditional"
+        case "cardio_machine": "figure.run"
+        case "mat": "rectangle.fill"
+        default: "dumbbell.fill"
+        }
+    }
+
+    private var goalOptions: [PlanBuilderOption] {
+        [
+            PlanBuilderOption(id: "general", title: "General fitness", subtitle: "Build a balanced, repeatable training rhythm", icon: "sparkles", color: APEXColor.violet, accessibilityID: "induction-return-goal-general"),
+            PlanBuilderOption(id: "muscle", title: "Build muscle", subtitle: "Prioritize progressive resistance work", icon: "figure.strengthtraining.traditional", color: APEXColor.teal, accessibilityID: "induction-return-goal-muscle"),
+            PlanBuilderOption(id: "fat_loss", title: "Lose fat", subtitle: "Pair resistance work with sustainable activity", icon: "flame.fill", color: APEXColor.amberDeep, accessibilityID: "induction-return-goal-fat_loss"),
+            PlanBuilderOption(id: "strength", title: "Get stronger", subtitle: "Keep load progression prominent and measurable", icon: "bolt.fill", color: APEXColor.green, accessibilityID: "induction-return-goal-strength"),
+            PlanBuilderOption(id: "endurance", title: "Build endurance", subtitle: "Give aerobic capacity a clear place in the week", icon: "waveform.path.ecg", color: .pink, accessibilityID: "induction-return-goal-endurance"),
+        ]
+    }
+
+    private var venueOptions: [PlanBuilderOption] {
+        [
+            PlanBuilderOption(id: "home", title: "Home", subtitle: "Bodyweight and only the equipment you select", icon: "house.fill", color: APEXColor.violet, accessibilityID: "induction-return-venue-home"),
+            PlanBuilderOption(id: "gym", title: "Gym", subtitle: "Machines, cables and free weights available", icon: "building.2.fill", color: APEXColor.teal, accessibilityID: "induction-return-venue-gym"),
+            PlanBuilderOption(id: "outdoors", title: "Outdoors", subtitle: "Open-air training with portable equipment", icon: "mountain.2.fill", color: APEXColor.green, accessibilityID: "induction-return-venue-outdoors"),
+        ]
+    }
+
+    private var inactivityOptions: [PlanBuilderOption] {
+        [
+            PlanBuilderOption(id: "under_three_months", title: "Under three months", subtitle: "", icon: "", color: APEXColor.violet),
+            PlanBuilderOption(id: "three_to_six_months", title: "Three to six months", subtitle: "", icon: "", color: APEXColor.violet),
+            PlanBuilderOption(id: "six_to_twelve_months", title: "Six to twelve months", subtitle: "", icon: "", color: APEXColor.violet),
+            PlanBuilderOption(id: "over_one_year", title: "Over a year", subtitle: "", icon: "", color: APEXColor.violet),
+        ]
+    }
+
     private func install() {
         Task { await session.installInductionPlan(draft) }
     }
+}
+
+private struct PlanBuilderOption: Identifiable {
+    let id: String
+    let title: String
+    let subtitle: String
+    let icon: String
+    let color: Color
+    var accessibilityID: String? = nil
 }

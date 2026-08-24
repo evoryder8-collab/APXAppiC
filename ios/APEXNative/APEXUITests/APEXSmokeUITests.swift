@@ -41,28 +41,39 @@ final class APEXSmokeUITests: XCTestCase {
 
         app.buttons["induction-open"].tap()
         let allElements = app.descendants(matching: .any)
-        let goal = allElements["induction-return-goal"]
-        XCTAssertTrue(goal.waitForExistence(timeout: 4))
-        XCTAssertTrue(allElements["induction-return-venue"].exists)
-        XCTAssertTrue(allElements["induction-return-sessions"].exists)
-
-        goal.tap()
         let strength = allElements["induction-return-goal-strength"]
-        XCTAssertTrue(strength.waitForExistence(timeout: 2))
+        XCTAssertTrue(strength.waitForExistence(timeout: 4))
+        XCTAssertTrue(scrollUntilVisible(strength, in: app, attempts: 4))
         strength.tap()
-        allElements["induction-return-venue-outdoors"].tap()
-        allElements["induction-return-sessions-5"].tap()
+        app.buttons["induction-next"].tap()
 
-        let equipment = allElements["induction-return-equipment-adjustable_dumbbells"]
+        XCTAssertTrue(allElements["induction-return-venue-outdoors"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Training days per week"].exists)
+        allElements["induction-return-venue-outdoors"].tap()
+        app.swipeUp()
+        let sevenDays = app.buttons["7 training days per week"]
+        XCTAssertTrue(scrollUntilVisible(sevenDays, in: app, attempts: 6))
+        sevenDays.tap()
+        capture("plan-builder-seven-day-guidance")
+
+        let confirmFrequency = app.buttons["Use 7 training days"]
         XCTAssertTrue(
-            scrollUntilVisible(
-                equipment,
-                in: app,
-                attempts: 12
-            )
+            scrollUntilVisible(confirmFrequency, in: app, attempts: 8),
+            "seven days must remain available after informed guidance"
         )
+        confirmFrequency.tap()
+        XCTAssertFalse(
+            confirmFrequency.waitForExistence(timeout: 1),
+            "the advisory must dismiss before the wizard can advance"
+        )
+        app.buttons["induction-next"].tap()
+
+        let equipment = allElements["induction-return-equipment-weighted_vest"]
+        XCTAssertTrue(equipment.waitForExistence(timeout: 2))
         equipment.coordinate(withNormalizedOffset: CGVector(dx: 0.9, dy: 0.5)).tap()
         XCTAssertEqual(equipment.value as? String, "1")
+        app.buttons["induction-next"].tap()
+
         let pain = allElements["induction-return-pain-knee"]
         XCTAssertTrue(
             scrollUntilVisible(pain, in: app, attempts: 12)
@@ -82,7 +93,7 @@ final class APEXSmokeUITests: XCTestCase {
         )
         XCTAssertEqual(
             installedState.value as? String,
-            "goal=strength;venue=outdoors;sessions=3;equipment=adjustable_dumbbells;pain=knee;transitionRows=3;mainRows=3"
+            "goal=strength;venue=outdoors;sessions=3;equipment=weighted_vest;pain=knee;transitionRows=3;mainRows=3"
         )
     }
 
