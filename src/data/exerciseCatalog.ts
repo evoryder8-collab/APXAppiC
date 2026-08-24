@@ -1,13 +1,27 @@
 import type { DayType, RepUnit } from '../lib/types'
 import type { HoloMuscleGroup } from '../components/hologram/muscleMap'
 import type { IntroLanguage } from '../lib/introLanguage'
+import {
+  CARDIO_ALIASES,
+  CARDIO_MODALITIES,
+  MOVEMENT_ALIASES,
+  MOVEMENTS,
+  type CardioModality,
+  type Movement,
+} from './movements.ts'
 
-export type ExerciseCategory = 'machine' | 'weights' | 'calisthenics' | 'street' | 'hiit' | 'cardio' | 'mobility'
+export type ExerciseCategory =
+  | 'hyrox' | 'crossfit' | 'olympic_weightlifting' | 'powerlifting'
+  | 'kettlebell_sport' | 'strongman' | 'strength'
+  | 'machine' | 'weights' | 'calisthenics' | 'street' | 'hiit'
+  | 'cardio' | 'mobility' | 'yoga' | 'pilates' | 'balance'
 
 export interface ExerciseCatalogItem {
   id: string
+  movementID: string
   name: string
   category: ExerciseCategory
+  categories: ExerciseCategory[]
   equipment: string
   muscles: HoloMuscleGroup[]
   dayType: DayType
@@ -16,19 +30,31 @@ export interface ExerciseCatalogItem {
   rest: number
   unit: RepUnit
   perSide: boolean
+  loadable: boolean
+  incrementKG: number
   names: Record<IntroLanguage, string>
   aliases: Record<IntroLanguage, string[]>
 }
 
 export const EXERCISE_CATEGORIES: Array<{ id: 'all' | ExerciseCategory; label: string }> = [
   { id: 'all', label: 'All styles' },
+  { id: 'hyrox', label: 'HYROX' },
+  { id: 'crossfit', label: 'CrossFit' },
+  { id: 'olympic_weightlifting', label: 'Olympic weightlifting' },
+  { id: 'powerlifting', label: 'Powerlifting' },
+  { id: 'kettlebell_sport', label: 'Kettlebell sport' },
+  { id: 'strongman', label: 'Strongman' },
+  { id: 'strength', label: 'Strength' },
   { id: 'machine', label: 'Gym machines' },
   { id: 'weights', label: 'Free weights' },
   { id: 'calisthenics', label: 'Calisthenics' },
   { id: 'street', label: 'Street workout' },
   { id: 'hiit', label: 'HIIT & conditioning' },
-  { id: 'cardio', label: 'Cardio machines' },
-  { id: 'mobility', label: 'Mobility & recovery' },
+  { id: 'cardio', label: 'Cardio' },
+  { id: 'mobility', label: 'Mobility & prehab' },
+  { id: 'yoga', label: 'Yoga' },
+  { id: 'pilates', label: 'Pilates' },
+  { id: 'balance', label: 'Balance' },
 ]
 
 type Row = [string, string, ExerciseCategory, string, HoloMuscleGroup[], DayType, number?, number?, number?, RepUnit?, boolean?]
@@ -241,7 +267,7 @@ const LOCALIZED_EXERCISES: Record<string, ExerciseLocalization> = {
   'foam-roll-legs': { ro: 'Foam rolling pentru partea inferioară', th: 'โฟมโรลช่วงล่าง' },
 }
 
-export const EXERCISE_CATALOG: ExerciseCatalogItem[] = rows.map(([
+const LEGACY_EXERCISE_CATALOG = rows.map(([
   id, name, category, equipment, muscles, dayType, sets = 3, reps = 10, rest = 60, unit = 'reps', perSide = false,
 ]) => {
   const localized = LOCALIZED_EXERCISES[id] ?? { ro: name, th: name }
@@ -256,12 +282,227 @@ export const EXERCISE_CATALOG: ExerciseCatalogItem[] = rows.map(([
   }
 })
 
+const normalise = (value: string): string => value
+  .normalize('NFD')
+  .replace(/\p{Diacritic}/gu, '')
+  .toLocaleLowerCase('en')
+  .replace(/[^\p{Letter}\p{Number}]+/gu, '')
+
+const canonicalByID = new Map<string, Movement | CardioModality>([
+  ...MOVEMENTS.map((movement) => [movement.id, movement] as const),
+  ...CARDIO_MODALITIES.map((modality) => [modality.id, modality] as const),
+])
+const canonicalByName = new Map(
+  [...MOVEMENTS, ...CARDIO_MODALITIES].map((item) => [normalise(item.name), item] as const),
+)
+
+function canonicalIDForLegacy(item: (typeof LEGACY_EXERCISE_CATALOG)[number]): string | null {
+  const authoredAlias = MOVEMENT_ALIASES[item.name]
+  if (authoredAlias) return authoredAlias
+  const cardioAlias = CARDIO_ALIASES[item.name]?.modality
+  if (cardioAlias) return cardioAlias
+  const slug = item.id.replaceAll('-', '_')
+  if (canonicalByID.has(slug)) return slug
+  return canonicalByName.get(normalise(item.name))?.id ?? null
+}
+
+const legacyByCanonicalID = new Map<string, (typeof LEGACY_EXERCISE_CATALOG)[number][]>()
+for (const item of LEGACY_EXERCISE_CATALOG) {
+  const canonicalID = canonicalIDForLegacy(item)
+  if (!canonicalID) continue
+  const matches = legacyByCanonicalID.get(canonicalID) ?? []
+  matches.push(item)
+  legacyByCanonicalID.set(canonicalID, matches)
+}
+
+const authoredAliasesByCanonicalID = new Map<string, string[]>()
+for (const [alias, canonicalID] of Object.entries(MOVEMENT_ALIASES)) {
+  const aliases = authoredAliasesByCanonicalID.get(canonicalID) ?? []
+  aliases.push(alias)
+  authoredAliasesByCanonicalID.set(canonicalID, aliases)
+}
+for (const [alias, pair] of Object.entries(CARDIO_ALIASES)) {
+  const aliases = authoredAliasesByCanonicalID.get(pair.modality) ?? []
+  aliases.push(alias)
+  authoredAliasesByCanonicalID.set(pair.modality, aliases)
+}
+
+const HYROX_IDS = new Set([
+  'ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump',
+  'row_erg', 'farmers_carry', 'sandbag_lunge', 'wall_ball',
+])
+const OLYMPIC_WEIGHTLIFTING_IDS = new Set(['power_clean', 'power_snatch', 'clean_and_jerk'])
+const POWERLIFTING_IDS = new Set(['barbell_back_squat', 'barbell_bench_press', 'conventional_deadlift'])
+const STREET_WORKOUT_IDS = new Set(
+  [...legacyByCanonicalID]
+    .filter(([, matches]) => matches.some((match) => match.category === 'street'))
+    .map(([canonicalID]) => canonicalID),
+)
+const FREE_WEIGHT_EQUIPMENT = new Set([
+  'barbell', 'plates', 'dumbbells', 'kettlebell', 'trap_bar', 'ez_bar',
+  'landmine', 'medicine_ball', 'sandbag', 'weight_plate', 'backpack',
+])
+
+function movementCategories(movement: Movement): ExerciseCategory[] {
+  const categories = new Set<ExerciseCategory>()
+  const disciplines = new Set(movement.disciplines)
+  const equipment = [...movement.equipment, ...movement.equipmentAnyOf.flat()]
+
+  if (HYROX_IDS.has(movement.id)) categories.add('hyrox')
+  if (OLYMPIC_WEIGHTLIFTING_IDS.has(movement.id)) categories.add('olympic_weightlifting')
+  if (POWERLIFTING_IDS.has(movement.id)) categories.add('powerlifting')
+  if (STREET_WORKOUT_IDS.has(movement.id)) categories.add('street')
+  for (const discipline of ['crossfit', 'kettlebell_sport', 'strongman', 'strength', 'calisthenics', 'yoga', 'pilates', 'balance'] as const) {
+    if (disciplines.has(discipline)) categories.add(discipline)
+  }
+  if (
+    disciplines.has('hiit') || disciplines.has('conditioning') || disciplines.has('crossfit')
+    || ['conditioning_complex', 'plyometric', 'power_throw'].includes(movement.entityType)
+  ) categories.add('hiit')
+  if (disciplines.has('mobility') || movement.entityType === 'mobility_drill') categories.add('mobility')
+  if (equipment.some((item) => item.includes('machine') || item === 'cable_stack' || item === 'reformer')) categories.add('machine')
+  if (equipment.some((item) => FREE_WEIGHT_EQUIPMENT.has(item))) categories.add('weights')
+
+  return [...categories]
+}
+
+function primaryCategory(categories: ExerciseCategory[]): ExerciseCategory {
+  for (const candidate of ['machine', 'weights', 'calisthenics', 'hiit', 'mobility', 'yoga', 'pilates', 'balance', 'strength'] as const) {
+    if (categories.includes(candidate)) return candidate
+  }
+  return categories[0] ?? 'strength'
+}
+
+const MUSCLE_GROUPS: Record<string, HoloMuscleGroup[]> = {
+  chest: ['chest'], upper_chest: ['chest'], front_delts: ['frontDelts'], side_delts: ['sideDelts'],
+  rear_delts: ['rearDelts'], biceps: ['biceps'], triceps: ['triceps'], forearms: ['forearms'],
+  upper_back: ['upperBack'], lats: ['lats'], erectors: ['lowerBack'], lower_back: ['lowerBack'],
+  core: ['abs', 'obliques'], abs: ['abs'], obliques: ['obliques'], glutes: ['glutes'],
+  glute_medius: ['glutes'], quadriceps: ['quads'], hamstrings: ['hamstrings'], adductors: ['adductors'],
+  calves: ['calves'], traps: ['neckTraps'], full_body: ['chest', 'upperBack', 'abs', 'glutes', 'quads'],
+}
+
+function holoMuscles(movement: Movement): HoloMuscleGroup[] {
+  return [...new Set(
+    [...movement.primaryMuscles, ...movement.secondaryMuscles]
+      .flatMap((muscle) => MUSCLE_GROUPS[muscle] ?? []),
+  )]
+}
+
+function dayTypeFor(movement: Movement): DayType {
+  if (movement.disciplines.some((discipline) => ['mobility', 'yoga', 'pilates', 'balance'].includes(discipline))) return 'mobility'
+  if (movement.disciplines.some((discipline) => ['hiit', 'conditioning', 'crossfit'].includes(discipline))) return 't25'
+  if (['squat', 'lunge', 'calf'].includes(movement.pattern)) return 'legs_b'
+  if (movement.pattern === 'hip_hinge' || movement.pattern === 'isolation_lower') return 'legs_a'
+  if (movement.pattern.includes('push')) return 'push'
+  if (movement.pattern.includes('pull')) return 'pull'
+  return 'upper'
+}
+
+function defaultSets(movement: Movement): number {
+  if (['movement_sequence', 'breathing_recovery'].includes(movement.entityType)) return 1
+  if (['mobility_drill', 'yoga_pose', 'balance_drill'].includes(movement.entityType)) return 2
+  if (['conditioning_complex', 'plyometric', 'power_throw'].includes(movement.entityType)) return 4
+  return movement.role === 'primary' ? 4 : 3
+}
+
+function defaultRest(movement: Movement): number {
+  if (['mobility_drill', 'yoga_pose', 'movement_sequence', 'breathing_recovery'].includes(movement.entityType)) return 15
+  if (movement.entityType === 'balance_drill') return 30
+  if (['conditioning_complex', 'plyometric', 'power_throw'].includes(movement.entityType)) return 60
+  if (movement.fatigueCost >= 5) return 150
+  if (movement.fatigueCost >= 4) return 120
+  if (movement.fatigueCost >= 3) return 90
+  return 60
+}
+
+function humaniseEquipment(equipment: string[]): string {
+  if (equipment.length === 0) return 'Bodyweight'
+  return equipment
+    .map((item) => item.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()))
+    .join(' · ')
+}
+
+function localisations(canonicalID: string, name: string): Pick<ExerciseCatalogItem, 'names' | 'aliases'> {
+  const legacy = legacyByCanonicalID.get(canonicalID) ?? []
+  const preferred = legacy.find((item) => normalise(item.name) === normalise(name)) ?? legacy[0]
+  const aliasesFor = (language: IntroLanguage): string[] => [...new Set([
+    ...(language === 'en' ? authoredAliasesByCanonicalID.get(canonicalID) ?? [] : []),
+    ...legacy.flatMap((item) => [item.names[language], ...item.aliases[language]]),
+  ].filter((alias) => normalise(alias) !== normalise(preferred?.names[language] ?? name)))]
+
+  return {
+    names: {
+      en: name,
+      ro: preferred?.names.ro ?? name,
+      th: preferred?.names.th ?? name,
+    },
+    aliases: {
+      en: aliasesFor('en'),
+      ro: aliasesFor('ro'),
+      th: aliasesFor('th'),
+    },
+  }
+}
+
+function exerciseFromMovement(movement: Movement): ExerciseCatalogItem {
+  const categories = movementCategories(movement)
+  const legacyMuscles = (legacyByCanonicalID.get(movement.id) ?? []).flatMap((item) => item.muscles)
+  return {
+    id: movement.id,
+    movementID: movement.id,
+    name: movement.name,
+    category: primaryCategory(categories),
+    categories,
+    equipment: humaniseEquipment(movement.equipment),
+    muscles: [...new Set([...holoMuscles(movement), ...legacyMuscles])],
+    dayType: dayTypeFor(movement),
+    sets: defaultSets(movement),
+    reps: Math.round(((movement.repLow ?? 10) + (movement.repHigh ?? movement.repLow ?? 10)) / 2),
+    rest: defaultRest(movement),
+    unit: movement.repUnit as RepUnit,
+    perSide: movement.unilateral,
+    loadable: movement.loadable,
+    incrementKG: movement.minIncrementKg ?? 0,
+    ...localisations(movement.id, movement.name),
+  }
+}
+
+function exerciseFromCardio(modality: CardioModality): ExerciseCatalogItem {
+  const categories: ExerciseCategory[] = HYROX_IDS.has(modality.id) ? ['hyrox', 'cardio'] : ['cardio']
+  return {
+    id: modality.id,
+    movementID: modality.id,
+    name: modality.name,
+    category: 'cardio',
+    categories,
+    equipment: humaniseEquipment(modality.equipment),
+    muscles: modality.upperShare > 0.5
+      ? ['frontDelts', 'upperBack', 'abs']
+      : ['quads', 'hamstrings', 'glutes', ...(modality.upperShare > 0.2 ? ['upperBack' as const] : [])],
+    dayType: 't25',
+    sets: 1,
+    reps: 25,
+    rest: 0,
+    unit: 'minutes',
+    perSide: false,
+    loadable: false,
+    incrementKG: 0,
+    ...localisations(modality.id, modality.name),
+  }
+}
+
+export const EXERCISE_CATALOG: ExerciseCatalogItem[] = [
+  ...MOVEMENTS.map(exerciseFromMovement),
+  ...CARDIO_MODALITIES.map(exerciseFromCardio),
+]
+
 export function displayExerciseName(item: ExerciseCatalogItem, language: IntroLanguage): string {
   return item.names[language]
 }
 
 export function isTreadmillExercise(item: ExerciseCatalogItem | null | undefined): boolean {
-  return item?.id === 'treadmill-walk' || item?.id === 'treadmill-run'
+  return item?.movementID === 'treadmill'
 }
 
 function searchable(value: string): string {
@@ -339,6 +580,7 @@ function termScore(term: string, tokens: string[], joined: string): number | nul
 export function catalogExerciseByName(name: string): ExerciseCatalogItem | null {
   const normalized = searchable(name.split(' · ')[0])
   return EXERCISE_CATALOG.find((item) =>
+    searchable(item.id) === normalized || searchable(item.movementID) === normalized ||
     Object.values(item.names).some((value) => searchable(value) === normalized) ||
     Object.values(item.aliases).flat().some((value) => searchable(value) === normalized),
   ) ?? null
@@ -351,7 +593,7 @@ export function searchExerciseCatalog(
 ): ExerciseCatalogItem[] {
   const terms = searchable(query).split(/\s+/).filter(Boolean)
   return EXERCISE_CATALOG
-    .filter((item) => category === 'all' || item.category === category)
+    .filter((item) => category === 'all' || item.categories.includes(category))
     .map((item) => {
       const nativeName = searchable(item.names[language])
       const nativeAliases = item.aliases[language].map(searchable)

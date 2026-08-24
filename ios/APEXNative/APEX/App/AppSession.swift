@@ -2552,6 +2552,7 @@ final class AppSession {
                 userID: userID,
                 programDayID: day.id,
                 name: pick.item.name,
+                movementID: pick.item.movementID,
                 sets: min(max(pick.sets, 1), 12),
                 repMin: min(max(pick.reps, 1), 600),
                 repMax: min(max(pick.reps, 1), 600),

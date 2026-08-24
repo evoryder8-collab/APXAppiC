@@ -90,7 +90,7 @@ export function CustomWorkoutBuilder({
 
   const byId = useMemo(() => new Map(EXERCISE_CATALOG.map((item) => [item.id, item])), [])
   const results = useMemo(
-    () => searchExerciseCatalog(query, category, language).slice(0, query.trim() ? 24 : 14),
+    () => searchExerciseCatalog(query, category, language),
     [category, language, query],
   )
   const selectedNames = useMemo(
@@ -144,10 +144,14 @@ export function CustomWorkoutBuilder({
    * is the blanket cadence the movement library exists to replace. Where the
    * chosen exercise maps onto a known movement, its own timing is used; where
    * it does not, the previous defaults stand rather than guessing. */
-  const followAlongFor = (name: string, rest: number, perSide: boolean, increment: number) =>
-    followAlongFields(name, 'hypertrophy', {
-      rest_sec: rest, per_side: perSide, increment_kg: increment,
-    }, { keepAuthoredRest: true })
+  const followAlongFor = (item: ExerciseCatalogItem, rest: number) => ({
+    ...followAlongFields(item.name, 'hypertrophy', {
+      rest_sec: rest, per_side: item.perSide, increment_kg: item.incrementKG,
+    }, { keepAuthoredRest: true }),
+    // Cardio modalities deliberately are not fused into MOVEMENTS, so name
+    // resolution alone cannot carry their canonical identity into the row.
+    movement_id: item.movementID,
+  })
 
     const day: ProgramDay = {
       id: existingDay?.id ?? crypto.randomUUID(),
@@ -169,7 +173,6 @@ export function CustomWorkoutBuilder({
     upsert('program_days', day)
     bulkUpsert<Exercise>('exercises', selected.map((selection, index) => {
       const item = byId.get(selection.id)!
-      const weighted = item.category === 'weights' || item.category === 'machine'
       return {
         id: crypto.randomUUID(),
         user_id: profile.user_id,
@@ -181,11 +184,9 @@ export function CustomWorkoutBuilder({
         rep_unit: item.unit,
         ...(({ movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec }) => ({
           movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec,
-        }))(followAlongFor(
-          item.name, clamp(selection.rest, 0, 600), item.perSide,
-          weighted ? 2.5 : 0)),
+        }))(followAlongFor(item, clamp(selection.rest, 0, 600))),
         notes: `${item.equipment} · ${item.muscles.join(', ')}`,
-        increment_kg: weighted ? 2.5 : 0,
+        increment_kg: item.incrementKG,
         is_lite: false,
         optional: false,
         sort_order: index,
@@ -272,6 +273,9 @@ export function CustomWorkoutBuilder({
             </button>
           ))}
         </div>
+        <p className="mb-2 font-mono text-[9px] font-black text-ink-faint">
+          {results.length} {t('movements')}
+        </p>
         <div className="grid max-h-[270px] gap-2 overflow-y-auto pr-1 sm:grid-cols-2">
           {results.map((item) => {
             const active = selectedIds.has(item.id)

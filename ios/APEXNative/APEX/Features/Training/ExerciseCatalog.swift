@@ -10,8 +10,10 @@ import Foundation
  */
 struct ExerciseCatalogItem: Codable, Identifiable, Hashable, Sendable {
     let id: String
+    let movementID: String
     let name: String
     let category: String
+    let categories: [String]
     let equipment: String
     let muscles: [String]
     let dayType: String
@@ -20,6 +22,8 @@ struct ExerciseCatalogItem: Codable, Identifiable, Hashable, Sendable {
     let rest: Int
     let unit: String
     let perSide: Bool
+    let loadable: Bool
+    let incrementKG: Double
     let names: [String: String]
     let aliases: [String: [String]]
 
@@ -28,21 +32,16 @@ struct ExerciseCatalogItem: Codable, Identifiable, Hashable, Sendable {
         names[language.rawValue] ?? name
     }
 
-    /// Loaded plates progress in 2.5 kg jumps; bodyweight and cardio work
-    /// progresses through reps, so it carries no load increment.
-    var incrementKG: Double {
-        (category == "weights" || category == "machine") ? 2.5 : 0
-    }
-
     /// Matches on the display name and on every alias in every language, so
     /// "flotari" finds push-ups whichever language the app is set to.
     func matches(_ query: String, language: AppLanguage) -> Bool {
         let needle = query.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil)
         guard !needle.isEmpty else { return true }
-        var haystack = [name, equipment, localizedName(language)]
+        var haystack = [id, movementID, name, equipment, localizedName(language)]
         haystack.append(contentsOf: names.values)
         haystack.append(contentsOf: aliases.values.flatMap { $0 })
         haystack.append(contentsOf: muscles)
+        haystack.append(contentsOf: categories)
         return haystack.contains {
             $0.folding(options: [.diacriticInsensitive, .caseInsensitive], locale: nil).contains(needle)
         }
@@ -77,7 +76,7 @@ enum ExerciseCatalog {
 
     static func search(_ query: String, category: String, language: AppLanguage) -> [ExerciseCatalogItem] {
         all.filter { item in
-            (category == "all" || item.category == category) && item.matches(query, language: language)
+            (category == "all" || item.categories.contains(category)) && item.matches(query, language: language)
         }
     }
 }

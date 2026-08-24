@@ -115,7 +115,7 @@ struct ManualWorkoutLoggerView: View {
                         ManualWorkout.ExerciseDraft(
                             catalogID: item.id,
                             name: item.name,
-                            movementID: MovementTiming.movement(named: item.name)?.id,
+                            movementID: item.movementID,
                             sets: [ManualWorkout.SetDraft(
                                 reps: descriptor.fields.contains(.reps) ? item.reps : 0,
                                 weightKG: descriptor.kind == .bodyweight ? 0 : nil,
@@ -281,7 +281,7 @@ private struct MovementPicker: View {
 
     var body: some View {
         NavigationStack {
-            List(ExerciseCatalog.search(query, category: "all", language: language.language).prefix(60)) { item in
+            List(ExerciseCatalog.search(query, category: "all", language: language.language)) { item in
                 Button {
                     onPick(item)
                 } label: {
