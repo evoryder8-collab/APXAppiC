@@ -337,6 +337,24 @@ final class APEXSmokeUITests: XCTestCase {
         capture("meal-composer-selection")
     }
 
+    func testMealComposerBarcodeButtonOpensScannerWithoutOpeningFoodMemory() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+        let breakfast = app.staticTexts["meal-dayline-title-breakfast"]
+        XCTAssertTrue(scrollUntilVisible(breakfast, in: app))
+        tapClearOfDock(breakfast)
+
+        let scanner = app.buttons["meal-barcode-scanner-open"]
+        XCTAssertTrue(scrollUntilVisible(scanner, in: app))
+        scanner.tap()
+
+        XCTAssertTrue(app.staticTexts["SCAN FOOD BARCODE"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.navigationBars["Food Memory"].exists)
+    }
+
     func testFoodAmountDecimalPadHasDoneAndCanAddFood() {
         let app = configuredApp()
         app.launch()

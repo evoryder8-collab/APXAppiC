@@ -102,6 +102,7 @@ struct MealComposerView: View {
     @State private var selectionMode = false
     @State private var selectedItemIDs: Set<UUID> = []
     @State private var showFoodPicker = false
+    @State private var showBarcodeScanner = false
     @State private var showPresetCreator = false
     @State private var showDeleteConfirmation = false
     @State private var isSaving = false
@@ -243,6 +244,12 @@ struct MealComposerView: View {
                 }
                 .presentationDetents([.large])
                 .presentationDragIndicator(.visible)
+            }
+            .fullScreenCover(isPresented: $showBarcodeScanner) {
+                BarcodeScannerView(date: request.date) { food, amount, unit in
+                    add(food, amount: amount, unit: unit)
+                    showBarcodeScanner = false
+                }
             }
             .sheet(isPresented: $showPresetCreator) {
                 PresetCreationSheet(
@@ -499,29 +506,42 @@ struct MealComposerView: View {
 
     private var discoveryCard: some View {
         GlassCard(radius: 27, padding: 16) {
-            Button { showFoodPicker = true } label: {
-                HStack(spacing: 12) {
-                    Image(systemName: "magnifyingglass")
-                        .font(.system(size: 19, weight: .semibold))
-                        .foregroundStyle(APEXColor.amberDeep)
-                    VStack(alignment: .leading, spacing: 2) {
-                        Text(language.text("Search foods, aliases or brands"))
-                            .font(APEXFont.body(15, weight: .bold))
-                            .foregroundStyle(APEXColor.ink)
-                        Text(language.text("Food Memory, recent foods and barcode scan"))
-                            .font(APEXFont.body(11, weight: .medium))
-                            .foregroundStyle(APEXColor.secondaryInk)
+            HStack(spacing: 12) {
+                Button { showFoodPicker = true } label: {
+                    HStack(spacing: 12) {
+                        Image(systemName: "magnifyingglass")
+                            .font(.system(size: 19, weight: .semibold))
+                            .foregroundStyle(APEXColor.amberDeep)
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(language.text("Search foods, aliases or brands"))
+                                .font(APEXFont.body(15, weight: .bold))
+                                .foregroundStyle(APEXColor.ink)
+                            Text(language.text("Food Memory, recent foods and barcode scan"))
+                                .font(APEXFont.body(11, weight: .medium))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                        Spacer(minLength: 0)
                     }
-                    Spacer()
+                    .contentShape(Rectangle())
+                }
+                .buttonStyle(.plain)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .accessibilityIdentifier("meal-food-picker-open")
+
+                Button { showBarcodeScanner = true } label: {
                     Image(systemName: "barcode.viewfinder")
                         .font(.system(size: 28, weight: .semibold))
                         .foregroundStyle(.white)
                         .frame(width: 58, height: 54)
-                        .background(APEXColor.amber.gradient, in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                        .background(
+                            APEXColor.amber.gradient,
+                            in: RoundedRectangle(cornerRadius: 17, style: .continuous)
+                        )
                 }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("meal-barcode-scanner-open")
+                .accessibilityLabel(language.text("Scan barcode"))
             }
-            .buttonStyle(.plain)
-            .accessibilityIdentifier("meal-food-picker-open")
         }
     }
 

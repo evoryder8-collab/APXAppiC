@@ -7,6 +7,14 @@ import XCTest
 @testable import APEX
 
 final class FoodPortionParityTests: XCTestCase {
+    func testFoundFoodMacroPaletteMaintainsAAAContrast() {
+        XCTAssertGreaterThanOrEqual(
+            BarcodeFoundFoodPalette.statsContrastRatio,
+            7.0,
+            "Scanned-food macro facts must remain immediately readable over the camera surface"
+        )
+    }
+
     func testBarcodeCameraStopsAsSoonAsCaptureLeavesScanning() {
         let cases: [(BarcodeScannerPhase, Bool, Bool, Bool, Bool, Bool)] = [
             (.scanning, false, false, false, false, false),

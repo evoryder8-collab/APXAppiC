@@ -25,6 +25,34 @@ enum BarcodeScannerPhase: Equatable {
     }
 }
 
+struct BarcodeResultRGB: Equatable, Sendable {
+    let red: Double
+    let green: Double
+    let blue: Double
+
+    var color: Color { Color(red: red, green: green, blue: blue) }
+
+    fileprivate var relativeLuminance: Double {
+        func linear(_ component: Double) -> Double {
+            component <= 0.04045
+                ? component / 12.92
+                : pow((component + 0.055) / 1.055, 2.4)
+        }
+        return (0.2126 * linear(red)) + (0.7152 * linear(green)) + (0.0722 * linear(blue))
+    }
+}
+
+enum BarcodeFoundFoodPalette {
+    static let statsForeground = BarcodeResultRGB(red: 0.98, green: 0.99, blue: 1.00)
+    static let statsBackground = BarcodeResultRGB(red: 0.055, green: 0.065, blue: 0.09)
+
+    static var statsContrastRatio: Double {
+        let lighter = max(statsForeground.relativeLuminance, statsBackground.relativeLuminance)
+        let darker = min(statsForeground.relativeLuminance, statsBackground.relativeLuminance)
+        return (lighter + 0.05) / (darker + 0.05)
+    }
+}
+
 struct BarcodeScannerView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -122,9 +150,16 @@ struct BarcodeScannerView: View {
                                 Int((food.carbs100 ?? 0).rounded()),
                                 Int((food.fat100 ?? 0).rounded())
                             ))
-                                .font(APEXFont.body(12, weight: .medium))
+                                .font(APEXFont.mono(11, weight: .bold))
                                 .multilineTextAlignment(.center)
-                                .foregroundStyle(APEXColor.secondaryInk)
+                                .foregroundStyle(BarcodeFoundFoodPalette.statsForeground.color)
+                                .padding(.horizontal, 13)
+                                .padding(.vertical, 9)
+                                .background(
+                                    BarcodeFoundFoodPalette.statsBackground.color,
+                                    in: Capsule(style: .continuous)
+                                )
+                                .accessibilityIdentifier("barcode-found-macros")
                             Button(language.text("Choose portion")) { showPortion = true }
                                 .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
                         } else if let lookupMessage {
