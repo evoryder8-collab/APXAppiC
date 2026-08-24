@@ -282,6 +282,7 @@ struct MealComposerView: View {
                         TextField(language.text("Meal name"), text: $draft.displayName)
                             .font(APEXFont.display(26))
                             .textInputAutocapitalization(.words)
+                            .accessibilityIdentifier("meal-composer-name")
                     }
                     Spacer(minLength: 8)
                     VStack(alignment: .leading, spacing: 5) {

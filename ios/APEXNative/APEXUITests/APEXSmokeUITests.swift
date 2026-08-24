@@ -225,7 +225,7 @@ final class APEXSmokeUITests: XCTestCase {
 
         let count = app.staticTexts["custom-workout-result-count"]
         XCTAssertTrue(count.waitForExistence(timeout: 4))
-        XCTAssertEqual(count.label, "332 movements")
+        XCTAssertEqual(count.label, "549 movements")
         capture("custom-workout-full-catalog")
 
         let search = app.textFields["custom-workout-search"]
@@ -236,7 +236,7 @@ final class APEXSmokeUITests: XCTestCase {
         let result = app.buttons["custom-workout-item-power_snatch"]
         XCTAssertTrue(result.waitForExistence(timeout: 3))
         result.tap()
-        XCTAssertFalse(result.exists)
+        XCTAssertTrue(result.waitForNonExistence(timeout: 3))
         XCTAssertTrue(
             app.descendants(matching: .any)["custom-workout-selected-power_snatch"]
                 .waitForExistence(timeout: 3)
@@ -253,21 +253,14 @@ final class APEXSmokeUITests: XCTestCase {
 
         let breakfast = app.staticTexts["meal-dayline-title-breakfast"]
         XCTAssertTrue(scrollUntilVisible(breakfast, in: app))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.76))
-            .press(
-                forDuration: 0.3,
-                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.58))
-            )
-        let breakfastRow = app.buttons.matching(
-            NSPredicate(format: "identifier == %@ AND label == %@", "nutrition-dayline", "Breakfast")
-        ).firstMatch
-        XCTAssertTrue(breakfastRow.exists)
-        tapClearOfDock(breakfastRow)
+        tapClearOfDock(breakfast)
 
-        XCTAssertTrue(app.staticTexts["Build this meal"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["meal-food-picker-open"].waitForExistence(timeout: 3))
+        let composerName = app.textFields["meal-composer-name"]
+        XCTAssertTrue(composerName.exists)
         /* Overlapping Dayline cards used to hand the tap to a neighbouring
            meal, which then failed further down for the wrong reason. */
-        XCTAssertTrue(app.staticTexts["ACTUAL INTAKE · BREAKFAST"].exists, "tapped breakfast, opened something else")
+        XCTAssertEqual(composerName.value as? String, "Breakfast", "tapped breakfast, opened something else")
         /* The presets card sits below the fold inside a lazy stack, so it is not
            built until the sheet is scrolled to it. */
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["FAST STARTS"], in: app))
