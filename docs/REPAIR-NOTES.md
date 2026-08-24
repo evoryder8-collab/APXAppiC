@@ -336,3 +336,36 @@ GitHub publication evidence:
 - **Physical device:** exact pushed SHA `d940989bb052cc26b2df09ecb78f32aa8ab46090` was built and signed from `/tmp/apex-task7-device-d940989/Build/Products/Debug-iphoneos/APEX.app`, installed as `ch.apexperformance.APEX` on connected `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`), launched successfully, and confirmed running as PID `5654`.
 - **Publication:** normal two-parent main merge `b2d6abbe1911796940ffabd858c32fb6631ebc26` (parents `88842ac` and `d940989`) was pushed to `origin/main`, and its tree exactly matched the verified implementation tree. Pages workflow run `32635615103` completed the production schema gate, build, and deploy successfully; `https://evoryder8-collab.github.io/APXAppiC/` returned HTTP 200.
 - **Authenticated shared-record smoke:** on the deployed site, the account-scoped interface-mode setting began `simple`, synced to `advanced`, remained `advanced` after a full reload, was restored to `simple`, and remained `simple` after a second reload with status `Synced`. The round trip left the original account value intact.
+
+## 2026-08-24 — Task 9: stage the owner exercise CSV for review
+
+- Scope: preserved `exercise_extra_encyclopedia_with_sport_tags.csv` as source evidence, staged every row in an RLS-protected service-only review queue, applied only verified tags to exact canonical matches, and kept unmatched rows out of selection and automatic programming.
+- Implementation commit: `36cda64e6387430c52c577429d12c41e3ac397ad` (`feat: stage owner movement import for review`).
+- Files changed:
+  - `data/imports/exercise_extra_encyclopedia_with_sport_tags.csv`
+  - `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+  - `src/data/movements.ts`
+  - `supabase/migrations/015_movement_library_seed.sql`
+  - `supabase/migrations/023_movement_import_review_queue.sql`
+  - `tests/exercise-import-review.test.ts`
+  - `tools/exercise-import-review.mjs`
+  - `tools/movement-library.py`
+- Import audit: 219 source rows / 219 normalized unique names; 10 exact canonical matches; 209 pending review; no fuzzy matches. Categories: 176 Strength, 12 Mobility, 13 Conditioning, 5 Plyometric, 13 Skill. Sport tags: 79 populated, 140 blank.
+- Applied canonical changes: `kettlebell_clean` gained `kettlebell_sport`; `bear_crawl` gained `crossfit`. The other eight exact matches already had all verified tags. `Archer Pull-up` remains pending rather than being conflated with `Archer Push-up`.
+- Source integrity: downloaded CRLF file SHA-256 `8ae1056ec3787059a70623de7d2d56572e7760c3da97a7b505495d684d779e1d`; repository LF-normalized SHA-256 `a7c3efb73ca84bcb597a5edc1955672bf2bd0ecd8f08625a87954bc231c17cd0`; the test reconstructs CRLF and verifies the original byte hash.
+- Tests added: eight focused behavioral/import tests covering CSV parsing and row identity, exact/unmatched classification, exact tag application, no fuzzy admission, migration shape/security, generated-file parity, malformed optional cells, and original-byte hash recovery.
+- Red/green verification: the first production migration attempt exposed a `verified_tags`/`verified` CTE-name defect and rolled back atomically. A new regression assertion made the focused suite fail 7/8 with that defect; after the one-token generator/generated-SQL fix it passed 8/8.
+- Test output:
+  - Focused import: 8 passed, 0 failed (`74.89 ms`).
+  - Movement/security focused set: 27 passed, 0 failed.
+  - Complete web suite: 480 passed, 0 failed (`4939.95 ms`).
+  - Web production build: passed, 1,169 modules transformed; only the existing chunk-size advisory remained.
+  - Native unit suite: 387 passed, 0 failed (`2.090 s`), result `/tmp/apex-task9-unit-tests-final.xcresult`.
+  - Native UI: all 9 cases have green final-code evidence (7 unaffected cases in the complete run plus 2/2 corrected nutrition interaction cases in `63.994 s`), result `/tmp/apex-task9-food-ui-rerun3.xcresult`.
+  - All three generators reproduced their committed outputs byte-for-byte; `git diff --check` passed.
+- Production migration: Supabase version `20260823234438`, name `movement_import_review_queue`. Verified 219 total / 10 exact / 209 pending / 219 distinct names and source rows 2...220. RLS is enabled, policy count is zero, `anon` and `authenticated` cannot select, and `service_role` can select. The advisor's `rls_enabled_no_policy` INFO is intentional for this service-only queue.
+- Production tag verification: `bear_crawl` is exactly `calisthenics,hiit,conditioning,crossfit`; `kettlebell_clean` is exactly `crossfit,strength,kettlebell_sport`.
+- Live shared-record round trip: on Constantine's authenticated Pages session, `settings.addons.uiMode` was changed `simple → advanced`, confirmed by direct Supabase read, restored `advanced → simple`, confirmed by direct Supabase read, then reloaded; the page rendered `simple` pressed and `Synced`. No account data was left changed.
+- GitHub publication: feature commit pushed to `origin/codex/main-critical-repair`; normal main merge `e7e826e8f43656a230498b48c7b7f23b94743f77` pushed to `origin/main`.
+- Pages: run `32674788172` completed successfully for `e7e826e8f43656a230498b48c7b7f23b94743f77`; both build and deploy jobs passed. Live cache-busted URL returned HTTP 200 with 1,248 bytes: `https://evoryder8-collab.github.io/APXAppiC/?task9=e7e826e8f43656a230498b48c7b7f23b94743f77`.
+- Physical iPhone: built, installed, launched, and process-verified `ch.apexperformance.APEX` from exact implementation SHA `36cda64e6387430c52c577429d12c41e3ac397ad` on `iConstantine Main` (iPhone 15 Pro Max, device `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`); install UUID `625EBB09-7EBF-4327-A9DC-EC413D86FA9E`; launch PID `1336`.
