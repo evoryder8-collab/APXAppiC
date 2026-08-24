@@ -98,11 +98,23 @@ enum FoodPortionMath {
            let unit = FoodUnitKind(rawValue: rawUnit), units.contains(unit) {
             return (amount, unit)
         }
-        if let piece = food.pieceGramsOrML, piece > 0 { return (1, .piece) }
-        if food.servingUnit == "serving", let serving = food.servingGramsOrML, serving > 0 {
-            return (1, .serving)
-        }
         return (100, units.first ?? .grams)
+    }
+
+    static func unitLabel(
+        _ food: Food,
+        unit: FoodUnitKind,
+        localizedName: String
+    ) -> String {
+        let equivalent: Double? = unit == .serving
+            ? food.servingGramsOrML
+            : unit == .piece ? food.pieceGramsOrML : nil
+        guard let equivalent, equivalent > 0 else { return localizedName }
+        let amount = equivalent.rounded() == equivalent
+            ? String(Int(equivalent))
+            : String(format: "%.1f", equivalent)
+        let basis = food.nutritionBasis == "per_100ml" ? "ml" : "g"
+        return "\(localizedName) (\(amount) \(basis))"
     }
 
     static func provenanceLabel(_ food: Food) -> String {
@@ -301,12 +313,11 @@ struct FoodAmountSheet: View {
     }
 
     private func unitLabel(_ option: FoodUnitKind) -> String {
-        let equivalent: Double? = option == .serving
-            ? food.servingGramsOrML
-            : option == .piece ? food.pieceGramsOrML : nil
-        let name = language.text(option.rawValue)
-        guard let equivalent else { return name }
-        return "\(name) (\(formatted(equivalent)) \(basisLabel))"
+        FoodPortionMath.unitLabel(
+            food,
+            unit: option,
+            localizedName: language.text(option.rawValue)
+        )
     }
 
     private var portionPreview: some View {

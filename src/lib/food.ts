@@ -163,17 +163,9 @@ export function beginFoodSelection(
   ) {
     return { food, quantity: preference.usual_amount, unit: preference.usual_unit }
   }
-  /* A real piece is intrinsically portioned, so an egg or whole fruit may
-     sensibly open as one piece. Provider `serving_quantity` values, however,
-     are commonly just suggested gram weights for rice, cereal, powders and
-     other foods that users actually weigh. Keep those foods on the nutrition
-     basis unit by default and expose serving as an optional unit instead. */
-  if (food.piece_grams_or_ml != null && food.piece_grams_or_ml > 0) return { food, quantity: 1, unit: 'piece' }
-  if (
-    food.serving_unit === 'serving'
-    && food.serving_grams_or_ml != null
-    && food.serving_grams_or_ml > 0
-  ) return { food, quantity: 1, unit: 'serving' }
+  /* New foods start on their measured nutrition-basis unit. A serving or
+     piece remains selectable when its equivalent mass is known, while an
+     amount the user actually confirmed still wins above. */
   return { food, quantity: 100, unit: units[0] }
 }
 

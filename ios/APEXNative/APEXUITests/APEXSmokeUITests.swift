@@ -332,16 +332,10 @@ final class APEXSmokeUITests: XCTestCase {
         app.buttons["portal.nutrition"].tap()
         let breakfast = app.staticTexts["meal-dayline-title-breakfast"]
         XCTAssertTrue(scrollUntilVisible(breakfast, in: app))
-        app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.76))
-            .press(
-                forDuration: 0.3,
-                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.58))
-            )
-        let breakfastRow = app.buttons.matching(
-            NSPredicate(format: "identifier == %@ AND label == %@", "nutrition-dayline", "Breakfast")
-        ).firstMatch
-        XCTAssertTrue(breakfastRow.exists)
-        tapClearOfDock(breakfastRow)
+        /* Target the actual breakfast row title. The timeline container also
+           exposes a combined button label, but its frame spans the full card
+           and can land on another row after the scroll settles. */
+        tapClearOfDock(breakfast)
         XCTAssertTrue(app.staticTexts["Build this meal"].waitForExistence(timeout: 3))
 
         let picker = app.buttons["meal-food-picker-open"]

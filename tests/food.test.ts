@@ -77,7 +77,7 @@ test('immutable history reconstructs a repeatable food when its optional catalog
   assert.equal(detached.provider_product_id?.startsWith('apex-protocol:history:'), true)
 })
 
-test('scanner foods default to weight units unless the record is genuinely portioned', () => {
+test('new foods default to weight while remembered explicit portions remain available', () => {
   const weighedAldiFood = {
     ...COMMON_FOODS[1],
     source: 'open_food_facts' as const,
@@ -94,9 +94,16 @@ test('scanner foods default to weight units unless the record is genuinely porti
   const portionedFood = { ...weighedAldiFood, serving_unit: 'serving' as const }
   assert.deepEqual(
     { quantity: beginFoodSelection(portionedFood).quantity, unit: beginFoodSelection(portionedFood).unit },
-    { quantity: 1, unit: 'serving' },
+    { quantity: 100, unit: 'g' },
   )
-  assert.equal(beginFoodSelection(COMMON_FOODS[6]).unit, 'piece')
+  assert.deepEqual(
+    { quantity: beginFoodSelection(COMMON_FOODS[6]).quantity, unit: beginFoodSelection(COMMON_FOODS[6]).unit },
+    { quantity: 100, unit: 'g' },
+  )
+  assert.deepEqual(
+    beginFoodSelection(portionedFood, undefined, { quantity: 2, unit: 'serving' }),
+    { food: portionedFood, quantity: 2, unit: 'serving' },
+  )
 })
 
 test('configured quantities use the selected amount for every displayed macro', () => {

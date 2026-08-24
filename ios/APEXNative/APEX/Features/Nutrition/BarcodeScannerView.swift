@@ -160,13 +160,26 @@ struct BarcodeScannerView: View {
         }
         .sheet(isPresented: $showPortion) {
             if let food {
-                FoodPortionSheet(food: food, date: date) { food, amount, unit in
+                FoodAmountSheet(
+                    food: food,
+                    preference: preference(for: food),
+                    onClose: { showPortion = false }
+                ) { amount, unit in
                     onAdd?(food, amount, unit)
-                    if onAdd != nil { dismiss() }
+                    if onAdd != nil {
+                        showPortion = false
+                        dismiss()
+                    }
                 }
                     .presentationDetents([.medium, .large])
                     .presentationDragIndicator(.visible)
             }
+        }
+    }
+
+    private func preference(for food: Food) -> FoodPreference? {
+        UUID(uuidString: food.id).flatMap { id in
+            session.data.foodPreferences.first { $0.foodID == id }
         }
     }
 
