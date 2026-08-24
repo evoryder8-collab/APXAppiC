@@ -14,6 +14,18 @@ enum PortalUIMode: String, CaseIterable, Identifiable, Sendable {
 }
 
 enum SimpleHomeLogic {
+    static func guidedProgramSlug(
+        persona: Persona?,
+        mainIsUsable: Bool,
+        transitionIsUsable: Bool
+    ) -> String {
+        let bespokeMain = persona == .constantine || persona == .june
+        if bespokeMain && mainIsUsable { return "main" }
+        if transitionIsUsable { return "transition" }
+        if mainIsUsable { return "main" }
+        return bespokeMain ? "main" : "transition"
+    }
+
     static func completion(completed: Int, total: Int) -> Int {
         guard total > 0 else { return 100 }
         return min(100, max(0, Int((Double(completed) / Double(total) * 100).rounded())))

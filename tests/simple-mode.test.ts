@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 import { seedSettings } from '../src/data/seed.ts'
 
@@ -24,6 +24,14 @@ test('new Simple Mode profiles keep optional secondary cards hidden', () => {
   assert.equal(seeded.addons.simple_show_hydration_reminder, false)
   assert.equal(seeded.addons.simple_show_manual_workout, false)
   assert.equal(seeded.addons.simple_show_next_action, false)
+})
+
+test('Simple Mode projects bespoke main phases without changing ordinary accounts', () => {
+  assert.equal(simpleGuidedProgramSlug('constantine', true, true), 'main')
+  assert.equal(simpleGuidedProgramSlug('june', true, true), 'main')
+  assert.equal(simpleGuidedProgramSlug('constantine', false, true), 'transition')
+  assert.equal(simpleGuidedProgramSlug('matthew', true, true), 'transition')
+  assert.equal(simpleGuidedProgramSlug('iulian', true, false), 'main')
 })
 
 test('Simple Mode surfaces the most recently due action or earliest upcoming action', () => {

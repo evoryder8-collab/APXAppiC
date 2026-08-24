@@ -27,7 +27,7 @@ import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type C
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, DumbbellIcon, OrbitIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -48,6 +48,7 @@ import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCata
 import { estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
+import { activeTrainingProgramDays } from '../lib/trainingInduction'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -255,8 +256,22 @@ export function SimpleHome() {
     [data.supplement_logs, selectedDate],
   )
   const supplementDoneIds = useMemo(() => new Set(dateSupplementLogs.map((log) => log.supplement_id)), [dateSupplementLogs])
-  const guidedProgramSlug: ProgramSlug =
-    profile?.persona === 'constantine' || profile?.persona === 'june' ? 'main' : 'transition'
+  const usableGuidedPrograms = useMemo(() => {
+    const activeDays = activeTrainingProgramDays(data)
+    const hasPrescription = (slug: ProgramSlug): boolean => {
+      const programIDs = new Set(
+        data.programs.filter((candidate) => candidate.slug === slug).map((candidate) => candidate.id),
+      )
+      const dayIDs = new Set(activeDays.filter((day) => programIDs.has(day.program_id)).map((day) => day.id))
+      return data.exercises.some((exercise) => dayIDs.has(exercise.program_day_id) && !exercise.is_lite)
+    }
+    return { main: hasPrescription('main'), transition: hasPrescription('transition') }
+  }, [data])
+  const guidedProgramSlug = simpleGuidedProgramSlug(
+    profile?.persona,
+    usableGuidedPrograms.main,
+    usableGuidedPrograms.transition,
+  )
   const guidedScheduleRoute = guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
   const plan = useMemo(
     () => planForDate(data, guidedProgramSlug, selectedDate, false),

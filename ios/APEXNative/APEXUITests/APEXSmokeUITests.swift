@@ -176,6 +176,26 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["How regularly you eat"], in: app))
     }
 
+    func testSimpleModeTrainingWidgetProjectsBespokeMainPhase() {
+        let app = configuredApp()
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        simpleMode.tap()
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) {
+            syncAlert.buttons["OK"].tap()
+        }
+        capture("simple-after-mode-switch")
+
+        for _ in 0..<4 { app.swipeUp() }
+        let trainingMetric = app.buttons["simple-training-metric"]
+        XCTAssertTrue(trainingMetric.waitForExistence(timeout: 4))
+        XCTAssertEqual(trainingMetric.value as? String, "Upper strength")
+        capture("simple-bespoke-main-workout")
+    }
+
     func testLaunchPerformance() {
         measure(metrics: [XCTApplicationLaunchMetric(waitUntilResponsive: true)]) {
             configuredApp().launch()

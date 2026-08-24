@@ -1,4 +1,5 @@
-import type { Settings } from './types.ts'
+import type { PersonaSlug } from './persona.ts'
+import type { ProgramSlug, Settings } from './types.ts'
 
 export type UiMode = 'simple' | 'advanced'
 export type WeightUnit = 'kg' | 'lb'
@@ -22,6 +23,18 @@ export function uiModeFromSettings(settings: Settings | null): UiMode {
 
 export function settingsForUiMode(settings: Settings, uiMode: UiMode): Pick<Settings, 'addons'> {
   return { addons: { ...settings.addons, uiMode } }
+}
+
+export function simpleGuidedProgramSlug(
+  persona: PersonaSlug | null | undefined,
+  mainIsUsable: boolean,
+  transitionIsUsable: boolean,
+): ProgramSlug {
+  const bespokeMain = persona === 'constantine' || persona === 'june'
+  if (bespokeMain && mainIsUsable) return 'main'
+  if (transitionIsUsable) return 'transition'
+  if (mainIsUsable) return 'main'
+  return bespokeMain ? 'main' : 'transition'
 }
 
 export function weightUnitFromSettings(settings: Settings | null): WeightUnit {

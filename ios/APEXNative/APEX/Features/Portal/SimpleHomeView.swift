@@ -69,12 +69,22 @@ struct SimpleHomeView: View {
         let weekday = Calendar.current.component(.weekday, from: selectedDate)
         return weekday == 1 ? 7 : weekday - 1
     }
+    private var guidedProgramSlug: String {
+        SimpleHomeLogic.guidedProgramSlug(
+            persona: profile?.persona,
+            mainIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "main"),
+            transitionIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition")
+        )
+    }
+    private var guidedProgramRoute: PortalDestination {
+        guidedProgramSlug == "main" ? .mainPhase : .transition
+    }
     private var hasUsableTrainingPlan: Bool {
-        TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition")
+        TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug)
     }
     private var todayProgramDay: ProgramDay? {
         guard hasUsableTrainingPlan else { return nil }
-        return TrainingInduction.visibleProgramDays(in: session.data, slug: "transition")
+        return TrainingInduction.visibleProgramDays(in: session.data, slug: guidedProgramSlug)
             .first { $0.weekday == todayWeekday }
     }
     private var workoutDone: Bool {
@@ -303,7 +313,7 @@ struct SimpleHomeView: View {
                 ) { lite in
                     quickPanel = nil
                     guard todayProgramDay != nil else {
-                        session.navigationPath.append(.transition)
+                        session.navigationPath.append(guidedProgramRoute)
                         return
                     }
                     workoutIsLite = lite
@@ -385,6 +395,12 @@ struct SimpleHomeView: View {
                 done: workoutDone,
                 color: APEXColor.teal,
                 action: { quickPanel = .training }
+            )
+            .accessibilityIdentifier("simple-training-metric")
+            .accessibilityLabel(language.text("Training"))
+            .accessibilityValue(
+                todayProgramDay.map { language.text($0.name) }
+                    ?? language.text(hasUsableTrainingPlan ? "Rest" : "No plan")
             )
         }
     }
@@ -532,7 +548,7 @@ struct SimpleHomeView: View {
     private var fullDetailShortcuts: some View {
         HStack(spacing: 9) {
             Button(language.text("Food or activity changed?")) { session.navigationPath.append(.nutrition) }
-            Button(language.text("Open full schedule")) { session.navigationPath.append(.transition) }
+            Button(language.text("Open full schedule")) { session.navigationPath.append(guidedProgramRoute) }
         }
         .font(APEXFont.body(11, weight: .bold))
         .buttonStyle(SimpleTextButtonStyle())
