@@ -13,6 +13,7 @@ import type {
   TrainingInductionProfile,
   TrainingPainArea,
   TrainingPlanCaution,
+  TrainingSessionsPerWeek,
   TrainingVenue,
   Settings,
 } from './types'
@@ -30,6 +31,8 @@ export interface EquipmentOption {
 }
 
 export const EQUIPMENT_CATALOG: EquipmentOption[] = [
+  { id: 'weighted_vest', en: 'Weighted vest', ro: 'Vestă cu greutăți', th: 'เสื้อกั๊กถ่วงน้ำหนัก', aliases: ['vest', 'weight vest', 'weighted', 'vesta', 'vestă'] },
+  { id: 'weighted_backpack', en: 'Weighted backpack', ro: 'Rucsac cu greutăți', th: 'กระเป๋าเป้ถ่วงน้ำหนัก', aliases: ['backpack', 'ruck', 'rucksack', 'weighted', 'rucsac'] },
   { id: 'adjustable_dumbbells', en: 'Adjustable dumbbells', ro: 'Gantere reglabile', th: 'ดัมเบลปรับน้ำหนัก', aliases: ['dumbbell', 'dumbells', 'dum', 'weights', 'gantere'] },
   { id: 'fixed_dumbbells', en: 'Fixed dumbbells', ro: 'Gantere fixe', th: 'ดัมเบลน้ำหนักคงที่', aliases: ['dumbbell', 'dumbells', 'dum', 'weights', 'gantere'] },
   { id: 'resistance_bands', en: 'Resistance bands', ro: 'Benzi elastice', th: 'ยางยืดออกกำลังกาย', aliases: ['band', 'bands', 'elastic', 'benzi'] },
@@ -75,13 +78,13 @@ export interface TrainingInductionInput {
   pain_areas: TrainingPainArea[]
   recent_operation: boolean
   chronic_lower_back_pain: boolean
-  sessions_per_week: 2 | 3 | 4 | 5
+  sessions_per_week: TrainingSessionsPerWeek
   goal: TrainingGoal
 }
 
 export interface TrainingAssessment {
   caution: TrainingPlanCaution
-  sessions_per_week: 2 | 3 | 4 | 5
+  sessions_per_week: TrainingSessionsPerWeek
   reasons: string[]
 }
 
@@ -141,7 +144,7 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
     ) as TrainingPainArea[],
     recent_operation: raw.recent_operation === true,
     chronic_lower_back_pain: raw.chronic_lower_back_pain === true,
-    sessions_per_week: Math.min(5, Math.max(2, rawSessions)) as 2 | 3 | 4 | 5,
+    sessions_per_week: Math.min(7, Math.max(2, rawSessions)) as TrainingSessionsPerWeek,
     goal: typeof raw.goal === 'string' ? goalMap[raw.goal] ?? 'rebuild' : 'rebuild',
   }
 }
@@ -191,6 +194,50 @@ interface SessionSpec {
   exercises: ExerciseSpec[]
 }
 
+/** High frequency distributes the same work instead of silently multiplying it.
+ * Volume-equated reviews find no meaningful hypertrophy advantage from frequency
+ * alone (PMID 30558493), so loaded sessions are capped at two hard sets and
+ * separated by low-load mobility/capacity work. */
+function capHardSets(session: SessionSpec, cap = 2): SessionSpec {
+  return {
+    ...session,
+    exercises: session.exercises.map((exercise) => ({
+      ...exercise,
+      sets: Math.min(exercise.sets ?? 2, cap),
+    })),
+  }
+}
+
+function mobilityAndCoreSession(prefix = ''): SessionSpec {
+  return {
+    name: `${prefix}Mobility & Core`,
+    type: 'mobility',
+    minutes: 26,
+    warmup: 'Keep this session deliberately easy. Finish feeling better than you started.',
+    exercises: [
+      { name: '90/90 Hip Mobility', sets: 1, reps: [60, 90], unit: 'seconds', perSide: true, rest: 20 },
+      { name: 'Cat-Cow', sets: 2, reps: [6, 10], rest: 20 },
+      { name: 'Thoracic Extension', sets: 2, reps: [6, 10], rest: 20 },
+      { name: 'Dead Bug', sets: 2, reps: [6, 10], perSide: true, rest: 30 },
+      { name: 'Walking', sets: 1, reps: [10, 15], unit: 'minutes', rest: 0 },
+    ],
+  }
+}
+
+function recoverySession(prefix = ''): SessionSpec {
+  return {
+    name: `${prefix}Recovery Session`,
+    type: 'mobility',
+    minutes: 30,
+    warmup: 'This is a training day, not another hard day. Keep breathing conversational and every movement pain-free.',
+    exercises: [
+      { name: 'Walking', sets: 1, reps: [18, 25], unit: 'minutes', rest: 0 },
+      { name: '90/90 Hip Mobility', sets: 1, reps: [60, 90], unit: 'seconds', perSide: true, rest: 20 },
+      { name: 'Diaphragmatic Breathing', sets: 1, reps: [90, 120], unit: 'seconds', rest: 0 },
+    ],
+  }
+}
+
 function homeExerciseNames(equipment: string[]): {
   squat: string
   hinge: string
@@ -203,14 +250,16 @@ function homeExerciseNames(equipment: string[]): {
   const dumbbells = equipment.includes('adjustable_dumbbells') || equipment.includes('fixed_dumbbells')
   const bands = equipment.includes('resistance_bands')
   const pullup = equipment.includes('pullup_bar')
+  const weightedVest = equipment.includes('weighted_vest')
+  const weightedBackpack = equipment.includes('weighted_backpack')
   return {
-    squat: dumbbells ? 'Goblet Squat' : 'Controlled Chair Squat',
-    hinge: dumbbells ? 'Dumbbell Romanian Deadlift' : bands ? 'Band Hip Hinge' : 'Bodyweight Hip Hinge',
-    push: dumbbells ? 'Dumbbell Floor Press' : 'Incline Push-Up',
-    row: dumbbells ? 'One-Arm Dumbbell Row' : bands ? 'Band Row' : 'Towel Isometric Row',
+    squat: dumbbells ? 'Goblet Squat' : weightedVest ? 'Weighted Vest Squat' : weightedBackpack ? 'Backpack Front Squat' : 'Controlled Chair Squat',
+    hinge: dumbbells ? 'Dumbbell Romanian Deadlift' : weightedBackpack ? 'Backpack Romanian Deadlift' : bands ? 'Band Hip Hinge' : 'Bodyweight Hip Hinge',
+    push: dumbbells ? 'Dumbbell Floor Press' : weightedVest ? 'Weighted Vest Push-Up' : 'Incline Push-Up',
+    row: dumbbells ? 'One-Arm Dumbbell Row' : weightedBackpack ? 'Backpack Row' : bands ? 'Band Row' : 'Towel Isometric Row',
     press: dumbbells ? 'Seated Dumbbell Press' : bands ? 'Band Overhead Press' : 'Incline Pike Press',
     pull: pullup ? 'Assisted Pull-Up' : bands ? 'Band Lat Pulldown' : 'Prone Lat Sweep',
-    carry: dumbbells ? 'Suitcase Carry' : 'Backpack Carry',
+    carry: dumbbells ? 'Suitcase Carry' : weightedBackpack ? 'Loaded Backpack Carry' : weightedVest ? 'Weighted Vest March' : 'March in Place',
   }
 }
 
@@ -238,7 +287,7 @@ function clearanceSessions(): SessionSpec[] {
   ]
 }
 
-function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4 | 5): SessionSpec[] {
+function gymSessions(phase: 'transition' | 'main', count: TrainingSessionsPerWeek): SessionSpec[] {
   const main = phase === 'main'
   const sets = main ? 3 : 2
   const warmup = 'Five minutes easy cardio, then two gradual practice sets for the first loaded movement.'
@@ -287,18 +336,28 @@ function gymSessions(phase: 'transition' | 'main', count: 2 | 3 | 4 | 5): Sessio
       exercises: [fullBody[2].exercises[0], fullBody[1].exercises[0], fullBody[0].exercises[3], fullBody[1].exercises[4]],
     },
   ]
-  if (count >= 5) {
-    split.push({
-      name: 'Capacity & Core', type: 'fix', minutes: main ? 38 : 28, warmup,
-      exercises: [fullBody[1].exercises[1], fullBody[2].exercises[4], fullBody[1].exercises[4]],
-    })
+  const capacity: SessionSpec = {
+    name: 'Capacity & Core', type: 'fix', minutes: main ? 38 : 28, warmup,
+    exercises: [fullBody[1].exercises[1], fullBody[2].exercises[4], fullBody[1].exercises[4]],
+  }
+  if (count === 5) return [...split, capacity]
+  if (count >= 6) {
+    return [
+      capHardSets(split[0]),
+      capHardSets(split[1]),
+      mobilityAndCoreSession(),
+      capHardSets(split[2]),
+      capHardSets(split[3]),
+      capHardSets(capacity),
+      recoverySession(),
+    ].slice(0, count)
   }
   return split
 }
 
 function homeSessions(
   phase: 'transition' | 'main',
-  count: 2 | 3 | 4 | 5,
+  count: TrainingSessionsPerWeek,
   equipment: string[],
   venueLabel: string,
 ): SessionSpec[] {
@@ -345,14 +404,25 @@ function homeSessions(
     { ...fullBody[2], name: `${venueLabel} Upper B`, type: 'upper', exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], fullBody[1].exercises[1], fullBody[2].exercises[4]] },
     { ...fullBody[1], name: `${venueLabel} Lower B`, type: 'legs_b', exercises: [fullBody[2].exercises[0], fullBody[2].exercises[3], fullBody[1].exercises[0], fullBody[1].exercises[4]] },
   ]
-  if (count >= 5) {
-    split.push({
-      ...fullBody[0],
-      name: `${venueLabel} Capacity & Core`,
-      type: 'fix',
-      minutes: main ? 34 : 24,
-      exercises: [fullBody[0].exercises[4], fullBody[1].exercises[4], fullBody[2].exercises[4]],
-    })
+  const capacity: SessionSpec = {
+    ...fullBody[0],
+    name: `${venueLabel} Capacity & Core`,
+    type: 'fix',
+    minutes: main ? 34 : 24,
+    exercises: [fullBody[0].exercises[4], fullBody[1].exercises[4], fullBody[2].exercises[4]],
+  }
+  if (count === 5) return [...split, capacity]
+  if (count >= 6) {
+    const prefix = `${venueLabel} `
+    return [
+      capHardSets(split[0]),
+      capHardSets(split[1]),
+      mobilityAndCoreSession(prefix),
+      capHardSets(split[2]),
+      capHardSets(split[3]),
+      capHardSets(capacity),
+      recoverySession(prefix),
+    ].slice(0, count)
   }
   return split
 }
@@ -384,11 +454,12 @@ function addDaysIso(dateIso: string, days: number): string {
   return date.toISOString().slice(0, 10)
 }
 
-function weekdaysFor(count: 2 | 3 | 4 | 5): number[] {
+function weekdaysFor(count: TrainingSessionsPerWeek): number[] {
   if (count === 2) return [1, 4]
   if (count === 3) return [1, 3, 5]
   if (count === 4) return [1, 2, 4, 6]
-  return [1, 2, 4, 5, 7]
+  if (count === 5) return [1, 2, 4, 5, 7]
+  return Array.from({ length: count }, (_, index) => index + 1)
 }
 
 export interface GeneratedTrainingPlan {
@@ -690,6 +761,12 @@ export function generateTrainingPlan(
       sessions_per_week: count,
       goal: input.goal,
       caution: assessment.caution,
+      weekly_load_strategy: count >= 7
+        ? 'distributed_with_recovery'
+        : count >= 6
+          ? 'distributed'
+          : 'standard',
+      ...(count >= 6 ? { hard_set_cap: 2 } : {}),
       transition_day_ids: dayIds.transition,
       main_day_ids: dayIds.main,
     },

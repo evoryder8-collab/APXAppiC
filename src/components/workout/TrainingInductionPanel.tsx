@@ -90,6 +90,65 @@ const COPY = {
   },
 } satisfies Record<Language, Record<string, string>>
 
+const FREQUENCY_COPY = {
+  en: {
+    days: 'days / week', recovery: 'RECOVERY PLAN',
+    sixTitle: 'Six days needs distributed load', sevenTitle: 'Seven days needs one low-load day',
+    summary: 'APEX keeps every selected training day while changing how stress is placed across the week.',
+    adapts: 'HOW APEX ADAPTS', recoveryTitle: 'RECOVERY ANCHORS',
+    alternate: 'Upper and lower loading alternate so the same muscle group is not trained hard on consecutive days.',
+    sets: 'Loaded movements are capped at two hard sets per exercise.',
+    sixStructure: 'A low-load mobility session separates repeated muscle-group work.',
+    sevenStructure: 'Mobility and conversational-pace capacity replace a seventh hard session.',
+    sleep: 'Protect a consistent sleep window and aim for at least seven hours.',
+    protein: 'Meet your APEX protein target across the day.',
+    water: 'Use your personal hydration target. More water is not always better.',
+    signals: 'Reduce load if performance, soreness, sleep or motivation worsen.',
+    disclaimer: 'This lowers avoidable load stacking, but it cannot guarantee recovery or prevent overtraining.',
+    accept: 'Use these training days', fewer: 'Choose fewer days',
+  },
+  ro: {
+    days: 'zile / săptămână', recovery: 'PLAN CU RECUPERARE',
+    sixTitle: 'Șase zile cer distribuirea efortului', sevenTitle: 'Șapte zile cer o zi cu efort redus',
+    summary: 'APEX păstrează toate zilele alese, dar schimbă modul în care efortul este distribuit în săptămână.',
+    adapts: 'CUM ADAPTEAZĂ APEX', recoveryTitle: 'REPERE PENTRU RECUPERARE',
+    alternate: 'Efortul pentru partea superioară și inferioară alternează, astfel încât aceeași grupă musculară să nu fie solicitată intens în zile consecutive.',
+    sets: 'Mișcările cu încărcare sunt limitate la două seturi grele per exercițiu.',
+    sixStructure: 'O sesiune ușoară de mobilitate separă repetarea grupelor musculare.',
+    sevenStructure: 'Mobilitatea și efortul conversațional înlocuiesc o a șaptea sesiune grea.',
+    sleep: 'Protejează un program constant de somn și urmărește cel puțin șapte ore.',
+    protein: 'Atinge ținta APEX de proteine pe parcursul zilei.',
+    water: 'Folosește ținta personală de hidratare. Mai multă apă nu este întotdeauna mai bine.',
+    signals: 'Redu încărcarea dacă performanța, febra musculară, somnul sau motivația se înrăutățesc.',
+    disclaimer: 'Aceasta reduce suprapunerea evitabilă a efortului, dar nu poate garanta recuperarea sau preveni supraantrenamentul.',
+    accept: 'Folosește aceste zile', fewer: 'Alege mai puține zile',
+  },
+  th: {
+    days: 'วัน / สัปดาห์', recovery: 'แผนเน้นการฟื้นตัว',
+    sixTitle: 'หกวันต้องกระจายภาระการฝึก', sevenTitle: 'เจ็ดวันต้องมีหนึ่งวันที่เบาลง',
+    summary: 'APEX จะคงทุกวันที่คุณเลือก แต่ปรับการกระจายความหนักตลอดสัปดาห์',
+    adapts: 'APEX ปรับอย่างไร', recoveryTitle: 'หลักการฟื้นตัว',
+    alternate: 'สลับการฝึกส่วนบนและส่วนล่าง เพื่อไม่ให้กล้ามเนื้อกลุ่มเดิมฝึกหนักในวันติดกัน',
+    sets: 'ท่าที่มีน้ำหนักจำกัดไม่เกินสองเซ็ตหนักต่อท่า',
+    sixStructure: 'แทรกเซสชันเคลื่อนไหวเบา ๆ ระหว่างวันที่ใช้กล้ามเนื้อกลุ่มเดิม',
+    sevenStructure: 'ใช้การเคลื่อนไหวและคาร์ดิโอเบาที่พูดคุยได้ แทนการฝึกหนักวันที่เจ็ด',
+    sleep: 'รักษาเวลานอนให้สม่ำเสมอและตั้งเป้าอย่างน้อยเจ็ดชั่วโมง',
+    protein: 'ทำเป้าหมายโปรตีนของ APEX ให้ครบตลอดวัน',
+    water: 'ใช้เป้าหมายการดื่มน้ำส่วนบุคคล การดื่มมากเกินไปไม่ได้ดีกว่าเสมอ',
+    signals: 'ลดความหนักหากผลงาน อาการล้า การนอน หรือแรงจูงใจแย่ลง',
+    disclaimer: 'แนวทางนี้ช่วยลดการซ้อนภาระที่เลี่ยงได้ แต่ไม่รับประกันการฟื้นตัวหรือป้องกันการฝึกเกินได้',
+    accept: 'ใช้จำนวนวันนี้', fewer: 'เลือกวันให้น้อยลง',
+  },
+} satisfies Record<Language, Record<string, string>>
+
+const GOAL_PRESENTATION: Record<TrainingGoal, { symbol: string; detail: Record<Language, string> }> = {
+  rebuild: { symbol: '↻', detail: { en: 'Build a balanced, repeatable training rhythm', ro: 'Construiește un ritm echilibrat și repetabil', th: 'สร้างจังหวะการฝึกที่สมดุลและทำซ้ำได้' } },
+  muscle: { symbol: 'M', detail: { en: 'Prioritize progressive resistance work', ro: 'Prioritizează rezistența progresivă', th: 'เน้นแรงต้านที่พัฒนาอย่างต่อเนื่อง' } },
+  fat_loss: { symbol: '◇', detail: { en: 'Pair resistance work with sustainable activity', ro: 'Combină rezistența cu activitate sustenabilă', th: 'ผสานแรงต้านกับกิจกรรมที่ทำต่อเนื่องได้' } },
+  strength: { symbol: '↑', detail: { en: 'Keep load progression prominent and measurable', ro: 'Păstrează progresia greutății clară și măsurabilă', th: 'ทำให้การเพิ่มน้ำหนักชัดเจนและวัดผลได้' } },
+  endurance: { symbol: '∞', detail: { en: 'Give aerobic capacity a clear place in the week', ro: 'Oferă capacității aerobe un loc clar în săptămână', th: 'จัดพื้นที่ชัดเจนให้ความทนทานในแต่ละสัปดาห์' } },
+}
+
 const INACTIVITY: Array<{ value: TrainingInactivity; en: string; ro: string; th: string }> = [
   { value: 'currently_training', en: 'I currently train', ro: 'Mă antrenez acum', th: 'กำลังฝึกอยู่' },
   { value: 'under_1_month', en: 'Under 1 month', ro: 'Sub o lună', th: 'น้อยกว่า 1 เดือน' },
@@ -145,6 +204,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const [open, setOpen] = useState(false)
   const [step, setStep] = useState(0)
   const [search, setSearch] = useState('')
+  const [pendingFrequency, setPendingFrequency] = useState<6 | 7 | null>(null)
   const [draft, setDraft] = useState<TrainingInductionInput>(draftFromCurrent)
   const assessment = useMemo(() => assessTrainingInput(draft), [draft])
   const equipmentResults = useMemo(() => searchEquipment(search, lang).filter((item) => !draft.equipment.includes(item.id)).slice(0, 6), [draft.equipment, lang, search])
@@ -159,6 +219,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const openBuilder = (): void => {
     setDraft(draftFromCurrent())
     setSearch('')
+    setPendingFrequency(null)
     setStep(0)
     setOpen(true)
   }
@@ -210,6 +271,12 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     strength: copy.strength,
     endurance: copy.endurance,
   }
+  const frequencyCopy = FREQUENCY_COPY[lang]
+  const goalChoices = (Object.keys(goalLabel) as TrainingGoal[]).map((goal) => ({
+    goal,
+    label: goalLabel[goal],
+    ...GOAL_PRESENTATION[goal],
+  }))
 
   return (
     <div data-no-translate>
@@ -260,8 +327,23 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                   {INACTIVITY.map((option) => <Choice key={option.value} active={draft.inactivity === option.value} onClick={() => setDraft((value) => ({ ...value, inactivity: option.value }))}>{option[lang]}</Choice>)}
                 </div>
                 <h3 className="mt-7 font-display text-lg font-bold text-ink">{copy.frequency}</h3>
-                <div className="mt-3 grid grid-cols-4 gap-2">
-                  {([2, 3, 4, 5] as const).map((count) => <Choice key={count} active={draft.sessions_per_week === count} onClick={() => setDraft((value) => ({ ...value, sessions_per_week: count }))} className="text-center"><span className="font-mono text-xl text-ink">{count}</span></Choice>)}
+                <p className="mt-1 text-xs font-bold tracking-wide text-violet-700 uppercase">{frequencyCopy.days}</p>
+                <div className="mt-3 grid grid-cols-3 gap-2 sm:grid-cols-6">
+                  {([2, 3, 4, 5, 6, 7] as const).map((count) => (
+                    <Choice
+                      key={count}
+                      active={draft.sessions_per_week === count}
+                      onClick={() => {
+                        if (count === 6 || count === 7) setPendingFrequency(count)
+                        else setDraft((value) => ({ ...value, sessions_per_week: count }))
+                      }}
+                      className="text-center"
+                    >
+                      <span className="block font-mono text-xl text-ink">{count}</span>
+                      <span className="mt-1 block text-[9px] font-black tracking-wide text-ink-faint uppercase">{frequencyCopy.days}</span>
+                      {count >= 6 && <span className="mt-1 block text-[8px] font-black text-amber-700 uppercase">{frequencyCopy.recovery}</span>}
+                    </Choice>
+                  ))}
                 </div>
               </div>
             )}
@@ -306,8 +388,18 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
                   </>
                 )}
                 <h3 className={`${draft.venue !== 'gym' ? 'mt-7' : ''} font-display text-xl font-bold text-ink`}>{copy.goalTitle}</h3>
-                <div className="mt-3 grid gap-2 sm:grid-cols-3">
-                  {([['rebuild', copy.rebuild], ['muscle', copy.muscle], ['fat_loss', copy.fatLoss], ['strength', copy.strength], ['endurance', copy.endurance]] as Array<[TrainingGoal, string]>).map(([goal, label]) => <Choice key={goal} active={draft.goal === goal} onClick={() => setDraft((value) => ({ ...value, goal }))}>{label}</Choice>)}
+                <div className="mt-3 grid gap-2 sm:grid-cols-2">
+                  {goalChoices.map(({ goal, label, symbol, detail }) => (
+                    <Choice key={goal} active={draft.goal === goal} onClick={() => setDraft((value) => ({ ...value, goal }))} className="min-h-24">
+                      <span className="flex items-start gap-3">
+                        <span className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-violet-100 font-display text-lg text-violet-800">{symbol}</span>
+                        <span>
+                          <span className="block font-display text-base text-ink">{label}</span>
+                          <span className="mt-1 block text-xs leading-relaxed font-medium text-ink-soft">{detail[lang]}</span>
+                        </span>
+                      </span>
+                    </Choice>
+                  ))}
                 </div>
               </div>
             )}
@@ -330,6 +422,41 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
             {step > 0 && <GhostButton onClick={() => setStep((value) => value - 1)} className="flex-1">{copy.back}</GhostButton>}
             {step < 4 ? <GradientButton accent={ACCENTS.violet} onClick={() => setStep((value) => value + 1)} className="flex-1">{copy.next}</GradientButton> : <GradientButton accent={ACCENTS.violet} onClick={install} className="flex-1">{copy.install}</GradientButton>}
           </div>
+
+          {pendingFrequency && (
+            <div className="fixed inset-0 z-[90] grid place-items-center overflow-y-auto bg-ink/45 p-4 backdrop-blur-sm" role="dialog" aria-modal="true" aria-labelledby="high-frequency-title">
+              <div className="my-6 w-full max-w-xl rounded-[2rem] border border-white/70 bg-white/95 p-6 shadow-2xl sm:p-7">
+                <div className="grid h-12 w-12 place-items-center rounded-full bg-gradient-to-br from-amber-400 to-orange-500 text-xl text-white shadow-lg">⌁</div>
+                <h3 id="high-frequency-title" className="mt-4 font-display text-2xl font-bold text-ink">
+                  {pendingFrequency === 7 ? frequencyCopy.sevenTitle : frequencyCopy.sixTitle}
+                </h3>
+                <p className="mt-2 text-sm leading-relaxed font-medium text-ink-soft">{frequencyCopy.summary}</p>
+
+                <div className="mt-5 rounded-2xl bg-violet-50/90 p-4">
+                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-violet-800 uppercase">{frequencyCopy.adapts}</p>
+                  <ul className="mt-3 space-y-2 text-sm leading-relaxed font-semibold text-ink-soft">
+                    {[frequencyCopy.alternate, frequencyCopy.sets, pendingFrequency === 7 ? frequencyCopy.sevenStructure : frequencyCopy.sixStructure].map((item) => <li key={item} className="flex gap-2"><span className="text-violet-600">✓</span><span>{item}</span></li>)}
+                  </ul>
+                </div>
+
+                <div className="mt-4 rounded-2xl bg-cyan-50/90 p-4">
+                  <p className="font-mono text-[9px] font-black tracking-[.16em] text-cyan-800 uppercase">{frequencyCopy.recoveryTitle}</p>
+                  <ul className="mt-3 space-y-2 text-sm leading-relaxed font-semibold text-ink-soft">
+                    {[frequencyCopy.sleep, frequencyCopy.protein, frequencyCopy.water, frequencyCopy.signals].map((item) => <li key={item} className="flex gap-2"><span className="text-cyan-600">•</span><span>{item}</span></li>)}
+                  </ul>
+                </div>
+
+                <p className="mt-4 rounded-xl bg-amber-50 px-3 py-2.5 text-xs leading-relaxed font-semibold text-amber-900">{frequencyCopy.disclaimer}</p>
+                <div className="mt-5 grid gap-2 sm:grid-cols-2">
+                  <GhostButton onClick={() => setPendingFrequency(null)}>{frequencyCopy.fewer}</GhostButton>
+                  <GradientButton accent={ACCENTS.violet} onClick={() => {
+                    setDraft((value) => ({ ...value, sessions_per_week: pendingFrequency }))
+                    setPendingFrequency(null)
+                  }}>{frequencyCopy.accept}</GradientButton>
+                </div>
+              </div>
+            </div>
+          )}
         </div>
       </Sheet>
     </div>
