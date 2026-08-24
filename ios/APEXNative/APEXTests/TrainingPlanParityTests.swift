@@ -176,6 +176,37 @@ final class TrainingPlanParityTests: XCTestCase {
         XCTAssertEqual(FocusT25.protocolWeek(start: "2026-01-05", date: "2025-12-01"), 1)
     }
 
+    func testBespokePlanBadgeReflectsAccountProtocolVersion() throws {
+        let testCase = try XCTUnwrap(Self.fixture.cases.first {
+            $0.input.persona == "constantine" && $0.input.slug == "main"
+        })
+
+        func badges(version: Double) throws -> [String] {
+            var data = dashboard(testCase.input, userID: Self.fixture.user_id)
+            var settings = try XCTUnwrap(data.settings)
+            settings.addons["training_protocol"] = .object([
+                "start_date": .string("2026-07-27"),
+                "version": .number(version),
+            ])
+            data.settings = settings
+            return TrainingPlanEngine.plan(
+                data,
+                slug: testCase.input.slug,
+                date: "2026-08-04",
+                lite: false
+            ).badges
+        }
+
+        XCTAssertTrue(try badges(version: 83).contains("V8.3 · week 2"))
+        XCTAssertTrue(try badges(version: 80).contains("V8 · week 2"))
+    }
+
+    func testFridayFocusGuidanceWorksForFullV83Prescription() throws {
+        let prescription = try XCTUnwrap(FocusT25.resolve(persona: "constantine", weekday: 5, week: 2))
+        XCTAssertFalse(prescription.note.localizedCaseInsensitiveContains("light option only"))
+        XCTAssertTrue(prescription.note.localizedCaseInsensitiveContains("strength first"))
+    }
+
     func testBenchmarkIsPeriodicRatherThanWeekly() {
         for week in 1...16 {
             XCTAssertEqual(

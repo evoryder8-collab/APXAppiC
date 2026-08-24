@@ -16,6 +16,7 @@ import {
   isProtocolDeloadWeek,
   isProtocolPushupTestWeek,
   resolveFocusT25,
+  trainingProtocolVersionLabel,
   trainingProtocolWeek,
 } from './focusT25.ts'
 import { activeInductionDayIds, activeTrainingProgramDays, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
@@ -228,7 +229,8 @@ export function planForDate(
   if (induction && slug === 'main') badges.push('Personal main phase: progress only from clean logged sets')
 
   const persona = data.profile?.persona ?? 'constantine'
-  const protocolStart = data.settings?.addons.training_protocol?.start_date ?? date
+  const protocol = data.settings?.addons.training_protocol
+  const protocolStart = protocol?.start_date ?? date
   const protocolWeek = trainingProtocolWeek(protocolStart, date)
   const bespokeV81 = slug === 'main' && (persona === 'constantine' || persona === 'june')
   const scheduledDeload = bespokeV81 && isProtocolDeloadWeek(protocolWeek)
@@ -248,7 +250,7 @@ export function planForDate(
         optional: scheduledTest,
       }]
     })
-    badges.push(`V8.1 · week ${protocolWeek}`)
+    badges.push(`${trainingProtocolVersionLabel(protocol?.version)} · week ${protocolWeek}`)
     if (scheduledDeload) badges.push(`Scheduled deload week ${protocolWeek}: two controlled sets and about 3 RIR`)
     if (scheduledTest) badges.push(`Push-up benchmark week ${protocolWeek}: one fresh strict max set`)
 

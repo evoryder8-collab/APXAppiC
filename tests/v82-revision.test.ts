@@ -80,3 +80,48 @@ test('Saturday stays protected from Focus T25', () => {
   const saturday = planForDate(data, 'main', '2026-08-08', false)
   assert.ok(!saturday.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
 })
+
+test('bespoke plan badge reflects the account protocol version', () => {
+  const withVersion = (version: number) => ({
+    ...data,
+    settings: {
+      ...data.settings!,
+      addons: {
+        ...data.settings!.addons,
+        training_protocol: { version, start_date: '2026-07-27' },
+      },
+    },
+  })
+
+  assert.ok(planForDate(withVersion(83), 'main', '2026-08-04', false).badges.includes('V8.3 · week 2'))
+  assert.ok(planForDate(withVersion(80), 'main', '2026-08-04', false).badges.includes('V8 · week 2'))
+})
+
+test('V8.3 Friday Focus T25 guidance works for the full prescription', () => {
+  const main = data.programs.find((program) => program.slug === 'main')!
+  const friday = data.program_days.find((day) => day.program_id === main.id && day.weekday === 5)!
+  const lightFocus = data.exercises.find((exercise) =>
+    exercise.program_day_id === friday.id && exercise.name === 'Focus T25 · Friday conditioning',
+  )!
+  const v83 = {
+    ...data,
+    exercises: [
+      ...data.exercises.filter((exercise) => exercise.id !== lightFocus.id),
+      { ...lightFocus, id: '83000000-0000-4000-8000-000000000001', is_lite: false, sort_order: 4 },
+    ],
+    settings: {
+      ...data.settings!,
+      addons: {
+        ...data.settings!.addons,
+        training_protocol: { version: 83, start_date: '2026-07-27' },
+      },
+    },
+  }
+
+  const focus = planForDate(v83, 'main', '2026-08-07', false).exercises.find((exercise) =>
+    exercise.name.startsWith('Focus T25'),
+  )!
+  assert.ok(focus)
+  assert.doesNotMatch(focus.notes, /light option only/i)
+  assert.match(focus.notes, /strength first/i)
+})

@@ -24,6 +24,13 @@ enum FocusT25 {
         return max(1, Int(floor(Double(days) / 7.0)) + 1)
     }
 
+    static func protocolVersionLabel(_ version: Double?) -> String {
+        let encoded = version.map(Int.init).flatMap { $0 >= 10 ? $0 : nil } ?? 81
+        let major = encoded / 10
+        let minor = encoded % 10
+        return minor == 0 ? "V\(major)" : "V\(major).\(minor)"
+    }
+
     static func isDeloadWeek(_ week: Int) -> Bool {
         week == 4 || week == 8 || week == 12
     }
@@ -91,7 +98,7 @@ enum FocusT25 {
                 minutes: 25,
                 rpe: "RPE 7",
                 kind: "conditioning",
-                note: "This belongs to the Light option only. Use low-impact modifications and stop at RPE 6–7. Full Legs B ends after strength."
+                note: "Complete strength first. A later separate session is preferred. Use low-impact modifications and cap effort at RPE 7."
             )
         }
 

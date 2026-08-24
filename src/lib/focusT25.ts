@@ -19,6 +19,13 @@ export function trainingProtocolWeek(startDate: string, date: string): number {
   return Math.max(1, Math.floor(differenceInCalendarDays(parseIso(date), parseIso(startDate)) / 7) + 1)
 }
 
+export function trainingProtocolVersionLabel(version: number | null | undefined): string {
+  const encoded = Number.isInteger(version) && (version ?? 0) >= 10 ? Number(version) : 81
+  const major = Math.floor(encoded / 10)
+  const minor = encoded % 10
+  return minor === 0 ? `V${major}` : `V${major}.${minor}`
+}
+
 export function isProtocolDeloadWeek(week: number): boolean {
   return week === 4 || week === 8 || week === 12
 }
@@ -88,7 +95,7 @@ export function resolveFocusT25(
       minutes: 25,
       rpe: 'RPE 7',
       kind: 'conditioning',
-      note: 'This belongs to the Light option only. Use low-impact modifications and stop at RPE 6–7. Full Legs B ends after strength.',
+      note: 'Complete strength first. A later separate session is preferred. Use low-impact modifications and cap effort at RPE 7.',
     }
   }
 

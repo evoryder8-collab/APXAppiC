@@ -2075,7 +2075,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -4216,7 +4216,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -6345,7 +6345,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -8475,7 +8475,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -10603,7 +10603,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -12732,7 +12732,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -14861,7 +14861,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -17002,7 +17002,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -17065,7 +17065,7 @@
             "rest_sec": 0,
             "optional": false,
             "swapped": false,
-            "notes": "Focus T25 confirmation | 25 min | RPE 7 | This belongs to the Light option only. Use low-impact modifications and stop at RPE 6–7. Full Legs B ends after strength."
+            "notes": "Focus T25 confirmation | 25 min | RPE 7 | Complete strength first. A later separate session is preferred. Use low-impact modifications and cap effort at RPE 7."
           }
         ]
       }
@@ -19081,7 +19081,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -21232,7 +21232,7 @@
         "events": [],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": null
       },
       "expected": {
@@ -23368,7 +23368,7 @@
         ],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -25529,7 +25529,7 @@
         ],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -27682,7 +27682,7 @@
         ],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -29824,7 +29824,7 @@
         ],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -31964,7 +31964,7 @@
         ],
         "deload_marks": [],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -34121,7 +34121,7 @@
           }
         ],
         "workout_sessions": [],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {
@@ -36287,7 +36287,7 @@
             "notes": ""
           }
         ],
-        "baseline_date": "2026-08-18",
+        "baseline_date": "2026-08-24",
         "protocol_start": "2026-01-05"
       },
       "expected": {

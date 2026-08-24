@@ -321,7 +321,8 @@ enum TrainingPlanEngine {
         }
 
         let persona = data.profile?.persona.rawValue ?? "constantine"
-        let protocolStart = data.settings?.addons["training_protocol"]?.objectValue?["start_date"]?.stringValue ?? date
+        let protocolMetadata = data.settings?.addons["training_protocol"]?.objectValue
+        let protocolStart = protocolMetadata?["start_date"]?.stringValue ?? date
         let protocolWeek = FocusT25.protocolWeek(start: protocolStart, date: date)
         let bespoke = slug == "main" && (persona == "constantine" || persona == "june")
         let scheduledDeload = bespoke && FocusT25.isDeloadWeek(protocolWeek)
@@ -339,7 +340,7 @@ enum TrainingPlanEngine {
                 updated.exercise.optional = scheduledTest
                 return [updated]
             }
-            badges.append("V8.1 · week \(protocolWeek)")
+            badges.append("\(FocusT25.protocolVersionLabel(protocolMetadata?["version"]?.numberValue)) · week \(protocolWeek)")
             if scheduledDeload {
                 badges.append("Scheduled deload week \(protocolWeek): two controlled sets and about 3 RIR")
             }
