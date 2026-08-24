@@ -505,3 +505,12 @@ GitHub publication evidence:
 - Red proof: the new web assertions failed five times against the old HYROX/equipment/safety behaviour; the canonical-anatomy assertion then failed with an empty exported muscle value; the native parity test failed on the old generic farmer's-carry ID.
 - Green proof: targeted web catalogue suite 71/71; full web suite 502/502 in 5.83 s; native `CustomWorkoutBuilderTests` 30/30 in 13.6 s; production web build succeeded (1,170 modules transformed in 0.70 s); `git diff --check` passed.
 - Evidence used: official HYROX race/rules material for station order and kettlebells; ACE exercise guidance for Pallof resistance requirements; NSCA strength-and-conditioning safety guidance for rack safeties, platforms, and high-consequence barbell failure handling.
+
+## 2026-08-24 — Native release-gate UI hardening
+
+- Implementation commit: `02f39027` (`test: harden catalogue and meal UI flows`).
+- Files changed: `ios/APEXNative/APEX/Features/Nutrition/MealComposerView.swift` and `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`.
+- Red proof: the first complete native run finished 404/406 with a stale 332-row catalogue assertion and a reproducible meal-composer navigation failure; the latter also failed alone at the same assertion.
+- Fix: the catalogue UI test now asserts the verified 549-row headline and waits for selected results to leave through their animation; the meal-name field has a stable semantic identifier, and the preset workflow taps the uniquely identified Breakfast title rather than an overlapping combined Dayline frame.
+- Behaviour retained: selection must persist in the authored workout, and the meal test must open the Breakfast composer, expose its food picker, preserve water facts, exercise preset selection, removal/undo, and selection mode.
+- Green proof: isolated meal-composer flow 1/1 in 45.0 s; workout-builder flow passed in the focused run; complete native suite 406/406, 0 failed, 0 skipped in 681.0 s using the official XcodeBuildMCP runner.
