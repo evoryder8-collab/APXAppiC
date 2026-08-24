@@ -49,7 +49,7 @@ test('the workout studio exposes the canonical sport and training filters', () =
     searchExerciseCatalog('', 'hyrox' as never).map((exercise) => exercise.id),
     [
       'ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump',
-      'row_erg', 'farmers_carry', 'sandbag_lunge', 'wall_ball',
+      'row_erg', 'kettlebell_farmers_walk', 'sandbag_lunge', 'wall_ball',
     ],
     'the HYROX shelf follows the official station order from SkiErg to Wall Balls',
   )
@@ -94,6 +94,13 @@ test('every exercise result subtitle has readable equipment metadata', () => {
   assert.equal(UI_TRANSLATIONS['Step and dumbbells']?.ro, 'Treaptă și gantere')
   assert.equal(UI_TRANSLATIONS['Leg press']?.th, 'เครื่องเลกเพรส')
   assert.equal(UI_TRANSLATIONS.machine?.ro, 'aparat')
+})
+
+test('alternative equipment is never presented as bodyweight', () => {
+  const byID = new Map(EXERCISE_CATALOG.map((exercise) => [exercise.id, exercise]))
+  assert.equal(byID.get('pallof_press')?.equipment, 'Bands or Cable Stack')
+  assert.equal(byID.get('cable_external_rotation')?.equipment, 'Bands or Cable Stack')
+  assert.equal(byID.get('hip_abduction')?.equipment, 'Abduction Machine or Bands')
 })
 
 test('Romanian partial searches resolve common gym vocabulary', () => {

@@ -7,6 +7,27 @@ import XCTest
 @testable import APEX
 
 final class FoodPortionParityTests: XCTestCase {
+    func testBarcodeCameraStopsAsSoonAsCaptureLeavesScanning() {
+        let cases: [(BarcodeScannerPhase, Bool, Bool, Bool, Bool, Bool)] = [
+            (.scanning, false, false, false, false, false),
+            (.lookingUp, true, true, false, false, false),
+            (.foodFound, true, false, true, false, false),
+            (.message, true, false, false, true, false),
+            (.choosingPortion, true, false, true, false, true),
+        ]
+        for (expected, codeCaptured, lookingUp, hasFood, hasMessage, choosingPortion) in cases {
+            let phase = BarcodeScannerPhase.resolve(
+                codeCaptured: codeCaptured,
+                lookingUp: lookingUp,
+                hasFood: hasFood,
+                hasMessage: hasMessage,
+                choosingPortion: choosingPortion
+            )
+            XCTAssertEqual(phase, expected)
+            XCTAssertEqual(phase.shouldRunCamera, expected == .scanning)
+        }
+    }
+
     private func food(
         basis: String = "per_100g",
         kcal: Double? = 364,
@@ -81,6 +102,22 @@ final class FoodPortionParityTests: XCTestCase {
             FoodPortionMath.equivalentAmount(withServings, quantity: 3, unit: .piece), 165)
     }
 
+    func testPortionUnitLabelsExposeTheirMeasuredEquivalent() {
+        let portioned = food(serving: 30, piece: 55.5)
+        XCTAssertEqual(
+            FoodPortionMath.unitLabel(portioned, unit: .serving, localizedName: "Serving"),
+            "Serving (30 g)"
+        )
+        XCTAssertEqual(
+            FoodPortionMath.unitLabel(portioned, unit: .piece, localizedName: "Piece"),
+            "Piece (55.5 g)"
+        )
+        XCTAssertEqual(
+            FoodPortionMath.unitLabel(portioned, unit: .grams, localizedName: "g"),
+            "g"
+        )
+    }
+
     func testIncompleteNutritionYieldsNoPortion() {
         XCTAssertNil(FoodPortionMath.portion(food(protein: nil), quantity: 100, unit: .grams))
     }
@@ -93,13 +130,21 @@ final class FoodPortionParityTests: XCTestCase {
         XCTAssertEqual(plain.unit, .grams)
 
         let piece = FoodPortionMath.defaultSelection(food(piece: 55), preference: nil)
-        XCTAssertEqual(piece.quantity, 1)
-        XCTAssertEqual(piece.unit, .piece)
+        XCTAssertEqual(piece.quantity, 100)
+        XCTAssertEqual(piece.unit, .grams)
 
         let declaredServing = FoodPortionMath.defaultSelection(
             food(serving: 30, servingUnit: "serving"), preference: nil)
-        XCTAssertEqual(declaredServing.quantity, 1)
-        XCTAssertEqual(declaredServing.unit, .serving)
+        XCTAssertEqual(declaredServing.quantity, 100)
+        XCTAssertEqual(declaredServing.unit, .grams)
+
+        let rememberedServing = FoodPortionMath.defaultSelection(
+            food(serving: 30, servingUnit: "serving"),
+            preference: nil,
+            remembered: MealMemory.Selection(foodID: "food", quantity: 2, unit: "serving")
+        )
+        XCTAssertEqual(rememberedServing.quantity, 2)
+        XCTAssertEqual(rememberedServing.unit, .serving)
 
         let providerWeight = FoodPortionMath.defaultSelection(
             food(serving: 30, servingUnit: "g"), preference: nil)

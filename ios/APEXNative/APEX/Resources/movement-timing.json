@@ -6970,7 +6970,7 @@
    "fatigue_cost": 3,
    "unilateral": false,
    "repositioning": false,
-   "prescription_mode": "quality_reps",
+   "prescription_mode": "tempo_reps",
    "loadable": true,
    "entity_type": "resistance_dynamic",
    "disciplines": [

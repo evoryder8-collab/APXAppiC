@@ -3,9 +3,9 @@ import Foundation
 /*
  * Port of src/lib/hydration.ts.
  *
- * Every logged food carries grams of water per 100 g. Curated catalogue rows
- * carry a measured value; anything from a provider or created by hand is
- * estimated here, so a barcode scan still contributes to hydration.
+ * Every logged food may carry grams of water per 100 g. Only explicitly
+ * measured values are presented as exact; provider, reference and derived
+ * values remain visibly approximate.
  *
  * Reference values: Swiss Food Composition Database V7.1 (FSVO/BLV,
  * naehrwertdaten.ch) and USDA FoodData Central. Estimating by difference
@@ -15,13 +15,31 @@ import Foundation
 enum FoodHydration {
     enum Basis: String, Sendable {
         case measured
+        case providerReported = "provider_reported"
+        case reference
         case name
         case difference
+        case legacy
+        case userEntered = "user_entered"
+        case unknown
+    }
+
+    struct Disclosure: Equatable, Sendable {
+        let isEstimated: Bool
+        let prefix: String
+        let label: String
     }
 
     struct Estimate: Hashable, Sendable {
         let waterML100: Double
         let basis: Basis
+    }
+
+    static func disclosure(for basis: String?) -> Disclosure {
+        if basis == Basis.measured.rawValue {
+            return Disclosure(isEstimated: false, prefix: "", label: "Measured water")
+        }
+        return Disclosure(isEstimated: true, prefix: "≈", label: "Estimated water")
     }
 
     struct Input: Sendable {
@@ -182,10 +200,16 @@ enum FoodHydration {
     /// A food with its water filled in, so a scanned or hand-entered product
     /// still contributes hydration.
     static func resolved(_ food: Food) -> Food {
-        guard food.waterML100 == nil else { return food }
+        if food.waterML100 != nil {
+            guard food.waterBasis == nil else { return food }
+            var legacy = food
+            legacy.waterBasis = Basis.legacy.rawValue
+            return legacy
+        }
         guard let estimate = estimate(Input(food)) else { return food }
         var updated = food
         updated.waterML100 = estimate.waterML100
+        updated.waterBasis = estimate.basis.rawValue
         return updated
     }
 

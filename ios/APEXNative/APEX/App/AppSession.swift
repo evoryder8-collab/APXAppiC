@@ -721,6 +721,8 @@ final class AppSession {
             snapshotSaturatedFat100: nil,
             snapshotSalt100: nil,
             snapshotWaterML100: nil,
+            snapshotWaterBasis: "unknown",
+            snapshotWaterSourceID: nil,
             quantity: 1,
             unit: "serving",
             equivalentAmount: 100
@@ -1298,6 +1300,8 @@ final class AppSession {
                 snapshotSaturatedFat100: item.saturatedFat100,
                 snapshotSalt100: item.salt100,
                 snapshotWaterML100: item.waterML100,
+                snapshotWaterBasis: item.waterBasis ?? "unknown",
+                snapshotWaterSourceID: item.waterSourceID,
                 quantity: item.quantity,
                 unit: item.unit,
                 equivalentAmount: item.equivalentAmount
@@ -1352,6 +1356,8 @@ final class AppSession {
                 saturatedFatG: item.saturatedFat100.map { $0 * item.equivalentAmount / 100 },
                 saltG: item.salt100.map { $0 * item.equivalentAmount / 100 },
                 snapshotWaterML100: item.waterML100,
+                snapshotWaterBasis: item.waterBasis ?? "unknown",
+                snapshotWaterSourceID: item.waterSourceID,
                 waterML: item.waterML100.map { $0 * item.equivalentAmount / 100 }
             )
         }
@@ -1727,6 +1733,8 @@ final class AppSession {
             snapshotSaturatedFat100: food.saturatedFat100,
             snapshotSalt100: food.salt100,
             snapshotWaterML100: food.waterML100,
+            snapshotWaterBasis: food.waterBasis ?? "unknown",
+            snapshotWaterSourceID: food.waterSourceID,
             quantity: amount,
             unit: unit,
             equivalentAmount: equivalentAmount
@@ -1777,6 +1785,8 @@ final class AppSession {
             saturatedFatG: food.saturatedFat100.map { $0 * equivalentAmount / 100 },
             saltG: food.salt100.map { $0 * equivalentAmount / 100 },
             snapshotWaterML100: food.waterML100,
+            snapshotWaterBasis: food.waterBasis ?? "unknown",
+            snapshotWaterSourceID: food.waterSourceID,
             waterML: food.waterML100.map { $0 * equivalentAmount / 100 }
         )
 

@@ -12,6 +12,12 @@ struct NutritionTargets: Equatable, Sendable {
     let safetyFloorApplied: Bool
 }
 
+struct EnergyMacroTargets: Equatable, Sendable {
+    let proteinG: Int
+    let fatG: Int
+    let carbsG: Int
+}
+
 enum EnergyEngine {
     static let calibrationLowerBound = 0.85
     static let calibrationUpperBound = 1.15
@@ -73,22 +79,63 @@ enum EnergyEngine {
         let rawTarget = tdee * profile.goal.factor
         let floor = bmr * 1.05
         let target = max(rawTarget, floor)
-        let protein = max(1, Int((2.2 * profile.weightKG).rounded()))
-        let fat = max(1, Int((0.7 * profile.weightKG).rounded()))
-        let remaining = max(0, target - Double(protein * 4 + fat * 9))
-        let carbs = Int((remaining / 4).rounded())
+        let roundedTarget = Int(target.rounded())
+        let macros = macroTargets(
+            weightKG: profile.weightKG,
+            level: level,
+            goal: profile.goal,
+            targetCalories: roundedTarget
+        )
 
         return NutritionTargets(
             bmr: Int(bmr.rounded()),
             tdee: Int(tdee.rounded()),
-            targetCalories: Int(target.rounded()),
-            proteinG: protein,
-            fatG: fat,
-            carbsG: carbs,
+            targetCalories: roundedTarget,
+            proteinG: macros.proteinG,
+            fatG: macros.fatG,
+            carbsG: macros.carbsG,
             pal: (pal * 100).rounded() / 100,
             level: level,
             safetyFloorApplied: rawTarget < floor
         )
+    }
+
+    static func macroTargets(
+        weightKG: Double,
+        level: ActivityLevel,
+        goal: Goal,
+        targetCalories: Int
+    ) -> EnergyMacroTargets {
+        let baseProtein: Double = switch level {
+        case .sedentary: 1.6
+        case .light: 1.75
+        case .moderate: 1.9
+        case .very: 2.0
+        case .extra: 2.1
+        }
+        let goalProteinAdjustment: Double = switch goal {
+        case .recomp: 0.2
+        case .maintain: 0
+        case .bulk: -0.1
+        }
+        let proteinPerKG = min(2.4, max(1.6, baseProtein + goalProteinAdjustment))
+        let protein = max(1, Int((weightKG * proteinPerKG).rounded()))
+
+        let fatEnergyShare: Double = switch goal {
+        case .recomp: 0.25
+        case .maintain: 0.275
+        case .bulk: 0.28
+        }
+        let fatFloorPerKG: Double = switch goal {
+        case .recomp: 0.7
+        case .maintain, .bulk: 0.8
+        }
+        let fatFromEnergy = Double(targetCalories) * fatEnergyShare / 9
+        let fatFloor = weightKG * fatFloorPerKG
+        let fat = max(1, Int(max(fatFloor, fatFromEnergy).rounded()))
+        let carbohydrateEnergy = max(0, targetCalories - protein * 4 - fat * 9)
+        let carbs = Int((Double(carbohydrateEnergy) / 4).rounded())
+        return EnergyMacroTargets(proteinG: protein, fatG: fat, carbsG: carbs)
     }
 
     static func level(forPAL pal: Double) -> ActivityLevel {

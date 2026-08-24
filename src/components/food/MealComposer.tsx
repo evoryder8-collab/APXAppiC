@@ -345,6 +345,8 @@ export function MealComposer({
       barcode: food.barcode,
       provider_product_id: food.provider_product_id,
       water_ml_100: food.water_ml_100,
+      water_basis: food.water_basis ?? 'unknown',
+      water_source_id: food.water_source_id ?? null,
       external_image_url: food.external_image_url,
       package_quantity: food.package_quantity,
       nutrition_basis: food.nutrition_basis,

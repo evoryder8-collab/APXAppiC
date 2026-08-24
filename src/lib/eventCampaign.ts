@@ -57,7 +57,7 @@ export const HYROX_STATIONS: HyroxStation[] = [
   { order: 3, id: 'sled_pull', name: 'Sled Pull', movementId: 'sled_pull', measure: '50 m', openMen: '103 kg', openWomen: '78 kg' },
   { order: 4, id: 'burpee_broad_jump', name: 'Burpee Broad Jump', movementId: 'burpee_broad_jump', measure: '80 m', openMen: 'bodyweight', openWomen: 'bodyweight' },
   { order: 5, id: 'row', name: 'Row', cardio: { modality: 'row_erg', prescription: 'race_pace' }, measure: '1000 m', openMen: 'no load', openWomen: 'no load' },
-  { order: 6, id: 'farmers_carry', name: "Farmer's Carry", movementId: 'farmers_carry', measure: '200 m', openMen: '2 x 24 kg', openWomen: '2 x 16 kg' },
+  { order: 6, id: 'farmers_carry', name: "Kettlebell Farmer's Carry", movementId: 'kettlebell_farmers_walk', measure: '200 m', openMen: '2 x 24 kg', openWomen: '2 x 16 kg' },
   { order: 7, id: 'sandbag_lunge', name: 'Sandbag Lunges', movementId: 'sandbag_lunge', measure: '100 m', openMen: '20 kg', openWomen: '10 kg' },
   { order: 8, id: 'wall_balls', name: 'Wall Balls', movementId: 'wall_ball', measure: '100 reps', openMen: '9 kg to 10 ft', openWomen: '6 kg to 9 ft' },
 ]

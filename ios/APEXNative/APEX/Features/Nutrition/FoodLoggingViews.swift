@@ -165,16 +165,9 @@ struct FoodPortionSheet: View {
         self.food = food
         self.date = date
         self.onAdd = onAdd
-        if food.servingGramsOrML != nil {
-            _amount = State(initialValue: 1)
-            _unit = State(initialValue: "serving")
-        } else if food.pieceGramsOrML != nil {
-            _amount = State(initialValue: 1)
-            _unit = State(initialValue: "piece")
-        } else {
-            _amount = State(initialValue: 100)
-            _unit = State(initialValue: food.nutritionBasis == "per_100ml" ? "ml" : "g")
-        }
+        let start = FoodPortionMath.defaultSelection(food, preference: nil)
+        _amount = State(initialValue: start.quantity)
+        _unit = State(initialValue: start.unit.rawValue)
         let hour = Calendar.current.component(.hour, from: date)
         /* The clock's answer. Corrected once the environment exists, because
            the user's late-dinner preference lives in settings and this
@@ -184,10 +177,18 @@ struct FoodPortionSheet: View {
     }
 
     private var availableUnits: [String] {
-        var units = [food.nutritionBasis == "per_100ml" ? "ml" : "g"]
-        if food.servingGramsOrML != nil { units.append("serving") }
-        if food.pieceGramsOrML != nil { units.append("piece") }
-        return units
+        FoodPortionMath.availableUnits(food).map(\.rawValue)
+    }
+
+    private func unitLabel(_ rawUnit: String) -> String {
+        guard let unit = FoodUnitKind(rawValue: rawUnit) else {
+            return language.text(rawUnit.capitalized)
+        }
+        return FoodPortionMath.unitLabel(
+            food,
+            unit: unit,
+            localizedName: language.text(rawUnit.capitalized)
+        )
     }
 
     private var equivalentAmount: Double {
@@ -239,7 +240,7 @@ struct FoodPortionSheet: View {
                                     .buttonStyle(PortionStepperStyle())
                             }
                             Picker("Unit", selection: $unit) {
-                                ForEach(availableUnits, id: \.self) { Text(language.text($0.capitalized)).tag($0) }
+                                ForEach(availableUnits, id: \.self) { Text(unitLabel($0)).tag($0) }
                             }
                             .pickerStyle(.segmented)
 

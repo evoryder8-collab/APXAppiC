@@ -430,11 +430,14 @@ function defaultRest(movement: Movement): number {
   return 60
 }
 
-function humaniseEquipment(equipment: string[]): string {
-  if (equipment.length === 0) return 'Bodyweight'
-  return equipment
-    .map((item) => item.replaceAll('_', ' ').replace(/\b\w/g, (letter) => letter.toUpperCase()))
-    .join(' · ')
+function humaniseEquipment(equipment: string[], equipmentAnyOf: string[][] = []): string {
+  const label = (item: string) => item
+    .replaceAll('_', ' ')
+    .replace(/\b\w/g, (letter) => letter.toUpperCase())
+  const required = equipment.map(label)
+  const alternatives = equipmentAnyOf.map((group) => group.map(label).join(' or '))
+  const requirements = [...required, ...alternatives]
+  return requirements.length === 0 ? 'Bodyweight' : requirements.join(' · ')
 }
 
 function localisations(canonicalID: string, name: string): Pick<ExerciseCatalogItem, 'names' | 'aliases'> {
@@ -468,7 +471,7 @@ function exerciseFromMovement(movement: Movement): ExerciseCatalogItem {
     name: movement.name,
     category: primaryCategory(categories),
     categories,
-    equipment: humaniseEquipment(movement.equipment),
+    equipment: humaniseEquipment(movement.equipment, movement.equipmentAnyOf),
     muscles: [...new Set([...holoMuscles(movement), ...legacyMuscles])],
     dayType: dayTypeFor(movement),
     sets: defaultSets(movement),

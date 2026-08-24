@@ -416,3 +416,101 @@ GitHub publication evidence:
 - GitHub Pages: Actions run `32694056427` succeeded for merge SHA `718643f4ed22056b04df95a9dae83719f87ec64e` (build `23 s`, deploy `8 s`); `https://evoryder8-collab.github.io/APXAppiC/?task12=718643f4ed22056b04df95a9dae83719f87ec64e` returned HTTP `200` with `1248` bytes.
 - Authenticated shared-record round trip: the deployed Constantine session changed `settings.addons.uiMode` from `simple` to `advanced`, rendered the detailed interface with `Synced`, and a direct Supabase read returned `advanced`; it was restored to `simple`, rendered the simple interface with `Synced`, and a second direct read returned `simple`. No account data was left changed.
 - Physical iPhone: exact shipped merge SHA `718643f4ed22056b04df95a9dae83719f87ec64e` built and signed successfully with `xcodebuild` exit `0`, installed as `ch.apexperformance.APEX` on paired `iConstantine Main` (iPhone 15 Pro Max, device `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`) at installation URL UUID `EA843891-24E2-489A-B707-E2C74F0785B0`, and launched successfully with process-verified PID `2814`.
+
+### User integrity repair — barcode camera lifecycle (2026-08-24)
+
+- Root cause: the found-food card was an overlay over a still-mounted `AVCaptureSession`; capture stopped only when the scanner view disappeared, so resolving a barcode left the camera running behind the result.
+- Fix: modelled the scanner lifecycle explicitly, stopped capture on the dedicated session queue immediately after a code leaves the scanning phase, dismantled the camera view outside scanning, and allowed restart only when returning to scanning.
+- Regression test: `testBarcodeCameraStopsAsSoonAsCaptureLeavesScanning` covers scanning, lookup, found-food, message, and portion-selection phases. It first failed because the lifecycle resolver did not exist, then passed after the session wiring was implemented.
+- Verification: focused regression `1/1` passed; complete `FoodPortionParityTests` `7/7` passed with zero failures in `18.8 s`; `git diff --check` passed.
+- Git: implementation commit `7a6d9bf2` (`fix: stop barcode camera after capture`). Publication and exact-device evidence will be recorded after the complete user integrity batch is merged, deployed, and installed.
+
+### User integrity repair — measured food amount defaults (2026-08-24)
+
+- Root cause: the barcode route still presented a legacy portion sheet whose initializer preferred any declared serving over the nutrition-basis unit. That sheet also displayed a bare `Serving` label even when its calculation depended on an unseen gram equivalent.
+- Fix: fresh foods now open at `100 g` or `100 ml` in both clients; remembered/history and explicit user preferences still take precedence. Serving and piece are selectable only with a positive measured equivalent and render as labels such as `Serving (30 g)`. Barcode confirmation now uses the same amount configurator as the meal composer, while the remaining legacy logging route delegates default and unit-label decisions to the shared portion math.
+- Regression tests: native default-selection coverage now includes fresh pieces, fresh declared servings, remembered servings, invalid equivalents, and literal equivalent labels; web coverage mirrors fresh and remembered behavior. The existing driven UI flow still proves the decimal keyboard can be dismissed and the chosen food can be added.
+- Red/green evidence: native first returned `1 piece` and `1 serving` instead of `100 g` (four assertion failures); web first returned `1 serving` instead of `100 g`; the new unit-label test first failed because no shared label function existed. Final native `FoodPortionParityTests` passed `8/8`, web food tests passed `37/37`, and the driven amount-entry UI passed `1/1` in `32.8 s`; `git diff --check` passed.
+- Git: implementation commit `cc7fd9e3` (`fix: default food amounts to measured weight`). Publication and exact-device evidence will be recorded after the complete user integrity batch is merged, deployed, and installed.
+
+### User integrity repair — goal-aware macro targets (2026-08-24)
+
+- Root cause: native `EnergyEngine` pinned protein to `2.2 g/kg` and fat to `0.7 g/kg` for every goal, then put every calorie change into carbohydrate. Its old regression test explicitly asserted that recomp and bulk protein/fat were equal.
+- Fix: native targets now use the same activity- and goal-aware macro policy already shipped and tested on web: protein remains within the athlete-oriented range, fat uses the greater of a bodyweight floor and a goal-specific energy share, and carbohydrate is derived from the remaining energy. Recomp, maintain, and bulk therefore recalculate all targets as one coherent set.
+- Literal parity fixture at 70 kg/moderate activity: recomp at 2,200 kcal = `147 P / 61 F / 266 C`; maintain at 2,400 = `133 / 73 / 303`; bulk at 2,600 = `126 / 81 / 342`. Each reconstructs its target within two calories using `4/9/4` energy factors.
+- Evidence check: ISSN identifies `1.4–2.0 g/kg/day` as sufficient for most exercising people, with higher needs possible in energy restriction; EFSA places adult fat within a broad `20–35%` energy reference range. APEX's outputs remain personalised estimates rather than medical prescriptions.
+- Red/green and verification: the replacement native suite first failed because no shared policy existed and the old implementation held protein/fat constant. Final `EnergyEngineTests` passed `8/8`; web activity parity passed `12/12`; `git diff --check` passed.
+- Git: implementation commit `c5ad789d` (`fix: recalculate nutrition macros by goal`). Publication and exact-device evidence will be recorded after the complete user integrity batch is merged, deployed, and installed.
+
+## 2026-08-24 — Food water provenance and honest disclosure
+
+- Finding: the catalogue's water values were not uniformly fact-checked. The bundled catalogue contains 1,511 foods with water values, but only 31 are reference-backed; 1,457 are macro-difference estimates and 23 are name-based estimates.
+- Retailer audit (bundled): Migros 216 estimated / 0 exact, Aldi 215 / 0, Lidl 215 / 0, REWE 224 / 0, Coop 0, Denner 0.
+- Retailer audit (live): Migros 12 estimated / 0 exact, Aldi 3 estimated + 1 missing, Lidl 3 estimated + 1 missing, REWE 1 estimated + 1 missing, Coop 1 estimated, Denner 0.
+- Regulatory/source finding: EU Regulation 1169/2011 does not require water in the mandatory nutrition declaration, and Open Food Facts is community-contributed data subject to quality controls. A retailer label or provider result therefore cannot be treated as a measured water assay by default.
+- Repair:
+  - added a controlled water provenance vocabulary: `measured`, `provider_reported`, `reference`, `name`, `difference`, `legacy`, `user_entered`, and `unknown`;
+  - persisted provenance/source IDs through Food, structured meal requests, immutable logged-food snapshots, and Open Food Facts normalization;
+  - marked every non-measured value as estimated in native item, portion, meal-total, and accessibility output;
+  - classified seed-derived water values explicitly instead of presenting them as exact;
+  - added and remotely applied `025_food_water_provenance.sql`, including conservative legacy backfill and snapshot trigger propagation.
+- Live migration verification: 148 foods total; 124 legacy values, 4 traceable reference values, and 20 unknown/missing. New provenance columns and constraints exist on `foods` and `logged_food_entries`.
+- Implementation commit: `b41df74b` (`fix: disclose food water provenance`).
+- Files changed:
+  - `src/lib/hydration.ts`, `src/lib/food.ts`, `src/data/foodSeeds.ts`, `src/store/FoodStore.tsx`, `src/components/food/MealComposer.tsx`, `shared/openFoodFacts.ts`
+  - `ios/APEXNative/APEX/Core/Engine/FoodHydration.swift`, `MealMemory.swift`, `APEXModels.swift`, `AppSession.swift`, `FoodAmountSheet.swift`, `MealComposerView.swift`
+  - `tests/hydration.test.ts`, `FoodHydrationTests.swift`, `MealComposerTests.swift`
+  - `supabase/migrations/025_food_water_provenance.sql`
+- Tests added:
+  - web disclosure/provenance tests for measured, estimated, and unknown values;
+  - native disclosure/provenance tests and mixed-provenance meal-total behavior.
+- Test output:
+  - web food/hydration/sync suites: 68/68 passed;
+  - native FoodHydration + MealComposer suites: 21/21 passed in 44.0 s;
+  - production web build: succeeded, 1,170 modules transformed in 633 ms;
+  - `git diff --check`: clean.
+- Sources:
+  - https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32011R1169
+  - https://openfoodfacts.github.io/documentation/docs/
+  - https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/tutorials/how-to-create-data-quality-controls-in-your-app/
+
+## 2026-08-24 — Watch companion signing and runtime verification
+
+- Scope: verification-only; the existing Watch target did not require a source change.
+- Watch runtime verification:
+  - XcodeBuildMCP built, installed, and launched `APEXWatch` on Apple Watch Series 11 (46 mm), watchOS 26.5;
+  - bundle `ch.apexperformance.APEX.watchkitapp` launched as PID 10404;
+  - runtime accessibility snapshot contained 66 elements and reached the Health authorization flow;
+  - simulator build completed in 262.3 s with no compile/signing error.
+- Embedded extension verification:
+  - strict deep signature verification passed for the Watch simulator bundle;
+  - `APEXWatchWidgets.appex` is present with bundle ID `ch.apexperformance.APEX.watchkitapp.widgets`.
+- Physical signing verification at HEAD `2175ab79`:
+  - XcodeBuildMCP built, installed, and launched `ch.apexperformance.APEX` on connected iPhone `iConstantine Main` as PID 3286 in 138.4 s;
+  - strict deep signature verification passed for the physical `APEX.app` bundle;
+  - iOS app, embedded Watch app, and embedded Watch widget all carry Apple Development signature `Constantin Barbu (YYWFU4Y9QV)`, team `UG979XDY72`;
+  - verified bundle IDs: `ch.apexperformance.APEX`, `ch.apexperformance.APEX.watchkitapp`, and `ch.apexperformance.APEX.watchkitapp.widgets`.
+- Hardware limit stated explicitly: no physical Apple Watch is connected to this Mac. Executable behavior was therefore verified on the Watch simulator, while the exact device provisioning/signature chain was verified inside the build installed on the physical iPhone.
+- Files changed: `docs/REPAIR-NOTES.md` only.
+- Tests added: none; this task is a build, launch, and signature-verification gate.
+
+## 2026-08-24 — Movement catalogue fact audit
+
+- Implementation commit: `26633ea7` (`fix: audit movement catalogue facts`).
+- Files changed: `src/lib/eventCampaign.ts`, `src/data/exerciseCatalog.ts`, `src/data/movements.ts`, `tools/export-exercise-catalog.mts`, `docs/APEX-CURRENT-EXERCISE-CATALOG.csv`, `ios/APEXNative/APEX/Resources/exercise-catalog.json`, `ios/APEXNative/APEX/Resources/movement-timing.json`, `tests/exercise-catalog.test.ts`, `tests/exercise-catalog-export.test.ts`, `tests/movement-library.test.ts`, and `ios/APEXNative/APEXTests/CustomWorkoutBuilderTests.swift`.
+- Canonical count remains 549 unique rows: 534 selectable movement entities plus 15 separately modelled cardio modalities. Entity types and the lowercase controlled discipline vocabulary were already explicit and valid.
+- Accepted audit findings: HYROX station 6 now resolves to the kettlebell farmer's walk; `equipmentAnyOf` is visible instead of incorrectly projecting resistance movements as Bodyweight; the audit CSV now exports canonical primary, secondary, and stabilizer anatomy; high-consequence barbell movements and an erroneous snatch-grip RDL record received evidence-bounded safety corrections.
+- Rejected unsupported findings: the ten allegedly missing muscle mappings were already present in the canonical source; cardio modalities intentionally do not pretend to have resistance-only tempo or spotter facts; provenance and aliases remain unknown where no source supports a backfill; controlled floor-returned pulls were not blanket-labelled unsafe.
+- Tests added: alternative-equipment projection, canonical anatomy export, official HYROX station identity/order, barbell failure-mode distinctions, anchored-landmine bail behaviour, and native HYROX parity.
+- Red proof: the new web assertions failed five times against the old HYROX/equipment/safety behaviour; the canonical-anatomy assertion then failed with an empty exported muscle value; the native parity test failed on the old generic farmer's-carry ID.
+- Green proof: targeted web catalogue suite 71/71; full web suite 502/502 in 5.83 s; native `CustomWorkoutBuilderTests` 30/30 in 13.6 s; production web build succeeded (1,170 modules transformed in 0.70 s); `git diff --check` passed.
+- Evidence used: official HYROX race/rules material for station order and kettlebells; ACE exercise guidance for Pallof resistance requirements; NSCA strength-and-conditioning safety guidance for rack safeties, platforms, and high-consequence barbell failure handling.
+
+## 2026-08-24 — Native release-gate UI hardening
+
+- Implementation commit: `02f39027` (`test: harden catalogue and meal UI flows`).
+- Files changed: `ios/APEXNative/APEX/Features/Nutrition/MealComposerView.swift` and `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`.
+- Red proof: the first complete native run finished 404/406 with a stale 332-row catalogue assertion and a reproducible meal-composer navigation failure; the latter also failed alone at the same assertion.
+- Fix: the catalogue UI test now asserts the verified 549-row headline and waits for selected results to leave through their animation; the meal-name field has a stable semantic identifier, and the preset workflow taps the uniquely identified Breakfast title rather than an overlapping combined Dayline frame.
+- Behaviour retained: selection must persist in the authored workout, and the meal test must open the Breakfast composer, expose its food picker, preserve water facts, exercise preset selection, removal/undo, and selection mode.
+- Green proof: isolated meal-composer flow 1/1 in 45.0 s; workout-builder flow passed in the focused run; complete native suite 406/406, 0 failed, 0 skipped in 681.0 s using the official XcodeBuildMCP runner.

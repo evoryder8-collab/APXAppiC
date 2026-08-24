@@ -98,11 +98,23 @@ enum FoodPortionMath {
            let unit = FoodUnitKind(rawValue: rawUnit), units.contains(unit) {
             return (amount, unit)
         }
-        if let piece = food.pieceGramsOrML, piece > 0 { return (1, .piece) }
-        if food.servingUnit == "serving", let serving = food.servingGramsOrML, serving > 0 {
-            return (1, .serving)
-        }
         return (100, units.first ?? .grams)
+    }
+
+    static func unitLabel(
+        _ food: Food,
+        unit: FoodUnitKind,
+        localizedName: String
+    ) -> String {
+        let equivalent: Double? = unit == .serving
+            ? food.servingGramsOrML
+            : unit == .piece ? food.pieceGramsOrML : nil
+        guard let equivalent, equivalent > 0 else { return localizedName }
+        let amount = equivalent.rounded() == equivalent
+            ? String(Int(equivalent))
+            : String(format: "%.1f", equivalent)
+        let basis = food.nutritionBasis == "per_100ml" ? "ml" : "g"
+        return "\(localizedName) (\(amount) \(basis))"
     }
 
     static func provenanceLabel(_ food: Food) -> String {
@@ -138,6 +150,9 @@ struct FoodAmountSheet: View {
     private var units: [FoodUnitKind] { FoodPortionMath.availableUnits(food) }
     private var portion: FoodPortionResult? {
         FoodPortionMath.portion(food, quantity: quantity, unit: unit)
+    }
+    private var waterDisclosure: FoodHydration.Disclosure {
+        FoodHydration.disclosure(for: food.waterBasis)
     }
     private var basisLabel: String { food.nutritionBasis == "per_100ml" ? "ml" : "g" }
 
@@ -219,7 +234,12 @@ struct FoodAmountSheet: View {
                 macroTile(value: food.carbs100, label: "CARBS", suffix: "g")
                 macroTile(value: food.fat100, label: "FAT", suffix: "g")
                 if food.waterML100 != nil {
-                    macroTile(value: food.waterML100, label: "WATER", suffix: "ml")
+                    macroTile(
+                        value: food.waterML100,
+                        label: waterDisclosure.isEstimated ? "EST. WATER" : "WATER",
+                        suffix: "ml",
+                        prefix: waterDisclosure.prefix
+                    )
                 }
             }
         }
@@ -227,9 +247,14 @@ struct FoodAmountSheet: View {
         .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
-    private func macroTile(value: Double?, label: String, suffix: String) -> some View {
+    private func macroTile(
+        value: Double?,
+        label: String,
+        suffix: String,
+        prefix: String = ""
+    ) -> some View {
         VStack(spacing: 3) {
-            Text(value == nil ? language.text("N/A") : "\(formatted(value!))\(suffix)")
+            Text(value == nil ? language.text("N/A") : "\(prefix)\(formatted(value!))\(suffix)")
                 .font(APEXFont.mono(19, weight: .bold))
                 .foregroundStyle(APEXColor.ink)
                 .lineLimit(1)
@@ -301,12 +326,11 @@ struct FoodAmountSheet: View {
     }
 
     private func unitLabel(_ option: FoodUnitKind) -> String {
-        let equivalent: Double? = option == .serving
-            ? food.servingGramsOrML
-            : option == .piece ? food.pieceGramsOrML : nil
-        let name = language.text(option.rawValue)
-        guard let equivalent else { return name }
-        return "\(name) (\(formatted(equivalent)) \(basisLabel))"
+        FoodPortionMath.unitLabel(
+            food,
+            unit: option,
+            localizedName: language.text(option.rawValue)
+        )
     }
 
     private var portionPreview: some View {
@@ -323,7 +347,7 @@ struct FoodAmountSheet: View {
                 Text("C \(portion.map { formatted($0.carbsG) } ?? language.text("N/A"))g")
                 Text("F \(portion.map { formatted($0.fatG) } ?? language.text("N/A"))g")
                 if let water = portion?.waterML, water > 0 {
-                    Text("\(language.text("W")) \(formatted(water))ml")
+                    Text("\(language.text("W")) \(waterDisclosure.prefix)\(formatted(water))ml")
                         .foregroundStyle(APEXColor.cyan)
                 }
             }

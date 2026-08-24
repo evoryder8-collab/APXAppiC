@@ -35,6 +35,32 @@ test('HYROX rows carry all eight official station numbers without gaps', () => {
   assert.deepEqual(stations.map((row) => row[column('hyrox_station_order')]), [1, 2, 3, 4, 5, 6, 7, 8])
   assert.deepEqual(
     stations.map((row) => row[column('id')]),
-    ['ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump', 'row_erg', 'farmers_carry', 'sandbag_lunge', 'wall_ball'],
+    ['ski_erg', 'sled_push', 'sled_pull', 'burpee_broad_jump', 'row_erg', 'kettlebell_farmers_walk', 'sandbag_lunge', 'wall_ball'],
   )
+})
+
+test('the audit export preserves canonical anatomy and equipment alternatives', () => {
+  const rowFor = (id: string) => EXERCISE_CATALOG_EXPORT_ROWS.find((row) => row[column('id')] === id)!
+  const pallof = rowFor('pallof_press')
+  assert.equal(pallof[column('equipment')], 'Bands or Cable Stack')
+  assert.equal(pallof[column('equipment_required')], '')
+  assert.equal(pallof[column('equipment_any_of')], 'bands | cable_stack')
+
+  const expectedPrimary: Record<string, string> = {
+    cable_external_rotation: 'rotator_cuff',
+    marching_in_place: 'hip_flexors',
+    hip_flexor_stretch: 'hip_flexors',
+    wall_slide: 'lower_traps; rotator_cuff',
+    diaphragmatic_breathing: 'diaphragm',
+    tibialis_raise: 'tibialis',
+    heel_walk: 'tibialis',
+    short_foot: 'foot_intrinsics',
+    neck_isometric: 'neck',
+    chin_tuck: 'deep_neck_flexors',
+  }
+  for (const [id, muscles] of Object.entries(expectedPrimary)) {
+    assert.equal(rowFor(id)[column('primary_muscles')], muscles, id)
+  }
+  assert.equal(rowFor('cable_external_rotation')[column('muscles')], 'rotator_cuff')
+  assert.equal(rowFor('wall_slide')[column('muscles')], 'lower_traps; rotator_cuff')
 })

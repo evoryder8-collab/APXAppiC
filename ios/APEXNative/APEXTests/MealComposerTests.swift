@@ -168,6 +168,7 @@ final class MealComposerTests: XCTestCase {
             fat100: 0.2
         )
         milk.waterML100 = 86.4
+        milk.waterBasis = "measured"
         var walnuts = food(
             name: "Walnuts",
             kcal100: 654,
@@ -176,12 +177,16 @@ final class MealComposerTests: XCTestCase {
             fat100: 65.2
         )
         walnuts.waterML100 = 4
+        walnuts.waterBasis = "difference"
 
         let milkItem = MealComposerItem(food: milk, quantity: 251, unit: "g")
         let walnutItem = MealComposerItem(food: walnuts, quantity: 27, unit: "g")
 
         XCTAssertEqual(MealComposerHydration.itemWaterML(milkItem), 216.864, accuracy: 0.001)
         XCTAssertEqual(MealComposerHydration.itemWaterML(walnutItem), 1.08, accuracy: 0.001)
+        XCTAssertFalse(MealComposerHydration.itemWaterIsEstimated(milkItem))
+        XCTAssertTrue(MealComposerHydration.itemWaterIsEstimated(walnutItem))
+        XCTAssertTrue(MealComposerHydration.totalWaterIsEstimated(in: [milkItem, walnutItem]))
         XCTAssertEqual(
             MealComposerHydration.totalWaterML(in: [milkItem, walnutItem]),
             217.944,

@@ -81,7 +81,7 @@
    "sled_pull",
    "burpee_broad_jump",
    "row_erg",
-   "farmers_carry",
+   "kettlebell_farmers_walk",
    "sandbag_lunge",
    "wall_ball"
   ]
@@ -727,7 +727,7 @@
     "strength",
     "weights"
    ],
-   "equipment": "Dumbbells",
+   "equipment": "Dumbbells · Plates or Slant Board",
    "muscles": [
     "quads",
     "glutes"
@@ -1151,7 +1151,7 @@
     "strength",
     "weights"
    ],
-   "equipment": "Dumbbells",
+   "equipment": "Dumbbells · Bench or Plyo Box or Step",
    "muscles": [
     "quads",
     "glutes"
@@ -1463,7 +1463,7 @@
     "strength",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Bench or Plyo Box or Step",
    "muscles": [
     "chest",
     "triceps",
@@ -1529,7 +1529,7 @@
     "strength",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Bench or Plyo Box or Step",
    "muscles": [
     "chest",
     "frontDelts",
@@ -1894,7 +1894,7 @@
    "categories": [
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Bench or Plyo Box or Step",
    "muscles": [
     "frontDelts",
     "triceps"
@@ -2231,7 +2231,7 @@
     "machine",
     "weights"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Barbell or Pull Up Bar or Rings or Smith Machine",
    "muscles": [
     "upperBack",
     "lats",
@@ -2668,7 +2668,6 @@
    "name": "Farmer's Carry",
    "category": "weights",
    "categories": [
-    "hyrox",
     "strength",
     "weights"
    ],
@@ -2883,7 +2882,7 @@
     "strength",
     "machine"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Bands or Cable Stack",
    "muscles": [
     "obliques",
     "abs"
@@ -3425,7 +3424,7 @@
     "strength",
     "machine"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Bands or Cable Stack",
    "muscles": [],
    "dayType": "upper",
    "sets": 3,
@@ -3519,7 +3518,7 @@
     "strength",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Sliders or Towel",
    "muscles": [
     "hamstrings",
     "glutes"
@@ -3619,7 +3618,7 @@
     "strength",
     "machine"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Abduction Machine or Bands",
    "muscles": [
     "glutes"
    ],
@@ -3777,7 +3776,7 @@
     "street",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Floor Space or Parallettes",
    "muscles": [
     "abs",
     "obliques",
@@ -3812,7 +3811,7 @@
    "categories": [
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Floor Space or Parallettes",
    "muscles": [
     "frontDelts",
     "abs",
@@ -4755,7 +4754,7 @@
    "categories": [
     "mobility"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Chair or Foam Roller",
    "muscles": [
     "upperBack",
     "obliques"
@@ -7257,7 +7256,7 @@
     "hyrox",
     "hiit"
    ],
-   "equipment": "Sled",
+   "equipment": "Sled · Outdoor Space or Track or Turf",
    "muscles": [
     "quads",
     "glutes",
@@ -7295,7 +7294,7 @@
     "hyrox",
     "hiit"
    ],
-   "equipment": "Sled · Rope",
+   "equipment": "Sled · Rope · Outdoor Space or Track or Turf",
    "muscles": [
     "lats",
     "upperBack",
@@ -8062,7 +8061,7 @@
    "categories": [
     "hiit"
    ],
-   "equipment": "Sled",
+   "equipment": "Sled · Outdoor Space or Track or Turf",
    "muscles": [
     "quads",
     "glutes",
@@ -8378,7 +8377,7 @@
     "strength",
     "hiit"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Bench or Plyo Box or Step",
    "muscles": [
     "quads",
     "glutes",
@@ -8645,7 +8644,7 @@
     "strength",
     "hiit"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Cones or Hurdles",
    "muscles": [
     "quads",
     "calves"
@@ -9890,7 +9889,7 @@
     "strength",
     "balance"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Chair or Plyo Box or Step",
    "muscles": [
     "quads",
     "glutes"
@@ -10190,7 +10189,7 @@
     "strength",
     "weights"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Backpack or Dumbbells or Kettlebell",
    "muscles": [
     "lats",
     "triceps",
@@ -10257,7 +10256,7 @@
    "categories": [
     "strength"
    ],
-   "equipment": "Bands",
+   "equipment": "Bands · Anchor Point or Door Anchor",
    "muscles": [
     "lats",
     "triceps",
@@ -10697,7 +10696,7 @@
     "strength",
     "weights"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Backpack or Dumbbells or Kettlebell",
    "muscles": [
     "obliques",
     "forearms",
@@ -12541,6 +12540,7 @@
    "name": "Kettlebell Farmer's Walk",
    "category": "weights",
    "categories": [
+    "hyrox",
     "strength",
     "hiit",
     "weights"
@@ -14598,7 +14598,7 @@
     "strength",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Pull Up Bar or Rings",
    "muscles": [
     "lats",
     "upperBack",
@@ -14633,7 +14633,7 @@
     "strength",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Pull Up Bar or Rings",
    "muscles": [
     "lats",
     "upperBack",
@@ -14878,7 +14878,7 @@
     "street",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Pull Up Bar or Rings",
    "muscles": [
     "chest",
     "upperBack",
@@ -14915,7 +14915,7 @@
     "street",
     "calisthenics"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Pull Up Bar or Rings",
    "muscles": [
     "chest",
     "upperBack",
@@ -18201,7 +18201,7 @@
     "mobility",
     "weights"
    ],
-   "equipment": "Bodyweight",
+   "equipment": "Barbell or Dumbbells",
    "muscles": [
     "hamstrings",
     "glutes"
