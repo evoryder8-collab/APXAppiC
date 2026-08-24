@@ -15,7 +15,7 @@ final class WatchHydrationStore: ObservableObject {
     private var observerQuery: HKObserverQuery?
 
     var progress: Double {
-        min(1, max(0, liters / targetLiters))
+        WatchHydrationFillState(liters: liters, targetLiters: targetLiters).progress
     }
 
     func start() async {
