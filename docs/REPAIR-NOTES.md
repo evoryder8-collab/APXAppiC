@@ -473,3 +473,23 @@ GitHub publication evidence:
   - https://eur-lex.europa.eu/legal-content/EN/TXT/?uri=CELEX%3A32011R1169
   - https://openfoodfacts.github.io/documentation/docs/
   - https://openfoodfacts.github.io/documentation/docs/Product-Opener/api/tutorials/how-to-create-data-quality-controls-in-your-app/
+
+## 2026-08-24 — Watch companion signing and runtime verification
+
+- Scope: verification-only; the existing Watch target did not require a source change.
+- Watch runtime verification:
+  - XcodeBuildMCP built, installed, and launched `APEXWatch` on Apple Watch Series 11 (46 mm), watchOS 26.5;
+  - bundle `ch.apexperformance.APEX.watchkitapp` launched as PID 10404;
+  - runtime accessibility snapshot contained 66 elements and reached the Health authorization flow;
+  - simulator build completed in 262.3 s with no compile/signing error.
+- Embedded extension verification:
+  - strict deep signature verification passed for the Watch simulator bundle;
+  - `APEXWatchWidgets.appex` is present with bundle ID `ch.apexperformance.APEX.watchkitapp.widgets`.
+- Physical signing verification at HEAD `2175ab79`:
+  - XcodeBuildMCP built, installed, and launched `ch.apexperformance.APEX` on connected iPhone `iConstantine Main` as PID 3286 in 138.4 s;
+  - strict deep signature verification passed for the physical `APEX.app` bundle;
+  - iOS app, embedded Watch app, and embedded Watch widget all carry Apple Development signature `Constantin Barbu (YYWFU4Y9QV)`, team `UG979XDY72`;
+  - verified bundle IDs: `ch.apexperformance.APEX`, `ch.apexperformance.APEX.watchkitapp`, and `ch.apexperformance.APEX.watchkitapp.widgets`.
+- Hardware limit stated explicitly: no physical Apple Watch is connected to this Mac. Executable behavior was therefore verified on the Watch simulator, while the exact device provisioning/signature chain was verified inside the build installed on the physical iPhone.
+- Files changed: `docs/REPAIR-NOTES.md` only.
+- Tests added: none; this task is a build, launch, and signature-verification gate.
