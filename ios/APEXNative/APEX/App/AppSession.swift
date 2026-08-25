@@ -986,6 +986,73 @@ final class AppSession {
         return data.hydrationPreferences
     }
 
+    func hydrationTargetResolution(
+        on date: Date,
+        plannedExerciseMinutes: Int? = nil,
+        now: Date = .now
+    ) -> HydrationTargetResolution {
+        guard let profile else {
+            return HydrationTargetPolicy.resolve(sex: "male", weightKG: 87)
+        }
+        let day = date.apexDateKey
+        let today = now.apexDateKey
+        let relation: HydrationTargetDateRelation = day < today ? .past : day > today ? .future : .today
+        let wearable = WearableActivityRecord.history(
+            from: data.settings?.addons["watch_activity_history"]
+        ).last { $0.date == day }
+        let logs = data.activityLogs.filter { $0.date == day }
+        let loggedMinutes = logs.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) }
+        let recordedMinutes = max(wearable?.exerciseMinutes ?? 0, loggedMinutes)
+        let activeCalories = EnergyEngine.resolvedActiveCalories(
+            wearableActiveCalories: wearable?.activeCalories,
+            logs: logs
+        )
+        let preferences = hydrationPreferences
+        let mode = preferences?.effectiveTargetMode ?? .automatic
+        let planMinutes = plannedExerciseMinutes ?? plannedHydrationExerciseMinutes(on: date)
+        let localHour = relation == .past
+            ? 23
+            : relation == .future ? 0 : Calendar.current.component(.hour, from: now)
+        return HydrationTargetPolicy.resolve(
+            sex: profile.sex,
+            weightKG: profile.weightKG,
+            mode: mode,
+            customTargetML: preferences?.targetML,
+            plannedExerciseMinutes: planMinutes,
+            recordedExerciseMinutes: recordedMinutes,
+            activeCalories: activeCalories,
+            steps: wearable?.steps,
+            dateRelation: relation,
+            localHour: localHour
+        )
+    }
+
+    private func plannedHydrationExerciseMinutes(on date: Date) -> Int? {
+        let day = date.apexDateKey
+        let fallback = SimpleHomeLogic.guidedProgramSlug(
+            persona: profile?.persona,
+            mainIsUsable: TrainingInduction.hasUsablePrescription(in: data, slug: "main"),
+            transitionIsUsable: TrainingInduction.hasUsablePrescription(in: data, slug: "transition")
+        )
+        let slug: String
+        if data.settings?.addons["training_induction"]?.objectValue != nil,
+           TrainingPlanEngine.isInsideInductionWindow(data, slug: "transition", date: day),
+           TrainingInduction.hasUsablePrescription(in: data, slug: "transition") {
+            slug = "transition"
+        } else if data.settings?.addons["training_induction"]?.objectValue != nil,
+                  TrainingPlanEngine.isInsideInductionWindow(data, slug: "main", date: day),
+                  TrainingInduction.hasUsablePrescription(in: data, slug: "main") {
+            slug = "main"
+        } else {
+            slug = fallback
+        }
+        guard TrainingInduction.hasUsablePrescription(in: data, slug: slug) else { return nil }
+        let weekday = Calendar.current.component(.weekday, from: date)
+        let mondayBasedWeekday = weekday == 1 ? 7 : weekday - 1
+        return TrainingInduction.visibleProgramDays(in: data, slug: slug)
+            .first { $0.weekday == mondayBasedWeekday }?.estimatedMinutes
+    }
+
     var hydrationPresets: [HydrationPreset] {
         guard let ownerID = verifiedPersistenceOwnerID() else { return [] }
         return (data.hydrationPresets ?? [])
@@ -1237,6 +1304,7 @@ final class AppSession {
             let preferences = HydrationAccountPreferences(
                 userID: ownerID,
                 targetML: 2_750,
+                targetMode: HydrationTargetMode.automatic.rawValue,
                 displayUnit: "liters",
                 remindersEnabled: false,
                 reminderIntervalMinutes: 90,
@@ -1523,7 +1591,10 @@ final class AppSession {
         let date = Date()
         let day = date.apexDateKey
         let legacy = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }?.waterL ?? 0
-        let preferences = data.hydrationPreferences.map(WatchHydrationPreferences.init(account:)) ?? .default
+        var preferences = data.hydrationPreferences.map(WatchHydrationPreferences.init(account:)) ?? .default
+        let target = hydrationTargetResolution(on: date)
+        preferences.targetMode = target.mode
+        preferences.targetLiters = Double(target.targetML) / 1_000
         let snapshot = HydrationCompanionSnapshot.make(
             ownerID: ownerID,
             date: day,
@@ -1708,6 +1779,7 @@ final class AppSession {
             history.sort { $0.date < $1.date }
             settings.addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
         }
+        if record.date == Date().apexDateKey { publishHydrationState() }
         guard automaticallyApply,
               data.activityLogs.contains(where: { $0.date == record.date }) == false else { return }
         let suggested = WearableActivityEngine.suggestedLevel(

@@ -36,6 +36,7 @@ struct WatchHydrationPreferences: Codable, Equatable, Sendable {
 
     static let `default` = WatchHydrationPreferences(
         targetLiters: 2.75,
+        targetMode: .automatic,
         unit: .liters,
         showsPresetNames: true,
         confirmationHaptics: true,
@@ -47,6 +48,8 @@ struct WatchHydrationPreferences: Codable, Equatable, Sendable {
     )
 
     var targetLiters: Double
+    /* Optional keeps preferences cached by the earlier Watch build decodable. */
+    var targetMode: HydrationTargetMode?
     var unit: Unit
     var showsPresetNames: Bool
     var confirmationHaptics: Bool
@@ -55,6 +58,13 @@ struct WatchHydrationPreferences: Codable, Equatable, Sendable {
     var reminderIntervalMinutes: Int
     var quietHoursStartMinutes: Int
     var quietHoursEndMinutes: Int
+
+    var effectiveTargetMode: HydrationTargetMode {
+        targetMode ?? HydrationTargetPolicy.inferredMode(
+            stored: nil,
+            targetML: Int((targetLiters * 1_000).rounded())
+        )
+    }
 
     static func validatedTargetLiters(_ value: Double) throws -> Double {
         guard value.isFinite, (1.0...6.0).contains(value) else {

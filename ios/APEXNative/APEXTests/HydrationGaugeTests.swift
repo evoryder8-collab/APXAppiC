@@ -227,6 +227,7 @@ final class WatchHydrationPreferencesTests: XCTestCase {
         let preferences = WatchHydrationPreferences.default
 
         XCTAssertEqual(preferences.targetLiters, 2.75)
+        XCTAssertEqual(preferences.effectiveTargetMode, .automatic)
         XCTAssertEqual(preferences.unit, .liters)
         XCTAssertTrue(preferences.showsPresetNames)
         XCTAssertTrue(preferences.confirmationHaptics)
@@ -249,6 +250,7 @@ final class WatchHydrationPreferencesTests: XCTestCase {
     func testPreferencesRoundTripWithoutLosingExactGoal() throws {
         var preferences = WatchHydrationPreferences.default
         preferences.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(3.83)
+        preferences.targetMode = .custom
         preferences.unit = .gallons
         preferences.showsPresetNames = false
         preferences.remindersEnabled = true
@@ -259,6 +261,38 @@ final class WatchHydrationPreferencesTests: XCTestCase {
 
         XCTAssertEqual(restored, preferences)
         XCTAssertEqual(restored.targetLiters, 3.83)
+        XCTAssertEqual(restored.effectiveTargetMode, .custom)
+    }
+
+    func testEarlierWatchCacheWithoutTargetModeStillDecodesAsAutomatic() throws {
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(WatchHydrationPreferences.default))
+                as? [String: Any]
+        )
+        object.removeValue(forKey: "targetMode")
+        let restored = try JSONDecoder().decode(
+            WatchHydrationPreferences.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertEqual(restored.effectiveTargetMode, .automatic)
+        XCTAssertEqual(restored.targetLiters, 2.75)
+    }
+
+    func testEarlierWatchCachePreservesANonDefaultCustomTarget() throws {
+        var preferences = WatchHydrationPreferences.default
+        preferences.targetLiters = 3.8
+        var object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(preferences)) as? [String: Any]
+        )
+        object.removeValue(forKey: "targetMode")
+        let restored = try JSONDecoder().decode(
+            WatchHydrationPreferences.self,
+            from: JSONSerialization.data(withJSONObject: object)
+        )
+
+        XCTAssertEqual(restored.effectiveTargetMode, .custom)
+        XCTAssertEqual(restored.targetLiters, 3.8)
     }
 
     func testSelectedUnitsDeriveDisplayWithoutChangingStoredLiters() {
@@ -269,6 +303,94 @@ final class WatchHydrationPreferencesTests: XCTestCase {
         XCTAssertEqual(preferences.formattedAmount(liters: 1), "0.26 gal")
         XCTAssertEqual(preferences.formattedTarget, "0.73 gal")
         XCTAssertEqual(preferences.targetLiters, 2.75)
+    }
+}
+
+final class AdaptiveHydrationTargetTests: XCTestCase {
+    func testAutomaticTargetCombinesBodySizeWithBoundedExercise() {
+        let target = HydrationTargetPolicy.resolve(
+            sex: "male",
+            weightKG: 80,
+            mode: .automatic,
+            customTargetML: 3_800,
+            plannedExerciseMinutes: 60,
+            recordedExerciseMinutes: 0,
+            activeCalories: 0,
+            dateRelation: .today,
+            localHour: 10
+        )
+
+        XCTAssertEqual(target.mode, .automatic)
+        XCTAssertEqual(target.targetML, 3_250)
+        XCTAssertEqual(target.baselineML, 2_850)
+        XCTAssertEqual(target.exerciseAdjustmentML, 400)
+        XCTAssertEqual(target.wearableAdjustmentML, 0)
+    }
+
+    func testBaselineIsBoundedBySexSpecificPopulationReferences() {
+        XCTAssertEqual(HydrationTargetPolicy.resolve(sex: "female", weightKG: 60).baselineML, 2_150)
+        XCTAssertEqual(HydrationTargetPolicy.resolve(sex: "female", weightKG: 35).baselineML, 2_000)
+        XCTAssertEqual(HydrationTargetPolicy.resolve(sex: "male", weightKG: 200).baselineML, 3_700)
+    }
+
+    func testLateWearableCaloriesAreSmallAndCapped() {
+        let before = HydrationTargetPolicy.resolve(
+            sex: "male", weightKG: 80,
+            plannedExerciseMinutes: 60, recordedExerciseMinutes: 45,
+            activeCalories: 1_600, dateRelation: .today, localHour: 14
+        )
+        let after = HydrationTargetPolicy.resolve(
+            sex: "male", weightKG: 80,
+            plannedExerciseMinutes: 60, recordedExerciseMinutes: 45,
+            activeCalories: 800, dateRelation: .today, localHour: 16
+        )
+        let muchHigherCalories = HydrationTargetPolicy.resolve(
+            sex: "male", weightKG: 80,
+            plannedExerciseMinutes: 60, recordedExerciseMinutes: 45,
+            activeCalories: 1_600, dateRelation: .today, localHour: 16
+        )
+
+        XCTAssertEqual(before.wearableAdjustmentML, 0)
+        XCTAssertEqual(after.wearableAdjustmentML, 200)
+        XCTAssertEqual(muchHigherCalories.wearableAdjustmentML, 200)
+        XCTAssertEqual(after.exerciseAdjustmentML, 400)
+        XCTAssertEqual(after.targetML, 3_450)
+    }
+
+    func testLateStepsCanCorroborateActivityWithoutACalorieSample() {
+        let moderate = HydrationTargetPolicy.resolve(
+            sex: "female", weightKG: 60,
+            activeCalories: 0, steps: 12_000,
+            dateRelation: .today, localHour: 16
+        )
+        let high = HydrationTargetPolicy.resolve(
+            sex: "female", weightKG: 60,
+            activeCalories: 0, steps: 18_000,
+            dateRelation: .today, localHour: 16
+        )
+
+        XCTAssertEqual(moderate.wearableAdjustmentML, 100)
+        XCTAssertEqual(high.wearableAdjustmentML, 200)
+    }
+
+    func testExactCustomTargetCannotDriftWithActivity() {
+        let target = HydrationTargetPolicy.resolve(
+            sex: "male", weightKG: 100,
+            mode: .custom, customTargetML: 3_830,
+            plannedExerciseMinutes: 120, recordedExerciseMinutes: 120,
+            activeCalories: 2_000, dateRelation: .past, localHour: 23
+        )
+
+        XCTAssertEqual(target.targetML, 3_830)
+        XCTAssertEqual(target.baselineML, 3_830)
+        XCTAssertEqual(target.exerciseAdjustmentML, 0)
+        XCTAssertEqual(target.wearableAdjustmentML, 0)
+    }
+
+    func testLegacyModeInferencePreservesCustomChoice() {
+        XCTAssertEqual(HydrationTargetPolicy.inferredMode(stored: nil, targetML: 2_750), .automatic)
+        XCTAssertEqual(HydrationTargetPolicy.inferredMode(stored: nil, targetML: 3_800), .custom)
+        XCTAssertEqual(HydrationTargetPolicy.inferredMode(stored: "automatic", targetML: 3_800), .automatic)
     }
 }
 

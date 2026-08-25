@@ -694,6 +694,10 @@
 "Currently rehabilitating" = "Sunt în recuperare în prezent";
 "Currently under a professional restriction" = "Am în prezent o restricție profesională";
 "Custom" = "Personalizat";
+"Automatic" = "Automat";
+"Target mode" = "Modul obiectivului";
+"Automatic total-water target" = "Obiectiv automat de apă totală";
+"Custom total-water target" = "Obiectiv personalizat de apă totală";
 "Custom BMR" = "BMR personalizat";
 "Custom meal name" = "Numele mesei personalizate";
 "Custom workout saved" = "Antrenamentul personalizat a fost salvat";

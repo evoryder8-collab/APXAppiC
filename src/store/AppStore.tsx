@@ -20,6 +20,7 @@ import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supaba
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
 import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
 import type { HydrationPreferences } from '../lib/hydrationLedger'
+import { inferredHydrationTargetMode } from '../lib/hydration'
 import { EMPTY_DATA } from '../lib/types'
 import { computeEngine, type SynergyEvent } from '../lib/rpg'
 import { eventContextFor } from '../lib/plan'
@@ -543,6 +544,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     mutationRevision.current += 1
     const row: HydrationPreferences = {
       target_ml: 2_750,
+      target_mode: inferredHydrationTargetMode(existing?.target_mode, existing?.target_ml),
       display_unit: 'liters',
       reminders_enabled: false,
       reminder_interval_minutes: 90,

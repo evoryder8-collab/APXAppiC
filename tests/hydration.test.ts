@@ -3,7 +3,9 @@ import { test } from 'node:test'
 import {
   estimateWaterContent,
   hydrationBreakdown,
+  inferredHydrationTargetMode,
   portionWater,
+  resolveHydrationTarget,
   waterDisclosure,
   waterByDifference,
 } from '../src/lib/hydration.ts'
@@ -87,4 +89,83 @@ test('food water is reported beside drinks, never inside them', () => {
   assert.equal(breakdown.drinkL, 1.5, 'the drink figure must not absorb food water')
   assert.equal(breakdown.foodL, 0.62)
   assert.equal(breakdown.totalL, 2.12)
+})
+
+test('automatic hydration target combines body size with a bounded exercise allowance', () => {
+  const target = resolveHydrationTarget({
+    sex: 'male',
+    weightKg: 80,
+    mode: 'automatic',
+    customTargetML: 3_800,
+    plannedExerciseMinutes: 60,
+    recordedExerciseMinutes: 0,
+    activeCalories: 0,
+    dateRelation: 'today',
+    localHour: 10,
+  })
+
+  assert.deepEqual(target, {
+    mode: 'automatic',
+    targetML: 3_250,
+    baselineML: 2_850,
+    exerciseAdjustmentML: 400,
+    wearableAdjustmentML: 0,
+  })
+})
+
+test('automatic baseline stays inside authoritative sex-specific total-water references', () => {
+  assert.equal(resolveHydrationTarget({ sex: 'female', weightKg: 60 }).baselineML, 2_150)
+  assert.equal(resolveHydrationTarget({ sex: 'female', weightKg: 35 }).baselineML, 2_000)
+  assert.equal(resolveHydrationTarget({ sex: 'male', weightKg: 200 }).baselineML, 3_700)
+})
+
+test('late wearable calories are only a small capped corroborating signal', () => {
+  const base = {
+    sex: 'male' as const,
+    weightKg: 80,
+    plannedExerciseMinutes: 60,
+    recordedExerciseMinutes: 45,
+    dateRelation: 'today' as const,
+  }
+  const beforeCutoff = resolveHydrationTarget({ ...base, activeCalories: 1_600, localHour: 14 })
+  const afterCutoff = resolveHydrationTarget({ ...base, activeCalories: 800, localHour: 16 })
+  const muchHigherCalories = resolveHydrationTarget({ ...base, activeCalories: 1_600, localHour: 16 })
+
+  assert.equal(beforeCutoff.wearableAdjustmentML, 0)
+  assert.equal(afterCutoff.wearableAdjustmentML, 200)
+  assert.equal(muchHigherCalories.wearableAdjustmentML, 200)
+  assert.equal(afterCutoff.exerciseAdjustmentML, 400, 'planned and recorded exercise must not be summed twice')
+  assert.equal(afterCutoff.targetML, 3_450)
+})
+
+test('late steps can corroborate activity when HealthKit has no calorie sample', () => {
+  const moderate = resolveHydrationTarget({
+    sex: 'female', weightKg: 60, steps: 12_000, activeCalories: 0,
+    dateRelation: 'today', localHour: 16,
+  })
+  const high = resolveHydrationTarget({
+    sex: 'female', weightKg: 60, steps: 18_000, activeCalories: 0,
+    dateRelation: 'today', localHour: 16,
+  })
+
+  assert.equal(moderate.wearableAdjustmentML, 100)
+  assert.equal(high.wearableAdjustmentML, 200)
+})
+
+test('an exact custom target wins without hidden activity changes', () => {
+  const target = resolveHydrationTarget({
+    sex: 'male', weightKg: 100, mode: 'custom', customTargetML: 3_830,
+    plannedExerciseMinutes: 120, recordedExerciseMinutes: 120,
+    activeCalories: 2_000, dateRelation: 'past', localHour: 23,
+  })
+  assert.deepEqual(target, {
+    mode: 'custom', targetML: 3_830, baselineML: 3_830,
+    exerciseAdjustmentML: 0, wearableAdjustmentML: 0,
+  })
+})
+
+test('legacy targets preserve genuine custom choices but migrate the old default to automatic', () => {
+  assert.equal(inferredHydrationTargetMode(null, 2_750), 'automatic')
+  assert.equal(inferredHydrationTargetMode(undefined, 3_800), 'custom')
+  assert.equal(inferredHydrationTargetMode('automatic', 3_800), 'automatic')
 })

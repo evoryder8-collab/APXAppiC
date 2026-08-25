@@ -77,7 +77,9 @@ final class WatchHydrationStore: ObservableObject {
     func updatePreferences(_ value: WatchHydrationPreferences) async throws {
         let remindersWereEnabled = preferences.remindersEnabled
         var validated = value
-        validated.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(value.targetLiters)
+        if value.effectiveTargetMode == .custom {
+            validated.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(value.targetLiters)
+        }
         validated.reminderIntervalMinutes = [60, 90, 120].contains(value.reminderIntervalMinutes)
             ? value.reminderIntervalMinutes
             : 90

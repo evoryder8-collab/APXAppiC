@@ -694,6 +694,10 @@
 "Currently rehabilitating" = "กำลังฟื้นฟูอยู่";
 "Currently under a professional restriction" = "อยู่ภายใต้ข้อจำกัดจากผู้เชี่ยวชาญ";
 "Custom" = "สร้างเอง";
+"Automatic" = "อัตโนมัติ";
+"Target mode" = "โหมดเป้าหมาย";
+"Automatic total-water target" = "เป้าหมายน้ำรวมอัตโนมัติ";
+"Custom total-water target" = "เป้าหมายน้ำรวมกำหนดเอง";
 "Custom BMR" = "BMR กำหนดเอง";
 "Custom meal name" = "ชื่อมื้ออาหารที่กำหนดเอง";
 "Custom workout saved" = "บันทึกการฝึกที่สร้างเองแล้ว";

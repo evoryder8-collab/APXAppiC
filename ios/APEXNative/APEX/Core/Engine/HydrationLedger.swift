@@ -14,6 +14,92 @@ extension Date {
     var apexDateKey: String { ISO8601DateFormatter.apexDateOnly.string(from: self) }
 }
 
+enum HydrationTargetMode: String, Codable, Equatable, Sendable {
+    case automatic
+    case custom
+}
+
+enum HydrationTargetDateRelation: Sendable {
+    case past
+    case today
+    case future
+}
+
+struct HydrationTargetResolution: Equatable, Sendable {
+    let mode: HydrationTargetMode
+    let targetML: Int
+    let baselineML: Int
+    let exerciseAdjustmentML: Int
+    let wearableAdjustmentML: Int
+}
+
+enum HydrationTargetPolicy {
+    private static let legacyTargetML = 2_750
+
+    static func inferredMode(stored: String?, targetML: Int) -> HydrationTargetMode {
+        if let stored, let explicit = HydrationTargetMode(rawValue: stored) { return explicit }
+        return targetML == legacyTargetML ? .automatic : .custom
+    }
+
+    static func resolve(
+        sex: String,
+        weightKG: Double,
+        mode: HydrationTargetMode? = nil,
+        customTargetML: Int? = nil,
+        plannedExerciseMinutes: Int? = nil,
+        recordedExerciseMinutes: Int? = nil,
+        activeCalories: Int? = nil,
+        steps: Int? = nil,
+        dateRelation: HydrationTargetDateRelation = .today,
+        localHour: Int = 0
+    ) -> HydrationTargetResolution {
+        let resolvedMode = mode ?? inferredMode(stored: nil, targetML: customTargetML ?? legacyTargetML)
+        if resolvedMode == .custom {
+            let exact = min(6_000, max(1_000, customTargetML ?? legacyTargetML))
+            return HydrationTargetResolution(
+                mode: resolvedMode,
+                targetML: exact,
+                baselineML: exact,
+                exerciseAdjustmentML: 0,
+                wearableAdjustmentML: 0
+            )
+        }
+
+        let isFemale = sex.lowercased() == "female"
+        let populationLowerML = isFemale ? 2_000.0 : 2_500.0
+        let populationUpperML = isFemale ? 2_700.0 : 3_700.0
+        let fallbackWeightKG = isFemale ? 66.0 : 87.0
+        let safeWeightKG = weightKG.isFinite && weightKG > 0 ? weightKG : fallbackWeightKG
+        let bodyIndexedML = min(populationUpperML, max(populationLowerML, safeWeightKG * 35.5))
+        let baselineML = roundedTo50(bodyIndexedML)
+
+        let planned = max(0, plannedExerciseMinutes ?? 0)
+        let recorded = max(0, recordedExerciseMinutes ?? 0)
+        let exerciseMinutes = min(120, max(planned, recorded))
+        let exerciseAdjustmentML = min(750, roundedTo50(Double(exerciseMinutes) * 7))
+
+        let lateEnough = dateRelation == .past || (dateRelation == .today && localHour >= 15)
+        let caloriesPerKG = Double(max(0, activeCalories ?? 0)) / max(1, safeWeightKG)
+        let safeSteps = max(0, steps ?? 0)
+        let calorieAdjustment = caloriesPerKG >= 10 ? 200 : caloriesPerKG >= 6 ? 100 : 0
+        let stepAdjustment = safeSteps >= 15_000 ? 200 : safeSteps >= 10_000 ? 100 : 0
+        let requestedWearableAdjustment = lateEnough ? max(calorieAdjustment, stepAdjustment) : 0
+        let wearableAdjustmentML = min(requestedWearableAdjustment, max(0, 750 - exerciseAdjustmentML))
+
+        return HydrationTargetResolution(
+            mode: resolvedMode,
+            targetML: baselineML + exerciseAdjustmentML + wearableAdjustmentML,
+            baselineML: baselineML,
+            exerciseAdjustmentML: exerciseAdjustmentML,
+            wearableAdjustmentML: wearableAdjustmentML
+        )
+    }
+
+    private static func roundedTo50(_ milliliters: Double) -> Int {
+        Int((milliliters / 50).rounded()) * 50
+    }
+}
+
 enum HydrationCompanionKeys {
     static let snapshot = "apex_hydration_snapshot_v1"
     static let mutation = "apex_hydration_mutation_v1"
@@ -182,6 +268,7 @@ struct HydrationPreset: Codable, Identifiable, Hashable, Sendable {
 struct HydrationAccountPreferences: Codable, Hashable, Sendable {
     let userID: UUID
     var targetML: Int
+    var targetMode: String? = nil
     var displayUnit: String
     var remindersEnabled: Bool
     var reminderIntervalMinutes: Int
@@ -196,6 +283,7 @@ struct HydrationAccountPreferences: Codable, Hashable, Sendable {
     enum CodingKeys: String, CodingKey {
         case userID = "user_id"
         case targetML = "target_ml"
+        case targetMode = "target_mode"
         case displayUnit = "display_unit"
         case remindersEnabled = "reminders_enabled"
         case reminderIntervalMinutes = "reminder_interval_minutes"
@@ -207,12 +295,17 @@ struct HydrationAccountPreferences: Codable, Hashable, Sendable {
         case createdAt = "created_at"
         case updatedAt = "updated_at"
     }
+
+    var effectiveTargetMode: HydrationTargetMode {
+        HydrationTargetPolicy.inferredMode(stored: targetMode, targetML: targetML)
+    }
 }
 
 extension WatchHydrationPreferences {
     init(account preferences: HydrationAccountPreferences) {
         self.init(
             targetLiters: Double(preferences.targetML) / 1_000,
+            targetMode: preferences.effectiveTargetMode,
             unit: Unit(rawValue: preferences.displayUnit) ?? .liters,
             showsPresetNames: preferences.showsPresetNames,
             confirmationHaptics: preferences.confirmationHaptics,
@@ -228,7 +321,10 @@ extension WatchHydrationPreferences {
         let now = Date().ISO8601Format()
         return HydrationAccountPreferences(
             userID: ownerID,
-            targetML: Int((targetLiters * 1_000).rounded()),
+            targetML: effectiveTargetMode == .custom
+                ? Int((targetLiters * 1_000).rounded())
+                : existing?.targetML ?? Int((targetLiters * 1_000).rounded()),
+            targetMode: effectiveTargetMode.rawValue,
             displayUnit: unit.rawValue,
             remindersEnabled: remindersEnabled,
             reminderIntervalMinutes: reminderIntervalMinutes,

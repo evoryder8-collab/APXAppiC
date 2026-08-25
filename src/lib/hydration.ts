@@ -172,8 +172,8 @@ export function portionWater(waterPer100: number | null | undefined, equivalentA
 
 /*
  * Food water is real intake - EFSA puts it at roughly a fifth to a third of
- * total water - but it is not interchangeable with drinking. The drink target
- * stays the target; food water is reported beside it, never folded into it.
+ * total water - but it is not interchangeable with drinking. Keep it visibly
+ * separate from drinks while allowing their sum to answer a total-water goal.
  */
 export interface HydrationBreakdown {
   /** Litres from drinks and Apple Health dietary-water samples. */
@@ -191,5 +191,116 @@ export function hydrationBreakdown(drinkL: number, foodMl: number): HydrationBre
     drinkL: Math.round(drink * 100) / 100,
     foodL: Math.round(food * 100) / 100,
     totalL: Math.round((drink + food) * 100) / 100,
+  }
+}
+
+export type HydrationTargetMode = 'automatic' | 'custom'
+export type HydrationTargetDateRelation = 'past' | 'today' | 'future'
+
+export interface HydrationTargetInput {
+  sex: 'male' | 'female'
+  weightKg: number
+  mode?: HydrationTargetMode | null
+  customTargetML?: number | null
+  plannedExerciseMinutes?: number | null
+  recordedExerciseMinutes?: number | null
+  activeCalories?: number | null
+  steps?: number | null
+  dateRelation?: HydrationTargetDateRelation
+  localHour?: number
+}
+
+export interface HydrationTargetResolution {
+  mode: HydrationTargetMode
+  targetML: number
+  baselineML: number
+  exerciseAdjustmentML: number
+  wearableAdjustmentML: number
+}
+
+const LEGACY_HYDRATION_TARGET_ML = 2_750
+
+function clamp(value: number, lower: number, upper: number): number {
+  return Math.min(upper, Math.max(lower, value))
+}
+
+function roundedTo50ML(value: number): number {
+  return Math.round(value / 50) * 50
+}
+
+/**
+ * Migration rule for the original one-number preference. The old 2.75 L
+ * value was the application default, while any other stored value required a
+ * deliberate edit and is therefore preserved as custom.
+ */
+export function inferredHydrationTargetMode(
+  stored: HydrationTargetMode | null | undefined,
+  targetML: number | null | undefined,
+): HydrationTargetMode {
+  if (stored === 'automatic' || stored === 'custom') return stored
+  return targetML != null && Math.round(targetML) !== LEGACY_HYDRATION_TARGET_ML
+    ? 'custom'
+    : 'automatic'
+}
+
+/**
+ * A conservative total-water estimate, not a diagnosis or a claim to know
+ * sweat loss. Body size is anchored to the observed 35.5 mL/kg adult median
+ * and bounded by EFSA/National Academies sex-specific adequate-intake values.
+ * Exercise uses a low 0.42 L/hour allowance; late-day calories or steps only
+ * select a small capped buffer and are never converted into presumed sweat.
+ */
+export function resolveHydrationTarget(input: HydrationTargetInput): HydrationTargetResolution {
+  const mode = inferredHydrationTargetMode(input.mode, input.customTargetML)
+  if (mode === 'custom') {
+    const exact = clamp(
+      Number.isFinite(input.customTargetML) ? Math.round(input.customTargetML!) : LEGACY_HYDRATION_TARGET_ML,
+      1_000,
+      6_000,
+    )
+    return {
+      mode,
+      targetML: exact,
+      baselineML: exact,
+      exerciseAdjustmentML: 0,
+      wearableAdjustmentML: 0,
+    }
+  }
+
+  const isFemale = input.sex === 'female'
+  const populationLowerML = isFemale ? 2_000 : 2_500
+  const populationUpperML = isFemale ? 2_700 : 3_700
+  const fallbackWeightKG = isFemale ? 66 : 87
+  const weightKG = Number.isFinite(input.weightKg) && input.weightKg > 0
+    ? input.weightKg
+    : fallbackWeightKG
+  const baselineML = roundedTo50ML(clamp(weightKG * 35.5, populationLowerML, populationUpperML))
+
+  const plannedMinutes = Number.isFinite(input.plannedExerciseMinutes)
+    ? Math.max(0, input.plannedExerciseMinutes!)
+    : 0
+  const recordedMinutes = Number.isFinite(input.recordedExerciseMinutes)
+    ? Math.max(0, input.recordedExerciseMinutes!)
+    : 0
+  const exerciseMinutes = Math.min(120, Math.max(plannedMinutes, recordedMinutes))
+  const exerciseAdjustmentML = Math.min(750, roundedTo50ML(exerciseMinutes * 7))
+
+  const relation = input.dateRelation ?? 'today'
+  const hour = Number.isFinite(input.localHour) ? clamp(Math.floor(input.localHour!), 0, 23) : 0
+  const lateEnough = relation === 'past' || (relation === 'today' && hour >= 15)
+  const activeCalories = Number.isFinite(input.activeCalories) ? Math.max(0, input.activeCalories!) : 0
+  const caloriesPerKG = activeCalories / Math.max(1, weightKG)
+  const steps = Number.isFinite(input.steps) ? Math.max(0, input.steps!) : 0
+  const calorieAdjustment = caloriesPerKG >= 10 ? 200 : caloriesPerKG >= 6 ? 100 : 0
+  const stepAdjustment = steps >= 15_000 ? 200 : steps >= 10_000 ? 100 : 0
+  const requestedWearableAdjustment = lateEnough ? Math.max(calorieAdjustment, stepAdjustment) : 0
+  const wearableAdjustmentML = Math.min(requestedWearableAdjustment, Math.max(0, 750 - exerciseAdjustmentML))
+
+  return {
+    mode,
+    targetML: baselineML + exerciseAdjustmentML + wearableAdjustmentML,
+    baselineML,
+    exerciseAdjustmentML,
+    wearableAdjustmentML,
   }
 }

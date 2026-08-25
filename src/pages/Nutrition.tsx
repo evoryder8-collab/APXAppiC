@@ -1,4 +1,4 @@
-import { estimateWaterContent } from '../lib/hydration.ts'
+import { estimateWaterContent, inferredHydrationTargetMode, resolveHydrationTarget } from '../lib/hydration.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
 import { motion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
@@ -13,7 +13,7 @@ import {
 } from '../components/ui'
 import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS, type TargetMeal } from '../lib/nutrition'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, Goal, Supplement } from '../lib/types'
+import type { ActivityLevel, DailyLog, Goal, ProgramSlug, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
 import { TodaysActivities } from '../components/TodaysActivities'
@@ -45,12 +45,14 @@ import {
 } from '../lib/food'
 import { normalizeDailyLogIntegers } from '../lib/sync'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset, simpleGuidedProgramSlug } from '../lib/simpleMode'
 import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { loggedMealEditorState } from '../lib/mealExperience'
 import { personalTargetFor } from '../lib/personalProtocol'
 import { clockToMinute, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
+import { planForDate } from '../lib/plan'
+import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -132,9 +134,53 @@ export function Nutrition() {
   )
   const preciseMode = activityBlocks.length > 0
   const usesWholeDayProtocol = Boolean(profile && personalTargetFor(profile))
+  const hydrationPlannedExerciseMinutes = useMemo(() => {
+    const activeDays = activeTrainingProgramDays(data)
+    const hasPrescription = (slug: ProgramSlug): boolean => {
+      const programIDs = new Set(data.programs.filter((candidate) => candidate.slug === slug).map((candidate) => candidate.id))
+      const dayIDs = new Set(activeDays.filter((day) => programIDs.has(day.program_id)).map((day) => day.id))
+      return data.exercises.some((exercise) => dayIDs.has(exercise.program_day_id) && !exercise.is_lite)
+    }
+    const mainIsUsable = hasPrescription('main')
+    const transitionIsUsable = hasPrescription('transition')
+    const induction = data.settings?.addons.training_induction
+    const fallback = simpleGuidedProgramSlug(profile?.persona, mainIsUsable, transitionIsUsable)
+    const slug: ProgramSlug = induction && isInsideInductionWindow(induction, 'transition', selectedLogDate) && transitionIsUsable
+      ? 'transition'
+      : induction && isInsideInductionWindow(induction, 'main', selectedLogDate) && mainIsUsable
+        ? 'main'
+        : fallback
+    return planForDate(data, slug, selectedLogDate, false).programDay?.est_minutes ?? null
+  }, [data, profile?.persona, selectedLogDate])
+  const hydrationTarget = useMemo(() => profile ? resolveHydrationTarget({
+    sex: profile.sex,
+    weightKg: profile.weight_kg,
+    mode: inferredHydrationTargetMode(data.hydration_preferences?.target_mode, data.hydration_preferences?.target_ml),
+    customTargetML: data.hydration_preferences?.target_ml,
+    plannedExerciseMinutes: hydrationPlannedExerciseMinutes,
+    recordedExerciseMinutes: selectedWearableActivity?.exercise_minutes
+      ?? selectedActivityLogs.reduce((sum, log) => sum + Math.max(0, log.duration_min ?? 0), 0),
+    activeCalories: burnedKcal,
+    steps: selectedWearableActivity?.steps,
+    dateRelation: selectedLogDate < today ? 'past' : selectedLogDate > today ? 'future' : 'today',
+    localHour: selectedLogDate === today
+      ? Math.floor(clockToMinute(zonedClock(new Date(), mealTimeZone).time) / 60)
+      : selectedLogDate < today ? 23 : 0,
+  }) : null, [
+    burnedKcal,
+    data.hydration_preferences?.target_ml,
+    data.hydration_preferences?.target_mode,
+    hydrationPlannedExerciseMinutes,
+    mealTimeZone,
+    profile,
+    selectedActivityLogs,
+    selectedLogDate,
+    selectedWearableActivity?.exercise_minutes,
+    selectedWearableActivity?.steps,
+    today,
+  ])
   const targets = useMemo(() => {
-    if (!quickTargets || !activityEstimate || !preciseMode || usesWholeDayProtocol) return quickTargets
-    return {
+    const resolved = !quickTargets || !activityEstimate || !preciseMode || usesWholeDayProtocol ? quickTargets : {
       ...quickTargets,
       tdee: activityEstimate.tdee,
       kcal: activityEstimate.targetKcal,
@@ -142,7 +188,8 @@ export function Nutrition() {
       fat_g: activityEstimate.fatG,
       carbs_g: activityEstimate.carbsG,
     }
-  }, [activityEstimate, preciseMode, quickTargets, usesWholeDayProtocol])
+    return resolved && hydrationTarget ? { ...resolved, water_l: hydrationTarget.targetML / 1_000 } : resolved
+  }, [activityEstimate, hydrationTarget, preciseMode, quickTargets, usesWholeDayProtocol])
   const [showBmrInfo, setShowBmrInfo] = useState(false)
   const [waterDraft, setWaterDraft] = useState('0')
   const [plannedComposer, setPlannedComposer] = useState<{
@@ -1180,7 +1227,7 @@ export function Nutrition() {
 
             <div className="mt-5 space-y-4 border-t border-ink/8 pt-4">
               <div className="flex flex-wrap items-center justify-between gap-3">
-                <div><p className="text-sm font-bold text-ink">{tx('Water')}</p><p className="text-[10px] font-medium text-ink-faint">{tx('Editable here or from the workout calendar.')}</p></div>
+                <div><p className="text-sm font-bold text-ink">{tx('Water')}</p><p className="text-[10px] font-medium text-ink-faint">{tx('Editable here or from the workout calendar.')}{hydrationTarget ? ` · ${hydrationTarget.mode === 'automatic' ? tx('Automatic target') : tx('Custom target')} ${(hydrationTarget.targetML / 1_000).toFixed(2)} L` : ''}</p></div>
                 <div className="flex items-center gap-2" aria-label={tx('Water in litres')}>
                   <button type="button" onClick={() => setWater(selectedLog.water_l - 0.25)} className="grid h-10 w-10 place-items-center rounded-xl bg-gradient-to-br from-sky-500 to-cyan-400 font-mono text-lg font-bold text-white shadow-[0_10px_24px_-12px_rgba(14,165,233,.8)]" aria-label={tx('Decrease water')}>−</button>
                   <label className="glass flex min-w-[7.25rem] items-center justify-center rounded-xl px-2 py-2"><input type="text" inputMode="decimal" value={waterDraft} onChange={(event) => { if (/^\d*(?:[.,]\d{0,2})?$/.test(event.target.value)) setWaterDraft(event.target.value) }} onBlur={commitWaterDraft} onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()} className="w-[4.4rem] bg-transparent text-right font-mono text-xl font-bold text-sky-900 outline-none" aria-label={tx('Exact water in litres')} /><span className="ml-1 text-xs font-bold text-sky-700">L</span></label>

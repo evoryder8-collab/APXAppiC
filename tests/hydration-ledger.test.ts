@@ -54,6 +54,28 @@ test('hydration migration is additive, account-scoped and idempotent', () => {
   assert.doesNotMatch(migration, /drop table|truncate table|delete from/i)
 })
 
+test('hydration target mode migration preserves custom rows and defaults safely', () => {
+  const path = 'supabase/migrations/027_adaptive_hydration_target.sql'
+  assert.equal(existsSync(path), true, 'migration 027 is missing')
+  if (!existsSync(path)) return
+  const migration = readFileSync(path, 'utf8')
+
+  assert.match(migration, /alter table public\.hydration_preferences[\s\S]*add column if not exists target_mode/i)
+  assert.match(migration, /target_ml\s*=\s*2750[\s\S]*automatic/i)
+  assert.match(migration, /target_ml\s*<>\s*2750[\s\S]*custom/i)
+  assert.match(migration, /check \(target_mode in \('automatic', 'custom'\)\)/i)
+  assert.doesNotMatch(migration, /drop table|truncate table|delete from/i)
+})
+
+test('Simple and Nutrition both include the scheduled session in the automatic target', () => {
+  const simple = readFileSync('src/pages/SimpleHome.tsx', 'utf8')
+  const nutrition = readFileSync('src/pages/Nutrition.tsx', 'utf8')
+
+  assert.match(simple, /plannedExerciseMinutes:\s*plan\.programDay\?\.est_minutes/)
+  assert.match(nutrition, /plannedExerciseMinutes:\s*hydrationPlannedExerciseMinutes/)
+  assert.match(nutrition, /planForDate\(data, slug, selectedLogDate, false\)\.programDay\?\.est_minutes/)
+})
+
 test('one account can never resolve another account hydration', () => {
   const result = resolveHydrationDay({
     ownerID: owner,

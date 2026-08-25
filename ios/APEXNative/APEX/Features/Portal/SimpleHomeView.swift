@@ -45,7 +45,10 @@ struct SimpleHomeView: View {
         max(Double(hydrationResolution.foodML) / 1_000, session.foodHydrationLiters(on: selectedDate))
     }
     private var waterTargetL: Double {
-        Double(session.hydrationPreferences?.targetML ?? 2_750) / 1_000
+        Double(session.hydrationTargetResolution(
+            on: selectedDate,
+            plannedExerciseMinutes: todayProgramDay?.estimatedMinutes
+        ).targetML) / 1_000
     }
     private var waterL: Double { min(6, drinkWaterL + foodWaterL) }
     private var waterDone: Bool { waterL >= waterTargetL * 0.9 }
@@ -1108,6 +1111,10 @@ private struct HydrationManagementSheet: View {
     @State private var addingPreset = false
     @State private var validationMessage: String?
 
+    private var automaticTarget: HydrationTargetResolution {
+        session.hydrationTargetResolution(on: date)
+    }
+
     private var events: [HydrationEvent] {
         guard let ownerID = session.profile?.userID else { return [] }
         return (session.data.hydrationEvents ?? [])
@@ -1119,14 +1126,50 @@ private struct HydrationManagementSheet: View {
         NavigationStack {
             Form {
                 Section("Daily target") {
-                    TextField(
-                        "Exact litres",
-                        value: $draft.targetLiters,
-                        format: .number.precision(.fractionLength(0...2))
-                    )
-                    .keyboardType(.decimalPad)
-                    Stepper(value: $draft.targetLiters, in: 1...6, step: 0.1) {
-                        Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
+                    Picker(
+                        "Target mode",
+                        selection: Binding(
+                            get: { draft.effectiveTargetMode },
+                            set: { next in
+                                if next == .custom,
+                                   draft.effectiveTargetMode == .automatic,
+                                   abs(draft.targetLiters - 2.75) < 0.001 {
+                                    draft.targetLiters = Double(automaticTarget.targetML) / 1_000
+                                }
+                                draft.targetMode = next
+                            }
+                        )
+                    ) {
+                        Text("Automatic").tag(HydrationTargetMode.automatic)
+                        Text("Custom").tag(HydrationTargetMode.custom)
+                    }
+                    .pickerStyle(.segmented)
+
+                    if draft.effectiveTargetMode == .automatic {
+                        Text(draft.formattedAmount(liters: Double(automaticTarget.targetML) / 1_000))
+                            .font(APEXFont.display(20))
+                        Text(
+                            "Body baseline \(automaticTarget.baselineML) mL"
+                                + (automaticTarget.exerciseAdjustmentML > 0
+                                    ? " · exercise +\(automaticTarget.exerciseAdjustmentML) mL" : "")
+                                + (automaticTarget.wearableAdjustmentML > 0
+                                    ? " · wearable +\(automaticTarget.wearableAdjustmentML) mL" : "")
+                        )
+                        .font(APEXFont.body(11))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        Text("An APEX estimate for total water from drinks and food. Sweat loss varies, so thirst and measured pre/post-workout weight change remain more personal than wearable calories.")
+                            .font(APEXFont.body(10))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    } else {
+                        TextField(
+                            "Exact litres",
+                            value: $draft.targetLiters,
+                            format: .number.precision(.fractionLength(0...2))
+                        )
+                        .keyboardType(.decimalPad)
+                        Stepper(value: $draft.targetLiters, in: 1...6, step: 0.1) {
+                            Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
+                        }
                     }
                     Picker("Units", selection: $draft.unit) {
                         ForEach(WatchHydrationPreferences.Unit.allCases) { unit in
@@ -1249,7 +1292,9 @@ private struct HydrationManagementSheet: View {
     private func save() {
         guard let ownerID = session.profile?.userID else { return }
         do {
-            draft.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(draft.targetLiters)
+            if draft.effectiveTargetMode == .custom {
+                draft.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(draft.targetLiters)
+            }
             Task {
                 await session.saveHydrationPreferences(
                     draft.accountRow(ownerID: ownerID, existing: session.hydrationPreferences)

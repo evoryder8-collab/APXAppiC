@@ -420,15 +420,31 @@ struct WatchHydrationSettingsView: View {
     var body: some View {
         Form {
             Section("Daily goal") {
-                TextField(
-                    "Exact litres",
-                    value: $draft.targetLiters,
-                    format: .number.precision(.fractionLength(0...2))
-                )
-                Stepper(value: $draft.targetLiters, in: 1...6, step: 0.1) {
-                    Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
-                        .font(.headline)
-                        .bold()
+                Picker(
+                    "Goal mode",
+                    selection: Binding(
+                        get: { draft.effectiveTargetMode },
+                        set: { draft.targetMode = $0 }
+                    )
+                ) {
+                    Text("Auto").tag(HydrationTargetMode.automatic)
+                    Text("Custom").tag(HydrationTargetMode.custom)
+                }
+                if draft.effectiveTargetMode == .automatic {
+                    Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L from your profile and today’s iPhone activity")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                } else {
+                    TextField(
+                        "Exact litres",
+                        value: $draft.targetLiters,
+                        format: .number.precision(.fractionLength(0...2))
+                    )
+                    Stepper(value: $draft.targetLiters, in: 1...6, step: 0.1) {
+                        Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
+                            .font(.headline)
+                            .bold()
+                    }
                 }
                 Picker("Units", selection: $draft.unit) {
                     ForEach(WatchHydrationPreferences.Unit.allCases) { unit in

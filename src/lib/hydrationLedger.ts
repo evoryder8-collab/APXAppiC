@@ -41,6 +41,7 @@ export interface HydrationPreset extends HydrationPresetTemplate {
 export interface HydrationPreferences {
   user_id: string
   target_ml: number
+  target_mode?: 'automatic' | 'custom' | null
   display_unit: 'liters' | 'gallons'
   reminders_enabled: boolean
   reminder_interval_minutes: 60 | 90 | 120

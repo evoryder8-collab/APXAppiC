@@ -1,4 +1,4 @@
-import { estimateWaterContent, hydrationBreakdown, portionWater } from '../lib/hydration.ts'
+import { estimateWaterContent, hydrationBreakdown, inferredHydrationTargetMode, portionWater, resolveHydrationTarget } from '../lib/hydration.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
 import type { PointerEvent as ReactPointerEvent, ReactNode } from 'react'
 import {
@@ -307,9 +307,9 @@ export function SimpleHome() {
   const workoutDone = completedWorkoutSessions.length > 0
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
-  /* Water eaten rather than drunk. EFSA puts food at roughly a fifth to a
-     third of total intake, but it is not a substitute for drinking, so it is
-     reported beside the drink figure and never folded into the target. */
+  /* Water eaten rather than drunk stays separately attributable. The new
+     target is explicitly total water, so progress may use the sum without
+     ever relabelling food water as a drink. */
   const foodWaterMl = useMemo(() => {
     const mealIds = new Set(dateFoodMeals.map((meal) => meal.id))
     if (!mealIds.size) return 0
@@ -320,7 +320,36 @@ export function SimpleHome() {
     }, 0)
   }, [dateFoodMeals, foodStore.entries])
   const hydration = hydrationBreakdown(water, foodWaterMl)
-  const waterDone = targets ? simpleWaterTargetComplete(water, targets.water_l) : false
+  const hydrationTarget = useMemo(() => resolveHydrationTarget({
+    sex: profile?.sex ?? 'male',
+    weightKg: profile?.weight_kg ?? 87,
+    mode: inferredHydrationTargetMode(data.hydration_preferences?.target_mode, data.hydration_preferences?.target_ml),
+    customTargetML: data.hydration_preferences?.target_ml,
+    plannedExerciseMinutes: plan.programDay?.est_minutes,
+    recordedExerciseMinutes: selectedWearableActivity?.exercise_minutes
+      ?? selectedActivityLogs.reduce((sum, log) => sum + Math.max(0, log.duration_min ?? 0), 0),
+    activeCalories: burnedKcal,
+    steps: selectedWearableActivity?.steps,
+    dateRelation: selectedDate < today ? 'past' : selectedDate > today ? 'future' : 'today',
+    localHour: selectedDate === today
+      ? Math.floor(clockToMinute(zonedClock(new Date(), mealTimeZone).time) / 60)
+      : selectedDate < today ? 23 : 0,
+  }), [
+    burnedKcal,
+    data.hydration_preferences?.target_ml,
+    data.hydration_preferences?.target_mode,
+    mealTimeZone,
+    plan.programDay?.est_minutes,
+    profile?.sex,
+    profile?.weight_kg,
+    selectedActivityLogs,
+    selectedDate,
+    selectedWearableActivity?.exercise_minutes,
+    selectedWearableActivity?.steps,
+    today,
+  ])
+  const waterTargetL = hydrationTarget.targetML / 1_000
+  const waterDone = simpleWaterTargetComplete(hydration.totalL, waterTargetL)
 
   useEffect(() => {
     const kg = dailyLog?.weight_kg
@@ -871,7 +900,7 @@ export function SimpleHome() {
       run: () => navigate(`/player/${guidedProgramSlug}/${selectedDate}`), accent: ACCENTS.teal,
     }] : []),
     ...(showHydrationReminder && !waterDone ? [{
-      time: 21 * 60, eyebrow: 'Hydration', title: t(`${water.toFixed(2)} of ${targets.water_l.toFixed(2)} L`),
+      time: 21 * 60, eyebrow: 'Hydration', title: t(`${hydration.totalL.toFixed(2)} of ${waterTargetL.toFixed(2)} L`),
       meta: 'One glass takes one tap', action: '+ 250 ml', run: addWater, accent: ACCENTS.ice,
     }] : []),
   ]
@@ -1064,7 +1093,7 @@ export function SimpleHome() {
               />
             ) : blockId === 'quick-actions' ? (
               <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
-                <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${water.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
+                <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${hydration.totalL.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
                 <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
                 <SimpleMetric
                   icon={<img src={personaBySlug(profile.persona).portrait} alt="" className="h-full w-full scale-[2.35] object-contain [transform-origin:50%_32%]" />}
@@ -1267,7 +1296,7 @@ export function SimpleHome() {
               aria-label={quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${water.toFixed(2)} / ${targets.water_l.toFixed(2)} L${hydration.foodL > 0 ? ` · +${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${hydration.totalL.toFixed(2)} / ${waterTargetL.toFixed(2)} L · ${hydration.drinkL.toFixed(2)} L ${t('drinks')}${hydration.foodL > 0 ? ` + ${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
@@ -1454,6 +1483,12 @@ export function SimpleHome() {
                 </div>
               ) : (
                 <div className="mt-4">
+                  <div className="mb-3 rounded-2xl bg-cyan-50 px-3 py-2.5 text-[9px] font-bold leading-relaxed text-cyan-900">
+                    <p className="font-black">{hydrationTarget.mode === 'automatic' ? t('Automatic total-water target') : t('Custom total-water target')} · {waterTargetL.toFixed(2)} L</p>
+                    {hydrationTarget.mode === 'automatic' && (
+                      <p className="mt-0.5 text-cyan-800/80">{hydrationTarget.baselineML} mL {t('body baseline')}{hydrationTarget.exerciseAdjustmentML > 0 ? ` · +${hydrationTarget.exerciseAdjustmentML} mL ${t('exercise')}` : ''}{hydrationTarget.wearableAdjustmentML > 0 ? ` · +${hydrationTarget.wearableAdjustmentML} mL ${t('wearable activity')}` : ''}</p>
+                    )}
+                  </div>
                   {!customWaterOpen ? (
                     <div className="grid grid-cols-2 gap-2">
                       {[250, 300, 500].map((ml) => <button key={ml} type="button" onClick={() => addQuickWater(ml / 1000)} className="rounded-2xl bg-cyan-50 px-3 py-3 font-mono text-xs font-black text-cyan-800 active:scale-95">{ml} ml</button>)}
