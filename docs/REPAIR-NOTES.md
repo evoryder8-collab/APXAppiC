@@ -715,3 +715,15 @@ GitHub publication evidence:
 - GitHub: implementation pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
 - Pages: run `32837962231` succeeded; `https://evoryder8-collab.github.io/APXAppiC/?sleep=2f8818a40` returned HTTP 200.
 - Next: add an explicit plan-duration question to both plan builders as its own tested pre-1.8 task.
+
+## 2026-08-25 — Pre-1.8 generated plan duration is explicit and finite
+
+- Added a dedicated duration question to both web and native plan builders, including first-run native onboarding. Choices are 4, 8, or 12 weeks and 6 months (stored as 26 weeks); old plans without the field restore as 12 weeks.
+- Generation now persists `plan_weeks`, `transition_weeks`, and an exclusive `end_date`. Four-, eight-, and twelve-week plans remain bounded foundations; the six-month choice uses the established twelve-week foundation followed by a main phase through week 26. Calendar and Simple Mode stop projecting workouts at the end date, and Simple Mode selects the correct active phase during a six-month plan.
+- Files changed: `src/lib/types.ts`, `src/lib/trainingInduction.ts`, `src/components/workout/TrainingInductionPanel.tsx`, `src/pages/SimpleHome.tsx`, `tests/training-induction.test.ts`, `ios/APEXNative/APEX/Core/Engine/TrainingInduction.swift`, `TrainingPlanEngine.swift`, native onboarding/return-builder/Simple Mode/program views, Romanian/Thai strings, native generation/calendar tests, and the return-builder UI flow.
+- Red/green evidence: the new web test failed `undefined !== 4` because the selected duration was discarded; native failed to compile because `TrainingInduction.Input` had no `planWeeks`. Both now prove 4-week expiry at day 28 and 6-month expiry at week 26, including main-phase activation only inside its real window.
+- Tests: focused web 19/19; focused native duration/calendar/UI/localization 14/14; native return-builder UI flow 1/1; full native unit suite 449/449; full web suite 527/527; `npm run build` passed with 1,170 modules; `git diff --check` passed.
+- Implementation commit: `22e2ccdd74d485d3c7b95d6f07400870836418f3` (`feat: bound generated plans to chosen duration`).
+- Physical iPhone: signed Debug build from that exact implementation SHA, including the validated embedded Watch app, installed and launched on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, PID 1996.
+- GitHub/Pages: implementation pushed to `main`; Pages run `32840299271` succeeded, and `https://evoryder8-collab.github.io/APXAppiC/?plan-duration=22e2ccdd74d485d3c7b95d6f07400870836418f3` returned HTTP 200.
+- Next: implement the approved scientifically grounded baseline and activity-aware hydration target as a separate red/green task before Task 1.8.
