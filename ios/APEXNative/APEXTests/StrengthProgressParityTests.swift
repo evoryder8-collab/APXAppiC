@@ -134,6 +134,47 @@ final class StrengthProgressParityTests: XCTestCase {
         )
     }
 
+    func testTrackedHistoryKeepsOnePointPerSessionAcrossRegeneratedExerciseRows() {
+        let userID = UUID()
+        let firstSessionID = UUID()
+        let secondSessionID = UUID()
+        let firstExerciseID = UUID()
+        let secondExerciseID = UUID()
+        let sessions = [
+            WorkoutSession(
+                id: firstSessionID, userID: userID, date: "2026-08-01", programDayID: UUID(),
+                isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+            ),
+            WorkoutSession(
+                id: secondSessionID, userID: userID, date: "2026-08-21", programDayID: UUID(),
+                isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+            ),
+        ]
+        let rows = [
+            (firstSessionID, firstExerciseID, 1, 20.0),
+            (firstSessionID, firstExerciseID, 2, 20.0),
+            (secondSessionID, secondExerciseID, 1, 25.0),
+            (secondSessionID, secondExerciseID, 2, 25.0),
+        ].map { sessionID, exerciseID, setNumber, weight in
+            WorkoutLog(
+                id: UUID(), userID: userID, sessionID: sessionID, exerciseID: exerciseID,
+                exerciseName: "Front Lunge", setNumber: setNumber, weightKG: weight, reps: 12,
+                rir: 2, movementID: "forward_lunge", skipped: false, overrideFlag: false,
+                createdAt: "2026-08-21T08:00:00Z"
+            )
+        }
+
+        let series = StrengthProgress.buildSeries(sessions: sessions, logs: rows)
+
+        XCTAssertEqual(series.count, 1)
+        XCTAssertEqual(series.first?.key, "movement:forward_lunge")
+        XCTAssertEqual(series.first?.points.map(\.date), ["2026-08-01", "2026-08-21"])
+        XCTAssertEqual(series.first?.points.map(\.topWeight), [20, 25])
+        XCTAssertEqual(series.first?.points.map(\.volume), [480, 600])
+    }
+
     func testSessionInsightsMatchTheWeb() {
         for scenario in Self.fixture.insights {
             let rows = StrengthProgress.sessionInsights(

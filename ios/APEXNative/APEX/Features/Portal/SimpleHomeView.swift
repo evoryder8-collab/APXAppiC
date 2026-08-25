@@ -115,10 +115,16 @@ struct SimpleHomeView: View {
     }
     private var workoutDone: Bool {
         guard hasUsableTrainingPlan else { return false }
-        guard let todayProgramDay else { return true }
-        return session.data.workoutSessions.contains {
-            $0.date == today && $0.programDayID == todayProgramDay.id && $0.completed
-        }
+        guard todayProgramDay != nil else { return true }
+        return completedWorkoutSessionID != nil
+    }
+    private var completedWorkoutSessionID: UUID? {
+        guard let todayProgramDay else { return nil }
+        return SimpleHomeLogic.completedSessionID(
+            sessions: session.data.workoutSessions,
+            date: today,
+            programDayID: todayProgramDay.id
+        )
     }
     private var workoutPlan: PlannedDay {
         TrainingPlanEngine.plan(
@@ -339,20 +345,27 @@ struct SimpleHomeView: View {
             case .stats:
                 StatsQuickSheet(date: selectedDate, onClose: { quickPanel = nil })
             case .training:
-                TrainingQuickSheet(
-                    day: todayProgramDay,
-                    hasUsablePrescription: hasUsableTrainingPlan,
-                    isDeload: todayIsDeload,
-                    completed: workoutDone,
-                    onClose: { quickPanel = nil }
-                ) { lite in
-                    quickPanel = nil
-                    guard todayProgramDay != nil else {
-                        session.navigationPath.append(guidedProgramRoute)
-                        return
+                if let completedWorkoutSessionID {
+                    WorkoutReceiptSheet(sessionID: completedWorkoutSessionID) {
+                        quickPanel = nil
                     }
-                    workoutIsLite = lite
-                    showWorkout = true
+                    .environment(session)
+                } else {
+                    TrainingQuickSheet(
+                        day: todayProgramDay,
+                        hasUsablePrescription: hasUsableTrainingPlan,
+                        isDeload: todayIsDeload,
+                        completed: false,
+                        onClose: { quickPanel = nil }
+                    ) { lite in
+                        quickPanel = nil
+                        guard todayProgramDay != nil else {
+                            session.navigationPath.append(guidedProgramRoute)
+                            return
+                        }
+                        workoutIsLite = lite
+                        showWorkout = true
+                    }
                 }
             case .water:
                 EmptyView()

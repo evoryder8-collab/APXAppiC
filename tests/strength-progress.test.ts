@@ -1,6 +1,6 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { assessJointCheckin, buildStrengthSeries, checkinDue, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
+import { assessJointCheckin, buildStrengthSeries, checkinDue, distinctInsightTexts, sessionStrengthInsights } from '../src/lib/strengthProgress.ts'
 import { recommendLoad } from '../src/lib/progression.ts'
 import { EMPTY_DATA, type AppData, type Exercise, type JointCheckin } from '../src/lib/types.ts'
 
@@ -68,6 +68,40 @@ test('strength series uses per-set loads and creates an honest 90-day comparison
   assert.equal(insight.loadDelta, 5)
   assert.equal(insight.daysCompared, 90)
   assert.ok((insight.estimated1rmDelta ?? 0) > 0)
+})
+
+test('tracked history survives regenerated exercise row ids and keeps one point per session', () => {
+  const data = strengthData()
+  const template = data.workout_logs[0]
+  data.workout_logs = [
+    { ...template, id: 'front-1a', session_id: 's1', exercise_id: 'front-generation-1', exercise_name: 'Front Lunge', movement_id: 'forward_lunge', set_no: 1, weight_kg: 20, reps: 12 },
+    { ...template, id: 'front-1b', session_id: 's1', exercise_id: 'front-generation-1', exercise_name: 'Front Lunge', movement_id: 'forward_lunge', set_no: 2, weight_kg: 20, reps: 12 },
+    { ...template, id: 'front-2a', session_id: 's2', exercise_id: 'front-generation-2', exercise_name: 'Front Lunge', movement_id: 'forward_lunge', set_no: 1, weight_kg: 25, reps: 12 },
+    { ...template, id: 'front-2b', session_id: 's2', exercise_id: 'front-generation-2', exercise_name: 'Front Lunge', movement_id: 'forward_lunge', set_no: 2, weight_kg: 25, reps: 12 },
+  ]
+
+  const series = buildStrengthSeries(data)
+
+  assert.equal(series.length, 1)
+  assert.equal(series[0].key, 'movement:forward_lunge')
+  assert.deepEqual(series[0].points.map((point) => point.topWeight), [20, 25])
+  assert.deepEqual(series[0].points.map((point) => point.volume), [480, 600])
+})
+
+test('workout receipt removes repeated strength signal copy', () => {
+  assert.deepEqual(
+    distinctInsightTexts([
+      'First clean baseline recorded.',
+      'First clean baseline recorded.',
+      'Front Lunge increased by 5 kg.',
+      'Calf Raise held steady.',
+    ], 3),
+    [
+      'First clean baseline recorded.',
+      'Front Lunge increased by 5 kg.',
+      'Calf Raise held steady.',
+    ],
+  )
 })
 
 test('legacy strength insights exclude signed bodyweight load', () => {

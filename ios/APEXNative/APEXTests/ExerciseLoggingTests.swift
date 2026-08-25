@@ -475,6 +475,14 @@ final class ExerciseLoggingTests: XCTestCase {
         XCTAssertEqual(input.movementID, "farmers_carry")
     }
 
+    func testNumericFactDraftSeparatesCommittedValuesFromIncompleteTyping() {
+        XCTAssertEqual(NumericFactDraft.resolve("12", integer: true, allowsNegative: false), .value(12))
+        XCTAssertEqual(NumericFactDraft.resolve("12,5", integer: false, allowsNegative: false), .value(12.5))
+        XCTAssertEqual(NumericFactDraft.resolve("", integer: false, allowsNegative: false), .clear)
+        XCTAssertEqual(NumericFactDraft.resolve("-", integer: false, allowsNegative: true), .incomplete)
+        XCTAssertEqual(NumericFactDraft.resolve("-5", integer: false, allowsNegative: false), .incomplete)
+    }
+
     private func log(
         userID: UUID = UUID(),
         sessionID: UUID = UUID(),

@@ -119,8 +119,11 @@ struct WorkoutReceiptSheet: View {
                     .tracking(1.4)
                     .foregroundStyle(.white.opacity(0.66))
             }
-            ForEach(insights.prefix(3), id: \.key) { insight in
-                Text(WorkoutReceipt.insightText(insight, language: language.language))
+            ForEach(
+                WorkoutReceipt.distinctInsightTexts(insights, language: language.language),
+                id: \.self
+            ) { text in
+                Text(text)
                     .font(APEXFont.body(11, weight: .semibold))
                     .foregroundStyle(.white.opacity(0.78))
                     .fixedSize(horizontal: false, vertical: true)

@@ -227,7 +227,7 @@
   ],
   "series": [
     {
-      "key": "id:66666666-0000-4000-8000-000000000011",
+      "key": "name:back squat",
       "name": "Back squat",
       "points": [
         {
@@ -261,7 +261,7 @@
       ]
     },
     {
-      "key": "id:66666666-0000-4000-8000-000000000010",
+      "key": "movement:barbell_bench_press",
       "name": "Barbell bench press",
       "points": [
         {
@@ -320,14 +320,14 @@
       "session_id": "55555555-0000-4000-8000-000000000010",
       "rows": [
         {
-          "key": "id:66666666-0000-4000-8000-000000000011",
+          "key": "name:back squat",
           "name": "Back squat",
           "days_compared": 42,
           "load_delta": 10,
           "estimated_1rm_delta": 5
         },
         {
-          "key": "id:66666666-0000-4000-8000-000000000010",
+          "key": "movement:barbell_bench_press",
           "name": "Barbell bench press",
           "days_compared": 42,
           "load_delta": 5,
@@ -346,14 +346,14 @@
       "session_id": "55555555-0000-4000-8000-000000000017",
       "rows": [
         {
-          "key": "id:66666666-0000-4000-8000-000000000011",
+          "key": "name:back squat",
           "name": "Back squat",
           "days_compared": 84,
           "load_delta": 12.5,
           "estimated_1rm_delta": 7.8
         },
         {
-          "key": "id:66666666-0000-4000-8000-000000000010",
+          "key": "movement:barbell_bench_press",
           "name": "Barbell bench press",
           "days_compared": 84,
           "load_delta": 5,

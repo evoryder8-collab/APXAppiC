@@ -838,16 +838,18 @@ private struct StrengthHistoryCard: View {
     let logs: [WorkoutLog]
     let days: Int
 
-    private var names: [String] { Array(Set(logs.filter { !$0.skipped }.map(\.exerciseName))).sorted() }
-    private var activeName: String { selectedExercise.isEmpty ? (names.first ?? "") : selectedExercise }
+    private var series: [StrengthProgress.Series] {
+        StrengthProgress.buildSeries(sessions: sessions, logs: logs)
+    }
+
+    private var activeSeries: StrengthProgress.Series? {
+        series.first { $0.key == selectedExercise } ?? series.first
+    }
+
     private var points: [StrengthPoint] {
-        let sessionDates = Dictionary(uniqueKeysWithValues: sessions.map { ($0.id, $0.date) })
-        return logs.filter { !$0.skipped && $0.exerciseName == activeName }.compactMap { log in
-            guard let date = sessionDates[log.sessionID] else { return nil }
-            if let weight = log.weightKG, let reps = log.reps { return StrengthPoint(date: date, value: weight * (1 + Double(reps) / 30), weight: weight, reps: reps) }
-            if let reps = log.reps { return StrengthPoint(date: date, value: Double(reps), weight: nil, reps: reps) }
-            return nil
-        }.sorted { $0.date < $1.date }
+        activeSeries?.points.map {
+            StrengthPoint(date: $0.date, value: $0.estimated1RM, weight: $0.topWeight, reps: nil)
+        } ?? []
     }
 
     var body: some View {
@@ -857,17 +859,22 @@ private struct StrengthHistoryCard: View {
                 Text(language.text("What you can lift, over time")).font(APEXFont.display(25))
                 Text(language.text("Built from the loads and reps you recorded, one line per exercise."))
                     .font(APEXFont.body(12, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
-                if names.isEmpty {
+                if series.isEmpty {
                     Text(language.text("Complete a workout with recorded reps or load to begin strength history."))
                         .font(APEXFont.body(13, weight: .medium)).foregroundStyle(APEXColor.secondaryInk).padding(.vertical, 20)
                 } else {
-                    Picker(language.text("Exercise"), selection: $selectedExercise) {
-                        ForEach(names, id: \.self) { Text(language.text($0)).tag($0) }
+                    Picker(language.text("Exercise"), selection: Binding(
+                        get: { activeSeries?.key ?? "" },
+                        set: { selectedExercise = $0 }
+                    )) {
+                        ForEach(series, id: \.key) { item in
+                            Text(language.text(item.name)).tag(item.key)
+                        }
                     }.pickerStyle(.menu).tint(APEXColor.ink)
                     HStack(spacing: 10) {
                         historyMetric("Best working load", points.compactMap(\.weight).max().map { "\($0.formatted()) kg" } ?? "—")
                         historyMetric("Estimated strength", points.map(\.value).max().map { "\($0.formatted(.number.precision(.fractionLength(1))))" } ?? "—")
-                        historyMetric("Sessions", "\(Set(points.map(\.date)).count)")
+                        historyMetric("Sessions", "\(points.count)")
                     }
                     /* A curve with weight under it rather than a hairline on
                        white. The gradient gives the line something to sit on,
@@ -928,7 +935,7 @@ private struct StrengthHistoryCard: View {
                 }
             }
         }
-        .onAppear { if selectedExercise.isEmpty { selectedExercise = names.first ?? "" } }
+        .onAppear { if selectedExercise.isEmpty { selectedExercise = series.first?.key ?? "" } }
     }
 
     private func historyMetric(_ title: String, _ value: String) -> some View {

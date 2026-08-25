@@ -868,6 +868,9 @@ struct TrackedWorkoutView: View {
     let exercises: [Exercise]
     let accent: Color
     let lite: Bool
+    private let exerciseByID: [UUID: Exercise]
+    private let descriptorByExerciseID: [UUID: ExerciseLoggingDescriptor]
+    private let workGroupLabels: [UUID: String]
 
     @State private var setInputs: [WorkoutSetInput]
     @State private var checkDecisions: [String: TrackedWorkout.CheckDecision] = [:]
@@ -881,17 +884,30 @@ struct TrackedWorkoutView: View {
         self.exercises = exercises
         self.accent = accent
         self.lite = lite
-        _setInputs = State(initialValue: TrackedWorkout.setInputs(for: exercises))
-    }
-
-    private var workGroupLabels: [UUID: String] {
+        self.exerciseByID = Dictionary(
+            exercises.map { ($0.id, $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+        self.descriptorByExerciseID = Dictionary(
+            exercises.map { exercise in
+                (
+                    exercise.id,
+                    ExerciseLogging.descriptor(
+                        movementNamed: exercise.name,
+                        movementID: exercise.movementID
+                    )
+                )
+            },
+            uniquingKeysWith: { first, _ in first }
+        )
         var labels: [UUID: String] = [:]
         for position in PlayerTimeline.workSequence(exercises) {
             if let label = position.groupLabel {
                 labels[exercises[position.exerciseIndex].id] = label
             }
         }
-        return labels
+        self.workGroupLabels = labels
+        _setInputs = State(initialValue: TrackedWorkout.setInputs(for: exercises))
     }
 
     var body: some View {
@@ -956,7 +972,7 @@ struct TrackedWorkoutView: View {
 
     private func trackedSetRow(_ input: Binding<WorkoutSetInput>) -> some View {
         let current = input.wrappedValue
-        let exercise = exercises.first { $0.id == current.exerciseID }
+        let exercise = current.exerciseID.flatMap { exerciseByID[$0] }
         let groupLabel = exercise.flatMap { workGroupLabels[$0.id] }
         return GlassCard(radius: 19, padding: 13) {
             VStack(alignment: .leading, spacing: 10) {
@@ -997,10 +1013,11 @@ struct TrackedWorkoutView: View {
 
                     if !input.wrappedValue.skipped, let exercise {
                         ExerciseFactFieldsView(
-                            descriptor: ExerciseLogging.descriptor(
-                                movementNamed: exercise.name,
-                                movementID: exercise.movementID
-                            ),
+                            descriptor: descriptorByExerciseID[exercise.id]
+                                ?? ExerciseLogging.descriptor(
+                                    movementNamed: exercise.name,
+                                    movementID: exercise.movementID
+                                ),
                             values: factValues(input)
                         )
                     }

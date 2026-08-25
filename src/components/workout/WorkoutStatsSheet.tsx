@@ -2,7 +2,7 @@ import { useEffect, useMemo, useState } from 'react'
 import { ACCENTS, type Accent } from '../../lib/theme'
 import type { IntroLanguage } from '../../lib/introLanguage'
 import type { WorkoutLog } from '../../lib/types'
-import { sessionStrengthInsights, type SessionStrengthInsight } from '../../lib/strengthProgress'
+import { distinctInsightTexts, sessionStrengthInsights, type SessionStrengthInsight } from '../../lib/strengthProgress'
 import { useStore } from '../../store/AppStore'
 import { AccentChip, Sheet } from '../ui'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
@@ -101,6 +101,7 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
     return [...map.entries()]
   }, [logs])
   const insights = sessionId ? sessionStrengthInsights(data, sessionId) : []
+  const insightLines = distinctInsightTexts(insights.map((insight) => insightText(insight, language)))
   const workingLogs = logs.filter((log) => !isFocusT25Name(log.exercise_name))
   const volume = loadedStrengthVolume(workingLogs)
   const workingSets = workingLogs.filter((log) => !log.skipped).length
@@ -125,7 +126,7 @@ export function WorkoutStatsSheet({ open, onClose, sessionId, accent }: { open: 
 
       <div className="mt-4 grid grid-cols-3 gap-2"><Metric label={copy.volume} value={`${Math.round(volume).toLocaleString()} kg`} /><Metric label={copy.sets} value={String(workingSets)} /><Metric label={copy.movements} value={String(groups.length)} /></div>
 
-      {insights.length > 0 && <div className="mt-4 rounded-[1.6rem] bg-[#08111d] p-4 text-white shadow-[0_22px_45px_-30px_rgba(139,92,246,.9)]"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.8)]" /><p className="font-mono text-[8px] font-black tracking-[0.16em] text-cyan-100/65 uppercase">{copy.signal}</p></div><div className="mt-3 space-y-2">{insights.slice(0, 3).map((insight) => <p key={insight.key} className="text-[11px] leading-relaxed font-semibold text-white/72">{insightText(insight, language)}</p>)}</div></div>}
+      {insightLines.length > 0 && <div className="mt-4 rounded-[1.6rem] bg-[#08111d] p-4 text-white shadow-[0_22px_45px_-30px_rgba(139,92,246,.9)]"><div className="flex items-center gap-2"><span className="h-2 w-2 rounded-full bg-emerald-300 shadow-[0_0_14px_rgba(110,231,183,.8)]" /><p className="font-mono text-[8px] font-black tracking-[0.16em] text-cyan-100/65 uppercase">{copy.signal}</p></div><div className="mt-3 space-y-2">{insightLines.map((text) => <p key={text} className="text-[11px] leading-relaxed font-semibold text-white/72">{text}</p>)}</div></div>}
 
       <div className="mt-4 space-y-3">{groups.map(([name, exerciseLogs]) => {
         const focusT25 = isFocusT25Name(name)

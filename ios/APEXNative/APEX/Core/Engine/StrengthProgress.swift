@@ -84,7 +84,12 @@ enum StrengthProgress {
     }
 
     private static func exerciseKey(_ log: WorkoutLog) -> String {
-        if let id = log.exerciseID { return "id:\(id.uuidString.lowercased())" }
+        if let movement = MovementTiming.movement(
+            named: log.exerciseName,
+            movementID: log.movementID
+        ) {
+            return "movement:\(movement.id.lowercased())"
+        }
         return "name:\(log.exerciseName.trimmingCharacters(in: .whitespacesAndNewlines).lowercased())"
     }
 

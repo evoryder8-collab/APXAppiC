@@ -39,12 +39,19 @@ export interface JointAssessment {
   rising: JointRegion[]
 }
 
-function exerciseKey(log: Pick<WorkoutLog, 'exercise_id' | 'exercise_name'>): string {
-  return log.exercise_id ? `id:${log.exercise_id}` : `name:${log.exercise_name.trim().toLocaleLowerCase('en')}`
+function exerciseKey(log: Pick<WorkoutLog, 'exercise_name'>, movementId: string | null): string {
+  return movementId
+    ? `movement:${movementId.toLocaleLowerCase('en')}`
+    : `name:${log.exercise_name.trim().toLocaleLowerCase('en')}`
 }
 
 function daysBetween(earlier: string, later: string): number {
   return Math.max(0, Math.round((Date.parse(`${later}T12:00:00Z`) - Date.parse(`${earlier}T12:00:00Z`)) / 86_400_000))
+}
+
+export function distinctInsightTexts(lines: string[], limit = 3): string[] {
+  if (limit <= 0) return []
+  return [...new Set(lines)].slice(0, limit)
 }
 
 export function estimatedOneRepMax(weight: number, reps: number | null): number {
@@ -68,7 +75,7 @@ export function buildStrengthSeries(data: AppData): ExerciseStrengthSeries[] {
     const descriptor = descriptorForExercise({ name: log.exercise_name, movement_id: log.movement_id })
     if (descriptor.kind !== 'strength' || log.skipped || log.weight_kg == null
       || log.weight_kg <= 0 || !sessions.has(log.session_id)) continue
-    const key = exerciseKey(log)
+    const key = exerciseKey(log, descriptor.movementId)
     const group = grouped.get(key) ?? {
       exerciseId: log.exercise_id,
       name: log.exercise_name,

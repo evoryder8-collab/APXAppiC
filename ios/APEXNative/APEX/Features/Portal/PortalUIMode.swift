@@ -38,6 +38,28 @@ enum SimpleHomeLogic {
         }
         return ordered.last(where: { $0.element <= nowMinutes })?.offset ?? ordered.first?.offset
     }
+
+    static func completedSessionID(
+        sessions: [WorkoutSession],
+        date: String,
+        programDayID: UUID
+    ) -> UUID? {
+        sessions
+            .filter {
+                $0.completed
+                    && $0.date == date
+                    && $0.programDayID == programDayID
+            }
+            .max { left, right in
+                let leftTime = left.completedAt ?? left.startedAt ?? ""
+                let rightTime = right.completedAt ?? right.startedAt ?? ""
+                if leftTime == rightTime {
+                    return left.id.uuidString.lowercased() < right.id.uuidString.lowercased()
+                }
+                return leftTime < rightTime
+            }?
+            .id
+    }
 }
 
 struct PortalModeSwitcher: View {

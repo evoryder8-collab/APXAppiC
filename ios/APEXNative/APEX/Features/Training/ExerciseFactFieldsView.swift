@@ -155,6 +155,27 @@ struct ExerciseFactFieldsView: View {
     }
 }
 
+enum NumericFactDraft {
+    enum Resolution: Equatable {
+        case clear
+        case value(Double)
+        case incomplete
+    }
+
+    static func resolve(
+        _ text: String,
+        integer: Bool,
+        allowsNegative: Bool
+    ) -> Resolution {
+        if text.isEmpty { return .clear }
+        guard let parsed = Double(text.replacingOccurrences(of: ",", with: ".")),
+              allowsNegative || parsed >= 0 else {
+            return .incomplete
+        }
+        return .value(integer ? parsed.rounded() : parsed)
+    }
+}
+
 private struct NumericFactField: View {
     let label: String
     @Binding var value: Double?
@@ -163,6 +184,7 @@ private struct NumericFactField: View {
     var allowsNegative = false
 
     @State private var text = ""
+    @State private var pendingCommit: Task<Void, Never>?
     @FocusState private var focused: Bool
 
     var body: some View {
@@ -182,16 +204,46 @@ private struct NumericFactField: View {
                 .frame(height: 36)
                 .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 10))
                 .onChange(of: text) { _, next in
-                    if next.isEmpty { value = nil; return }
-                    guard let parsed = Double(next.replacingOccurrences(of: ",", with: ".")),
-                          allowsNegative || parsed >= 0
-                    else { return }
-                    value = integer ? parsed.rounded() : parsed
+                    queueCommit(next)
                 }
         }
         .onAppear { text = display(value) }
         .onChange(of: value) { _, next in
             if !focused { text = display(next) }
+        }
+        .onChange(of: focused) { _, next in
+            if !next {
+                pendingCommit?.cancel()
+                commit(text)
+            }
+        }
+        .onDisappear {
+            pendingCommit?.cancel()
+            if focused { commit(text) }
+        }
+    }
+
+    private func queueCommit(_ draft: String) {
+        pendingCommit?.cancel()
+        pendingCommit = Task { @MainActor in
+            try? await Task.sleep(for: .milliseconds(300))
+            guard !Task.isCancelled else { return }
+            commit(draft)
+        }
+    }
+
+    private func commit(_ draft: String) {
+        switch NumericFactDraft.resolve(
+            draft,
+            integer: integer,
+            allowsNegative: allowsNegative
+        ) {
+        case .clear:
+            value = nil
+        case let .value(parsed):
+            value = parsed
+        case .incomplete:
+            break
         }
     }
 

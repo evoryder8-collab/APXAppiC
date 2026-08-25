@@ -85,4 +85,52 @@ final class SimpleHomeLogicTests: XCTestCase {
         XCTAssertEqual(slug, "main")
         XCTAssertEqual(TrainingInduction.visibleProgramDays(in: data, slug: slug).map(\.name), ["Upper strength"])
     }
+
+    func testCompletedTrainingOpensTheLatestReceiptForThatExactDayAndPrescription() {
+        let userID = UUID()
+        let dayID = UUID()
+        let olderID = UUID()
+        let latestID = UUID()
+        let sessions = [
+            WorkoutSession(
+                id: olderID, userID: userID, date: "2026-08-21", programDayID: dayID,
+                isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                qualityScore: 1, startedAt: "2026-08-21T17:00:00Z",
+                completedAt: "2026-08-21T18:00:00Z", notes: ""
+            ),
+            WorkoutSession(
+                id: UUID(), userID: userID, date: "2026-08-21", programDayID: dayID,
+                isLite: false, isDeload: false, isEventRecovery: false, completed: false,
+                qualityScore: 1, startedAt: "2026-08-21T19:00:00Z",
+                completedAt: nil, notes: ""
+            ),
+            WorkoutSession(
+                id: latestID, userID: userID, date: "2026-08-21", programDayID: dayID,
+                isLite: true, isDeload: false, isEventRecovery: false, completed: true,
+                qualityScore: 1, startedAt: "2026-08-21T19:30:00Z",
+                completedAt: "2026-08-21T20:00:00Z", notes: ""
+            ),
+            WorkoutSession(
+                id: UUID(), userID: userID, date: "2026-08-22", programDayID: dayID,
+                isLite: false, isDeload: false, isEventRecovery: false, completed: true,
+                qualityScore: 1, startedAt: nil, completedAt: nil, notes: ""
+            ),
+        ]
+
+        XCTAssertEqual(
+            SimpleHomeLogic.completedSessionID(
+                sessions: sessions,
+                date: "2026-08-21",
+                programDayID: dayID
+            ),
+            latestID
+        )
+        XCTAssertNil(
+            SimpleHomeLogic.completedSessionID(
+                sessions: sessions,
+                date: "2026-08-21",
+                programDayID: UUID()
+            )
+        )
+    }
 }

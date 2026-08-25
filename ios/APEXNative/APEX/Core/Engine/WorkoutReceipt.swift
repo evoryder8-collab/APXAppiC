@@ -83,6 +83,24 @@ enum WorkoutReceipt {
         }
     }
 
+    static func distinctInsightTexts(
+        _ insights: [StrengthProgress.SessionInsight],
+        language: AppLanguage,
+        limit: Int = 3
+    ) -> [String] {
+        guard limit > 0 else { return [] }
+        var seen: Set<String> = []
+        var result: [String] = []
+        for insight in insights {
+            let text = insightText(insight, language: language)
+            if seen.insert(text).inserted {
+                result.append(text)
+                if result.count == limit { break }
+            }
+        }
+        return result
+    }
+
     private static func firstBaseline(_ language: AppLanguage) -> String {
         switch language {
         case .romanian: "Primul reper curat a fost înregistrat. Acesta devine comparația pentru următoarea sesiune."

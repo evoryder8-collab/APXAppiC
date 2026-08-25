@@ -173,4 +173,23 @@ final class WorkoutReceiptTests: XCTestCase {
         )
         XCTAssertTrue(WorkoutReceipt.insightText(baseline, language: .english).contains("baseline"))
     }
+
+    func testStrengthSignalDeduplicatesIdenticalBaselineCopy() {
+        let point = StrengthProgress.Point(
+            sessionID: UUID(), date: "2026-08-25", topWeight: 25,
+            estimated1RM: 35, volume: 600, setWeights: [1: 25, 2: 25]
+        )
+        let insights = ["Front Lunge", "Reverse Lunge", "Calf Raise"].map { name in
+            StrengthProgress.SessionInsight(
+                key: "movement:\(name.lowercased())", name: name, current: point,
+                previous: nil, reference: nil, daysCompared: nil,
+                loadDelta: nil, estimated1RMDelta: nil
+            )
+        }
+
+        let lines = WorkoutReceipt.distinctInsightTexts(insights, language: .english)
+
+        XCTAssertEqual(lines.count, 1)
+        XCTAssertTrue(lines[0].contains("baseline"))
+    }
 }
