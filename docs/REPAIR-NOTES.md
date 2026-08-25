@@ -766,3 +766,14 @@ GitHub publication evidence:
 - Physical iPhone: a fresh signed build from that exact SHA passed `codesign --verify --deep --strict`, validated the embedded APEX Water watch app, installed on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`.
 - Retry behavior: the pre-existing interrupted-save tests prove the builder remains available after an exercise-batch failure; resubmission safely upserts the already-created program/day rows before saving the corrected exercise batch.
 - Next: publish and verify this repair, then re-read the living roadmap before Task 1.8. Task 1.8 has not started.
+
+## 2026-08-25 — Pre-1.8 plan briefing opens the daily Simple Mode surface
+
+- Changed the final `Open my plan` action on both clients to select the account-scoped Simple Mode setting and return to the root daily surface. The X remains dismissal-only, so closing the guide keeps the user on Main Phase and does not change their selected interface mode.
+- Native mode changes now update root navigation synchronously before a full-screen briefing is dismissed, while server persistence remains owner-verified and account-generation guarded in the background. This prevents the old Advanced root from flashing back into place.
+- Files changed: `src/components/workout/TrainingInductionPanel.tsx`, `src/lib/simpleMode.ts`, `tests/simple-mode.test.ts`, native `AppSession.swift`, `PortalUIMode.swift`, `TrainingInductionPanel.swift`, and `APEXSmokeUITests.swift`.
+- Tests added/strengthened: web proves the destination is `/`, `uiMode` becomes `simple`, and unrelated add-ons survive. Native UI first dismisses with X and verifies the generated plan metadata remains intact, then reopens the briefing and proves the CTA selects Simple, deselects Advanced, exposes the Simple-only training surface, and does not reopen the builder.
+- Red/green evidence: the web test initially failed because `planBriefingExit` did not exist. The native UI test then caught the deferred root update by landing on Advanced; after the synchronous local mutation it passed. Final output: web `543/543`; native unit suite `460/460`; native install/briefing/dismiss/reopen/open journey `1/1` in `41.685s`; production web build passed with `1,171` modules; `git diff --check` passed.
+- Implementation commit: `20120a160c0abe8379e2d58f2fc0e6ee5ec01140` (`fix: open installed plans in simple mode`).
+- Physical iPhone: a fresh signed build from that exact SHA passed `codesign --verify --deep --strict`, validated the embedded `APEX Water` watch app and `APEXWatchWidgets` complication, installed on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`.
+- Next: publish and verify this repair, then re-read the living roadmap before Task 1.8. Task 1.8 has not started.
