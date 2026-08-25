@@ -341,15 +341,20 @@ private enum HydrationPalette {
         }
     }
 
-    static func colors(
+    static func stops(
         for bands: [HydrationCompositionBand],
-        fallback: [Color]
-    ) -> [Color] {
-        let populated = bands.filter { $0.milliliters > 0 }
-        guard !populated.isEmpty else { return fallback }
-        return populated.flatMap { band in
-            let color = color(for: band.paletteToken)
-            return [color.opacity(0.9), color]
+        fallback: [Color],
+        mappedInto range: ClosedRange<Double> = 0 ... 1
+    ) -> [Gradient.Stop] {
+        let layout = HydrationCompositionLayout.stops(for: bands, mappedInto: range)
+        guard !layout.isEmpty else {
+            let denominator = Double(max(1, fallback.count - 1))
+            return fallback.enumerated().map { index, color in
+                Gradient.Stop(color: color, location: Double(index) / denominator)
+            }
+        }
+        return layout.map {
+            Gradient.Stop(color: color(for: $0.paletteToken), location: $0.location)
         }
     }
 }
@@ -375,7 +380,7 @@ private struct HydrationProgressGleam: View {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: HydrationPalette.colors(for: composition, fallback: [violet, aqua]),
+                            stops: HydrationPalette.stops(for: composition, fallback: [violet, aqua]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -653,7 +658,6 @@ private struct HydrationSilhouetteGauge: View {
 
     var body: some View {
         let breath = animationIsEnabled ? sin(phase * 0.72) * motionScale : 0
-        let floatOffset = animationIsEnabled ? sin(phase * 0.54) * 1.7 * motionScale : 0
 
         ZStack {
             Circle()
@@ -678,12 +682,13 @@ private struct HydrationSilhouetteGauge: View {
             HydrationWaveShape(progress: fillState.progress, phase: phase)
                 .fill(
                     LinearGradient(
-                        colors: HydrationPalette.colors(
+                        stops: HydrationPalette.stops(
                             for: composition,
-                            fallback: [Color.white.opacity(0.9), aqua, Color(red: 0.11, green: 0.39, blue: 0.98), violet]
+                            fallback: [Color.white.opacity(0.9), aqua, Color(red: 0.11, green: 0.39, blue: 0.98), violet],
+                            mappedInto: fillState.baseWaterline ... 1
                         ),
-                        startPoint: .topLeading,
-                        endPoint: .bottomTrailing
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
                 )
                 .shadow(color: aqua.opacity(0.7), radius: 7)
@@ -709,7 +714,6 @@ private struct HydrationSilhouetteGauge: View {
                 .shadow(color: aqua.opacity(0.62), radius: 3)
         }
         .scaleEffect(1 + (breath * 0.012))
-        .offset(y: floatOffset)
         .animation(animationIsEnabled ? .smooth(duration: 0.75) : nil, value: fillState.progress)
         .accessibilityHidden(true)
     }

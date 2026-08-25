@@ -60,6 +60,28 @@ test('Watch hydration motion uses a smooth continuous animation clock', () => {
   assert.doesNotMatch(view, /truncatingRemainder/)
 })
 
+test('Watch hydration silhouette never floats vertically', () => {
+  const view = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
+    'utf8',
+  )
+
+  const silhouette = view.slice(view.indexOf('private struct HydrationSilhouetteGauge'))
+  assert.doesNotMatch(silhouette, /floatOffset/)
+  assert.doesNotMatch(silhouette, /\.offset\(y:/)
+})
+
+test('Watch silhouette and gleam share millilitre-weighted color stops', () => {
+  const view = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
+    'utf8',
+  )
+
+  assert.equal(view.match(/HydrationPalette\.stops\(/g)?.length, 2)
+  assert.match(view, /mappedInto: fillState\.baseWaterline \.\.\. 1/)
+  assert.match(view, /startPoint: \.top,\s*endPoint: \.bottom/)
+})
+
 test('Watch history offers deliberate tap and swipe deletion', () => {
   const view = readFileSync(
     new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),

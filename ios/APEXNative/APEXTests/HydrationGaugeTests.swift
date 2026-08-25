@@ -165,6 +165,61 @@ final class WatchHydrationFillStateTests: XCTestCase {
             )
         )
     }
+
+    func testCompositionStopsPreserveExactBeverageProportions() throws {
+        let bands = [
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 900
+            ),
+            HydrationCompositionBand(
+                kind: .coffee,
+                paletteToken: "espresso",
+                iconToken: "cup.and.saucer.fill",
+                milliliters: 100
+            ),
+        ]
+
+        let stops = HydrationCompositionLayout.stops(for: bands)
+        let first = try XCTUnwrap(stops.first)
+        let last = try XCTUnwrap(stops.last)
+        let waterEnd = try XCTUnwrap(stops.last { $0.paletteToken == "aqua" })
+        let coffeeStart = try XCTUnwrap(stops.first { $0.paletteToken == "espresso" })
+
+        XCTAssertEqual((waterEnd.location + coffeeStart.location) / 2, 0.9, accuracy: 0.000_001)
+        XCTAssertLessThanOrEqual(coffeeStart.location - waterEnd.location, 0.005)
+        XCTAssertEqual(first.location, 0)
+        XCTAssertEqual(last.location, 1)
+    }
+
+    func testCompositionStopsMapExactProportionsIntoOnlyTheFilledSilhouette() throws {
+        let bands = [
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 900
+            ),
+            HydrationCompositionBand(
+                kind: .coffee,
+                paletteToken: "espresso",
+                iconToken: "cup.and.saucer.fill",
+                milliliters: 100
+            ),
+        ]
+
+        let stops = HydrationCompositionLayout.stops(for: bands, mappedInto: 0.6 ... 1)
+        let first = try XCTUnwrap(stops.first)
+        let last = try XCTUnwrap(stops.last)
+        let waterEnd = try XCTUnwrap(stops.last { $0.paletteToken == "aqua" })
+        let coffeeStart = try XCTUnwrap(stops.first { $0.paletteToken == "espresso" })
+
+        XCTAssertEqual(first.location, 0.6, accuracy: 0.000_001)
+        XCTAssertEqual((waterEnd.location + coffeeStart.location) / 2, 0.96, accuracy: 0.000_001)
+        XCTAssertEqual(last.location, 1, accuracy: 0.000_001)
+    }
 }
 
 final class WatchHydrationPreferencesTests: XCTestCase {
