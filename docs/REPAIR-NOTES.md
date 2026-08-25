@@ -848,3 +848,46 @@ GitHub publication evidence:
   - physical Apple Watch Ultra 3: Watch app installed directly and launched from the same build.
 - GitHub: the implementation SHA was atomically pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
 - GitHub Pages: run `32898667184` succeeded (build 23 seconds, deploy 35 seconds); `https://evoryder8-collab.github.io/APXAppiC/?morning-health=2b0f8391714b9f9224efddd4bcbb83474db51dde` returned HTTP 200.
+
+## 2026-08-25 — Practical food discovery and honest meal guidance
+
+- Scope: completed the pre-1.8 nutrition repair. Food Memory now has one reachable bottom search control on native, generic meal guidance is structured into five-item carbohydrate/protein/fat groups (and five quick snack picks), wearable-to-manual activity switching explains the consequence plainly, and common kebab spellings resolve to one evidence-labelled Swiss reference food instead of fabricated retailer or restaurant variants. Existing account-authored meal guides remain untouched.
+- Evidence source: Swiss Food Composition Database v7.1, food ID 1572 (`https://naehrwertdaten.ch/de/downloads/`). The reference row records 121 kcal, 7.6 g protein, 14.6 g carbohydrate, 3.4 g fat, and 73.6 g water per 100 g; the UI states that restaurant recipes and sauces vary.
+- Files changed:
+  - `src/lib/mealGuide.ts`
+  - `src/components/food/MealComposer.tsx`
+  - `src/data/foodCatalogExpansion.ts`
+  - `src/data/foodSeeds.ts`
+  - `src/lib/food.ts`
+  - `src/pages/Nutrition.tsx`
+  - `supabase/migrations/028_swiss_kebab_reference.sql`
+  - `ios/APEXNative/APEX/Core/Engine/MealProtocolGuide.swift`
+  - `ios/APEXNative/APEX/Features/Nutrition/FoodLoggingViews.swift`
+  - `ios/APEXNative/APEX/Features/Nutrition/MealComposerView.swift`
+  - `ios/APEXNative/APEX/Features/Nutrition/NutritionParityViews.swift`
+  - `tests/food.test.ts`
+  - `tests/meal-guide.test.ts`
+  - `tests/nutrition-experience.test.ts`
+  - `tests/swiss-food-migration.test.ts`
+  - `ios/APEXNative/APEXTests/MealProtocolGuideTests.swift`
+  - `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+- Implementation commit: `03fcbdf7acb60e72456cbe652600188c532a9a52` (`fix: make nutrition discovery practical`).
+- Tests added: Swiss kebab aliases/provenance/nutrition, generic grouped meal guidance and bespoke-account preservation, migration contract, native grouped-guide parity, and a native Food Memory UI assertion that the bottom field exists while the dead navigation magnifier does not.
+- Red proof: three focused web contracts failed before implementation (missing Swiss food, missing grouped-guide module, and missing activity/search UX); the focused native build failed because `MealProtocolGuide.sections` did not exist.
+- Test output after implementation:
+  - focused web nutrition suite: 69 tests, 69 passed, 0 failed in 2.652 seconds;
+  - focused native meal-guide suite: 15 tests, 0 failures in 0.013 seconds;
+  - migration contract: 1 test, 1 passed;
+  - driven Food Memory XCUITest flow: 1 test, 0 failures in 25.244 seconds;
+  - full native unit suite: 468 tests, 0 failures in 2.086 seconds;
+  - full web suite: 550 tests, 550 passed, 0 failed in 4.679 seconds;
+  - production web build: TypeScript clean, 1,172 modules transformed;
+  - `git diff --check`: clean.
+- Database delivery: migration 028 was applied idempotently to linked Supabase project `rrzcrcjsbkmidlafrhfv`; the live row was queried back with the exact fixed ID, provider, macros, water basis, and source ID.
+- Physical delivery from the exact implementation SHA:
+  - device build: `** BUILD SUCCEEDED **`;
+  - strict signatures valid for `ch.apexperformance.APEX` and `ch.apexperformance.APEX.watchkitapp`;
+  - connected iPhone: app installed and launched from `03fcbdf7acb60e72456cbe652600188c532a9a52`;
+  - connected physical Apple Watch Ultra 3: Watch app installed directly and launched from the same build.
+- GitHub: the implementation SHA was pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
+- GitHub Pages: run `32901347444` succeeded; `https://evoryder8-collab.github.io/APXAppiC/?sha=03fcbdf7a` returned HTTP 200.
