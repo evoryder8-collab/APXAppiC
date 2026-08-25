@@ -650,3 +650,14 @@ GitHub publication evidence:
 - Physical install: exact implementation SHA installed and launched on iConstantine Main (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, PID `992`) and Constantin's Apple Watch Ultra 3 (`F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, PID `1322`). Watch inventory confirmed `APEX Water` bundle `ch.apexperformance.APEX.watchkitapp`, version `1.0.0`.
 - Publication: pushed the implementation SHA to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`. GitHub Pages run `32825393700` completed successfully and `https://evoryder8-collab.github.io/APXAppiC/` returned HTTP `200` with an implementation-SHA cache buster.
 - Next: make barcode-scanned foods participate in account-scoped Food Memory recency on native and web, as a separate tested task.
+
+## 2026-08-25 — Barcode foods participate in Food Memory recency
+
+- Implementation commit: `b59589bf2f2ef7c7015489bf00f16deb568acd8d` (`fix: remember barcode foods in Food Memory`).
+- Files changed: `AppSession.swift`, `MealMemory.swift`, `FoodLoggingViews.swift`, `MealMemoryParityTests.swift`, and `nutrition-experience.test.ts`.
+- Changed: native barcode lookup now retains the resolved food in the active account's offline catalogue; direct and composed meal saves create/update exact-portion `food_preferences`; standalone Food Memory is reconstructed from immutable account-owned meal snapshots before catalogue backfill; recent sorting now uses `last_used_at` before lifetime usage. The existing web immutable-history implementation was retained and locked with a scanned-UUID regression test.
+- Tests added: a native missing-catalogue scanned-food reconstruction case with cross-account exclusion, a native exact confirmed-amount preference case, and a web case proving yesterday's scanned UUID remains recent outside the loaded catalogue page.
+- Red proof: the new native suite failed to compile because `MealMemory.recentFoods` and `MealMemory.usagePreferenceUpdates` did not exist; the web regression passed immediately, verifying that web already had the correct snapshot fallback rather than requiring duplicate logic.
+- Test output: focused native `6/6` passed; focused web `1/1` passed; complete native `APEXTests` `440/440` passed; complete web `npm test` `518/518` passed; `npm run build` succeeded with `1,170` modules; `git diff --check` passed.
+- Physical install: XcodeBuildMCP built, installed, and launched exact SHA `b59589bf2f2ef7c7015489bf00f16deb568acd8d` on iConstantine Main (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, PID `1074`). Device inventory confirmed `ch.apexperformance.APEX` version `1.0.0`, and `codesign --verify --deep --strict` passed.
+- Next: push/publish this completed fix, then re-read the living roadmap changes and resume the next numbered Phase 1 task.
