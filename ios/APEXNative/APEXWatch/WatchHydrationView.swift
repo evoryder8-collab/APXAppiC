@@ -3,6 +3,8 @@ import SwiftUI
 struct WatchHydrationView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(\.isLuminanceReduced) private var isLuminanceReduced
+    @Environment(\.scenePhase) private var scenePhase
     @State private var showsCustomAmount = false
     @State private var showsHistory = false
 
@@ -21,6 +23,14 @@ struct WatchHydrationView: View {
 
     private var fillState: WatchHydrationFillState {
         WatchHydrationFillState(liters: displayedLiters, targetLiters: hydration.targetLiters)
+    }
+
+    private var animationIsEnabled: Bool {
+        WatchHydrationAnimationPolicy.shouldAnimate(
+            sceneIsActive: scenePhase == .active,
+            luminanceIsReduced: isLuminanceReduced,
+            reduceMotion: reduceMotion
+        )
     }
 
     var body: some View {
@@ -89,6 +99,10 @@ struct WatchHydrationView: View {
                 await hydration.start()
             }
         }
+        .onChange(of: scenePhase) { _, newPhase in
+            guard newPhase == .active, previewLiters == nil else { return }
+            Task { await hydration.refresh() }
+        }
         .sheet(isPresented: $showsCustomAmount) {
             CustomHydrationAmountView()
                 .environmentObject(hydration)
@@ -105,19 +119,16 @@ struct WatchHydrationView: View {
                 fillState: fillState,
                 aqua: aqua,
                 violet: violet,
-                reduceMotion: reduceMotion
+                animationIsEnabled: animationIsEnabled
             )
-            .frame(width: 60, height: 88)
+            .frame(width: 58, height: 101)
 
             VStack(alignment: .leading, spacing: 5) {
-                Text(displayedLiters.formatted(.number.precision(.fractionLength(2))))
+                Text(fillState.primaryAmount)
                     .font(.system(size: 21, weight: .bold, design: .rounded))
                     .contentTransition(.numericText())
                     .minimumScaleFactor(0.72)
-                Text("L TODAY")
-                    .font(.system(size: 9, weight: .bold, design: .monospaced))
-                    .tracking(1.2)
-                    .foregroundStyle(aqua)
+                    .lineLimit(1)
 
                 ZStack(alignment: .leading) {
                     Capsule().fill(.white.opacity(0.10))
@@ -250,6 +261,8 @@ private struct CustomHydrationAmountView: View {
 
 private struct HydrationHistoryView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
+    @State private var deletionCandidate: WatchHydrationEntry?
+    @State private var showsDeleteConfirmation = false
 
     var body: some View {
         Group {
@@ -261,39 +274,85 @@ private struct HydrationHistoryView: View {
                 )
             } else {
                 List(hydration.entries) { entry in
-                    HStack(spacing: 6) {
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text("\(Int(entry.milliliters.rounded())) mL")
-                                .font(.system(size: 15, weight: .bold, design: .rounded))
-                            Text(entry.date, style: .time)
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                            Text(entry.sourceName)
-                                .font(.caption2)
-                                .foregroundStyle(.cyan)
-                                .lineLimit(2)
+                    if entry.canDelete {
+                        Button {
+                            requestDeletion(entry)
+                        } label: {
+                            HydrationHistoryRow(entry: entry)
                         }
-                        Spacer(minLength: 0)
-                        if entry.canDelete {
-                            Button(role: .destructive) {
-                                Task { await hydration.delete(entry) }
-                            } label: {
-                                Image(systemName: "trash")
+                        .buttonStyle(.plain)
+                        .swipeActions(edge: .trailing, allowsFullSwipe: false) {
+                            Button("Remove", systemImage: "trash", role: .destructive) {
+                                requestDeletion(entry)
                             }
-                            .buttonStyle(.plain)
-                            .accessibilityLabel("Remove \(Int(entry.milliliters.rounded())) milliliters")
-                        } else {
-                            Image(systemName: "lock.fill")
-                                .font(.caption2)
-                                .foregroundStyle(.secondary)
-                                .accessibilityLabel("Read only")
                         }
+                        .accessibilityHint("Double-tap or swipe left to remove")
+                    } else {
+                        HydrationHistoryRow(entry: entry)
                     }
                 }
             }
         }
-        .navigationTitle("Today")
+        .navigationTitle("History")
         .task { await hydration.refresh() }
+        .confirmationDialog("Remove water entry?", isPresented: $showsDeleteConfirmation) {
+            if let deletionCandidate {
+                Button("Remove \(Int(deletionCandidate.milliliters.rounded())) mL", role: .destructive) {
+                    removeCandidate()
+                }
+            }
+            Button("Cancel", role: .cancel) {
+                deletionCandidate = nil
+                showsDeleteConfirmation = false
+            }
+        } message: {
+            Text("This removes the APEX Watch entry from Apple Health too.")
+        }
+    }
+
+    private func requestDeletion(_ entry: WatchHydrationEntry) {
+        deletionCandidate = entry
+        showsDeleteConfirmation = true
+    }
+
+    private func removeCandidate() {
+        guard let deletionCandidate else { return }
+        self.deletionCandidate = nil
+        showsDeleteConfirmation = false
+        Task {
+            await hydration.delete(deletionCandidate)
+        }
+    }
+}
+
+private struct HydrationHistoryRow: View {
+    let entry: WatchHydrationEntry
+
+    var body: some View {
+        HStack(spacing: 6) {
+            VStack(alignment: .leading, spacing: 2) {
+                Text("\(Int(entry.milliliters.rounded())) mL")
+                    .font(.headline)
+                    .bold()
+                Text(entry.date, style: .time)
+                    .font(.footnote)
+                    .foregroundStyle(.secondary)
+                Text(entry.sourceName)
+                    .font(.footnote)
+                    .foregroundStyle(.cyan)
+                    .lineLimit(2)
+            }
+            Spacer(minLength: 0)
+            Image(systemName: entry.canDelete ? "trash.circle" : "lock.fill")
+                .font(.footnote)
+                .foregroundStyle(entry.canDelete ? Color.red : Color.secondary)
+                .accessibilityHidden(true)
+        }
+        .contentShape(.rect)
+        .accessibilityElement(children: .combine)
+        .accessibilityLabel(
+            "\(Int(entry.milliliters.rounded())) milliliters, \(entry.sourceName)"
+        )
     }
 }
 
@@ -301,23 +360,35 @@ private struct HydrationSilhouetteGauge: View {
     let fillState: WatchHydrationFillState
     let aqua: Color
     let violet: Color
-    let reduceMotion: Bool
+    let animationIsEnabled: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 12.0, paused: reduceMotion)) { timeline in
-            let phase = reduceMotion
-                ? 0
-                : timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 8) * 1.05
+        TimelineView(.animation(minimumInterval: 1.0 / 8.0, paused: !animationIsEnabled)) { timeline in
+            let phase = animationIsEnabled
+                ? timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 10) * 0.9
+                : 0
+            let breath = animationIsEnabled ? sin(phase * 0.72) : 0
+            let floatOffset = animationIsEnabled ? sin(phase * 0.54) * 1.7 : 0
 
             ZStack {
-                Ellipse()
-                    .fill(aqua.opacity(0.14))
-                    .frame(width: 70, height: 28)
-                    .blur(radius: 12)
-                    .offset(y: 44)
+                Circle()
+                    .fill(
+                        RadialGradient(
+                            colors: [aqua.opacity(0.30), violet.opacity(0.14), .clear],
+                            center: .center,
+                            startRadius: 2,
+                            endRadius: 41
+                        )
+                    )
+                    .frame(width: 82, height: 82)
+                    .blur(radius: 7)
+                    .scaleEffect(1 + (breath * 0.045))
 
-                HydrationBodyShape()
-                    .fill(.white.opacity(0.055))
+                Image("HydrationMaleSilhouette")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(.white.opacity(0.075))
 
                 HydrationWaveShape(progress: fillState.progress, phase: phase)
                     .fill(
@@ -328,19 +399,30 @@ private struct HydrationSilhouetteGauge: View {
                         )
                     )
                     .shadow(color: aqua.opacity(0.7), radius: 7)
-                    .mask(HydrationBodyShape())
+                    .mask {
+                        Image("HydrationMaleSilhouette")
+                            .renderingMode(.template)
+                            .resizable()
+                            .scaledToFit()
+                    }
 
-                HydrationBodyShape()
-                    .stroke(
+                Image("HydrationMaleSilhouette")
+                    .renderingMode(.template)
+                    .resizable()
+                    .scaledToFit()
+                    .foregroundStyle(
                         LinearGradient(
-                            colors: [.white.opacity(0.62), aqua.opacity(0.5), violet.opacity(0.46)],
+                            colors: [.white.opacity(0.58), aqua.opacity(0.34), violet.opacity(0.28)],
                             startPoint: .top,
                             endPoint: .bottom
-                        ),
-                        lineWidth: 1.15
+                        )
                     )
+                    .opacity(0.38)
+                    .shadow(color: aqua.opacity(0.62), radius: 3)
             }
-            .animation(reduceMotion ? nil : .smooth(duration: 0.75), value: fillState.progress)
+            .scaleEffect(1 + (breath * 0.012))
+            .offset(y: floatOffset)
+            .animation(animationIsEnabled ? .smooth(duration: 0.75) : nil, value: fillState.progress)
         }
         .accessibilityHidden(true)
     }
@@ -369,42 +451,6 @@ private struct HydrationWaveShape: Shape {
         }
         path.addLine(to: CGPoint(x: rect.maxX, y: rect.maxY))
         path.addLine(to: CGPoint(x: rect.minX, y: rect.maxY))
-        path.closeSubpath()
-        return path
-    }
-}
-
-private struct HydrationBodyShape: Shape {
-    func path(in rect: CGRect) -> Path {
-        let point: (Double, Double) -> CGPoint = { x, y in
-            CGPoint(x: rect.minX + rect.width * x, y: rect.minY + rect.height * y)
-        }
-        var path = Path()
-        path.addEllipse(in: CGRect(
-            x: rect.minX + rect.width * 0.385,
-            y: rect.minY + rect.height * 0.012,
-            width: rect.width * 0.23,
-            height: rect.height * 0.18
-        ))
-        path.move(to: point(0.42, 0.19))
-        path.addCurve(to: point(0.28, 0.25), control1: point(0.40, 0.22), control2: point(0.33, 0.22))
-        path.addCurve(to: point(0.17, 0.59), control1: point(0.23, 0.31), control2: point(0.19, 0.48))
-        path.addCurve(to: point(0.23, 0.66), control1: point(0.15, 0.64), control2: point(0.19, 0.69))
-        path.addLine(to: point(0.34, 0.43))
-        path.addCurve(to: point(0.34, 0.60), control1: point(0.33, 0.49), control2: point(0.33, 0.55))
-        path.addLine(to: point(0.29, 0.94))
-        path.addCurve(to: point(0.39, 0.97), control1: point(0.28, 0.99), control2: point(0.36, 1.0))
-        path.addLine(to: point(0.48, 0.67))
-        path.addCurve(to: point(0.52, 0.67), control1: point(0.49, 0.64), control2: point(0.51, 0.64))
-        path.addLine(to: point(0.61, 0.97))
-        path.addCurve(to: point(0.71, 0.94), control1: point(0.64, 1.0), control2: point(0.72, 0.99))
-        path.addLine(to: point(0.66, 0.60))
-        path.addCurve(to: point(0.66, 0.43), control1: point(0.67, 0.55), control2: point(0.67, 0.49))
-        path.addLine(to: point(0.77, 0.66))
-        path.addCurve(to: point(0.83, 0.59), control1: point(0.81, 0.69), control2: point(0.85, 0.64))
-        path.addCurve(to: point(0.72, 0.25), control1: point(0.81, 0.48), control2: point(0.77, 0.31))
-        path.addCurve(to: point(0.58, 0.19), control1: point(0.67, 0.22), control2: point(0.60, 0.22))
-        path.addCurve(to: point(0.42, 0.19), control1: point(0.54, 0.22), control2: point(0.46, 0.22))
         path.closeSubpath()
         return path
     }

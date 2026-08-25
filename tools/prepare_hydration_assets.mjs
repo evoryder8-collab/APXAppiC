@@ -13,6 +13,16 @@ if (!viewBox || !bodyPath) throw new Error(`Could not extract the ${kind} hydrat
 
 const escapedPath = bodyPath.replaceAll("&", "&amp;").replaceAll('"', "&quot;");
 const clipID = kind === "female" ? "hydrationFemale" : "hydrationMale";
+if (path.extname(output).toLowerCase() === ".svg") {
+  const svg = `<svg xmlns="http://www.w3.org/2000/svg" viewBox="${viewBox}" preserveAspectRatio="xMidYMid meet">
+<path d="${escapedPath}" fill="#ffffff"/>
+</svg>
+`;
+  fs.mkdirSync(path.dirname(output), { recursive: true });
+  fs.writeFileSync(output, svg);
+  process.exit(0);
+}
+
 const html = `<!doctype html>
 <html><head><meta name="viewport" content="width=device-width,initial-scale=1,maximum-scale=1,user-scalable=no">
 <style>

@@ -127,4 +127,42 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual(WatchHydrationDisplayMode.liters.shortValue(for: state), "1.38L")
         XCTAssertEqual(WatchHydrationDisplayMode.gallons.shortValue(for: state), "0.36gal")
     }
+
+    func testPrimaryWatchAmountKeepsTheUnitBesideTheValueWithoutARedundantDayLabel() {
+        let state = WatchHydrationFillState(liters: 1.375, targetLiters: 2.75)
+
+        XCTAssertEqual(state.primaryAmount, "1.38 L")
+        XCTAssertFalse(state.primaryAmount.localizedCaseInsensitiveContains("today"))
+    }
+
+    func testGaugeAnimationRunsOnlyWhileTheAppIsActivelyVisible() {
+        XCTAssertTrue(
+            WatchHydrationAnimationPolicy.shouldAnimate(
+                sceneIsActive: true,
+                luminanceIsReduced: false,
+                reduceMotion: false
+            )
+        )
+        XCTAssertFalse(
+            WatchHydrationAnimationPolicy.shouldAnimate(
+                sceneIsActive: false,
+                luminanceIsReduced: false,
+                reduceMotion: false
+            )
+        )
+        XCTAssertFalse(
+            WatchHydrationAnimationPolicy.shouldAnimate(
+                sceneIsActive: true,
+                luminanceIsReduced: true,
+                reduceMotion: false
+            )
+        )
+        XCTAssertFalse(
+            WatchHydrationAnimationPolicy.shouldAnimate(
+                sceneIsActive: true,
+                luminanceIsReduced: false,
+                reduceMotion: true
+            )
+        )
+    }
 }

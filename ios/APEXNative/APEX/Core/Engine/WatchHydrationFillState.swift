@@ -11,6 +11,10 @@ struct WatchHydrationFillState: Equatable, Sendable {
 
     var baseWaterline: Double { 1 - progress }
 
+    var primaryAmount: String {
+        "\(liters.formatted(.number.precision(.fractionLength(2)))) L"
+    }
+
     static func waterline(
         progress rawProgress: Double,
         normalizedX rawX: Double,
@@ -21,6 +25,31 @@ struct WatchHydrationFillState: Equatable, Sendable {
         let amplitude = min(0.018, progress * 0.08, (1 - progress) * 0.08)
         let wave = sin((x * .pi * 2) + phase) * amplitude
         return min(1, max(0, (1 - progress) + wave))
+    }
+}
+
+enum WatchHydrationAnimationPolicy {
+    static func shouldAnimate(
+        sceneIsActive: Bool,
+        luminanceIsReduced: Bool,
+        reduceMotion: Bool
+    ) -> Bool {
+        sceneIsActive && !luminanceIsReduced && !reduceMotion
+    }
+}
+
+enum WatchHydrationAuthorship {
+    static let phoneBundleIdentifier = "ch.apexperformance.APEX"
+    static let watchBundleIdentifier = "ch.apexperformance.APEX.watchkitapp"
+    static let watchSyncIdentifierPrefix = "apex.hydration.watch."
+
+    static func canDelete(
+        sourceBundleIdentifier: String,
+        syncIdentifier: String? = nil
+    ) -> Bool {
+        if sourceBundleIdentifier == watchBundleIdentifier { return true }
+        return sourceBundleIdentifier == phoneBundleIdentifier
+            && syncIdentifier?.hasPrefix(watchSyncIdentifierPrefix) == true
     }
 }
 

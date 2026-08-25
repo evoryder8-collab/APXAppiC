@@ -286,7 +286,13 @@ enum HydrationReconciliation {
         "apex.hydration.food.\(accountID.uuidString.lowercased()).\(dateKey)"
     }
 
-    static func canDeleteOnWatch(sourceBundleIdentifier: String) -> Bool {
-        sourceBundleIdentifier == watchBundleIdentifier
+    static func canDeleteOnWatch(
+        sourceBundleIdentifier: String,
+        syncIdentifier: String? = nil
+    ) -> Bool {
+        WatchHydrationAuthorship.canDelete(
+            sourceBundleIdentifier: sourceBundleIdentifier,
+            syncIdentifier: syncIdentifier
+        )
     }
 }

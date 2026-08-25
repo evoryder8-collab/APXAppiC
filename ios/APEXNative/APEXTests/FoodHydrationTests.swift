@@ -133,5 +133,25 @@ final class FoodHydrationTests: XCTestCase {
         XCTAssertTrue(HydrationReconciliation.canDeleteOnWatch(sourceBundleIdentifier: "ch.apexperformance.APEX.watchkitapp"))
         XCTAssertFalse(HydrationReconciliation.canDeleteOnWatch(sourceBundleIdentifier: "ch.apexperformance.APEX"))
         XCTAssertFalse(HydrationReconciliation.canDeleteOnWatch(sourceBundleIdentifier: "com.thirdparty.water"))
+
+        XCTAssertTrue(
+            HydrationReconciliation.canDeleteOnWatch(
+                sourceBundleIdentifier: "ch.apexperformance.APEX",
+                syncIdentifier: "apex.hydration.watch.1234"
+            ),
+            "HealthKit can report a Watch-written sample under the parent APEX source"
+        )
+        XCTAssertFalse(
+            HydrationReconciliation.canDeleteOnWatch(
+                sourceBundleIdentifier: "ch.apexperformance.APEX",
+                syncIdentifier: "apex.hydration.food.account.2026-08-25"
+            )
+        )
+        XCTAssertFalse(
+            HydrationReconciliation.canDeleteOnWatch(
+                sourceBundleIdentifier: "com.thirdparty.water",
+                syncIdentifier: "apex.hydration.watch.spoofed"
+            )
+        )
     }
 }

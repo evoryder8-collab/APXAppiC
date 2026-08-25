@@ -137,11 +137,16 @@ final class WatchHydrationStore: ObservableObject {
             }
             entries = samples.map { sample in
                 let bundle = sample.sourceRevision.source.bundleIdentifier
+                let syncIdentifier = sample.metadata?[HKMetadataKeySyncIdentifier] as? String
                 let isFood = sample.metadata?["ch.apexperformance.APEX.hydration.kind"] as? String == "food"
+                let canDelete = WatchHydrationAuthorship.canDelete(
+                    sourceBundleIdentifier: bundle,
+                    syncIdentifier: syncIdentifier
+                )
                 let sourceName: String
                 if isFood {
                     sourceName = "APEX food"
-                } else if bundle == "ch.apexperformance.APEX.watchkitapp" {
+                } else if canDelete {
                     sourceName = "APEX Watch"
                 } else if bundle == "ch.apexperformance.APEX" {
                     sourceName = "APEX iPhone"
@@ -152,7 +157,7 @@ final class WatchHydrationStore: ObservableObject {
                     sample: sample,
                     milliliters: sample.quantity.doubleValue(for: .literUnit(with: .milli)),
                     sourceName: sourceName,
-                    canDelete: bundle == "ch.apexperformance.APEX.watchkitapp"
+                    canDelete: canDelete
                 )
             }
             /* Keep the watch face ring honest the moment the total moves,
