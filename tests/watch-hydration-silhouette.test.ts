@@ -42,6 +42,8 @@ test('Watch hydration refresh and animation remain event-driven', () => {
   assert.doesNotMatch(store, /enableBackgroundDelivery|Timer\s*[.(]/)
   assert.match(store, /guard observerQuery == nil/)
   assert.match(store, /\[weak self\]/)
+  assert.match(store, /synchronizeReminderSchedule/)
+  assert.doesNotMatch(store, /DispatchSourceTimer|while\s+true/)
   assert.match(view, /@Environment\(\\\.scenePhase\)/)
   assert.match(view, /@Environment\(\\\.isLuminanceReduced\)/)
   assert.match(view, /\.onChange\(of: scenePhase\)/)
@@ -66,4 +68,37 @@ test('Watch history offers deliberate tap and swipe deletion', () => {
 
   assert.match(view, /\.swipeActions\(edge: \.trailing/)
   assert.match(view, /\.confirmationDialog\("Remove water entry\?"/)
+})
+
+test('Watch hydration keeps its title and settings in the native top bar', () => {
+  const app = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/APEXWaterWatchApp.swift', import.meta.url),
+    'utf8',
+  )
+  const view = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(app, /NavigationStack/)
+  assert.match(view, /ToolbarItem\(placement: \.topBarTrailing\)/)
+  assert.match(view, /Label\("APEX HYDRATION", systemImage: "drop.fill"\)/)
+  assert.match(view, /\.accessibilityLabel\("Hydration settings"\)/)
+  assert.match(view, /\.scrollBounceBehavior\(\.basedOnSize\)/)
+  assert.doesNotMatch(view, /\.navigationTitle\("APEX HYDRATION"\)/)
+})
+
+test('Watch hydration exposes configurable low-power presentation settings', () => {
+  const view = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(view, /struct WatchHydrationSettingsView/)
+  assert.match(view, /Toggle\("Show preset names"/)
+  assert.match(view, /Toggle\("Confirmation haptics"/)
+  assert.match(view, /Toggle\("Hydration reminders"/)
+  assert.match(view, /Picker\("Motion"/)
+  assert.match(view, /Picker\("Units"/)
+  assert.match(view, /HydrationProgressGleam/)
 })

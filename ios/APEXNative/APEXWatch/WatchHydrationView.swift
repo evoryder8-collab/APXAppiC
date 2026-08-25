@@ -7,6 +7,7 @@ struct WatchHydrationView: View {
     @Environment(\.scenePhase) private var scenePhase
     @State private var showsCustomAmount = false
     @State private var showsHistory = false
+    @State private var showsSettings = false
 
     private let aqua = Color(red: 0.08, green: 0.80, blue: 0.92)
     private let violet = Color(red: 0.55, green: 0.34, blue: 0.98)
@@ -29,7 +30,7 @@ struct WatchHydrationView: View {
         WatchHydrationAnimationPolicy.shouldAnimate(
             sceneIsActive: scenePhase == .active,
             luminanceIsReduced: isLuminanceReduced,
-            reduceMotion: reduceMotion
+            reduceMotion: reduceMotion || hydration.preferences.motionIntensity == .off
         )
     }
 
@@ -43,24 +44,13 @@ struct WatchHydrationView: View {
             .ignoresSafeArea()
 
             ScrollView {
-                VStack(spacing: 8) {
-                    HStack(spacing: 6) {
-                        Image(systemName: "drop.fill")
-                            .font(.system(size: 10, weight: .bold))
-                            .foregroundStyle(aqua)
-                        Text("APEX HYDRATION")
-                            .font(.system(size: 10, weight: .bold, design: .monospaced))
-                            .tracking(1.7)
-                            .foregroundStyle(.white.opacity(0.82))
-                        Spacer(minLength: 0)
-                    }
-
+                VStack(spacing: 4) {
                     hydrationCard
 
                     HStack(spacing: 6) {
-                        quickAdd(250)
-                        quickAdd(300)
-                        quickAdd(500)
+                        quickAdd(250, name: "Glass")
+                        quickAdd(300, name: "Cup")
+                        quickAdd(500, name: "Bottle")
                     }
 
                     HStack(spacing: 6) {
@@ -90,9 +80,27 @@ struct WatchHydrationView: View {
                     }
                 }
                 .padding(.horizontal, 7)
-                .padding(.vertical, 5)
             }
             .scrollIndicators(.hidden)
+            .scrollBounceBehavior(.basedOnSize)
+            .contentMargins(.top, 0, for: .scrollContent)
+        }
+        .toolbar {
+            ToolbarItem(placement: .topBarTrailing) {
+                Button(action: showHydrationSettings) {
+                    HStack(spacing: 5) {
+                        Label("APEX HYDRATION", systemImage: "drop.fill")
+                            .font(.system(size: 8, weight: .bold, design: .monospaced))
+                            .tracking(0.7)
+                            .foregroundStyle(aqua)
+                        Image(systemName: "gearshape")
+                            .font(.footnote)
+                            .foregroundStyle(.white)
+                    }
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Hydration settings")
+            }
         }
         .task {
             if previewLiters == nil {
@@ -111,82 +119,112 @@ struct WatchHydrationView: View {
             HydrationHistoryView()
                 .environmentObject(hydration)
         }
+        .sheet(isPresented: $showsSettings) {
+            NavigationStack {
+                WatchHydrationSettingsView()
+                    .environmentObject(hydration)
+            }
+        }
     }
 
     private var hydrationCard: some View {
-        HStack(spacing: 8) {
-            HydrationSilhouetteGauge(
-                fillState: fillState,
-                aqua: aqua,
-                violet: violet,
-                animationIsEnabled: animationIsEnabled
-            )
-            .frame(width: 58, height: 101)
+        TimelineView(.animation(paused: !animationIsEnabled)) { timeline in
+            let phase = animationIsEnabled
+                ? timeline.date.timeIntervalSinceReferenceDate * 0.9
+                : 0
 
-            VStack(alignment: .leading, spacing: 5) {
-                Text(fillState.primaryAmount)
-                    .font(.system(size: 21, weight: .bold, design: .rounded))
-                    .contentTransition(.numericText())
-                    .minimumScaleFactor(0.72)
-                    .lineLimit(1)
+            HStack(spacing: 8) {
+                HydrationSilhouetteGauge(
+                    fillState: fillState,
+                    aqua: aqua,
+                    violet: violet,
+                    animationIsEnabled: animationIsEnabled,
+                    phase: phase,
+                    motionScale: hydration.preferences.motionIntensity.scale
+                )
+                .frame(width: 48, height: 83)
 
-                ZStack(alignment: .leading) {
-                    Capsule().fill(.white.opacity(0.10))
-                    Capsule()
-                        .fill(LinearGradient(colors: [violet, aqua], startPoint: .leading, endPoint: .trailing))
-                        .frame(width: 58 * fillState.progress)
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(hydration.preferences.formattedAmount(liters: displayedLiters))
+                        .font(.title3)
+                        .bold()
+                        .fontDesign(.rounded)
+                        .contentTransition(.numericText())
+                        .minimumScaleFactor(0.72)
+                        .lineLimit(1)
+
+                    HydrationProgressGleam(
+                        progress: fillState.progress,
+                        phase: phase,
+                        animationIsEnabled: animationIsEnabled,
+                        aqua: aqua,
+                        violet: violet
+                    )
+                    .frame(height: 6)
+                    .animation(reduceMotion ? nil : .smooth(duration: 0.7), value: fillState.progress)
+
+                    Text("\(Int((fillState.progress * 100).rounded()))%")
+                        .font(.headline)
+                        .bold()
+                        .fontDesign(.rounded)
+                        .foregroundStyle(.white)
+                        .contentTransition(.numericText())
+                    Text("TARGET \(hydration.preferences.formattedTarget)")
+                        .font(.footnote)
+                        .bold()
+                        .fontDesign(.monospaced)
+                        .foregroundStyle(.secondary)
+                        .lineLimit(1)
+                        .minimumScaleFactor(0.68)
                 }
-                .frame(width: 58, height: 4)
-                .animation(reduceMotion ? nil : .smooth(duration: 0.7), value: fillState.progress)
-
-                Text("\(Int((fillState.progress * 100).rounded()))%")
-                    .font(.system(size: 17, weight: .bold, design: .rounded))
-                    .foregroundStyle(.white)
-                    .contentTransition(.numericText())
-                Text("TARGET \(hydration.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
-                    .font(.system(size: 8, weight: .semibold, design: .monospaced))
-                    .foregroundStyle(.white.opacity(0.55))
-                    .lineLimit(1)
+                .frame(maxWidth: .infinity, alignment: .leading)
             }
-            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(.horizontal, 9)
+            .padding(.vertical, 4)
+            .background(
+                LinearGradient(
+                    colors: [.white.opacity(0.105), aqua.opacity(0.055), violet.opacity(0.07)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 24)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 24)
+                    .stroke(.white.opacity(0.13), lineWidth: 0.8)
+            }
+            .accessibilityElement(children: .ignore)
+            .accessibilityLabel("Hydration")
+            .accessibilityValue(
+                "\(hydration.preferences.formattedAmount(liters: displayedLiters)) of "
+                    + "\(hydration.preferences.formattedTarget), "
+                    + "\(Int((fillState.progress * 100).rounded())) percent"
+            )
         }
-        .padding(.horizontal, 9)
-        .padding(.vertical, 4)
-        .background(
-            LinearGradient(
-                colors: [.white.opacity(0.105), aqua.opacity(0.055), violet.opacity(0.07)],
-                startPoint: .topLeading,
-                endPoint: .bottomTrailing
-            ),
-            in: RoundedRectangle(cornerRadius: 24, style: .continuous)
-        )
-        .overlay {
-            RoundedRectangle(cornerRadius: 24, style: .continuous)
-                .stroke(.white.opacity(0.13), lineWidth: 0.8)
-        }
-        .accessibilityElement(children: .ignore)
-        .accessibilityLabel("Hydration")
-        .accessibilityValue(
-            "\(displayedLiters.formatted(.number.precision(.fractionLength(2)))) of "
-                + "\(hydration.targetLiters.formatted(.number.precision(.fractionLength(2)))) liters, "
-                + "\(Int((fillState.progress * 100).rounded())) percent"
-        )
     }
 
-    private func quickAdd(_ milliliters: Int) -> some View {
+    private func quickAdd(_ milliliters: Int, name: String) -> some View {
         Button {
             Task { await hydration.add(milliliters: Double(milliliters)) }
         } label: {
             VStack(spacing: 1) {
                 Image(systemName: "drop.fill")
-                    .font(.system(size: 8, weight: .bold))
+                    .font(.footnote)
+                    .bold()
                     .foregroundStyle(aqua)
-                Text("+\(milliliters)")
-                    .font(.system(size: 11, weight: .bold, design: .rounded))
+                Text(hydration.preferences.showsPresetNames ? name : "+\(milliliters)")
+                    .font(.system(size: 15, weight: .bold, design: .rounded))
+                    .bold()
+                    .fontDesign(.rounded)
                     .foregroundStyle(.white)
+                    .minimumScaleFactor(0.75)
+                    .lineLimit(1)
+                Text(hydration.preferences.showsPresetNames ? "+\(milliliters) mL" : "mL")
+                    .font(.system(size: 10, weight: .medium, design: .rounded))
+                    .foregroundStyle(.secondary)
             }
             .frame(maxWidth: .infinity)
-            .frame(minHeight: 36)
+            .frame(minHeight: 44)
             .background(.white.opacity(0.085), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
@@ -198,6 +236,10 @@ struct WatchHydrationView: View {
         .accessibilityLabel("Add \(milliliters) milliliters of water")
     }
 
+    private func showHydrationSettings() {
+        showsSettings = true
+    }
+
     private func utilityButton(
         _ title: String,
         systemImage: String,
@@ -205,8 +247,10 @@ struct WatchHydrationView: View {
     ) -> some View {
         Button(action: action) {
             Label(title, systemImage: systemImage)
-                .font(.system(size: 10, weight: .bold, design: .rounded))
-                .frame(maxWidth: .infinity, minHeight: 30)
+                .font(.footnote)
+                .bold()
+                .fontDesign(.rounded)
+                .frame(maxWidth: .infinity, minHeight: 44)
                 .background(
                     .white.opacity(0.08),
                     in: RoundedRectangle(cornerRadius: 12, style: .continuous)
@@ -217,6 +261,157 @@ struct WatchHydrationView: View {
                 }
         }
         .buttonStyle(.plain)
+    }
+}
+
+private struct HydrationProgressGleam: View {
+    let progress: Double
+    let phase: Double
+    let animationIsEnabled: Bool
+    let aqua: Color
+    let violet: Color
+
+    var body: some View {
+        GeometryReader { geometry in
+            let width = max(0, geometry.size.width * progress)
+            let travel = max(0, width - 10)
+            let normalizedPhase = animationIsEnabled ? (sin(phase * 0.85) + 1) / 2 : 0
+
+            ZStack(alignment: .leading) {
+                Capsule()
+                    .stroke(.white.opacity(0.20), lineWidth: 1)
+
+                Capsule()
+                    .fill(
+                        LinearGradient(
+                            colors: [violet, aqua],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        )
+                    )
+                    .frame(width: width)
+                    .overlay(alignment: .leading) {
+                        if animationIsEnabled, width > 10 {
+                            Capsule()
+                                .fill(
+                                    LinearGradient(
+                                        colors: [.clear, .white.opacity(0.85), .clear],
+                                        startPoint: .leading,
+                                        endPoint: .trailing
+                                    )
+                                )
+                                .frame(width: 10)
+                                .offset(x: travel * normalizedPhase)
+                                .blendMode(.plusLighter)
+                        }
+                    }
+                    .clipShape(Capsule())
+            }
+        }
+        .accessibilityHidden(true)
+    }
+}
+
+struct WatchHydrationSettingsView: View {
+    @EnvironmentObject private var hydration: WatchHydrationStore
+    @Environment(\.dismiss) private var dismiss
+    @State private var draft = WatchHydrationPreferences.default
+    @State private var quietStart = Date()
+    @State private var quietEnd = Date()
+    @State private var validationMessage: String?
+    @State private var didLoad = false
+
+    var body: some View {
+        Form {
+            Section("Daily goal") {
+                TextField(
+                    "Exact litres",
+                    value: $draft.targetLiters,
+                    format: .number.precision(.fractionLength(0...2))
+                )
+                Stepper(value: $draft.targetLiters, in: 1...6, step: 0.1) {
+                    Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
+                        .font(.headline)
+                        .bold()
+                }
+                Picker("Units", selection: $draft.unit) {
+                    ForEach(WatchHydrationPreferences.Unit.allCases) { unit in
+                        Text(unit.label).tag(unit)
+                    }
+                }
+            }
+
+            Section("Reminders") {
+                Toggle("Hydration reminders", isOn: $draft.remindersEnabled)
+                if draft.remindersEnabled {
+                    Picker("Reminder gap", selection: $draft.reminderIntervalMinutes) {
+                        Text("60 min").tag(60)
+                        Text("90 min").tag(90)
+                        Text("120 min").tag(120)
+                    }
+                    DatePicker("Quiet from", selection: $quietStart, displayedComponents: .hourAndMinute)
+                    DatePicker("Quiet until", selection: $quietEnd, displayedComponents: .hourAndMinute)
+                    Text("Only when you are behind your goal pace. Maximum three per day.")
+                        .font(.footnote)
+                        .foregroundStyle(.secondary)
+                }
+            }
+
+            Section("Presentation") {
+                Toggle("Show preset names", isOn: $draft.showsPresetNames)
+                Toggle("Confirmation haptics", isOn: $draft.confirmationHaptics)
+                Picker("Motion", selection: $draft.motionIntensity) {
+                    ForEach(WatchHydrationPreferences.MotionIntensity.allCases) { intensity in
+                        Text(intensity.label).tag(intensity)
+                    }
+                }
+            }
+
+            if let validationMessage {
+                Text(validationMessage)
+                    .font(.footnote)
+                    .foregroundStyle(.red)
+            }
+
+            Button("Save settings", systemImage: "checkmark.circle.fill", action: save)
+                .buttonStyle(.borderedProminent)
+                .tint(.cyan)
+        }
+        .navigationTitle("Hydration")
+        .task {
+            loadDraft()
+        }
+    }
+
+    private func loadDraft() {
+        guard !didLoad else { return }
+        didLoad = true
+        draft = hydration.preferences
+        quietStart = date(minutesAfterMidnight: draft.quietHoursStartMinutes)
+        quietEnd = date(minutesAfterMidnight: draft.quietHoursEndMinutes)
+    }
+
+    private func save() {
+        draft.quietHoursStartMinutes = minutesAfterMidnight(quietStart)
+        draft.quietHoursEndMinutes = minutesAfterMidnight(quietEnd)
+        Task {
+            do {
+                try await hydration.updatePreferences(draft)
+                dismiss()
+            } catch {
+                validationMessage = error.localizedDescription
+            }
+        }
+    }
+
+    private func date(minutesAfterMidnight: Int) -> Date {
+        let start = Calendar.current.startOfDay(for: Date())
+        return Calendar.current.date(byAdding: .minute, value: minutesAfterMidnight, to: start) ?? start
+    }
+
+    private func minutesAfterMidnight(_ date: Date) -> Int {
+        let components = Calendar.current.dateComponents([.hour, .minute], from: date)
+        return ((components.hour ?? 0) * 60) + (components.minute ?? 0)
     }
 }
 
@@ -361,69 +556,66 @@ private struct HydrationSilhouetteGauge: View {
     let aqua: Color
     let violet: Color
     let animationIsEnabled: Bool
+    let phase: Double
+    let motionScale: Double
 
     var body: some View {
-        TimelineView(.animation(paused: !animationIsEnabled)) { timeline in
-            let phase = animationIsEnabled
-                ? timeline.date.timeIntervalSinceReferenceDate * 0.9
-                : 0
-            let breath = animationIsEnabled ? sin(phase * 0.72) : 0
-            let floatOffset = animationIsEnabled ? sin(phase * 0.54) * 1.7 : 0
+        let breath = animationIsEnabled ? sin(phase * 0.72) * motionScale : 0
+        let floatOffset = animationIsEnabled ? sin(phase * 0.54) * 1.7 * motionScale : 0
 
-            ZStack {
-                Circle()
-                    .fill(
-                        RadialGradient(
-                            colors: [aqua.opacity(0.30), violet.opacity(0.14), .clear],
-                            center: .center,
-                            startRadius: 2,
-                            endRadius: 41
-                        )
+        ZStack {
+            Circle()
+                .fill(
+                    RadialGradient(
+                        colors: [aqua.opacity(0.30), violet.opacity(0.14), .clear],
+                        center: .center,
+                        startRadius: 2,
+                        endRadius: 41
                     )
-                    .frame(width: 82, height: 82)
-                    .blur(radius: 7)
-                    .scaleEffect(1 + (breath * 0.045))
+                )
+                .frame(width: 82, height: 82)
+                .blur(radius: 7)
+                .scaleEffect(1 + (breath * 0.045))
 
-                Image("HydrationMaleSilhouette")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(.white.opacity(0.075))
+            Image("HydrationMaleSilhouette")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(.white.opacity(0.075))
 
-                HydrationWaveShape(progress: fillState.progress, phase: phase)
-                    .fill(
-                        LinearGradient(
-                            colors: [Color.white.opacity(0.9), aqua, Color(red: 0.11, green: 0.39, blue: 0.98), violet],
-                            startPoint: .topLeading,
-                            endPoint: .bottomTrailing
-                        )
+            HydrationWaveShape(progress: fillState.progress, phase: phase)
+                .fill(
+                    LinearGradient(
+                        colors: [Color.white.opacity(0.9), aqua, Color(red: 0.11, green: 0.39, blue: 0.98), violet],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
                     )
-                    .shadow(color: aqua.opacity(0.7), radius: 7)
-                    .mask {
-                        Image("HydrationMaleSilhouette")
-                            .renderingMode(.template)
-                            .resizable()
-                            .scaledToFit()
-                    }
+                )
+                .shadow(color: aqua.opacity(0.7), radius: 7)
+                .mask {
+                    Image("HydrationMaleSilhouette")
+                        .renderingMode(.template)
+                        .resizable()
+                        .scaledToFit()
+                }
 
-                Image("HydrationMaleSilhouette")
-                    .renderingMode(.template)
-                    .resizable()
-                    .scaledToFit()
-                    .foregroundStyle(
-                        LinearGradient(
-                            colors: [.white.opacity(0.58), aqua.opacity(0.34), violet.opacity(0.28)],
-                            startPoint: .top,
-                            endPoint: .bottom
-                        )
+            Image("HydrationMaleSilhouette")
+                .renderingMode(.template)
+                .resizable()
+                .scaledToFit()
+                .foregroundStyle(
+                    LinearGradient(
+                        colors: [.white.opacity(0.58), aqua.opacity(0.34), violet.opacity(0.28)],
+                        startPoint: .top,
+                        endPoint: .bottom
                     )
-                    .opacity(0.38)
-                    .shadow(color: aqua.opacity(0.62), radius: 3)
-            }
-            .scaleEffect(1 + (breath * 0.012))
-            .offset(y: floatOffset)
-            .animation(animationIsEnabled ? .smooth(duration: 0.75) : nil, value: fillState.progress)
+                )
+                .opacity(0.38)
+                .shadow(color: aqua.opacity(0.62), radius: 3)
         }
+        .scaleEffect(1 + (breath * 0.012))
+        .offset(y: floatOffset)
+        .animation(animationIsEnabled ? .smooth(duration: 0.75) : nil, value: fillState.progress)
         .accessibilityHidden(true)
     }
 }

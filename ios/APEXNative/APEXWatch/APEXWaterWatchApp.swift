@@ -6,8 +6,10 @@ struct APEXWaterWatchApp: App {
 
     var body: some Scene {
         WindowGroup {
-            WatchHydrationView()
-                .environmentObject(hydration)
+            NavigationStack {
+                WatchHydrationView()
+            }
+            .environmentObject(hydration)
         }
     }
 }

@@ -10,6 +10,11 @@
 		A15E20000000000000000002 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
 		A15E20000000000000000003 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
 		A15E20000000000000000004 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
+		A15E21000000000000000002 /* WatchHydrationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E21000000000000000001 /* WatchHydrationPreferences.swift */; };
+		A15E21000000000000000003 /* WatchHydrationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E21000000000000000001 /* WatchHydrationPreferences.swift */; };
+		A15E21000000000000000004 /* WatchHydrationPreferences.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E21000000000000000001 /* WatchHydrationPreferences.swift */; };
+		A15E22000000000000000002 /* WatchHydrationReminderPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E22000000000000000001 /* WatchHydrationReminderPolicy.swift */; };
+		A15E22000000000000000003 /* WatchHydrationReminderPolicy.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E22000000000000000001 /* WatchHydrationReminderPolicy.swift */; };
 		A15E20000000000000000005 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
 		002E4BE70CF5D1D92C5D4094 /* ProgressPhotoEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = C60B17BD340219024A2F7711 /* ProgressPhotoEngine.swift */; };
 		019A4C7BDFBE9550A37412B7 /* TrainingInduction.swift in Sources */ = {isa = PBXBuildFile; fileRef = 6D5F4855EBFA6D7681E2FF1E /* TrainingInduction.swift */; };
@@ -292,6 +297,8 @@
 
 /* Begin PBXFileReference section */
 		A15E20000000000000000001 /* WatchHydrationFillState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationFillState.swift; sourceTree = "<group>"; };
+		A15E21000000000000000001 /* WatchHydrationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationPreferences.swift; sourceTree = "<group>"; };
+		A15E22000000000000000001 /* WatchHydrationReminderPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationReminderPolicy.swift; sourceTree = "<group>"; };
 		01407BB294D6CEF9BD33078A /* FoodHydration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydration.swift; sourceTree = "<group>"; };
 		018FB46EA0E562A118018CC0 /* plan-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "plan-parity.json"; sourceTree = "<group>"; };
 		0231113A04D8D73931BA0FB5 /* Localizable.strings */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = Localizable.strings; path = it.lproj/Localizable.strings; sourceTree = "<group>"; };
@@ -929,6 +936,8 @@
 			isa = PBXGroup;
 			children = (
 				A15E20000000000000000001 /* WatchHydrationFillState.swift */,
+				A15E21000000000000000001 /* WatchHydrationPreferences.swift */,
+				A15E22000000000000000001 /* WatchHydrationReminderPolicy.swift */,
 				4A90BC08C87C7C085A26F670 /* AvatarImage.swift */,
 				89A537AD351EC6AC5E3853D2 /* DailyNudges.swift */,
 				861BAFA402C5A560D6778FC5 /* Entitlement.swift */,
@@ -1236,6 +1245,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A15E20000000000000000003 /* WatchHydrationFillState.swift in Sources */,
+				A15E21000000000000000003 /* WatchHydrationPreferences.swift in Sources */,
+				A15E22000000000000000003 /* WatchHydrationReminderPolicy.swift in Sources */,
 				FC25F1FF3CA76633FA57F300 /* APEXWaterWatchApp.swift in Sources */,
 				A22FF4B2C6F9F70894245D15 /* WatchHydrationStore.swift in Sources */,
 				B4BF6E3B81DB4637133F3964 /* WatchHydrationView.swift in Sources */,
@@ -1247,6 +1258,8 @@
 			buildActionMask = 2147483647;
 			files = (
 				A15E20000000000000000002 /* WatchHydrationFillState.swift in Sources */,
+				A15E21000000000000000002 /* WatchHydrationPreferences.swift in Sources */,
+				A15E22000000000000000002 /* WatchHydrationReminderPolicy.swift in Sources */,
 				7844717B06A0968147BE2154 /* APEXApp.swift in Sources */,
 				B9308BBF59D1E8E81559AA3D /* APEXConfiguration.swift in Sources */,
 				DB36DC6830D491E7D91EC4CB /* APEXDebugFixture.swift in Sources */,
@@ -1382,6 +1395,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				A15E20000000000000000004 /* WatchHydrationFillState.swift in Sources */,
+				A15E21000000000000000004 /* WatchHydrationPreferences.swift in Sources */,
 				120C3902EDDC837DDE52C8B2 /* APEXWaterComplication.swift in Sources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;

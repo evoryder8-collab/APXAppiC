@@ -1,5 +1,7 @@
 import Foundation
 import HealthKit
+import UserNotifications
+import WatchKit
 import WidgetKit
 
 struct WatchHydrationEntry: Identifiable {
@@ -18,15 +20,57 @@ final class WatchHydrationStore: ObservableObject {
     @Published private(set) var isAuthorized = false
     @Published private(set) var isSaving = false
     @Published private(set) var entries: [WatchHydrationEntry] = []
+    @Published private(set) var preferences: WatchHydrationPreferences
     @Published var message: String?
 
-    let targetLiters = 2.75
-
     private let healthStore = HKHealthStore()
+    private let defaults: UserDefaults
     private var observerQuery: HKObserverQuery?
+    private static let preferencesKey = "ch.apexperformance.APEX.watch.hydration.preferences.v1"
+    private static let reminderIdentifierPrefix = "ch.apexperformance.APEX.hydration.reminder."
+    private static let reminderCountDayKey = "ch.apexperformance.APEX.watch.hydration.reminder.day"
+    private static let reminderCountKey = "ch.apexperformance.APEX.watch.hydration.reminder.count"
+
+    init(defaults: UserDefaults = .standard) {
+        self.defaults = defaults
+        if let data = defaults.data(forKey: Self.preferencesKey),
+           let restored = try? JSONDecoder().decode(WatchHydrationPreferences.self, from: data) {
+            preferences = restored
+        } else {
+            preferences = .default
+        }
+    }
+
+    var targetLiters: Double { preferences.targetLiters }
 
     var progress: Double {
         WatchHydrationFillState(liters: liters, targetLiters: targetLiters).progress
+    }
+
+    func updatePreferences(_ value: WatchHydrationPreferences) async throws {
+        let remindersWereEnabled = preferences.remindersEnabled
+        var validated = value
+        validated.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(value.targetLiters)
+        validated.reminderIntervalMinutes = [60, 90, 120].contains(value.reminderIntervalMinutes)
+            ? value.reminderIntervalMinutes
+            : 90
+        validated.quietHoursStartMinutes = min(1_439, max(0, value.quietHoursStartMinutes))
+        validated.quietHoursEndMinutes = min(1_439, max(0, value.quietHoursEndMinutes))
+
+        let data = try JSONEncoder().encode(validated)
+        defaults.set(data, forKey: Self.preferencesKey)
+        preferences = validated
+        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+
+        if validated.remindersEnabled, !remindersWereEnabled {
+            let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(
+                options: [.alert, .sound]
+            )) ?? false
+            if !granted {
+                message = "Watch notifications are off. Enable APEX in Notification settings."
+            }
+        }
+        await synchronizeReminderSchedule()
     }
 
     func start() async {
@@ -87,6 +131,9 @@ final class WatchHydrationStore: ObservableObject {
         do {
             try await healthStore.save(sample)
             await refresh()
+            if preferences.confirmationHaptics {
+                WKInterfaceDevice.current().play(.success)
+            }
             message = "+\(Int(milliliters)) mL"
             try? await Task.sleep(for: .seconds(1.2))
             message = nil
@@ -104,6 +151,9 @@ final class WatchHydrationStore: ObservableObject {
         do {
             try await healthStore.delete(entry.sample)
             await refresh()
+            if preferences.confirmationHaptics {
+                WKInterfaceDevice.current().play(.click)
+            }
             message = "Entry removed"
         } catch {
             message = error.localizedDescription
@@ -163,6 +213,7 @@ final class WatchHydrationStore: ObservableObject {
             /* Keep the watch face ring honest the moment the total moves,
                instead of waiting for the next scheduled timeline refresh. */
             WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+            await synchronizeReminderSchedule()
         } catch {
             if !(error is CancellationError) {
                 message = "Using the last water total."
@@ -180,6 +231,76 @@ final class WatchHydrationStore: ObservableObject {
         }
         observerQuery = query
         healthStore.execute(query)
+    }
+
+    private func synchronizeReminderSchedule(now: Date = Date()) async {
+        let center = UNUserNotificationCenter.current()
+        let pending = await center.pendingNotificationRequests()
+        let existing = pending.filter { $0.identifier.hasPrefix(Self.reminderIdentifierPrefix) }
+
+        guard preferences.remindersEnabled,
+              let reminderDate = WatchHydrationReminderPolicy.nextReminderDate(
+                now: now,
+                liters: liters,
+                lastDrinkAt: entries.first?.date,
+                preferences: preferences
+              )
+        else {
+            center.removePendingNotificationRequests(withIdentifiers: existing.map(\.identifier))
+            return
+        }
+
+        let signature = reminderSignature(date: reminderDate)
+        if existing.contains(where: { $0.content.userInfo["signature"] as? String == signature }) {
+            return
+        }
+        center.removePendingNotificationRequests(withIdentifiers: existing.map(\.identifier))
+
+        let status = await center.notificationSettings().authorizationStatus
+        guard [.authorized, .provisional].contains(status) else { return }
+
+        let day = reminderDayKey(now)
+        let count = scheduledReminderCount(for: day)
+        guard count < 3 else { return }
+
+        let content = UNMutableNotificationContent()
+        content.title = "A gentle hydration check"
+        content.body = "You are behind your current hydration pace. A few sips can close the gap."
+        content.sound = .default
+        content.userInfo = ["signature": signature, "kind": "hydration"]
+
+        let components = Calendar.current.dateComponents(
+            [.year, .month, .day, .hour, .minute],
+            from: reminderDate
+        )
+        let request = UNNotificationRequest(
+            identifier: Self.reminderIdentifierPrefix + day + ".\(count + 1)",
+            content: content,
+            trigger: UNCalendarNotificationTrigger(dateMatching: components, repeats: false)
+        )
+        do {
+            try await center.add(request)
+            defaults.set(day, forKey: Self.reminderCountDayKey)
+            defaults.set(count + 1, forKey: Self.reminderCountKey)
+        } catch {
+            message = "Hydration reminder could not be scheduled."
+        }
+    }
+
+    private func reminderSignature(date: Date) -> String {
+        let milliliters = Int((liters * 1_000).rounded())
+        let lastEntry = Int((entries.first?.date.timeIntervalSince1970 ?? 0).rounded())
+        return "\(milliliters)|\(lastEntry)|\(Int(date.timeIntervalSince1970.rounded()))|\(preferences.targetLiters)"
+    }
+
+    private func reminderDayKey(_ date: Date) -> String {
+        let components = Calendar.current.dateComponents([.year, .month, .day], from: date)
+        return "\(components.year ?? 0)-\(components.month ?? 0)-\(components.day ?? 0)"
+    }
+
+    private func scheduledReminderCount(for day: String) -> Int {
+        guard defaults.string(forKey: Self.reminderCountDayKey) == day else { return 0 }
+        return defaults.integer(forKey: Self.reminderCountKey)
     }
 
     private var permissionMessage: String {

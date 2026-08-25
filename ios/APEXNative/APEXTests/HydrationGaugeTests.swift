@@ -166,3 +166,137 @@ final class WatchHydrationFillStateTests: XCTestCase {
         )
     }
 }
+
+final class WatchHydrationPreferencesTests: XCTestCase {
+    func testDefaultsAreQuietAndBatteryConscious() {
+        let preferences = WatchHydrationPreferences.default
+
+        XCTAssertEqual(preferences.targetLiters, 2.75)
+        XCTAssertEqual(preferences.unit, .liters)
+        XCTAssertTrue(preferences.showsPresetNames)
+        XCTAssertTrue(preferences.confirmationHaptics)
+        XCTAssertEqual(preferences.motionIntensity, .subtle)
+        XCTAssertFalse(preferences.remindersEnabled)
+        XCTAssertEqual(preferences.reminderIntervalMinutes, 90)
+        XCTAssertEqual(preferences.quietHoursStartMinutes, 21 * 60 + 30)
+        XCTAssertEqual(preferences.quietHoursEndMinutes, 8 * 60)
+    }
+
+    func testExactTargetValidationRejectsUnsafeOrInvalidValues() throws {
+        XCTAssertEqual(try WatchHydrationPreferences.validatedTargetLiters(3.8), 3.8)
+        XCTAssertEqual(try WatchHydrationPreferences.validatedTargetLiters(1.0), 1.0)
+        XCTAssertEqual(try WatchHydrationPreferences.validatedTargetLiters(6.0), 6.0)
+        XCTAssertThrowsError(try WatchHydrationPreferences.validatedTargetLiters(0.9))
+        XCTAssertThrowsError(try WatchHydrationPreferences.validatedTargetLiters(6.1))
+        XCTAssertThrowsError(try WatchHydrationPreferences.validatedTargetLiters(.nan))
+    }
+
+    func testPreferencesRoundTripWithoutLosingExactGoal() throws {
+        var preferences = WatchHydrationPreferences.default
+        preferences.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(3.83)
+        preferences.unit = .gallons
+        preferences.showsPresetNames = false
+        preferences.remindersEnabled = true
+        preferences.reminderIntervalMinutes = 120
+
+        let data = try JSONEncoder().encode(preferences)
+        let restored = try JSONDecoder().decode(WatchHydrationPreferences.self, from: data)
+
+        XCTAssertEqual(restored, preferences)
+        XCTAssertEqual(restored.targetLiters, 3.83)
+    }
+
+    func testSelectedUnitsDeriveDisplayWithoutChangingStoredLiters() {
+        var preferences = WatchHydrationPreferences.default
+        XCTAssertEqual(preferences.formattedAmount(liters: 1), "1.00 L")
+
+        preferences.unit = .gallons
+        XCTAssertEqual(preferences.formattedAmount(liters: 1), "0.26 gal")
+        XCTAssertEqual(preferences.formattedTarget, "0.73 gal")
+        XCTAssertEqual(preferences.targetLiters, 2.75)
+    }
+}
+
+final class WatchHydrationReminderPolicyTests: XCTestCase {
+    private let calendar = Calendar(identifier: .gregorian)
+
+    func testDisabledAndCompletedGoalsDoNotSchedule() {
+        let now = date(hour: 12)
+        var preferences = WatchHydrationPreferences.default
+
+        XCTAssertNil(
+            WatchHydrationReminderPolicy.nextReminderDate(
+                now: now,
+                liters: 0.5,
+                lastDrinkAt: date(hour: 10),
+                preferences: preferences,
+                calendar: calendar
+            )
+        )
+
+        preferences.remindersEnabled = true
+        XCTAssertNil(
+            WatchHydrationReminderPolicy.nextReminderDate(
+                now: now,
+                liters: preferences.targetLiters,
+                lastDrinkAt: date(hour: 10),
+                preferences: preferences,
+                calendar: calendar
+            )
+        )
+    }
+
+    func testReminderRequiresBothInactivityAndQuarterLiterPaceDeficit() throws {
+        var preferences = WatchHydrationPreferences.default
+        preferences.remindersEnabled = true
+        preferences.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(3)
+        let now = date(hour: 10)
+
+        let behind = WatchHydrationReminderPolicy.nextReminderDate(
+            now: now,
+            liters: 0,
+            lastDrinkAt: date(hour: 8),
+            preferences: preferences,
+            calendar: calendar
+        )
+        XCTAssertEqual(behind, date(hour: 10, minute: 1))
+
+        let recentlyDrank = WatchHydrationReminderPolicy.nextReminderDate(
+            now: now,
+            liters: 0,
+            lastDrinkAt: date(hour: 9, minute: 30),
+            preferences: preferences,
+            calendar: calendar
+        )
+        XCTAssertEqual(recentlyDrank, date(hour: 11))
+
+        let ahead = WatchHydrationReminderPolicy.nextReminderDate(
+            now: now,
+            liters: 1,
+            lastDrinkAt: date(hour: 8),
+            preferences: preferences,
+            calendar: calendar
+        )
+        XCTAssertNotNil(ahead)
+        XCTAssertGreaterThan(ahead ?? now, date(hour: 13))
+    }
+
+    func testQuietHoursNeverScheduleAStaleNextDayReminder() {
+        var preferences = WatchHydrationPreferences.default
+        preferences.remindersEnabled = true
+
+        XCTAssertNil(
+            WatchHydrationReminderPolicy.nextReminderDate(
+                now: date(hour: 22),
+                liters: 0,
+                lastDrinkAt: date(hour: 18),
+                preferences: preferences,
+                calendar: calendar
+            )
+        )
+    }
+
+    private func date(hour: Int, minute: Int = 0) -> Date {
+        calendar.date(from: DateComponents(year: 2026, month: 8, day: 25, hour: hour, minute: minute))!
+    }
+}
