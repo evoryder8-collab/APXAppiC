@@ -220,6 +220,31 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual((waterEnd.location + coffeeStart.location) / 2, 0.96, accuracy: 0.000_001)
         XCTAssertEqual(last.location, 1, accuracy: 0.000_001)
     }
+
+    func testFigureBridgeCarriesWeightedStopsAcrossTheVisibleFill() throws {
+        let bands = [
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 900
+            ),
+            HydrationCompositionBand(
+                kind: .coffee,
+                paletteToken: "espresso",
+                iconToken: "cup.and.saucer.fill",
+                milliliters: 100
+            ),
+        ]
+
+        let stops = HydrationFigureWebPalette.stops(for: bands)
+        let waterEnd = try XCTUnwrap(stops.last { $0.color == "#14CCE8" })
+        let coffeeStart = try XCTUnwrap(stops.first { $0.color == "#8C4A21" })
+
+        XCTAssertEqual((waterEnd.offset + coffeeStart.offset) / 2, 0.9, accuracy: 0.000_001)
+        XCTAssertLessThanOrEqual(coffeeStart.offset - waterEnd.offset, 0.005)
+        XCTAssertEqual(HydrationFigureWebPalette.fillHeight(progress: 0.49), 348.88, accuracy: 0.000_001)
+    }
 }
 
 final class WatchHydrationPreferencesTests: XCTestCase {

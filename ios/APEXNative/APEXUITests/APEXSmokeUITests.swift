@@ -233,6 +233,42 @@ final class APEXSmokeUITests: XCTestCase {
         capture("simple-bespoke-main-workout")
     }
 
+    func testWaterQuickAddDismissesAnEmptyNumericKeyboardAndKeepsSettingsAtTheBottom() {
+        let app = configuredApp()
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        simpleMode.tap()
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) {
+            syncAlert.buttons["OK"].tap()
+        }
+
+        let water = app.buttons["simple-water-metric"]
+        let page = app.scrollViews.element(boundBy: 0)
+        XCTAssertTrue(page.waitForExistence(timeout: 2))
+        page.swipeUp(velocity: .fast)
+        page.swipeUp(velocity: .fast)
+        XCTAssertTrue(water.waitForExistence(timeout: 4))
+        XCTAssertTrue(water.isHittable)
+        water.tap()
+        XCTAssertTrue(app.staticTexts["Water quick add"].waitForExistence(timeout: 3))
+
+        let field = app.textFields["hydration-custom-ml"]
+        XCTAssertTrue(field.waitForExistence(timeout: 2))
+        field.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
+
+        let hideKeyboard = app.buttons["hydration-keyboard-dismiss"]
+        XCTAssertTrue(hideKeyboard.waitForExistence(timeout: 2))
+        hideKeyboard.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["hydration-settings-bottom"].exists)
+        XCTAssertFalse(app.buttons["hydration-settings-top"].exists)
+        capture("water-quick-add-refined")
+    }
+
     func testLaunchPerformance() {
         measure(metrics: [XCTApplicationLaunchMetric(waitUntilResponsive: true)]) {
             configuredApp().launch()

@@ -380,6 +380,8 @@ struct SimpleHomeView: View {
                 color: APEXColor.cyan,
                 action: { quickPanel = .water }
             )
+            .accessibilityIdentifier("simple-water-metric")
+            .accessibilityLabel(language.text("Water"))
             SimpleMetric(
                 icon: "sparkles",
                 value: "\(takenSupplementCount)/\(session.activeSupplements.count)",
@@ -669,21 +671,6 @@ private func hydrationColor(_ token: String) -> Color {
     }
 }
 
-private func hydrationHex(_ token: String) -> String {
-    switch token {
-    case "espresso": "#8C4A21"
-    case "tea": "#3DAE57"
-    case "citrus": "#FF850D"
-    case "cocoa": "#A8643D"
-    case "violet": "#8C57FA"
-    case "food": "#1FA88F"
-    case "external": "#E63D8C"
-    case "legacy": "#5285B8"
-    case "blue": "#1C64FA"
-    default: "#14CCE8"
-    }
-}
-
 private struct SimpleAction {
     enum Kind {
         case meal(UUID)
@@ -896,6 +883,30 @@ private struct WaterQuickAddSheet: View {
     @FocusState private var customIsFocused: Bool
 
     private var totalLiters: Double { min(6, drinkLiters + foodLiters) }
+    private var progress: Double { targetLiters > 0 ? min(1, max(0, totalLiters / targetLiters)) : 0 }
+    private var customAmountML: Double? {
+        guard let amount = Double(customML), amount > 0 else { return nil }
+        return min(3_000, amount)
+    }
+
+    private var compositionGradient: LinearGradient {
+        let stops = HydrationCompositionLayout.stops(for: composition).map { stop in
+            Gradient.Stop(
+                color: hydrationColor(stop.paletteToken),
+                location: CGFloat(stop.location)
+            )
+        }
+        return LinearGradient(
+            gradient: Gradient(stops: stops.isEmpty
+                ? [
+                    .init(color: APEXColor.cyan, location: 0),
+                    .init(color: APEXColor.cyan, location: 1),
+                ]
+                : stops),
+            startPoint: .leading,
+            endPoint: .trailing
+        )
+    }
 
     var body: some View {
         VStack(spacing: 0) {
@@ -907,17 +918,17 @@ private struct WaterQuickAddSheet: View {
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 Spacer()
-                Button {
-                    showsManagement = true
-                } label: {
-                    Image(systemName: "gearshape.fill")
+                Button { dismiss() } label: {
+                    Text(language.text("Done"))
+                        .font(APEXFont.body(13, weight: .bold))
+                        .foregroundStyle(APEXColor.cyan)
+                        .padding(.horizontal, 14)
+                        .frame(minHeight: 40)
+                        .background(.thinMaterial, in: Capsule())
+                        .overlay(Capsule().stroke(APEXColor.cyan.opacity(0.20), lineWidth: 1))
                 }
-                .font(APEXFont.body(15, weight: .bold))
-                .foregroundStyle(APEXColor.cyan)
-                .accessibilityLabel("Hydration settings, presets and history")
-                Button(language.text("Done")) { dismiss() }
-                    .font(APEXFont.body(14, weight: .bold))
-                    .foregroundStyle(APEXColor.cyan)
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("hydration-done")
             }
             .padding(.horizontal, 22)
             .padding(.top, 18)
@@ -933,24 +944,40 @@ private struct WaterQuickAddSheet: View {
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, 8)
 
-            /* The number belongs under the feet, at a size worth reading. */
-            VStack(spacing: 2) {
-                Text(String(format: "%.2f / %.2f L", totalLiters, targetLiters))
-                    .font(APEXFont.mono(30, weight: .bold))
-                    .foregroundStyle(APEXColor.ink)
-                    .contentTransition(.numericText())
-                    .scaleEffect(pulse ? 1.06 : 1)
+            VStack(spacing: 11) {
+                HStack(alignment: .lastTextBaseline, spacing: 7) {
+                    Text(String(format: "%.2f", totalLiters))
+                        .font(APEXFont.mono(30, weight: .bold))
+                        .foregroundStyle(APEXColor.ink)
+                        .contentTransition(.numericText())
+                        .scaleEffect(pulse ? 1.06 : 1)
+                    Text(String(format: "/ %.2f L", targetLiters))
+                        .font(APEXFont.mono(18, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+
+                GeometryReader { proxy in
+                    ZStack(alignment: .leading) {
+                        Capsule().fill(APEXColor.ink.opacity(0.08))
+                        compositionGradient
+                            .frame(width: max(0, proxy.size.width * progress))
+                            .clipShape(Capsule())
+                    }
+                }
+                .frame(height: 8)
+
                 Text(targetLiters > 0
                      ? String(format: "%.0f%% of today's target", min(1, totalLiters / targetLiters) * 100)
                      : "")
                     .font(APEXFont.body(11, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
+
                 if !composition.isEmpty {
                     ScrollView(.horizontal) {
                         HStack(spacing: 8) {
                             ForEach(Array(composition.enumerated()), id: \.offset) { _, band in
                                 Label {
-                                    Text("\(band.milliliters) mL")
+                                    Text("\(hydrationBandName(band.kind)) · \(band.milliliters) mL")
                                 } icon: {
                                     Image(systemName: band.iconToken)
                                 }
@@ -966,10 +993,19 @@ private struct WaterQuickAddSheet: View {
                         }
                     }
                     .scrollIndicators(.hidden)
+                    .accessibilityIdentifier("hydration-composition")
                 }
             }
-            .padding(.top, 6)
-            .padding(.bottom, 14)
+            .padding(15)
+            .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .overlay(
+                RoundedRectangle(cornerRadius: 22, style: .continuous)
+                    .stroke(.white.opacity(0.72), lineWidth: 1)
+            )
+            .shadow(color: APEXColor.cyan.opacity(0.08), radius: 18, y: 8)
+            .padding(.horizontal, 22)
+            .padding(.top, 8)
+            .padding(.bottom, 16)
 
             VStack(spacing: 12) {
                 VStack(alignment: .leading, spacing: 7) {
@@ -984,24 +1020,55 @@ private struct WaterQuickAddSheet: View {
                         }
                     }
                     .scrollIndicators(.hidden)
+                    .accessibilityIdentifier("hydration-presets")
                     HStack(spacing: 9) {
-                        TextField("ml", text: $customML)
-                            .keyboardType(.numberPad)
-                            .font(APEXFont.mono(14))
-                            .multilineTextAlignment(.center)
-                            .frame(maxWidth: .infinity, minHeight: 50)
-                            .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
-                            .onSubmit(addCustom)
-                            .submitLabel(.done)
-                            .focused($customIsFocused)
-                        if Double(customML) != nil {
-                            Button(action: addCustom) {
-                                Image(systemName: "arrow.right.circle.fill")
-                                    .font(.system(size: 26))
-                                    .foregroundStyle(APEXColor.cyan)
+                        HStack(spacing: 8) {
+                            TextField("Custom amount", text: $customML)
+                                .keyboardType(.numberPad)
+                                .font(APEXFont.mono(14, weight: .semibold))
+                                .multilineTextAlignment(.trailing)
+                                .onSubmit(addCustom)
+                                .submitLabel(.done)
+                                .focused($customIsFocused)
+                                .accessibilityIdentifier("hydration-custom-ml")
+                            Text("mL")
+                                .font(APEXFont.mono(12, weight: .bold))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                            if customIsFocused {
+                                Button {
+                                    customIsFocused = false
+                                } label: {
+                                    Image(systemName: "keyboard.chevron.compact.down")
+                                        .font(.system(size: 17, weight: .bold))
+                                        .foregroundStyle(APEXColor.cyan)
+                                        .frame(width: 34, height: 34)
+                                        .background(APEXColor.cyan.opacity(0.10), in: Circle())
+                                }
+                                .buttonStyle(.plain)
+                                .accessibilityLabel("Hide keyboard")
+                                .accessibilityIdentifier("hydration-keyboard-dismiss")
                             }
-                            .buttonStyle(.plain)
                         }
+                        .padding(.horizontal, 13)
+                        .frame(maxWidth: .infinity, minHeight: 54)
+                        .background(.thinMaterial, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        .overlay(
+                            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                .stroke(APEXColor.cyan.opacity(customIsFocused ? 0.55 : 0.16), lineWidth: 1)
+                        )
+
+                        Button(action: addCustom) {
+                            Label(language.text("Add"), systemImage: "plus")
+                                .font(APEXFont.body(12, weight: .bold))
+                                .foregroundStyle(.white)
+                                .padding(.horizontal, 14)
+                                .frame(minHeight: 54)
+                                .background(APEXColor.cyan.gradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                        .disabled(customAmountML == nil)
+                        .opacity(customAmountML == nil ? 0.45 : 1)
+                        .accessibilityIdentifier("hydration-custom-add")
                     }
                 }
 
@@ -1017,12 +1084,25 @@ private struct WaterQuickAddSheet: View {
                             .disabled(drinkLiters <= 0)
                             .opacity(drinkLiters <= 0 ? 0.35 : 1)
                         }
-                        Button(language.text("Clear")) { commit(-drinkLiters) }
-                            .font(APEXFont.body(12, weight: .bold))
-                            .foregroundStyle(APEXColor.danger)
+                        Button {
+                            showsManagement = true
+                        } label: {
+                            VStack(spacing: 3) {
+                                Image(systemName: "gearshape.fill")
+                                Text(language.text("Settings"))
+                                    .font(APEXFont.body(10, weight: .bold))
+                            }
                             .frame(maxWidth: .infinity, minHeight: 50)
-                            .disabled(drinkLiters <= 0)
-                            .opacity(drinkLiters <= 0 ? 0.35 : 1)
+                            .foregroundStyle(APEXColor.cyan)
+                            .background(APEXColor.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 15))
+                            .overlay(
+                                RoundedRectangle(cornerRadius: 15)
+                                    .stroke(APEXColor.cyan.opacity(0.16), lineWidth: 1)
+                            )
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityLabel("Hydration settings, presets and history")
+                        .accessibilityIdentifier("hydration-settings-bottom")
                     }
                 }
             }
@@ -1037,8 +1117,20 @@ private struct WaterQuickAddSheet: View {
         .toolbar {
             ToolbarItemGroup(placement: .keyboard) {
                 Spacer()
-                Button("Done") { customIsFocused = false }
+                Button(language.text("Hide keyboard")) { customIsFocused = false }
             }
+        }
+        .background {
+            ZStack {
+                APEXColor.canvas
+                RadialGradient(
+                    colors: [APEXColor.cyan.opacity(0.10), .clear],
+                    center: .topTrailing,
+                    startRadius: 10,
+                    endRadius: 360
+                )
+            }
+            .ignoresSafeArea()
         }
     }
 
@@ -1094,10 +1186,24 @@ private struct WaterQuickAddSheet: View {
     }
 
     private func addCustom() {
-        guard let ml = Double(customML), ml > 0 else { return }
-        commit(min(3_000, ml) / 1_000)
+        guard let ml = customAmountML else { return }
+        commit(ml / 1_000)
         customML = ""
         customIsFocused = false
+    }
+
+    private func hydrationBandName(_ kind: HydrationKind) -> String {
+        switch kind {
+        case .water: language.text("Water")
+        case .coffee: language.text("Coffee")
+        case .tea: language.text("Tea")
+        case .juice: language.text("Juice")
+        case .shake: language.text("Shake")
+        case .food: language.text("Food")
+        case .external: language.text("Health")
+        case .legacy: language.text("Imported")
+        case .other: language.text("Other")
+        }
     }
 }
 
@@ -1517,10 +1623,7 @@ private struct HydrationFigureGauge: View {
                 HydrationFigureWebView(
                     progress: progress,
                     sex: sex,
-                    paletteHex: composition.flatMap { band in
-                        let color = hydrationHex(band.paletteToken)
-                        return [color, color]
-                    }
+                    composition: composition
                 )
                     .frame(width: figureWidth, height: figureHeight)
 

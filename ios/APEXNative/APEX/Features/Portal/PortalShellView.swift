@@ -23,8 +23,11 @@ struct PortalShellView: View {
                 }
         }
         .safeAreaInset(edge: .bottom, spacing: 0) {
-            ProfileDockButton(showConfirmation: $showLogout)
-                .padding(.horizontal, 18)
+            HStack {
+                Spacer()
+                LogoutDockButton(showConfirmation: $showLogout)
+            }
+                .padding(.horizontal, 20)
                 .padding(.bottom, 5)
         }
         .confirmationDialog(
@@ -55,48 +58,35 @@ struct PortalShellView: View {
     }
 }
 
-/// The floating profile dock draws above every screen, so scrolling content
-/// has to leave room for it or the last card ends up underneath.
+/// The compact sign-out action still needs a little bottom breathing room,
+/// but no longer covers a full row of otherwise tappable content.
 enum APEXDock {
-    static let height: CGFloat = 58
-    static let clearance: CGFloat = 76
+    static let height: CGFloat = 52
+    static let clearance: CGFloat = 62
 }
 
 extension View {
-    /// Bottom room for the profile dock, on top of the screen's own padding.
+    /// Bottom room for the compact sign-out action, on top of screen padding.
     func dockClearance() -> some View { padding(.bottom, APEXDock.clearance) }
 }
 
-private struct ProfileDockButton: View {
-    @Environment(AppSession.self) private var session
+private struct LogoutDockButton: View {
     @Binding var showConfirmation: Bool
-    @State private var language = LanguageState.shared
 
     var body: some View {
-        HStack(spacing: -5) {
-            ForEach(Persona.allCases) { persona in
-                PortraitImage(name: persona.portraitName)
-                    .scaledToFill()
-                    .frame(width: 32, height: 32)
-                    .clipShape(Circle())
-                    .overlay(Circle().stroke(.white, lineWidth: 2))
-                    .opacity(session.profile?.persona == persona ? 1 : 0.72)
-            }
-            Text(language.text(.profiles).uppercased())
-                .font(APEXFont.mono(11))
-                .tracking(1.5)
-                .padding(.leading, 14)
-            Spacer(minLength: 10)
+        Button {
+            showConfirmation = true
+        } label: {
             Image(systemName: "rectangle.portrait.and.arrow.right")
-                .font(.system(size: 16, weight: .bold))
+                .font(.system(size: 18, weight: .bold))
+                .frame(width: APEXDock.height, height: APEXDock.height)
+                .foregroundStyle(APEXColor.ink)
+                .background(.ultraThinMaterial.opacity(0.97), in: Circle())
+                .overlay(Circle().stroke(.white.opacity(0.95)))
+                .shadow(color: .black.opacity(0.09), radius: 16, y: 7)
         }
-        .foregroundStyle(APEXColor.ink)
-        .padding(.horizontal, 15)
-        .frame(height: 58)
-        .background(.ultraThinMaterial.opacity(0.97), in: Capsule())
-        .overlay(Capsule().stroke(.white.opacity(0.95)))
-        .shadow(color: .black.opacity(0.09), radius: 18, y: 8)
-        .contentShape(Capsule())
-        .onTapGesture { showConfirmation = true }
+        .buttonStyle(.plain)
+        .accessibilityLabel(LanguageState.shared.text(.logoutWarning))
+        .accessibilityIdentifier("portal-logout")
     }
 }
