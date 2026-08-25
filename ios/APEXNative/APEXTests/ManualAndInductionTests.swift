@@ -787,7 +787,7 @@ final class TrainingInductionTests: XCTestCase {
             panel.contains("if draft.venue == \"home\""),
             "equipment answers must remain available for gym and outdoor training"
         )
-        XCTAssertTrue(panel.contains("session.installInductionPlan(draft)"))
+        XCTAssertTrue(panel.contains("session.installInductionPlan"))
         XCTAssertFalse(
             panel.contains("input.startDate = Date().apexDateKey"),
             "rebuilding must preserve the persisted phase boundary instead of silently restarting it today"
@@ -1408,6 +1408,73 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(sixMonth.induction["transition_weeks"]?.numberValue, 12)
         XCTAssertEqual(sixMonth.induction["main_start_date"]?.stringValue, "2026-03-30")
         XCTAssertEqual(sixMonth.induction["end_date"]?.stringValue, "2026-07-06")
+    }
+
+    func testGeneratedPlanBriefingOrdersFactsAndUsesSharedHydrationPolicy() {
+        var answers = input {
+            $0.planWeeks = 12
+            $0.sessionsPerWeek = 4
+            $0.goal = "strength"
+            $0.venue = "gym"
+        }
+        let briefing = TrainingInduction.planBriefing(
+            input: answers,
+            caution: "standard",
+            sex: "male",
+            weightKG: 80,
+            plannedExerciseMinutes: 60,
+            hydrationMode: .automatic,
+            customHydrationTargetML: nil,
+            displayUnit: "liters"
+        )
+
+        XCTAssertEqual(briefing.slides.map(\.kind), [.overview, .safety, .hydration, .sleep, .supplements])
+        XCTAssertTrue(briefing.slides[0].title.localizedCaseInsensitiveContains("12-week strength plan"))
+        XCTAssertTrue(briefing.slides[0].body.localizedCaseInsensitiveContains("4 sessions per week"))
+        XCTAssertEqual(briefing.hydrationTargetML, 3_250)
+        XCTAssertTrue(briefing.slides[2].title.contains("3.25 L"))
+        XCTAssertTrue(briefing.slides[2].body.localizedCaseInsensitiveContains("drinks and food"))
+        XCTAssertTrue(briefing.slides[2].bullets.joined(separator: " ").localizedCaseInsensitiveContains("sodium-restricted"))
+
+        answers.planWeeks = 26
+        let sixMonth = TrainingInduction.planBriefing(
+            input: answers,
+            caution: "standard",
+            sex: "male",
+            weightKG: 80,
+            plannedExerciseMinutes: 60,
+            hydrationMode: .custom,
+            customHydrationTargetML: 3_800,
+            displayUnit: "gallons"
+        )
+        XCTAssertTrue(sixMonth.slides[0].title.localizedCaseInsensitiveContains("6-month strength plan"))
+        XCTAssertFalse(sixMonth.slides[0].title.localizedCaseInsensitiveContains("26-week"))
+        XCTAssertEqual(sixMonth.hydrationTargetML, 3_800)
+        XCTAssertTrue(sixMonth.slides[2].title.contains("1.00 US gal"))
+    }
+
+    func testGeneratedPlanBriefingKeepsSafetyAndSupplementsQualified() throws {
+        let briefing = TrainingInduction.planBriefing(
+            input: input(),
+            caution: "cautious",
+            sex: "female",
+            weightKG: 66,
+            plannedExerciseMinutes: 45,
+            hydrationMode: .automatic,
+            customHydrationTargetML: nil,
+            displayUnit: "liters"
+        )
+        let safety = try XCTUnwrap(briefing.slides.first { $0.kind == .safety })
+        let hydration = try XCTUnwrap(briefing.slides.first { $0.kind == .hydration })
+        let supplements = try XCTUnwrap(briefing.slides.first { $0.kind == .supplements })
+
+        XCTAssertTrue(safety.bullets.joined(separator: " ").localizedCaseInsensitiveContains("emergency"))
+        XCTAssertTrue(safety.bullets.joined(separator: " ").localizedCaseInsensitiveContains("persistent"))
+        XCTAssertTrue(hydration.bullets.joined(separator: " ").localizedCaseInsensitiveContains("long, hot, or very sweaty"))
+        XCTAssertFalse(hydration.bullets.joined(separator: " ").localizedCaseInsensitiveContains("pinch of salt"))
+        XCTAssertTrue(supplements.body.localizedCaseInsensitiveContains("optional"))
+        XCTAssertTrue(supplements.bullets.joined(separator: " ").localizedCaseInsensitiveContains("creatine monohydrate"))
+        XCTAssertTrue(supplements.bullets.joined(separator: " ").localizedCaseInsensitiveContains("algae"))
     }
 
     func testClearanceReplacesTheWholeTemplateSet() {

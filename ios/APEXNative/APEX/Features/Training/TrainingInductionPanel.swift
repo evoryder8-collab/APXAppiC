@@ -14,10 +14,12 @@ struct TrainingInductionPanel: View {
     let slug: String
 
     @State private var showBuilder = false
+    @State private var showBriefing = false
     @State private var confirmReplace = false
     @State private var builderStep = 0
     @State private var pendingHighFrequencyDays: Int?
     @State private var draft = TrainingInduction.Input(startDate: Date().apexDateKey)
+    @State private var briefing: TrainingInduction.PlanBriefing?
 
     private var current: [String: JSONValue]? {
         session.data.settings?.addons["training_induction"]?.objectValue
@@ -78,10 +80,20 @@ struct TrainingInductionPanel: View {
                         .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 16))
                 }
                 .buttonStyle(.plain)
-                .accessibilityIdentifier("induction-open")
+                .accessibilityIdentifier(hasActiveGeneratedPlan ? "induction-rebuild" : "induction-open")
                 .disabled(session.isBusy)
 
                 if current != nil {
+                    Button {
+                        openCurrentBriefing()
+                    } label: {
+                        Text(language.text("Plan guide"))
+                            .font(APEXFont.body(12, weight: .bold))
+                            .foregroundStyle(APEXColor.violet)
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("induction-briefing-open")
+
                     Button {
                         Task { await session.restoreOriginalProgramme() }
                     } label: {
@@ -98,6 +110,13 @@ struct TrainingInductionPanel: View {
         }
         .sheet(isPresented: $showBuilder) {
             builder
+        }
+        .fullScreenCover(isPresented: $showBriefing) {
+            if let briefing {
+                PlanBriefingDeck(briefing: briefing) {
+                    showBriefing = false
+                }
+            }
         }
         .alert(
             language.text("This installs a generated beginner plan and shows it instead of your current programme. Your existing programme is kept and returns from Settings, Restore my original programme. Continue?"),
@@ -119,6 +138,45 @@ struct TrainingInductionPanel: View {
         showBuilder = true
     }
 
+    private func makeBriefing(for input: TrainingInduction.Input) -> TrainingInduction.PlanBriefing {
+        let profile = session.profile
+        let induction = session.data.settings?.addons["training_induction"]?.objectValue
+        let claimedIDs = Set(
+            ["transition_day_ids", "main_day_ids"].flatMap { key in
+                induction?[key]?.arrayValue?
+                    .compactMap(\.stringValue)
+                    .compactMap(UUID.init(uuidString:)) ?? []
+            }
+        )
+        let minutes = session.data.programDays
+            .filter { claimedIDs.contains($0.id) }
+            .map(\.estimatedMinutes)
+            .filter { $0 > 0 }
+        let plannedMinutes = minutes.isEmpty
+            ? 45
+            : Int((Double(minutes.reduce(0, +)) / Double(minutes.count)).rounded())
+        let preferences = session.hydrationPreferences
+        return TrainingInduction.planBriefing(
+            input: input,
+            caution: TrainingInduction.assess(input).caution,
+            sex: profile?.sex ?? "unspecified",
+            weightKG: profile?.weightKG ?? .nan,
+            plannedExerciseMinutes: plannedMinutes,
+            hydrationMode: preferences?.effectiveTargetMode ?? .automatic,
+            customHydrationTargetML: preferences?.targetML,
+            displayUnit: preferences?.displayUnit ?? "liters"
+        )
+    }
+
+    private func openCurrentBriefing() {
+        let input = TrainingInduction.input(
+            from: current,
+            fallbackStartDate: Date().apexDateKey
+        )
+        briefing = makeBriefing(for: input)
+        showBriefing = true
+    }
+
     private func chip(_ text: String, _ color: Color) -> some View {
         Text(language.text(text))
             .font(APEXFont.mono(9, weight: .bold))
@@ -138,6 +196,9 @@ struct TrainingInductionPanel: View {
 
     private var builder: some View {
         ZStack {
+            Color(uiColor: .systemBackground)
+                .ignoresSafeArea()
+
             LinearGradient(
                 colors: [
                     Color(uiColor: .systemBackground),
@@ -800,7 +861,177 @@ struct TrainingInductionPanel: View {
     }
 
     private func install() {
-        Task { await session.installInductionPlan(draft) }
+        let submitted = draft
+        Task {
+            await session.installInductionPlan(submitted)
+            guard TrainingInduction.hasCompleteGeneratedPlan(in: session.data, slug: slug) else { return }
+            briefing = makeBriefing(for: submitted)
+            showBriefing = true
+        }
+    }
+}
+
+private struct PlanBriefingDeck: View {
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @State private var language = LanguageState.shared
+    @State private var page = 0
+    @State private var firstSlideNudge: CGFloat = 0
+
+    let briefing: TrainingInduction.PlanBriefing
+    let onClose: () -> Void
+
+    var body: some View {
+        ZStack {
+            Color(uiColor: .systemBackground)
+                .ignoresSafeArea()
+
+            LinearGradient(
+                colors: [
+                    Color(uiColor: .systemBackground),
+                    APEXColor.violet.opacity(0.14),
+                    APEXColor.teal.opacity(0.10),
+                    Color(uiColor: .systemBackground),
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            .ignoresSafeArea()
+
+            VStack(spacing: 0) {
+                header
+                TabView(selection: $page) {
+                    ForEach(Array(briefing.slides.enumerated()), id: \.element.kind) { index, slide in
+                        ScrollView {
+                            slideCard(slide)
+                                .padding(.horizontal, 18)
+                                .padding(.vertical, 14)
+                        }
+                        .scrollIndicators(.hidden)
+                        .tag(index)
+                        .offset(x: index == 0 ? firstSlideNudge : 0)
+                        .accessibilityIdentifier("plan-briefing-slide-\(slide.kind.rawValue)")
+                    }
+                }
+                .tabViewStyle(PageTabViewStyle(indexDisplayMode: .never))
+
+                HStack(spacing: 7) {
+                    ForEach(briefing.slides.indices, id: \.self) { index in
+                        Capsule()
+                            .fill(index == page ? APEXColor.violet : APEXColor.violet.opacity(0.20))
+                            .frame(width: index == page ? 30 : 7, height: 7)
+                            .animation(.snappy(duration: 0.2), value: page)
+                    }
+                }
+                .accessibilityLabel(language.format("Slide %d of %d", page + 1, briefing.slides.count))
+                .padding(.top, 4)
+
+                Button(action: onClose) {
+                    HStack(spacing: 8) {
+                        Text(language.text("Open my plan"))
+                        Image(systemName: "arrow.right")
+                    }
+                    .font(APEXFont.body(15, weight: .bold))
+                    .frame(maxWidth: .infinity, minHeight: 52)
+                    .foregroundStyle(.white)
+                    .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 18))
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 20)
+                .padding(.top, 14)
+                .padding(.bottom, 10)
+                .accessibilityIdentifier("plan-briefing-done")
+            }
+        }
+        .accessibilityIdentifier("plan-briefing")
+        .task {
+            guard !accessibilityReduceMotion else { return }
+            try? await Task.sleep(for: .milliseconds(550))
+            withAnimation(.easeInOut(duration: 0.28)) { firstSlideNudge = -14 }
+            try? await Task.sleep(for: .milliseconds(300))
+            withAnimation(.easeInOut(duration: 0.32)) { firstSlideNudge = 0 }
+        }
+    }
+
+    private var header: some View {
+        HStack(alignment: .top, spacing: 14) {
+            VStack(alignment: .leading, spacing: 4) {
+                Text("APEX PLAN INTELLIGENCE")
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .tracking(1.7)
+                    .foregroundStyle(APEXColor.violet)
+                Text(language.text("Your plan briefing"))
+                    .font(APEXFont.display(25))
+                Text(language.text("Swipe for the full guide"))
+                    .font(APEXFont.body(11, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            Spacer()
+            Button(action: onClose) {
+                Image(systemName: "xmark")
+                    .font(.system(size: 14, weight: .bold))
+                    .frame(width: 42, height: 42)
+                    .background(.ultraThinMaterial, in: Circle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(language.text("Close plan briefing"))
+        }
+        .padding(.horizontal, 20)
+        .padding(.top, 18)
+        .padding(.bottom, 2)
+    }
+
+    private func slideCard(_ slide: TrainingInduction.PlanBriefingSlide) -> some View {
+        VStack(alignment: .leading, spacing: 14) {
+            Image(slide.assetName)
+                .resizable()
+                .scaledToFit()
+                .frame(maxWidth: .infinity, minHeight: 180, maxHeight: 225)
+                .accessibilityHidden(true)
+                .shadow(color: APEXColor.violet.opacity(0.14), radius: 24, y: 14)
+
+            Text(language.text(slide.eyebrow))
+                .font(APEXFont.mono(9, weight: .bold))
+                .tracking(1.7)
+                .foregroundStyle(APEXColor.violet)
+            Text(language.text(slide.title))
+                .font(APEXFont.display(27))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(language.text(slide.body))
+                .font(APEXFont.body(13, weight: .medium))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+
+            VStack(spacing: 9) {
+                ForEach(slide.bullets, id: \.self) { bullet in
+                    HStack(alignment: .top, spacing: 10) {
+                        Image(systemName: "sparkle")
+                            .font(.system(size: 10, weight: .bold))
+                            .foregroundStyle(APEXColor.violet)
+                            .padding(.top, 3)
+                        Text(language.text(bullet))
+                            .font(APEXFont.body(11, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Spacer(minLength: 0)
+                    }
+                    .padding(12)
+                    .background(APEXColor.violet.opacity(0.065), in: RoundedRectangle(cornerRadius: 16))
+                }
+            }
+
+            Text(language.text("Evidence") + " · " + slide.evidence)
+                .font(APEXFont.mono(8, weight: .bold))
+                .tracking(0.5)
+                .foregroundStyle(APEXColor.secondaryInk.opacity(0.72))
+                .textCase(.uppercase)
+        }
+        .padding(18)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30))
+        .overlay {
+            RoundedRectangle(cornerRadius: 30)
+                .stroke(Color.white.opacity(0.72), lineWidth: 1)
+        }
+        .shadow(color: APEXColor.violet.opacity(0.10), radius: 30, y: 16)
     }
 }
 

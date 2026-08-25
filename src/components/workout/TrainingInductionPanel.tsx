@@ -1,4 +1,5 @@
 import { useMemo, useState } from 'react'
+import { motion, useReducedMotion } from 'framer-motion'
 import type { ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingPlanWeeks, TrainingVenue } from '../../lib/types'
 import { useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
@@ -17,6 +18,7 @@ import {
   type TrainingInductionInput,
 } from '../../lib/trainingInduction'
 import { ACCENTS } from '../../lib/theme'
+import { buildPlanBriefing, type PlanBriefing } from '../../lib/planBriefing'
 import { useStore } from '../../store/AppStore'
 import { AccentChip, GhostButton, GlassCard, GradientButton, Sheet } from '../ui'
 
@@ -27,7 +29,7 @@ const COPY = {
     eyebrow: 'PERSONAL STARTING PATH', transitionTitle: 'Your plan, built around your timeline', mainTitle: 'Your next phase is already mapped',
     emptyBody: 'Answer six focused sections. APEX will build a minimal plan around your timeline, training gap, body, location and equipment.',
     activeBody: 'Your plan is installed in the calendar. Every block has one job, so progress stays obvious.',
-    build: 'Build my plan', review: 'Review plan', mainButton: 'Set up my main phase',
+    build: 'Build my plan', review: 'Review plan', guide: 'Plan guide', mainButton: 'Set up my main phase',
     starts: 'Starts', mainStarts: 'Main phase', ends: 'Ends', sessions: 'sessions / week', home: 'Home', gym: 'Gym', outdoors: 'Outdoors',
     wizard: 'Training induction', step: 'Step', back: 'Back', next: 'Continue', install: 'Install my plan',
     gapTitle: 'How long has regular strength training been absent?', gapBody: 'This changes the starting volume, not your potential.',
@@ -50,7 +52,7 @@ const COPY = {
     eyebrow: 'TRASEU PERSONAL DE ÎNCEPUT', transitionTitle: 'Planul tău, construit pentru perioada aleasă', mainTitle: 'Următoarea etapă este deja pregătită',
     emptyBody: 'Răspunde la șase secțiuni scurte. APEX construiește un plan minimal pe baza perioadei, pauzei, corpului, locului și echipamentului tău.',
     activeBody: 'Planul este instalat în calendar. Fiecare etapă are un singur scop, iar progresul rămâne clar.',
-    build: 'Construiește planul', review: 'Revizuiește planul', mainButton: 'Configurează faza principală',
+    build: 'Construiește planul', review: 'Revizuiește planul', guide: 'Ghidul planului', mainButton: 'Configurează faza principală',
     starts: 'Începe', mainStarts: 'Faza principală', ends: 'Se încheie', sessions: 'sesiuni / săptămână', home: 'Acasă', gym: 'Sală', outdoors: 'În aer liber',
     wizard: 'Inducție pentru antrenament', step: 'Pasul', back: 'Înapoi', next: 'Continuă', install: 'Instalează planul',
     gapTitle: 'De cât timp lipsește antrenamentul regulat de forță?', gapBody: 'Răspunsul schimbă volumul de început, nu potențialul tău.',
@@ -73,7 +75,7 @@ const COPY = {
     eyebrow: 'เส้นทางเริ่มต้นส่วนตัว', transitionTitle: 'แผนที่สร้างตามช่วงเวลาของคุณ', mainTitle: 'ช่วงถัดไปของคุณพร้อมแล้ว',
     emptyBody: 'ตอบคำถามสั้น ๆ 6 ส่วน APEX จะสร้างแผนจากช่วงเวลา ช่วงที่หยุดฝึก สภาพร่างกาย สถานที่ และอุปกรณ์ของคุณ',
     activeBody: 'ติดตั้งแผนลงในปฏิทินแล้ว แต่ละช่วงมีเป้าหมายเดียว จึงเห็นความก้าวหน้าได้ชัดเจน',
-    build: 'สร้างแผนของฉัน', review: 'ทบทวนแผน', mainButton: 'ตั้งค่าช่วงหลัก',
+    build: 'สร้างแผนของฉัน', review: 'ทบทวนแผน', guide: 'คำแนะนำแผน', mainButton: 'ตั้งค่าช่วงหลัก',
     starts: 'เริ่ม', mainStarts: 'ช่วงหลัก', ends: 'สิ้นสุด', sessions: 'ครั้ง / สัปดาห์', home: 'ที่บ้าน', gym: 'ยิม', outdoors: 'กลางแจ้ง',
     wizard: 'แบบประเมินก่อนเริ่มฝึก', step: 'ขั้นตอน', back: 'ย้อนกลับ', next: 'ต่อไป', install: 'ติดตั้งแผนของฉัน',
     gapTitle: 'หยุดฝึกเวทอย่างสม่ำเสมอมานานเท่าไร?', gapBody: 'คำตอบนี้เปลี่ยนปริมาณเริ่มต้น ไม่ได้จำกัดศักยภาพของคุณ',
@@ -186,6 +188,80 @@ function Choice({ active, children, onClick, className = '' }: { active: boolean
   )
 }
 
+function PlanBriefingDeck({ briefing, language, onClose }: { briefing: PlanBriefing; language: Language; onClose: () => void }) {
+  const [activeSlide, setActiveSlide] = useState(0)
+  const reduceMotion = useReducedMotion()
+  const controls = {
+    en: { title: 'Your plan briefing', hint: 'Swipe for the full guide', done: 'Open my plan', close: 'Close plan briefing' },
+    ro: { title: 'Ghidul planului tău', hint: 'Glisează pentru ghidul complet', done: 'Deschide planul', close: 'Închide ghidul planului' },
+    th: { title: 'คำแนะนำสำหรับแผนของคุณ', hint: 'ปัดเพื่ออ่านคำแนะนำทั้งหมด', done: 'เปิดแผนของฉัน', close: 'ปิดคำแนะนำแผน' },
+  }[language]
+
+  return (
+    <div
+      data-no-translate
+      className="-m-5 min-h-[90dvh] overflow-hidden p-5 sm:min-h-0 sm:rounded-3xl"
+      style={{ background: 'radial-gradient(circle at 8% 0%, rgba(124,58,237,.14), transparent 34%), radial-gradient(circle at 96% 4%, rgba(34,211,238,.13), transparent 32%), #f8f9fc' }}
+    >
+      <header className="flex items-start justify-between gap-4">
+        <div>
+          <p className="font-mono text-[9px] font-black tracking-[.2em] text-violet-700 uppercase">APEX PLAN INTELLIGENCE</p>
+          <h2 className="mt-1 font-display text-2xl font-bold text-ink">{controls.title}</h2>
+          <p className="mt-1 text-xs font-semibold text-ink-soft">{controls.hint}</p>
+        </div>
+        <button type="button" onClick={onClose} aria-label={controls.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/70 text-lg font-black text-ink-soft shadow-sm">×</button>
+      </header>
+
+      <div
+        className="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
+        onScroll={(event) => {
+          const track = event.currentTarget
+          const stride = track.clientWidth + 16
+          setActiveSlide(Math.max(0, Math.min(briefing.slides.length - 1, Math.round(track.scrollLeft / stride))))
+        }}
+        aria-label={controls.title}
+      >
+        {briefing.slides.map((slide, index) => (
+          <motion.article
+            key={slide.kind}
+            className="min-w-[calc(100%-1rem)] snap-center overflow-hidden rounded-[2rem] border border-white/80 bg-white/75 p-5 shadow-[0_24px_80px_rgba(76,29,149,.12)] backdrop-blur-xl sm:min-w-full sm:p-7"
+            initial={{ x: 0 }}
+            animate={index === 0 && !reduceMotion ? { x: [0, -14, 0] } : { x: 0 }}
+            transition={index === 0 ? { delay: 0.65, duration: 0.75, ease: 'easeInOut' } : undefined}
+          >
+            <div className="grid gap-4 sm:grid-cols-[minmax(0,1fr)_220px] sm:items-center">
+              <div className="order-2 sm:order-1">
+                <p className="font-mono text-[9px] font-black tracking-[.2em] text-violet-700 uppercase">{slide.eyebrow}</p>
+                <h3 className="mt-2 font-display text-[1.65rem] leading-tight font-bold text-ink">{slide.title}</h3>
+                <p className="mt-3 text-sm leading-relaxed font-medium text-ink-soft">{slide.body}</p>
+              </div>
+              <img
+                src={`${import.meta.env.BASE_URL}plan-briefing/${slide.assetName}.png`}
+                alt=""
+                className="order-1 mx-auto h-44 w-44 object-contain drop-shadow-[0_18px_24px_rgba(76,29,149,.15)] sm:order-2 sm:h-52 sm:w-52"
+                draggable={false}
+              />
+            </div>
+            <ul className="mt-5 space-y-2.5">
+              {slide.bullets.map((bullet) => (
+                <li key={bullet} className="flex gap-3 rounded-2xl bg-violet-50/65 px-3.5 py-3 text-xs leading-relaxed font-semibold text-ink-soft">
+                  <span className="mt-0.5 text-violet-600">✦</span><span>{bullet}</span>
+                </li>
+              ))}
+            </ul>
+            <p className="mt-4 font-mono text-[8px] font-bold tracking-[.08em] text-ink-faint uppercase">Evidence · {slide.evidence}</p>
+          </motion.article>
+        ))}
+      </div>
+
+      <div className="mt-2 flex justify-center gap-2" aria-label={`${activeSlide + 1} / ${briefing.slides.length}`}>
+        {briefing.slides.map((slide, index) => <span key={slide.kind} className={`h-1.5 rounded-full transition-all ${index === activeSlide ? 'w-8 bg-violet-600' : 'w-1.5 bg-violet-200'}`} />)}
+      </div>
+      <GradientButton accent={ACCENTS.violet} onClick={onClose} className="mt-5 w-full">{controls.done}</GradientButton>
+    </div>
+  )
+}
+
 export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const { data, bulkUpsert, setSettings, toast } = useStore()
   const { language } = useLanguage()
@@ -207,6 +283,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
         goal: 'rebuild',
       }
   const [open, setOpen] = useState(false)
+  const [briefingOpen, setBriefingOpen] = useState(false)
+  const [briefing, setBriefing] = useState<PlanBriefing | null>(null)
   const [step, setStep] = useState(0)
   const [search, setSearch] = useState('')
   const [pendingFrequency, setPendingFrequency] = useState<6 | 7 | null>(null)
@@ -227,6 +305,35 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     setPendingFrequency(null)
     setStep(0)
     setOpen(true)
+  }
+  const briefingFor = (input: TrainingInductionInput, plannedMinutes: number[]): PlanBriefing => {
+    const profile = data.profile
+    const hydration = data.hydration_preferences
+    const usableMinutes = plannedMinutes.filter((minutes) => Number.isFinite(minutes) && minutes > 0)
+    const plannedExerciseMinutes = usableMinutes.length > 0
+      ? Math.round(usableMinutes.reduce((total, minutes) => total + minutes, 0) / usableMinutes.length)
+      : 45
+    return buildPlanBriefing({
+      language: lang,
+      planWeeks: input.plan_weeks,
+      sessionsPerWeek: input.sessions_per_week,
+      goal: input.goal,
+      venue: input.venue,
+      caution: assessTrainingInput(input).caution,
+      sex: profile?.sex ?? 'male',
+      weightKg: profile?.weight_kg ?? 87,
+      plannedExerciseMinutes,
+      hydrationMode: hydration?.target_mode === 'custom' ? 'custom' : 'automatic',
+      customHydrationTargetML: hydration?.target_ml ?? null,
+      displayUnit: hydration?.display_unit ?? 'liters',
+    })
+  }
+  const openCurrentBriefing = (): void => {
+    if (!current) return
+    const input = trainingInputFromProfile(current, todayIso())
+    const claimedDayIds = new Set([...current.transition_day_ids, ...current.main_day_ids])
+    setBriefing(briefingFor(input, data.program_days.filter((day) => claimedDayIds.has(day.id)).map((day) => day.est_minutes)))
+    setBriefingOpen(true)
   }
   const install = (): void => {
     const userId = data.profile?.user_id ?? data.settings?.user_id
@@ -263,9 +370,11 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     bulkUpsert('program_days', generated.program_days, { syncGroup })
     bulkUpsert('exercises', generated.exercises, { syncGroup })
     setSettings({ addons: commitTrainingPlanAddons(addons, generated) }, { syncGroup })
+    setBriefing(briefingFor(draft, generated.program_days.map((day) => day.est_minutes)))
     toast(copy.installed, 'ok')
     setOpen(false)
     setStep(0)
+    setBriefingOpen(true)
   }
   const cautionTitle = assessment.caution === 'clearance' ? copy.clearance : assessment.caution === 'cautious' ? copy.cautious : copy.standard
   const cautionBody = assessment.caution === 'clearance' ? copy.clearanceBody : assessment.caution === 'cautious' ? copy.cautiousBody : copy.standardBody
@@ -303,9 +412,12 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
             )}
             {current && <p className="mt-3 font-mono text-[10px] font-bold text-ink-faint">{copy.starts}: {current.start_date} · {(current.plan_weeks ?? 12) > 12 ? copy.mainStarts : copy.ends}: {(current.plan_weeks ?? 12) > 12 ? current.main_start_date : (current.end_date ?? current.main_start_date)}</p>}
           </div>
-          <GradientButton accent={ACCENTS.violet} onClick={openBuilder} className="w-full sm:w-auto">
-            {current ? copy.review : slug === 'main' ? copy.mainButton : copy.build}
-          </GradientButton>
+          <div className="grid w-full gap-2 sm:w-auto">
+            <GradientButton accent={ACCENTS.violet} onClick={openBuilder} className="w-full sm:w-auto">
+              {current ? copy.review : slug === 'main' ? copy.mainButton : copy.build}
+            </GradientButton>
+            {current && <GhostButton onClick={openCurrentBriefing} className="w-full sm:w-auto">{copy.guide}</GhostButton>}
+          </div>
         </div>
       </GlassCard>
 
@@ -480,6 +592,9 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
             </div>
           )}
         </div>
+      </Sheet>
+      <Sheet open={briefingOpen && briefing != null} onClose={() => setBriefingOpen(false)} wide>
+        {briefing && <PlanBriefingDeck briefing={briefing} language={lang} onClose={() => setBriefingOpen(false)} />}
       </Sheet>
     </div>
   )

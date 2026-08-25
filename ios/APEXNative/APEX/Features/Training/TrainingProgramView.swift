@@ -35,9 +35,13 @@ struct TrainingProgramView: View {
 
     /// A skipped questionnaire leaves no generated rows, so the plan builder
     /// stays reachable regardless of experience mode. A marker alone is not a
-    /// plan: it must still resolve to this account's rows for this phase.
+    /// plan: it must still resolve to this account's rows for this phase. Once
+    /// installed, the panel stays mounted so it can present and reopen the
+    /// plan briefing instead of disappearing during the commit transition.
     private var showInduction: Bool {
-        TrainingInduction.shouldOfferPlanBuilder(in: session.data, slug: slug)
+        guard slug == "transition" || slug == "main" else { return false }
+        return TrainingInduction.shouldOfferPlanBuilder(in: session.data, slug: slug)
+            || session.data.settings?.addons["training_induction"]?.objectValue != nil
     }
 
     private var hasUsablePrescription: Bool {

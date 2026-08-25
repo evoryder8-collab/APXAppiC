@@ -1044,4 +1044,151 @@ enum TrainingInduction {
             induction: induction
         )
     }
+
+    // MARK: - Post-generation briefing
+
+    enum PlanBriefingSlideKind: String, Equatable, Sendable {
+        case overview
+        case safety
+        case hydration
+        case sleep
+        case supplements
+    }
+
+    struct PlanBriefingSlide: Equatable, Sendable {
+        let kind: PlanBriefingSlideKind
+        let eyebrow: String
+        let title: String
+        let body: String
+        let bullets: [String]
+        let assetName: String
+        let evidence: String
+    }
+
+    struct PlanBriefing: Equatable, Sendable {
+        let hydrationTargetML: Int
+        let slides: [PlanBriefingSlide]
+    }
+
+    /// Builds the induction deck from the same answers and hydration policy
+    /// that produced the installed plan. It deliberately does not turn a
+    /// vague "pinch of salt" into universal advice: sodium replacement is
+    /// conditional on prolonged heat/sweat exposure and medical restrictions.
+    static func planBriefing(
+        input: Input,
+        caution: String,
+        sex: String,
+        weightKG: Double,
+        plannedExerciseMinutes: Int,
+        hydrationMode: HydrationTargetMode,
+        customHydrationTargetML: Int?,
+        displayUnit: String
+    ) -> PlanBriefing {
+        let hydration = HydrationTargetPolicy.resolve(
+            sex: sex,
+            weightKG: weightKG,
+            mode: hydrationMode,
+            customTargetML: customHydrationTargetML,
+            plannedExerciseMinutes: plannedExerciseMinutes
+        )
+        let duration = input.planWeeks == 26 ? "6-month" : "\(input.planWeeks)-week"
+        let goal: String
+        switch input.goal {
+        case "muscle": goal = "muscle-building"
+        case "fat_loss": goal = "fat-loss"
+        case "strength": goal = "strength"
+        case "endurance": goal = "endurance"
+        default: goal = "consistency"
+        }
+        let venue: String
+        switch input.venue {
+        case "gym": venue = "in the gym"
+        case "outdoors": venue = "outdoors"
+        default: venue = "at home"
+        }
+        let target: String
+        if displayUnit == "gallons" {
+            target = String(format: "%.2f US gal", Double(hydration.targetML) / 3_785.411_784)
+        } else {
+            target = String(format: "%.2f L", Double(hydration.targetML) / 1_000)
+        }
+        var safetyBullets = [
+            "Stop the movement immediately if something feels wrong; do not train through sharp or escalating pain.",
+            "Chest pain or pressure, fainting, or sudden unexplained shortness of breath needs emergency medical help.",
+            "For milder symptoms, end the exercise, rest, and seek a clinician for persistent, returning, or worsening symptoms.",
+        ]
+        if caution == "clearance" {
+            safetyBullets.insert(
+                "Your answers selected a clearance-first plan. Do not begin loaded training until the clinician responsible for your recovery clears it.",
+                at: 0
+            )
+        }
+
+        return PlanBriefing(
+            hydrationTargetML: hydration.targetML,
+            slides: [
+                PlanBriefingSlide(
+                    kind: .overview,
+                    eyebrow: "IMPORTANT INFO AND TIPS ABOUT YOUR PLAN",
+                    title: "Your \(duration) \(goal) plan",
+                    body: "\(input.sessionsPerWeek) sessions per week \(venue), arranged to make progression and recovery easy to follow.",
+                    bullets: [
+                        "The calendar now carries the real start and end dates.",
+                        "Each workout stays inside the equipment and recovery limits you selected.",
+                        "Log what actually happened; APEX adapts from measured work, not guesses.",
+                    ],
+                    assetName: "plan-briefing-overview",
+                    evidence: "APEX plan facts"
+                ),
+                PlanBriefingSlide(
+                    kind: .safety,
+                    eyebrow: "SAFETY FIRST",
+                    title: "Use a clear stop rule",
+                    body: "Normal effort is expected. Sharp pain, faintness, chest pressure, or unusual breathlessness are signals to stop, not tests to push through.",
+                    bullets: safetyBullets,
+                    assetName: "plan-briefing-safety",
+                    evidence: "CDC · American Heart Association"
+                ),
+                PlanBriefingSlide(
+                    kind: .hydration,
+                    eyebrow: "PERSONAL HYDRATION",
+                    title: "Start with \(target) total water",
+                    body: "This personalized starting target includes water from drinks and food. APEX can make a small, capped adjustment later when a longer session or wearable activity is actually recorded.",
+                    bullets: [
+                        "For most shorter sessions, plain water and normal meals are enough.",
+                        "For long, hot, or very sweaty training, a properly formulated electrolyte drink may be useful.",
+                        "Do not add salt routinely. If you are sodium-restricted or have a relevant medical condition, follow your clinician’s guidance.",
+                    ],
+                    assetName: "plan-briefing-hydration",
+                    evidence: "APEX hydration policy · American Heart Association"
+                ),
+                PlanBriefingSlide(
+                    kind: .sleep,
+                    eyebrow: "RECOVERY THAT COUNTS",
+                    title: "Protect a regular sleep window",
+                    body: "Most adults need at least seven hours. Consistent bed and wake times, plus daylight earlier in the day, support recovery without pretending everyone must literally follow sunrise.",
+                    bullets: [
+                        "Choose a repeatable sleep window before adding more training volume.",
+                        "Keep wake time reasonably consistent, including after a poor night.",
+                        "If sleep or performance keeps worsening, reduce load rather than trying to outwork fatigue.",
+                    ],
+                    assetName: "plan-briefing-sleep",
+                    evidence: "CDC sleep guidance"
+                ),
+                PlanBriefingSlide(
+                    kind: .supplements,
+                    eyebrow: "EVIDENCE, NOT HYPE",
+                    title: "Food first. Supplements stay optional.",
+                    body: "Supplements are optional and do not rescue an inconsistent plan. Use them only to solve a real dietary or training need, with qualified advice when health conditions or medicines are involved.",
+                    bullets: [
+                        "Protein powder is a convenient food tool when meals do not meet your protein target; it is not mandatory.",
+                        "Creatine monohydrate has strong evidence for repeated high-intensity and strength work, but its value varies by activity and person.",
+                        "Fatty fish supplies EPA and DHA; algae-derived EPA/DHA is a plant-based option. Ask a clinician or sports dietitian before supplementing when relevant.",
+                    ],
+                    assetName: "plan-briefing-supplements",
+                    evidence: "NIH Office of Dietary Supplements"
+                ),
+            ]
+        )
+    }
 }

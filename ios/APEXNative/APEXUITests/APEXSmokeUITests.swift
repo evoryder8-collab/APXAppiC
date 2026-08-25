@@ -88,10 +88,27 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertEqual(pain.value as? String, "1")
 
         app.buttons["induction-install"].tap()
+        let briefing = allElements["plan-briefing"]
+        XCTAssertTrue(
+            briefing.waitForExistence(timeout: 8),
+            "a successfully installed plan must present its briefing before returning to training"
+        )
+        let overviewSlide = allElements["plan-briefing-slide-overview"]
+        XCTAssertTrue(overviewSlide.waitForExistence(timeout: 2))
+        overviewSlide.swipeLeft()
+        XCTAssertTrue(allElements["plan-briefing-slide-safety"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Use a clear stop rule"].waitForExistence(timeout: 2))
+        capture("plan-briefing-safety")
+        let done = app.buttons["Open my plan"]
+        XCTAssertTrue(done.waitForExistence(timeout: 2))
+        done.tap()
+
         XCTAssertFalse(
             app.buttons["induction-open"].waitForExistence(timeout: 5),
             "a complete saved plan must close the return route"
         )
+        XCTAssertTrue(app.buttons["induction-rebuild"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.buttons["induction-briefing-open"].exists)
         let installedState = app.staticTexts["induction-installed-state"]
         XCTAssertTrue(
             installedState.waitForExistence(timeout: 3),

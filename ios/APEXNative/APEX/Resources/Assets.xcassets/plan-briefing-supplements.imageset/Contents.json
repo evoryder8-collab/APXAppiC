@@ -1,0 +1,13 @@
+{
+  "images" : [
+    {
+      "filename" : "plan-briefing-supplements.png",
+      "idiom" : "universal",
+      "scale" : "1x"
+    }
+  ],
+  "info" : {
+    "author" : "xcode",
+    "version" : 1
+  }
+}
