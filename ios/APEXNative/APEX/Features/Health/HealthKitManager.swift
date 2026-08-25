@@ -50,6 +50,154 @@ struct HealthWorkoutSnapshot: Hashable, Sendable {
     let activeEnergyKcal: Double?
 }
 
+struct HealthWaterTotals: Sendable {
+    let total: Double?
+    let importableDrink: Double?
+
+    static let unavailable = HealthWaterTotals(total: nil, importableDrink: nil)
+}
+
+enum HealthMetricRead<Value: Sendable>: Sendable {
+    case available(Value)
+    case unavailable
+
+    static func capture(
+        _ operation: @Sendable () async throws -> Value
+    ) async throws -> HealthMetricRead<Value> {
+        do {
+            try Task.checkCancellation()
+            let value = try await operation()
+            try Task.checkCancellation()
+            return .available(value)
+        } catch is CancellationError {
+            throw CancellationError()
+        } catch {
+            return .unavailable
+        }
+    }
+
+    var completed: Bool {
+        switch self {
+        case .available: true
+        case .unavailable: false
+        }
+    }
+
+    func resolved(or fallback: @autoclosure () -> Value) -> Value {
+        switch self {
+        case let .available(value): value
+        case .unavailable: fallback()
+        }
+    }
+}
+
+struct HealthTodayReadings: Sendable {
+    let weightKG: HealthMetricRead<Double?>
+    let vo2Max: HealthMetricRead<Double?>
+    let restingHeartRate: HealthMetricRead<Double?>
+    let dietaryWater: HealthMetricRead<HealthWaterTotals>
+    let steps: HealthMetricRead<Double?>
+    let activeEnergyKcal: HealthMetricRead<Double?>
+    let exerciseMinutes: HealthMetricRead<Double?>
+    let sleepDurationHours: HealthMetricRead<Double?>
+    let heartRateVariabilityMS: HealthMetricRead<Double?>
+    let workouts: HealthMetricRead<[HealthWorkoutSnapshot]>
+
+    var hasCompletedQuery: Bool {
+        weightKG.completed
+            || vo2Max.completed
+            || restingHeartRate.completed
+            || dietaryWater.completed
+            || steps.completed
+            || activeEnergyKcal.completed
+            || exerciseMinutes.completed
+            || sleepDurationHours.completed
+            || heartRateVariabilityMS.completed
+            || workouts.completed
+    }
+
+    func snapshot(date: String) -> HealthSnapshot {
+        let water = dietaryWater.resolved(or: .unavailable)
+        return HealthSnapshot(
+            date: date,
+            weightKG: weightKG.resolved(or: nil),
+            vo2Max: vo2Max.resolved(or: nil),
+            restingHeartRate: restingHeartRate.resolved(or: nil),
+            dietaryWaterL: water.total,
+            importableDietaryWaterL: water.importableDrink,
+            steps: steps.resolved(or: nil),
+            activeEnergyKcal: activeEnergyKcal.resolved(or: nil),
+            exerciseMinutes: exerciseMinutes.resolved(or: nil),
+            sleepDurationHours: sleepDurationHours.resolved(or: nil),
+            heartRateVariabilityMS: heartRateVariabilityMS.resolved(or: nil),
+            workouts: workouts.resolved(or: [])
+        )
+    }
+}
+
+enum HealthTodayReadError: Error, Equatable {
+    case allQueriesUnavailable
+}
+
+struct HealthTodayQueryPlan: Sendable {
+    let weightKG: @Sendable () async throws -> Double?
+    let vo2Max: @Sendable () async throws -> Double?
+    let restingHeartRate: @Sendable () async throws -> Double?
+    let dietaryWater: @Sendable () async throws -> HealthWaterTotals
+    let steps: @Sendable () async throws -> Double?
+    let activeEnergyKcal: @Sendable () async throws -> Double?
+    let exerciseMinutes: @Sendable () async throws -> Double?
+    let sleepDurationHours: @Sendable () async throws -> Double?
+    let heartRateVariabilityMS: @Sendable () async throws -> Double?
+    let workouts: @Sendable () async throws -> [HealthWorkoutSnapshot]
+
+    func snapshot(date: String) async throws -> HealthSnapshot {
+        async let weight = HealthMetricRead<Double?>.capture(weightKG)
+        async let vo2 = HealthMetricRead<Double?>.capture(vo2Max)
+        async let resting = HealthMetricRead<Double?>.capture(restingHeartRate)
+        async let water = HealthMetricRead<HealthWaterTotals>.capture(dietaryWater)
+        async let stepCount = HealthMetricRead<Double?>.capture(steps)
+        async let energy = HealthMetricRead<Double?>.capture(activeEnergyKcal)
+        async let exercise = HealthMetricRead<Double?>.capture(exerciseMinutes)
+        async let sleep = HealthMetricRead<Double?>.capture(sleepDurationHours)
+        async let hrv = HealthMetricRead<Double?>.capture(heartRateVariabilityMS)
+        async let workoutList = HealthMetricRead<[HealthWorkoutSnapshot]>.capture(workouts)
+
+        let readings = try await HealthTodayReadings(
+            weightKG: weight,
+            vo2Max: vo2,
+            restingHeartRate: resting,
+            dietaryWater: water,
+            steps: stepCount,
+            activeEnergyKcal: energy,
+            exerciseMinutes: exercise,
+            sleepDurationHours: sleep,
+            heartRateVariabilityMS: hrv,
+            workouts: workoutList
+        )
+        try Task.checkCancellation()
+        guard readings.hasCompletedQuery else {
+            throw HealthTodayReadError.allQueriesUnavailable
+        }
+        return readings.snapshot(date: date)
+    }
+}
+
+extension HealthSnapshot {
+    var hasImportableSignal: Bool {
+        (steps ?? 0) > 0
+            || (activeEnergyKcal ?? 0) > 0
+            || (exerciseMinutes ?? 0) > 0
+            || weightKG != nil
+            || vo2Max != nil
+            || restingHeartRate != nil
+            || dietaryWaterL != nil
+            || sleepDurationHours != nil
+            || heartRateVariabilityMS != nil
+            || !workouts.isEmpty
+    }
+}
+
 @MainActor
 @Observable
 final class HealthKitManager {
@@ -110,13 +258,7 @@ final class HealthKitManager {
         guard isAvailable else { return nil }
         refreshWaterWriteState()
         guard let snapshot = try? await readToday() else { return nil }
-        let hasActivity = (snapshot.steps ?? 0) > 0
-            || (snapshot.activeEnergyKcal ?? 0) > 0
-            || (snapshot.exerciseMinutes ?? 0) > 0
-        guard hasActivity || snapshot.weightKG != nil || snapshot.sleepDurationHours != nil
-            || snapshot.dietaryWaterL != nil else {
-            return nil
-        }
+        guard snapshot.hasImportableSignal else { return nil }
         isAuthorized = true
         lastSnapshot = snapshot
         /* Keep it current for the rest of the day rather than only at open. */
@@ -130,32 +272,39 @@ final class HealthKitManager {
         let start = calendar.startOfDay(for: .now)
         let end = Date()
 
-        async let weight = latestQuantity(.bodyMass, unit: .gramUnit(with: .kilo))
-        async let vo2 = latestQuantity(.vo2Max, unit: HKUnit(from: "ml/kg*min"))
-        async let resting = latestQuantity(.restingHeartRate, unit: HKUnit.count().unitDivided(by: .minute()))
-        async let waterTotals = dietaryWaterTotals(start: start, end: end)
-        async let steps = cumulativeQuantity(.stepCount, unit: .count(), start: start, end: end)
-        async let energy = cumulativeQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: start, end: end)
-        async let exercise = cumulativeQuantity(.appleExerciseTime, unit: .minute(), start: start, end: end)
-        async let hrv = latestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
-        async let sleep = sleepDurationHours(endingAt: end)
-        async let workouts = workoutSnapshots(start: start, end: end)
-
-        let resolvedWater = try await waterTotals
-        return try await HealthSnapshot(
-            date: Date().apexDateKey,
-            weightKG: weight,
-            vo2Max: vo2,
-            restingHeartRate: resting,
-            dietaryWaterL: resolvedWater.total,
-            importableDietaryWaterL: resolvedWater.importableDrink,
-            steps: steps,
-            activeEnergyKcal: energy,
-            exerciseMinutes: exercise,
-            sleepDurationHours: sleep,
-            heartRateVariabilityMS: hrv,
-            workouts: workouts
+        let plan = HealthTodayQueryPlan(
+            weightKG: { [self] in
+                try await latestQuantity(.bodyMass, unit: .gramUnit(with: .kilo))
+            },
+            vo2Max: { [self] in
+                try await latestQuantity(.vo2Max, unit: HKUnit(from: "ml/kg*min"))
+            },
+            restingHeartRate: { [self] in
+                try await latestQuantity(.restingHeartRate, unit: HKUnit.count().unitDivided(by: .minute()))
+            },
+            dietaryWater: { [self] in
+                try await dietaryWaterTotals(start: start, end: end)
+            },
+            steps: { [self] in
+                try await cumulativeQuantity(.stepCount, unit: .count(), start: start, end: end)
+            },
+            activeEnergyKcal: { [self] in
+                try await cumulativeQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: start, end: end)
+            },
+            exerciseMinutes: { [self] in
+                try await cumulativeQuantity(.appleExerciseTime, unit: .minute(), start: start, end: end)
+            },
+            sleepDurationHours: { [self] in
+                try await sleepDurationHours(endingAt: end)
+            },
+            heartRateVariabilityMS: { [self] in
+                try await latestQuantity(.heartRateVariabilitySDNN, unit: .secondUnit(with: .milli))
+            },
+            workouts: { [self] in
+                try await workoutSnapshots(start: start, end: end)
+            }
         )
+        return try await plan.snapshot(date: Date().apexDateKey)
     }
 
     func startBackgroundMonitoring(
@@ -320,14 +469,9 @@ final class HealthKitManager {
         }
     }
 
-    private struct WaterTotals: Sendable {
-        let total: Double?
-        let importableDrink: Double?
-    }
-
-    private func dietaryWaterTotals(start: Date, end: Date) async throws -> WaterTotals {
+    private func dietaryWaterTotals(start: Date, end: Date) async throws -> HealthWaterTotals {
         guard let type = quantity(.dietaryWater) else {
-            return WaterTotals(total: nil, importableDrink: nil)
+            return HealthWaterTotals(total: nil, importableDrink: nil)
         }
         let predicate = HKQuery.predicateForSamples(
             withStart: start,
@@ -346,7 +490,7 @@ final class HealthKitManager {
             }
             store.execute(query)
         }
-        guard !samples.isEmpty else { return WaterTotals(total: 0, importableDrink: 0) }
+        guard !samples.isEmpty else { return HealthWaterTotals(total: 0, importableDrink: 0) }
 
         var classified: [HydrationReconciliation.Sample] = []
         var total = 0.0
@@ -369,7 +513,7 @@ final class HealthKitManager {
             }
             classified.append(.init(liters: liters, source: source))
         }
-        return WaterTotals(
+        return HealthWaterTotals(
             total: total,
             importableDrink: HydrationReconciliation.importableDrinkLiters(classified)
         )

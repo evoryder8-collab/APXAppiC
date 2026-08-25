@@ -205,3 +205,136 @@ final class HealthImportParityTests: XCTestCase {
         XCTAssertNil(HealthImport.activityKind["Curling"], "an unmapped type is skipped, not guessed")
     }
 }
+
+private enum HealthReadTestError: Error {
+    case protectedDataUnavailable
+}
+
+private func makeHealthTodayPlan(
+    weightKG: @escaping @Sendable () async throws -> Double? = { nil },
+    vo2Max: @escaping @Sendable () async throws -> Double? = { nil },
+    restingHeartRate: @escaping @Sendable () async throws -> Double? = { nil },
+    dietaryWater: @escaping @Sendable () async throws -> HealthWaterTotals = { .unavailable },
+    steps: @escaping @Sendable () async throws -> Double? = { nil },
+    activeEnergyKcal: @escaping @Sendable () async throws -> Double? = { nil },
+    exerciseMinutes: @escaping @Sendable () async throws -> Double? = { nil },
+    sleepDurationHours: @escaping @Sendable () async throws -> Double? = { nil },
+    heartRateVariabilityMS: @escaping @Sendable () async throws -> Double? = { nil },
+    workouts: @escaping @Sendable () async throws -> [HealthWorkoutSnapshot] = { [] }
+) -> HealthTodayQueryPlan {
+    HealthTodayQueryPlan(
+        weightKG: weightKG,
+        vo2Max: vo2Max,
+        restingHeartRate: restingHeartRate,
+        dietaryWater: dietaryWater,
+        steps: steps,
+        activeEnergyKcal: activeEnergyKcal,
+        exerciseMinutes: exerciseMinutes,
+        sleepDurationHours: sleepDurationHours,
+        heartRateVariabilityMS: heartRateVariabilityMS,
+        workouts: workouts
+    )
+}
+
+private func unavailableHealthTodayPlan() -> HealthTodayQueryPlan {
+    makeHealthTodayPlan(
+        weightKG: { throw HealthReadTestError.protectedDataUnavailable },
+        vo2Max: { throw HealthReadTestError.protectedDataUnavailable },
+        restingHeartRate: { throw HealthReadTestError.protectedDataUnavailable },
+        dietaryWater: { throw HealthReadTestError.protectedDataUnavailable },
+        steps: { throw HealthReadTestError.protectedDataUnavailable },
+        activeEnergyKcal: { throw HealthReadTestError.protectedDataUnavailable },
+        exerciseMinutes: { throw HealthReadTestError.protectedDataUnavailable },
+        sleepDurationHours: { throw HealthReadTestError.protectedDataUnavailable },
+        heartRateVariabilityMS: { throw HealthReadTestError.protectedDataUnavailable },
+        workouts: { throw HealthReadTestError.protectedDataUnavailable }
+    )
+}
+
+final class HealthTodayReadingsTests: XCTestCase {
+    func testDeniedMetricDoesNotEraseReadableActivity() async throws {
+        let snapshot = try await makeHealthTodayPlan(
+            weightKG: { throw HealthReadTestError.protectedDataUnavailable },
+            steps: { 8_432 },
+            activeEnergyKcal: { 414 },
+            exerciseMinutes: { 37 }
+        ).snapshot(date: "2026-08-25")
+
+        XCTAssertNil(snapshot.weightKG)
+        XCTAssertEqual(snapshot.steps, 8_432)
+        XCTAssertEqual(snapshot.activeEnergyKcal, 414)
+        XCTAssertEqual(snapshot.exerciseMinutes, 37)
+    }
+
+    func testDeniedWaterDoesNotEraseReadableSleepOrWorkouts() async throws {
+        let workout = HealthWorkoutSnapshot(
+            id: UUID(uuidString: "00000000-0000-0000-0000-000000000825")!,
+            date: "2026-08-25",
+            startedAt: Date(timeIntervalSince1970: 1_777_000_000),
+            endedAt: Date(timeIntervalSince1970: 1_777_003_600),
+            kind: "endurance",
+            activityName: "Running",
+            durationMinutes: 60,
+            distanceKM: 10,
+            activeEnergyKcal: 620
+        )
+        let snapshot = try await makeHealthTodayPlan(
+            dietaryWater: { throw HealthReadTestError.protectedDataUnavailable },
+            sleepDurationHours: { 7.5 },
+            workouts: { [workout] }
+        ).snapshot(date: "2026-08-25")
+
+        XCTAssertNil(snapshot.dietaryWaterL)
+        XCTAssertNil(snapshot.importableDietaryWaterL)
+        XCTAssertEqual(snapshot.sleepDurationHours, 7.5)
+        XCTAssertEqual(snapshot.workouts, [workout])
+        XCTAssertTrue(snapshot.hasImportableSignal)
+    }
+
+    func testEveryFailedQueryRejectsTheRefresh() async {
+        do {
+            _ = try await unavailableHealthTodayPlan().snapshot(date: "2026-08-25")
+            XCTFail("A total HealthKit failure must not look like a successful empty day")
+        } catch let error as HealthTodayReadError {
+            XCTAssertEqual(error, .allQueriesUnavailable)
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+
+    func testSuccessfulEmptyQueriesRemainAnHonestEmptySnapshot() async throws {
+        let snapshot = try await makeHealthTodayPlan().snapshot(date: "2026-08-25")
+
+        XCTAssertFalse(snapshot.hasImportableSignal)
+        XCTAssertNil(snapshot.weightKG)
+        XCTAssertNil(snapshot.vo2Max)
+        XCTAssertNil(snapshot.restingHeartRate)
+        XCTAssertNil(snapshot.dietaryWaterL)
+        XCTAssertNil(snapshot.importableDietaryWaterL)
+        XCTAssertNil(snapshot.steps)
+        XCTAssertNil(snapshot.activeEnergyKcal)
+        XCTAssertNil(snapshot.exerciseMinutes)
+        XCTAssertNil(snapshot.sleepDurationHours)
+        XCTAssertNil(snapshot.heartRateVariabilityMS)
+        XCTAssertTrue(snapshot.workouts.isEmpty)
+    }
+
+    func testCancellationPropagatesInsteadOfPublishingAPartialSnapshot() async {
+        let task = Task<HealthSnapshot, Error> {
+            withUnsafeCurrentTask { $0?.cancel() }
+            return try await makeHealthTodayPlan(
+                steps: { 8_432 },
+                activeEnergyKcal: { 414 }
+            ).snapshot(date: "2026-08-25")
+        }
+
+        do {
+            _ = try await task.value
+            XCTFail("Cancellation must stop the HealthKit refresh")
+        } catch is CancellationError {
+            // Expected: no partial snapshot escapes the cancelled lifecycle task.
+        } catch {
+            XCTFail("Unexpected error: \(error)")
+        }
+    }
+}

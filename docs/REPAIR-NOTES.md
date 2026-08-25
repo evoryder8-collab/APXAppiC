@@ -624,3 +624,18 @@ GitHub publication evidence:
 - Broader UI smoke: the two preceding UI cases passed, then the unrelated portal navigation case entered its pre-existing 60-swipe search loop; it was stopped after the complete 420-test unit target had passed rather than treating the stale navigation loop as hydration evidence.
 - Visual proof: Watch Ultra 3 simulator inspection confirmed the full first-screen control set, and the settings screen showed complete labels without truncation.
 - Current boundary: Watch preferences and reminders remain local in this slice. Account-scoped hydration events, custom beverage presets/composition, companion sync, complication variants, and HealthKit partial-failure recovery are the next committed slices from the approved design.
+
+## 2026-08-25 — HealthKit partial-read resilience
+
+- Implementation: this commit (`fix: preserve partial HealthKit refreshes`).
+- Files changed: `ios/APEXNative/APEX/Features/Health/HealthKitManager.swift` and `ios/APEXNative/APEXTests/HealthImportParityTests.swift`.
+- Root cause: `readToday()` launched independent HealthKit queries with `async let` but awaited their throwing values as one aggregate; one denied, protected, or temporarily failing metric therefore made `silentRefresh()` discard every valid metric and left the portal looking disconnected.
+- Fix: introduced one typed `HealthTodayQueryPlan` used by production and tests. Each fixed query remains structured and concurrent, ordinary per-metric errors become unavailable fields, and readable steps, energy, exercise, sleep, water, vitals, and workouts survive independently.
+- Truthfulness: a fully failed read is rejected instead of being reported as a successful sync; ten successful empty reads remain an honest empty snapshot with nil optionals; workout-only, VO2-max-only, resting-HR-only, and HRV-only snapshots now count as importable signal.
+- Cancellation: `CancellationError` is rethrown, cancellation is checked before and after each HealthKit operation and after aggregation, and a cancelled lifecycle refresh cannot publish a partial snapshot or start monitoring.
+- Tests added: five production-boundary cases covering one denied metric beside valid activity, denied water beside sleep/workouts, total query failure, successful empty queries with every optional remaining nil, and deterministic cancellation propagation.
+- Red proof: the first focused run failed with 23 missing-type compiler errors before the partial-read model existed. Independent review then rejected the first green implementation because it swallowed cancellation, collapsed total failure into empty success, and tested helper construction rather than production orchestration.
+- Green proof: corrected focused suite 5/5; complete native unit target 425/425; complete web suite 511/511; production web build 1,170 modules; `git diff --check` clean.
+- Review: required health-data review round one found three Important issues and no Critical issues; round two confirmed all three resolved, found no new Critical or Important issues, and returned `Ready to merge: Yes`.
+- Existing launch behavior remains intentional: bootstrap and every foreground activation call the silent HealthKit refresh without prompting. This task repairs the failure isolation that made those calls appear disconnected; it introduces no polling.
+- Next: account-scoped hydration events, beverage presets/composition, and companion sync.
