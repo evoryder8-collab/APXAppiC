@@ -753,3 +753,16 @@ GitHub publication evidence:
 - Implementation commit: `665ea022055a073cc01e68aa0eb9bd5ae0e18ecb` (`feat: brief generated training plans`).
 - Physical iPhone: a fresh signed build from that exact SHA passed `codesign --verify --deep --strict`, validated its embedded APEX Water watch app, installed on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`.
 - Next: publish and verify this task, then re-read the living roadmap before Task 1.8. Task 1.8 has not started.
+
+## 2026-08-25 — Pre-1.8 generated-plan installation collision repair
+
+- Root cause: the four-day-or-higher Home/Outdoors `Upper B` template copied a second position-1 exercise into the same `upper-pair`. The generated batch therefore violated the live `exercises_work_group_position_unique` index before the post-generation briefing could open.
+- Corrected the shared structure in both generators: the intended push/row pair remains linked at positions 1 and 2, while the additional press is explicitly standalone. The database constraint remains unchanged and continues to reject genuinely ambiguous groups.
+- Files changed: `src/lib/trainingInduction.ts`, `tests/training-induction.test.ts`, `ios/APEXNative/APEX/Core/Engine/TrainingInduction.swift`, and `ios/APEXNative/APEXTests/ManualAndInductionTests.swift`.
+- Tests added: both clients now generate every Home, Gym, and Outdoors plan at every supported 2–7-day frequency and assert uniqueness of `(program day, full-or-lite mode, work group, position)`.
+- Red proof: web reproduced `home/4` with only `8` unique keys from `10` grouped rows; native reproduced the same collision for Home and Outdoors at 4, 5, 6, and 7 days. The unchanged tests pass only after the copied press loses its stale grouping metadata.
+- Test output: focused web `1/1`; focused native `1/1`; complete web `542/542`; native induction `54/54`; complete native unit suite `460/460`; `npm run build` passed with `1,171` modules; `git diff --check` passed.
+- Implementation commit: `6043a487fcaafaa2583d92aa108e4a0c838c9d88` (`fix: keep generated work groups unique`).
+- Physical iPhone: a fresh signed build from that exact SHA passed `codesign --verify --deep --strict`, validated the embedded APEX Water watch app, installed on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`.
+- Retry behavior: the pre-existing interrupted-save tests prove the builder remains available after an exercise-batch failure; resubmission safely upserts the already-created program/day rows before saving the corrected exercise batch.
+- Next: publish and verify this repair, then re-read the living roadmap before Task 1.8. Task 1.8 has not started.
