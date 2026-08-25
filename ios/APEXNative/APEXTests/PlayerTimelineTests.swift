@@ -200,6 +200,198 @@ final class PlayerTimelineTests: XCTestCase {
         XCTAssertFalse(counted.paused)
     }
 
+    func testPrescribedCountdownsKeepZeroAndCustomRestAndWarmupDuration() {
+        let zero = PlayerTimeline.BreakPlan(
+            kind: .ordinary,
+            duration: 0,
+            nextLabel: "next"
+        )
+        let custom = PlayerTimeline.BreakPlan(
+            kind: .ordinary,
+            duration: 37,
+            nextLabel: "next"
+        )
+
+        XCTAssertEqual(PlayerTimeline.restCountdownSeconds(zero, fallback: 90), 0)
+        XCTAssertEqual(PlayerTimeline.restCountdownSeconds(custom, fallback: 90), 37)
+        XCTAssertEqual(PlayerTimeline.restCountdownSeconds(nil, fallback: 52), 52)
+        XCTAssertEqual(PlayerTimeline.warmupCountdownSeconds(text: "Prime", duration: 75), 75)
+        XCTAssertNil(PlayerTimeline.warmupCountdownSeconds(text: "", duration: 75))
+        XCTAssertNil(PlayerTimeline.warmupCountdownSeconds(text: "Prime", duration: 0))
+    }
+
+    func testZeroRecoveryKeepsOnlyTheNextMovementsRealSetupTime() throws {
+        let bridge = try XCTUnwrap(MovementTiming.movement(named: "Glute Bridge"))
+
+        XCTAssertEqual(
+            MovementTiming.transitionSeconds(
+                finished: nil,
+                next: bridge,
+                authoredRest: 0
+            ),
+            15,
+            "zero recovery may retain setup time, but must not become a default 60-second rest"
+        )
+        XCTAssertEqual(
+            MovementTiming.transitionSeconds(
+                finished: nil,
+                next: bridge,
+                authoredRest: 37
+            ),
+            37,
+            "a custom rest remains exact when it already covers setup"
+        )
+        XCTAssertEqual(
+            MovementTiming.transitionSeconds(
+                finished: MovementTiming.movement(named: "Barbell Back Squat"),
+                next: bridge,
+                authoredRest: 37
+            ),
+            90,
+            "positive rest after a high-fatigue movement retains its safety floor"
+        )
+    }
+
+    func testPassiveCountdownUsesWallClockButInterruptedSetPauses() {
+        let persisted = ISO8601DateFormatter().string(from: Date(timeIntervalSince1970: 1_000))
+        let now = Date(timeIntervalSince1970: 1_025)
+        let rest = PlayerTimeline.Block.rest(
+            exerciseIndex: 0,
+            afterSet: 1,
+            duration: 90,
+            nextLabel: "next",
+            captureLoad: false,
+            reviewExercise: false
+        )
+        let passive = PlayerTimeline.reconcileCountdown(
+            block: rest,
+            remaining: 60,
+            paused: false,
+            persistedAt: persisted,
+            now: now
+        )
+        XCTAssertEqual(passive.remaining, 35)
+        XCTAssertFalse(passive.paused)
+        XCTAssertEqual(
+            PlayerTimeline.reconcileCountdown(
+                block: rest,
+                remaining: 10,
+                paused: false,
+                persistedAt: persisted,
+                now: now
+            ).remaining,
+            0,
+            "an elapsed passive timer restores as completed rather than wrapping or defaulting"
+        )
+        XCTAssertEqual(
+            PlayerTimeline.reconcileCountdown(
+                block: rest,
+                remaining: 60,
+                paused: true,
+                persistedAt: persisted,
+                now: now
+            ).remaining,
+            60,
+            "a rest the user paused must remain paused across interruption"
+        )
+
+        let set = PlayerTimeline.Block.set(
+            exerciseIndex: 0,
+            setNumber: 1,
+            totalSets: 3,
+            side: nil,
+            resultKey: "0-1",
+            targetReps: 10,
+            repDuration: 3.5,
+            timed: nil
+        )
+        let active = PlayerTimeline.reconcileCountdown(
+            block: set,
+            remaining: 60,
+            paused: false,
+            persistedAt: persisted,
+            now: now
+        )
+        XCTAssertEqual(active.remaining, 60)
+        XCTAssertTrue(active.paused)
+    }
+
+    func testInterruptedDraftIsAccountScopedRestorableAndClearedOnCompletion() throws {
+        let suite = "PlayerTimelineTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suite))
+        defer { defaults.removePersistentDomain(forName: suite) }
+        let userID = UUID()
+        let dayID = UUID()
+        let exerciseID = UUID()
+        let draft = PlayerTimeline.SessionDraft(
+            userID: userID,
+            dayID: dayID,
+            date: "2026-08-25",
+            lite: false,
+            exerciseIDs: [exerciseID],
+            phase: "rest",
+            currentIndex: 0,
+            currentSet: 1,
+            actualReps: 8,
+            currentWeight: 60,
+            timerRemaining: 45,
+            timerTotal: 90,
+            paused: false,
+            setInputs: [
+                WorkoutSetInput(
+                    exerciseID: exerciseID,
+                    exerciseName: "Back squat",
+                    setNumber: 1,
+                    weightKG: 60,
+                    reps: 8,
+                    rir: 2,
+                    skipped: false
+                )
+            ],
+            startedAt: Date(timeIntervalSince1970: 1_000),
+            repElapsed: 28,
+            announcedRep: 8,
+            persistedAt: "1970-01-01T00:16:40Z"
+        )
+
+        PlayerTimeline.DraftStore.save(draft, defaults: defaults)
+        XCTAssertEqual(
+            PlayerTimeline.DraftStore.load(
+                userID: userID,
+                dayID: dayID,
+                date: draft.date,
+                lite: false,
+                exerciseIDs: [exerciseID],
+                defaults: defaults
+            ),
+            draft
+        )
+        XCTAssertNil(PlayerTimeline.DraftStore.load(
+            userID: UUID(),
+            dayID: dayID,
+            date: draft.date,
+            lite: false,
+            exerciseIDs: [exerciseID],
+            defaults: defaults
+        ))
+
+        PlayerTimeline.DraftStore.clear(
+            userID: userID,
+            dayID: dayID,
+            date: draft.date,
+            lite: false,
+            defaults: defaults
+        )
+        XCTAssertNil(PlayerTimeline.DraftStore.load(
+            userID: userID,
+            dayID: dayID,
+            date: draft.date,
+            lite: false,
+            exerciseIDs: [exerciseID],
+            defaults: defaults
+        ))
+    }
+
     func testPrefillsPreferTheClosestRealEntry() {
         XCTAssertEqual(
             PlayerTimeline.prefillWeight(setWeights: [60, 62.5, nil], setNumber: 3, exerciseWeight: 50, recommendedWeight: 2.5),

@@ -158,20 +158,19 @@ enum MovementTiming {
 
     /// How long the gap between two exercises should be.
     ///
-    /// The finished exercise still needs its recovery -- the last set is not
-    /// free just because it was the last -- and the next one needs setting up.
-    /// Those overlap rather than stack, because setting up is what you do while
-    /// resting, so this is the longer of the two rather than their sum.
+    /// Explicit zero never becomes a default recovery. Positive rest retains
+    /// the existing high-fatigue safety floor. The next movement may still
+    /// require setup; setup and recovery overlap, so the longer one wins.
     static func transitionSeconds(
         finished: Movement?,
         next: Movement?,
         authoredRest: Int
     ) -> Int {
         let setup = next?.setupSeconds ?? 30
-        var recovery = authoredRest > 0 ? authoredRest : 60
-        // Walking away from a heavy hinge into the next exercise is where
-        // sessions quietly become harder than they were written to be.
-        if let finished, finished.fatigueCost >= 4 { recovery = max(recovery, 90) }
+        var recovery = max(0, authoredRest)
+        if authoredRest > 0, let finished, finished.fatigueCost >= 4 {
+            recovery = max(recovery, 90)
+        }
         return max(recovery, setup)
     }
 }

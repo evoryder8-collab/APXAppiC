@@ -100,6 +100,20 @@ enum PlayerTimeline {
         let nextLabel: String
     }
 
+    /// A rest is authored data. In particular, zero means "continue without
+    /// recovery" and must never be promoted to a default by a minimum clamp.
+    static func restCountdownSeconds(_ plan: BreakPlan?, fallback: Int) -> Int {
+        max(0, plan?.duration ?? fallback)
+    }
+
+    /// The adjusted plan owns warm-up timing. An empty or zero-length warm-up
+    /// starts directly at the first working set.
+    static func warmupCountdownSeconds(text: String, duration: Int) -> Int? {
+        guard !text.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty,
+              duration > 0 else { return nil }
+        return duration
+    }
+
     private struct GroupMember: Hashable, Sendable {
         let exerciseIndex: Int
         let position: Int
@@ -355,6 +369,11 @@ enum PlayerTimeline {
         let paused: Bool
     }
 
+    struct RestoredCountdown: Hashable, Sendable {
+        let remaining: Int
+        let paused: Bool
+    }
+
     static func reconcileElapsed(
         block: Block?,
         elapsed: Double,
@@ -376,6 +395,131 @@ enum PlayerTimeline {
            from the app never becomes repetitions nobody performed. */
         if block?.isSet == true { return Restored(elapsed: safe, paused: true) }
         return Restored(elapsed: safe, paused: paused)
+    }
+
+    /// Reconciles a countdown after suspension or process termination. Passive
+    /// timers use real wall time; an active set keeps its value and requires an
+    /// explicit resume so background throttling cannot fabricate work.
+    static func reconcileCountdown(
+        block: Block?,
+        remaining: Int,
+        paused: Bool,
+        persistedAt: String?,
+        now: Date = .now
+    ) -> RestoredCountdown {
+        let safeRemaining = max(0, remaining)
+        guard !paused, let persistedAt else {
+            return RestoredCountdown(remaining: safeRemaining, paused: paused)
+        }
+        if block?.isSet == true {
+            return RestoredCountdown(remaining: safeRemaining, paused: true)
+        }
+        guard block?.isPassiveTimer == true else {
+            return RestoredCountdown(remaining: safeRemaining, paused: paused)
+        }
+        let parser = ISO8601DateFormatter()
+        parser.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        guard let persisted = parser.date(from: persistedAt)
+                ?? ISO8601DateFormatter().date(from: persistedAt) else {
+            return RestoredCountdown(remaining: safeRemaining, paused: paused)
+        }
+        let wallSeconds = Int(max(0, now.timeIntervalSince(persisted)).rounded(.down))
+        return RestoredCountdown(
+            remaining: max(0, safeRemaining - wallSeconds),
+            paused: false
+        )
+    }
+
+    // MARK: - Interrupted guided session
+
+    struct SessionDraft: Codable, Equatable, Sendable {
+        var version = 1
+        let userID: UUID
+        let dayID: UUID
+        let date: String
+        let lite: Bool
+        let exerciseIDs: [UUID]
+        var phase: String
+        var currentIndex: Int
+        var currentSet: Int
+        var actualReps: Int
+        var currentWeight: Double
+        var timerRemaining: Int
+        var timerTotal: Int
+        var paused: Bool
+        var setInputs: [WorkoutSetInput]
+        var startedAt: Date
+        var repElapsed: Double
+        var announcedRep: Int
+        var persistedAt: String
+    }
+
+    enum DraftStore {
+        private static let prefix = "apex.guided-workout.v1"
+
+        private static func key(
+            userID: UUID,
+            dayID: UUID,
+            date: String,
+            lite: Bool
+        ) -> String {
+            "\(prefix).\(userID.uuidString.lowercased()).\(dayID.uuidString.lowercased()).\(date).\(lite ? "lite" : "full")"
+        }
+
+        static func save(
+            _ draft: SessionDraft,
+            defaults: UserDefaults = .standard
+        ) {
+            guard let data = try? JSONEncoder().encode(draft) else { return }
+            defaults.set(
+                data,
+                forKey: key(
+                    userID: draft.userID,
+                    dayID: draft.dayID,
+                    date: draft.date,
+                    lite: draft.lite
+                )
+            )
+        }
+
+        static func load(
+            userID: UUID,
+            dayID: UUID,
+            date: String,
+            lite: Bool,
+            exerciseIDs: [UUID],
+            defaults: UserDefaults = .standard
+        ) -> SessionDraft? {
+            guard let data = defaults.data(forKey: key(
+                userID: userID,
+                dayID: dayID,
+                date: date,
+                lite: lite
+            )),
+            let draft = try? JSONDecoder().decode(SessionDraft.self, from: data),
+            draft.version == 1,
+            draft.userID == userID,
+            draft.dayID == dayID,
+            draft.date == date,
+            draft.lite == lite,
+            draft.exerciseIDs == exerciseIDs else { return nil }
+            return draft
+        }
+
+        static func clear(
+            userID: UUID,
+            dayID: UUID,
+            date: String,
+            lite: Bool,
+            defaults: UserDefaults = .standard
+        ) {
+            defaults.removeObject(forKey: key(
+                userID: userID,
+                dayID: dayID,
+                date: date,
+                lite: lite
+            ))
+        }
     }
 
     // MARK: - Prefills

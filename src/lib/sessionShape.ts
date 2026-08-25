@@ -66,10 +66,9 @@ export function sideSwitchSeconds(movement: Movement | null): number {
 /**
  * How long the gap between two exercises should be.
  *
- * The previous exercise still needs its recovery -- the last set is not free
- * just because it was the last -- and the next one needs setting up. Those
- * overlap rather than stack, because setting up is what you do while resting,
- * so this is the longer of the two rather than the sum of them.
+ * Explicit zero never becomes a default recovery. Positive rest retains the
+ * existing high-fatigue safety floor. The next movement may still need setup;
+ * setup and recovery overlap, so the longer one wins.
  */
 export function transitionSeconds(
   finished: Movement | null,
@@ -77,10 +76,10 @@ export function transitionSeconds(
   authoredRest: number,
 ): number {
   const setup = next?.setupSeconds ?? 30
-  let recovery = authoredRest > 0 ? authoredRest : 60
-  // Walking away from a heavy hinge into the next exercise is where sessions
-  // quietly become harder than they were written to be.
-  if (finished && finished.fatigueCost >= 4) recovery = Math.max(recovery, 90)
+  let recovery = Math.max(0, authoredRest)
+  if (authoredRest > 0 && finished && finished.fatigueCost >= 4) {
+    recovery = Math.max(recovery, 90)
+  }
   return Math.max(recovery, setup)
 }
 

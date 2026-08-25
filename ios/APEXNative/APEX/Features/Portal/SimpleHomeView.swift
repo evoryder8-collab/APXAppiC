@@ -97,6 +97,14 @@ struct SimpleHomeView: View {
             $0.date == today && $0.programDayID == todayProgramDay.id && $0.completed
         }
     }
+    private var workoutPlan: PlannedDay {
+        TrainingPlanEngine.plan(
+            session.data,
+            slug: guidedProgramSlug,
+            date: today,
+            lite: workoutIsLite
+        )
+    }
     private var workoutExercises: [Exercise] {
         guard let todayProgramDay else { return [] }
         let requested = session.data.exercises
@@ -262,7 +270,10 @@ struct SimpleHomeView: View {
                     day: todayProgramDay,
                     exercises: workoutExercises,
                     accent: APEXColor.teal,
-                    lite: workoutIsLite
+                    lite: workoutIsLite,
+                    date: today,
+                    warmupText: workoutPlan.warmup,
+                    warmupDuration: workoutPlan.warmupDuration
                 )
             }
         }

@@ -172,7 +172,10 @@ struct WorkoutDaySheet: View {
                         day: day,
                         exercises: sessionExercises,
                         accent: accent,
-                        lite: lite
+                        lite: lite,
+                        date: date,
+                        warmupText: plan.warmup,
+                        warmupDuration: plan.warmupDuration
                     )
                 }
             }

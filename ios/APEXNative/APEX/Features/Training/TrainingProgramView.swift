@@ -1259,7 +1259,10 @@ struct WorkoutDayView: View {
                 day: day,
                 exercises: sessionExercises,
                 accent: accent,
-                lite: lite
+                lite: lite,
+                date: date,
+                warmupText: plan.warmup,
+                warmupDuration: plan.warmupDuration
             )
         }
         .fullScreenCover(isPresented: $showTrackedWorkout) {
@@ -1333,14 +1336,17 @@ struct WorkoutPlayerView: View {
     let exercises: [Exercise]
     let accent: Color
     let lite: Bool
+    let date: String
+    let warmupText: String
+    let warmupDuration: Int
 
-    @State private var phase: WorkoutPlayerPhase = .warmup
+    @State private var phase: WorkoutPlayerPhase
     @State private var currentIndex = 0
     @State private var currentSet = 1
     @State private var actualReps = 0
     @State private var currentWeight = 0.0
-    @State private var timerRemaining = 180
-    @State private var timerTotal = 180
+    @State private var timerRemaining: Int
+    @State private var timerTotal: Int
     @State private var paused = false
     @State private var setInputs: [WorkoutSetInput] = []
     @State private var startedAt = Date()
@@ -1348,6 +1354,12 @@ struct WorkoutPlayerView: View {
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
     @State private var watchWorkoutRequested = false
+    @State private var didInitialize = false
+    @State private var draftCleared = false
+    @State private var completionError = false
+    @State private var lastClockTick = Date()
+    @State private var suspendedAt: Date?
+    @State private var lastDraftSave = Date.distantPast
 
     /* Automatic rep cadence, ported from the web player (playerTimeline.ts):
        APEX counts and paces every rep from the exercise's prescribed tempo.
@@ -1357,6 +1369,31 @@ struct WorkoutPlayerView: View {
     @State private var subSecond: Double = 0
 
     private let timer = Timer.publish(every: 0.1, on: .main, in: .common).autoconnect()
+
+    init(
+        day: ProgramDay,
+        exercises: [Exercise],
+        accent: Color,
+        lite: Bool,
+        date: String,
+        warmupText: String,
+        warmupDuration: Int
+    ) {
+        self.day = day
+        self.exercises = exercises
+        self.accent = accent
+        self.lite = lite
+        self.date = date
+        self.warmupText = warmupText
+        self.warmupDuration = warmupDuration
+        let warmup = PlayerTimeline.warmupCountdownSeconds(
+            text: warmupText,
+            duration: warmupDuration
+        )
+        _phase = State(initialValue: warmup == nil ? .active : .warmup)
+        _timerRemaining = State(initialValue: warmup ?? 0)
+        _timerTotal = State(initialValue: warmup ?? 0)
+    }
 
     private var current: Exercise? {
         exercises.indices.contains(currentIndex) ? exercises[currentIndex] : nil
@@ -1388,6 +1425,40 @@ struct WorkoutPlayerView: View {
             before: nextWorkPosition,
             exercises: exercises
         )
+    }
+
+    private var workoutOwnerID: UUID? {
+        TrainingInduction.workoutOwnerID(in: session.data, day: day)
+    }
+
+    private var reconciliationBlock: PlayerTimeline.Block? {
+        switch phase {
+        case .warmup:
+            return .warmup(text: warmupText, duration: timerTotal)
+        case .active:
+            guard let current else { return nil }
+            return .set(
+                exerciseIndex: currentIndex,
+                setNumber: currentSet,
+                totalSets: current.sets,
+                side: nil,
+                resultKey: "\(currentIndex)-\(currentSet)",
+                targetReps: targetReps(current),
+                repDuration: repDuration(current),
+                timed: timedSeconds(current).map(Int.init)
+            )
+        case .rest:
+            return .rest(
+                exerciseIndex: currentIndex,
+                afterSet: currentSet,
+                duration: timerTotal,
+                nextLabel: currentBreakPlan?.nextLabel ?? "",
+                captureLoad: false,
+                reviewExercise: false
+            )
+        case .review, .complete:
+            return nil
+        }
     }
 
     /* Web parity: target is the middle of the rep range; "max" sets count up */
@@ -1480,21 +1551,37 @@ struct WorkoutPlayerView: View {
         .interactiveDismissDisabled()
         .onReceive(timer) { _ in tick() }
         .onAppear {
-            startedAt = Date()
-            currentWeight = suggestedWeight
-            WorkoutAudioCoach.shared.say(language.text("Warm-up started"), enabled: voiceOn)
+            initializePlayer()
             if !watchWorkoutRequested {
                 watchWorkoutRequested = true
                 Task { await session.startWatchWorkout(day: day, exercises: exercises) }
             }
         }
-        .onDisappear { session.stopWatchWorkout() }
-        .onChange(of: scenePhase) { _, next in
-            if next != .active { paused = true }
+        .onDisappear {
+            persistDraft()
+            session.stopWatchWorkout()
         }
+        .onChange(of: scenePhase) { _, next in
+            handleScenePhase(next)
+        }
+        .onChange(of: setInputs) { _, _ in persistDraft() }
+        .onChange(of: paused) { _, _ in persistDraft() }
+        .onChange(of: currentWeight) { _, _ in persistDraft() }
         .confirmationDialog(language.text("Leave this workout?"), isPresented: $showExit, titleVisibility: .visible) {
-            Button(language.text("Leave workout"), role: .destructive) { dismiss() }
+            Button(language.text("Leave workout")) {
+                persistDraft()
+                dismiss()
+            }
+            Button(language.text("Delete"), role: .destructive) {
+                clearDraft()
+                dismiss()
+            }
             Button(language.text("Keep training"), role: .cancel) {}
+        } message: {
+            Text(language.text("Sets completed in this unfinished session have not been saved."))
+        }
+        .alert(language.text("Workout"), isPresented: $completionError) {
+            Button(language.text("OK"), role: .cancel) {}
         } message: {
             Text(language.text("Sets completed in this unfinished session have not been saved."))
         }
@@ -1624,9 +1711,17 @@ struct WorkoutPlayerView: View {
 
     private func returnToWarmup() {
         guard phase != .complete else { return }
+        guard let seconds = PlayerTimeline.warmupCountdownSeconds(
+            text: warmupText,
+            duration: warmupDuration
+        ) else { return }
         UIImpactFeedbackGenerator(style: .soft).impactOccurred()
         paused = false
+        timerRemaining = seconds
+        timerTotal = seconds
+        subSecond = 0
         phase = .warmup
+        persistDraft()
     }
 
     @ViewBuilder
@@ -1652,7 +1747,7 @@ struct WorkoutPlayerView: View {
                     .font(APEXFont.mono(12))
                     .tracking(2)
                     .foregroundStyle(APEXColor.secondaryInk)
-                Text(language.text(day.warmupNote))
+                Text(language.text(warmupText))
                     .font(APEXFont.display(23))
                     .multilineTextAlignment(.center)
                     .lineSpacing(4)
@@ -2010,25 +2105,177 @@ struct WorkoutPlayerView: View {
         }
     }
 
+    private func initializePlayer() {
+        guard !didInitialize else { return }
+        didInitialize = true
+        let now = Date()
+        lastClockTick = now
+        currentWeight = suggestedWeight
+
+        if let ownerID = workoutOwnerID,
+           let draft = PlayerTimeline.DraftStore.load(
+                userID: ownerID,
+                dayID: day.id,
+                date: date,
+                lite: lite,
+                exerciseIDs: exercises.map(\.id)
+           ),
+           restore(draft, now: now) {
+            return
+        }
+
+        startedAt = now
+        if PlayerTimeline.warmupCountdownSeconds(
+            text: warmupText,
+            duration: warmupDuration
+        ) != nil {
+            WorkoutAudioCoach.shared.say(language.text("Warm-up started"), enabled: voiceOn)
+        } else {
+            beginActiveSet()
+        }
+        persistDraft()
+    }
+
+    @discardableResult
+    private func restore(_ draft: PlayerTimeline.SessionDraft, now: Date) -> Bool {
+        guard let restoredPhase = WorkoutPlayerPhase(rawValue: draft.phase),
+              restoredPhase != .complete,
+              exercises.indices.contains(draft.currentIndex),
+              draft.currentSet >= 1,
+              draft.currentSet <= max(1, exercises[draft.currentIndex].sets) else {
+            return false
+        }
+        phase = restoredPhase
+        currentIndex = draft.currentIndex
+        currentSet = draft.currentSet
+        actualReps = max(0, draft.actualReps)
+        currentWeight = draft.currentWeight.isFinite ? draft.currentWeight : 0
+        timerRemaining = max(0, draft.timerRemaining)
+        timerTotal = max(0, draft.timerTotal)
+        paused = draft.paused
+        setInputs = draft.setInputs
+        startedAt = draft.startedAt
+        repElapsed = max(0, draft.repElapsed.isFinite ? draft.repElapsed : 0)
+        announcedRep = max(0, draft.announcedRep)
+
+        let reconciled = PlayerTimeline.reconcileCountdown(
+            block: reconciliationBlock,
+            remaining: timerRemaining,
+            paused: paused,
+            persistedAt: draft.persistedAt,
+            now: now
+        )
+        timerRemaining = reconciled.remaining
+        paused = reconciled.paused
+        lastDraftSave = now
+        resolveExpiredCountdown()
+        return true
+    }
+
+    private func persistDraft(persistedAt: Date = .now) {
+        guard didInitialize, !draftCleared, let ownerID = workoutOwnerID else { return }
+        PlayerTimeline.DraftStore.save(
+            PlayerTimeline.SessionDraft(
+                userID: ownerID,
+                dayID: day.id,
+                date: date,
+                lite: lite,
+                exerciseIDs: exercises.map(\.id),
+                phase: phase.rawValue,
+                currentIndex: currentIndex,
+                currentSet: currentSet,
+                actualReps: actualReps,
+                currentWeight: currentWeight,
+                timerRemaining: timerRemaining,
+                timerTotal: timerTotal,
+                paused: paused,
+                setInputs: setInputs,
+                startedAt: startedAt,
+                repElapsed: repElapsed,
+                announcedRep: announcedRep,
+                persistedAt: persistedAt.ISO8601Format()
+            )
+        )
+        lastDraftSave = .now
+    }
+
+    private func persistDraftIfNeeded(at now: Date) {
+        guard now.timeIntervalSince(lastDraftSave) >= 5 else { return }
+        persistDraft(persistedAt: now)
+    }
+
+    private func clearDraft() {
+        guard let ownerID = workoutOwnerID else { return }
+        draftCleared = true
+        PlayerTimeline.DraftStore.clear(
+            userID: ownerID,
+            dayID: day.id,
+            date: date,
+            lite: lite
+        )
+    }
+
+    private func handleScenePhase(_ next: ScenePhase) {
+        guard didInitialize else { return }
+        let now = Date()
+        if next == .active {
+            if let suspendedAt {
+                let reconciled = PlayerTimeline.reconcileCountdown(
+                    block: reconciliationBlock,
+                    remaining: timerRemaining,
+                    paused: paused,
+                    persistedAt: suspendedAt.ISO8601Format(),
+                    now: now
+                )
+                timerRemaining = reconciled.remaining
+                paused = reconciled.paused
+                self.suspendedAt = nil
+                resolveExpiredCountdown()
+            }
+            lastClockTick = now
+            persistDraft()
+            return
+        }
+
+        if suspendedAt == nil { suspendedAt = now }
+        if phase == .active { paused = true }
+        persistDraft(persistedAt: suspendedAt ?? now)
+    }
+
+    private func resolveExpiredCountdown() {
+        guard timerRemaining == 0, !paused else { return }
+        if phase == .warmup {
+            beginActiveSet()
+        } else if phase == .rest, lastSetResolved {
+            advanceAfterRest()
+        }
+    }
+
     private func tick() {
+        guard didInitialize, scenePhase == .active else { return }
+        let now = Date()
+        let wallDelta = max(0, now.timeIntervalSince(lastClockTick))
+        lastClockTick = now
+        defer { persistDraftIfNeeded(at: now) }
         guard !paused else { return }
         switch phase {
         case .active:
-            cadenceTick()
+            cadenceTick(delta: min(wallDelta, 0.25))
         case .warmup, .rest:
-            subSecond += 0.1
-            guard subSecond >= 0.999 else { return }
-            subSecond = 0
-            if timerRemaining > 0 {
-                timerRemaining -= 1
-                if timerRemaining == 30 {
-                    WorkoutAudioCoach.shared.say(language.text("30 seconds"), enabled: voiceOn)
-                }
-            } else if phase == .warmup {
-                beginActiveSet()
-            } else if lastSetResolved {
-                advanceAfterRest()
+            guard timerRemaining > 0 else {
+                resolveExpiredCountdown()
+                return
             }
+            subSecond += wallDelta
+            let wholeSeconds = Int(subSecond)
+            guard wholeSeconds > 0 else { return }
+            subSecond -= Double(wholeSeconds)
+            let previous = timerRemaining
+            timerRemaining = max(0, timerRemaining - wholeSeconds)
+            if previous > 30, timerRemaining <= 30 {
+                    WorkoutAudioCoach.shared.say(language.text("30 seconds"), enabled: voiceOn)
+            }
+            resolveExpiredCountdown()
         case .review:
             break
         case .complete:
@@ -2038,9 +2285,9 @@ struct WorkoutPlayerView: View {
 
     /* The friction killer: reps announce themselves on the prescribed tempo
        and the set advances on its own when the target is reached. */
-    private func cadenceTick() {
+    private func cadenceTick(delta: Double) {
         guard let current else { return }
-        repElapsed += 0.1
+        repElapsed += max(0, delta)
 
         if let hold = timedSeconds(current) {
             if repElapsed >= hold {
@@ -2085,6 +2332,7 @@ struct WorkoutPlayerView: View {
         announcedRep = 0
         currentWeight = suggestedWeight
         phase = .active
+        persistDraft()
         WorkoutAudioCoach.shared.say(
             currentWorkPosition?.groupLabel.map {
                 "\($0). \(language.text(exercise.name)). \(language.text("Round")) \(currentSet) \(language.text("of")) \(exercise.sets)."
@@ -2114,16 +2362,23 @@ struct WorkoutPlayerView: View {
         subSecond = 0
         if finalSet {
             phase = .review
+            persistDraft()
             WorkoutAudioCoach.shared.say(language.text("Review the final set"), enabled: voiceOn)
         } else {
             let rest = currentBreakPlan
-            timerRemaining = rest?.kind == .ordinary
-                ? max(15, rest?.duration ?? current.restSeconds)
-                : max(0, rest?.duration ?? current.restSeconds)
+            timerRemaining = PlayerTimeline.restCountdownSeconds(
+                rest,
+                fallback: current.restSeconds
+            )
             timerTotal = timerRemaining
             paused = false
             phase = .rest
-            WorkoutAudioCoach.shared.say(language.text("Rest"), enabled: voiceOn)
+            persistDraft()
+            if timerRemaining == 0, lastSetResolved {
+                advanceAfterRest()
+            } else {
+                WorkoutAudioCoach.shared.say(language.text("Rest"), enabled: voiceOn)
+            }
         }
     }
 
@@ -2155,6 +2410,7 @@ struct WorkoutPlayerView: View {
     private func resolveLastSetAsSkipped() {
         guard let lastIndex = setInputs.indices.last else { return }
         setInputs[lastIndex] = ExerciseLogging.resolvingAsSkipped(setInputs[lastIndex])
+        persistDraft()
     }
 
     private func guidedFactValues(
@@ -2199,9 +2455,10 @@ struct WorkoutPlayerView: View {
             )
             isSaving = false
             if let finished {
+                clearDraft()
                 completedSession = FinishedSession(id: finished)
             } else {
-                dismiss()
+                completionError = true
             }
         }
     }

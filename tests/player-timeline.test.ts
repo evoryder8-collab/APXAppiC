@@ -27,6 +27,35 @@ test('weighted sets request per-set load during rests but not between exercises'
   assert.notEqual(buildTimeline(plan)[transitionRestIndex - 1]?.kind, 'log')
 })
 
+test('zero recovery retains only the next movements real setup time', () => {
+  const plan: PlannedDay = {
+    programDay: null,
+    exercises: [
+      exercise({ id: 'prep', name: 'Barbell Back Squat', sets: 1, planned_sets: 1, rest_sec: 0 }),
+      exercise({ id: 'bridge', name: 'Glute Bridge', sets: 1, planned_sets: 1 }),
+    ],
+    warmup: '', warmupDuration: 0, badges: [], isDeload: false, isEventDay: false,
+    isRecoveryMicro: false, taperFactor: 1, legsBlocked: false, layoffDeload: false,
+  }
+
+  const transition = buildTimeline(plan).find((block) => (
+    block.kind === 'rest' && block.exIdx === 0 && block.afterSet === 1
+  ))
+  assert.ok(transition?.kind === 'rest')
+  assert.equal(transition.duration, 15,
+    'zero recovery must not be promoted to the old 60-second default')
+
+  const custom = buildTimeline({
+    ...plan,
+    exercises: plan.exercises.map((row, index) => index === 0
+      ? { ...row, name: 'Uncatalogued prep', rest_sec: 37 }
+      : row),
+  }).find((block) => block.kind === 'rest' && block.exIdx === 0 && block.afterSet === 1)
+  assert.ok(custom?.kind === 'rest')
+  assert.equal(custom.duration, 37,
+    'an ordinary custom rest remains exact when it covers setup')
+})
+
 test('a final-set review rest cannot be skipped before its facts are resolved', () => {
   const plan: PlannedDay = {
     programDay: null,
