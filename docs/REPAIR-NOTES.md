@@ -700,3 +700,18 @@ GitHub publication evidence:
 - GitHub: implementation pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
 - Pages: run `32836678958` succeeded; `https://evoryder8-collab.github.io/APXAppiC/?simple=ea581847b` and the hash route both returned HTTP 200.
 - Next: resolve the requested sleep-score provenance mismatch as its own tested pre-1.8 task.
+
+## 2026-08-25 — Pre-1.8 honest sleep-score provenance
+
+- Root cause: native APEX converted imported sleep duration with `hours / 8 * 100` and presented the result as Apple’s Sleep Score. That made roughly 4.2 hours appear as 52 even when the Sleep app’s composite score was 57.
+- Removed the duration-to-score conversion. HealthKit sleep duration remains a separately labelled measured fact; APEX shows no invented readiness band until an explicit vendor score exists. An entered Watch score is preserved verbatim and blank fields can no longer save a fabricated zero.
+- The expanded editor now explains the public API boundary, labels the field `Watch Sleep Score`, wraps its explanatory copy instead of truncating it, and keeps Romanian/Thai parity. Web copy states the same provenance boundary.
+- Apple verification: the installed iOS/watchOS beta SDK headers contain no public HealthKit sleep-score symbol. Apple’s public HealthKit data-type documentation exposes sleep-analysis stages, while Apple Support documents Sleep Score as a separate composite of duration, consistency, and interruptions.
+- Files changed: `ios/APEXNative/APEX/Core/Engine/RecoveryAssessment.swift`, `ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift`, Romanian/Thai native strings, `ios/APEXNative/APEXTests/MealTimingAndRecoveryTests.swift`, and `src/components/RecoveryCheckinCard.tsx`.
+- Red/green evidence: `testSleepDurationNeverMasqueradesAsAppleSleepScore` failed with an invented 90 from 7.2 hours before the fix; it now passes. `testRecordedAppleSleepScoreIsNeverRecomputedFromDuration` proves an explicit 57 remains 57 alongside a 4.16-hour duration.
+- Tests: focused recovery/localization 20/20; focused web protocol 7/7; full native unit suite 447/447; full web suite 526/526; `npm run build` passed with 1,170 modules; `git diff --check` passed.
+- Implementation commit: `2f8818a40659ae73a6c86c992b07e3c3c7a0c893` (`fix: keep sleep duration separate from score`).
+- Physical iPhone: signed Debug build from exact implementation SHA `2f8818a40` installed and launched on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, PID 1903.
+- GitHub: implementation pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
+- Pages: run `32837962231` succeeded; `https://evoryder8-collab.github.io/APXAppiC/?sleep=2f8818a40` returned HTTP 200.
+- Next: add an explicit plan-duration question to both plan builders as its own tested pre-1.8 task.
