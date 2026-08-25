@@ -891,3 +891,43 @@ GitHub publication evidence:
   - connected physical Apple Watch Ultra 3: Watch app installed directly and launched from the same build.
 - GitHub: the implementation SHA was pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
 - GitHub Pages: run `32901347444` succeeded; `https://evoryder8-collab.github.io/APXAppiC/?sha=03fcbdf7a` returned HTTP 200.
+
+## 2026-08-26 — Generated-plan briefing refinement (before roadmap 1.8)
+
+- Implementation commit: `961dac0ab904996f7bd79140c84cf2d424a271ba` (`fix: refine generated plan briefing`).
+- Files changed:
+  - `src/lib/planBriefing.ts`
+  - `src/components/workout/TrainingInductionPanel.tsx`
+  - `tests/plan-briefing.test.ts`
+  - `public/plan-briefing/plan-briefing-safety.png`
+  - `ios/APEXNative/APEX/Core/Engine/TrainingInduction.swift`
+  - `ios/APEXNative/APEX/Features/Training/TrainingInductionPanel.swift`
+  - `ios/APEXNative/APEX/Resources/Assets.xcassets/plan-briefing-safety.imageset/plan-briefing-safety.png`
+  - `ios/APEXNative/APEXTests/ManualAndInductionTests.swift`
+  - `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+- Result:
+  - Replaced dense, repetitive briefing copy with five scannable cards and semantic per-tip icons in both clients.
+  - `Open my plan` appears only on the final card; earlier cards advance with `Next tip`; the final route remains Simple Mode.
+  - Safety copy distinguishes ordinary effort, stop rules, emergency symptoms and Swiss emergency number 144.
+  - Hydration remains driven by the shared personalized target policy; supplement copy remains food-first and qualified.
+  - Evidence links now use the Swiss Heart Foundation, Swiss FSVO, Swiss Society for Sleep Research and Swiss Sports Nutrition Society.
+  - Replaced the old safety character with a transparent 1254×1254 painterly open-world-game-key-art illustration; native and web files share SHA-256 `2c800f7dc38112a6cb8ba27649459be2987333985f5f82d7d8581726ff5bcf20`.
+- Red proof:
+  - Web briefing suite: 2 passed / 6 failed before the new copy, model, source links, asset and UI contracts existed.
+  - Native focused build failed to compile while tests referenced the not-yet-implemented per-tip icon and evidence model.
+  - The first green attempt was 7/8 and correctly rejected safety copy that omitted an explicit stop instruction; native then executed 3 focused tests and correctly rejected copy that omitted the word `emergency`.
+- Green verification:
+  - Focused web briefing tests: 8/8 passed.
+  - Focused native briefing tests: 3/3 passed, 0 skipped.
+  - Native end-to-end induction/briefing/Simple Mode flow: 1/1 passed in 44.243 seconds.
+  - Full web suite: 552/552 passed in 4.731 seconds.
+  - Full native unit suite: 469/469 passed, 0 skipped.
+  - Production web build: TypeScript clean; Vite transformed 1,172 modules; `git diff --check` clean.
+- Physical deployment for exact implementation SHA `961dac0ab904996f7bd79140c84cf2d424a271ba`:
+  - Apple Development build succeeded for `iphoneos` and `watchos`; strict signatures passed for APEX, APEX Water and APEXWatchWidgets.
+  - Installed and launched `ch.apexperformance.APEX` on physical iPhone 15 Pro Max `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`.
+  - Installed and launched `ch.apexperformance.APEX.watchkitapp` on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`.
+- Publication:
+  - Pushed the implementation SHA to `main`, `codex/main-critical-repair` and `codex/main-integration-20260824`.
+  - GitHub Pages run `32904688560` succeeded.
+  - `https://evoryder8-collab.github.io/APXAppiC/` returned HTTP 200; the live safety asset returned HTTP 200 and matched the committed SHA-256 exactly.
