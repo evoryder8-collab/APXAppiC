@@ -1853,14 +1853,23 @@ final class AppSession {
     /* A provider almost never publishes water, so it is estimated on the way in.
        Without this a scanned food silently contributes nothing to hydration. */
     func lookupFood(barcode: String) async throws -> FoodLookupEnvelope {
+        let ownerID = verifiedPersistenceOwnerID()
+        let accountToken = accountGeneration.token
         let envelope = try await service.lookupFood(barcode: barcode)
-        return FoodLookupEnvelope(
+        let resolved = FoodLookupEnvelope(
             state: envelope.state,
             source: envelope.source,
             food: envelope.food.map(FoodHydration.resolved),
             results: envelope.results?.map(FoodHydration.resolved),
             message: envelope.message
         )
+        if let ownerID, hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken),
+           let found = resolved.food {
+            data.foods.removeAll { $0.id.lowercased() == found.id.lowercased() }
+            data.foods.insert(found, at: 0)
+            await saveLocalSnapshot()
+        }
+        return resolved
     }
 
     func searchFoods(query: String) async throws -> [Food] {
@@ -1971,6 +1980,12 @@ final class AppSession {
                 waterML: item.waterML100.map { $0 * item.equivalentAmount / 100 }
             )
         }
+        let preferenceUpdates = MealMemory.usagePreferenceUpdates(
+            current: data.foodPreferences,
+            items: validItems,
+            userID: profile.userID,
+            usedAt: request.loggedAt
+        )
 
         let previousData = data
         let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
@@ -1985,6 +2000,9 @@ final class AppSession {
         await refreshNudges()
         data.loggedFoodEntries.removeAll { $0.mealID == draft.id }
         data.loggedFoodEntries.insert(contentsOf: localEntries, at: 0)
+        let updatedFoodIDs = Set(preferenceUpdates.map(\.foodID))
+        data.foodPreferences.removeAll { updatedFoodIDs.contains($0.foodID) }
+        data.foodPreferences.append(contentsOf: preferenceUpdates)
         await recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
         await saveLocalSnapshot()
 
@@ -2000,7 +2018,6 @@ final class AppSession {
                         ?? pendingSyncCount + 1
                     /* Saved offline and queued. Deliberately silent: this is
                        normal offline operation, not a failed save. */
-                    return
                 } catch {
                     data = previousData
                     await saveLocalSnapshot()
@@ -2016,6 +2033,14 @@ final class AppSession {
                 )
                 throw error
             }
+        }
+        for preference in preferenceUpdates {
+            await persistUpsert(
+                preference,
+                table: "food_preferences",
+                onConflict: "user_id,food_id",
+                ownerID: profile.userID
+            )
         }
 
         // The write is already committed and idempotent. A dashboard refresh
@@ -2399,10 +2424,19 @@ final class AppSession {
             snapshotWaterSourceID: food.waterSourceID,
             waterML: food.waterML100.map { $0 * equivalentAmount / 100 }
         )
+        let preferenceUpdates = MealMemory.usagePreferenceUpdates(
+            current: data.foodPreferences,
+            items: [MealComposerItem(food: food, quantity: amount, unit: unit)],
+            userID: profile.userID,
+            usedAt: now
+        )
 
         data.loggedMeals.insert(localMeal, at: 0)
         await refreshNudges()
         data.loggedFoodEntries.insert(localEntry, at: 0)
+        let updatedFoodIDs = Set(preferenceUpdates.map(\.foodID))
+        data.foodPreferences.removeAll { updatedFoodIDs.contains($0.foodID) }
+        data.foodPreferences.append(contentsOf: preferenceUpdates)
         await recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
         await saveLocalSnapshot()
 
@@ -2417,6 +2451,20 @@ final class AppSession {
             /* Saved offline and queued. Deliberately silent: this is the app
                working, not an event, and pendingSyncCount already shows it.
                Naming the backend on a user's screen helps nobody. */
+        }
+        /* A successful meal RPC refreshes the dashboard before the separate
+           preference upsert. Reapply the captured account-owned update so the
+           freshly scanned food never vanishes from Recents during that gap. */
+        let refreshedFoodIDs = Set(preferenceUpdates.map(\.foodID))
+        data.foodPreferences.removeAll { refreshedFoodIDs.contains($0.foodID) }
+        data.foodPreferences.append(contentsOf: preferenceUpdates)
+        for preference in preferenceUpdates {
+            await persistUpsert(
+                preference,
+                table: "food_preferences",
+                onConflict: "user_id,food_id",
+                ownerID: profile.userID
+            )
         }
     }
 

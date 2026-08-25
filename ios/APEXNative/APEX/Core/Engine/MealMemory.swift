@@ -169,6 +169,107 @@ enum MealMemory {
         )
     }
 
+    /// A standalone Food Memory view is not tied to one meal slot. Build its
+    /// first rows from immutable, account-owned log history so a barcode food
+    /// remains available even when the shared catalogue query no longer
+    /// includes that row. Preferences remain useful metadata, but are not the
+    /// source of truth for whether a food was actually logged.
+    static func recentFoods(
+        foods: [Food],
+        preferences: [FoodPreference],
+        meals: [LoggedMeal],
+        entries: [LoggedFoodEntry],
+        userID: UUID
+    ) -> [Food] {
+        var foodByID: [String: Food] = [:]
+        for food in foods { foodByID[food.id.lowercased()] = food }
+        let ownedPreferences = preferences.filter { $0.userID == userID }
+        let preferenceByFoodID = Dictionary(
+            uniqueKeysWithValues: ownedPreferences.map { ($0.foodID.uuidString.lowercased(), $0) }
+        )
+        let hiddenIDs = Set(ownedPreferences.filter(\.hidden).map { $0.foodID.uuidString.lowercased() })
+        var entriesByMeal: [UUID: [LoggedFoodEntry]] = [:]
+        for entry in entries where entry.userID == userID {
+            entriesByMeal[entry.mealID, default: []].append(entry)
+        }
+
+        var result: [Food] = []
+        var seen: Set<String> = []
+        func append(_ food: Food) {
+            let id = food.id.lowercased()
+            guard !hiddenIDs.contains(id), seen.insert(id).inserted else { return }
+            result.append(food)
+        }
+
+        let recentMeals = meals
+            .filter { $0.userID == userID }
+            .sorted {
+                let left = $0.loggedAt.isEmpty ? $0.localDate : $0.loggedAt
+                let right = $1.loggedAt.isEmpty ? $1.localDate : $1.loggedAt
+                return left == right ? $0.id.uuidString > $1.id.uuidString : left > right
+            }
+        for meal in recentMeals {
+            for entry in (entriesByMeal[meal.id] ?? []).sorted(by: { $0.sortOrder < $1.sortOrder }) {
+                guard entry.snapshotBrand != "APEX plan",
+                      !entry.snapshotName.lowercased().contains("planned prescription") else { continue }
+                let food = entry.foodID.flatMap { foodByID[$0.uuidString.lowercased()] } ?? Self.food(from: entry)
+                append(food)
+            }
+        }
+
+        let rememberedCatalogue = foods.filter { food in
+            guard let preference = preferenceByFoodID[food.id.lowercased()] else { return false }
+            return preference.favourite || preference.usageCount > 0
+        }.sorted { left, right in
+            let lhs = preferenceByFoodID[left.id.lowercased()]
+            let rhs = preferenceByFoodID[right.id.lowercased()]
+            if (lhs?.favourite ?? false) != (rhs?.favourite ?? false) { return lhs?.favourite == true }
+            if (lhs?.lastUsedAt ?? "") != (rhs?.lastUsedAt ?? "") { return (lhs?.lastUsedAt ?? "") > (rhs?.lastUsedAt ?? "") }
+            if (lhs?.usageCount ?? 0) != (rhs?.usageCount ?? 0) { return (lhs?.usageCount ?? 0) > (rhs?.usageCount ?? 0) }
+            return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
+        }
+        rememberedCatalogue.forEach(append)
+        foods.sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }.forEach(append)
+        return result
+    }
+
+    /// Produce only the account-owned preference rows touched by a confirmed
+    /// meal. Repeated appearances increment independently and the final item
+    /// supplies the exact quantity used by quick add next time.
+    static func usagePreferenceUpdates(
+        current: [FoodPreference],
+        items: [MealComposerItem],
+        userID: UUID,
+        usedAt: String
+    ) -> [FoodPreference] {
+        var working = Dictionary(
+            uniqueKeysWithValues: current
+                .filter { $0.userID == userID }
+                .map { ($0.foodID, $0) }
+        )
+        var touched: [UUID] = []
+        var touchedSet: Set<UUID> = []
+        for item in items {
+            guard let foodID = item.foodID else { continue }
+            let previous = working[foodID]
+            working[foodID] = FoodPreference(
+                id: previous?.id ?? UUID(),
+                userID: userID,
+                foodID: foodID,
+                personalName: previous?.personalName,
+                aliases: previous?.aliases ?? [],
+                favourite: previous?.favourite ?? false,
+                usualAmount: item.quantity,
+                usualUnit: item.unit,
+                usageCount: (previous?.usageCount ?? 0) + 1,
+                lastUsedAt: usedAt,
+                hidden: previous?.hidden ?? false
+            )
+            if touchedSet.insert(foodID).inserted { touched.append(foodID) }
+        }
+        return touched.compactMap { working[$0] }
+    }
+
     // MARK: - Ranking
 
     static func rank(

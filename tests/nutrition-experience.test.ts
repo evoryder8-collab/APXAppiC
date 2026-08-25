@@ -158,6 +158,36 @@ test('history preserves exact grams and remains usable without its optional food
   assert.deepEqual(ranked.selections[0], { foodId: ranked.foods[0].id, quantity: 163, unit: 'g' })
 })
 
+test('a barcode food scanned yesterday remains recent when its UUID row is outside the loaded catalogue page', () => {
+  const original = COMMON_FOODS[0]
+  const scannedId = crypto.randomUUID()
+  const yesterday = meal({
+    id: 'yesterday-scan',
+    meal_slot: 'breakfast',
+    local_date: '2026-08-24',
+    logged_at: '2026-08-24T08:05:00.000Z',
+  })
+  const scannedEntry = {
+    ...entry(yesterday.id, original.id, 27),
+    food_id: scannedId,
+    snapshot_name: 'Aldi scanned walnuts',
+    snapshot_brand: 'Aldi Suisse',
+    created_at: '2026-08-24T08:05:00.000Z',
+  }
+
+  const ranked = rankMealHistoryRecommendations({
+    context: { date: '2026-08-25', slot: 'breakfast', memoryMode: 'daily' },
+    meals: [yesterday],
+    entries: [scannedEntry],
+    foods: [],
+    presets: [],
+  })
+
+  assert.equal(ranked.foods[0]?.id, scannedId)
+  assert.equal(ranked.foods[0]?.name, 'Aldi scanned walnuts')
+  assert.deepEqual(ranked.selections[0], { foodId: scannedId, quantity: 27, unit: 'g' })
+})
+
 test('blank composer history learns frequency before recency while retaining weekday relevance', () => {
   const thursdays = ['2026-06-04', '2026-06-11', '2026-06-18', '2026-06-25', '2026-07-02', '2026-07-09']
   const repeated = thursdays.map((date, index) => meal({

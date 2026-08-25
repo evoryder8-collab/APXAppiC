@@ -13,9 +13,18 @@ struct FoodSearchSheet: View {
     @State private var message: String?
 
     private var displayedFoods: [Food] {
-        let base = remoteResults.isEmpty ? session.data.foods : remoteResults
-        guard !query.isEmpty, remoteResults.isEmpty else { return ranked(base) }
-        return ranked(base.filter {
+        if remoteResults.isEmpty == false { return ranked(remoteResults) }
+        guard !query.isEmpty else {
+            guard let userID = session.profile?.userID else { return ranked(session.data.foods) }
+            return MealMemory.recentFoods(
+                foods: session.data.foods,
+                preferences: session.data.foodPreferences,
+                meals: session.data.loggedMeals,
+                entries: session.data.loggedFoodEntries,
+                userID: userID
+            )
+        }
+        return ranked(session.data.foods.filter {
             $0.name.localizedCaseInsensitiveContains(query)
                 || ($0.brand?.localizedCaseInsensitiveContains(query) ?? false)
         })
@@ -118,6 +127,9 @@ struct FoodSearchSheet: View {
             let right = preferences[rhs.id.lowercased()]
             if (left?.favourite ?? false) != (right?.favourite ?? false) {
                 return left?.favourite == true
+            }
+            if (left?.lastUsedAt ?? "") != (right?.lastUsedAt ?? "") {
+                return (left?.lastUsedAt ?? "") > (right?.lastUsedAt ?? "")
             }
             if (left?.usageCount ?? 0) != (right?.usageCount ?? 0) {
                 return (left?.usageCount ?? 0) > (right?.usageCount ?? 0)

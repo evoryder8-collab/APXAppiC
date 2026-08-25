@@ -138,4 +138,58 @@ final class MealMemoryParityTests: XCTestCase {
         XCTAssertEqual(MealMemory.normalizeMode(nil), .daily)
         XCTAssertEqual(MealMemory.normalizeMode(.null), .daily)
     }
+
+    func testStandaloneRecentsReconstructYesterdayScannedFoodMissingFromCatalogue() throws {
+        let meal = try XCTUnwrap(Self.fixture.meals.max { $0.loggedAt < $1.loggedAt })
+        let entry = try XCTUnwrap(Self.fixture.entries.first { $0.mealID == meal.id && $0.foodID != nil })
+        let scannedID = try XCTUnwrap(entry.foodID)
+        let catalogueWithoutScan = Self.fixture.foods.filter {
+            $0.id.lowercased() != scannedID.uuidString.lowercased()
+        }
+
+        let recents = MealMemory.recentFoods(
+            foods: catalogueWithoutScan,
+            preferences: [],
+            meals: [meal],
+            entries: [entry],
+            userID: meal.userID
+        )
+
+        XCTAssertEqual(recents.first?.id.lowercased(), scannedID.uuidString.lowercased())
+        XCTAssertEqual(recents.first?.name, entry.snapshotName)
+
+        let foreignAccountRecents = MealMemory.recentFoods(
+            foods: catalogueWithoutScan,
+            preferences: [],
+            meals: [meal],
+            entries: [entry],
+            userID: UUID()
+        )
+        XCTAssertFalse(
+            foreignAccountRecents.contains { $0.id.lowercased() == scannedID.uuidString.lowercased() },
+            "another account's scanned history must never leak into Food Memory"
+        )
+    }
+
+    func testConfirmedScannedAmountCreatesAccountScopedRecentPreference() throws {
+        let food = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
+        let userID = UUID()
+        let usedAt = "2026-08-24T12:03:09.000Z"
+        let item = MealComposerItem(food: food, quantity: 27, unit: "g")
+
+        let updates = MealMemory.usagePreferenceUpdates(
+            current: [],
+            items: [item],
+            userID: userID,
+            usedAt: usedAt
+        )
+
+        let preference = try XCTUnwrap(updates.first)
+        XCTAssertEqual(preference.userID, userID)
+        XCTAssertEqual(preference.foodID.uuidString.lowercased(), food.id.lowercased())
+        XCTAssertEqual(preference.usageCount, 1)
+        XCTAssertEqual(preference.usualAmount, 27)
+        XCTAssertEqual(preference.usualUnit, "g")
+        XCTAssertEqual(preference.lastUsedAt, usedAt)
+    }
 }
