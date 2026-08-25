@@ -233,6 +233,45 @@ final class APEXSmokeUITests: XCTestCase {
         capture("simple-bespoke-main-workout")
     }
 
+    func testMorningCheckAcceptsWeightWithoutForcingASleepScore() {
+        let app = configuredApp()
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        simpleMode.tap()
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) {
+            syncAlert.buttons["OK"].tap()
+        }
+
+        let morningCheck = app.buttons["morning-check-summary"]
+        XCTAssertTrue(scrollUntilVisible(morningCheck, in: app, attempts: 6))
+        morningCheck.tap()
+
+        let sleepScore = app.textFields["morning-sleep-score"]
+        let weight = app.textFields["morning-weight"]
+        XCTAssertTrue(sleepScore.waitForExistence(timeout: 2))
+        XCTAssertTrue(weight.waitForExistence(timeout: 2))
+        let emptyScore = sleepScore.value as? String
+        XCTAssertTrue(emptyScore == nil || emptyScore == "" || emptyScore == "%")
+
+        weight.tap()
+        weight.typeText("87.4")
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
+        let dismissKeyboard = app.buttons["morning-keyboard-dismiss"]
+        XCTAssertTrue(dismissKeyboard.waitForExistence(timeout: 2))
+        dismissKeyboard.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForNonExistence(timeout: 2))
+
+        let save = app.buttons["morning-save"]
+        XCTAssertTrue(scrollUntilVisible(save, in: app, attempts: 4))
+        save.tap()
+        XCTAssertTrue(morningCheck.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.staticTexts["Morning check, 0"].exists)
+        capture("morning-check-weight-only")
+    }
+
     func testWaterQuickAddDismissesAnEmptyNumericKeyboardAndKeepsSettingsAtTheBottom() {
         let app = configuredApp()
         app.launch()

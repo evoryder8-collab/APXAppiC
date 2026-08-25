@@ -133,4 +133,57 @@ final class SimpleHomeLogicTests: XCTestCase {
             )
         )
     }
+
+    func testMorningCheckAcceptsWeightWithoutFabricatingAnAppleSleepScore() {
+        let metric = MorningCheckLogic.entry(
+            sleep: "",
+            recovery: "",
+            weight: "87,4",
+            source: "apple",
+            weightUnit: .kilograms
+        )
+
+        XCTAssertEqual(metric?.weightKG, 87.4)
+        XCTAssertNil(metric?.sleepScore)
+        XCTAssertNil(metric?.recoveryScore)
+
+        let imperial = MorningCheckLogic.entry(
+            sleep: "57",
+            recovery: "",
+            weight: "192.7",
+            source: "apple",
+            weightUnit: .pounds
+        )
+        XCTAssertEqual(imperial?.sleepScore, 57)
+        XCTAssertEqual(imperial?.weightKG ?? 0, 87.41, accuracy: 0.02)
+        XCTAssertNil(MorningCheckLogic.entry(
+            sleep: "70", recovery: "", weight: "",
+            source: "other", weightUnit: .kilograms
+        ))
+    }
+
+    func testMorningWeightPreservesExistingDailyNutritionFacts() {
+        let userID = UUID()
+        let existing = DailyLog(
+            id: UUID(), userID: userID, date: "2026-08-25",
+            kcal: 1_900, proteinG: 160, fatG: 65, carbsG: 210,
+            waterL: 2.4, estimatedTDEE: 2_600, computedPAL: 1.55,
+            activityMode: "precise", weightKG: 88
+        )
+
+        let updated = MorningCheckLogic.applyingWeight(
+            87.4,
+            to: existing,
+            userID: userID,
+            date: "2026-08-25",
+            activityMode: "quick"
+        )
+
+        XCTAssertEqual(updated.id, existing.id)
+        XCTAssertEqual(updated.kcal, 1_900)
+        XCTAssertEqual(updated.proteinG, 160)
+        XCTAssertEqual(updated.waterL, 2.4)
+        XCTAssertEqual(updated.activityMode, "precise")
+        XCTAssertEqual(updated.weightKG, 87.4)
+    }
 }

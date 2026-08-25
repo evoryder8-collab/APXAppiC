@@ -62,6 +62,81 @@ enum SimpleHomeLogic {
     }
 }
 
+enum MorningCheckLogic {
+    struct Entry: Equatable {
+        let sleepScore: Double?
+        let recoveryScore: Double?
+        let weightKG: Double?
+    }
+
+    static func entry(
+        sleep: String,
+        recovery: String,
+        weight: String,
+        source: String,
+        weightUnit: WeightUnit
+    ) -> Entry? {
+        let sleepText = normalized(sleep)
+        let recoveryText = normalized(recovery)
+        let weightText = normalized(weight)
+        let hasScoreInput = !sleepText.isEmpty || (source == "other" && !recoveryText.isEmpty)
+        let hasWeightInput = !weightText.isEmpty
+
+        var sleepScore: Double?
+        var recoveryScore: Double?
+        if hasScoreInput {
+            guard let parsedSleep = score(sleepText) else { return nil }
+            sleepScore = parsedSleep
+            if source == "other" {
+                guard let parsedRecovery = score(recoveryText) else { return nil }
+                recoveryScore = parsedRecovery
+            }
+        }
+
+        var weightKG: Double?
+        if hasWeightInput {
+            guard let value = Double(weightText), value.isFinite else { return nil }
+            let kilograms = weightUnit.kilograms(fromValue: value)
+            guard (25...350).contains(kilograms) else { return nil }
+            weightKG = kilograms
+        }
+
+        guard sleepScore != nil || weightKG != nil else { return nil }
+        return Entry(sleepScore: sleepScore, recoveryScore: recoveryScore, weightKG: weightKG)
+    }
+
+    static func applyingWeight(
+        _ weightKG: Double,
+        to existing: DailyLog?,
+        userID: UUID,
+        date: String,
+        activityMode: String
+    ) -> DailyLog {
+        if var existing {
+            existing.weightKG = weightKG
+            return existing
+        }
+        return DailyLog(
+            id: APEXStableID.scopedUUID(namespace: "daily-log", date: date, userID: userID),
+            userID: userID,
+            date: date,
+            waterL: 0,
+            activityMode: activityMode,
+            weightKG: weightKG
+        )
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value.trimmingCharacters(in: .whitespacesAndNewlines)
+            .replacingOccurrences(of: ",", with: ".")
+    }
+
+    private static func score(_ value: String) -> Double? {
+        guard let parsed = Double(value), parsed.isFinite, (0...100).contains(parsed) else { return nil }
+        return parsed
+    }
+}
+
 struct PortalModeSwitcher: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared

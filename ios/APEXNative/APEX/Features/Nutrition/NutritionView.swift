@@ -137,8 +137,7 @@ struct NutritionView: View {
                         DailyLogCard(
                             date: selectedDate,
                             targets: targets,
-                            onAdjustActivities: { showAddActivity = true },
-                            onOpenCalendar: { showCalendar = true }
+                            onAdjustActivities: { showAddActivity = true }
                         )
 
                         CollapsibleSection(
@@ -695,7 +694,6 @@ private struct DailyLogCard: View {
     let date: Date
     let targets: NutritionTargets
     let onAdjustActivities: () -> Void
-    let onOpenCalendar: () -> Void
 
     private var current: DailyLog? {
         session.data.dailyLogs.first { $0.date == date.apexDateKey }
@@ -784,26 +782,6 @@ private struct DailyLogCard: View {
                     }
                 }
 
-                Button(action: onOpenCalendar) {
-                    HStack(spacing: 13) {
-                        Image(systemName: "calendar")
-                            .font(.system(size: 19, weight: .semibold))
-                            .foregroundStyle(APEXColor.violet)
-                        VStack(alignment: .leading, spacing: 2) {
-                            Text(language.text("Calendar"))
-                                .font(APEXFont.display(18))
-                            Text(language.text("Open any past or future date."))
-                                .font(APEXFont.body(11, weight: .medium))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                        }
-                        Spacer()
-                        Image(systemName: "chevron.right")
-                            .foregroundStyle(APEXColor.secondaryInk)
-                    }
-                    .padding(14)
-                    .background(APEXColor.violet.opacity(0.06), in: RoundedRectangle(cornerRadius: 19, style: .continuous))
-                }
-                .buttonStyle(.plain)
             }
         }
         .task(id: date.apexDateKey) {
@@ -849,18 +827,9 @@ private struct DailyLogCard: View {
     }
 
     private func saveMorningWeight() {
-        guard let profile = session.profile else { return }
         let normalized = morningWeightText.replacingOccurrences(of: ",", with: ".")
         guard let weight = Double(normalized), (25...350).contains(weight) else { return }
-        var row = current ?? DailyLog(
-            id: UUID(), userID: profile.userID, date: date.apexDateKey,
-            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
-            estimatedTDEE: targets.tdee, computedPAL: targets.pal,
-            activityMode: preciseLogs.isEmpty ? "quick" : "precise",
-            weightKG: nil
-        )
-        row.weightKG = weight
-        Task { await session.updateDailyLog(row) }
+        Task { await session.saveMorningWeight(weight, on: date) }
     }
 }
 

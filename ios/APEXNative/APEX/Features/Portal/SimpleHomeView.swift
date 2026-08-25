@@ -2198,9 +2198,12 @@ private struct RecoveryMorningCard: View {
     @State private var language = LanguageState.shared
     @State private var sleep = ""
     @State private var recovery = ""
+    @State private var weight = ""
     @State private var expanded = false
+    @FocusState private var morningFieldFocused: Bool
     let date: Date
     private var source: String { session.data.settings?.addons["recovery_data_source"]?.stringValue ?? "apple" }
+    private var weightUnit: WeightUnit { .current(session.data.settings) }
     private var importedSleepHours: Double? {
         RecoveryAssessment.sleepDurationHours(session.data, date: date.apexDateKey)
     }
@@ -2342,49 +2345,102 @@ private struct RecoveryMorningCard: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                scoreField(language.text(source == "other" ? "Sleep" : "Watch Sleep Score"), text: $sleep)
-                if source == "other" { scoreField("Recovery", text: $recovery) }
+                scoreField(
+                    language.text(source == "other" ? "Sleep" : "Watch Sleep Score"),
+                    text: $sleep,
+                    identifier: "morning-sleep-score"
+                )
+                if source == "other" {
+                    scoreField("Recovery", text: $recovery, identifier: "morning-recovery-score")
+                }
+            }
+            VStack(alignment: .leading, spacing: 5) {
+                Text(language.text("Morning weight"))
+                    .font(APEXFont.body(9, weight: .bold))
+                HStack(spacing: 8) {
+                    Image(systemName: "scalemass")
+                        .foregroundStyle(APEXColor.cyan)
+                    TextField(language.text("Weight"), text: $weight)
+                        .keyboardType(.decimalPad)
+                        .focused($morningFieldFocused)
+                        .accessibilityIdentifier("morning-weight")
+                        .font(APEXFont.mono(15))
+                    Text(weightUnit.suffix)
+                        .font(APEXFont.mono(11, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                .padding(11)
+                .background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 14))
             }
             Text(language.text(source == "other" ? "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." : "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX."))
                 .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
-            Button(language.text("Save morning check")) { save(); expanded = false }
+            Button(language.text("Save morning check")) {
+                morningFieldFocused = false
+                save()
+                expanded = false
+            }
+                .accessibilityIdentifier("morning-save")
                 .buttonStyle(.borderedProminent)
                 .tint(APEXColor.green)
                 .controlSize(.small)
         }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button(language.text("Done")) { morningFieldFocused = false }
+                    .accessibilityIdentifier("morning-keyboard-dismiss")
+            }
+        }
     }
-    private func scoreField(_ title: String, text: Binding<String>) -> some View {
-        VStack(alignment: .leading) { Text(title).font(APEXFont.body(9, weight: .bold)); TextField("%", text: text).keyboardType(.numberPad).font(APEXFont.mono(15)).multilineTextAlignment(.center).padding(11).background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 14)) }
+    private func scoreField(_ title: String, text: Binding<String>, identifier: String) -> some View {
+        VStack(alignment: .leading) { Text(title).font(APEXFont.body(9, weight: .bold)); TextField("%", text: text).keyboardType(.numberPad).focused($morningFieldFocused).accessibilityIdentifier(identifier).font(APEXFont.mono(15)).multilineTextAlignment(.center).padding(11).background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 14)) }
     }
     private func load() {
+        if let kilograms = session.data.dailyLogs.last(where: { $0.date == date.apexDateKey })?.weightKG {
+            let displayed = weightUnit.value(fromKilograms: kilograms)
+            weight = displayed.formatted(
+                .number.precision(.fractionLength(1)).locale(language.language.locale)
+            )
+        } else {
+            weight = ""
+        }
         let history = session.data.settings?.addons["recovery_history"]?.arrayValue ?? []
-        guard let row = history.compactMap(\.objectValue).last(where: { $0["date"]?.stringValue == date.apexDateKey }) else { return }
-        sleep = row["sleep_score"]?.numberValue.map { String(Int($0)) } ?? ""
+        guard let row = history.compactMap(\.objectValue).last(where: { $0["date"]?.stringValue == date.apexDateKey }) else {
+            sleep = ""
+            recovery = ""
+            return
+        }
+        let sleepKey = source == "other" ? "sleep_pct" : "sleep_score"
+        sleep = row[sleepKey]?.numberValue.map { String(Int($0)) } ?? ""
         recovery = row["recovery_pct"]?.numberValue.map { String(Int($0)) } ?? ""
     }
     private func save() {
-        guard let sleepValue = scoreValue(sleep) else { return }
-        let recoveryValue = scoreValue(recovery)
-        if source == "other", recoveryValue == nil { return }
-        Task { await session.updateSettings { settings in
-            var rows = settings.addons["recovery_history"]?.arrayValue ?? []
-            rows.removeAll { $0.objectValue?["date"]?.stringValue == date.apexDateKey }
-            rows.append(.object([
-                "date": .string(date.apexDateKey),
-                "source": .string(source),
-                "sleep_score": source == "apple" ? .number(sleepValue) : .null,
-                "sleep_pct": source == "other" ? .number(sleepValue) : .null,
-                "recovery_pct": source == "other" ? (recoveryValue.map(JSONValue.number) ?? .null) : .null,
-                "updated_at": .string(Date().ISO8601Format()),
-            ]))
-            settings.addons["recovery_history"] = .array(Array(rows.suffix(730)))
-        } }
-    }
-
-    private func scoreValue(_ input: String) -> Double? {
-        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
-        guard !trimmed.isEmpty, let value = Double(trimmed), value.isFinite else { return nil }
-        return min(100, max(0, value.rounded()))
+        guard let entry = MorningCheckLogic.entry(
+            sleep: sleep,
+            recovery: recovery,
+            weight: weight,
+            source: source,
+            weightUnit: weightUnit
+        ) else { return }
+        Task {
+            if let weightKG = entry.weightKG {
+                await session.saveMorningWeight(weightKG, on: date)
+            }
+            guard let sleepValue = entry.sleepScore else { return }
+            await session.updateSettings { settings in
+                var rows = settings.addons["recovery_history"]?.arrayValue ?? []
+                rows.removeAll { $0.objectValue?["date"]?.stringValue == date.apexDateKey }
+                rows.append(.object([
+                    "date": .string(date.apexDateKey),
+                    "source": .string(source),
+                    "sleep_score": source == "apple" ? .number(sleepValue) : .null,
+                    "sleep_pct": source == "other" ? .number(sleepValue) : .null,
+                    "recovery_pct": source == "other" ? (entry.recoveryScore.map(JSONValue.number) ?? .null) : .null,
+                    "updated_at": .string(Date().ISO8601Format()),
+                ]))
+                settings.addons["recovery_history"] = .array(Array(rows.suffix(730)))
+            }
+        }
     }
 }
 

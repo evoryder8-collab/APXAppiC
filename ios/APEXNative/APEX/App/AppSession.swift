@@ -942,6 +942,27 @@ final class AppSession {
         )
     }
 
+    func saveMorningWeight(_ weightKG: Double, on date: Date) async {
+        guard weightKG.isFinite,
+              (25...350).contains(weightKG),
+              let ownerID = verifiedPersistenceOwnerID() else { return }
+        let day = date.apexDateKey
+        let existing = data.dailyLogs.first {
+            $0.userID == ownerID && $0.date == day
+        }
+        let activityMode = data.activityLogs.contains {
+            $0.userID == ownerID && $0.date == day
+        } ? "precise" : "quick"
+        let row = MorningCheckLogic.applyingWeight(
+            weightKG,
+            to: existing,
+            userID: ownerID,
+            date: day,
+            activityMode: activityMode
+        )
+        await updateDailyLog(row, ownerID: ownerID)
+    }
+
     /// Water naturally present in foods logged for the selected day. This is
     /// deliberately kept separate from `DailyLog.waterL`, which represents
     /// drinks and Apple Health dietary-water samples.
