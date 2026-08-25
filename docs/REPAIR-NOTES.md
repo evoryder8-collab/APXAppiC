@@ -686,3 +686,17 @@ GitHub publication evidence:
 - Physical installs: XcodeBuildMCP with Xcode 27 beta built, signed, installed, and launched exact SHA `b29b5b14d77f2b0a492d66a5e1af98a642713066` on iConstantine Main (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, bundle `ch.apexperformance.APEX`, PID `1530`) and Apple Watch Ultra 3 (`F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, bundle `ch.apexperformance.APEX.watchkitapp`, PID `1519`).
 - Publication: pushed the implementation SHA to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`. GitHub Pages run `32833272852` completed successfully (build `20s`, deploy `10s`), and `https://evoryder8-collab.github.io/APXAppiC/?hydration=b29b5b14d` returned HTTP `200`.
 - Next: address the requested Simple Mode cleanup and truthful burned/activity summary as a separate red/green commit before Task 1.8.
+
+## 2026-08-25 — Pre-1.8 Simple Mode health-summary cleanup
+
+- Removed the redundant Simple Mode greeting and manual Today’s Checklist in both clients. Daily completion now lives in the Nutrition at a glance header.
+- Replaced the meal-count side metric with resolved active calories burned on Simple Mode and Nutrition. A positive whole-day wearable value is authoritative; APEX estimates are used only when that value is absent, so measured and estimated expenditure are never summed.
+- The collapsed native Wearable Activity card now exposes steps, active kcal, and exercise minutes whenever a dated wearable record exists.
+- Files changed: `ios/APEXNative/APEX/Features/Nutrition/EnergyEngine.swift`, `ios/APEXNative/APEX/Features/Nutrition/NutritionParityViews.swift`, `ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift`, Romanian/Thai native strings, `ios/APEXNative/APEXTests/EnergyEngineTests.swift`, `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`, `src/lib/activity.ts`, `src/lib/translations.ts`, `src/components/food/ActualFoodTracker.tsx`, `src/components/food/NutritionGlance.tsx`, `src/pages/SimpleHome.tsx`, `src/pages/Nutrition.tsx`, `tests/activity.test.ts`, and `tests/simple-home-cleanup.test.ts`.
+- Red/green evidence: the new resolver tests initially failed because no wearable-precedence API existed; four new source contracts initially failed for the still-present greeting/checklist, external completion ring, Meals metric, and hidden collapsed wearable facts.
+- Tests: focused native 14/14; focused web 32/32; native Simple Mode UI flow 1/1; full native unit suite 447/447; full web suite 526/526; `npm run build` passed with 1,170 modules; `git diff --check` passed.
+- Implementation commit: `ea581847bd57516b15fd522f9b63f6dabd023426` (`fix: simplify daily health summary`).
+- Physical iPhone: signed Debug build from exact implementation SHA `ea581847b` installed and launched on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, PID 1793.
+- GitHub: implementation pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
+- Pages: run `32836678958` succeeded; `https://evoryder8-collab.github.io/APXAppiC/?simple=ea581847b` and the hash route both returned HTTP 200.
+- Next: resolve the requested sleep-score provenance mismatch as its own tested pre-1.8 task.
