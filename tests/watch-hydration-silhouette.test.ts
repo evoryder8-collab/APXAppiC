@@ -47,6 +47,17 @@ test('Watch hydration refresh and animation remain event-driven', () => {
   assert.match(view, /\.onChange\(of: scenePhase\)/)
 })
 
+test('Watch hydration motion uses a smooth continuous animation clock', () => {
+  const view = readFileSync(
+    new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
+    'utf8',
+  )
+
+  assert.match(view, /TimelineView\(\.animation\(paused:/)
+  assert.doesNotMatch(view, /minimumInterval:/)
+  assert.doesNotMatch(view, /truncatingRemainder/)
+})
+
 test('Watch history offers deliberate tap and swipe deletion', () => {
   const view = readFileSync(
     new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),

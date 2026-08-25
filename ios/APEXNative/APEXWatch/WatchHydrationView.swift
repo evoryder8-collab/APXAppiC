@@ -363,9 +363,9 @@ private struct HydrationSilhouetteGauge: View {
     let animationIsEnabled: Bool
 
     var body: some View {
-        TimelineView(.animation(minimumInterval: 1.0 / 8.0, paused: !animationIsEnabled)) { timeline in
+        TimelineView(.animation(paused: !animationIsEnabled)) { timeline in
             let phase = animationIsEnabled
-                ? timeline.date.timeIntervalSinceReferenceDate.truncatingRemainder(dividingBy: 10) * 0.9
+                ? timeline.date.timeIntervalSinceReferenceDate * 0.9
                 : 0
             let breath = animationIsEnabled ? sin(phase * 0.72) : 0
             let floatOffset = animationIsEnabled ? sin(phase * 0.54) * 1.7 : 0
