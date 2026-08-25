@@ -215,15 +215,7 @@ final class RecoveryAssessmentTests: XCTestCase {
         XCTAssertEqual(history.first?.sleepScore, 72)
     }
 
-    func testWatchSleepHoursBecomeAReadableScore() {
-        let full = RecoveryAssessment.checkinFromSleepHours(8, date: "2026-01-05", updatedAt: "")
-        XCTAssertEqual(full.sleepScore, 100)
-        let short = RecoveryAssessment.checkinFromSleepHours(4.5, date: "2026-01-05", updatedAt: "")
-        XCTAssertEqual(short.sleepScore, 56)
-        XCTAssertEqual(RecoveryAssessment.assess(short).state, .low)
-    }
-
-    func testTheWatchImportIsUsedWhenNothingWasRecordedByHand() {
+    func testSleepDurationNeverMasqueradesAsAppleSleepScore() {
         var data = DashboardData()
         data.settings = UserSettings(
             userID: UUID(), voiceOn: false, ticksOn: false, notificationsOn: false,
@@ -236,8 +228,33 @@ final class RecoveryAssessmentTests: XCTestCase {
                 ])
             ]
         )
-        let checkin = RecoveryAssessment.todaysCheckin(data, date: "2026-01-05")
-        XCTAssertEqual(checkin?.sleepScore, 90)
+        XCTAssertEqual(RecoveryAssessment.sleepDurationHours(data, date: "2026-01-05"), 7.2)
+        XCTAssertNil(RecoveryAssessment.todaysCheckin(data, date: "2026-01-05"))
         XCTAssertNil(RecoveryAssessment.todaysCheckin(data, date: "2026-01-06"))
+    }
+
+    func testRecordedAppleSleepScoreIsNeverRecomputedFromDuration() {
+        var data = DashboardData()
+        data.settings = UserSettings(
+            userID: UUID(), voiceOn: false, ticksOn: false, notificationsOn: false,
+            guardianFactor: 1,
+            addons: [
+                "recovery_history": .array([
+                    .object([
+                        "date": .string("2026-01-05"), "source": .string("apple"),
+                        "sleep_score": .number(57), "updated_at": .string("2026-01-05T07:00:00Z"),
+                    ])
+                ]),
+                "apple_recovery_context": .object([
+                    "date": .string("2026-01-05"),
+                    "sleep_duration_hours": .number(4.16),
+                    "updated_at": .string("2026-01-05T07:00:00Z"),
+                ]),
+            ]
+        )
+        XCTAssertEqual(
+            RecoveryAssessment.todaysCheckin(data, date: "2026-01-05")?.sleepScore,
+            57
+        )
     }
 }

@@ -2018,10 +2018,11 @@ private struct RecoveryMorningCard: View {
     @State private var expanded = false
     let date: Date
     private var source: String { session.data.settings?.addons["recovery_data_source"]?.stringValue ?? "apple" }
-    private var context: [String: JSONValue]? { session.data.settings?.addons["apple_recovery_context"]?.objectValue }
-    private var isToday: Bool { date.apexDateKey == Date().apexDateKey }
+    private var importedSleepHours: Double? {
+        RecoveryAssessment.sleepDurationHours(session.data, date: date.apexDateKey)
+    }
 
-    /* Today's check-in, whether the watch supplied it or it was typed in. */
+    /* Today's explicit vendor score, if one was recorded. */
     private var checkin: RecoveryAssessment.Checkin? {
         RecoveryAssessment.todaysCheckin(session.data, date: date.apexDateKey)
     }
@@ -2080,7 +2081,8 @@ private struct RecoveryMorningCard: View {
                     Text(collapsedSubtitle)
                         .font(APEXFont.body(9, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
-                        .lineLimit(1)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
 
                 Spacer(minLength: 6)
@@ -2100,9 +2102,20 @@ private struct RecoveryMorningCard: View {
                             .padding(.vertical, 3)
                             .background(statusTint.opacity(0.12), in: Capsule())
                     }
+                } else if let importedSleepHours {
+                    Text(language.format("%.1f h", importedSleepHours))
+                        .font(APEXFont.mono(15, weight: .bold))
+                        .foregroundStyle(APEXColor.cyan)
+                    Text(language.text("Sleep").uppercased(with: language.language.locale))
+                        .font(APEXFont.mono(8))
+                        .tracking(0.9)
+                        .foregroundStyle(APEXColor.cyan)
+                        .padding(.horizontal, 7)
+                        .padding(.vertical, 3)
+                        .background(APEXColor.cyan.opacity(0.12), in: Capsule())
                 } else {
-                    /* No score yet. Say so in one word rather than opening a
-                       form nobody asked for. */
+                    /* No score or measured sleep fact yet. Say so in one word
+                       rather than opening a form nobody asked for. */
                     Text(language.text(health.isAuthorized ? "Waiting" : "Tap to add"))
                         .font(APEXFont.mono(8))
                         .tracking(0.9)
@@ -2117,8 +2130,14 @@ private struct RecoveryMorningCard: View {
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier("morning-check-summary")
-        .accessibilityLabel(headlineScore.map { language.format("Morning check, %d", $0) } ?? language.text("Morning check"))
+        .accessibilityLabel(summaryAccessibilityLabel)
         .accessibilityHint(headlineScore == nil ? "" : language.text(expanded ? "Collapse" : "Edit the score"))
+    }
+
+    private var summaryAccessibilityLabel: String {
+        if let headlineScore { return language.format("Morning check, %d", headlineScore) }
+        if let importedSleepHours { return language.format("Morning check, %.1f hours sleep", importedSleepHours) }
+        return language.text("Morning check")
     }
 
     private func stateLabel(_ state: RecoveryAssessment.State) -> String {
@@ -2131,7 +2150,7 @@ private struct RecoveryMorningCard: View {
     }
 
     private var collapsedSubtitle: String {
-        if let hours = context?["sleep_duration_hours"]?.numberValue, isToday {
+        if let hours = importedSleepHours {
             return String(format: language.text("%@ Health sleep: %.1f h"), source == "other" ? language.text("Your device") : "Apple", hours)
         }
         return language.text(source == "other" ? "Recovery score" : "Apple Health sleep")
@@ -2140,10 +2159,10 @@ private struct RecoveryMorningCard: View {
     private var editor: some View {
         VStack(alignment: .leading, spacing: 9) {
             HStack {
-                scoreField(language.text("Sleep"), text: $sleep)
+                scoreField(language.text(source == "other" ? "Sleep" : "Watch Sleep Score"), text: $sleep)
                 if source == "other" { scoreField("Recovery", text: $recovery) }
             }
-            Text(language.text(source == "other" ? "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." : "Apple Health sleep context imports automatically. Add the 0 to 100 score when your watch does not expose one."))
+            Text(language.text(source == "other" ? "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." : "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX."))
                 .font(APEXFont.body(9)).foregroundStyle(APEXColor.secondaryInk)
             Button(language.text("Save morning check")) { save(); expanded = false }
                 .buttonStyle(.borderedProminent)
@@ -2161,13 +2180,28 @@ private struct RecoveryMorningCard: View {
         recovery = row["recovery_pct"]?.numberValue.map { String(Int($0)) } ?? ""
     }
     private func save() {
-        let sleepValue = min(100, max(0, Double(sleep) ?? 0)); let recoveryValue = min(100, max(0, Double(recovery) ?? sleepValue))
+        guard let sleepValue = scoreValue(sleep) else { return }
+        let recoveryValue = scoreValue(recovery)
+        if source == "other", recoveryValue == nil { return }
         Task { await session.updateSettings { settings in
             var rows = settings.addons["recovery_history"]?.arrayValue ?? []
             rows.removeAll { $0.objectValue?["date"]?.stringValue == date.apexDateKey }
-            rows.append(.object(["date": .string(date.apexDateKey), "source": .string(source), "sleep_score": .number(sleepValue), "sleep_pct": .number(sleepValue), "recovery_pct": .number(recoveryValue), "updated_at": .string(Date().ISO8601Format())]))
+            rows.append(.object([
+                "date": .string(date.apexDateKey),
+                "source": .string(source),
+                "sleep_score": source == "apple" ? .number(sleepValue) : .null,
+                "sleep_pct": source == "other" ? .number(sleepValue) : .null,
+                "recovery_pct": source == "other" ? (recoveryValue.map(JSONValue.number) ?? .null) : .null,
+                "updated_at": .string(Date().ISO8601Format()),
+            ]))
             settings.addons["recovery_history"] = .array(Array(rows.suffix(730)))
         } }
+    }
+
+    private func scoreValue(_ input: String) -> Double? {
+        let trimmed = input.trimmingCharacters(in: .whitespacesAndNewlines)
+        guard !trimmed.isEmpty, let value = Double(trimmed), value.isFinite else { return nil }
+        return min(100, max(0, value.rounded()))
     }
 }
 

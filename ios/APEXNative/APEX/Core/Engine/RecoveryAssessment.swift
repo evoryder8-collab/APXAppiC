@@ -154,33 +154,22 @@ enum RecoveryAssessment {
         .sorted { $0.date < $1.date }
     }
 
-    /*
-     * Apple Health gives hours slept, not a score. Converting is a judgement,
-     * so it is a deliberately plain one: eight hours is the anchor, and the
-     * result is treated as an Apple-style sleep score.
-     */
-    static func checkinFromSleepHours(_ hours: Double, date: String, updatedAt: String) -> Checkin {
-        let score = max(0, min(100, Int((hours / 8 * 100).rounded())))
-        return Checkin(
-            date: date, source: "apple", sleepScore: score,
-            sleepPercent: nil, recoveryPercent: nil, updatedAt: updatedAt
-        )
-    }
-
-    /// The reading for a date, preferring a recorded check-in and falling back
-    /// to whatever the watch imported that morning.
-    static func todaysCheckin(_ data: DashboardData, date: String) -> Checkin? {
-        if let recorded = history(from: data.settings?.addons).last(where: { $0.date == date }) {
-            return recorded
-        }
+    /// HealthKit exposes the measured sleep interval but not the Sleep app's
+    /// composite score. Keep the measured fact available without relabelling
+    /// it as a score derived from duration alone.
+    static func sleepDurationHours(_ data: DashboardData, date: String) -> Double? {
         guard let context = data.settings?.addons["apple_recovery_context"]?.objectValue,
               context["date"]?.stringValue == date,
-              let hours = context["sleep_duration_hours"]?.numberValue
+              let hours = context["sleep_duration_hours"]?.numberValue,
+              hours.isFinite,
+              hours >= 0
         else { return nil }
-        return checkinFromSleepHours(
-            hours,
-            date: date,
-            updatedAt: context["updated_at"]?.stringValue ?? ""
-        )
+        return hours
+    }
+
+    /// Only an explicitly recorded vendor score is a check-in. Measured sleep
+    /// duration remains context and is never promoted into Apple's 0–100 score.
+    static func todaysCheckin(_ data: DashboardData, date: String) -> Checkin? {
+        history(from: data.settings?.addons).last(where: { $0.date == date })
     }
 }

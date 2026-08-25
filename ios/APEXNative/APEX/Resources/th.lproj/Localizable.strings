@@ -3609,6 +3609,9 @@
 "Apple Health context is imported automatically. Choose Other to enter a 0 to 100 recovery score from any watch or app that does not publish one to HealthKit." = "บริบทจาก Apple Health จะถูกนำเข้าอัตโนมัติ เลือก อื่น ๆ เพื่อกรอกคะแนนการฟื้นตัว 0 ถึง 100 จากนาฬิกาหรือแอปใดก็ได้ที่ไม่ส่งค่านี้เข้า HealthKit";
 "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." = "กรอกคะแนน 0 ถึง 100 ที่นาฬิกาหรือแอปของคุณให้มา บริบทจาก Apple Health ยังถูกนำเข้าอัตโนมัติเช่นเดิม";
 "Apple Health sleep context imports automatically. Add the 0 to 100 score when your watch does not expose one." = "บริบทการนอนจาก Apple Health จะนำเข้าอัตโนมัติ เพิ่มคะแนน 0 ถึง 100 เมื่อนาฬิกาของคุณไม่ได้ให้ค่านี้";
+"Watch Sleep Score" = "คะแนนการนอนจากนาฬิกา";
+"HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX." = "HealthKit ให้แอปเข้าถึงระยะเวลาและช่วงการนอนที่วัดได้ แต่ไม่เปิดเผยคะแนนการนอนของ Apple โปรดกรอกคะแนนจากแอปการนอนเพื่อใช้ใน APEX";
+"Morning check, %.1f hours sleep" = "เช็กอินตอนเช้า นอน %.1f ชั่วโมง";
 
 /* Water in food facts */
 "WATER" = "น้ำ";

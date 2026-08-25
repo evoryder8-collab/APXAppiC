@@ -15,10 +15,10 @@ interface Props {
 const copy = {
   en: {
     apple: 'Apple Sleep Score',
-    appleHelp: 'Sleep quality context, not an HRV measurement.',
+    appleHelp: "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app.",
     other: 'Morning check',
     otherHelp: 'Recovery is readiness. Sleep supports the context.',
-    sleepScore: 'Sleep Score',
+    sleepScore: 'Watch Sleep Score',
     sleep: 'Sleep',
     recovery: 'Recovery',
     states: { strong: 'Ready', normal: 'Normal', low: 'Protect load', very_low: 'Recovery first' },
@@ -31,10 +31,10 @@ const copy = {
   },
   ro: {
     apple: 'Scor de somn Apple',
-    appleHelp: 'Context pentru calitatea somnului, nu o măsurătoare HRV.',
+    appleHelp: 'HealthKit oferă aplicațiilor durata măsurată și etapele somnului, dar nu și scorul de somn Apple. Introdu scorul afișat în aplicația Somn.',
     other: 'Verificarea de dimineață',
     otherHelp: 'Recuperarea indică pregătirea. Somnul completează contextul.',
-    sleepScore: 'Scor de somn',
+    sleepScore: 'Scor de somn de pe ceas',
     sleep: 'Somn',
     recovery: 'Recuperare',
     states: { strong: 'Pregătit', normal: 'Normal', low: 'Protejează efortul', very_low: 'Recuperare întâi' },
@@ -47,10 +47,10 @@ const copy = {
   },
   th: {
     apple: 'คะแนนการนอน Apple',
-    appleHelp: 'ใช้เป็นบริบทคุณภาพการนอน ไม่ใช่การวัด HRV',
+    appleHelp: 'HealthKit ให้แอปเข้าถึงระยะเวลาและช่วงการนอนที่วัดได้ แต่ไม่เปิดเผยคะแนนการนอนของ Apple โปรดกรอกคะแนนจากแอปการนอน',
     other: 'เช็กอินตอนเช้า',
     otherHelp: 'Recovery คือความพร้อม ส่วน Sleep เป็นบริบทเสริม',
-    sleepScore: 'คะแนนการนอน',
+    sleepScore: 'คะแนนการนอนจากนาฬิกา',
     sleep: 'การนอน',
     recovery: 'การฟื้นตัว',
     states: { strong: 'พร้อม', normal: 'ปกติ', low: 'ลดภาระ', very_low: 'ฟื้นตัวก่อน' },

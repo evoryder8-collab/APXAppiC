@@ -3609,6 +3609,9 @@
 "Apple Health context is imported automatically. Choose Other to enter a 0 to 100 recovery score from any watch or app that does not publish one to HealthKit." = "Contextul din Apple Health este importat automat. Alege Altul pentru a introduce un scor de recuperare de la 0 la 100 din orice ceas sau aplicație care nu îl publică în HealthKit.";
 "Enter the 0 to 100 score your own watch or app gives you. Apple Health context is still imported automatically." = "Introdu scorul de la 0 la 100 pe care ți-l dă ceasul sau aplicația ta. Contextul din Apple Health este importat în continuare automat.";
 "Apple Health sleep context imports automatically. Add the 0 to 100 score when your watch does not expose one." = "Contextul de somn din Apple Health se importă automat. Adaugă scorul de la 0 la 100 când ceasul tău nu îl oferă.";
+"Watch Sleep Score" = "Scor de somn de pe ceas";
+"HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX." = "HealthKit oferă aplicațiilor durata măsurată și etapele somnului, dar nu și scorul de somn Apple. Introdu scorul afișat în aplicația Somn pentru a-l folosi în APEX.";
+"Morning check, %.1f hours sleep" = "Verificarea de dimineață, %.1f ore de somn";
 
 /* Water in food facts */
 "WATER" = "APĂ";
