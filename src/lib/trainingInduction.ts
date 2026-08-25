@@ -219,6 +219,10 @@ function capHardSets(session: SessionSpec, cap = 2): SessionSpec {
   }
 }
 
+function withoutWorkGroup(exercise: ExerciseSpec): ExerciseSpec {
+  return { ...exercise, workGroupKey: undefined, workGroupPosition: undefined }
+}
+
 function mobilityAndCoreSession(prefix = ''): SessionSpec {
   return {
     name: `${prefix}Mobility & Core`,
@@ -412,7 +416,7 @@ function homeSessions(
   const split: SessionSpec[] = [
     { ...fullBody[0], name: `${venueLabel} Upper A`, type: 'upper', exercises: fullBody[0].exercises.slice(1) },
     { ...fullBody[0], name: `${venueLabel} Lower A`, type: 'legs_a', exercises: [fullBody[0].exercises[0], fullBody[1].exercises[0], fullBody[1].exercises[3], fullBody[0].exercises[3]] },
-    { ...fullBody[2], name: `${venueLabel} Upper B`, type: 'upper', exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], fullBody[1].exercises[1], fullBody[2].exercises[4]] },
+    { ...fullBody[2], name: `${venueLabel} Upper B`, type: 'upper', exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], withoutWorkGroup(fullBody[1].exercises[1]), fullBody[2].exercises[4]] },
     { ...fullBody[1], name: `${venueLabel} Lower B`, type: 'legs_b', exercises: [fullBody[2].exercises[0], fullBody[2].exercises[3], fullBody[1].exercises[0], fullBody[1].exercises[4]] },
   ]
   const capacity: SessionSpec = {

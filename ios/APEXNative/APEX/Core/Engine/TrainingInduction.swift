@@ -629,6 +629,13 @@ enum TrainingInduction {
         )
     }
 
+    private static func withoutWorkGroup(_ exercise: ExerciseSpec) -> ExerciseSpec {
+        var standalone = exercise
+        standalone.workGroupKey = nil
+        standalone.workGroupPosition = nil
+        return standalone
+    }
+
     private static func mobilityAndCoreSession(prefix: String = "") -> SessionSpec {
         SessionSpec(
             name: "\(prefix)Mobility & Core",
@@ -821,7 +828,7 @@ enum TrainingInduction {
             SessionSpec(name: "\(venueLabel) Lower A", type: "legs_a", minutes: fullBody[0].minutes, warmup: warmup,
                         exercises: [fullBody[0].exercises[0], fullBody[1].exercises[0], fullBody[1].exercises[3], fullBody[0].exercises[3]]),
             SessionSpec(name: "\(venueLabel) Upper B", type: "upper", minutes: fullBody[2].minutes, warmup: warmup,
-                        exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], fullBody[1].exercises[1], fullBody[2].exercises[4]]),
+                        exercises: [fullBody[2].exercises[1], fullBody[2].exercises[2], withoutWorkGroup(fullBody[1].exercises[1]), fullBody[2].exercises[4]]),
             SessionSpec(name: "\(venueLabel) Lower B", type: "legs_b", minutes: fullBody[1].minutes, warmup: warmup,
                         exercises: [fullBody[2].exercises[0], fullBody[2].exercises[3], fullBody[1].exercises[0], fullBody[1].exercises[4]]),
         ]

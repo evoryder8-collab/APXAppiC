@@ -1385,6 +1385,28 @@ final class TrainingInductionTests: XCTestCase {
         )
     }
 
+    func testEveryGeneratedWorkGroupPositionIsUniqueForItsDayAndMode() {
+        for venue in ["home", "gym", "outdoors"] {
+            for sessions in 2...7 {
+                let plan = TrainingInduction.generate(userID: user, input: input {
+                    $0.venue = venue
+                    $0.sessionsPerWeek = sessions
+                })
+                let keys = plan.exercises.compactMap { exercise -> String? in
+                    guard let groupID = exercise.workGroupID,
+                          let position = exercise.workGroupPosition
+                    else { return nil }
+                    return "\(exercise.programDayID):\(exercise.isLite):\(groupID):\(position)"
+                }
+                XCTAssertEqual(
+                    Set(keys).count,
+                    keys.count,
+                    "\(venue)/\(sessions) generated duplicate (day, mode, group, position) rows"
+                )
+            }
+        }
+    }
+
     func testTheDefaultPlanIsBoundedToTwelveWeeks() {
         let plan = TrainingInduction.generate(userID: user, input: input())
         XCTAssertEqual(plan.induction["main_start_date"]?.stringValue, "2026-03-30")

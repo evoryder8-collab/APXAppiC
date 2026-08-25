@@ -195,6 +195,28 @@ test('short generated sessions persist one generic work group for each paired mo
   assert.deepEqual(grouped.map((exercise) => exercise.name), ['Dumbbell Floor Press', 'One-Arm Dumbbell Row'])
 })
 
+test('every generated work group position is unique inside its day and full-or-lite mode', () => {
+  for (const venue of ['home', 'gym', 'outdoors'] as const) {
+    for (let sessions = 2; sessions <= 7; sessions += 1) {
+      const generated = generateTrainingPlan(userId, {
+        ...baseInput,
+        venue,
+        sessions_per_week: sessions,
+      })
+      const keys = generated.exercises.flatMap((exercise) => (
+        exercise.work_group_id && exercise.work_group_position
+          ? [`${exercise.program_day_id}:${exercise.is_lite}:${exercise.work_group_id}:${exercise.work_group_position}`]
+          : []
+      ))
+      assert.equal(
+        new Set(keys).size,
+        keys.length,
+        `${venue}/${sessions} generated duplicate (day, mode, group, position) rows`,
+      )
+    }
+  }
+})
+
 test('a generated grouped day advertises the duration its runnable timeline actually uses', () => {
   const seeded = buildSeedData(userId, 'matthew')
   const generated = generateTrainingPlan(userId, baseInput, seeded.programs)
