@@ -25,6 +25,13 @@ export function settingsForUiMode(settings: Settings, uiMode: UiMode): Pick<Sett
   return { addons: { ...settings.addons, uiMode } }
 }
 
+export function planBriefingExit(settings: Settings): { path: '/'; settings: Pick<Settings, 'addons'> } {
+  return {
+    path: '/',
+    settings: settingsForUiMode(settings, 'simple'),
+  }
+}
+
 export function simpleGuidedProgramSlug(
   persona: PersonaSlug | null | undefined,
   mainIsUsable: boolean,

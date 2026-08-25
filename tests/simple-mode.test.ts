@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, parseWaterAmountToLitres, planBriefingExit, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 import { seedSettings } from '../src/data/seed.ts'
 
@@ -16,6 +16,15 @@ test('Simple Mode is the default while an explicit Advanced choice remains respe
   const patch = settingsForUiMode(settings, 'advanced')
   assert.equal(patch.addons.uiMode, 'advanced')
   assert.equal(patch.addons.endurance1, true)
+})
+
+test('opening an installed plan from its briefing persists Simple Mode and targets home', () => {
+  const advanced = { ...settings, addons: { ...settings.addons, uiMode: 'advanced' as const } }
+  const exit = planBriefingExit(advanced)
+
+  assert.equal(exit.path, '/')
+  assert.equal(exit.settings.addons.uiMode, 'simple')
+  assert.equal(exit.settings.addons.endurance1, true)
 })
 
 test('new Simple Mode profiles keep optional secondary cards hidden', () => {

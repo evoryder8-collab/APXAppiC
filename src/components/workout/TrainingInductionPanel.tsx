@@ -1,5 +1,6 @@
 import { useMemo, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
+import { useNavigate } from 'react-router-dom'
 import type { ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingPlanWeeks, TrainingVenue } from '../../lib/types'
 import { useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
@@ -19,6 +20,7 @@ import {
 } from '../../lib/trainingInduction'
 import { ACCENTS } from '../../lib/theme'
 import { buildPlanBriefing, type PlanBriefing } from '../../lib/planBriefing'
+import { planBriefingExit } from '../../lib/simpleMode'
 import { useStore } from '../../store/AppStore'
 import { AccentChip, GhostButton, GlassCard, GradientButton, Sheet } from '../ui'
 
@@ -188,7 +190,7 @@ function Choice({ active, children, onClick, className = '' }: { active: boolean
   )
 }
 
-function PlanBriefingDeck({ briefing, language, onClose }: { briefing: PlanBriefing; language: Language; onClose: () => void }) {
+function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { briefing: PlanBriefing; language: Language; onDismiss: () => void; onOpenPlan: () => void }) {
   const [activeSlide, setActiveSlide] = useState(0)
   const reduceMotion = useReducedMotion()
   const controls = {
@@ -209,7 +211,7 @@ function PlanBriefingDeck({ briefing, language, onClose }: { briefing: PlanBrief
           <h2 className="mt-1 font-display text-2xl font-bold text-ink">{controls.title}</h2>
           <p className="mt-1 text-xs font-semibold text-ink-soft">{controls.hint}</p>
         </div>
-        <button type="button" onClick={onClose} aria-label={controls.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/70 text-lg font-black text-ink-soft shadow-sm">×</button>
+        <button type="button" onClick={onDismiss} aria-label={controls.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/70 text-lg font-black text-ink-soft shadow-sm">×</button>
       </header>
 
       <div
@@ -257,13 +259,14 @@ function PlanBriefingDeck({ briefing, language, onClose }: { briefing: PlanBrief
       <div className="mt-2 flex justify-center gap-2" aria-label={`${activeSlide + 1} / ${briefing.slides.length}`}>
         {briefing.slides.map((slide, index) => <span key={slide.kind} className={`h-1.5 rounded-full transition-all ${index === activeSlide ? 'w-8 bg-violet-600' : 'w-1.5 bg-violet-200'}`} />)}
       </div>
-      <GradientButton accent={ACCENTS.violet} onClick={onClose} className="mt-5 w-full">{controls.done}</GradientButton>
+      <GradientButton accent={ACCENTS.violet} onClick={onOpenPlan} className="mt-5 w-full">{controls.done}</GradientButton>
     </div>
   )
 }
 
 export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
   const { data, bulkUpsert, setSettings, toast } = useStore()
+  const navigate = useNavigate()
   const { language } = useLanguage()
   const lang = language as Language
   const copy = COPY[lang]
@@ -299,6 +302,13 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     ...value,
     pain_areas: value.pain_areas.includes(area) ? value.pain_areas.filter((item) => item !== area) : [...value.pain_areas, area],
   }))
+  const openInstalledPlan = (): void => {
+    if (!data.settings) return
+    const destination = planBriefingExit(data.settings)
+    setBriefingOpen(false)
+    setSettings(destination.settings)
+    navigate(destination.path)
+  }
   const openBuilder = (): void => {
     setDraft(draftFromCurrent())
     setSearch('')
@@ -594,7 +604,14 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
         </div>
       </Sheet>
       <Sheet open={briefingOpen && briefing != null} onClose={() => setBriefingOpen(false)} wide>
-        {briefing && <PlanBriefingDeck briefing={briefing} language={lang} onClose={() => setBriefingOpen(false)} />}
+        {briefing && (
+          <PlanBriefingDeck
+            briefing={briefing}
+            language={lang}
+            onDismiss={() => setBriefingOpen(false)}
+            onOpenPlan={openInstalledPlan}
+          />
+        )}
       </Sheet>
     </div>
   )

@@ -113,9 +113,14 @@ struct TrainingInductionPanel: View {
         }
         .fullScreenCover(isPresented: $showBriefing) {
             if let briefing {
-                PlanBriefingDeck(briefing: briefing) {
-                    showBriefing = false
-                }
+                PlanBriefingDeck(
+                    briefing: briefing,
+                    onDismiss: { showBriefing = false },
+                    onOpenPlan: {
+                        session.setInterfaceMode(.simple)
+                        showBriefing = false
+                    }
+                )
             }
         }
         .alert(
@@ -878,7 +883,8 @@ private struct PlanBriefingDeck: View {
     @State private var firstSlideNudge: CGFloat = 0
 
     let briefing: TrainingInduction.PlanBriefing
-    let onClose: () -> Void
+    let onDismiss: () -> Void
+    let onOpenPlan: () -> Void
 
     var body: some View {
         ZStack {
@@ -925,7 +931,7 @@ private struct PlanBriefingDeck: View {
                 .accessibilityLabel(language.format("Slide %d of %d", page + 1, briefing.slides.count))
                 .padding(.top, 4)
 
-                Button(action: onClose) {
+                Button(action: onOpenPlan) {
                     HStack(spacing: 8) {
                         Text(language.text("Open my plan"))
                         Image(systemName: "arrow.right")
@@ -966,7 +972,7 @@ private struct PlanBriefingDeck: View {
                     .foregroundStyle(APEXColor.secondaryInk)
             }
             Spacer()
-            Button(action: onClose) {
+            Button(action: onDismiss) {
                 Image(systemName: "xmark")
                     .font(.system(size: 14, weight: .bold))
                     .frame(width: 42, height: 42)

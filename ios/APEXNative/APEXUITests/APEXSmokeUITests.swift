@@ -93,20 +93,9 @@ final class APEXSmokeUITests: XCTestCase {
             briefing.waitForExistence(timeout: 8),
             "a successfully installed plan must present its briefing before returning to training"
         )
-        let overviewSlide = allElements["plan-briefing-slide-overview"]
-        XCTAssertTrue(overviewSlide.waitForExistence(timeout: 2))
-        overviewSlide.swipeLeft()
-        XCTAssertTrue(allElements["plan-briefing-slide-safety"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Use a clear stop rule"].waitForExistence(timeout: 2))
-        capture("plan-briefing-safety")
-        let done = app.buttons["Open my plan"]
-        XCTAssertTrue(done.waitForExistence(timeout: 2))
-        done.tap()
-
-        XCTAssertFalse(
-            app.buttons["induction-open"].waitForExistence(timeout: 5),
-            "a complete saved plan must close the return route"
-        )
+        let closeBriefing = app.buttons["Close plan briefing"]
+        XCTAssertTrue(closeBriefing.waitForExistence(timeout: 2))
+        closeBriefing.tap()
         XCTAssertTrue(app.buttons["induction-rebuild"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["induction-briefing-open"].exists)
         let installedState = app.staticTexts["induction-installed-state"]
@@ -118,6 +107,27 @@ final class APEXSmokeUITests: XCTestCase {
             installedState.value as? String,
             "goal=strength;venue=outdoors;sessions=3;planWeeks=26;equipment=weighted_vest;pain=knee;transitionRows=3;mainRows=3"
         )
+
+        app.buttons["induction-briefing-open"].tap()
+        let overviewSlide = allElements["plan-briefing-slide-overview"]
+        XCTAssertTrue(overviewSlide.waitForExistence(timeout: 2))
+        overviewSlide.swipeLeft()
+        XCTAssertTrue(allElements["plan-briefing-slide-safety"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Use a clear stop rule"].waitForExistence(timeout: 2))
+        capture("plan-briefing-safety")
+        let done = app.buttons["Open my plan"]
+        XCTAssertTrue(done.waitForExistence(timeout: 2))
+        done.tap()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 5))
+        XCTAssertTrue(simpleMode.isSelected, "Open my plan must select Simple Mode")
+        XCTAssertFalse(app.buttons["ADVANCED"].isSelected)
+        XCTAssertTrue(
+            app.buttons["simple-training-metric"].waitForExistence(timeout: 3),
+            "Open my plan must land on the daily Simple Mode surface"
+        )
+        XCTAssertFalse(app.buttons["induction-rebuild"].exists)
     }
 
     func testIncompleteGeneratedPlanCannotExposeARunnableDay() {

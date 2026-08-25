@@ -50,7 +50,7 @@ struct PortalModeSwitcher: View {
                 Button {
                     guard session.interfaceMode != mode else { return }
                     UIImpactFeedbackGenerator(style: .soft).impactOccurred()
-                    Task { await session.setInterfaceMode(mode) }
+                    session.setInterfaceMode(mode)
                 } label: {
                     HStack(spacing: 5) {
                         Image(systemName: mode == .simple ? "sparkle" : "slider.horizontal.3")

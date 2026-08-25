@@ -1221,15 +1221,36 @@ final class AppSession {
         await persistUpsert(settings, table: "settings", onConflict: "user_id")
     }
 
-    func setInterfaceMode(_ mode: PortalUIMode) async {
+    func setInterfaceMode(_ mode: PortalUIMode) {
         /* Simple and Advanced swap the *root* of the navigation stack, so
            switching while somewhere pushed -- Nutrition, Training, anywhere --
            changed the screen underneath and left the pushed one on top. From
            the outside the toggle simply did nothing. Returning to the root is
            what the switch is asking for: show me that mode. */
         navigationPath = []
-        await updateSettings { settings in
-            settings.addons["uiMode"] = .string(mode.rawValue)
+        guard var settings = data.settings else { return }
+        let ownerID = profile?.userID ?? settings.userID
+        guard TrainingInduction.belongsToAccount(data, userID: ownerID) else { return }
+        settings = settings.rebound(to: ownerID)
+        settings.addons["uiMode"] = .string(mode.rawValue)
+        /* Root navigation must change in the button action itself. Deferring
+           this mutation to a Task lets a dismissed briefing tear down before
+           the task runs, visibly returning to the old Advanced root. */
+        data.settings = settings
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") { return }
+        #endif
+        let accountToken = accountGeneration.token
+        Task { [weak self] in
+            guard let self,
+                  self.accountGeneration.accepts(accountToken),
+                  self.verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+            await self.persistUpsert(
+                settings,
+                table: "settings",
+                onConflict: "user_id",
+                ownerID: ownerID
+            )
         }
     }
 
