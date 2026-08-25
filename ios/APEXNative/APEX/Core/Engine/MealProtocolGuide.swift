@@ -26,6 +26,45 @@ enum MealProtocolGuide {
         let foods: [String]
     }
 
+    struct Section: Sendable, Hashable {
+        let title: String?
+        let foods: [String]
+    }
+
+    private static let mainMealSections: [Section] = [
+        Section(title: "CARBOHYDRATES", foods: [
+            "Bulgur, cooked",
+            "Couscous, cooked",
+            "Sweet potato, microwaved",
+            "Brown rice, cooked",
+            "Whole-wheat pasta, cooked",
+        ]),
+        Section(title: "PROTEIN SOURCES", foods: [
+            "Greek yoghurt, plain",
+            "Whole egg, hard-boiled",
+            "Tuna, canned in water, drained",
+            "Chicken breast, cooked",
+            "Tofu, firm",
+        ]),
+        Section(title: "FATS", foods: [
+            "Extra virgin olive oil",
+            "Avocado, raw",
+            "Walnuts",
+            "Ground flaxseed",
+            "Natural nut butter",
+        ]),
+    ]
+
+    private static let snackSections: [Section] = [
+        Section(title: "QUICK PICKS", foods: [
+            "Banana",
+            "Berries or apple",
+            "Greek yoghurt, plain",
+            "Protein shake",
+            "Walnuts or almonds",
+        ]),
+    ]
+
     /// Slot order inside a persona's protocol.
     private static let slotIndex: [String: Int] = [
         "breakfast": 0, "lunch": 1, "snack": 2, "dinner": 3,
@@ -149,15 +188,38 @@ enum MealProtocolGuide {
         language: String,
         overrides: [String: JSONValue]?
     ) -> [String] {
+        sections(
+            persona: persona,
+            slot: slot,
+            goal: goal,
+            language: language,
+            overrides: overrides
+        ).flatMap(\.foods)
+    }
+
+    /// Grouped inspiration for a standard account, while bespoke or edited
+    /// protocols stay a single user-owned list. These are examples only; the
+    /// live target and selected package label still decide quantities.
+    static func sections(
+        persona: String,
+        slot: String,
+        goal: String,
+        language: String,
+        overrides: [String: JSONValue]?
+    ) -> [Section] {
         let key = overrideKey(persona: persona, slot: slot, goal: goal, language: language)
         if let saved = overrides?[key]?.arrayValue?.compactMap(\.stringValue), !saved.isEmpty {
-            return saved
+            return [Section(title: nil, foods: saved)]
         }
-        guard let index = slotIndex[slot],
-              let meals = protocols[persona],
-              index < meals.count
-        else { return [] }
-        return meals[index].foods.map { goalAdjusted($0, persona: persona, goal: goal) }
+        if let index = slotIndex[slot],
+           let meals = protocols[persona],
+           index < meals.count {
+            return [Section(
+                title: nil,
+                foods: meals[index].foods.map { goalAdjusted($0, persona: persona, goal: goal) }
+            )]
+        }
+        return slot == "snack" ? snackSections : mainMealSections
     }
 
     /*

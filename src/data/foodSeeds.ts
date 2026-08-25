@@ -103,8 +103,9 @@ interface FoodOptions {
   sugar?: number
   saturatedFat?: number
   salt?: number
-  /** Grams of water per 100 g, measured. Omit and it is estimated. */
+  /** Grams of water per 100 g from a named reference. Omit and it is estimated. */
   water?: number
+  waterSourceId?: string
   confidence?: FoodRecord['confidence']
 }
 
@@ -191,7 +192,7 @@ function food(
     salt_100: options.salt ?? null,
     water_ml_100: referencedWater ?? estimatedWater?.water_ml_100 ?? null,
     water_basis: waterBasis,
-    water_source_id: null,
+    water_source_id: options.waterSourceId ?? null,
     serving_amount: options.servingAmount ?? options.servingGrams ?? null,
     serving_unit: options.servingUnit ?? (options.servingGrams ? 'g' : null),
     serving_grams_or_ml: options.servingAmount ?? options.servingGrams ?? null,
@@ -645,7 +646,7 @@ function protocolFood(
   retailerIndex = 0,
 ): FoodRecord {
   const namespace = retailer ? 30_000_000 + retailerIndex : 20_000_000
-  const id = protocolFoodId(namespace, index)
+  const id = !retailer && spec.id ? spec.id : protocolFoodId(namespace, index)
   const base = food(
     id,
     spec.names.en,
@@ -659,15 +660,19 @@ function protocolFood(
     spec.preparation ?? 'as_sold',
     {
       brand: retailer?.brand,
-      providerId: `apex-protocol:${retailer?.slug ?? 'generic'}:${spec.slug}`,
+      providerId: retailer
+        ? `apex-protocol:${retailer.slug}:${spec.slug}`
+        : spec.providerId ?? `apex-protocol:generic:${spec.slug}`,
       fibre: spec.fibre,
       sugar: spec.sugar,
       saturatedFat: spec.saturatedFat,
       salt: spec.salt,
+      water: spec.water,
+      waterSourceId: spec.waterSourceId,
       nutritionBasis: spec.nutritionBasis,
       servingAmount: spec.servingAmount,
       servingUnit: spec.servingUnit,
-      confidence: 'complete',
+      confidence: spec.confidence ?? 'complete',
     },
   )
   return {

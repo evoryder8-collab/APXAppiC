@@ -1,5 +1,43 @@
 import SwiftUI
 
+struct FoodMemorySearchBar: View {
+    @Binding var query: String
+    let placeholder: String
+    let onSearch: () -> Void
+
+    var body: some View {
+        HStack(spacing: 10) {
+            Image(systemName: "magnifyingglass")
+                .font(.system(size: 17, weight: .semibold))
+                .foregroundStyle(APEXColor.amberDeep)
+            TextField(placeholder, text: $query)
+                .font(APEXFont.body(15, weight: .semibold))
+                .textInputAutocapitalization(.never)
+                .autocorrectionDisabled(false)
+                .submitLabel(.search)
+                .onSubmit(onSearch)
+                .accessibilityIdentifier("food-memory-search")
+            if !query.isEmpty {
+                Button {
+                    query = ""
+                } label: {
+                    Image(systemName: "xmark.circle.fill")
+                        .foregroundStyle(APEXColor.secondaryInk.opacity(0.7))
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel("Clear search")
+            }
+        }
+        .padding(.horizontal, 15)
+        .frame(height: 52)
+        .background(.ultraThinMaterial, in: Capsule())
+        .overlay(Capsule().stroke(.white.opacity(0.95), lineWidth: 1))
+        .shadow(color: .black.opacity(0.08), radius: 18, y: 8)
+        .padding(.horizontal, 18)
+        .padding(.bottom, 12)
+    }
+}
+
 struct FoodSearchSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -91,8 +129,13 @@ struct FoodSearchSheet: View {
             .background(APEXBackground())
             .navigationTitle(language.text("Food Memory"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $query, prompt: "Search foods and brands")
-            .onSubmit(of: .search) { Task { await search() } }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                FoodMemorySearchBar(
+                    query: $query,
+                    placeholder: language.text("Search foods and brands"),
+                    onSearch: { Task { await search() } }
+                )
+            }
             .onChange(of: query) { _, value in
                 if value.isEmpty {
                     remoteResults = []
@@ -102,12 +145,6 @@ struct FoodSearchSheet: View {
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) {
                     Button(language.text("Done")) { dismiss() }
-                }
-                ToolbarItem(placement: .primaryAction) {
-                    Button { Task { await search() } } label: {
-                        Image(systemName: "magnifyingglass")
-                    }
-                    .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).count < 2)
                 }
             }
             .sheet(item: $selectedFood) { food in

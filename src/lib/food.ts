@@ -868,6 +868,11 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
 }
 
 const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-curated:swiss-fsvo-v7.1:1572': [
+    'kebab', 'kebap', 'kebal', 'kebah', 'doner', 'döner', 'doner kebab', 'döner kebab',
+    'shawarma', 'shaorma', 'shoarma', 'dürüm', 'durum', 'kebab im fladenbrot',
+    'kebab in flatbread', 'kebab pita', 'เคบับ',
+  ],
   'apex-protocol:generic:jasmine-rice-white-dry': [
     'jasmine rice', 'jasmine rice dry', 'uncooked jasmine rice', 'thai fragrant rice',
     'jasmin rice', 'jasminreis', 'orez jasmine', 'orez iasomie', 'orez jasmine uscat',

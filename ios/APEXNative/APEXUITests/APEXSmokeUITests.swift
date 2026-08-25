@@ -484,6 +484,8 @@ final class APEXSmokeUITests: XCTestCase {
         let picker = app.buttons["meal-food-picker-open"]
         XCTAssertTrue(scrollUntilVisible(picker, in: app))
         picker.tap()
+        XCTAssertTrue(app.textFields["food-memory-search"].waitForExistence(timeout: 3))
+        XCTAssertFalse(app.navigationBars["Food Memory"].buttons["Search"].exists)
         let food = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "food-row-")
         ).firstMatch

@@ -96,6 +96,7 @@ export function Nutrition() {
   const foodStore = useFoodStore()
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
+  const [pendingManualLevel, setPendingManualLevel] = useState<ActivityLevel | null>(null)
   const requestedSection = searchParams.get('section')
   const requestedDate = searchParams.get('date')
   const returnToSimple = searchParams.get('return') === 'simple'
@@ -1050,9 +1051,12 @@ export function Nutrition() {
                 <button
                   key={key}
                   type="button"
-                  disabled={preciseMode && !usesWholeDayProtocol}
-                  onClick={() => setProfile({ activity_level: key as ActivityLevel })}
-                  className="rounded-full px-3 py-1.5 text-xs font-bold transition-all disabled:cursor-not-allowed disabled:grayscale disabled:opacity-35"
+                  onClick={() => {
+                    const level = key as ActivityLevel
+                    if (preciseMode && !usesWholeDayProtocol) setPendingManualLevel(level)
+                    else setProfile({ activity_level: level })
+                  }}
+                  className="rounded-full px-3 py-1.5 text-xs font-bold transition-all"
                   style={
                     profile.activity_level === key
                       ? { background: amber.gradient, color: '#fff' }
@@ -1068,8 +1072,47 @@ export function Nutrition() {
             <p className="mt-2 text-[11px] font-semibold text-ink-faint">
               {usesWholeDayProtocol
                 ? tx('Activities and Watch values recommend one whole-day mode. They never add the guided workout twice.')
-                : tx('Computed from your day. Clear every activity block to return to Quick Mode.')}
+                : tx('Wearable or detailed activity is driving today’s target. Tap a level to switch to manual activity.')}
             </p>
+          )}
+          {pendingManualLevel && (
+            <div
+              className="fixed inset-0 z-[100] grid place-items-center bg-slate-950/28 px-5 backdrop-blur-sm"
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="manual-activity-title"
+              onClick={() => setPendingManualLevel(null)}
+            >
+              <motion.div
+                initial={{ opacity: 0, scale: 0.96, y: 12 }}
+                animate={{ opacity: 1, scale: 1, y: 0 }}
+                className="w-full max-w-sm rounded-[2rem] border border-white/90 bg-white/94 p-5 shadow-2xl"
+                onClick={(event) => event.stopPropagation()}
+              >
+                <p id="manual-activity-title" className="font-display text-xl font-bold text-ink">{tx('Wearable data is active')}</p>
+                <p className="mt-2 text-sm leading-relaxed font-medium text-ink-soft">
+                  {tx('Switching clears today’s detailed activity blocks and uses the manual level you selected.')}
+                </p>
+                <div className="mt-5 grid grid-cols-2 gap-2">
+                  <button type="button" onClick={() => setPendingManualLevel(null)} className="rounded-2xl bg-slate-100 px-4 py-3 text-sm font-bold text-ink">
+                    {tx('Cancel')}
+                  </button>
+                  <button
+                    type="button"
+                    onClick={() => {
+                      const level = pendingManualLevel
+                      setPendingManualLevel(null)
+                      persistActivityBlocks([])
+                      setProfile({ activity_level: level })
+                    }}
+                    className="rounded-2xl px-4 py-3 text-sm font-bold text-white"
+                    style={{ background: amber.gradient }}
+                  >
+                    {tx('Switch to manual activity')}
+                  </button>
+                </div>
+              </motion.div>
+            </div>
           )}
           <div className="mt-3 rounded-2xl border border-amber-300/15 bg-amber-50/48 p-3.5">
             <p className="mb-2 font-mono text-[10px] font-black tracking-[0.18em] text-amber-800 uppercase">Goal</p>

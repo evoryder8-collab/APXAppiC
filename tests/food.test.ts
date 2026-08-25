@@ -157,6 +157,37 @@ test('Ayran cups are immediately searchable across retailers and primary languag
   )
 })
 
+test('Swiss kebab reference is searchable through regional names and common misspellings', () => {
+  const kebab = COMMON_FOODS.find(
+    (food) => food.provider_product_id === 'apex-curated:swiss-fsvo-v7.1:1572',
+  )!
+
+  assert.ok(kebab, 'the offline catalogue must carry the Swiss generic kebab reference')
+  for (const query of ['kebab', 'kebap', 'kebal', 'kebah', 'doner', 'döner kebab', 'shawarma', 'shaorma']) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'lunch')[0]?.id, kebab.id, query)
+  }
+  assert.deepEqual(
+    {
+      kcal: kebab.kcal_100,
+      protein: kebab.protein_100,
+      carbs: kebab.carbs_100,
+      fat: kebab.fat_100,
+      water: kebab.water_ml_100,
+      waterBasis: kebab.water_basis,
+      waterSource: kebab.water_source_id,
+    },
+    {
+      kcal: 121,
+      protein: 7.6,
+      carbs: 14.6,
+      fat: 3.4,
+      water: 73.6,
+      waterBasis: 'reference',
+      waterSource: 'swiss-fsvo-v7.1:1572',
+    },
+  )
+})
+
 test('food search tolerates potato typos while rejecting unrelated fruit results', () => {
   assert.equal(rankFoods('potstoes', COMMON_FOODS, [], 'lunch')[0]?.name, 'Potato, raw')
   const bananaResults = rankFoods('banana', COMMON_FOODS, [], 'snack')

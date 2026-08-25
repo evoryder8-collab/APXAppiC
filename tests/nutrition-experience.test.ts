@@ -75,6 +75,17 @@ test('meal food picker keeps configure and exact-amount quick add as separate ac
   assert.doesNotMatch(source, />\s*\{translateInterfaceText\(searching \? 'Searching more foods…' : 'Extend search'/)
 })
 
+test('generic meal guidance is structured and activity switching uses plain wearable language', () => {
+  const composer = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
+  const nutrition = readFileSync(new URL('../src/pages/Nutrition.tsx', import.meta.url), 'utf8')
+
+  assert.match(composer, /defaultMealGuideSections/)
+  assert.match(composer, /genericGuideSections/)
+  assert.match(nutrition, /Wearable data is active/)
+  assert.match(nutrition, /Switch to manual activity/)
+  assert.doesNotMatch(nutrition, /return to Quick Mode|Clear every activity block to return to Quick Mode/)
+})
+
 test('meal composer starts with two suggestions and can save a preset from selected foods', () => {
   const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
   assert.match(source, /displayedFoods\.slice\(0, 2\)/)

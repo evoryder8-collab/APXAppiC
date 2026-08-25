@@ -37,6 +37,7 @@ import { computeTargets } from '../../lib/nutrition'
 import { ATHLETE_SUPPORT_PROTOCOLS } from '../../lib/personalProtocol'
 import type { IntroLanguage } from '../../lib/introLanguage'
 import { mealMacroStatus, type MealMacroKind } from '../../lib/mealMacroGuidance'
+import { defaultMealGuideSections } from '../../lib/mealGuide'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -238,8 +239,15 @@ export function MealComposer({
     if (!data.profile) return []
     const protocol = ATHLETE_SUPPORT_PROTOCOLS[data.profile.persona]
     const meal = protocol?.meals[MEAL_PROTOCOL_INDEX[guideSlot]]
-    return meal?.foods.map((line) => goalAdjustedProtocolLine(line, data.profile!.persona, data.profile!.goal)) ?? []
+    if (meal) {
+      return meal.foods.map((line) => goalAdjustedProtocolLine(line, data.profile!.persona, data.profile!.goal))
+    }
+    return defaultMealGuideSections(guideSlot).flatMap((section) => section.items)
   }, [data.profile, guideSlot])
+  const genericGuideSections = data.profile
+    && !ATHLETE_SUPPORT_PROTOCOLS[data.profile.persona]?.meals[MEAL_PROTOCOL_INDEX[guideSlot]]
+    ? defaultMealGuideSections(guideSlot)
+    : []
   const savedProtocolLines = protocolKey ? data.settings?.addons.meal_protocol_overrides?.[protocolKey] : undefined
   const protocolLines = savedProtocolLines ?? defaultProtocolLines.map((line) => translateProtocolLine(line, language))
   const [protocolDraft, setProtocolDraft] = useState<string[]>(protocolLines)
@@ -808,24 +816,47 @@ export function MealComposer({
                     </div>
                     <button type="button" onClick={() => setProtocolEditing((value) => !value)} className="rounded-full bg-white/75 px-3 py-1.5 text-[10px] font-black text-ink">{t(protocolEditing ? 'Done editing' : 'Configure')}</button>
                   </div>
-                  <div className="mt-3 space-y-2">
-                    {(protocolEditing ? protocolDraft : protocolLines).map((line, index) => (
-                      <div key={`${index}:${line}`} className="flex items-center gap-2 rounded-2xl border border-white/90 bg-white/66 px-3 py-2.5">
-                        <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-500/10 font-mono text-[9px] font-black text-amber-800">{index + 1}</span>
-                        {protocolEditing ? (
-                          <>
-                            <input value={line} onChange={(event) => setProtocolDraft((current) => current.map((value, itemIndex) => itemIndex === index ? event.target.value : value))} className="min-w-0 flex-1 bg-transparent text-sm font-bold text-ink outline-none" />
-                            <button type="button" onClick={() => setProtocolDraft((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="grid h-7 w-7 place-items-center rounded-full bg-red-500/8 font-black text-red-600">×</button>
-                          </>
-                        ) : (
-                          <>
-                            <p className="min-w-0 flex-1 text-sm leading-snug font-bold text-ink">{line}</p>
-                            <button type="button" onClick={() => void addProtocolFood(savedProtocolLines ? line : defaultProtocolLines[index] ?? line)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-amber-400/45 bg-white text-xl font-black text-amber-700 active:scale-90" aria-label={`${t('Add')} ${line}`}>+</button>
-                          </>
-                        )}
-                      </div>
-                    ))}
-                  </div>
+                  {!protocolEditing && !savedProtocolLines && genericGuideSections.length > 0 ? (
+                    <div className="mt-3 space-y-4">
+                      {genericGuideSections.map((section) => (
+                        <section key={section.title} className="space-y-2">
+                          <div className="flex items-center gap-2">
+                            <p className="font-mono text-[9px] font-black tracking-[.14em] text-amber-800">{t(section.title)}</p>
+                            <span className="h-px flex-1 bg-amber-500/15" />
+                          </div>
+                          {section.items.map((line, index) => {
+                            const translated = translateProtocolLine(line, language)
+                            return (
+                              <div key={`${section.title}:${line}`} className="flex items-center gap-2 rounded-2xl border border-white/90 bg-white/66 px-3 py-2.5">
+                                <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-500/10 font-mono text-[9px] font-black text-amber-800">{index + 1}</span>
+                                <p className="min-w-0 flex-1 text-sm leading-snug font-bold text-ink">{translated}</p>
+                                <button type="button" onClick={() => void addProtocolFood(line)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-amber-400/45 bg-white text-xl font-black text-amber-700 active:scale-90" aria-label={`${t('Add')} ${translated}`}>+</button>
+                              </div>
+                            )
+                          })}
+                        </section>
+                      ))}
+                    </div>
+                  ) : (
+                    <div className="mt-3 space-y-2">
+                      {(protocolEditing ? protocolDraft : protocolLines).map((line, index) => (
+                        <div key={`${index}:${line}`} className="flex items-center gap-2 rounded-2xl border border-white/90 bg-white/66 px-3 py-2.5">
+                          <span className="grid h-6 w-6 shrink-0 place-items-center rounded-full bg-amber-500/10 font-mono text-[9px] font-black text-amber-800">{index + 1}</span>
+                          {protocolEditing ? (
+                            <>
+                              <input value={line} onChange={(event) => setProtocolDraft((current) => current.map((value, itemIndex) => itemIndex === index ? event.target.value : value))} className="min-w-0 flex-1 bg-transparent text-sm font-bold text-ink outline-none" />
+                              <button type="button" onClick={() => setProtocolDraft((current) => current.filter((_, itemIndex) => itemIndex !== index))} className="grid h-7 w-7 place-items-center rounded-full bg-red-500/8 font-black text-red-600">×</button>
+                            </>
+                          ) : (
+                            <>
+                              <p className="min-w-0 flex-1 text-sm leading-snug font-bold text-ink">{line}</p>
+                              <button type="button" onClick={() => void addProtocolFood(savedProtocolLines ? line : defaultProtocolLines[index] ?? line)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full border border-amber-400/45 bg-white text-xl font-black text-amber-700 active:scale-90" aria-label={`${t('Add')} ${line}`}>+</button>
+                            </>
+                          )}
+                        </div>
+                      ))}
+                    </div>
+                  )}
                   {protocolEditing && (
                     <div className="mt-3 flex gap-2">
                       <button type="button" onClick={() => setProtocolDraft((current) => [...current, ''])} className="rounded-xl bg-white/75 px-3 py-2 text-xs font-black text-ink">+ {t('Item')}</button>

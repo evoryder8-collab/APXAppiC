@@ -130,12 +130,32 @@ final class MealProtocolGuideTests: XCTestCase {
         XCTAssertEqual(query.unit, "g")
     }
 
-    func testAPersonaWithNoProtocolShowsNothingRatherThanGuessing() {
-        XCTAssertTrue(
+    func testAPersonaWithNoProtocolGetsStructuredPracticalExamples() {
+        let sections = MealProtocolGuide.sections(
+            persona: "matthew", slot: "dinner", goal: "recomp",
+            language: "en", overrides: nil
+        )
+        XCTAssertEqual(sections.map(\.title), ["CARBOHYDRATES", "PROTEIN SOURCES", "FATS"])
+        XCTAssertEqual(sections.map { $0.foods.count }, [5, 5, 5])
+        XCTAssertEqual(sections.first?.foods.first, "Bulgur, cooked")
+        XCTAssertEqual(sections.last?.foods.first, "Extra virgin olive oil")
+        XCTAssertEqual(
             MealProtocolGuide.lines(
                 persona: "matthew", slot: "dinner", goal: "recomp",
                 language: "en", overrides: nil
-            ).isEmpty
+            ).count,
+            15
         )
+    }
+
+    func testGenericSnackGuideOffersFiveQuickPicks() {
+        let sections = MealProtocolGuide.sections(
+            persona: "matthew", slot: "snack", goal: "recomp",
+            language: "en", overrides: nil
+        )
+        XCTAssertEqual(sections.count, 1)
+        XCTAssertEqual(sections.first?.title, "QUICK PICKS")
+        XCTAssertEqual(sections.first?.foods.count, 5)
+        XCTAssertEqual(sections.first?.foods.prefix(2), ["Banana", "Berries or apple"])
     }
 }

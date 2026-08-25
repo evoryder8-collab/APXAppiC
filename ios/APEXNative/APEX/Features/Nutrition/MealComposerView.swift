@@ -345,8 +345,8 @@ struct MealComposerView: View {
     private var guidePersona: String { session.data.profile?.persona.rawValue ?? "constantine" }
     private var guideGoal: String { session.data.profile?.goal.rawValue ?? "recomp" }
 
-    private var guideLines: [String] {
-        MealProtocolGuide.lines(
+    private var guideSections: [MealProtocolGuide.Section] {
+        MealProtocolGuide.sections(
             persona: guidePersona,
             slot: draft.mealSlot,
             goal: guideGoal,
@@ -354,6 +354,8 @@ struct MealComposerView: View {
             overrides: session.data.settings?.addons["meal_protocol_overrides"]?.objectValue
         )
     }
+
+    private var guideLines: [String] { guideSections.flatMap(\.foods) }
 
     /*
      * The list a person can eat from, shop from, or rewrite. Tapping a line
@@ -452,28 +454,41 @@ struct MealComposerView: View {
                             .accessibilityIdentifier("meal-guide-save")
                         }
                     } else {
-                        ForEach(Array(guideLines.enumerated()), id: \.offset) { index, line in
-                            HStack(spacing: 10) {
-                                indexBadge(index + 1)
-                                Text(line)
-                                    .font(APEXFont.body(14, weight: .bold))
-                                    .foregroundStyle(APEXColor.ink)
-                                    .fixedSize(horizontal: false, vertical: true)
-                                Spacer(minLength: 6)
-                                Button {
-                                    guideQuery = MealProtocolGuide.Query(line: line)
-                                } label: {
-                                    Image(systemName: "plus")
-                                        .font(.system(size: 13, weight: .bold))
+                        ForEach(Array(guideSections.enumerated()), id: \.offset) { _, section in
+                            if let title = section.title {
+                                HStack(spacing: 8) {
+                                    Text(language.text(title))
+                                        .font(APEXFont.mono(9, weight: .bold))
+                                        .tracking(1.1)
                                         .foregroundStyle(APEXColor.amberDeep)
-                                        .frame(width: 34, height: 34)
-                                        .background(Circle().stroke(APEXColor.amber.opacity(0.55), lineWidth: 1.5))
+                                    Rectangle()
+                                        .fill(APEXColor.amber.opacity(0.16))
+                                        .frame(height: 1)
                                 }
-                                .buttonStyle(.plain)
                             }
-                            .padding(.horizontal, 12)
-                            .padding(.vertical, 11)
-                            .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 16))
+                            ForEach(Array(section.foods.enumerated()), id: \.offset) { index, line in
+                                HStack(spacing: 10) {
+                                    indexBadge(index + 1)
+                                    Text(language.text(line))
+                                        .font(APEXFont.body(14, weight: .bold))
+                                        .foregroundStyle(APEXColor.ink)
+                                        .fixedSize(horizontal: false, vertical: true)
+                                    Spacer(minLength: 6)
+                                    Button {
+                                        guideQuery = MealProtocolGuide.Query(line: line)
+                                    } label: {
+                                        Image(systemName: "plus")
+                                            .font(.system(size: 13, weight: .bold))
+                                            .foregroundStyle(APEXColor.amberDeep)
+                                            .frame(width: 34, height: 34)
+                                            .background(Circle().stroke(APEXColor.amber.opacity(0.55), lineWidth: 1.5))
+                                    }
+                                    .buttonStyle(.plain)
+                                }
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 11)
+                                .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 16))
+                            }
                         }
                     }
                 }
@@ -1262,16 +1277,17 @@ private struct MealFoodPicker: View {
             .background(APEXBackground())
             .navigationTitle(language.text("Food Memory"))
             .navigationBarTitleDisplayMode(.inline)
-            .searchable(text: $query, prompt: "Search foods, aliases or brands")
-            .onSubmit(of: .search) { Task { await search() } }
+            .safeAreaInset(edge: .bottom, spacing: 0) {
+                FoodMemorySearchBar(
+                    query: $query,
+                    placeholder: language.text("Search foods, aliases or brands"),
+                    onSearch: { Task { await search() } }
+                )
+            }
             .onChange(of: query) { _, value in if value.isEmpty { remoteResults = []; message = nil } }
             .onAppear { if query.isEmpty { query = initialQuery } }
             .toolbar {
                 ToolbarItem(placement: .cancellationAction) { Button(language.text("Done")) { dismiss() } }
-                ToolbarItem(placement: .primaryAction) {
-                    Button { Task { await search() } } label: { Image(systemName: "magnifyingglass") }
-                        .disabled(query.trimmingCharacters(in: .whitespacesAndNewlines).count < 2)
-                }
             }
             .fullScreenCover(isPresented: $showScanner) {
                 BarcodeScannerView(date: date) { food, amount, unit in

@@ -10,7 +10,9 @@ export interface CatalogNames {
 }
 
 export interface CatalogFoodSpec {
+  id?: string
   slug: string
+  providerId?: string
   names: CatalogNames
   kcal: number
   protein: number
@@ -21,11 +23,14 @@ export interface CatalogFoodSpec {
   sugar?: number
   saturatedFat?: number
   salt?: number
+  water?: number
+  waterSourceId?: string
   pieceGrams?: number
   nutritionBasis?: NutritionBasis
   servingAmount?: number
   servingUnit?: FoodUnit
   retailerReference?: boolean
+  confidence?: FoodRecord['confidence']
 }
 
 interface MacroProfile {
@@ -884,6 +889,35 @@ const THAI_AND_ASIAN_FOODS: CatalogFoodSpec[] = [
   },
 ]
 
+const SWISS_REFERENCE_FOODS: CatalogFoodSpec[] = [
+  {
+    id: '10000000-0000-4000-8000-000000000085',
+    slug: 'kebab-in-flatbread-swiss-reference',
+    providerId: 'apex-curated:swiss-fsvo-v7.1:1572',
+    names: {
+      en: 'Kebab in flatbread, Swiss reference',
+      de: 'Kebab im Fladenbrot, Schweizer Referenz',
+      fr: 'Kebab dans du pain pita, référence suisse',
+      it: 'Kebab nel pane pita, riferimento svizzero',
+      ro: 'Kebab în lipie, referință elvețiană',
+      th: 'เคบับในขนมปังพิตา สูตรอ้างอิงสวิส',
+    },
+    kcal: 121,
+    protein: 7.6,
+    carbs: 14.6,
+    fat: 3.4,
+    fibre: 1.1,
+    sugar: 2.2,
+    saturatedFat: 0.6,
+    salt: 0.6,
+    water: 73.6,
+    waterSourceId: 'swiss-fsvo-v7.1:1572',
+    preparation: 'prepared',
+    retailerReference: false,
+    confidence: 'complete',
+  },
+]
+
 export const EXPANDED_FOOD_SPECS: CatalogFoodSpec[] = [
   ...FISH_FOODS,
   ...MEAT_FOODS,
@@ -892,4 +926,5 @@ export const EXPANDED_FOOD_SPECS: CatalogFoodSpec[] = [
   ...OIL_FOODS,
   ...FAT_AND_BUTTER_FOODS,
   ...THAI_AND_ASIAN_FOODS,
+  ...SWISS_REFERENCE_FOODS,
 ]

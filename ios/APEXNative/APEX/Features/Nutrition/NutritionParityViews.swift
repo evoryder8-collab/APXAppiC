@@ -406,7 +406,7 @@ struct NutritionTargetSheet: View {
                                 }
                             }
                             if !logs.isEmpty {
-                                Label(language.text("Computed from your day. Tap a level to switch back to Quick Mode."), systemImage: "sparkles")
+                                Label(language.text("Wearable or detailed activity is active. Tap a level to use manual activity."), systemImage: "applewatch")
                                     .font(APEXFont.body(9, weight: .semibold))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
@@ -423,14 +423,14 @@ struct NutritionTargetSheet: View {
                     }
             }
             .confirmationDialog(
-                language.text("Switch to Quick Mode?"),
+                language.text("Wearable data is active"),
                 isPresented: Binding(
                     get: { pendingQuickLevel != nil },
                     set: { if !$0 { pendingQuickLevel = nil } }
                 ),
                 titleVisibility: .visible
             ) {
-                Button(language.text("Clear precise activities and switch"), role: .destructive) {
+                Button(language.text("Switch to manual activity"), role: .destructive) {
                     guard let level = pendingQuickLevel else { return }
                     pendingQuickLevel = nil
                     Task {
@@ -440,7 +440,7 @@ struct NutritionTargetSheet: View {
                 }
                 Button(language.text("Cancel"), role: .cancel) { pendingQuickLevel = nil }
             } message: {
-                Text(language.text("This removes today's precise activity blocks so the selected activity level becomes active."))
+                Text(language.text("This clears today's detailed activity blocks and uses the manual level you selected."))
             }
     }
 
