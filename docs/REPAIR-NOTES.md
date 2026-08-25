@@ -816,3 +816,35 @@ GitHub publication evidence:
   - iPhone build succeeded; deep strict code-sign verification passed; installed and launched as `ch.apexperformance.APEX`
   - embedded `APEX Water.app` and `APEXWatchWidgets.appex` strict signatures passed
   - installed and launched directly on connected physical Apple Watch Ultra 3 as `ch.apexperformance.APEX.watchkitapp`
+
+## 2026-08-25 — Honest morning health facts and one calendar path
+
+- Scope: completed the pre-1.8 Morning Check repair without deriving or claiming access to Apple's proprietary Sleep Score. HealthKit continues to provide measured sleep duration/stages; APEX now accepts the score explicitly when the user wants it, and a morning weigh-in can be saved independently without creating a fake score. The lower duplicate Nutrition calendar button was removed; the persistent top date navigator remains.
+- Apple API verification: the iOS 27 HealthKit SDK contains no Sleep Score symbol, and Apple DTS states that there is no API for third-party access to the score (`https://developer.apple.com/forums/thread/800403`). Apple's own description documents the 0–100 display and its duration/consistency/interruption components but does not expose a HealthKit score type (`https://support.apple.com/en-euro/guide/watch/apded441a669/26/watchos/26`).
+- Files changed:
+  - `ios/APEXNative/APEX/App/AppSession.swift`
+  - `ios/APEXNative/APEX/Features/Nutrition/NutritionView.swift`
+  - `ios/APEXNative/APEX/Features/Portal/PortalUIMode.swift`
+  - `ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift`
+  - `ios/APEXNative/APEXTests/SimpleHomeLogicTests.swift`
+  - `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+- Implementation commit: `2b0f8391714b9f9224efddd4bcbb83474db51dde` (`fix: make morning health facts honest`).
+- Tests added:
+  - `testMorningCheckAcceptsWeightWithoutFabricatingAnAppleSleepScore`
+  - `testMorningWeightPreservesExistingDailyNutritionFacts`
+  - `testMorningCheckAcceptsWeightWithoutForcingASleepScore`
+- Red proof: the focused test build failed with four `Cannot find 'MorningCheckLogic' in scope` errors before implementation.
+- Test output after implementation:
+  - focused native logic: 8 tests, 0 failures;
+  - full native unit suite: 467 tests, 0 failures;
+  - driven XCUITest flow: 1 test, 0 failures in 18.310 seconds, including keyboard dismissal and weight-only save;
+  - full web suite: 545 tests, 545 passed, 0 failed in 4.889 seconds;
+  - production web build: TypeScript clean, 1,171 modules transformed;
+  - `git diff --check`: clean.
+- Physical delivery from the exact implementation SHA:
+  - device build: `** BUILD SUCCEEDED **`;
+  - strict signatures valid for `ch.apexperformance.APEX`, `ch.apexperformance.APEX.watchkitapp`, and `ch.apexperformance.APEX.watchkitapp.widgets`, Team ID `UG979XDY72`;
+  - iPhone 15 Pro Max: app installed and launched from `2b0f8391714b9f9224efddd4bcbb83474db51dde`;
+  - physical Apple Watch Ultra 3: Watch app installed directly and launched from the same build.
+- GitHub: the implementation SHA was atomically pushed to `main`, `codex/main-critical-repair`, and `codex/main-integration-20260824`.
+- GitHub Pages: run `32898667184` succeeded (build 23 seconds, deploy 35 seconds); `https://evoryder8-collab.github.io/APXAppiC/?morning-health=2b0f8391714b9f9224efddd4bcbb83474db51dde` returned HTTP 200.
