@@ -2,6 +2,7 @@ import SwiftUI
 
 struct WatchHydrationView: View {
     @EnvironmentObject private var hydration: WatchHydrationStore
+    @EnvironmentObject private var workout: WatchWorkoutSessionController
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @Environment(\.isLuminanceReduced) private var isLuminanceReduced
     @Environment(\.scenePhase) private var scenePhase
@@ -47,11 +48,14 @@ struct WatchHydrationView: View {
                 VStack(spacing: 4) {
                     hydrationCard
 
-                    HStack(spacing: 6) {
-                        quickAdd(250, name: "Glass")
-                        quickAdd(300, name: "Cup")
-                        quickAdd(500, name: "Bottle")
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 6) {
+                            ForEach(quickPresets) { preset in
+                                quickAdd(preset)
+                            }
+                        }
                     }
+                    .scrollIndicators(.hidden)
 
                     HStack(spacing: 6) {
                         utilityButton("Custom", systemImage: "slider.horizontal.3") {
@@ -60,6 +64,19 @@ struct WatchHydrationView: View {
                         utilityButton("History", systemImage: "clock.arrow.circlepath") {
                             showsHistory = true
                         }
+                    }
+
+                    if workout.isActive {
+                        Button {
+                            Task { await workout.stop() }
+                        } label: {
+                            Label("\(workout.activityName) active · End", systemImage: "figure.strengthtraining.traditional")
+                                .font(.system(size: 10, weight: .bold, design: .rounded))
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(.bordered)
+                        .tint(violet)
+                        .accessibilityHint("Ends the APEX workout sensor session")
                     }
 
                     if !hydration.isAuthorized {
@@ -136,6 +153,7 @@ struct WatchHydrationView: View {
             HStack(spacing: 8) {
                 HydrationSilhouetteGauge(
                     fillState: fillState,
+                    composition: hydration.composition,
                     aqua: aqua,
                     violet: violet,
                     animationIsEnabled: animationIsEnabled,
@@ -155,6 +173,7 @@ struct WatchHydrationView: View {
 
                     HydrationProgressGleam(
                         progress: fillState.progress,
+                        composition: hydration.composition,
                         phase: phase,
                         animationIsEnabled: animationIsEnabled,
                         aqua: aqua,
@@ -203,37 +222,52 @@ struct WatchHydrationView: View {
         }
     }
 
-    private func quickAdd(_ milliliters: Int, name: String) -> some View {
-        Button {
-            Task { await hydration.add(milliliters: Double(milliliters)) }
+    private var quickPresets: [WatchQuickPreset] {
+        if !hydration.presets.isEmpty {
+            return hydration.presets.map(WatchQuickPreset.init)
+        }
+        return HydrationLedger.defaultPresetTemplates.map(WatchQuickPreset.init)
+    }
+
+    private func quickAdd(_ preset: WatchQuickPreset) -> some View {
+        let tint = HydrationPalette.color(for: preset.paletteToken)
+        return Button {
+            Task {
+                await hydration.add(
+                    milliliters: Double(preset.amountML),
+                    kind: preset.kind,
+                    paletteToken: preset.paletteToken,
+                    iconToken: preset.iconToken
+                )
+            }
         } label: {
             VStack(spacing: 1) {
-                Image(systemName: "drop.fill")
+                Image(systemName: preset.iconToken)
                     .font(.footnote)
                     .bold()
-                    .foregroundStyle(aqua)
-                Text(hydration.preferences.showsPresetNames ? name : "+\(milliliters)")
+                    .foregroundStyle(tint)
+                Text(hydration.preferences.showsPresetNames ? preset.name : "+\(preset.amountML)")
                     .font(.system(size: 15, weight: .bold, design: .rounded))
                     .bold()
                     .fontDesign(.rounded)
                     .foregroundStyle(.white)
                     .minimumScaleFactor(0.75)
                     .lineLimit(1)
-                Text(hydration.preferences.showsPresetNames ? "+\(milliliters) mL" : "mL")
+                Text(hydration.preferences.showsPresetNames ? "+\(preset.amountML) mL" : "mL")
                     .font(.system(size: 10, weight: .medium, design: .rounded))
                     .foregroundStyle(.secondary)
             }
-            .frame(maxWidth: .infinity)
+            .frame(width: 68)
             .frame(minHeight: 44)
             .background(.white.opacity(0.085), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
             .overlay {
                 RoundedRectangle(cornerRadius: 14, style: .continuous)
-                    .stroke(aqua.opacity(0.18), lineWidth: 0.7)
+                    .stroke(tint.opacity(0.32), lineWidth: 0.7)
             }
         }
         .buttonStyle(.plain)
         .disabled(hydration.isSaving)
-        .accessibilityLabel("Add \(milliliters) milliliters of water")
+        .accessibilityLabel("Add \(preset.amountML) milliliters of \(preset.name)")
     }
 
     private func showHydrationSettings() {
@@ -264,8 +298,65 @@ struct WatchHydrationView: View {
     }
 }
 
+private struct WatchQuickPreset: Identifiable {
+    let id: UUID
+    let name: String
+    let amountML: Int
+    let kind: HydrationKind
+    let paletteToken: String
+    let iconToken: String
+
+    init(_ preset: HydrationPreset) {
+        id = preset.id
+        name = preset.name
+        amountML = preset.amountML
+        kind = preset.kind
+        paletteToken = preset.paletteToken
+        iconToken = preset.iconToken
+    }
+
+    init(_ preset: HydrationPresetTemplate) {
+        id = preset.id
+        name = preset.name
+        amountML = preset.amountML
+        kind = preset.kind
+        paletteToken = preset.paletteToken
+        iconToken = preset.iconToken
+    }
+}
+
+private enum HydrationPalette {
+    static func color(for token: String) -> Color {
+        switch token {
+        case "espresso": Color(red: 0.55, green: 0.29, blue: 0.13)
+        case "tea": Color(red: 0.24, green: 0.75, blue: 0.39)
+        case "citrus": Color(red: 1.00, green: 0.54, blue: 0.08)
+        case "cocoa": Color(red: 0.66, green: 0.39, blue: 0.24)
+        case "violet": Color(red: 0.55, green: 0.34, blue: 0.98)
+        case "food": Color(red: 0.20, green: 0.78, blue: 0.66)
+        case "external": Color(red: 0.94, green: 0.32, blue: 0.62)
+        case "legacy": Color(red: 0.32, green: 0.52, blue: 0.72)
+        case "blue": Color(red: 0.11, green: 0.39, blue: 0.98)
+        default: Color(red: 0.08, green: 0.80, blue: 0.92)
+        }
+    }
+
+    static func colors(
+        for bands: [HydrationCompositionBand],
+        fallback: [Color]
+    ) -> [Color] {
+        let populated = bands.filter { $0.milliliters > 0 }
+        guard !populated.isEmpty else { return fallback }
+        return populated.flatMap { band in
+            let color = color(for: band.paletteToken)
+            return [color.opacity(0.9), color]
+        }
+    }
+}
+
 private struct HydrationProgressGleam: View {
     let progress: Double
+    let composition: [HydrationCompositionBand]
     let phase: Double
     let animationIsEnabled: Bool
     let aqua: Color
@@ -284,7 +375,7 @@ private struct HydrationProgressGleam: View {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            colors: [violet, aqua],
+                            colors: HydrationPalette.colors(for: composition, fallback: [violet, aqua]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
@@ -553,6 +644,7 @@ private struct HydrationHistoryRow: View {
 
 private struct HydrationSilhouetteGauge: View {
     let fillState: WatchHydrationFillState
+    let composition: [HydrationCompositionBand]
     let aqua: Color
     let violet: Color
     let animationIsEnabled: Bool
@@ -586,7 +678,10 @@ private struct HydrationSilhouetteGauge: View {
             HydrationWaveShape(progress: fillState.progress, phase: phase)
                 .fill(
                     LinearGradient(
-                        colors: [Color.white.opacity(0.9), aqua, Color(red: 0.11, green: 0.39, blue: 0.98), violet],
+                        colors: HydrationPalette.colors(
+                            for: composition,
+                            fallback: [Color.white.opacity(0.9), aqua, Color(red: 0.11, green: 0.39, blue: 0.98), violet]
+                        ),
                         startPoint: .topLeading,
                         endPoint: .bottomTrailing
                     )

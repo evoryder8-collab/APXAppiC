@@ -7,6 +7,7 @@ import WebKit
 struct HydrationFigureWebView: UIViewRepresentable {
     let progress: Double
     let sex: String
+    let paletteHex: [String]
 
     func makeCoordinator() -> Coordinator { Coordinator() }
 
@@ -30,6 +31,7 @@ struct HydrationFigureWebView: UIViewRepresentable {
             loadAsset(in: view, coordinator: context.coordinator)
         }
         context.coordinator.pendingProgress = normalizedProgress
+        context.coordinator.pendingPaletteHex = paletteHex
         if context.coordinator.loaded {
             updateLevel(in: view)
         }
@@ -42,12 +44,15 @@ struct HydrationFigureWebView: UIViewRepresentable {
         coordinator.assetName = assetName
         coordinator.loaded = false
         coordinator.pendingProgress = normalizedProgress
+        coordinator.pendingPaletteHex = paletteHex
         guard let url = Bundle.main.url(forResource: assetName, withExtension: "html") else { return }
         view.loadFileURL(url, allowingReadAccessTo: url.deletingLastPathComponent())
     }
 
     private func updateLevel(in view: WKWebView) {
-        view.evaluateJavaScript("window.setHydrationLevel(\(normalizedProgress))")
+        let colors = (try? JSONSerialization.data(withJSONObject: paletteHex))
+            .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+        view.evaluateJavaScript("window.setHydrationState(\(normalizedProgress),\(colors))")
     }
 
     final class Coordinator: NSObject, WKNavigationDelegate {
@@ -55,10 +60,15 @@ struct HydrationFigureWebView: UIViewRepresentable {
         var assetName = ""
         var loaded = false
         var pendingProgress = 0.0
+        var pendingPaletteHex: [String] = []
 
         func webView(_ webView: WKWebView, didFinish navigation: WKNavigation?) {
             loaded = true
-            webView.evaluateJavaScript("window.setHydrationLevel(\(max(0, min(1, pendingProgress))))")
+            let colors = (try? JSONSerialization.data(withJSONObject: pendingPaletteHex))
+                .flatMap { String(data: $0, encoding: .utf8) } ?? "[]"
+            webView.evaluateJavaScript(
+                "window.setHydrationState(\(max(0, min(1, pendingProgress))),\(colors))"
+            )
         }
     }
 }

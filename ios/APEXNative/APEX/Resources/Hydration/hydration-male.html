@@ -36,5 +36,17 @@ window.setHydrationLevel=function(raw){
   const top=712-(progress*712);
   document.getElementById('water').setAttribute('transform','translate(0 '+top.toFixed(1)+')');
 };
-window.setHydrationLevel(0);
+window.setHydrationState=function(raw,colors){
+  window.setHydrationLevel(raw);
+  if(!Array.isArray(colors)||colors.length===0)return;
+  const gradient=document.getElementById('waterGradient');
+  gradient.replaceChildren();
+  colors.forEach((color,index)=>{
+    const stop=document.createElementNS('http://www.w3.org/2000/svg','stop');
+    stop.setAttribute('offset',colors.length===1?'0':String(index/(colors.length-1)));
+    stop.setAttribute('stop-color',String(color));
+    gradient.appendChild(stop);
+  });
+};
+window.setHydrationState(0,[]);
 </script></body></html>

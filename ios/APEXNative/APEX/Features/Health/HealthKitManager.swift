@@ -9,12 +9,25 @@ struct HealthSnapshot: Sendable {
     let restingHeartRate: Double?
     let dietaryWaterL: Double?
     let importableDietaryWaterL: Double?
+    let hydrationSamples: [HealthHydrationSample]
+    let deletedHydrationSampleIDs: Set<UUID>
     let steps: Double?
     let activeEnergyKcal: Double?
     let exerciseMinutes: Double?
     let sleepDurationHours: Double?
     let heartRateVariabilityMS: Double?
     let workouts: [HealthWorkoutSnapshot]
+}
+
+struct HealthHydrationSample: Sendable {
+    let id: UUID
+    let liters: Double
+    let occurredAt: Date
+    let source: HydrationReconciliation.Source
+    let kind: HydrationKind
+    let paletteToken: String
+    let iconToken: String
+    let ownerID: UUID?
 }
 
 enum HealthWaterWriteState: Equatable, Sendable {
@@ -53,6 +66,20 @@ struct HealthWorkoutSnapshot: Hashable, Sendable {
 struct HealthWaterTotals: Sendable {
     let total: Double?
     let importableDrink: Double?
+    let samples: [HealthHydrationSample]
+    let deletedSampleIDs: Set<UUID>
+
+    init(
+        total: Double?,
+        importableDrink: Double?,
+        samples: [HealthHydrationSample] = [],
+        deletedSampleIDs: Set<UUID> = []
+    ) {
+        self.total = total
+        self.importableDrink = importableDrink
+        self.samples = samples
+        self.deletedSampleIDs = deletedSampleIDs
+    }
 
     static let unavailable = HealthWaterTotals(total: nil, importableDrink: nil)
 }
@@ -125,6 +152,8 @@ struct HealthTodayReadings: Sendable {
             restingHeartRate: restingHeartRate.resolved(or: nil),
             dietaryWaterL: water.total,
             importableDietaryWaterL: water.importableDrink,
+            hydrationSamples: water.samples,
+            deletedHydrationSampleIDs: water.deletedSampleIDs,
             steps: steps.resolved(or: nil),
             activeEnergyKcal: activeEnergyKcal.resolved(or: nil),
             exerciseMinutes: exerciseMinutes.resolved(or: nil),
@@ -215,6 +244,7 @@ final class HealthKitManager {
     let store = HKHealthStore()
     private var observerQueries: [HKObserverQuery] = []
     private var importHandler: (@MainActor @Sendable (HealthSnapshot) async -> Void)?
+    private static let dietaryWaterAnchorKey = "apex.hk.dietary-water.anchor.v1"
 
     private init() {}
 
@@ -332,22 +362,36 @@ final class HealthKitManager {
         }
     }
 
-    func saveWater(liters: Double, date: Date = .now) async throws {
-        guard liters.isFinite, liters > 0 else { return }
+    @discardableResult
+    func saveWater(
+        liters: Double,
+        date: Date = .now,
+        eventID: UUID = UUID(),
+        ownerID: UUID,
+        kind: HydrationKind = .water,
+        paletteToken: String = "aqua",
+        iconToken: String = "drop.fill"
+    ) async throws -> UUID {
+        guard liters.isFinite, liters > 0 else { return eventID }
         let type = try await authorizedWaterType()
-        let identifier = UUID()
         let sample = HKQuantitySample(
             type: type,
             quantity: HKQuantity(unit: .liter(), doubleValue: liters),
             start: date,
             end: date,
             metadata: [
-                HKMetadataKeyExternalUUID: identifier.uuidString,
-                HKMetadataKeySyncIdentifier: "apex.hydration.phone.\(identifier.uuidString.lowercased())",
+                HKMetadataKeyExternalUUID: eventID.uuidString,
+                HKMetadataKeySyncIdentifier: "apex.hydration.event.\(eventID.uuidString.lowercased())",
                 HKMetadataKeySyncVersion: 1,
+                HydrationReconciliation.eventIDMetadataKey: eventID.uuidString.lowercased(),
+                HydrationMetadata.ownerID: ownerID.uuidString.lowercased(),
+                HydrationReconciliation.foodMetadataKey: kind.rawValue,
+                HydrationReconciliation.paletteMetadataKey: paletteToken,
+                HydrationReconciliation.iconMetadataKey: iconToken,
             ]
         )
         try await store.save(sample)
+        return sample.uuid
     }
 
     /// Mirrors the day's food-derived water as one replaceable HealthKit fact.
@@ -375,7 +419,7 @@ final class HealthKitManager {
             Int(Date().timeIntervalSince1970)
         )
         if normalized <= 0.000_5 {
-            let authored = try await foodSamples(
+            let authored = try await waterSamples(
                 type: type,
                 syncIdentifier: syncIdentifier,
                 date: date
@@ -395,12 +439,24 @@ final class HealthKitManager {
                     HKMetadataKeySyncVersion: nextVersion,
                     HKMetadataKeyFoodType: "Food-derived water",
                     HydrationReconciliation.foodMetadataKey: HydrationReconciliation.foodMetadataValue,
+                    HydrationMetadata.ownerID: accountID.uuidString.lowercased(),
                 ]
             )
             try await store.save(sample)
         }
         defaults.set(nextVersion, forKey: versionKey)
         defaults.set(normalized, forKey: amountKey)
+    }
+
+    func deleteWater(eventID: UUID, date: Date) async throws {
+        let type = try await authorizedWaterType()
+        let syncIdentifier = "apex.hydration.event.\(eventID.uuidString.lowercased())"
+        let authored = try await waterSamples(
+            type: type,
+            syncIdentifier: syncIdentifier,
+            date: date
+        )
+        if !authored.isEmpty { try await store.delete(authored) }
     }
 
     func reconnectWaterAccess() async {
@@ -421,6 +477,41 @@ final class HealthKitManager {
             refreshWaterWriteState()
             message = error.localizedDescription
         }
+    }
+
+    func startWatchWorkout(_ kind: WatchWorkoutKind) async -> Bool {
+        guard isAvailable else {
+            message = "Apple Watch workout handoff is unavailable."
+            return false
+        }
+        let configuration = HKWorkoutConfiguration()
+        switch kind {
+        case .traditionalStrength:
+            configuration.activityType = .traditionalStrengthTraining
+            configuration.locationType = .indoor
+        case .yoga:
+            configuration.activityType = .yoga
+            configuration.locationType = .indoor
+        case .hiit:
+            configuration.activityType = .highIntensityIntervalTraining
+            configuration.locationType = .indoor
+        case .running:
+            configuration.activityType = .running
+            configuration.locationType = .outdoor
+        case .cycling:
+            configuration.activityType = .cycling
+            configuration.locationType = .outdoor
+        case .walking:
+            configuration.activityType = .walking
+            configuration.locationType = .outdoor
+        }
+        let result: (started: Bool, error: String?) = await withCheckedContinuation { continuation in
+            store.startWatchApp(with: configuration) { started, error in
+                continuation.resume(returning: (started, error?.localizedDescription))
+            }
+        }
+        if let error = result.error { message = error }
+        return result.started
     }
 
     private var readTypes: [HKObjectType] {
@@ -478,6 +569,7 @@ final class HealthKitManager {
             end: end,
             options: [.strictStartDate]
         )
+        async let deletedSampleIDs = dietaryWaterDeletionIDs(type: type)
         let samples: [HKQuantitySample] = try await withCheckedThrowingContinuation { continuation in
             let query = HKSampleQuery(
                 sampleType: type,
@@ -490,20 +582,31 @@ final class HealthKitManager {
             }
             store.execute(query)
         }
-        guard !samples.isEmpty else { return HealthWaterTotals(total: 0, importableDrink: 0) }
+        let deleted = try await deletedSampleIDs
+        guard !samples.isEmpty else {
+            return HealthWaterTotals(
+                total: 0,
+                importableDrink: 0,
+                deletedSampleIDs: deleted
+            )
+        }
 
         var classified: [HydrationReconciliation.Sample] = []
+        var detailed: [HealthHydrationSample] = []
         var total = 0.0
         for sample in samples {
             let liters = sample.quantity.doubleValue(for: .liter())
             guard liters.isFinite, liters > 0 else { continue }
             total += liters
             let bundle = sample.sourceRevision.source.bundleIdentifier
+            let syncIdentifier = sample.metadata?[HKMetadataKeySyncIdentifier] as? String
             let isFood = sample.metadata?[HydrationReconciliation.foodMetadataKey] as? String
                 == HydrationReconciliation.foodMetadataValue
             let source: HydrationReconciliation.Source
             if isFood {
                 source = .apexFood
+            } else if syncIdentifier?.hasPrefix("apex.hydration.watch.") == true {
+                source = .apexWatch
             } else if bundle == HydrationReconciliation.phoneBundleIdentifier {
                 source = .apexPhone
             } else if bundle == HydrationReconciliation.watchBundleIdentifier {
@@ -512,11 +615,63 @@ final class HealthKitManager {
                 source = .external
             }
             classified.append(.init(liters: liters, source: source))
+            let rawKind = sample.metadata?[HydrationReconciliation.foodMetadataKey] as? String
+            let kind = rawKind.flatMap(HydrationKind.init(rawValue:))
+                ?? (source == .external ? .external : .water)
+            detailed.append(HealthHydrationSample(
+                id: sample.uuid,
+                liters: liters,
+                occurredAt: sample.startDate,
+                source: source,
+                kind: kind,
+                paletteToken: sample.metadata?[HydrationReconciliation.paletteMetadataKey] as? String
+                    ?? (source == .external ? "external" : "aqua"),
+                iconToken: sample.metadata?[HydrationReconciliation.iconMetadataKey] as? String
+                    ?? (source == .external ? "heart.fill" : "drop.fill"),
+                ownerID: (sample.metadata?[HydrationMetadata.ownerID] as? String)
+                    .flatMap(UUID.init(uuidString:))
+            ))
         }
         return HealthWaterTotals(
             total: total,
-            importableDrink: HydrationReconciliation.importableDrinkLiters(classified)
+            importableDrink: HydrationReconciliation.importableDrinkLiters(classified),
+            samples: detailed,
+            deletedSampleIDs: deleted
         )
+    }
+
+    private func dietaryWaterDeletionIDs(type: HKQuantityType) async throws -> Set<UUID> {
+        let defaults = UserDefaults.standard
+        let previousAnchor: HKQueryAnchor? = defaults.data(forKey: Self.dietaryWaterAnchorKey)
+            .flatMap { try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: $0) }
+        let result: (ids: Set<UUID>, anchorData: Data?) = try await withCheckedThrowingContinuation { continuation in
+            let query = HKAnchoredObjectQuery(
+                type: type,
+                predicate: nil,
+                anchor: previousAnchor,
+                limit: HKObjectQueryNoLimit
+            ) { _, _, deletedObjects, newAnchor, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let anchorData = newAnchor.flatMap {
+                    try? NSKeyedArchiver.archivedData(
+                        withRootObject: $0,
+                        requiringSecureCoding: true
+                    )
+                }
+                continuation.resume(returning: (
+                    Set((deletedObjects ?? []).map(\.uuid)),
+                    anchorData
+                ))
+            }
+            store.execute(query)
+        }
+        if let anchorData = result.anchorData {
+            defaults.set(anchorData, forKey: Self.dietaryWaterAnchorKey)
+        }
+        return result.ids
     }
 
     private func authorizedWaterType() async throws -> HKQuantityType {
@@ -553,7 +708,7 @@ final class HealthKitManager {
         }
     }
 
-    private func foodSamples(
+    private func waterSamples(
         type: HKQuantityType,
         syncIdentifier: String,
         date: Date

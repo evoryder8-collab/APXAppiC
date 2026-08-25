@@ -1603,6 +1603,10 @@ struct DashboardData: Codable, Sendable {
     var activityTypes: [ActivityType] = []
     var activityLogs: [ActivityLog] = []
     var dailyLogs: [DailyLog] = []
+    // Optional fields keep pre-ledger offline snapshots decodable.
+    var hydrationEvents: [HydrationEvent]? = []
+    var hydrationPresets: [HydrationPreset]? = []
+    var hydrationPreferences: HydrationAccountPreferences? = nil
     var events: [EventRecord] = []
     var foods: [Food] = []
     var foodPreferences: [FoodPreference] = []
@@ -1624,18 +1628,4 @@ struct DashboardData: Codable, Sendable {
     var orbitCampaignSessions: [OrbitCampaignSession] = []
 
     static let empty = DashboardData()
-}
-
-extension ISO8601DateFormatter {
-    static let apexDateOnly: DateFormatter = {
-        let formatter = DateFormatter()
-        formatter.calendar = Calendar(identifier: .gregorian)
-        formatter.locale = Locale(identifier: "en_US_POSIX")
-        formatter.dateFormat = "yyyy-MM-dd"
-        return formatter
-    }()
-}
-
-extension Date {
-    var apexDateKey: String { ISO8601DateFormatter.apexDateOnly.string(from: self) }
 }

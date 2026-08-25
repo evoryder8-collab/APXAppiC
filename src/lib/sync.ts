@@ -1,6 +1,8 @@
 import { importedActivityId } from './ids.ts'
 
 const UPSERT_CONFLICT_TARGETS: Readonly<Record<string, string>> = {
+  hydration_events: 'user_id,client_idempotency_key',
+  hydration_preferences: 'user_id',
   rpg_snapshots: 'user_id,date',
   supplement_logs: 'user_id,date,supplement_id',
 }

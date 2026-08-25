@@ -564,7 +564,8 @@ export function buildFriendSeedData(userId: string, persona: FriendPersona): App
     profile: profileFor(userId, persona), settings: settingsFor(userId, persona), meals: mealsFor(userId, persona),
     meal_logs: [], supplements: supplementsFor(userId, persona), supplement_logs: [],
     ...programme, workout_sessions: [], workout_logs: [], activity_types: ACTIVITY_CATALOG,
-    activity_logs: [], daily_logs: [], events: [],
+    activity_logs: [], daily_logs: [], hydration_events: [], hydration_presets: [],
+    hydration_preferences: null, events: [],
     rpg_snapshots: [], deload_marks: [], health_metrics: [], imported_activities: [],
   }
 }

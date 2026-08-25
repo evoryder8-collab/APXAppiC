@@ -42,13 +42,22 @@ final class AppSession {
     private let service = SupabaseService.shared
     private let offlineStore = OfflineStore.shared
     private let defaults = UserDefaults.standard
+    @ObservationIgnored private let hydrationConnectivity = HydrationPhoneConnectivity()
+    @ObservationIgnored private var hydrationMutationsInFlight: Set<UUID> = []
     private var bootstrapped = false
     private var realtimeDebounceTask: Task<Void, Never>?
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
 
+    init() {
+        hydrationConnectivity.mutationHandler = { [weak self] mutation in
+            await self?.handleHydrationMutation(mutation)
+        }
+    }
+
     @discardableResult
     private func beginAccountBoundary() -> UInt64 {
         accountGeneration.advance()
+        hydrationConnectivity.publishDisconnected()
         realtimeDebounceTask?.cancel()
         realtimeDebounceTask = nil
         isBusy = false
@@ -60,6 +69,10 @@ final class AppSession {
     private func completeAccountBoundary() -> UInt64 {
         accountGeneration.advance()
         return accountGeneration.token
+    }
+
+    private func hydrationOperationIsCurrent(ownerID: UUID, token: UInt64) -> Bool {
+        accountGeneration.accepts(token) && verifiedPersistenceOwnerID() == ownerID
     }
 
     var profile: Profile? { data.profile }
@@ -491,9 +504,13 @@ final class AppSession {
             next.settings = next.settings?.rebound(to: authenticatedUserID)
         }
         data = next
+        if let authenticatedUserID {
+            await ensureHydrationDefaults(ownerID: authenticatedUserID)
+            publishHydrationState()
+        }
         lastSyncAt = .now
         if let userID = authenticatedUserID {
-            try? await offlineStore.saveDashboard(next, for: userID)
+            try? await offlineStore.saveDashboard(data, for: userID)
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
             let count = try? await offlineStore.pendingOperations(for: userID).count
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -539,6 +556,23 @@ final class AppSession {
         }
         guard let snapshot = await HealthKitManager.shared.silentRefresh() else { return }
         await applyHealthSnapshot(snapshot)
+    }
+
+    func startWatchWorkout(day: ProgramDay, exercises: [Exercise]) async {
+        guard let ownerID = verifiedPersistenceOwnerID() else { return }
+        let accountToken = accountGeneration.token
+        let kind = WatchWorkoutHandoff.resolve(
+            dayType: day.dayType,
+            name: day.name,
+            exerciseNames: exercises.map(\.name)
+        )
+        _ = await HealthKitManager.shared.startWatchWorkout(kind)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+    }
+
+    func stopWatchWorkout() {
+        guard let ownerID = verifiedPersistenceOwnerID() else { return }
+        hydrationConnectivity.send(.stopping(ownerID: ownerID))
     }
 
     /// Work out what this account may use, and start the trial clock on the
@@ -925,6 +959,177 @@ final class AppSession {
         return milliliters / 1_000
     }
 
+    func hydrationResolution(on date: Date) -> HydrationDayResolution {
+        guard let ownerID = verifiedPersistenceOwnerID() else {
+            return HydrationDayResolution(
+                drinkML: 0, foodML: 0, totalML: 0,
+                composition: [], usesLegacyAggregate: false
+            )
+        }
+        return hydrationResolution(ownerID: ownerID, on: date)
+    }
+
+    private func hydrationResolution(ownerID: UUID, on date: Date) -> HydrationDayResolution {
+        let day = date.apexDateKey
+        let legacy = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }?.waterL ?? 0
+        return HydrationLedger.resolve(
+            ownerID: ownerID,
+            date: day,
+            events: data.hydrationEvents ?? [],
+            legacyDrinkLiters: legacy
+        )
+    }
+
+    var hydrationPreferences: HydrationAccountPreferences? {
+        guard let ownerID = verifiedPersistenceOwnerID(),
+              data.hydrationPreferences?.userID == ownerID else { return nil }
+        return data.hydrationPreferences
+    }
+
+    var hydrationPresets: [HydrationPreset] {
+        guard let ownerID = verifiedPersistenceOwnerID() else { return [] }
+        return (data.hydrationPresets ?? [])
+            .filter { $0.userID == ownerID && $0.enabled }
+            .sorted { ($0.sortOrder, $0.createdAt, $0.id) < ($1.sortOrder, $1.createdAt, $1.id) }
+    }
+
+    func logHydration(
+        amountML: Int,
+        kind: HydrationKind = .water,
+        paletteToken: String = "aqua",
+        iconToken: String = "drop.fill",
+        source: HydrationSource = .iPhone,
+        on date: Date = .now,
+        eventID: UUID = UUID(),
+        clientKey: String? = nil
+    ) async {
+        guard amountML > 0, amountML <= 10_000,
+              let ownerID = verifiedPersistenceOwnerID() else { return }
+        let accountToken = accountGeneration.token
+        let day = date.apexDateKey
+        await materializeLegacyHydrationIfNeeded(ownerID: ownerID, date: date)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        let occurred = hydrationOccurrence(on: date)
+        let now = Date().ISO8601Format()
+        var event = HydrationEvent(
+            id: eventID,
+            userID: ownerID,
+            clientIdempotencyKey: clientKey ?? "\(source.rawValue):\(eventID.uuidString.lowercased())",
+            localDate: day,
+            occurredAt: occurred.ISO8601Format(),
+            amountML: amountML,
+            kind: kind,
+            paletteToken: paletteToken,
+            iconToken: iconToken,
+            source: source,
+            healthKitSampleID: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        upsertHydrationEventLocally(event)
+        await persistUpsert(
+            event,
+            table: "hydration_events",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: ownerID
+        )
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+
+        if source == .iPhone, occurred <= Date().addingTimeInterval(60) {
+            do {
+                event.healthKitSampleID = try await HealthKitManager.shared.saveWater(
+                    liters: Double(amountML) / 1_000,
+                    date: occurred,
+                    eventID: eventID,
+                    ownerID: ownerID,
+                    kind: kind,
+                    paletteToken: paletteToken,
+                    iconToken: iconToken
+                )
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                event.updatedAt = Date().ISO8601Format()
+                upsertHydrationEventLocally(event)
+                await persistUpsert(
+                    event,
+                    table: "hydration_events",
+                    onConflict: "user_id,client_idempotency_key",
+                    ownerID: ownerID,
+                    surfacePermanentFailure: false
+                )
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            } catch {
+                if hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) {
+                    HealthKitManager.shared.message = error.localizedDescription
+                }
+            }
+        }
+        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    func logHydration(preset: HydrationPreset, on date: Date = .now) async {
+        guard preset.userID == verifiedPersistenceOwnerID() else { return }
+        await logHydration(
+            amountML: preset.amountML,
+            kind: preset.kind,
+            paletteToken: preset.paletteToken,
+            iconToken: preset.iconToken,
+            on: date
+        )
+    }
+
+    func deleteHydrationEvent(_ event: HydrationEvent, on date: Date) async {
+        guard let ownerID = verifiedPersistenceOwnerID(), event.userID == ownerID,
+              event.source != .healthKitExternal, event.source != .food else { return }
+        let accountToken = accountGeneration.token
+        data.hydrationEvents?.removeAll { $0.id == event.id && $0.userID == ownerID }
+        await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        if event.source == .iPhone {
+            try? await HealthKitManager.shared.deleteWater(eventID: event.id, date: date)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    func saveHydrationPreset(_ preset: HydrationPreset) async {
+        guard let ownerID = verifiedPersistenceOwnerID(), preset.userID == ownerID else { return }
+        let accountToken = accountGeneration.token
+        var rows = data.hydrationPresets ?? []
+        rows.removeAll { $0.id == preset.id && $0.userID == ownerID }
+        rows.append(preset)
+        data.hydrationPresets = rows
+        await persistUpsert(preset, table: "hydration_presets", onConflict: "user_id,id", ownerID: ownerID)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    func deleteHydrationPreset(_ preset: HydrationPreset) async {
+        guard let ownerID = verifiedPersistenceOwnerID(), preset.userID == ownerID else { return }
+        let accountToken = accountGeneration.token
+        data.hydrationPresets?.removeAll { $0.id == preset.id && $0.userID == ownerID }
+        await persistDelete(table: "hydration_presets", id: preset.id, ownerID: ownerID)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    func saveHydrationPreferences(_ preferences: HydrationAccountPreferences) async {
+        guard let ownerID = verifiedPersistenceOwnerID(), preferences.userID == ownerID else { return }
+        let accountToken = accountGeneration.token
+        data.hydrationPreferences = preferences
+        await persistUpsert(
+            preferences,
+            table: "hydration_preferences",
+            onConflict: "user_id",
+            ownerID: ownerID
+        )
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
     func setActivityLevel(_ level: ActivityLevel) async {
         guard var profile else { return }
         profile.activityLevel = level
@@ -974,42 +1179,466 @@ final class AppSession {
     @discardableResult
     func adjustWater(deltaLiters: Double, on date: Date) async -> Double {
         guard let ownerID = verifiedPersistenceOwnerID() else { return 0 }
-        let key = date.apexDateKey
-        let existing = data.dailyLogs.first { $0.userID == ownerID && $0.date == key }
-        let current = existing?.waterL ?? 0
-        let next = min(6, max(0, ((current + deltaLiters) * 100).rounded() / 100))
-        guard next != current else { return current }
-
-        var row = existing ?? DailyLog(
-            id: APEXStableID.scopedUUID(namespace: "daily-log", date: key, userID: ownerID),
-            userID: ownerID, date: key,
-            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
-            estimatedTDEE: nil, computedPAL: nil,
-            activityMode: data.activityLogs.contains { $0.date == key } ? "precise" : "quick",
-            weightKG: nil
-        )
-        row.waterL = next
-        await updateDailyLog(row, ownerID: ownerID)
-
-        let applied = next - current
-        if applied > 0 {
-            do {
-                try await HealthKitManager.shared.saveWater(liters: applied, date: date)
-            } catch {
-                HealthKitManager.shared.message = error.localizedDescription
-            }
+        let accountToken = accountGeneration.token
+        guard deltaLiters.isFinite, deltaLiters != 0 else {
+            return Double(hydrationResolution(ownerID: ownerID, on: date).drinkML) / 1_000
         }
-        return next
+        if deltaLiters > 0 {
+            await logHydration(amountML: Int((deltaLiters * 1_000).rounded()), on: date)
+        } else {
+            await reduceHydration(byML: Int((-deltaLiters * 1_000).rounded()), on: date)
+        }
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return 0 }
+        return Double(hydrationResolution(ownerID: ownerID, on: date).drinkML) / 1_000
     }
 
     func setWaterTotal(_ liters: Double, on date: Date) async {
-        let key = date.apexDateKey
-        let current = data.dailyLogs.first { $0.date == key }?.waterL ?? 0
+        let current = Double(hydrationResolution(on: date).drinkML) / 1_000
         await adjustWater(deltaLiters: liters - current, on: date)
+    }
+
+    private func ensureHydrationDefaults(ownerID: UUID) async {
+        let accountToken = accountGeneration.token
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        let now = Date().ISO8601Format()
+        if (data.hydrationPresets ?? []).filter({ $0.userID == ownerID }).isEmpty {
+            let presets = HydrationLedger.defaultPresetTemplates.map { template in
+                HydrationPreset(
+                    id: APEXStableID.scopedUUID(
+                        namespace: "hydration-preset",
+                        date: template.id.uuidString.lowercased(),
+                        userID: ownerID
+                    ),
+                    userID: ownerID,
+                    name: template.name,
+                    amountML: template.amountML,
+                    kind: template.kind,
+                    paletteToken: template.paletteToken,
+                    iconToken: template.iconToken,
+                    sortOrder: template.sortOrder,
+                    enabled: template.enabled,
+                    createdAt: now,
+                    updatedAt: now
+                )
+            }
+            data.hydrationPresets = (data.hydrationPresets ?? []) + presets
+            for preset in presets {
+                await persistUpsert(
+                    preset,
+                    table: "hydration_presets",
+                    onConflict: "user_id,id",
+                    ownerID: ownerID,
+                    surfacePermanentFailure: false
+                )
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            }
+        }
+        if data.hydrationPreferences?.userID != ownerID {
+            let preferences = HydrationAccountPreferences(
+                userID: ownerID,
+                targetML: 2_750,
+                displayUnit: "liters",
+                remindersEnabled: false,
+                reminderIntervalMinutes: 90,
+                quietHoursStartMinutes: (21 * 60) + 30,
+                quietHoursEndMinutes: 8 * 60,
+                showsPresetNames: true,
+                confirmationHaptics: true,
+                motionIntensity: "subtle",
+                createdAt: now,
+                updatedAt: now
+            )
+            data.hydrationPreferences = preferences
+            await persistUpsert(
+                preferences,
+                table: "hydration_preferences",
+                onConflict: "user_id",
+                ownerID: ownerID,
+                surfacePermanentFailure: false
+            )
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+    }
+
+    private func materializeLegacyHydrationIfNeeded(ownerID: UUID, date: Date) async {
+        let accountToken = accountGeneration.token
+        let day = date.apexDateKey
+        let events = data.hydrationEvents ?? []
+        guard !events.contains(where: {
+            $0.userID == ownerID && $0.localDate == day && $0.kind != .food
+        }), let legacy = data.dailyLogs.first(where: {
+            $0.userID == ownerID && $0.date == day
+        })?.waterL, legacy > 0 else { return }
+        let anchor = hydrationOccurrence(on: date)
+        let migration = HydrationLedger.legacyMigration(
+            legacyDrinkLiters: legacy,
+            previouslyImportedLiters: defaults.object(
+                forKey: Self.waterWatermarkKey(day, userID: ownerID)
+            ) as? Double,
+            anchor: anchor
+        )
+        guard migration.baselineML > 0 else { return }
+        let id = APEXStableID.scopedUUID(namespace: "hydration-legacy", date: day, userID: ownerID)
+        let now = Date().ISO8601Format()
+        let event = HydrationEvent(
+            id: id,
+            userID: ownerID,
+            clientIdempotencyKey: "legacy:\(day)",
+            localDate: day,
+            occurredAt: anchor.ISO8601Format(),
+            amountML: migration.baselineML,
+            kind: .legacy,
+            paletteToken: migration.importCutoff == nil
+                ? HydrationLedger.legacyAdjustedPalette
+                : HydrationLedger.legacyAnchorPalette,
+            iconToken: "drop.circle",
+            source: .legacy,
+            healthKitSampleID: nil,
+            createdAt: now,
+            updatedAt: now
+        )
+        upsertHydrationEventLocally(event)
+        await persistUpsert(
+            event,
+            table: "hydration_events",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: ownerID,
+            surfacePermanentFailure: false
+        )
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    private func hydrationOccurrence(on date: Date) -> Date {
+        let calendar = Calendar.current
+        if calendar.isDateInToday(date) { return .now }
+        let start = calendar.startOfDay(for: date)
+        return calendar.date(byAdding: .hour, value: 12, to: start) ?? date
+    }
+
+    private func upsertHydrationEventLocally(_ event: HydrationEvent) {
+        var rows = data.hydrationEvents ?? []
+        rows = HydrationLedger.merge(current: rows, incoming: [event])
+        data.hydrationEvents = rows
+    }
+
+    private func mirrorHydrationAggregate(ownerID: UUID, on date: Date) async {
+        let accountToken = accountGeneration.token
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        let day = date.apexDateKey
+        let resolved = hydrationResolution(ownerID: ownerID, on: date)
+        let liters = Double(resolved.drinkML) / 1_000
+        let existing = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }
+        guard abs((existing?.waterL ?? 0) - liters) > 0.000_5 || existing == nil else { return }
+        var row = existing ?? DailyLog(
+            id: APEXStableID.scopedUUID(namespace: "daily-log", date: day, userID: ownerID),
+            userID: ownerID, date: day,
+            kcal: nil, proteinG: nil, fatG: nil, carbsG: nil, waterL: 0,
+            estimatedTDEE: nil, computedPAL: nil,
+            activityMode: data.activityLogs.contains { $0.date == day } ? "precise" : "quick",
+            weightKG: nil
+        )
+        row.waterL = liters
+        await updateDailyLog(row, ownerID: ownerID)
+    }
+
+    private func reduceHydration(byML amountML: Int, on date: Date) async {
+        guard amountML > 0, let ownerID = verifiedPersistenceOwnerID() else { return }
+        let accountToken = accountGeneration.token
+        let day = date.apexDateKey
+        await materializeLegacyHydrationIfNeeded(ownerID: ownerID, date: date)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        var remaining = amountML
+        let candidates = (data.hydrationEvents ?? [])
+            .filter {
+                $0.userID == ownerID && $0.localDate == day
+                    && ($0.source == .iPhone || $0.source == .legacy)
+                    && $0.kind != .food
+            }
+            .sorted { $0.occurredAt > $1.occurredAt }
+        for event in candidates where remaining > 0 {
+            if event.amountML <= remaining {
+                remaining -= event.amountML
+                await deleteHydrationEvent(event, on: date)
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            } else {
+                let retained = event.amountML - remaining
+                remaining = 0
+                await deleteHydrationEvent(event, on: date)
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                if retained > 0 {
+                    await logHydration(
+                        amountML: retained,
+                        kind: event.kind,
+                        paletteToken: event.paletteToken,
+                        iconToken: event.iconToken,
+                        source: event.source,
+                        on: date
+                    )
+                    guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                }
+            }
+        }
+        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+    }
+
+    private func syncFoodHydrationEvent(on date: Date, ownerID: UUID) async {
+        let accountToken = accountGeneration.token
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        let day = date.apexDateKey
+        let key = "food:\(day)"
+        let amountML = Int((foodHydrationLiters(on: date) * 1_000).rounded())
+        let existing = (data.hydrationEvents ?? []).first {
+            $0.userID == ownerID && $0.clientIdempotencyKey == key
+        }
+        guard amountML > 0 else {
+            if let existing {
+                data.hydrationEvents?.removeAll { $0.id == existing.id }
+                await persistDelete(table: "hydration_events", id: existing.id, ownerID: ownerID)
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                publishHydrationState()
+            }
+            return
+        }
+        if existing?.amountML == amountML { return }
+        let now = Date().ISO8601Format()
+        let event = HydrationEvent(
+            id: existing?.id ?? APEXStableID.scopedUUID(
+                namespace: "hydration-food", date: day, userID: ownerID
+            ),
+            userID: ownerID,
+            clientIdempotencyKey: key,
+            localDate: day,
+            occurredAt: hydrationOccurrence(on: date).ISO8601Format(),
+            amountML: amountML,
+            kind: .food,
+            paletteToken: "food",
+            iconToken: "fork.knife",
+            source: .food,
+            healthKitSampleID: nil,
+            createdAt: existing?.createdAt ?? now,
+            updatedAt: now
+        )
+        upsertHydrationEventLocally(event)
+        await persistUpsert(
+            event,
+            table: "hydration_events",
+            onConflict: "user_id,client_idempotency_key",
+            ownerID: ownerID,
+            surfacePermanentFailure: false
+        )
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    private func reconcileHealthHydration(_ snapshot: HealthSnapshot, ownerID: UUID) async {
+        guard snapshot.importableDietaryWaterL != nil else { return }
+        let accountToken = accountGeneration.token
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken),
+              let date = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) else { return }
+        await materializeLegacyHydrationIfNeeded(ownerID: ownerID, date: date)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        let imported = snapshot.hydrationSamples.filter {
+            ($0.source == .apexWatch || $0.source == .external)
+                && hydrationHealthSampleBelongsToOwner($0, ownerID: ownerID)
+                && HydrationLedger.shouldImportHealthSample(
+                    occurredAt: $0.occurredAt,
+                    ownerID: ownerID,
+                    date: snapshot.date,
+                    events: data.hydrationEvents ?? []
+                )
+        }
+        let deleted = HydrationLedger.eventsDeletedByHealthKit(
+            events: data.hydrationEvents ?? [],
+            ownerID: ownerID,
+            deletedSampleIDs: snapshot.deletedHydrationSampleIDs
+        )
+        for event in deleted {
+            data.hydrationEvents?.removeAll { $0.id == event.id }
+            await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+
+        for sample in imported {
+            let source: HydrationSource = sample.source == .apexWatch ? .watch : .healthKitExternal
+            let key = "healthkit:\(sample.id.uuidString.lowercased())"
+            let existing = (data.hydrationEvents ?? []).first {
+                $0.userID == ownerID && $0.clientIdempotencyKey == key
+            }
+            let amountML = Int((sample.liters * 1_000).rounded())
+            guard amountML > 0 else { continue }
+            let kind: HydrationKind = source == .healthKitExternal ? .external : sample.kind
+            if existing?.amountML == amountML, existing?.kind == kind,
+               existing?.paletteToken == sample.paletteToken { continue }
+            let now = Date().ISO8601Format()
+            let event = HydrationEvent(
+                id: existing?.id ?? APEXStableID.scopedUUID(
+                    namespace: "hydration-healthkit",
+                    date: sample.id.uuidString.lowercased(),
+                    userID: ownerID
+                ),
+                userID: ownerID,
+                clientIdempotencyKey: key,
+                localDate: snapshot.date,
+                occurredAt: sample.occurredAt.ISO8601Format(),
+                amountML: amountML,
+                kind: kind,
+                paletteToken: source == .healthKitExternal ? "external" : sample.paletteToken,
+                iconToken: source == .healthKitExternal ? "heart.fill" : sample.iconToken,
+                source: source,
+                healthKitSampleID: sample.id,
+                createdAt: existing?.createdAt ?? now,
+                updatedAt: now
+            )
+            upsertHydrationEventLocally(event)
+            await persistUpsert(
+                event,
+                table: "hydration_events",
+                onConflict: "user_id,client_idempotency_key",
+                ownerID: ownerID,
+                surfacePermanentFailure: false
+            )
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+        await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        publishHydrationState()
+    }
+
+    private func hydrationHealthSampleBelongsToOwner(
+        _ sample: HealthHydrationSample,
+        ownerID: UUID
+    ) -> Bool {
+        if let explicitOwnerID = sample.ownerID { return explicitOwnerID == ownerID }
+        let key = "apex.hk.hydration.claim.\(sample.id.uuidString.lowercased())"
+        if let claimed = defaults.string(forKey: key).flatMap(UUID.init(uuidString:)) {
+            return claimed == ownerID
+        }
+        defaults.set(ownerID.uuidString.lowercased(), forKey: key)
+        return true
+    }
+
+    private func publishHydrationState() {
+        guard let ownerID = verifiedPersistenceOwnerID() else { return }
+        let date = Date()
+        let day = date.apexDateKey
+        let legacy = data.dailyLogs.first { $0.userID == ownerID && $0.date == day }?.waterL ?? 0
+        let preferences = data.hydrationPreferences.map(WatchHydrationPreferences.init(account:)) ?? .default
+        let snapshot = HydrationCompanionSnapshot.make(
+            ownerID: ownerID,
+            date: day,
+            events: data.hydrationEvents ?? [],
+            presets: data.hydrationPresets ?? [],
+            preferences: preferences,
+            legacyDrinkLiters: legacy,
+            revision: Date().ISO8601Format()
+        )
+        hydrationConnectivity.publish(snapshot)
+    }
+
+    private func beginHydrationMutation(_ mutation: HydrationCompanionMutation) -> Bool {
+        let key = "apex.watch.hydration.processed.\(mutation.ownerID.uuidString.lowercased())"
+        let processed = defaults.stringArray(forKey: key) ?? []
+        let mutationID = mutation.id.uuidString.lowercased()
+        guard !processed.contains(mutationID), !hydrationMutationsInFlight.contains(mutation.id) else {
+            return false
+        }
+        hydrationMutationsInFlight.insert(mutation.id)
+        return true
+    }
+
+    private func finishHydrationMutation(_ mutation: HydrationCompanionMutation) {
+        hydrationMutationsInFlight.remove(mutation.id)
+        let key = "apex.watch.hydration.processed.\(mutation.ownerID.uuidString.lowercased())"
+        var processed = defaults.stringArray(forKey: key) ?? []
+        let mutationID = mutation.id.uuidString.lowercased()
+        guard !processed.contains(mutationID) else { return }
+        processed.append(mutationID)
+        defaults.set(Array(processed.suffix(512)), forKey: key)
+    }
+
+    private func hydrationTombstoneRevision(eventID: UUID, ownerID: UUID) -> String? {
+        defaults.string(forKey: hydrationTombstoneKey(eventID: eventID, ownerID: ownerID))
+    }
+
+    private func recordHydrationTombstone(eventID: UUID, ownerID: UUID, revision: String) {
+        let key = hydrationTombstoneKey(eventID: eventID, ownerID: ownerID)
+        if let current = defaults.string(forKey: key), revision <= current { return }
+        defaults.set(revision, forKey: key)
+    }
+
+    private func hydrationTombstoneKey(eventID: UUID, ownerID: UUID) -> String {
+        "apex.watch.hydration.tombstone.\(ownerID.uuidString.lowercased()).\(eventID.uuidString.lowercased())"
+    }
+
+    private func handleHydrationMutation(_ mutation: HydrationCompanionMutation) async {
+        guard let ownerID = verifiedPersistenceOwnerID(), mutation.belongs(to: ownerID),
+              beginHydrationMutation(mutation) else { return }
+        defer { finishHydrationMutation(mutation) }
+        let accountToken = accountGeneration.token
+        switch mutation.action {
+        case .upsertEvent:
+            guard let event = mutation.event,
+                  HydrationMutationOrdering.accepts(
+                      event: event,
+                      afterTombstoneRevision: hydrationTombstoneRevision(
+                          eventID: event.healthKitSampleID ?? event.id,
+                          ownerID: ownerID
+                      )
+                  ) else { return }
+            let existing = (data.hydrationEvents ?? []).first {
+                $0.userID == ownerID && $0.clientIdempotencyKey == event.clientIdempotencyKey
+            }
+            if existing != event {
+                upsertHydrationEventLocally(event)
+                await persistUpsert(
+                    event,
+                    table: "hydration_events",
+                    onConflict: "user_id,client_idempotency_key",
+                    ownerID: ownerID,
+                    surfacePermanentFailure: false
+                )
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            }
+            if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
+                await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            }
+        case .deleteEvent:
+            guard let eventID = mutation.eventID else { return }
+            recordHydrationTombstone(eventID: eventID, ownerID: ownerID, revision: mutation.createdAt)
+            guard let event = (data.hydrationEvents ?? []).first(where: {
+                $0.userID == ownerID && ($0.id == eventID || $0.healthKitSampleID == eventID)
+            }) else { return }
+            guard !HydrationMutationOrdering.accepts(
+                event: event,
+                afterTombstoneRevision: mutation.createdAt
+            ) else { return }
+            data.hydrationEvents?.removeAll { $0.userID == ownerID && $0.id == event.id }
+            await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
+                await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            }
+        case .updatePreferences:
+            guard let preferences = mutation.preferences,
+                  HydrationMutationOrdering.acceptsPreference(
+                      incomingRevision: mutation.createdAt,
+                      currentRevision: data.hydrationPreferences?.updatedAt
+                  ) else { return }
+            await saveHydrationPreferences(
+                preferences.accountRow(ownerID: ownerID, existing: data.hydrationPreferences)
+            )
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+        publishHydrationState()
     }
 
     func applyHealthSnapshot(_ snapshot: HealthSnapshot) async {
         guard let profile else { return }
+        let ownerID = profile.userID
+        let accountToken = accountGeneration.token
         if HealthKitManager.shared.waterWriteState == .authorized,
            let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: snapshot.date) {
             try? await HealthKitManager.shared.syncFoodWater(
@@ -1017,6 +1646,7 @@ final class AppSession {
                 on: resolvedDate,
                 accountID: profile.userID
             )
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
         if snapshot.weightKG != nil || snapshot.vo2Max != nil || snapshot.restingHeartRate != nil {
             let existing = data.healthMetrics.first { $0.date == snapshot.date }
@@ -1031,49 +1661,11 @@ final class AppSession {
             data.healthMetrics.removeAll { $0.id == metric.id }
             data.healthMetrics.append(metric)
             await persistUpsert(metric, table: "health_metrics", onConflict: "user_id,date")
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
 
-        if let importableWaterL = snapshot.importableDietaryWaterL {
-            let existing = data.dailyLogs.first { $0.date == snapshot.date }
-            /*
-             * Import only water HealthKit has learned since the last sync.
-             * Taking max(local, healthKit) ratcheted the total upward forever:
-             * APEX writes its own additions into HealthKit, so any manual
-             * decrease was restored on the next refresh and could never stick.
-             * The watermark keeps the person's edit authoritative while water
-             * logged elsewhere (the Watch, another app) still arrives.
-             */
-            let watermarkKey = Self.waterWatermarkKey(snapshot.date, userID: profile.userID)
-            let defaults = UserDefaults.standard
-            let previouslyApplied = defaults.object(forKey: watermarkKey) as? Double
-            var nextWater = existing?.waterL ?? 0
-            if let previouslyApplied {
-                nextWater = HydrationReconciliation.mergedDrinkLiters(
-                    localDrinkLiters: nextWater,
-                    previousImportableLiters: previouslyApplied,
-                    currentImportableLiters: importableWaterL
-                )
-            } else {
-                /* Existing rows may already contain a legacy import, so the
-                   first classified observation never blindly adds it again. */
-                nextWater = max(nextWater, importableWaterL)
-            }
-            defaults.set(importableWaterL, forKey: watermarkKey)
-
-            if nextWater != existing?.waterL || existing == nil {
-                let row = DailyLog(
-                    id: existing?.id ?? UUID(), userID: profile.userID, date: snapshot.date,
-                    kcal: existing?.kcal, proteinG: existing?.proteinG,
-                    fatG: existing?.fatG, carbsG: existing?.carbsG,
-                    waterL: nextWater,
-                    estimatedTDEE: existing?.estimatedTDEE,
-                    computedPAL: existing?.computedPAL,
-                    activityMode: existing?.activityMode ?? "quick",
-                    weightKG: snapshot.weightKG ?? existing?.weightKG
-                )
-                await updateDailyLog(row)
-            }
-        }
+        await reconcileHealthHydration(snapshot, ownerID: ownerID)
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
 
         if snapshot.steps != nil || snapshot.activeEnergyKcal != nil || snapshot.exerciseMinutes != nil {
             let wearable = WearableActivityRecord(
@@ -1085,6 +1677,7 @@ final class AppSession {
                 updatedAt: Date().ISO8601Format()
             )
             await saveWearableActivity(wearable, automaticallyApply: snapshot.date == Date().apexDateKey)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
 
         if snapshot.sleepDurationHours != nil || snapshot.heartRateVariabilityMS != nil {
@@ -1098,10 +1691,12 @@ final class AppSession {
                     "updated_at": .string(Date().ISO8601Format())
                 ])
             }
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
 
         for workout in snapshot.workouts {
             await importHealthWorkoutIfNeeded(workout)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
     }
 
@@ -2989,6 +3584,9 @@ final class AppSession {
         )
         data.dailyLogs.removeAll { $0.date == date }
         data.dailyLogs.append(row)
+        if let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
+            await syncFoodHydrationEvent(on: resolvedDate, ownerID: userID)
+        }
         if HealthKitManager.shared.waterWriteState == .authorized,
            let resolvedDate = ISO8601DateFormatter.apexDateOnly.date(from: date) {
             try? await HealthKitManager.shared.syncFoodWater(

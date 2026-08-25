@@ -23,13 +23,17 @@
 	<key>ITSAppUsesNonExemptEncryption</key>
 	<false/>
 	<key>NSHealthShareUsageDescription</key>
-	<string>APEX reads today's water total so the Watch and iPhone remain aligned.</string>
+	<string>APEX reads hydration and live workout metrics so your Watch and iPhone remain aligned.</string>
 	<key>NSHealthUpdateUsageDescription</key>
-	<string>APEX adds water to Apple Health when you tap a quantity on the Watch.</string>
+	<string>APEX saves water and workouts to Apple Health when you track them in APEX.</string>
 	<key>WKApplication</key>
 	<true/>
 	<key>WKCompanionAppBundleIdentifier</key>
 	<string>ch.apexperformance.APEX</string>
+	<key>WKBackgroundModes</key>
+	<array>
+		<string>workout-processing</string>
+	</array>
 	<key>WKRunsIndependentlyOfCompanionApp</key>
 	<true/>
 </dict>

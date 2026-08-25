@@ -868,6 +868,7 @@ struct TrackedWorkoutView: View {
     @State private var startedAt = Date()
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
+    @State private var watchWorkoutRequested = false
 
     init(day: ProgramDay, exercises: [Exercise], accent: Color, lite: Bool) {
         self.day = day
@@ -939,6 +940,12 @@ struct TrackedWorkoutView: View {
             }
             .environment(session)
         }
+        .onAppear {
+            guard !watchWorkoutRequested else { return }
+            watchWorkoutRequested = true
+            Task { await session.startWatchWorkout(day: day, exercises: exercises) }
+        }
+        .onDisappear { session.stopWatchWorkout() }
     }
 
     private func trackedSetRow(_ input: Binding<WorkoutSetInput>) -> some View {
@@ -1340,6 +1347,7 @@ struct WorkoutPlayerView: View {
     @State private var showExit = false
     @State private var isSaving = false
     @State private var completedSession: FinishedSession?
+    @State private var watchWorkoutRequested = false
 
     /* Automatic rep cadence, ported from the web player (playerTimeline.ts):
        APEX counts and paces every rep from the exercise's prescribed tempo.
@@ -1475,7 +1483,12 @@ struct WorkoutPlayerView: View {
             startedAt = Date()
             currentWeight = suggestedWeight
             WorkoutAudioCoach.shared.say(language.text("Warm-up started"), enabled: voiceOn)
+            if !watchWorkoutRequested {
+                watchWorkoutRequested = true
+                Task { await session.startWatchWorkout(day: day, exercises: exercises) }
+            }
         }
+        .onDisappear { session.stopWatchWorkout() }
         .onChange(of: scenePhase) { _, next in
             if next != .active { paused = true }
         }

@@ -255,8 +255,11 @@ enum HydrationReconciliation {
 
     static let phoneBundleIdentifier = "ch.apexperformance.APEX"
     static let watchBundleIdentifier = "ch.apexperformance.APEX.watchkitapp"
-    static let foodMetadataKey = "ch.apexperformance.APEX.hydration.kind"
+    static let foodMetadataKey = HydrationMetadata.kind
     static let foodMetadataValue = "food"
+    static let eventIDMetadataKey = HydrationMetadata.eventID
+    static let paletteMetadataKey = HydrationMetadata.palette
+    static let iconMetadataKey = HydrationMetadata.icon
 
     static func importableDrinkLiters(_ samples: [Sample]) -> Double {
         samples.reduce(0) { total, sample in

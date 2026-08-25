@@ -3,6 +3,7 @@
 import type { PersonaSlug } from './persona'
 import type { ActivityType } from './activity'
 import type { MealBlockSettings } from './mealBlocks'
+import type { HydrationEvent, HydrationPreferences, HydrationPreset } from './hydrationLedger'
 
 export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very' | 'extra'
 export type Goal = 'recomp' | 'maintain' | 'bulk'
@@ -512,6 +513,9 @@ export interface AppData {
   activity_types: ActivityType[]
   activity_logs: ActivityLog[]
   daily_logs: DailyLog[]
+  hydration_events: HydrationEvent[]
+  hydration_presets: HydrationPreset[]
+  hydration_preferences: HydrationPreferences | null
   events: CalendarEvent[]
   rpg_snapshots: RpgSnapshot[]
   deload_marks: DeloadMark[]
@@ -534,6 +538,9 @@ export const EMPTY_DATA: AppData = {
   activity_types: [],
   activity_logs: [],
   daily_logs: [],
+  hydration_events: [],
+  hydration_presets: [],
+  hydration_preferences: null,
   events: [],
   rpg_snapshots: [],
   deload_marks: [],
@@ -541,4 +548,5 @@ export const EMPTY_DATA: AppData = {
   imported_activities: [],
 }
 
-export type TableName = keyof Omit<AppData, 'profile' | 'settings'> | 'profile' | 'settings'
+export type TableName = keyof Omit<AppData, 'profile' | 'settings' | 'hydration_preferences'>
+  | 'profile' | 'settings' | 'hydration_preferences'

@@ -18,8 +18,6 @@ struct SimpleHomeView: View {
     @State private var health = HealthKitManager.shared
     @State private var quickPanel: SimpleQuickPanel?
 
-    private let waterTargetL = 2.75
-
     private var today: String { selectedDate.apexDateKey }
 
     /* Clean hides the explanatory lines under each card; detailed keeps them.
@@ -43,9 +41,14 @@ struct SimpleHomeView: View {
             dayLabel: targets.level.title
         )
     }
-    private var dailyLog: DailyLog? { session.data.dailyLogs.first { $0.date == today } }
-    private var drinkWaterL: Double { dailyLog?.waterL ?? 0 }
-    private var foodWaterL: Double { session.foodHydrationLiters(on: selectedDate) }
+    private var hydrationResolution: HydrationDayResolution { session.hydrationResolution(on: selectedDate) }
+    private var drinkWaterL: Double { Double(hydrationResolution.drinkML) / 1_000 }
+    private var foodWaterL: Double {
+        max(Double(hydrationResolution.foodML) / 1_000, session.foodHydrationLiters(on: selectedDate))
+    }
+    private var waterTargetL: Double {
+        Double(session.hydrationPreferences?.targetML ?? 2_750) / 1_000
+    }
     private var waterL: Double { min(6, drinkWaterL + foodWaterL) }
     private var waterDone: Bool { waterL >= waterTargetL * 0.9 }
 
@@ -285,13 +288,13 @@ struct SimpleHomeView: View {
             set: { if !$0, quickPanel == .water { quickPanel = nil } }
         )) {
             WaterQuickAddSheet(
+                date: selectedDate,
                 drinkLiters: drinkWaterL,
                 foodLiters: foodWaterL,
                 targetLiters: waterTargetL,
-                sex: profile?.sex ?? "male"
-            ) { liters in
-                addWater(liters)
-            }
+                sex: profile?.sex ?? "male",
+                composition: hydrationResolution.composition
+            )
             .presentationDetents([.large])
         }
         .apexPopover(item: Binding(
@@ -708,6 +711,36 @@ private struct SimpleSupplementGroup: Identifiable {
     var id: String { label }
 }
 
+private func hydrationColor(_ token: String) -> Color {
+    switch token {
+    case "espresso": Color(red: 0.55, green: 0.29, blue: 0.13)
+    case "tea": Color(red: 0.24, green: 0.68, blue: 0.34)
+    case "citrus": Color(red: 1.00, green: 0.52, blue: 0.05)
+    case "cocoa": Color(red: 0.66, green: 0.39, blue: 0.24)
+    case "violet": Color(red: 0.55, green: 0.34, blue: 0.98)
+    case "food": Color(red: 0.12, green: 0.66, blue: 0.56)
+    case "external": Color(red: 0.90, green: 0.24, blue: 0.55)
+    case "legacy": Color(red: 0.32, green: 0.52, blue: 0.72)
+    case "blue": Color(red: 0.11, green: 0.39, blue: 0.98)
+    default: APEXColor.cyan
+    }
+}
+
+private func hydrationHex(_ token: String) -> String {
+    switch token {
+    case "espresso": "#8C4A21"
+    case "tea": "#3DAE57"
+    case "citrus": "#FF850D"
+    case "cocoa": "#A8643D"
+    case "violet": "#8C57FA"
+    case "food": "#1FA88F"
+    case "external": "#E63D8C"
+    case "legacy": "#5285B8"
+    case "blue": "#1C64FA"
+    default: "#14CCE8"
+    }
+}
+
 private struct SimpleAction {
     enum Kind {
         case meal(UUID)
@@ -970,13 +1003,17 @@ private struct WaterQuickAddSheet: View {
     @State private var language = LanguageState.shared
     @Environment(\.dismiss) private var dismiss
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @Environment(AppSession.self) private var session
+    let date: Date
     let drinkLiters: Double
     let foodLiters: Double
     let targetLiters: Double
     let sex: String
-    let add: (Double) -> Void
+    let composition: [HydrationCompositionBand]
     @State private var customML = ""
     @State private var pulse = false
+    @State private var showsManagement = false
+    @FocusState private var customIsFocused: Bool
 
     private var totalLiters: Double { min(6, drinkLiters + foodLiters) }
 
@@ -990,6 +1027,14 @@ private struct WaterQuickAddSheet: View {
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
                 Spacer()
+                Button {
+                    showsManagement = true
+                } label: {
+                    Image(systemName: "gearshape.fill")
+                }
+                .font(APEXFont.body(15, weight: .bold))
+                .foregroundStyle(APEXColor.cyan)
+                .accessibilityLabel("Hydration settings, presets and history")
                 Button(language.text("Done")) { dismiss() }
                     .font(APEXFont.body(14, weight: .bold))
                     .foregroundStyle(APEXColor.cyan)
@@ -1002,7 +1047,8 @@ private struct WaterQuickAddSheet: View {
             HydrationFigureGauge(
                 totalLiters: totalLiters,
                 targetLiters: targetLiters,
-                sex: sex
+                sex: sex,
+                composition: composition
             )
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, 8)
@@ -1019,6 +1065,28 @@ private struct WaterQuickAddSheet: View {
                      : "")
                     .font(APEXFont.body(11, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
+                if !composition.isEmpty {
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 8) {
+                            ForEach(Array(composition.enumerated()), id: \.offset) { _, band in
+                                Label {
+                                    Text("\(band.milliliters) mL")
+                                } icon: {
+                                    Image(systemName: band.iconToken)
+                                }
+                                .font(APEXFont.mono(9, weight: .bold))
+                                .foregroundStyle(hydrationColor(band.paletteToken))
+                                .padding(.horizontal, 8)
+                                .padding(.vertical, 5)
+                                .background(
+                                    hydrationColor(band.paletteToken).opacity(0.10),
+                                    in: Capsule()
+                                )
+                            }
+                        }
+                    }
+                    .scrollIndicators(.hidden)
+                }
             }
             .padding(.top, 6)
             .padding(.bottom, 14)
@@ -1028,12 +1096,15 @@ private struct WaterQuickAddSheet: View {
                     Text(language.text("ADD")).font(APEXFont.mono(10, weight: .bold))
                         .foregroundStyle(APEXColor.secondaryInk)
                         .frame(maxWidth: .infinity, alignment: .leading)
-                    HStack(spacing: 9) {
-                        ForEach([250, 300, 500], id: \.self) { amount in
-                            quickButton("+ \(amount)", tint: APEXColor.cyan) {
-                                commit(Double(amount) / 1_000)
+                    ScrollView(.horizontal) {
+                        HStack(spacing: 9) {
+                            ForEach(session.hydrationPresets) { preset in
+                                presetButton(preset)
                             }
                         }
+                    }
+                    .scrollIndicators(.hidden)
+                    HStack(spacing: 9) {
                         TextField("ml", text: $customML)
                             .keyboardType(.numberPad)
                             .font(APEXFont.mono(14))
@@ -1041,6 +1112,8 @@ private struct WaterQuickAddSheet: View {
                             .frame(maxWidth: .infinity, minHeight: 50)
                             .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
                             .onSubmit(addCustom)
+                            .submitLabel(.done)
+                            .focused($customIsFocused)
                         if Double(customML) != nil {
                             Button(action: addCustom) {
                                 Image(systemName: "arrow.right.circle.fill")
@@ -1077,18 +1150,58 @@ private struct WaterQuickAddSheet: View {
             .padding(.bottom, 26)
         }
         .presentationBackground(.ultraThinMaterial)
+        .sheet(isPresented: $showsManagement) {
+            HydrationManagementSheet(date: date)
+                .environment(session)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Spacer()
+                Button("Done") { customIsFocused = false }
+            }
+        }
     }
 
     /* Logging never dismisses the sheet: the figure animates the new level
        and you close it when you have finished drinking. */
     private func commit(_ liters: Double) {
-        add(liters)
+        Task { await session.adjustWater(deltaLiters: liters, on: date) }
+        animateConfirmation()
+    }
+
+    private func commit(_ preset: HydrationPreset) {
+        Task { await session.logHydration(preset: preset, on: date) }
+        animateConfirmation()
+    }
+
+    private func animateConfirmation() {
         guard !reduceMotion else { return }
         withAnimation(.spring(response: 0.25, dampingFraction: 0.5)) { pulse = true }
         Task { @MainActor in
             try? await Task.sleep(for: .milliseconds(220))
             withAnimation(.spring(response: 0.35, dampingFraction: 0.7)) { pulse = false }
         }
+    }
+
+    private func presetButton(_ preset: HydrationPreset) -> some View {
+        let tint = hydrationColor(preset.paletteToken)
+        return Button {
+            commit(preset)
+        } label: {
+            VStack(spacing: 3) {
+                Image(systemName: preset.iconToken)
+                Text(preset.name).lineLimit(1)
+                Text("\(preset.amountML) mL")
+                    .font(APEXFont.mono(9, weight: .medium))
+            }
+            .font(APEXFont.body(11, weight: .bold))
+            .foregroundStyle(tint)
+        .frame(width: 84)
+        .frame(minHeight: 58)
+            .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 15))
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel("Add \(preset.amountML) milliliters of \(preset.name)")
     }
 
     private func quickButton(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
@@ -1104,6 +1217,274 @@ private struct WaterQuickAddSheet: View {
         guard let ml = Double(customML), ml > 0 else { return }
         commit(min(3_000, ml) / 1_000)
         customML = ""
+        customIsFocused = false
+    }
+}
+
+private struct HydrationManagementSheet: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    let date: Date
+    @State private var draft = WatchHydrationPreferences.default
+    @State private var loaded = false
+    @State private var editingPreset: HydrationPreset?
+    @State private var addingPreset = false
+    @State private var validationMessage: String?
+
+    private var events: [HydrationEvent] {
+        guard let ownerID = session.profile?.userID else { return [] }
+        return (session.data.hydrationEvents ?? [])
+            .filter { $0.userID == ownerID && $0.localDate == date.apexDateKey }
+            .sorted { $0.occurredAt > $1.occurredAt }
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                Section("Daily target") {
+                    TextField(
+                        "Exact litres",
+                        value: $draft.targetLiters,
+                        format: .number.precision(.fractionLength(0...2))
+                    )
+                    .keyboardType(.decimalPad)
+                    Stepper(value: $draft.targetLiters, in: 1...6, step: 0.1) {
+                        Text("\(draft.targetLiters.formatted(.number.precision(.fractionLength(2)))) L")
+                    }
+                    Picker("Units", selection: $draft.unit) {
+                        ForEach(WatchHydrationPreferences.Unit.allCases) { unit in
+                            Text(unit.label).tag(unit)
+                        }
+                    }
+                }
+
+                Section("Gentle reminders") {
+                    Toggle("Remind only when behind pace", isOn: $draft.remindersEnabled)
+                    if draft.remindersEnabled {
+                        Picker("Minimum gap", selection: $draft.reminderIntervalMinutes) {
+                            Text("60 minutes").tag(60)
+                            Text("90 minutes").tag(90)
+                            Text("120 minutes").tag(120)
+                        }
+                        Text("Quiet hours and the three-per-day ceiling stay synchronized with the Watch.")
+                            .font(APEXFont.body(11))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                }
+
+                Section("Preset buttons") {
+                    ForEach(session.hydrationPresets) { preset in
+                        Button {
+                            editingPreset = preset
+                        } label: {
+                            HStack(spacing: 12) {
+                                Image(systemName: preset.iconToken)
+                                    .foregroundStyle(hydrationColor(preset.paletteToken))
+                                    .frame(width: 28)
+                                VStack(alignment: .leading) {
+                                    Text(preset.name).font(APEXFont.body(14, weight: .bold))
+                                    Text("\(preset.amountML) mL · \(preset.kind.rawValue.capitalized)")
+                                        .font(APEXFont.mono(10))
+                                        .foregroundStyle(APEXColor.secondaryInk)
+                                }
+                            }
+                        }
+                        .swipeActions {
+                            Button("Delete", role: .destructive) {
+                                Task { await session.deleteHydrationPreset(preset) }
+                            }
+                        }
+                    }
+                    Button("Create preset", systemImage: "plus.circle.fill") {
+                        addingPreset = true
+                    }
+                }
+
+                Section("Presentation") {
+                    Toggle("Show preset names", isOn: $draft.showsPresetNames)
+                    Toggle("Confirmation haptics", isOn: $draft.confirmationHaptics)
+                    Picker("Motion", selection: $draft.motionIntensity) {
+                        ForEach(WatchHydrationPreferences.MotionIntensity.allCases) { value in
+                            Text(value.label).tag(value)
+                        }
+                    }
+                }
+
+                Section("History") {
+                    if events.isEmpty {
+                        Text("No hydration facts for this day.")
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    ForEach(events) { event in
+                        HStack(spacing: 10) {
+                            Image(systemName: event.iconToken)
+                                .foregroundStyle(hydrationColor(event.paletteToken))
+                            VStack(alignment: .leading, spacing: 2) {
+                                Text("\(event.amountML) mL · \(event.kind.rawValue.capitalized)")
+                                    .font(APEXFont.body(13, weight: .bold))
+                                Text(event.source.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
+                                    .font(APEXFont.mono(9))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                            }
+                            Spacer()
+                            Image(systemName: canDelete(event) ? "trash.circle" : "lock.fill")
+                                .foregroundStyle(canDelete(event) ? APEXColor.danger : APEXColor.secondaryInk)
+                        }
+                        .swipeActions {
+                            if canDelete(event) {
+                                Button("Remove", role: .destructive) {
+                                    Task { await session.deleteHydrationEvent(event, on: date) }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                if let validationMessage {
+                    Text(validationMessage).foregroundStyle(APEXColor.danger)
+                }
+            }
+            .navigationTitle("Hydration")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                }
+            }
+            .task { load() }
+            .sheet(item: $editingPreset) { preset in
+                HydrationPresetEditor(preset: preset).environment(session)
+            }
+            .sheet(isPresented: $addingPreset) {
+                HydrationPresetEditor(preset: nil).environment(session)
+            }
+        }
+    }
+
+    private func load() {
+        guard !loaded else { return }
+        loaded = true
+        draft = session.hydrationPreferences.map(WatchHydrationPreferences.init(account:)) ?? .default
+    }
+
+    private func save() {
+        guard let ownerID = session.profile?.userID else { return }
+        do {
+            draft.targetLiters = try WatchHydrationPreferences.validatedTargetLiters(draft.targetLiters)
+            Task {
+                await session.saveHydrationPreferences(
+                    draft.accountRow(ownerID: ownerID, existing: session.hydrationPreferences)
+                )
+                dismiss()
+            }
+        } catch {
+            validationMessage = error.localizedDescription
+        }
+    }
+
+    private func canDelete(_ event: HydrationEvent) -> Bool {
+        event.source == .iPhone || event.source == .legacy
+    }
+}
+
+private struct HydrationPresetEditor: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.dismiss) private var dismiss
+    let preset: HydrationPreset?
+    @State private var name: String
+    @State private var amountML: Int
+    @State private var kind: HydrationKind
+    @State private var paletteToken: String
+    @State private var iconToken: String
+
+    private let kinds: [HydrationKind] = [.water, .coffee, .tea, .juice, .shake, .other]
+    private let palettes = ["aqua", "blue", "espresso", "tea", "citrus", "cocoa", "violet"]
+    private let icons = [
+        "drop.fill", "waterbottle.fill", "cup.and.saucer.fill", "mug.fill",
+        "takeoutbag.and.cup.and.straw.fill", "bolt.heart.fill", "leaf.fill",
+    ]
+
+    init(preset: HydrationPreset?) {
+        self.preset = preset
+        _name = State(initialValue: preset?.name ?? "")
+        _amountML = State(initialValue: preset?.amountML ?? 250)
+        _kind = State(initialValue: preset?.kind ?? .water)
+        _paletteToken = State(initialValue: preset?.paletteToken ?? "aqua")
+        _iconToken = State(initialValue: preset?.iconToken ?? "drop.fill")
+    }
+
+    var body: some View {
+        NavigationStack {
+            Form {
+                TextField("Preset name", text: $name)
+                Stepper("\(amountML) mL", value: $amountML, in: 10...5_000, step: 10)
+                Picker("Drink type", selection: $kind) {
+                    ForEach(kinds, id: \.self) { value in
+                        Text(value.rawValue.capitalized).tag(value)
+                    }
+                }
+                Section("Colour") {
+                    HStack {
+                        ForEach(palettes, id: \.self) { token in
+                            Button {
+                                paletteToken = token
+                            } label: {
+                                Circle()
+                                    .fill(hydrationColor(token))
+                                    .frame(width: 30, height: 30)
+                                    .overlay {
+                                        if token == paletteToken {
+                                            Image(systemName: "checkmark")
+                                                .font(.caption.bold())
+                                                .foregroundStyle(.white)
+                                        }
+                                    }
+                            }
+                            .buttonStyle(.plain)
+                        }
+                    }
+                }
+                Picker("Icon", selection: $iconToken) {
+                    ForEach(icons, id: \.self) { icon in
+                        Label(icon.replacingOccurrences(of: ".fill", with: ""), systemImage: icon).tag(icon)
+                    }
+                }
+            }
+            .navigationTitle(preset == nil ? "New preset" : "Edit preset")
+            .toolbar {
+                ToolbarItem(placement: .cancellationAction) {
+                    Button("Cancel") { dismiss() }
+                }
+                ToolbarItem(placement: .confirmationAction) {
+                    Button("Save") { save() }
+                        .disabled(name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty)
+                }
+            }
+        }
+    }
+
+    private func save() {
+        guard let ownerID = session.profile?.userID else { return }
+        let now = Date().ISO8601Format()
+        let row = HydrationPreset(
+            id: preset?.id ?? UUID(),
+            userID: ownerID,
+            name: name.trimmingCharacters(in: .whitespacesAndNewlines),
+            amountML: amountML,
+            kind: kind,
+            paletteToken: paletteToken,
+            iconToken: iconToken,
+            sortOrder: preset?.sortOrder ?? ((session.hydrationPresets.map(\.sortOrder).max() ?? -1) + 1),
+            enabled: true,
+            createdAt: preset?.createdAt ?? now,
+            updatedAt: now
+        )
+        Task {
+            await session.saveHydrationPreset(row)
+            dismiss()
+        }
     }
 }
 
@@ -1122,6 +1503,7 @@ private struct HydrationFigureGauge: View {
     let totalLiters: Double
     let targetLiters: Double
     let sex: String
+    let composition: [HydrationCompositionBand]
 
     private var isFemale: Bool { sex.lowercased().contains("female") }
     /* viewBox widths differ slightly between the two figures */
@@ -1210,7 +1592,14 @@ private struct HydrationFigureGauge: View {
                 }
                 .frame(width: rulerWidth, height: figureHeight)
 
-                HydrationFigureWebView(progress: progress, sex: sex)
+                HydrationFigureWebView(
+                    progress: progress,
+                    sex: sex,
+                    paletteHex: composition.flatMap { band in
+                        let color = hydrationHex(band.paletteToken)
+                        return [color, color]
+                    }
+                )
                     .frame(width: figureWidth, height: figureHeight)
 
                 Spacer(minLength: 0)

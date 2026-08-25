@@ -19,6 +19,7 @@ import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
 import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
+import type { HydrationPreferences } from '../lib/hydrationLedger'
 import { EMPTY_DATA } from '../lib/types'
 import { computeEngine, type SynergyEvent } from '../lib/rpg'
 import { eventContextFor } from '../lib/plan'
@@ -86,6 +87,8 @@ export type ListTable =
   | 'workout_logs'
   | 'activity_logs'
   | 'daily_logs'
+  | 'hydration_events'
+  | 'hydration_presets'
   | 'events'
   | 'rpg_snapshots'
   | 'deload_marks'
@@ -94,10 +97,12 @@ export type ListTable =
 
 const LIST_TABLES: readonly ListTable[] = [
   'meals', 'meal_logs', 'supplements', 'supplement_logs', 'programs', 'program_days',
-  'exercises', 'workout_sessions', 'workout_logs', 'activity_logs', 'daily_logs', 'events',
+  'exercises', 'workout_sessions', 'workout_logs', 'activity_logs', 'daily_logs',
+  'hydration_events', 'hydration_presets', 'events',
   'deload_marks', 'health_metrics', 'imported_activities',
 ]
 const LIST_TABLE_SET = new Set<string>(LIST_TABLES)
+const OPTIONAL_HYDRATION_TABLES = new Set<ListTable>(['hydration_events', 'hydration_presets'])
 
 function isListTable(value: string): value is ListTable {
   return LIST_TABLE_SET.has(value)
@@ -117,6 +122,7 @@ interface StoreValue {
   remove: (table: ListTable, id: string) => void
   setProfile: (patch: Partial<AppData['profile']> & object) => void
   setSettings: (patch: Partial<Settings>, options?: SyncWriteOptions) => void
+  setHydrationPreferences: (patch: Partial<HydrationPreferences>) => void
   toast: (message: string, kind?: 'error' | 'ok') => void
   toasts: Array<{ id: number; message: string; kind: 'error' | 'ok' }>
 }
@@ -205,6 +211,9 @@ function normalizeAppData(value: AppData): AppData {
     activity_types: value.activity_types?.length ? value.activity_types : ACTIVITY_CATALOG,
     activity_logs: value.activity_logs ?? [],
     daily_logs: (value.daily_logs ?? []).map(normalizeDailyLog),
+    hydration_events: value.hydration_events ?? [],
+    hydration_presets: value.hydration_presets ?? [],
+    hydration_preferences: value.hydration_preferences ?? null,
   }
 }
 
@@ -246,7 +255,10 @@ async function fetchAllOwnedRows(
       .eq('user_id', userId)
       .order('id', { ascending: true })
       .range(offset, offset + pageSize - 1)
-    if (error) throw error
+    if (error) {
+      if (OPTIONAL_HYDRATION_TABLES.has(table) && isSchemaCacheError(error)) return rows
+      throw error
+    }
     rows.push(...((page ?? []).filter((row) => row.user_id === userId) as Array<{ id: string; user_id: string }>))
     if ((page?.length ?? 0) < pageSize) return rows
   }
@@ -522,6 +534,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     [persist, enqueue],
   )
 
+  const setHydrationPreferences = useCallback((patch: Partial<HydrationPreferences>) => {
+    const cur = dataRef.current
+    const now = new Date().toISOString()
+    const existing = cur.hydration_preferences
+    const userId = existing?.user_id ?? cur.profile?.user_id ?? cur.settings?.user_id
+    if (!userId) return
+    mutationRevision.current += 1
+    const row: HydrationPreferences = {
+      target_ml: 2_750,
+      display_unit: 'liters',
+      reminders_enabled: false,
+      reminder_interval_minutes: 90,
+      quiet_hours_start_minutes: 1_290,
+      quiet_hours_end_minutes: 480,
+      shows_preset_names: true,
+      confirmation_haptics: true,
+      motion_intensity: 'subtle',
+      created_at: existing?.created_at ?? now,
+      ...existing,
+      ...patch,
+      user_id: userId,
+      updated_at: now,
+    }
+    persist({ ...cur, hydration_preferences: row })
+    enqueue({ table: 'hydration_preferences', type: 'upsert', payload: row })
+  }, [enqueue, persist])
+
   /* ---------- auth + initial fetch ---------- */
   const adoptSession = useCallback((nextSession: Session | null) => {
     /* Finish the previous account's cache write before changing the scope. */
@@ -619,14 +658,16 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const revision = mutationRevision.current
     const pendingBefore = loadQueue(sessionUserId)
     try {
-      const [profileRes, settingsRes, catalogRes, listRows] = await Promise.all([
+      const [profileRes, settingsRes, hydrationPreferencesRes, catalogRes, listRows] = await Promise.all([
         sb.from('profile').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('settings').select('*').eq('user_id', sessionUserId).maybeSingle(),
+        sb.from('hydration_preferences').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('activity_types').select('*'),
         Promise.all(LIST_TABLES.map((table) => fetchAllOwnedRows(sb, table, sessionUserId))),
       ])
       if (scopeRef.current !== sessionUserId || fetchGeneration.current !== generation) return
-      const failed = [profileRes, settingsRes, catalogRes].find((result) => result.error)?.error
+      const failed = [profileRes, settingsRes, hydrationPreferencesRes, catalogRes]
+        .find((result) => result.error && !isSchemaCacheError(result.error))?.error
       if (failed) throw failed
       const pending = mergePendingSyncOperations(pendingBefore, loadQueue(sessionUserId))
       /* Never let a SELECT that began before a local edit replace that edit.
@@ -645,6 +686,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         settings: replayPendingSingleton(
           'settings',
           (settingsRes.data?.user_id === sessionUserId ? settingsRes.data : null) as Settings | null,
+          pending,
+        ),
+        hydration_preferences: replayPendingSingleton(
+          'hydration_preferences',
+          (hydrationPreferencesRes.data?.user_id === sessionUserId
+            ? hydrationPreferencesRes.data : null) as HydrationPreferences | null,
           pending,
         ),
         activity_types: catalogRes.data?.length
@@ -935,6 +982,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     remove,
     setProfile,
     setSettings,
+    setHydrationPreferences,
     toast,
     toasts,
   }), [
@@ -946,6 +994,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     session,
     setProfile,
     setSettings,
+    setHydrationPreferences,
     signIn,
     signOut,
     snapshots,

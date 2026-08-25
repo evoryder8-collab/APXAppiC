@@ -7,6 +7,11 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A15E24000000000000000002 /* HydrationPhoneConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E24000000000000000001 /* HydrationPhoneConnectivity.swift */; };
+		A15E25000000000000000003 /* WatchHydrationConnectivity.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E25000000000000000001 /* WatchHydrationConnectivity.swift */; };
+		A15E23000000000000000002 /* HydrationLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E23000000000000000001 /* HydrationLedger.swift */; };
+		A15E23000000000000000003 /* HydrationLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E23000000000000000001 /* HydrationLedger.swift */; };
+		A15E23000000000000000004 /* HydrationLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E23000000000000000001 /* HydrationLedger.swift */; };
 		A15E20000000000000000002 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
 		A15E20000000000000000003 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
 		A15E20000000000000000004 /* WatchHydrationFillState.swift in Sources */ = {isa = PBXBuildFile; fileRef = A15E20000000000000000001 /* WatchHydrationFillState.swift */; };
@@ -296,6 +301,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A15E24000000000000000001 /* HydrationPhoneConnectivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationPhoneConnectivity.swift; sourceTree = "<group>"; };
+		A15E25000000000000000001 /* WatchHydrationConnectivity.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationConnectivity.swift; sourceTree = "<group>"; };
+		A15E23000000000000000001 /* HydrationLedger.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = HydrationLedger.swift; sourceTree = "<group>"; };
 		A15E20000000000000000001 /* WatchHydrationFillState.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationFillState.swift; sourceTree = "<group>"; };
 		A15E21000000000000000001 /* WatchHydrationPreferences.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationPreferences.swift; sourceTree = "<group>"; };
 		A15E22000000000000000001 /* WatchHydrationReminderPolicy.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = WatchHydrationReminderPolicy.swift; sourceTree = "<group>"; };
@@ -716,6 +724,7 @@
 		7C3F27E9E0F7A40858B939EF /* APEXWatch */ = {
 			isa = PBXGroup;
 			children = (
+				A15E25000000000000000001 /* WatchHydrationConnectivity.swift */,
 				C0D62AAA22223F571969B818 /* APEXWatch.entitlements */,
 				61AFE9BFC5E92652BD0408A7 /* APEXWaterWatchApp.swift */,
 				1477C72FA445DA292C502653 /* Info.plist */,
@@ -935,6 +944,8 @@
 		E0A3F65440B7FCDAAA2C1B23 /* Engine */ = {
 			isa = PBXGroup;
 			children = (
+				A15E24000000000000000001 /* HydrationPhoneConnectivity.swift */,
+				A15E23000000000000000001 /* HydrationLedger.swift */,
 				A15E20000000000000000001 /* WatchHydrationFillState.swift */,
 				A15E21000000000000000001 /* WatchHydrationPreferences.swift */,
 				A15E22000000000000000001 /* WatchHydrationReminderPolicy.swift */,
@@ -1244,6 +1255,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A15E25000000000000000003 /* WatchHydrationConnectivity.swift in Sources */,
+				A15E23000000000000000003 /* HydrationLedger.swift in Sources */,
 				A15E20000000000000000003 /* WatchHydrationFillState.swift in Sources */,
 				A15E21000000000000000003 /* WatchHydrationPreferences.swift in Sources */,
 				A15E22000000000000000003 /* WatchHydrationReminderPolicy.swift in Sources */,
@@ -1257,6 +1270,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A15E24000000000000000002 /* HydrationPhoneConnectivity.swift in Sources */,
+				A15E23000000000000000002 /* HydrationLedger.swift in Sources */,
 				A15E20000000000000000002 /* WatchHydrationFillState.swift in Sources */,
 				A15E21000000000000000002 /* WatchHydrationPreferences.swift in Sources */,
 				A15E22000000000000000002 /* WatchHydrationReminderPolicy.swift in Sources */,
@@ -1394,6 +1409,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A15E23000000000000000004 /* HydrationLedger.swift in Sources */,
 				A15E20000000000000000004 /* WatchHydrationFillState.swift in Sources */,
 				A15E21000000000000000004 /* WatchHydrationPreferences.swift in Sources */,
 				120C3902EDDC837DDE52C8B2 /* APEXWaterComplication.swift in Sources */,
