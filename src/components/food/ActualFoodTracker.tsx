@@ -177,6 +177,7 @@ export function ActualFoodTracker({
   dateLabel,
   target,
   consumed,
+  burnedKcal,
   consumedMeals,
   plannedRows,
   activityLabel,
@@ -190,6 +191,7 @@ export function ActualFoodTracker({
   dateLabel: string | null
   target: MealTotals
   consumed: MealTotals
+  burnedKcal: number
   consumedMeals: ConsumedMeal[]
   plannedRows: PlannedMealTrackerRow[]
   activityLabel: string
@@ -359,7 +361,7 @@ export function ActualFoodTracker({
   return (
     <>
       <GlassCard accent={amber} className="overflow-hidden p-0">
-        <NutritionGlance key={date} eyebrow={dateLabel} target={target} consumed={consumed} mealsDone={mealBlockStatuses.filter((status) => status.completed).length + customLoggedById.size} mealsTotal={mealBlockStatuses.length + enabledCustomBlocks.length} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
+        <NutritionGlance key={date} eyebrow={dateLabel} target={target} consumed={consumed} burnedKcal={burnedKcal} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
 
         <div className="border-t border-ink/6 bg-white/24 p-2.5 sm:p-4">
           <MealDayline

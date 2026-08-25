@@ -10,8 +10,8 @@ const amber = ACCENTS.amber
 export function NutritionGlance({
   target,
   consumed,
-  mealsDone,
-  mealsTotal,
+  burnedKcal,
+  completion,
   status,
   eyebrow = 'Today',
   cornerControl,
@@ -21,8 +21,8 @@ export function NutritionGlance({
 }: {
   target: MealTotals
   consumed: MealTotals
-  mealsDone: number
-  mealsTotal: number
+  burnedKcal: number
+  completion?: number
   status: string
   eyebrow?: string | null
   cornerControl?: ReactNode
@@ -46,11 +46,27 @@ export function NutritionGlance({
       <div className="pointer-events-none absolute -top-20 -right-14 h-52 w-52 rounded-full bg-amber-300/20 blur-3xl" />
       <div className="relative flex items-start justify-between gap-3">
         <div>{eyebrow && <p key={eyebrow} className="font-mono text-[10px] font-bold tracking-[0.18em] text-amber-700 uppercase">{t(eyebrow)}</p>}{onOpen ? <button type="button" onClick={onOpen} className={`${eyebrow ? 'mt-1 ' : ''}flex items-center gap-1.5 text-left font-display text-xl font-bold text-ink active:opacity-65`}>{t('Nutrition at a glance')}<span className="text-sm text-amber-700" aria-hidden>↗</span></button> : <h2 className={eyebrow ? 'mt-1 font-display text-xl font-bold text-ink' : 'font-display text-xl font-bold text-ink'}>{t('Nutrition at a glance')}</h2>}</div>
-        <div className="flex shrink-0 flex-col items-end gap-2">
-          <AccentChip accent={amber}>{t(status)}</AccentChip>
-          {cornerControl}
+        <div className="flex shrink-0 items-start gap-2">
+          <div className="flex flex-col items-end gap-2">
+            <AccentChip accent={amber}>{t(status)}</AccentChip>
+            {completion == null && cornerControl}
+          </div>
+          {completion != null && (
+            <div
+              role="progressbar"
+              aria-label={t('Daily completion')}
+              aria-valuemin={0}
+              aria-valuemax={100}
+              aria-valuenow={completion}
+              className="relative grid h-12 w-12 shrink-0 place-items-center rounded-full"
+              style={{ background: `conic-gradient(#10b981 ${completion}%, rgba(26,26,34,0.08) 0)` }}
+            >
+              <div className="grid h-10 w-10 place-items-center rounded-full bg-white/92 font-mono text-[10px] font-bold text-ink">{completion}%</div>
+            </div>
+          )}
         </div>
       </div>
+      {completion != null && cornerControl && <div className="relative mt-2 flex justify-end">{cornerControl}</div>}
 
       <div className="relative mt-5 grid grid-cols-[minmax(0,.9fr)_minmax(7rem,1.25fr)_minmax(0,.9fr)] items-center gap-1.5 text-center sm:gap-2">
         <div className="min-w-0">
@@ -93,7 +109,7 @@ export function NutritionGlance({
           </div>
           {onRingClick && <span className="pointer-events-none absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full border border-white bg-white/90 text-[10px] font-black text-amber-700 shadow-sm" aria-hidden>✦</span>}
         </motion.button>
-        <div className="min-w-0"><p className="whitespace-nowrap font-mono text-[clamp(1rem,4.8vw,1.125rem)] leading-none font-bold text-ink tabular-nums">{mealsDone}/{mealsTotal}</p><p className="mt-1 truncate text-[9px] font-bold tracking-wide text-ink-faint uppercase sm:text-[10px]">{t('Meals')}</p></div>
+        <div className="min-w-0"><p className="whitespace-nowrap font-mono text-[clamp(1rem,4.8vw,1.125rem)] leading-none font-bold text-ink tabular-nums">{Math.round(burnedKcal)}</p><p className="mt-1 text-[9px] font-bold tracking-wide text-ink-faint uppercase sm:text-[10px]">{t('Burned')}</p></div>
       </div>
 
       <div className="relative mt-5 grid grid-cols-3 gap-2">

@@ -12,6 +12,7 @@ struct NutritionGlanceCard: View {
     let targets: NutritionTargets
     let onEditTargets: () -> Void
     var onOpenCalendar: (() -> Void)?
+    var completion: Int? = nil
 
     private var meals: [LoggedMeal] {
         session.data.loggedMeals.filter { $0.localDate == date.apexDateKey }
@@ -42,21 +43,18 @@ struct NutritionGlanceCard: View {
         max(0, targets.targetCalories - Int(totals.kcal.rounded()))
     }
 
-    /* Web parity: the denominator is the enabled meal blocks configured in
-       settings (plus custom blocks), not the legacy prescribed-meals table,
-       which current seeds leave empty. */
-    private var configuredMealCount: Int {
-        let addons = session.data.settings?.addons
-        let root = addons?["meal_blocks"]?.objectValue
-        let enabled = (root?["blocks"]?.arrayValue ?? []).filter {
-            $0.objectValue?["enabled"]?.boolValue ?? false
-        }.count
-        let custom = (root?["custom_blocks"]?.arrayValue ?? []).filter {
-            $0.objectValue?["enabled"]?.boolValue ?? true
-        }.count
-        let blocks = enabled + custom
-        if blocks > 0 { return blocks }
-        return max(session.data.meals.count, 1)
+    private var wearableActiveCalories: Int? {
+        WearableActivityRecord
+            .history(from: session.data.settings?.addons["watch_activity_history"])
+            .last { $0.date == date.apexDateKey }?
+            .activeCalories
+    }
+
+    private var resolvedBurnedCalories: Int {
+        EnergyEngine.resolvedActiveCalories(
+            wearableActiveCalories: wearableActiveCalories,
+            logs: session.data.activityLogs.filter { $0.date == date.apexDateKey }
+        )
     }
 
     private var calorieProgress: Double {
@@ -100,6 +98,11 @@ struct NutritionGlanceCard: View {
                        the page already carries the date and stays there however
                        far down you scroll. */
                     Spacer(minLength: 4)
+                    if let completion {
+                        CompletionRing(value: completion)
+                            .scaleEffect(0.68)
+                            .frame(width: 47, height: 47)
+                    }
                 }
 
                 /* Three columns around a 164pt ring only fit while the text is
@@ -160,14 +163,12 @@ struct NutritionGlanceCard: View {
                     .buttonStyle(.plain)
 
                     VStack(spacing: 3) {
-                        Text("\(meals.count)/\(configuredMealCount)")
+                        Text("\(resolvedBurnedCalories)")
                             .font(APEXFont.display(29))
-                            /* One token: at accessibility sizes this split into
-                               "1/" and "4" on two lines, which reads as a
-                               different number entirely. */
                             .lineLimit(1)
                             .minimumScaleFactor(0.5)
-                        Text(language.text("Meals").uppercased(with: language.language.locale))
+                            .contentTransition(.numericText())
+                        Text(language.text("Burned").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -192,6 +193,28 @@ struct NutritionGlanceCard: View {
         }
         .accessibilityElement(children: .contain)
         .accessibilityIdentifier("nutrition-glance-card")
+    }
+}
+
+private struct CompletionRing: View {
+    let value: Int
+
+    var body: some View {
+        ZStack {
+            Circle().stroke(APEXColor.ink.opacity(0.07), lineWidth: 7)
+            Circle()
+                .trim(from: 0, to: Double(value) / 100)
+                .stroke(APEXColor.green.gradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
+                .rotationEffect(.degrees(-90))
+                .animation(.snappy, value: value)
+            Text("\(value)%")
+                .font(APEXFont.mono(12))
+                .lineLimit(1)
+                .minimumScaleFactor(0.4)
+        }
+        .frame(width: 63, height: 63)
+        .accessibilityLabel("Daily completion")
+        .accessibilityValue("\(value) percent")
     }
 }
 

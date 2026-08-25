@@ -187,6 +187,10 @@ final class APEXSmokeUITests: XCTestCase {
         if syncAlert.waitForExistence(timeout: 2) {
             syncAlert.buttons["OK"].tap()
         }
+        XCTAssertTrue(app.staticTexts["Nutrition at a glance"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["BURNED"].exists)
+        XCTAssertFalse(app.staticTexts["Today’s checklist"].exists)
+        XCTAssertFalse(app.staticTexts["Today, Constantine."].exists)
         capture("simple-after-mode-switch")
 
         for _ in 0..<4 { app.swipeUp() }

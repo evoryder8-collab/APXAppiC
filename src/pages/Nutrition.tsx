@@ -26,6 +26,7 @@ import {
   calibrateActivityK,
   estimateActivityDay,
   PAL_LABELS,
+  resolveDailyBurnedEnergy,
   type ActivityBlock,
   type ActivityPreset,
 } from '../lib/activity'
@@ -109,6 +110,16 @@ export function Nutrition() {
   const selectedActivityLogs = useMemo(
     () => data.activity_logs.filter((log) => log.date === selectedLogDate),
     [data.activity_logs, selectedLogDate],
+  )
+  const selectedWearableActivity = useMemo(
+    () => (data.settings?.addons.watch_activity_history ?? [])
+      .filter((record) => record.date === selectedLogDate)
+      .at(-1),
+    [data.settings?.addons.watch_activity_history, selectedLogDate],
+  )
+  const burnedKcal = useMemo(
+    () => resolveDailyBurnedEnergy(selectedWearableActivity?.active_calories, selectedActivityLogs),
+    [selectedActivityLogs, selectedWearableActivity?.active_calories],
   )
   const activityBlocks = useMemo(
     () => selectedActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
@@ -885,6 +896,7 @@ export function Nutrition() {
           dateLabel={selectedLogDate === today ? 'Today' : null}
           target={{ kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g }}
           consumed={consumed}
+          burnedKcal={burnedKcal}
           consumedMeals={consumedMeals}
           plannedRows={plannedRows}
           activityLabel={activeDayLabel}

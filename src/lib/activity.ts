@@ -325,6 +325,18 @@ export function netKcalForBlock(block: ActivityBlock, weightKg: number, catalog 
   return type.supportsWatch ? Math.max(metEstimate, discountedWatch) : metEstimate
 }
 
+export function resolveDailyBurnedEnergy(
+  wearableActiveCalories: number | null | undefined,
+  logs: ReadonlyArray<{ computed_kcal: number }>,
+): number {
+  if (Number.isFinite(wearableActiveCalories) && Number(wearableActiveCalories) > 0) {
+    return Math.round(Number(wearableActiveCalories))
+  }
+  return Math.round(logs.reduce((total, log) => (
+    total + (Number.isFinite(log.computed_kcal) ? Math.max(0, log.computed_kcal) : 0)
+  ), 0))
+}
+
 export function estimateActivityDay(
   profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'custom_bmr' | 'goal'> & { calibration_k?: number },
   blocks: ActivityBlock[],

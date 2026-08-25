@@ -63,6 +63,20 @@ enum EnergyEngine {
         return primary
     }
 
+    static func resolvedActiveCalories(
+        wearableActiveCalories: Int?,
+        logs: [ActivityLog]
+    ) -> Int {
+        if let wearableActiveCalories, wearableActiveCalories > 0 {
+            return wearableActiveCalories
+        }
+        let estimate = logs.reduce(0.0) { total, log in
+            total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
+        }
+        guard estimate < Double(Int.max) else { return Int.max }
+        return Int(estimate.rounded())
+    }
+
     static func targets(profile: Profile, logs: [ActivityLog], catalog: [ActivityType]) -> NutritionTargets {
         let bmr = bmr(for: profile)
         let precise = !logs.isEmpty

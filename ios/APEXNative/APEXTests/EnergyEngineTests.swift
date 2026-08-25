@@ -49,6 +49,26 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(result, 350, accuracy: 0.001)
     }
 
+    func testWearableActiveEnergySupersedesRatherThanAddsActivityEstimates() {
+        let logs = [
+            log(typeID: "strength", kcal: 400),
+            log(typeID: "walk", kcal: 200),
+        ]
+
+        XCTAssertEqual(
+            EnergyEngine.resolvedActiveCalories(wearableActiveCalories: 900, logs: logs),
+            900
+        )
+        XCTAssertEqual(
+            EnergyEngine.resolvedActiveCalories(wearableActiveCalories: nil, logs: logs),
+            600
+        )
+        XCTAssertEqual(
+            EnergyEngine.resolvedActiveCalories(wearableActiveCalories: -20, logs: logs),
+            600
+        )
+    }
+
     func testChampionshipWorkloadMapsToExtraActive() {
         let profile = profile(weight: 70)
         let filming = activity(id: "gimbal-filming", met: 3.2, input: .duration)

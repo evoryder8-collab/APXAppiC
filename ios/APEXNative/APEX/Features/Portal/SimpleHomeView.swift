@@ -2,12 +2,10 @@ import SwiftUI
 
 struct SimpleHomeView: View {
     @Environment(AppSession.self) private var session
-    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var language = LanguageState.shared
     @State private var nudges = NudgeCenter.shared
     @State private var showNudges = false
     @State private var showPaywall = false
-    @State private var showChecklist = false
     @State private var showWorkout = false
     @State private var workoutIsLite = false
     @State private var selectedDate = Date()
@@ -189,8 +187,6 @@ struct SimpleHomeView: View {
 
             ScrollView {
                 LazyVStack(spacing: 15) {
-                    simpleHeader
-
                     RecoveryMorningCard(date: selectedDate)
 
                     if let targets {
@@ -198,7 +194,8 @@ struct SimpleHomeView: View {
                             date: selectedDate,
                             targets: targets,
                             onEditTargets: { showTargetEditor = true },
-                            onOpenCalendar: { showCalendar = true }
+                            onOpenCalendar: { showCalendar = true },
+                            completion: completion
                         )
                         APEXDaylineView(
                             date: selectedDate,
@@ -222,7 +219,6 @@ struct SimpleHomeView: View {
 
                     metrics
                     WearableActivityCard(date: selectedDate)
-                    checklist
 
                     if showGuidedPlan, let todayProgramDay, !workoutDone {
                         workoutShortcut(day: todayProgramDay)
@@ -342,25 +338,6 @@ struct SimpleHomeView: View {
         }
     }
 
-    private var simpleHeader: some View {
-        HStack(alignment: .center, spacing: 14) {
-            Text(language.format("Today, %@.", profile?.displayName.components(separatedBy: " ").first ?? "APEX"))
-                .font(APEXFont.display(23))
-                /* Wraps rather than truncating once the text is large. A name
-                   cut to "Consta…" is worse than one on two lines, and a
-                   greeting can afford the room. */
-                .minimumScaleFactor(0.6)
-                .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-            Spacer(minLength: 4)
-            CompletionRing(value: completion)
-                .scaleEffect(0.78)
-                .frame(width: 58, height: 58)
-        }
-        /* Trimmed from 17. The greeting is the least useful thing on this
-           screen and it was taking the most room at the top of it. */
-        .padding(.vertical, 6)
-    }
-
     private func changeDate(_ offset: Int) {
         withAnimation(.snappy) {
             selectedDate = Calendar.current.date(byAdding: .day, value: offset, to: selectedDate) ?? selectedDate
@@ -416,76 +393,6 @@ struct SimpleHomeView: View {
                 todayProgramDay.map { language.text($0.name) }
                     ?? language.text(hasUsableTrainingPlan ? "Rest" : "No plan")
             )
-        }
-    }
-
-    private var checklist: some View {
-        GlassCard(radius: 25, padding: 16) {
-            VStack(spacing: 0) {
-                Button {
-                    withAnimation(.snappy) { showChecklist.toggle() }
-                } label: {
-                    HStack {
-                        VStack(alignment: .leading, spacing: 3) {
-                            Text(language.text("Today’s checklist"))
-                                .font(APEXFont.display(18))
-                            Text(language.format("%d of %d essentials complete", completedTasks, totalTasks))
-                                .font(APEXFont.body(11, weight: .medium))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                        }
-                        Spacer()
-                        Image(systemName: showChecklist ? "minus" : "plus")
-                            .font(.system(size: 18, weight: .bold))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                    }
-                }
-                .buttonStyle(.plain)
-
-                if showChecklist {
-                    Divider().padding(.vertical, 13)
-                    VStack(spacing: 8) {
-                        ForEach(adaptivePlan) { prescription in
-                            let meal = prescription.source
-                            SimpleChecklistRow(
-                                time: meal.time,
-                                title: language.text(meal.name),
-                                detail: language.format("%d kcal", prescription.kcal),
-                                done: mealDone(meal)
-                            ) {
-                                Task { await session.togglePlannedMeal(prescription) }
-                            }
-                        }
-                        ForEach(supplementGroups) { group in
-                            SimpleChecklistRow(
-                                time: clock(group.timeMinutes),
-                                title: language.text(group.label),
-                                detail: language.format("%d supplements", group.supplements.count),
-                                done: groupDone(group)
-                            ) {
-                                Task { await toggle(group) }
-                            }
-                        }
-                        SimpleChecklistRow(
-                            time: language.text("NOW"),
-                            title: language.text("Water"),
-                            detail: language.format("%.2f / %.2f L", waterL, waterTargetL),
-                            done: waterDone,
-                            action: { addWater() }
-                        )
-                        if let todayProgramDay {
-                            SimpleChecklistRow(
-                                time: profile?.trainingTime ?? "19:00",
-                                title: language.text(todayProgramDay.name),
-                                detail: language.format("%d min", todayProgramDay.estimatedMinutes),
-                                done: workoutDone
-                            ) {
-                                workoutIsLite = false
-                                showWorkout = true
-                            }
-                        }
-                    }
-                }
-            }
         }
     }
 
@@ -805,31 +712,6 @@ private struct NextActionCard: View {
     }
 }
 
-private struct CompletionRing: View {
-    let value: Int
-
-    var body: some View {
-        ZStack {
-            Circle().stroke(APEXColor.ink.opacity(0.07), lineWidth: 7)
-            Circle()
-                .trim(from: 0, to: Double(value) / 100)
-                .stroke(APEXColor.green.gradient, style: StrokeStyle(lineWidth: 7, lineCap: .round))
-                .rotationEffect(.degrees(-90))
-                .animation(.snappy, value: value)
-            Text("\(value)%")
-                .font(APEXFont.mono(12))
-                /* The ring is a fixed circle, so the number has to shrink
-                   rather than clip. At the largest text size this read "1…",
-                   which is not a smaller number, it is a wrong one. */
-                .lineLimit(1)
-                .minimumScaleFactor(0.4)
-        }
-        .frame(width: 63, height: 63)
-        .accessibilityLabel("Daily completion")
-        .accessibilityValue("\(value) percent")
-    }
-}
-
 private struct SimpleMetric: View {
     @State private var language = LanguageState.shared
     let icon: String
@@ -871,44 +753,6 @@ private struct SimpleMetric: View {
         .frame(height: 84)
         .background(.ultraThinMaterial.opacity(0.84), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(done ? APEXColor.green.opacity(0.26) : .white.opacity(0.82)))
-        }
-        .buttonStyle(.plain)
-    }
-}
-
-private struct SimpleChecklistRow: View {
-    let time: String
-    let title: String
-    let detail: String
-    let done: Bool
-    let action: () -> Void
-
-    var body: some View {
-        Button(action: action) {
-            HStack(spacing: 11) {
-                Image(systemName: done ? "checkmark" : "circle")
-                    .font(.system(size: 12, weight: .bold))
-                    .foregroundStyle(done ? .white : APEXColor.secondaryInk.opacity(0.42))
-                    .frame(width: 29, height: 29)
-                    .background(done ? APEXColor.green : .clear, in: Circle())
-                    .overlay(Circle().stroke(done ? Color.clear : APEXColor.ink.opacity(0.12)))
-                VStack(alignment: .leading, spacing: 2) {
-                    Text(title)
-                        .font(APEXFont.body(13, weight: .bold))
-                        .foregroundStyle(done ? APEXColor.secondaryInk : APEXColor.ink)
-                        .strikethrough(done)
-                    Text(detail)
-                        .font(APEXFont.body(9, weight: .medium))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                }
-                Spacer()
-                Text(time)
-                    .font(APEXFont.mono(8))
-                    .foregroundStyle(APEXColor.secondaryInk)
-            }
-            .padding(.horizontal, 11)
-            .frame(minHeight: 51)
-            .background(.white.opacity(0.52), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
         }
         .buttonStyle(.plain)
     }
@@ -2079,9 +1923,23 @@ private struct WearableActivityCard: View {
                 Button {
                     withAnimation(.spring(response: 0.32, dampingFraction: 0.86)) { expanded.toggle() }
                 } label: {
-                    HStack {
-                        Text(language.text("Wearable activity")).font(APEXFont.display(18))
-                            .foregroundStyle(APEXColor.ink)
+                    HStack(alignment: .center, spacing: 10) {
+                        VStack(alignment: .leading, spacing: 3) {
+                            Text(language.text("Wearable activity"))
+                                .font(APEXFont.display(18))
+                                .foregroundStyle(APEXColor.ink)
+                            if let record {
+                                Text(
+                                    "\(record.steps.formatted()) \(language.text("Steps").lowercased(with: language.language.locale))"
+                                        + " · \(record.activeCalories.formatted()) \(language.text("Active kcal"))"
+                                        + " · \(record.exerciseMinutes.formatted()) \(language.text("Exercise min"))"
+                                )
+                                .font(APEXFont.body(9, weight: .semibold))
+                                .foregroundStyle(APEXColor.secondaryInk)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .multilineTextAlignment(.leading)
+                            }
+                        }
                         Spacer()
                         Image(systemName: "chevron.down")
                             .font(.system(size: 13, weight: .bold))

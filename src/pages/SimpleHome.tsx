@@ -49,6 +49,7 @@ import { estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays } from '../lib/trainingInduction'
+import { resolveDailyBurnedEnergy } from '../lib/activity'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -153,6 +154,18 @@ export function SimpleHome() {
   const showNextAction = settings?.addons.simple_show_next_action ?? false
   const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(settings?.addons.meal_blocks), [settings?.addons.meal_blocks])
   const hasManualWorkout = useMemo(() => manualSessionsForDate(data, selectedDate).length > 0, [data, selectedDate])
+  const selectedActivityLogs = useMemo(
+    () => data.activity_logs.filter((log) => log.date === selectedDate),
+    [data.activity_logs, selectedDate],
+  )
+  const selectedWearableActivity = useMemo(
+    () => (settings?.addons.watch_activity_history ?? []).filter((record) => record.date === selectedDate).at(-1),
+    [selectedDate, settings?.addons.watch_activity_history],
+  )
+  const burnedKcal = useMemo(
+    () => resolveDailyBurnedEnergy(selectedWearableActivity?.active_calories, selectedActivityLogs),
+    [selectedActivityLogs, selectedWearableActivity?.active_calories],
+  )
   const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
   const mealPlan = useMemo(
     () => profile && targets
@@ -865,7 +878,6 @@ export function SimpleHome() {
   const current = snapshots.at(-1)
   const previous = snapshots[Math.max(0, snapshots.length - 15)] ?? current
   const momentum = current && previous ? current.overall - previous.overall : 0
-  const firstName = profile?.display_name.split(' ')[0] ?? 'You'
   const orbitSession = orbit.state.sessions.find((session) => session.date === selectedDate && session.status === 'planned')
   const dateLocale = language === 'ro' ? 'ro-RO' : language === 'th' ? 'th-TH' : 'en-GB'
   const selectedDateLabel = new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long' }).format(selectedDateObject)
@@ -947,7 +959,7 @@ export function SimpleHome() {
       }}
     >
       <FloatingActiveDate label={selectedDateLabel} onClick={() => window.scrollTo({ top: 0, behavior: 'smooth' })} />
-      <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-5">
+      <motion.header initial={{ opacity: 0, y: 12 }} animate={{ opacity: 1, y: 0 }} className="mb-4">
         <div className="flex items-center justify-between gap-3">
           <button type="button" onClick={() => moveDay(-1)} aria-label={t('Previous day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">‹</button>
           <button
@@ -961,12 +973,6 @@ export function SimpleHome() {
             <span className="mt-0.5 block text-[9px] font-black tracking-wide text-violet-700 uppercase">{selectedDate === today ? t('Today') : t('Open calendar')}</span>
           </button>
           <button type="button" onClick={() => moveDay(1)} aria-label={t('Next day')} className="grid h-9 w-9 place-items-center rounded-full bg-white/65 text-lg font-black text-ink-soft shadow-sm">›</button>
-        </div>
-        <div className="mt-1 flex items-end justify-between gap-3">
-          <div><h1 className="font-display text-[30px] leading-tight font-bold tracking-tight text-ink">{selectedDate === today ? t(`Today, ${firstName}.`) : `${firstName}.`}</h1>{(settings.addons.interface_mode ?? 'clean') === 'detailed' && <p className="mt-1 text-sm font-medium text-ink-soft">{t(selectedDate === today ? 'Only what matters. One tap at a time.' : 'Swipe between days. Plan ahead or review what happened.')}</p>}</div>
-          <div className="relative grid h-16 w-16 shrink-0 place-items-center rounded-full" style={{ background: `conic-gradient(#10b981 ${completion}%, rgba(26,26,34,0.08) 0)` }}>
-            <div className="grid h-[52px] w-[52px] place-items-center rounded-full bg-white/90 font-mono text-sm font-bold text-ink">{completion}%</div>
-          </div>
         </div>
       </motion.header>
 
@@ -995,8 +1001,8 @@ export function SimpleHome() {
                 <NutritionGlance
                   target={targets}
                   consumed={consumed}
-                  mealsDone={completedMeals}
-                  mealsTotal={totalMealBlocks}
+                  burnedKcal={burnedKcal}
+                  completion={completion}
                   status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
                   onOpen={() => openNutritionSection('meals')}
                   onRingClick={() => setQuickPanel('targets')}

@@ -9,6 +9,7 @@ import {
   emptyActivityBlock,
   estimateActivityDay,
   netKcalForBlock,
+  resolveDailyBurnedEnergy,
   type ActivityBlock,
 } from '../src/lib/activity.ts'
 import { buildTargetMealPlan, computeTargets, type Targets } from '../src/lib/nutrition.ts'
@@ -84,6 +85,14 @@ test('run distance and discounted watch calories dedupe with max instead of sum'
   const run = block('jog-run', { distanceKm: 5, watchKcal: 420 })
   closeTo(netKcalForBlock(run, 70), 350)
   assert.notEqual(netKcalForBlock(run, 70), 686)
+})
+
+test('whole-day wearable burn supersedes rather than adds activity estimates', () => {
+  const estimates = [{ computed_kcal: 400 }, { computed_kcal: 200 }]
+
+  assert.equal(resolveDailyBurnedEnergy(900, estimates), 900)
+  assert.equal(resolveDailyBurnedEnergy(null, estimates), 600)
+  assert.equal(resolveDailyBurnedEnergy(-20, estimates), 600)
 })
 
 test('championship prefill reaches extra active without manual blocks', () => {

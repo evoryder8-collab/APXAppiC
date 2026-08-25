@@ -167,6 +167,8 @@ const rows: Array<[string, string, string]> = [
   ['Everything essential is logged', 'Tot ce este esențial a fost înregistrat', 'บันทึกสิ่งสำคัญครบแล้ว'],
   ['View progress', 'Vezi progresul', 'ดูความก้าวหน้า'],
   ['Meals', 'Mese', 'มื้ออาหาร'],
+  ['Burned', 'Arse', 'เผาผลาญ'],
+  ['Daily completion', 'Progresul zilei', 'ความคืบหน้าวันนี้'],
   ['Supps', 'Suplimente', 'อาหารเสริม'],
   ['Water', 'Apă', 'น้ำ'],
   ['Training', 'Antrenament', 'การฝึก'],
