@@ -48,7 +48,7 @@ import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCata
 import { estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
-import { activeTrainingProgramDays } from '../lib/trainingInduction'
+import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { resolveDailyBurnedEnergy } from '../lib/activity'
 
 const emerald = ACCENTS.emerald
@@ -280,11 +280,17 @@ export function SimpleHome() {
     }
     return { main: hasPrescription('main'), transition: hasPrescription('transition') }
   }, [data])
-  const guidedProgramSlug = simpleGuidedProgramSlug(
+  const fallbackGuidedProgramSlug = simpleGuidedProgramSlug(
     profile?.persona,
     usableGuidedPrograms.main,
     usableGuidedPrograms.transition,
   )
+  const induction = data.settings?.addons.training_induction
+  const guidedProgramSlug: ProgramSlug = induction && isInsideInductionWindow(induction, 'transition', selectedDate) && usableGuidedPrograms.transition
+    ? 'transition'
+    : induction && isInsideInductionWindow(induction, 'main', selectedDate) && usableGuidedPrograms.main
+      ? 'main'
+      : fallbackGuidedProgramSlug
   const guidedScheduleRoute = guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
   const plan = useMemo(
     () => planForDate(data, guidedProgramSlug, selectedDate, false),

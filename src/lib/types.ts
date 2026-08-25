@@ -467,13 +467,16 @@ export type TrainingPainArea =
 
 export type TrainingPlanCaution = 'standard' | 'cautious' | 'clearance'
 export type TrainingSessionsPerWeek = 2 | 3 | 4 | 5 | 6 | 7
+export type TrainingPlanWeeks = 4 | 8 | 12 | 26
 
 export interface TrainingInductionProfile {
   version: 1
   completed_at: string
   start_date: string
   main_start_date: string
-  transition_weeks: 12
+  end_date?: string
+  plan_weeks?: TrainingPlanWeeks
+  transition_weeks: number
   inactivity: TrainingInactivity
   venue: TrainingVenue
   equipment: string[]

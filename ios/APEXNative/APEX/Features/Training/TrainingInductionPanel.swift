@@ -42,7 +42,7 @@ struct TrainingInductionPanel: View {
                     .font(APEXFont.mono(9, weight: .bold))
                     .tracking(1.6)
                     .foregroundStyle(APEXColor.violet)
-                Text(language.text(slug == "main" ? "Your personal main phase" : "Your 12-week foundation"))
+                Text(language.text(slug == "main" ? "Your personal main phase" : "Your personal training plan"))
                     .font(APEXFont.display(21))
                 Text(language.text(hasActiveGeneratedPlan ? "Your generated plan is active. Rebuild it any time, or restore your original programme from Settings."
                     : "Answer a few questions and APEX writes a starting programme around your equipment, your recovery and the days you can train."))
@@ -183,7 +183,7 @@ struct TrainingInductionPanel: View {
                     .foregroundStyle(APEXColor.violet)
                 Text(language.text("Build your training week"))
                     .font(APEXFont.display(24))
-                Text(language.format("Step %d of 4", builderStep + 1))
+                Text(language.format("Step %d of 5", builderStep + 1))
                     .font(APEXFont.body(12, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
@@ -206,7 +206,7 @@ struct TrainingInductionPanel: View {
 
     private var builderProgress: some View {
         HStack(spacing: 7) {
-            ForEach(0..<4, id: \.self) { index in
+            ForEach(0..<5, id: \.self) { index in
                 Capsule()
                     .fill(index <= builderStep ? APEXColor.violet : APEXColor.violet.opacity(0.14))
                     .frame(height: 5)
@@ -221,6 +221,7 @@ struct TrainingInductionPanel: View {
         case 0: goalStep
         case 1: venueAndFrequencyStep
         case 2: equipmentStep
+        case 3: durationStep
         default: recoveryAndReviewStep
         }
     }
@@ -313,6 +314,22 @@ struct TrainingInductionPanel: View {
         }
     }
 
+    private var durationStep: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            sectionHeading(
+                eyebrow: "PLAN HORIZON",
+                title: "How long should your plan be?",
+                body: "Choose the period you can commit to. APEX stores a real end date, so the plan cannot repeat forever."
+            )
+
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 12) {
+                ForEach(TrainingInduction.supportedPlanWeeks, id: \.self) { weeks in
+                    durationCard(weeks)
+                }
+            }
+        }
+    }
+
     private var recoveryAndReviewStep: some View {
         VStack(alignment: .leading, spacing: 18) {
             sectionHeading(
@@ -371,7 +388,7 @@ struct TrainingInductionPanel: View {
             }
 
             Button {
-                if builderStep < 3 {
+                if builderStep < 4 {
                     builderStep += 1
                 } else {
                     showBuilder = false
@@ -379,8 +396,8 @@ struct TrainingInductionPanel: View {
                 }
             } label: {
                 HStack(spacing: 8) {
-                    Text(language.text(builderStep < 3 ? "Continue" : "Install my plan"))
-                    Image(systemName: builderStep < 3 ? "arrow.right" : "sparkles")
+                    Text(language.text(builderStep < 4 ? "Continue" : "Install my plan"))
+                    Image(systemName: builderStep < 4 ? "arrow.right" : "sparkles")
                 }
                 .font(APEXFont.body(14, weight: .bold))
                 .frame(maxWidth: .infinity, minHeight: 50)
@@ -388,7 +405,7 @@ struct TrainingInductionPanel: View {
                 .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 17))
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier(builderStep < 3 ? "induction-next" : "induction-install")
+            .accessibilityIdentifier(builderStep < 4 ? "induction-next" : "induction-install")
             .disabled(session.isBusy)
         }
         .padding(.horizontal, 20)
@@ -482,6 +499,38 @@ struct TrainingInductionPanel: View {
         .buttonStyle(.plain)
         .accessibilityLabel(language.format("%d training days per week", days))
         .accessibilityIdentifier("induction-return-sessions-\(days)")
+        .accessibilityValue(selected ? "1" : "0")
+    }
+
+    private func durationCard(_ weeks: Int) -> some View {
+        let selected = draft.planWeeks == weeks
+        let primary = weeks == 26 ? "6" : "\(weeks)"
+        let unit = weeks == 26 ? "MONTHS" : "WEEKS"
+        return Button {
+            draft.planWeeks = weeks
+        } label: {
+            VStack(spacing: 5) {
+                Text(primary)
+                    .font(APEXFont.display(31))
+                Text(language.text(unit))
+                    .font(APEXFont.mono(9, weight: .bold))
+                    .tracking(1.1)
+                Text(language.text(weeks == 12 ? "Balanced foundation" : weeks == 26 ? "Foundation plus main phase" : "Focused foundation"))
+                    .font(APEXFont.body(10, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .multilineTextAlignment(.center)
+            }
+            .foregroundStyle(selected ? APEXColor.violet : .primary)
+            .frame(maxWidth: .infinity, minHeight: 126)
+            .background(selected ? APEXColor.violet.opacity(0.13) : Color.white.opacity(0.58), in: RoundedRectangle(cornerRadius: 21))
+            .overlay {
+                RoundedRectangle(cornerRadius: 21)
+                    .stroke(selected ? APEXColor.violet : Color.primary.opacity(0.07), lineWidth: selected ? 1.5 : 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityLabel(weeks == 26 ? language.text("6 months") : language.format("%d weeks", weeks))
+        .accessibilityIdentifier("induction-return-duration-\(weeks)")
         .accessibilityValue(selected ? "1" : "0")
     }
 
@@ -601,6 +650,14 @@ struct TrainingInductionPanel: View {
                     .font(APEXFont.body(11, weight: .semibold))
                     .foregroundStyle(APEXColor.amberDeep)
             }
+            Label(
+                draft.planWeeks == 26
+                    ? language.text("6-month plan")
+                    : language.format("%d-week plan", draft.planWeeks),
+                systemImage: "calendar.badge.clock"
+            )
+            .font(APEXFont.body(11, weight: .semibold))
+            .foregroundStyle(APEXColor.secondaryInk)
             ForEach(assessment.reasons, id: \.self) { reason in
                 Label(language.text(reason), systemImage: "shield.lefthalf.filled")
                     .font(APEXFont.body(11, weight: .semibold))

@@ -71,17 +71,39 @@ struct SimpleHomeView: View {
         return weekday == 1 ? 7 : weekday - 1
     }
     private var guidedProgramSlug: String {
-        SimpleHomeLogic.guidedProgramSlug(
+        let fallback = SimpleHomeLogic.guidedProgramSlug(
             persona: profile?.persona,
             mainIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "main"),
             transitionIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition")
         )
+        guard session.data.settings?.addons["training_induction"]?.objectValue != nil else {
+            return fallback
+        }
+        if TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "transition", date: today),
+           TrainingInduction.hasUsablePrescription(in: session.data, slug: "transition") {
+            return "transition"
+        }
+        if TrainingPlanEngine.isInsideInductionWindow(session.data, slug: "main", date: today),
+           TrainingInduction.hasUsablePrescription(in: session.data, slug: "main") {
+            return "main"
+        }
+        return fallback
     }
     private var guidedProgramRoute: PortalDestination {
         guidedProgramSlug == "main" ? .mainPhase : .transition
     }
     private var hasUsableTrainingPlan: Bool {
-        TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug)
+        guard TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug) else {
+            return false
+        }
+        guard session.data.settings?.addons["training_induction"]?.objectValue != nil else {
+            return true
+        }
+        return TrainingPlanEngine.isInsideInductionWindow(
+            session.data,
+            slug: guidedProgramSlug,
+            date: today
+        )
     }
     private var todayProgramDay: ProgramDay? {
         guard hasUsableTrainingPlan else { return nil }

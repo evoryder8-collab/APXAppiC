@@ -13,6 +13,7 @@ import type {
   TrainingInductionProfile,
   TrainingPainArea,
   TrainingPlanCaution,
+  TrainingPlanWeeks,
   TrainingSessionsPerWeek,
   TrainingVenue,
   Settings,
@@ -79,7 +80,16 @@ export interface TrainingInductionInput {
   recent_operation: boolean
   chronic_lower_back_pain: boolean
   sessions_per_week: TrainingSessionsPerWeek
+  plan_weeks: TrainingPlanWeeks
   goal: TrainingGoal
+}
+
+export const TRAINING_PLAN_WEEK_OPTIONS: readonly TrainingPlanWeeks[] = [4, 8, 12, 26]
+
+function normalizedPlanWeeks(value: unknown): TrainingPlanWeeks {
+  return TRAINING_PLAN_WEEK_OPTIONS.includes(value as TrainingPlanWeeks)
+    ? value as TrainingPlanWeeks
+    : 12
 }
 
 export interface TrainingAssessment {
@@ -145,6 +155,7 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
     recent_operation: raw.recent_operation === true,
     chronic_lower_back_pain: raw.chronic_lower_back_pain === true,
     sessions_per_week: Math.min(7, Math.max(2, rawSessions)) as TrainingSessionsPerWeek,
+    plan_weeks: normalizedPlanWeeks(raw.plan_weeks),
     goal: typeof raw.goal === 'string' ? goalMap[raw.goal] ?? 'rebuild' : 'rebuild',
   }
 }
@@ -619,7 +630,10 @@ export function generateTrainingPlan(
   )
   const assessment = assessTrainingInput(input)
   const count = assessment.sessions_per_week
-  const mainStart = addDaysIso(input.start_date, 84)
+  const planWeeks = input.plan_weeks
+  const transitionWeeks = Math.min(12, planWeeks)
+  const mainStart = addDaysIso(input.start_date, transitionWeeks * 7)
+  const endDate = addDaysIso(input.start_date, planWeeks * 7)
   const programFor = (slug: 'transition' | 'main'): Program => {
     const generatedId = stableUuid(userId, `program:${slug}`)
     const existing = existingPrograms.find((program) => program.user_id === userId && program.slug === slug)
@@ -629,9 +643,13 @@ export function generateTrainingPlan(
       id: generatedId,
       user_id: userId,
       slug,
-      name: slug === 'transition' ? `12-Week ${venue} Foundation` : `Personal ${venue} Main Phase`,
+      name: slug === 'transition' ? `${transitionWeeks}-Week ${venue} Foundation` : `Personal ${venue} Main Phase`,
       description: slug === 'transition'
-        ? 'Weeks 1-4 restore, weeks 5-8 build, weeks 9-12 progress. A simple schedule built from your answers.'
+        ? transitionWeeks === 4
+          ? 'Weeks 1-4 restore consistency. A simple schedule built from your answers.'
+          : transitionWeeks === 8
+            ? 'Weeks 1-4 restore, weeks 5-8 build. A simple schedule built from your answers.'
+            : 'Weeks 1-4 restore, weeks 5-8 build, weeks 9-12 progress. A simple schedule built from your answers.'
         : 'Your follow-on strength and muscle phase, using the same equipment, recovery limits and weekly rhythm.',
     }
   }
@@ -751,7 +769,9 @@ export function generateTrainingPlan(
       completed_at: completedAt,
       start_date: input.start_date,
       main_start_date: mainStart,
-      transition_weeks: 12,
+      end_date: endDate,
+      plan_weeks: planWeeks,
+      transition_weeks: transitionWeeks,
       inactivity: input.inactivity,
       venue: input.venue,
       equipment: [...input.equipment],
@@ -792,8 +812,10 @@ export function isInsideInductionWindow(
   const start = raw?.start_date
   const mainStart = raw?.main_start_date
   if (typeof start !== 'string' || typeof mainStart !== 'string') return false
+  const end = raw?.end_date
+  if (typeof end === 'string' && dateIso >= end) return false
   if (slug === 'transition') return dateIso >= start && dateIso < mainStart
-  return dateIso >= mainStart
+  return dateIso >= mainStart && (typeof end !== 'string' || dateIso < end)
 }
 
 export function inductionWeek(induction: TrainingInductionProfile, dateIso: string): number {

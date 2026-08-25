@@ -1,5 +1,5 @@
 import { useMemo, useState } from 'react'
-import type { ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingVenue } from '../../lib/types'
+import type { ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingPlanWeeks, TrainingVenue } from '../../lib/types'
 import { useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
 import {
@@ -11,6 +11,7 @@ import {
   invalidateTrainingPlanAddons,
   markPendingTrainingPlanAddons,
   searchEquipment,
+  TRAINING_PLAN_WEEK_OPTIONS,
   trainingInputFromProfile,
   trainingGenerationRevision,
   type TrainingInductionInput,
@@ -23,11 +24,11 @@ type Language = 'en' | 'ro' | 'th'
 
 const COPY = {
   en: {
-    eyebrow: 'PERSONAL STARTING PATH', transitionTitle: 'Your first 12 weeks, made simple', mainTitle: 'Your next phase is already mapped',
-    emptyBody: 'Answer four short questions. APEX will build a minimal plan around your training gap, body, location and equipment.',
+    eyebrow: 'PERSONAL STARTING PATH', transitionTitle: 'Your plan, built around your timeline', mainTitle: 'Your next phase is already mapped',
+    emptyBody: 'Answer six focused sections. APEX will build a minimal plan around your timeline, training gap, body, location and equipment.',
     activeBody: 'Your plan is installed in the calendar. Every block has one job, so progress stays obvious.',
-    build: 'Build my first 12 weeks', review: 'Review plan', mainButton: 'Set up my main phase',
-    starts: 'Starts', mainStarts: 'Main phase', sessions: 'sessions / week', home: 'Home', gym: 'Gym', outdoors: 'Outdoors',
+    build: 'Build my plan', review: 'Review plan', mainButton: 'Set up my main phase',
+    starts: 'Starts', mainStarts: 'Main phase', ends: 'Ends', sessions: 'sessions / week', home: 'Home', gym: 'Gym', outdoors: 'Outdoors',
     wizard: 'Training induction', step: 'Step', back: 'Back', next: 'Continue', install: 'Install my plan',
     gapTitle: 'How long has regular strength training been absent?', gapBody: 'This changes the starting volume, not your potential.',
     frequency: 'How many weekly sessions can you repeat in a normal week?',
@@ -38,18 +39,19 @@ const COPY = {
     equipmentTitle: 'What equipment is available?', equipmentBody: 'Type a few letters. “dum” immediately finds both dumbbell types.',
     equipmentPlaceholder: 'Search equipment', noEquipment: 'No equipment is completely fine. A bodyweight version will be built.',
     goalTitle: 'What should the next phase prioritize?', rebuild: 'Rebuild consistency', muscle: 'Build muscle', fatLoss: 'Lose fat', strength: 'Build strength', endurance: 'Build endurance',
+    durationTitle: 'How long should your plan be?', durationBody: 'Choose the horizon you can commit to. APEX stores a real end date and will never repeat this plan forever.', weeks: 'weeks', sixMonths: '6 months',
     reviewTitle: 'Your plan logic', standard: 'Standard foundation', cautious: 'Conservative foundation', clearance: 'Clearance-first path',
     standardBody: 'A repeatable schedule with gradual volume and logged-load progression.',
     cautiousBody: 'Volume is reduced and every movement begins with 3 to 4 reps in reserve.',
     clearanceBody: 'Recent surgery needs clinician clearance. APEX installs only gentle preparation until loaded training is cleared.',
-    phases: 'Weeks 1-4 restore · 5-8 build · 9-12 progress', installed: 'Your personalized 12-week path is installed.',
+    phases4: 'Weeks 1-4 restore consistency', phases8: 'Weeks 1-4 restore · 5-8 build', phases12: 'Weeks 1-4 restore · 5-8 build · 9-12 progress', phases26: 'Weeks 1-12 foundation · 13-26 main phase', installed: 'Your personalized plan is installed.',
   },
   ro: {
-    eyebrow: 'TRASEU PERSONAL DE ÎNCEPUT', transitionTitle: 'Primele 12 săptămâni, fără complicații', mainTitle: 'Următoarea etapă este deja pregătită',
-    emptyBody: 'Răspunde la patru întrebări scurte. APEX construiește un plan minimal pe baza pauzei, corpului, locului și echipamentului tău.',
+    eyebrow: 'TRASEU PERSONAL DE ÎNCEPUT', transitionTitle: 'Planul tău, construit pentru perioada aleasă', mainTitle: 'Următoarea etapă este deja pregătită',
+    emptyBody: 'Răspunde la șase secțiuni scurte. APEX construiește un plan minimal pe baza perioadei, pauzei, corpului, locului și echipamentului tău.',
     activeBody: 'Planul este instalat în calendar. Fiecare etapă are un singur scop, iar progresul rămâne clar.',
-    build: 'Construiește primele 12 săptămâni', review: 'Revizuiește planul', mainButton: 'Configurează faza principală',
-    starts: 'Începe', mainStarts: 'Faza principală', sessions: 'sesiuni / săptămână', home: 'Acasă', gym: 'Sală', outdoors: 'În aer liber',
+    build: 'Construiește planul', review: 'Revizuiește planul', mainButton: 'Configurează faza principală',
+    starts: 'Începe', mainStarts: 'Faza principală', ends: 'Se încheie', sessions: 'sesiuni / săptămână', home: 'Acasă', gym: 'Sală', outdoors: 'În aer liber',
     wizard: 'Inducție pentru antrenament', step: 'Pasul', back: 'Înapoi', next: 'Continuă', install: 'Instalează planul',
     gapTitle: 'De cât timp lipsește antrenamentul regulat de forță?', gapBody: 'Răspunsul schimbă volumul de început, nu potențialul tău.',
     frequency: 'Câte sesiuni poți repeta într-o săptămână normală?',
@@ -60,18 +62,19 @@ const COPY = {
     equipmentTitle: 'Ce echipament ai disponibil?', equipmentBody: 'Scrie câteva litere. „gan” găsește imediat ambele tipuri de gantere.',
     equipmentPlaceholder: 'Caută echipament', noEquipment: 'Este în regulă și fără echipament. Va fi creată o variantă cu greutatea corpului.',
     goalTitle: 'Care este prioritatea fazei următoare?', rebuild: 'Refacerea consecvenței', muscle: 'Masă musculară', fatLoss: 'Pierdere de grăsime', strength: 'Forță', endurance: 'Rezistență',
+    durationTitle: 'Cât de lung să fie planul tău?', durationBody: 'Alege perioada pe care o poți urma. APEX salvează o dată reală de final și nu va repeta planul la nesfârșit.', weeks: 'săptămâni', sixMonths: '6 luni',
     reviewTitle: 'Logica planului tău', standard: 'Fundație standard', cautious: 'Fundație conservatoare', clearance: 'Traseu cu aviz medical',
     standardBody: 'Un program repetabil, cu volum gradual și progresie bazată pe greutățile înregistrate.',
     cautiousBody: 'Volumul este redus, iar fiecare mișcare începe cu 3 sau 4 repetări în rezervă.',
     clearanceBody: 'O operație recentă necesită aviz medical. APEX instalează doar pregătire ușoară până când efortul cu greutăți este permis.',
-    phases: 'Săpt. 1-4 refacere · 5-8 construcție · 9-12 progres', installed: 'Traseul personalizat de 12 săptămâni a fost instalat.',
+    phases4: 'Săpt. 1-4 refacerea consecvenței', phases8: 'Săpt. 1-4 refacere · 5-8 construcție', phases12: 'Săpt. 1-4 refacere · 5-8 construcție · 9-12 progres', phases26: 'Săpt. 1-12 fundație · 13-26 faza principală', installed: 'Planul personalizat a fost instalat.',
   },
   th: {
-    eyebrow: 'เส้นทางเริ่มต้นส่วนตัว', transitionTitle: '12 สัปดาห์แรกที่ทำตามได้ง่าย', mainTitle: 'ช่วงถัดไปของคุณพร้อมแล้ว',
-    emptyBody: 'ตอบคำถามสั้น ๆ 4 ข้อ APEX จะสร้างแผนที่เรียบง่ายจากช่วงที่หยุดฝึก สภาพร่างกาย สถานที่ และอุปกรณ์ของคุณ',
+    eyebrow: 'เส้นทางเริ่มต้นส่วนตัว', transitionTitle: 'แผนที่สร้างตามช่วงเวลาของคุณ', mainTitle: 'ช่วงถัดไปของคุณพร้อมแล้ว',
+    emptyBody: 'ตอบคำถามสั้น ๆ 6 ส่วน APEX จะสร้างแผนจากช่วงเวลา ช่วงที่หยุดฝึก สภาพร่างกาย สถานที่ และอุปกรณ์ของคุณ',
     activeBody: 'ติดตั้งแผนลงในปฏิทินแล้ว แต่ละช่วงมีเป้าหมายเดียว จึงเห็นความก้าวหน้าได้ชัดเจน',
-    build: 'สร้างแผน 12 สัปดาห์แรก', review: 'ทบทวนแผน', mainButton: 'ตั้งค่าช่วงหลัก',
-    starts: 'เริ่ม', mainStarts: 'ช่วงหลัก', sessions: 'ครั้ง / สัปดาห์', home: 'ที่บ้าน', gym: 'ยิม', outdoors: 'กลางแจ้ง',
+    build: 'สร้างแผนของฉัน', review: 'ทบทวนแผน', mainButton: 'ตั้งค่าช่วงหลัก',
+    starts: 'เริ่ม', mainStarts: 'ช่วงหลัก', ends: 'สิ้นสุด', sessions: 'ครั้ง / สัปดาห์', home: 'ที่บ้าน', gym: 'ยิม', outdoors: 'กลางแจ้ง',
     wizard: 'แบบประเมินก่อนเริ่มฝึก', step: 'ขั้นตอน', back: 'ย้อนกลับ', next: 'ต่อไป', install: 'ติดตั้งแผนของฉัน',
     gapTitle: 'หยุดฝึกเวทอย่างสม่ำเสมอมานานเท่าไร?', gapBody: 'คำตอบนี้เปลี่ยนปริมาณเริ่มต้น ไม่ได้จำกัดศักยภาพของคุณ',
     frequency: 'ในสัปดาห์ปกติ คุณทำได้กี่ครั้งอย่างสม่ำเสมอ?',
@@ -82,11 +85,12 @@ const COPY = {
     equipmentTitle: 'คุณมีอุปกรณ์อะไรบ้าง?', equipmentBody: 'พิมพ์เพียงไม่กี่ตัว ระบบจะแสดงตัวเลือกที่ใกล้เคียงทันที',
     equipmentPlaceholder: 'ค้นหาอุปกรณ์', noEquipment: 'ไม่มีอุปกรณ์ก็ได้ ระบบจะสร้างเวอร์ชันน้ำหนักตัวให้',
     goalTitle: 'ช่วงถัดไปควรเน้นอะไร?', rebuild: 'กลับมาสม่ำเสมอ', muscle: 'สร้างกล้ามเนื้อ', fatLoss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'เพิ่มความทนทาน',
+    durationTitle: 'คุณต้องการให้แผนนานเท่าไร?', durationBody: 'เลือกช่วงเวลาที่ทำได้จริง APEX จะบันทึกวันสิ้นสุดและไม่ทำให้แผนวนซ้ำตลอดไป', weeks: 'สัปดาห์', sixMonths: '6 เดือน',
     reviewTitle: 'เหตุผลของแผน', standard: 'พื้นฐานมาตรฐาน', cautious: 'พื้นฐานแบบระมัดระวัง', clearance: 'เริ่มหลังได้รับอนุญาต',
     standardBody: 'ตารางที่ทำซ้ำได้ เพิ่มปริมาณทีละน้อย และใช้ค่าน้ำหนักที่บันทึกเพื่อพัฒนา',
     cautiousBody: 'ลดปริมาณฝึก และเริ่มทุกท่าโดยเหลือแรงอีก 3 ถึง 4 ครั้ง',
     clearanceBody: 'การผ่าตัดล่าสุดต้องได้รับอนุญาตจากแพทย์ APEX จะติดตั้งเฉพาะการเตรียมตัวเบา ๆ จนกว่าจะได้รับอนุญาตให้ฝึกแรงต้าน',
-    phases: 'สัปดาห์ 1-4 ฟื้นพื้นฐาน · 5-8 สร้าง · 9-12 พัฒนา', installed: 'ติดตั้งเส้นทางส่วนตัว 12 สัปดาห์แล้ว',
+    phases4: 'สัปดาห์ 1-4 กลับมาสม่ำเสมอ', phases8: 'สัปดาห์ 1-4 ฟื้นพื้นฐาน · 5-8 สร้าง', phases12: 'สัปดาห์ 1-4 ฟื้นพื้นฐาน · 5-8 สร้าง · 9-12 พัฒนา', phases26: 'สัปดาห์ 1-12 พื้นฐาน · 13-26 ช่วงหลัก', installed: 'ติดตั้งแผนส่วนตัวแล้ว',
   },
 } satisfies Record<Language, Record<string, string>>
 
@@ -199,6 +203,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
         recent_operation: false,
         chronic_lower_back_pain: false,
         sessions_per_week: 3,
+        plan_weeks: 12,
         goal: 'rebuild',
       }
   const [open, setOpen] = useState(false)
@@ -277,6 +282,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     label: goalLabel[goal],
     ...GOAL_PRESENTATION[goal],
   }))
+  const durationLabel = (weeks: TrainingPlanWeeks): string => weeks === 26 ? copy.sixMonths : `${weeks} ${copy.weeks}`
+  const phases = draft.plan_weeks === 4 ? copy.phases4 : draft.plan_weeks === 8 ? copy.phases8 : draft.plan_weeks === 26 ? copy.phases26 : copy.phases12
 
   return (
     <div data-no-translate>
@@ -290,10 +297,11 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
               <div className="mt-3 flex flex-wrap gap-2">
                 <AccentChip accent={ACCENTS.violet}>{current.venue === 'gym' ? copy.gym : current.venue === 'outdoors' ? copy.outdoors : copy.home}</AccentChip>
                 <AccentChip accent={ACCENTS.teal}>{current.sessions_per_week} {copy.sessions}</AccentChip>
+                <AccentChip accent={ACCENTS.violet}>{durationLabel(current.plan_weeks ?? 12)}</AccentChip>
                 <AccentChip accent={current.caution === 'standard' ? ACCENTS.emerald : ACCENTS.amber}>{current.caution === 'clearance' ? copy.clearance : current.caution === 'cautious' ? copy.cautious : copy.standard}</AccentChip>
               </div>
             )}
-            {current && <p className="mt-3 font-mono text-[10px] font-bold text-ink-faint">{copy.starts}: {current.start_date} · {copy.mainStarts}: {current.main_start_date}</p>}
+            {current && <p className="mt-3 font-mono text-[10px] font-bold text-ink-faint">{copy.starts}: {current.start_date} · {(current.plan_weeks ?? 12) > 12 ? copy.mainStarts : copy.ends}: {(current.plan_weeks ?? 12) > 12 ? current.main_start_date : (current.end_date ?? current.main_start_date)}</p>}
           </div>
           <GradientButton accent={ACCENTS.violet} onClick={openBuilder} className="w-full sm:w-auto">
             {current ? copy.review : slug === 'main' ? copy.mainButton : copy.build}
@@ -309,13 +317,13 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
         >
           <div className="flex items-start justify-between gap-3">
             <div>
-              <p className="font-mono text-[9px] font-black tracking-[.2em] text-violet-700 uppercase">{copy.step} {step + 1} / 5</p>
+              <p className="font-mono text-[9px] font-black tracking-[.2em] text-violet-700 uppercase">{copy.step} {step + 1} / 6</p>
               <h2 className="mt-1 font-display text-2xl font-bold text-ink">{copy.wizard}</h2>
             </div>
             <button type="button" onClick={() => setOpen(false)} className="grid h-10 w-10 place-items-center rounded-full bg-ink/5 text-lg font-bold text-ink-soft" aria-label="Close">×</button>
           </div>
-          <div className="mt-4 grid grid-cols-5 gap-1.5" aria-hidden>
-            {[0, 1, 2, 3, 4].map((item) => <div key={item} className="h-1.5 rounded-full transition" style={{ background: item <= step ? ACCENTS.violet.gradient : 'rgba(26,26,34,.08)' }} />)}
+          <div className="mt-4 grid grid-cols-6 gap-1.5" aria-hidden>
+            {[0, 1, 2, 3, 4, 5].map((item) => <div key={item} className="h-1.5 rounded-full transition" style={{ background: item <= step ? ACCENTS.violet.gradient : 'rgba(26,26,34,.08)' }} />)}
           </div>
 
           <div className="mt-6 min-h-[360px]">
@@ -405,14 +413,28 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
             )}
             {step === 4 && (
               <div>
+                <h3 className="font-display text-xl font-bold text-ink">{copy.durationTitle}</h3>
+                <p className="mt-1 text-sm font-medium text-ink-soft">{copy.durationBody}</p>
+                <div className="mt-5 grid grid-cols-2 gap-3">
+                  {TRAINING_PLAN_WEEK_OPTIONS.map((weeks) => (
+                    <Choice key={weeks} active={draft.plan_weeks === weeks} onClick={() => setDraft((value) => ({ ...value, plan_weeks: weeks }))} className="min-h-28 text-center">
+                      <span className="block font-display text-3xl text-ink">{weeks === 26 ? '6' : weeks}</span>
+                      <span className="mt-1 block text-xs font-black tracking-wide text-violet-700 uppercase">{weeks === 26 ? copy.sixMonths.replace(/^6\s*/, '') : copy.weeks}</span>
+                    </Choice>
+                  ))}
+                </div>
+              </div>
+            )}
+            {step === 5 && (
+              <div>
                 <h3 className="font-display text-xl font-bold text-ink">{copy.reviewTitle}</h3>
                 <div className="mt-4 rounded-3xl border border-violet-200/60 bg-gradient-to-br from-violet-50/90 to-cyan-50/80 p-5">
                   <div className="flex flex-wrap items-center justify-between gap-3"><h4 className="font-display text-xl font-bold text-ink">{cautionTitle}</h4><AccentChip accent={assessment.caution === 'standard' ? ACCENTS.emerald : ACCENTS.amber}>{assessment.sessions_per_week} {copy.sessions}</AccentChip></div>
                   <p className="mt-3 text-sm leading-relaxed font-medium text-ink-soft">{cautionBody}</p>
-                  <p className="mt-4 font-mono text-[10px] font-black tracking-[.08em] text-violet-800 uppercase">{copy.phases}</p>
+                  <p className="mt-4 font-mono text-[10px] font-black tracking-[.08em] text-violet-800 uppercase">{phases}</p>
                 </div>
                 <div className="mt-4 grid grid-cols-2 gap-2 text-center sm:grid-cols-4">
-                  {[draft.venue === 'gym' ? copy.gym : draft.venue === 'outdoors' ? copy.outdoors : copy.home, `${assessment.sessions_per_week} ${copy.sessions}`, draft.start_date, goalLabel[draft.goal]].map((value) => <div key={value} className="rounded-2xl bg-white/65 px-2 py-3 text-xs font-bold text-ink-soft">{value}</div>)}
+                  {[draft.venue === 'gym' ? copy.gym : draft.venue === 'outdoors' ? copy.outdoors : copy.home, `${assessment.sessions_per_week} ${copy.sessions}`, durationLabel(draft.plan_weeks), goalLabel[draft.goal]].map((value) => <div key={value} className="rounded-2xl bg-white/65 px-2 py-3 text-xs font-bold text-ink-soft">{value}</div>)}
                 </div>
               </div>
             )}
@@ -420,7 +442,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
 
           <div className="mt-6 flex gap-2 border-t border-ink/8 pt-4">
             {step > 0 && <GhostButton onClick={() => setStep((value) => value - 1)} className="flex-1">{copy.back}</GhostButton>}
-            {step < 4 ? <GradientButton accent={ACCENTS.violet} onClick={() => setStep((value) => value + 1)} className="flex-1">{copy.next}</GradientButton> : <GradientButton accent={ACCENTS.violet} onClick={install} className="flex-1">{copy.install}</GradientButton>}
+            {step < 5 ? <GradientButton accent={ACCENTS.violet} onClick={() => setStep((value) => value + 1)} className="flex-1">{copy.next}</GradientButton> : <GradientButton accent={ACCENTS.violet} onClick={install} className="flex-1">{copy.install}</GradientButton>}
           </div>
 
           {pendingFrequency && (

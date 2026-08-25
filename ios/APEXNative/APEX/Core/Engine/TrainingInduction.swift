@@ -15,6 +15,7 @@ enum TrainingInduction {
     static let archivedMarkerKey = "training_induction_archived_day_ids"
     static let pendingMarkerKey = "training_induction_pending_day_ids"
     static let generationRevisionKey = "training_induction_generation_revision"
+    static let supportedPlanWeeks = [4, 8, 12, 26]
 
     struct Input: Equatable, Sendable {
         var startDate: String
@@ -25,6 +26,7 @@ enum TrainingInduction {
         var recentOperation = false
         var chronicLowerBackPain = false
         var sessionsPerWeek = 3
+        var planWeeks = 12
         var goal: String = "general"
     }
 
@@ -61,6 +63,10 @@ enum TrainingInduction {
         restored.chronicLowerBackPain = induction["chronic_lower_back_pain"]?.boolValue ?? false
         if let sessions = induction["sessions_per_week"]?.numberValue.map(Int.init) {
             restored.sessionsPerWeek = min(7, max(2, sessions))
+        }
+        if let weeks = induction["plan_weeks"]?.numberValue.map(Int.init),
+           supportedPlanWeeks.contains(weeks) {
+            restored.planWeeks = weeks
         }
         switch induction["goal"]?.stringValue {
         case "rebuild": restored.goal = "general"
@@ -870,7 +876,10 @@ enum TrainingInduction {
     ) -> GeneratedPlan {
         let assessment = assess(input)
         let count = assessment.sessionsPerWeek
-        let mainStart = APEXDateMath.adding(days: 84, to: input.startDate)
+        let planWeeks = supportedPlanWeeks.contains(input.planWeeks) ? input.planWeeks : 12
+        let transitionWeeks = min(12, planWeeks)
+        let mainStart = APEXDateMath.adding(days: transitionWeeks * 7, to: input.startDate)
+        let endDate = APEXDateMath.adding(days: planWeeks * 7, to: input.startDate)
         let venue: String
         switch input.venue {
         case "gym": venue = "Gym"
@@ -889,9 +898,13 @@ enum TrainingInduction {
                 id: generatedID,
                 userID: userID,
                 slug: slug,
-                name: slug == "transition" ? "12-Week \(venue) Foundation" : "Personal \(venue) Main Phase",
+                name: slug == "transition" ? "\(transitionWeeks)-Week \(venue) Foundation" : "Personal \(venue) Main Phase",
                 description: slug == "transition"
-                    ? "Weeks 1-4 restore, weeks 5-8 build, weeks 9-12 progress. A simple schedule built from your answers."
+                    ? (transitionWeeks == 4
+                        ? "Weeks 1-4 restore consistency. A simple schedule built from your answers."
+                        : transitionWeeks == 8
+                            ? "Weeks 1-4 restore, weeks 5-8 build. A simple schedule built from your answers."
+                            : "Weeks 1-4 restore, weeks 5-8 build, weeks 9-12 progress. A simple schedule built from your answers.")
                     : "Your follow-on strength and muscle phase, using the same equipment, recovery limits and weekly rhythm."
             )
         }
@@ -1004,7 +1017,9 @@ enum TrainingInduction {
             "completed_at": .string(completedAt),
             "start_date": .string(input.startDate),
             "main_start_date": .string(mainStart),
-            "transition_weeks": .number(12),
+            "end_date": .string(endDate),
+            "plan_weeks": .number(Double(planWeeks)),
+            "transition_weeks": .number(Double(transitionWeeks)),
             "inactivity": .string(input.inactivity),
             "venue": .string(input.venue),
             "equipment": .array(input.equipment.map { .string($0) }),

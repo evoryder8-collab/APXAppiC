@@ -140,6 +140,10 @@ enum TrainingPlanEngine {
             // weekly programme and turn every tap into an apparent rest day.
             return true
         }
+        if let end = induction["end_date"]?.stringValue {
+            guard APEXDateMath.date(from: end) != nil, mainStart <= end else { return true }
+            if date >= end { return false }
+        }
         if slug == "transition" { return date >= start && date < mainStart }
         return date >= mainStart
     }

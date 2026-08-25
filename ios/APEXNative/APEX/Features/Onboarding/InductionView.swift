@@ -2,7 +2,7 @@ import SwiftUI
 
 /// What a new account is asked before anything is generated for it.
 ///
-/// Six questions, one per screen, because a single long form is where people
+/// Seven questions, one per screen, because a single long form is where people
 /// give up. Only what changes the plan is asked: nothing here is collected
 /// because it would be nice to have.
 struct InductionView: View {
@@ -15,7 +15,7 @@ struct InductionView: View {
        assembles itself rather than the whole screen blinking. */
     @State private var shown = false
 
-    private let stepCount = 6
+    private let stepCount = 7
 
     var body: some View {
         ZStack {
@@ -128,6 +128,7 @@ struct InductionView: View {
         case 2: language.text("Where will you train?")
         case 3: language.text("What do you have to train with?")
         case 4: language.text("How many days a week?")
+        case 5: language.text("How long should your plan be?")
         default: language.text("Anything we should work around?")
         }
     }
@@ -136,7 +137,8 @@ struct InductionView: View {
         switch step {
         case 1: language.text("A long gap is not a problem. It only changes where we start.")
         case 4: language.text("Pick what you will actually do on a busy week, not your best one.")
-        case 5: language.text("This decides what gets left out. Nothing here is shared with anyone.")
+        case 5: language.text("Choose a realistic horizon. APEX gives the plan a real end date instead of repeating it forever.")
+        case 6: language.text("This decides what gets left out. Nothing here is shared with anyone.")
         default: nil
         }
     }
@@ -168,6 +170,8 @@ struct InductionView: View {
             equipment
         case 4:
             sessions
+        case 5:
+            duration
         default:
             health
         }
@@ -218,6 +222,21 @@ struct InductionView: View {
                 ) {
                     input.sessionsPerWeek = count
                 }
+            }
+        }
+    }
+
+    private var duration: some View {
+        VStack(spacing: 9) {
+            ForEach(Array(TrainingInduction.supportedPlanWeeks.enumerated()), id: \.element) { position, weeks in
+                selectRow(
+                    label: weeks == 26 ? language.text("6 months") : language.format("%d weeks", weeks),
+                    selected: input.planWeeks == weeks,
+                    index: position
+                ) {
+                    input.planWeeks = weeks
+                }
+                .accessibilityIdentifier("induction-duration-\(weeks)")
             }
         }
     }

@@ -66,10 +66,12 @@ struct TrainingProgramView: View {
             values(key).filter { persistedDayIDs.contains($0.lowercased()) }.count
         }
         let sessions = Int(metadata["sessions_per_week"]?.numberValue ?? 0)
+        let planWeeks = Int(metadata["plan_weeks"]?.numberValue ?? 12)
         return [
             "goal=\(metadata["goal"]?.stringValue ?? "")",
             "venue=\(metadata["venue"]?.stringValue ?? "")",
             "sessions=\(sessions)",
+            "planWeeks=\(planWeeks)",
             "equipment=\(values("equipment").joined(separator: ","))",
             "pain=\(values("pain_areas").joined(separator: ","))",
             "transitionRows=\(persistedCount("transition_day_ids"))",

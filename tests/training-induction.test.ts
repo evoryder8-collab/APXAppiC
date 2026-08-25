@@ -14,6 +14,7 @@ import {
   commitTrainingPlanAddons,
   generateTrainingPlan,
   invalidateTrainingPlanAddons,
+  isInsideInductionWindow,
   isTrainingInductionEligible,
   markPendingTrainingPlanAddons,
   pendingTrainingDayIds,
@@ -35,6 +36,7 @@ const baseInput: TrainingInductionInput = {
   recent_operation: false,
   chronic_lower_back_pain: false,
   sessions_per_week: 3,
+  plan_weeks: 12,
   goal: 'rebuild',
 }
 
@@ -103,6 +105,9 @@ test('web plan builder labels days explicitly and warns without banning six or s
   assert.match(panel, /days \/ week/)
   assert.match(panel, /pendingFrequency/)
   assert.match(panel, /cannot guarantee recovery or prevent overtraining/i)
+  assert.match(panel, /TRAINING_PLAN_WEEK_OPTIONS/)
+  assert.match(panel, /How long should your plan be\?/)
+  assert.match(panel, /plan_weeks/)
   assert.doesNotMatch(panel, /<select[^>]*goal/i)
 })
 
@@ -122,7 +127,7 @@ test('recent operations receive a clearance-first plan and reduced frequency', (
   assert.match(generated.exercises[0].notes + generated.program_days[0].warmup_note, /clinician|pain-free/i)
 })
 
-test('generated foundation occupies 12 dated weeks before its main phase takes over', () => {
+test('generated foundation occupies the selected 12 weeks and then stops', () => {
   const seeded = buildSeedData(userId, 'matthew')
   const generated = generateTrainingPlan(userId, baseInput, seeded.programs, '2026-07-15T08:00:00.000Z')
   const data = {
@@ -140,8 +145,34 @@ test('generated foundation occupies 12 dated weeks before its main phase takes o
   assert.equal(generated.induction.main_day_ids.length, 3)
   assert.ok(planForDate(data, 'transition', '2026-07-15', false).exercises.length > 0)
   assert.ok(planForDate(data, 'transition', '2026-10-12', false).exercises.length === 0)
-  assert.ok(planForDate(data, 'main', '2026-10-12', false).exercises.length > 0)
+  assert.ok(planForDate(data, 'main', '2026-10-12', false).exercises.length === 0)
   assert.ok(planForDate(data, 'main', '2026-07-20', false).exercises.length === 0)
+})
+
+test('the selected plan length bounds both generated phases instead of running forever', () => {
+  const fourWeek = generateTrainingPlan(userId, {
+    ...baseInput,
+    plan_weeks: 4,
+  } as TrainingInductionInput)
+  assert.equal(fourWeek.induction.plan_weeks, 4)
+  assert.equal(fourWeek.induction.transition_weeks, 4)
+  assert.equal(fourWeek.induction.main_start_date, '2026-08-12')
+  assert.equal(fourWeek.induction.end_date, '2026-08-12')
+  assert.equal(isInsideInductionWindow(fourWeek.induction, 'transition', '2026-08-11'), true)
+  assert.equal(isInsideInductionWindow(fourWeek.induction, 'transition', '2026-08-12'), false)
+  assert.equal(isInsideInductionWindow(fourWeek.induction, 'main', '2026-08-12'), false)
+
+  const sixMonth = generateTrainingPlan(userId, {
+    ...baseInput,
+    plan_weeks: 26,
+  } as TrainingInductionInput)
+  assert.equal(sixMonth.induction.plan_weeks, 26)
+  assert.equal(sixMonth.induction.transition_weeks, 12)
+  assert.equal(sixMonth.induction.main_start_date, '2026-10-07')
+  assert.equal(sixMonth.induction.end_date, '2027-01-13')
+  assert.equal(isInsideInductionWindow(sixMonth.induction, 'main', '2026-10-07'), true)
+  assert.equal(isInsideInductionWindow(sixMonth.induction, 'main', '2027-01-12'), true)
+  assert.equal(isInsideInductionWindow(sixMonth.induction, 'main', '2027-01-13'), false)
 })
 
 test('short generated sessions persist one generic work group for each paired movement', () => {
@@ -271,6 +302,7 @@ test('native-shaped induction metadata is canonical before the web form or gener
     ...nativeMetadata,
     inactivity: 'one_to_three_months',
     pain_areas: ['knees', 'shoulders'],
+    plan_weeks: 12,
     goal: 'rebuild',
   })
   const generated = generateTrainingPlan(userId, nativeMetadata as unknown as TrainingInductionInput)

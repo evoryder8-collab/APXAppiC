@@ -777,6 +777,8 @@ final class TrainingInductionTests: XCTestCase {
             "induction-return-venue-gym", "induction-return-venue-outdoors",
             "TrainingInduction.equipmentCatalog", "$draft.recentOperation",
             "$draft.chronicLowerBackPain", "draft.painAreas",
+            "TrainingInduction.supportedPlanWeeks", "induction-return-duration-",
+            "How long should your plan be?",
         ] {
             XCTAssertTrue(panel.contains(requiredControl), "missing return-builder control: \(requiredControl)")
         }
@@ -1383,10 +1385,29 @@ final class TrainingInductionTests: XCTestCase {
         )
     }
 
-    func testTheMainPhaseOpensTwelveWeeksOut() {
+    func testTheDefaultPlanIsBoundedToTwelveWeeks() {
         let plan = TrainingInduction.generate(userID: user, input: input())
         XCTAssertEqual(plan.induction["main_start_date"]?.stringValue, "2026-03-30")
+        XCTAssertEqual(plan.induction["end_date"]?.stringValue, "2026-03-30")
         XCTAssertEqual(plan.induction["start_date"]?.stringValue, "2026-01-05")
+    }
+
+    func testSelectedPlanLengthBoundsGeneratedPhases() {
+        let fourWeek = TrainingInduction.generate(userID: user, input: input {
+            $0.planWeeks = 4
+        })
+        XCTAssertEqual(fourWeek.induction["plan_weeks"]?.numberValue, 4)
+        XCTAssertEqual(fourWeek.induction["transition_weeks"]?.numberValue, 4)
+        XCTAssertEqual(fourWeek.induction["main_start_date"]?.stringValue, "2026-02-02")
+        XCTAssertEqual(fourWeek.induction["end_date"]?.stringValue, "2026-02-02")
+
+        let sixMonth = TrainingInduction.generate(userID: user, input: input {
+            $0.planWeeks = 26
+        })
+        XCTAssertEqual(sixMonth.induction["plan_weeks"]?.numberValue, 26)
+        XCTAssertEqual(sixMonth.induction["transition_weeks"]?.numberValue, 12)
+        XCTAssertEqual(sixMonth.induction["main_start_date"]?.stringValue, "2026-03-30")
+        XCTAssertEqual(sixMonth.induction["end_date"]?.stringValue, "2026-07-06")
     }
 
     func testClearanceReplacesTheWholeTemplateSet() {

@@ -287,6 +287,29 @@ final class TrainingCalendarDayTests: XCTestCase {
         )
     }
 
+    func testGeneratedPlanEndDateStopsBothPhases() {
+        var data = baseData(day: monday())
+        data.settings = UserSettings(
+            userID: owner,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: false,
+            guardianFactor: 1.4,
+            addons: [
+                "training_induction": .object([
+                    "start_date": .string("2026-05-01"),
+                    "main_start_date": .string("2026-08-01"),
+                    "end_date": .string("2026-11-01")
+                ])
+            ]
+        )
+
+        XCTAssertTrue(TrainingPlanEngine.isInsideInductionWindow(data, slug: "transition", date: "2026-07-31"))
+        XCTAssertTrue(TrainingPlanEngine.isInsideInductionWindow(data, slug: "main", date: "2026-08-01"))
+        XCTAssertFalse(TrainingPlanEngine.isInsideInductionWindow(data, slug: "main", date: "2026-11-01"))
+        XCTAssertFalse(TrainingPlanEngine.isInsideInductionWindow(data, slug: "transition", date: "2026-11-01"))
+    }
+
     func testSlugAndOwnershipAreResolvedBeforeWeekday() {
         let foreignProgramID = UUID(uuidString: "00000000-0000-0000-0000-000000000901")!
         let foreignDayID = UUID(uuidString: "00000000-0000-0000-0000-000000000902")!

@@ -74,6 +74,12 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertEqual(equipment.value as? String, "1")
         app.buttons["induction-next"].tap()
 
+        let sixMonths = allElements["induction-return-duration-26"]
+        XCTAssertTrue(sixMonths.waitForExistence(timeout: 2))
+        sixMonths.tap()
+        XCTAssertEqual(sixMonths.value as? String, "1")
+        app.buttons["induction-next"].tap()
+
         let pain = allElements["induction-return-pain-knee"]
         XCTAssertTrue(
             scrollUntilVisible(pain, in: app, attempts: 12)
@@ -93,7 +99,7 @@ final class APEXSmokeUITests: XCTestCase {
         )
         XCTAssertEqual(
             installedState.value as? String,
-            "goal=strength;venue=outdoors;sessions=3;equipment=weighted_vest;pain=knee;transitionRows=3;mainRows=3"
+            "goal=strength;venue=outdoors;sessions=3;planWeeks=26;equipment=weighted_vest;pain=knee;transitionRows=3;mainRows=3"
         )
     }
 
