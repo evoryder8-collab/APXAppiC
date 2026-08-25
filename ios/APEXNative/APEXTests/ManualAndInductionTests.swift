@@ -1451,12 +1451,12 @@ final class TrainingInductionTests: XCTestCase {
         )
 
         XCTAssertEqual(briefing.slides.map(\.kind), [.overview, .safety, .hydration, .sleep, .supplements])
-        XCTAssertTrue(briefing.slides[0].title.localizedCaseInsensitiveContains("12-week strength plan"))
-        XCTAssertTrue(briefing.slides[0].body.localizedCaseInsensitiveContains("4 sessions per week"))
+        XCTAssertTrue(briefing.slides[0].title.localizedCaseInsensitiveContains("12-week strength"))
+        XCTAssertTrue(briefing.slides[0].title.localizedCaseInsensitiveContains("4 sessions/week"))
         XCTAssertEqual(briefing.hydrationTargetML, 3_250)
         XCTAssertTrue(briefing.slides[2].title.contains("3.25 L"))
-        XCTAssertTrue(briefing.slides[2].body.localizedCaseInsensitiveContains("drinks and food"))
-        XCTAssertTrue(briefing.slides[2].bullets.joined(separator: " ").localizedCaseInsensitiveContains("sodium-restricted"))
+        XCTAssertTrue(briefing.slides[2].body.localizedCaseInsensitiveContains("drinks and water in food"))
+        XCTAssertTrue(briefing.slides[2].bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("sodium-restricted"))
 
         answers.planWeeks = 26
         let sixMonth = TrainingInduction.planBriefing(
@@ -1469,7 +1469,7 @@ final class TrainingInductionTests: XCTestCase {
             customHydrationTargetML: 3_800,
             displayUnit: "gallons"
         )
-        XCTAssertTrue(sixMonth.slides[0].title.localizedCaseInsensitiveContains("6-month strength plan"))
+        XCTAssertTrue(sixMonth.slides[0].title.localizedCaseInsensitiveContains("6-month strength"))
         XCTAssertFalse(sixMonth.slides[0].title.localizedCaseInsensitiveContains("26-week"))
         XCTAssertEqual(sixMonth.hydrationTargetML, 3_800)
         XCTAssertTrue(sixMonth.slides[2].title.contains("1.00 US gal"))
@@ -1490,13 +1490,43 @@ final class TrainingInductionTests: XCTestCase {
         let hydration = try XCTUnwrap(briefing.slides.first { $0.kind == .hydration })
         let supplements = try XCTUnwrap(briefing.slides.first { $0.kind == .supplements })
 
-        XCTAssertTrue(safety.bullets.joined(separator: " ").localizedCaseInsensitiveContains("emergency"))
-        XCTAssertTrue(safety.bullets.joined(separator: " ").localizedCaseInsensitiveContains("persistent"))
-        XCTAssertTrue(hydration.bullets.joined(separator: " ").localizedCaseInsensitiveContains("long, hot, or very sweaty"))
-        XCTAssertFalse(hydration.bullets.joined(separator: " ").localizedCaseInsensitiveContains("pinch of salt"))
-        XCTAssertTrue(supplements.body.localizedCaseInsensitiveContains("optional"))
-        XCTAssertTrue(supplements.bullets.joined(separator: " ").localizedCaseInsensitiveContains("creatine monohydrate"))
-        XCTAssertTrue(supplements.bullets.joined(separator: " ").localizedCaseInsensitiveContains("algae"))
+        XCTAssertTrue(safety.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("emergency"))
+        XCTAssertTrue(safety.bullets.map(\.text).joined(separator: " ").contains("144"))
+        XCTAssertTrue(safety.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("persistent"))
+        XCTAssertTrue(hydration.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("long, hot, or very sweaty"))
+        XCTAssertFalse(hydration.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("pinch of salt"))
+        XCTAssertTrue(supplements.body.localizedCaseInsensitiveContains("food"))
+        XCTAssertTrue(supplements.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("creatine monohydrate"))
+        XCTAssertTrue(supplements.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("algae"))
+    }
+
+    func testGeneratedPlanBriefingUsesScannableSemanticTipsAndSwissSources() {
+        let briefing = TrainingInduction.planBriefing(
+            input: input(),
+            caution: "standard",
+            sex: "female",
+            weightKG: 66,
+            plannedExerciseMinutes: 45,
+            hydrationMode: .automatic,
+            customHydrationTargetML: nil,
+            displayUnit: "liters"
+        )
+
+        for slide in briefing.slides {
+            XCTAssertLessThanOrEqual(slide.body.split(whereSeparator: \.isWhitespace).count, 24)
+            XCTAssertLessThanOrEqual(slide.bullets.count, 3)
+            XCTAssertEqual(Set(slide.bullets.map(\.icon)).count, slide.bullets.count)
+            XCTAssertTrue(slide.bullets.allSatisfy { $0.text.split(whereSeparator: \.isWhitespace).count <= 20 })
+        }
+
+        XCTAssertTrue(briefing.slides[1].evidenceLabel.contains("Swiss Heart Foundation"))
+        XCTAssertEqual(briefing.slides[1].evidenceURL?.host(), "swissheart.ch")
+        XCTAssertTrue(briefing.slides[2].evidenceLabel.contains("Swiss FSVO"))
+        XCTAssertEqual(briefing.slides[2].evidenceURL?.host(), "www.blv.admin.ch")
+        XCTAssertTrue(briefing.slides[3].evidenceLabel.contains("Swiss Society for Sleep Research"))
+        XCTAssertEqual(briefing.slides[3].evidenceURL?.host(), "swiss-sleep.ch")
+        XCTAssertTrue(briefing.slides[4].evidenceLabel.contains("Swiss Sports Nutrition Society"))
+        XCTAssertEqual(briefing.slides[4].evidenceURL?.host(), "www.ssns.ch")
     }
 
     func testClearanceReplacesTheWholeTemplateSet() {

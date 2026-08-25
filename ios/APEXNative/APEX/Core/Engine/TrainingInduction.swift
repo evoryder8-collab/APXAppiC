@@ -1062,14 +1062,38 @@ enum TrainingInduction {
         case supplements
     }
 
+    enum PlanBriefingBulletIcon: String, Equatable, Hashable, Sendable {
+        case calendar
+        case dumbbell = "dumbbell.fill"
+        case trend = "chart.line.uptrend.xyaxis"
+        case stop = "hand.raised.fill"
+        case emergency = "phone.fill"
+        case medical = "stethoscope"
+        case water = "drop.fill"
+        case electrolytes = "bolt.heart.fill"
+        case sodium = "wave.3.right"
+        case sleep = "bed.double.fill"
+        case schedule = "alarm.fill"
+        case recovery = "gauge.with.dots.needle.67percent"
+        case food = "fork.knife"
+        case creatine = "figure.strengthtraining.traditional"
+        case omega3 = "fish.fill"
+    }
+
+    struct PlanBriefingBullet: Equatable, Hashable, Sendable {
+        let text: String
+        let icon: PlanBriefingBulletIcon
+    }
+
     struct PlanBriefingSlide: Equatable, Sendable {
         let kind: PlanBriefingSlideKind
         let eyebrow: String
         let title: String
         let body: String
-        let bullets: [String]
+        let bullets: [PlanBriefingBullet]
         let assetName: String
-        let evidence: String
+        let evidenceLabel: String
+        let evidenceURL: URL?
     }
 
     struct PlanBriefing: Equatable, Sendable {
@@ -1119,81 +1143,82 @@ enum TrainingInduction {
         } else {
             target = String(format: "%.2f L", Double(hydration.targetML) / 1_000)
         }
-        var safetyBullets = [
-            "Stop the movement immediately if something feels wrong; do not train through sharp or escalating pain.",
-            "Chest pain or pressure, fainting, or sudden unexplained shortness of breath needs emergency medical help.",
-            "For milder symptoms, end the exercise, rest, and seek a clinician for persistent, returning, or worsening symptoms.",
-        ]
-        if caution == "clearance" {
-            safetyBullets.insert(
-                "Your answers selected a clearance-first plan. Do not begin loaded training until the clinician responsible for your recovery clears it.",
-                at: 0
-            )
-        }
+        let safetyBody = caution == "clearance"
+            ? "Your answers require clinical clearance before loaded training. Start only when the clinician managing your recovery approves it."
+            : "Training effort is normal. Stop for sharp pain, chest pressure, fainting, or sudden breathlessness."
 
         return PlanBriefing(
             hydrationTargetML: hydration.targetML,
             slides: [
                 PlanBriefingSlide(
                     kind: .overview,
-                    eyebrow: "IMPORTANT INFO AND TIPS ABOUT YOUR PLAN",
-                    title: "Your \(duration) \(goal) plan",
-                    body: "\(input.sessionsPerWeek) sessions per week \(venue), arranged to make progression and recovery easy to follow.",
+                    eyebrow: "YOUR PLAN",
+                    title: "\(duration) \(goal) · \(input.sessionsPerWeek) sessions/week",
+                    body: "Built for \(venue), your equipment, and enough recovery to make progression repeatable.",
                     bullets: [
-                        "The calendar now carries the real start and end dates.",
-                        "Each workout stays inside the equipment and recovery limits you selected.",
-                        "Log what actually happened; APEX adapts from measured work, not guesses.",
+                        PlanBriefingBullet(text: "Your calendar now has real start and end dates.", icon: .calendar),
+                        PlanBriefingBullet(text: "Every session respects the equipment and recovery limits you selected.", icon: .dumbbell),
+                        PlanBriefingBullet(text: "Log completed work; APEX adapts from measured training.", icon: .trend),
                     ],
                     assetName: "plan-briefing-overview",
-                    evidence: "APEX plan facts"
+                    evidenceLabel: "Your answers · APEX plan engine",
+                    evidenceURL: nil
                 ),
                 PlanBriefingSlide(
                     kind: .safety,
-                    eyebrow: "SAFETY FIRST",
-                    title: "Use a clear stop rule",
-                    body: "Normal effort is expected. Sharp pain, faintness, chest pressure, or unusual breathlessness are signals to stop, not tests to push through.",
-                    bullets: safetyBullets,
+                    eyebrow: "TRAIN SMART",
+                    title: "Know when to stop",
+                    body: safetyBody,
+                    bullets: [
+                        PlanBriefingBullet(text: "Stop immediately for sharp or escalating pain.", icon: .stop),
+                        PlanBriefingBullet(text: "For chest pressure, fainting, or sudden breathlessness, call emergency services (144 in Switzerland).", icon: .emergency),
+                        PlanBriefingBullet(text: "Persistent or worsening symptoms need medical assessment before your next session.", icon: .medical),
+                    ],
                     assetName: "plan-briefing-safety",
-                    evidence: "CDC · American Heart Association"
+                    evidenceLabel: "Swiss Heart Foundation",
+                    evidenceURL: URL(string: "https://swissheart.ch/erkrankungen-und-notfall/notfall/verhalten-im-notfall")
                 ),
                 PlanBriefingSlide(
                     kind: .hydration,
-                    eyebrow: "PERSONAL HYDRATION",
-                    title: "Start with \(target) total water",
-                    body: "This personalized starting target includes water from drinks and food. APEX can make a small, capped adjustment later when a longer session or wearable activity is actually recorded.",
+                    eyebrow: "HYDRATION",
+                    title: "Your starting target: \(target)",
+                    body: "This includes drinks and water in food. Recorded activity can adjust it later.",
                     bullets: [
-                        "For most shorter sessions, plain water and normal meals are enough.",
-                        "For long, hot, or very sweaty training, a properly formulated electrolyte drink may be useful.",
-                        "Do not add salt routinely. If you are sodium-restricted or have a relevant medical condition, follow your clinician’s guidance.",
+                        PlanBriefingBullet(text: "Plain water and regular meals cover most shorter sessions.", icon: .water),
+                        PlanBriefingBullet(text: "Long, hot, or very sweaty training may warrant a formulated electrolyte drink.", icon: .electrolytes),
+                        PlanBriefingBullet(text: "If sodium-restricted, follow your clinician’s advice.", icon: .sodium),
                     ],
                     assetName: "plan-briefing-hydration",
-                    evidence: "APEX hydration policy · American Heart Association"
+                    evidenceLabel: "Swiss FSVO · APEX hydration policy",
+                    evidenceURL: URL(string: "https://www.blv.admin.ch/dam/blv/en/dokumente/lebensmittel-und-ernaehrung/ernaehrung/Ernaehrungsempfehlungen/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf.download.pdf/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf")
                 ),
                 PlanBriefingSlide(
                     kind: .sleep,
-                    eyebrow: "RECOVERY THAT COUNTS",
-                    title: "Protect a regular sleep window",
-                    body: "Most adults need at least seven hours. Consistent bed and wake times, plus daylight earlier in the day, support recovery without pretending everyone must literally follow sunrise.",
+                    eyebrow: "RECOVERY",
+                    title: "Make sleep repeatable",
+                    body: "Consistent sleep and wake timing supports recovery better than chasing a perfect single night.",
                     bullets: [
-                        "Choose a repeatable sleep window before adding more training volume.",
-                        "Keep wake time reasonably consistent, including after a poor night.",
-                        "If sleep or performance keeps worsening, reduce load rather than trying to outwork fatigue.",
+                        PlanBriefingBullet(text: "Aim for at least seven hours when your schedule allows.", icon: .sleep),
+                        PlanBriefingBullet(text: "Keep wake time steady and seek daylight early.", icon: .schedule),
+                        PlanBriefingBullet(text: "If sleep and performance decline, reduce training load.", icon: .recovery),
                     ],
                     assetName: "plan-briefing-sleep",
-                    evidence: "CDC sleep guidance"
+                    evidenceLabel: "Swiss Society for Sleep Research (SSSSC)",
+                    evidenceURL: URL(string: "https://swiss-sleep.ch/")
                 ),
                 PlanBriefingSlide(
                     kind: .supplements,
-                    eyebrow: "EVIDENCE, NOT HYPE",
-                    title: "Food first. Supplements stay optional.",
-                    body: "Supplements are optional and do not rescue an inconsistent plan. Use them only to solve a real dietary or training need, with qualified advice when health conditions or medicines are involved.",
+                    eyebrow: "EVIDENCE FIRST",
+                    title: "Start with what works",
+                    body: "Food does the foundational work. Supplements are optional tools for specific gaps.",
                     bullets: [
-                        "Protein powder is a convenient food tool when meals do not meet your protein target; it is not mandatory.",
-                        "Creatine monohydrate has strong evidence for repeated high-intensity and strength work, but its value varies by activity and person.",
-                        "Fatty fish supplies EPA and DHA; algae-derived EPA/DHA is a plant-based option. Ask a clinician or sports dietitian before supplementing when relevant.",
+                        PlanBriefingBullet(text: "Protein powder can help when meals miss your protein target.", icon: .food),
+                        PlanBriefingBullet(text: "Creatine monohydrate supports repeated high-intensity and strength work.", icon: .creatine),
+                        PlanBriefingBullet(text: "Fatty fish or algae-derived EPA/DHA can address omega-3 intake.", icon: .omega3),
                     ],
                     assetName: "plan-briefing-supplements",
-                    evidence: "NIH Office of Dietary Supplements"
+                    evidenceLabel: "Swiss Sports Nutrition Society (SSNS)",
+                    evidenceURL: URL(string: "https://www.ssns.ch/sportsnutrition/supplemente/supplementguide/")
                 ),
             ]
         )

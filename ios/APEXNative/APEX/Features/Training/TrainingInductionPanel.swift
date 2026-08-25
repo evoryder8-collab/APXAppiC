@@ -931,9 +931,9 @@ private struct PlanBriefingDeck: View {
                 .accessibilityLabel(language.format("Slide %d of %d", page + 1, briefing.slides.count))
                 .padding(.top, 4)
 
-                Button(action: onOpenPlan) {
+                Button(action: advance) {
                     HStack(spacing: 8) {
-                        Text(language.text("Open my plan"))
+                        Text(language.text(page == briefing.slides.count - 1 ? "Open my plan" : "Next tip"))
                         Image(systemName: "arrow.right")
                     }
                     .font(APEXFont.body(15, weight: .bold))
@@ -961,14 +961,10 @@ private struct PlanBriefingDeck: View {
     private var header: some View {
         HStack(alignment: .top, spacing: 14) {
             VStack(alignment: .leading, spacing: 4) {
-                Text("APEX PLAN INTELLIGENCE")
-                    .font(APEXFont.mono(9, weight: .bold))
-                    .tracking(1.7)
-                    .foregroundStyle(APEXColor.violet)
-                Text(language.text("Your plan briefing"))
+                Text(language.text("Plan essentials"))
                     .font(APEXFont.display(25))
-                Text(language.text("Swipe for the full guide"))
-                    .font(APEXFont.body(11, weight: .semibold))
+                Text(language.text("Five quick cards before you begin"))
+                    .font(APEXFont.body(12, weight: .semibold))
                     .foregroundStyle(APEXColor.secondaryInk)
             }
             Spacer()
@@ -1003,19 +999,20 @@ private struct PlanBriefingDeck: View {
                 .font(APEXFont.display(27))
                 .fixedSize(horizontal: false, vertical: true)
             Text(language.text(slide.body))
-                .font(APEXFont.body(13, weight: .medium))
+                .font(APEXFont.body(14, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
 
             VStack(spacing: 9) {
-                ForEach(slide.bullets, id: \.self) { bullet in
+                ForEach(slide.bullets, id: \.text) { bullet in
                     HStack(alignment: .top, spacing: 10) {
-                        Image(systemName: "sparkle")
-                            .font(.system(size: 10, weight: .bold))
+                        Image(systemName: bullet.icon.rawValue)
+                            .font(.system(size: 14, weight: .semibold))
                             .foregroundStyle(APEXColor.violet)
-                            .padding(.top, 3)
-                        Text(language.text(bullet))
-                            .font(APEXFont.body(11, weight: .semibold))
+                            .frame(width: 32, height: 32)
+                            .background(APEXColor.violet.opacity(0.10), in: RoundedRectangle(cornerRadius: 10))
+                        Text(language.text(bullet.text))
+                            .font(APEXFont.body(14, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
                         Spacer(minLength: 0)
@@ -1025,11 +1022,13 @@ private struct PlanBriefingDeck: View {
                 }
             }
 
-            Text(language.text("Evidence") + " · " + slide.evidence)
-                .font(APEXFont.mono(8, weight: .bold))
-                .tracking(0.5)
-                .foregroundStyle(APEXColor.secondaryInk.opacity(0.72))
-                .textCase(.uppercase)
+            if let evidenceURL = slide.evidenceURL {
+                Link(destination: evidenceURL) {
+                    evidenceLabel(slide)
+                }
+            } else {
+                evidenceLabel(slide)
+            }
         }
         .padding(18)
         .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 30))
@@ -1038,6 +1037,31 @@ private struct PlanBriefingDeck: View {
                 .stroke(Color.white.opacity(0.72), lineWidth: 1)
         }
         .shadow(color: APEXColor.violet.opacity(0.10), radius: 30, y: 16)
+    }
+
+    private func evidenceLabel(_ slide: TrainingInduction.PlanBriefingSlide) -> some View {
+        HStack(spacing: 5) {
+            Text(language.text("Evidence") + " · " + slide.evidenceLabel)
+            if slide.evidenceURL != nil {
+                Image(systemName: "arrow.up.right")
+            }
+        }
+        .font(APEXFont.mono(9, weight: .bold))
+        .tracking(0.5)
+        .foregroundStyle(APEXColor.secondaryInk.opacity(0.76))
+        .textCase(.uppercase)
+    }
+
+    private func advance() {
+        guard page < briefing.slides.count - 1 else {
+            onOpenPlan()
+            return
+        }
+        if accessibilityReduceMotion {
+            page += 1
+        } else {
+            withAnimation(.snappy(duration: 0.28)) { page += 1 }
+        }
     }
 }
 

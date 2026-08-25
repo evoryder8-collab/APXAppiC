@@ -1,4 +1,4 @@
-import { useMemo, useState } from 'react'
+import { useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import type { ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingPlanWeeks, TrainingVenue } from '../../lib/types'
@@ -19,7 +19,7 @@ import {
   type TrainingInductionInput,
 } from '../../lib/trainingInduction'
 import { ACCENTS } from '../../lib/theme'
-import { buildPlanBriefing, type PlanBriefing } from '../../lib/planBriefing'
+import { buildPlanBriefing, type PlanBriefing, type PlanBriefingBulletIcon } from '../../lib/planBriefing'
 import { planBriefingExit } from '../../lib/simpleMode'
 import { useStore } from '../../store/AppStore'
 import { AccentChip, GhostButton, GlassCard, GradientButton, Sheet } from '../ui'
@@ -190,14 +190,55 @@ function Choice({ active, children, onClick, className = '' }: { active: boolean
   )
 }
 
+const BRIEFING_ICON_PATHS: Record<PlanBriefingBulletIcon, string> = {
+  calendar: 'M7 3v3m10-3v3M4 8h16M5 5h14a1 1 0 0 1 1 1v13H4V6a1 1 0 0 1 1-1Z',
+  'dumbbell.fill': 'M3 10v4m3-6v8m12-8v8m3-6v4M6 12h12',
+  'chart.line.uptrend.xyaxis': 'M4 19V5m0 14h16M6 16l5-5 3 3 6-8m-5 0h5v5',
+  'hand.raised.fill': 'M7 12V7a1.5 1.5 0 0 1 3 0v4-6m3 0V5a1.5 1.5 0 0 1 3 0v6m0-4a1.5 1.5 0 0 1 3 0v7c0 4-2.5 7-6 7h-1c-2.5 0-4-1-5-3l-3-5a1.5 1.5 0 0 1 2.5-1.5L7 13',
+  'phone.fill': 'M7 3h3l2 5-2 2c1.2 2.2 2.8 3.8 5 5l2-2 4 2v3c0 1.7-1.3 3-3 3C10 20 4 14 4 6c0-1.7 1.3-3 3-3Z',
+  stethoscope: 'M6 3v5a4 4 0 0 0 8 0V3M4 3h4m4 0h4m-6 12v1a4 4 0 0 0 8 0v-1m0 0a2 2 0 1 0 0-4 2 2 0 0 0 0 4Z',
+  'drop.fill': 'M12 3S6 9.3 6 14a6 6 0 0 0 12 0c0-4.7-6-11-6-11Z',
+  'bolt.heart.fill': 'M12 20s-7-4.4-7-10a4 4 0 0 1 7-2.5A4 4 0 0 1 19 10c0 5.6-7 10-7 10Zm1-11-3 5h3l-2 4 5-6h-3l2-3Z',
+  'wave.3.right': 'M3 12h3l2-5 3 10 3-7 2 4h5',
+  'bed.double.fill': 'M3 18V7m0 8h18v3M7 15v-4h5a3 3 0 0 1 3 3v1m0-4h3a3 3 0 0 1 3 3v1',
+  'alarm.fill': 'M12 7v5l3 2m4-8 2-2m-16 2-2-2m4 17-1 2m7-2 1 2M12 4a8 8 0 1 0 0 16 8 8 0 0 0 0-16Z',
+  'gauge.with.dots.needle.67percent': 'M5 18a8 8 0 1 1 14 0M12 14l5-5M7 14h.01M12 8h.01M17 14h.01',
+  'fork.knife': 'M6 3v7m-2-7v5a2 2 0 0 0 4 0V3m-2 7v11m8-18v18m0-18c3 3 3 7 0 9',
+  'figure.strengthtraining.traditional': 'M4 9v6m3-8v10m10-10v10m3-8v6M7 12h10M12 4v16',
+  'fish.fill': 'M4 12c4-5 9-6 14-2l3-3v10l-3-3c-5 4-10 3-14-2Zm8-1h.01',
+}
+
+function BriefingBulletIcon({ icon }: { icon: PlanBriefingBulletIcon }) {
+  return (
+    <span className="mt-0.5 grid h-8 w-8 shrink-0 place-items-center rounded-xl bg-white/80 text-violet-700 shadow-sm" aria-hidden="true">
+      <svg viewBox="0 0 24 24" className="h-[18px] w-[18px]" fill="none" stroke="currentColor" strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round">
+        <path d={BRIEFING_ICON_PATHS[icon]} />
+      </svg>
+    </span>
+  )
+}
+
 function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { briefing: PlanBriefing; language: Language; onDismiss: () => void; onOpenPlan: () => void }) {
   const [activeSlide, setActiveSlide] = useState(0)
+  const trackRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
   const controls = {
-    en: { title: 'Your plan briefing', hint: 'Swipe for the full guide', done: 'Open my plan', close: 'Close plan briefing' },
-    ro: { title: 'Ghidul planului tău', hint: 'Glisează pentru ghidul complet', done: 'Deschide planul', close: 'Închide ghidul planului' },
-    th: { title: 'คำแนะนำสำหรับแผนของคุณ', hint: 'ปัดเพื่ออ่านคำแนะนำทั้งหมด', done: 'เปิดแผนของฉัน', close: 'ปิดคำแนะนำแผน' },
+    en: { title: 'Plan essentials', hint: 'Five quick cards before you begin', next: 'Next tip', done: 'Open my plan', close: 'Close plan briefing' },
+    ro: { title: 'Esențialul planului', hint: 'Cinci carduri scurte înainte de start', next: 'Următorul sfat', done: 'Deschide planul', close: 'Închide ghidul planului' },
+    th: { title: 'สิ่งสำคัญในแผน', hint: 'การ์ดสั้น 5 ใบก่อนเริ่ม', next: 'เคล็ดลับถัดไป', done: 'เปิดแผนของฉัน', close: 'ปิดคำแนะนำแผน' },
   }[language]
+  const isLastSlide = activeSlide === briefing.slides.length - 1
+  const advance = (): void => {
+    if (isLastSlide) {
+      onOpenPlan()
+      return
+    }
+    const track = trackRef.current
+    if (!track) return
+    const next = activeSlide + 1
+    track.scrollTo({ left: next * (track.clientWidth + 16), behavior: reduceMotion ? 'auto' : 'smooth' })
+    setActiveSlide(next)
+  }
 
   return (
     <div
@@ -207,14 +248,14 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
     >
       <header className="flex items-start justify-between gap-4">
         <div>
-          <p className="font-mono text-[9px] font-black tracking-[.2em] text-violet-700 uppercase">APEX PLAN INTELLIGENCE</p>
-          <h2 className="mt-1 font-display text-2xl font-bold text-ink">{controls.title}</h2>
+          <h2 className="font-display text-2xl font-bold text-ink">{controls.title}</h2>
           <p className="mt-1 text-xs font-semibold text-ink-soft">{controls.hint}</p>
         </div>
         <button type="button" onClick={onDismiss} aria-label={controls.close} className="grid h-10 w-10 shrink-0 place-items-center rounded-full bg-white/70 text-lg font-black text-ink-soft shadow-sm">×</button>
       </header>
 
       <div
+        ref={trackRef}
         className="mt-5 flex snap-x snap-mandatory gap-4 overflow-x-auto overscroll-x-contain pb-3 [scrollbar-width:none] [&::-webkit-scrollbar]:hidden"
         onScroll={(event) => {
           const track = event.currentTarget
@@ -235,7 +276,7 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
               <div className="order-2 sm:order-1">
                 <p className="font-mono text-[9px] font-black tracking-[.2em] text-violet-700 uppercase">{slide.eyebrow}</p>
                 <h3 className="mt-2 font-display text-[1.65rem] leading-tight font-bold text-ink">{slide.title}</h3>
-                <p className="mt-3 text-sm leading-relaxed font-medium text-ink-soft">{slide.body}</p>
+                <p className="mt-3 text-[15px] leading-relaxed font-medium text-ink-soft">{slide.body}</p>
               </div>
               <img
                 src={`${import.meta.env.BASE_URL}plan-briefing/${slide.assetName}.png`}
@@ -246,12 +287,18 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
             </div>
             <ul className="mt-5 space-y-2.5">
               {slide.bullets.map((bullet) => (
-                <li key={bullet} className="flex gap-3 rounded-2xl bg-violet-50/65 px-3.5 py-3 text-xs leading-relaxed font-semibold text-ink-soft">
-                  <span className="mt-0.5 text-violet-600">✦</span><span>{bullet}</span>
+                <li key={bullet.text} className="flex items-start gap-3 rounded-2xl bg-violet-50/65 px-3.5 py-3 text-sm leading-relaxed font-semibold text-ink-soft">
+                  <BriefingBulletIcon icon={bullet.icon} /><span className="pt-1">{bullet.text}</span>
                 </li>
               ))}
             </ul>
-            <p className="mt-4 font-mono text-[8px] font-bold tracking-[.08em] text-ink-faint uppercase">Evidence · {slide.evidence}</p>
+            {slide.evidenceURL ? (
+              <a href={slide.evidenceURL} target="_blank" rel="noreferrer" className="mt-4 inline-flex font-mono text-[9px] font-bold tracking-[.08em] text-violet-700 uppercase underline decoration-violet-300 underline-offset-4">
+                Evidence · {slide.evidenceLabel}
+              </a>
+            ) : (
+              <p className="mt-4 font-mono text-[9px] font-bold tracking-[.08em] text-ink-faint uppercase">Evidence · {slide.evidenceLabel}</p>
+            )}
           </motion.article>
         ))}
       </div>
@@ -259,7 +306,7 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
       <div className="mt-2 flex justify-center gap-2" aria-label={`${activeSlide + 1} / ${briefing.slides.length}`}>
         {briefing.slides.map((slide, index) => <span key={slide.kind} className={`h-1.5 rounded-full transition-all ${index === activeSlide ? 'w-8 bg-violet-600' : 'w-1.5 bg-violet-200'}`} />)}
       </div>
-      <GradientButton accent={ACCENTS.violet} onClick={onOpenPlan} className="mt-5 w-full">{controls.done}</GradientButton>
+      <GradientButton accent={ACCENTS.violet} onClick={advance} className="mt-5 w-full">{isLastSlide ? controls.done : controls.next}</GradientButton>
     </div>
   )
 }

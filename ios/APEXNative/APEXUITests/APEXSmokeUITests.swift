@@ -113,8 +113,14 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(overviewSlide.waitForExistence(timeout: 2))
         overviewSlide.swipeLeft()
         XCTAssertTrue(allElements["plan-briefing-slide-safety"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Use a clear stop rule"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Know when to stop"].waitForExistence(timeout: 2))
         capture("plan-briefing-safety")
+        let nextTip = app.buttons["Next tip"]
+        XCTAssertTrue(nextTip.waitForExistence(timeout: 2))
+        XCTAssertFalse(app.buttons["Open my plan"].exists, "completion must remain gated until the final card")
+        nextTip.tap()
+        nextTip.tap()
+        nextTip.tap()
         let done = app.buttons["Open my plan"]
         XCTAssertTrue(done.waitForExistence(timeout: 2))
         done.tap()

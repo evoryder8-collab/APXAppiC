@@ -3,6 +3,22 @@ import { resolveHydrationTarget, type HydrationTargetMode } from './hydration.ts
 
 export type PlanBriefingLanguage = 'en' | 'ro' | 'th'
 export type PlanBriefingSlideKind = 'overview' | 'safety' | 'hydration' | 'sleep' | 'supplements'
+export type PlanBriefingBulletIcon =
+  | 'calendar'
+  | 'dumbbell.fill'
+  | 'chart.line.uptrend.xyaxis'
+  | 'hand.raised.fill'
+  | 'phone.fill'
+  | 'stethoscope'
+  | 'drop.fill'
+  | 'bolt.heart.fill'
+  | 'wave.3.right'
+  | 'bed.double.fill'
+  | 'alarm.fill'
+  | 'gauge.with.dots.needle.67percent'
+  | 'fork.knife'
+  | 'figure.strengthtraining.traditional'
+  | 'fish.fill'
 
 export interface PlanBriefingInput {
   language: PlanBriefingLanguage
@@ -19,14 +35,20 @@ export interface PlanBriefingInput {
   displayUnit: 'liters' | 'gallons'
 }
 
+export interface PlanBriefingBullet {
+  text: string
+  icon: PlanBriefingBulletIcon
+}
+
 export interface PlanBriefingSlide {
   kind: PlanBriefingSlideKind
   eyebrow: string
   title: string
   body: string
-  bullets: string[]
+  bullets: PlanBriefingBullet[]
   assetName: `plan-briefing-${PlanBriefingSlideKind}`
-  evidence: string
+  evidenceLabel: string
+  evidenceURL?: string
 }
 
 export interface PlanBriefing {
@@ -38,49 +60,61 @@ const COPY = {
   en: {
     goals: { rebuild: 'consistency', muscle: 'muscle-building', fat_loss: 'fat-loss', strength: 'strength', endurance: 'endurance' },
     venues: { home: 'at home', gym: 'in the gym', outdoors: 'outdoors' },
-    ready: 'IMPORTANT INFO AND TIPS ABOUT YOUR PLAN', overviewBody: (sessions: number, venue: string) => `${sessions} sessions per week ${venue}, arranged to make progression and recovery easy to follow.`,
-    overviewBullets: ['The calendar now carries the real start and end dates.', 'Each workout stays inside the equipment and recovery limits you selected.', 'Log what actually happened; APEX adapts from measured work, not guesses.'],
-    safetyEyebrow: 'SAFETY FIRST', safetyTitle: 'Use a clear stop rule', safetyBody: 'Normal effort is expected. Sharp pain, faintness, chest pressure, or unusual breathlessness are signals to stop, not tests to push through.',
-    safetyBullets: ['Stop the movement immediately if something feels wrong; do not train through sharp or escalating pain.', 'Chest pain or pressure, fainting, or sudden unexplained shortness of breath needs emergency medical help.', 'For milder symptoms, end the exercise, rest, and seek a clinician for persistent, returning, or worsening symptoms.'],
-    clearance: 'Your answers selected a clearance-first plan. Do not begin loaded training until the clinician responsible for your recovery clears it.',
-    hydrationEyebrow: 'PERSONAL HYDRATION', hydrationTitle: (target: string) => `Start with ${target} total water`, hydrationBody: 'This personalized starting target includes water from drinks and food. APEX can make a small, capped adjustment later when a longer session or wearable activity is actually recorded.',
-    hydrationBullets: ['For most shorter sessions, plain water and normal meals are enough.', 'For long, hot, or very sweaty training, a properly formulated electrolyte drink may be useful.', 'Do not add salt routinely. If you are sodium-restricted or have a relevant medical condition, follow your clinician’s guidance.'],
-    sleepEyebrow: 'RECOVERY THAT COUNTS', sleepTitle: 'Protect a regular sleep window', sleepBody: 'Most adults need at least seven hours. Consistent bed and wake times, plus daylight earlier in the day, support recovery without pretending everyone must literally follow sunrise.',
-    sleepBullets: ['Choose a repeatable sleep window before adding more training volume.', 'Keep wake time reasonably consistent, including after a poor night.', 'If sleep or performance keeps worsening, reduce load rather than trying to outwork fatigue.'],
-    supplementsEyebrow: 'EVIDENCE, NOT HYPE', supplementsTitle: 'Food first. Supplements stay optional.', supplementsBody: 'Supplements are optional and do not rescue an inconsistent plan. Use them only to solve a real dietary or training need, with qualified advice when health conditions or medicines are involved.',
-    supplementsBullets: ['Protein powder is a convenient food tool when meals do not meet your protein target; it is not mandatory.', 'Creatine monohydrate has strong evidence for repeated high-intensity and strength work, but its value varies by activity and person.', 'Fatty fish supplies EPA and DHA; algae-derived EPA/DHA is a plant-based option. Ask a clinician or sports dietitian before supplementing when relevant.'],
+    ready: 'YOUR PROGRAM', overviewBody: (_sessions: number, venue: string) => `Built ${venue}, around the equipment and recovery limits you selected.`,
+    overviewBullets: ['The calendar has real start and finish dates.', 'Every session matches the equipment you selected.', 'Log the work you complete; APEX adapts from it.'],
+    safetyEyebrow: 'TRAIN SMART', safetyTitle: 'Know when to stop', safetyBody: 'Training effort is normal. Stop for sharp pain, chest pressure, fainting, or sudden breathlessness.',
+    safetyBullets: ['Stop any movement that causes sharp or worsening pain.', 'For chest pressure, fainting, or sudden breathlessness, call emergency services (144 in Switzerland).', 'For milder symptoms that persist or return, pause training and seek clinical advice.'],
+    clearance: 'Your answers require clearance first. Begin loaded training only after the clinician managing your recovery clears it.',
+    hydrationEyebrow: 'HYDRATION', hydrationTitle: (target: string) => `Your starting target: ${target}`, hydrationBody: 'This includes drinks and water in food. Recorded activity can adjust it later.',
+    hydrationBullets: ['Water and regular meals cover most shorter sessions.', 'Long, hot, or very sweaty sessions may benefit from a formulated electrolyte drink.', 'If you are sodium-restricted, follow your clinician’s guidance.'],
+    sleepEyebrow: 'RECOVERY', sleepTitle: 'Make sleep repeatable', sleepBody: 'A consistent sleep window is one of your most useful training tools.',
+    sleepBullets: ['Aim for at least seven hours.', 'Keep wake time steady and seek daylight early.', 'If sleep and performance slide, reduce training load.'],
+    supplementsEyebrow: 'OPTIONAL SUPPORT', supplementsTitle: 'Start with what works', supplementsBody: 'Food is the base. Use supplements to fill a specific nutrition or training gap.',
+    supplementsBullets: ['Protein powder is a practical way to reach your protein target.', 'Creatine monohydrate is the well-studied form for repeated high-intensity and strength work.', 'Fatty fish provides EPA and DHA; algae-derived EPA/DHA is the plant-based option.'],
   },
   ro: {
     goals: { rebuild: 'consecvență', muscle: 'masă musculară', fat_loss: 'pierdere de grăsime', strength: 'forță', endurance: 'rezistență' },
     venues: { home: 'acasă', gym: 'la sală', outdoors: 'în aer liber' },
-    ready: 'PLANUL TĂU ESTE GATA', overviewBody: (sessions: number, venue: string) => `${sessions} sesiuni pe săptămână ${venue}, aranjate pentru ca progresul și recuperarea să fie ușor de urmărit.`,
-    overviewBullets: ['Calendarul are acum date reale de început și sfârșit.', 'Fiecare antrenament respectă echipamentul și limitele de recuperare selectate.', 'Înregistrează ce ai făcut; APEX adaptează din date măsurate, nu din presupuneri.'],
-    safetyEyebrow: 'SIGURANȚA ÎNAINTE', safetyTitle: 'Folosește o regulă clară de oprire', safetyBody: 'Efortul normal este de așteptat. Durerea ascuțită, leșinul, presiunea toracică sau lipsa neobișnuită de aer înseamnă oprire, nu forțare.',
-    safetyBullets: ['Oprește imediat mișcarea dacă ceva nu este în regulă; nu continua prin durere ascuțită sau crescândă.', 'Durerea sau presiunea toracică, leșinul ori lipsa bruscă și inexplicabilă de aer necesită ajutor medical de urgență.', 'Pentru simptome mai ușoare, oprește exercițiul, odihnește-te și cere sfatul unui clinician dacă persistă, revin sau se agravează.'],
-    clearance: 'Răspunsurile tale au selectat un plan care cere aviz medical. Nu începe antrenamentul cu greutăți până nu primești acordul clinicianului responsabil de recuperare.',
-    hydrationEyebrow: 'HIDRATARE PERSONALĂ', hydrationTitle: (target: string) => `Începe cu ${target} apă totală`, hydrationBody: 'Ținta personală inițială include apa din băuturi și alimente. APEX poate face ulterior o ajustare mică și limitată când este înregistrată o sesiune mai lungă sau activitate de pe dispozitiv.',
-    hydrationBullets: ['Pentru majoritatea sesiunilor scurte, apa simplă și mesele normale sunt suficiente.', 'Pentru efort lung, foarte transpirat sau pe căldură, o băutură cu electroliți formulată corect poate fi utilă.', 'Nu adăuga sare de rutină. Dacă ai restricție de sodiu sau o afecțiune relevantă, urmează indicația clinicianului.'],
-    sleepEyebrow: 'RECUPERARE REALĂ', sleepTitle: 'Protejează un program regulat de somn', sleepBody: 'Majoritatea adulților au nevoie de cel puțin șapte ore. Orele consecvente de culcare și trezire, plus lumină naturală mai devreme în zi, susțin recuperarea fără a cere tuturor să urmeze literal răsăritul.',
-    sleepBullets: ['Alege un interval de somn repetabil înainte de a adăuga volum de antrenament.', 'Păstrează ora trezirii rezonabil de constantă, inclusiv după o noapte slabă.', 'Dacă somnul sau performanța continuă să scadă, redu efortul în loc să forțezi prin oboseală.'],
-    supplementsEyebrow: 'DOVEZI, NU PROMISIUNI', supplementsTitle: 'Mâncarea întâi. Suplimentele rămân opționale.', supplementsBody: 'Suplimentele nu repară un plan inconsecvent. Folosește-le doar pentru o nevoie reală de alimentație sau antrenament și cere sfat calificat dacă există afecțiuni ori medicamente.',
-    supplementsBullets: ['Pudra proteică este o opțiune alimentară comodă când mesele nu ating ținta; nu este obligatorie.', 'Creatina monohidrat are dovezi solide pentru efort repetat de intensitate mare și forță, dar utilitatea diferă după activitate și persoană.', 'Peștele gras oferă EPA și DHA; EPA/DHA din alge este o opțiune vegetală. Cere sfatul unui clinician sau dietetician sportiv când este relevant.'],
+    ready: 'PROGRAMUL TĂU', overviewBody: (_sessions: number, venue: string) => `Creat ${venue}, pentru echipamentul și recuperarea alese de tine.`,
+    overviewBullets: ['Calendarul are date reale de început și final.', 'Fiecare sesiune folosește echipamentul selectat.', 'Înregistrează ce faci; APEX se adaptează din date reale.'],
+    safetyEyebrow: 'ANTRENEAZĂ-TE INTELIGENT', safetyTitle: 'Știi când să te oprești', safetyBody: 'Efortul este normal. Durerea ascuțită, presiunea toracică, leșinul sau lipsa bruscă de aer nu sunt.',
+    safetyBullets: ['Oprește orice mișcare ce provoacă durere ascuțită sau crescândă.', 'Pentru presiune toracică, leșin sau lipsă bruscă de aer, sună la urgențe (144 în Elveția).', 'Dacă simptomele ușoare persistă sau revin, oprește antrenamentul și cere sfat medical.'],
+    clearance: 'Răspunsurile tale cer aviz înainte. Începe antrenamentul cu greutăți doar după acordul clinicianului care îți gestionează recuperarea.',
+    hydrationEyebrow: 'HIDRATARE', hydrationTitle: (target: string) => `Ținta ta inițială: ${target}`, hydrationBody: 'Include băuturile și apa din alimente. Activitatea înregistrată o poate ajusta ulterior.',
+    hydrationBullets: ['Apa și mesele obișnuite sunt suficiente pentru majoritatea sesiunilor scurte.', 'Sesiunile lungi, fierbinți sau cu transpirație abundentă pot beneficia de electroliți formulați.', 'Dacă ai restricție de sodiu, urmează indicația clinicianului.'],
+    sleepEyebrow: 'RECUPERARE', sleepTitle: 'Fă somnul repetabil', sleepBody: 'Un interval constant de somn este unul dintre cele mai utile instrumente de antrenament.',
+    sleepBullets: ['Țintește cel puțin șapte ore.', 'Păstrează ora trezirii constantă și caută lumină naturală dimineața.', 'Dacă somnul și performanța scad, redu efortul.'],
+    supplementsEyebrow: 'SUPORT OPȚIONAL', supplementsTitle: 'Începe cu ce funcționează', supplementsBody: 'Mâncarea este baza. Folosește suplimente pentru un deficit clar de nutriție sau antrenament.',
+    supplementsBullets: ['Pudra proteică te poate ajuta practic să atingi ținta de proteină.', 'Creatina monohidrat este forma bine studiată pentru efort intens repetat și forță.', 'Peștele gras oferă EPA și DHA; EPA/DHA din alge este alternativa vegetală.'],
   },
   th: {
     goals: { rebuild: 'ความสม่ำเสมอ', muscle: 'สร้างกล้ามเนื้อ', fat_loss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'ความทนทาน' },
     venues: { home: 'ที่บ้าน', gym: 'ในยิม', outdoors: 'กลางแจ้ง' },
-    ready: 'แผนของคุณพร้อมแล้ว', overviewBody: (sessions: number, venue: string) => `${sessions} เซสชันต่อสัปดาห์${venue} จัดไว้ให้ติดตามความก้าวหน้าและการฟื้นตัวได้ง่าย`,
-    overviewBullets: ['ปฏิทินมีวันเริ่มและวันสิ้นสุดจริงแล้ว', 'ทุกเซสชันอยู่ภายในอุปกรณ์และข้อจำกัดการฟื้นตัวที่คุณเลือก', 'บันทึกสิ่งที่ทำจริง APEX จะปรับจากข้อมูลที่วัดได้ ไม่ใช่การเดา'],
-    safetyEyebrow: 'ปลอดภัยไว้ก่อน', safetyTitle: 'มีกฎหยุดที่ชัดเจน', safetyBody: 'ความเหนื่อยตามปกติเกิดขึ้นได้ แต่ความเจ็บแปลบ หน้ามืด แน่นหน้าอก หรือหายใจลำบากผิดปกติคือสัญญาณให้หยุด ไม่ใช่สิ่งที่ต้องฝืน',
-    safetyBullets: ['หยุดท่านั้นทันทีเมื่อรู้สึกผิดปกติ และอย่าฝืนความเจ็บแปลบหรือเจ็บมากขึ้น', 'เจ็บหรือแน่นหน้าอก หมดสติ หรือหายใจลำบากเฉียบพลันโดยไม่ทราบสาเหตุ ต้องขอความช่วยเหลือฉุกเฉิน', 'อาการที่เบากว่าให้หยุด พัก และพบแพทย์หากอาการไม่หาย กลับมา หรือแย่ลง'],
-    clearance: 'คำตอบของคุณเลือกแผนที่ต้องได้รับอนุญาตก่อน อย่าเริ่มฝึกด้วยแรงต้านจนกว่าแพทย์ผู้ดูแลการฟื้นตัวจะอนุญาต',
-    hydrationEyebrow: 'น้ำที่เหมาะกับคุณ', hydrationTitle: (target: string) => `เริ่มที่น้ำรวม ${target}`, hydrationBody: 'เป้าหมายเริ่มต้นนี้รวมทั้งน้ำจากเครื่องดื่มและอาหาร APEX อาจปรับเพิ่มเล็กน้อยและมีเพดาน เมื่อมีการบันทึกเซสชันที่ยาวขึ้นหรือกิจกรรมจากอุปกรณ์จริง',
-    hydrationBullets: ['สำหรับเซสชันสั้นส่วนใหญ่ น้ำเปล่าและอาหารตามปกติก็เพียงพอ', 'การฝึกที่ยาว ร้อน หรือเสียเหงื่อมาก อาจเหมาะกับเครื่องดื่มเกลือแร่ที่มีสูตรชัดเจน', 'อย่าเติมเกลือเป็นกิจวัตร หากต้องจำกัดโซเดียมหรือมีภาวะที่เกี่ยวข้อง ให้ทำตามคำแนะนำของแพทย์'],
-    sleepEyebrow: 'การฟื้นตัวที่มีผล', sleepTitle: 'รักษาเวลานอนให้สม่ำเสมอ', sleepBody: 'ผู้ใหญ่ส่วนใหญ่ต้องการอย่างน้อยเจ็ดชั่วโมง เวลาเข้านอนและตื่นที่สม่ำเสมอ รวมถึงแสงธรรมชาติช่วงต้นวัน ช่วยการฟื้นตัวโดยไม่จำเป็นต้องทำตามพระอาทิตย์ขึ้นแบบตายตัว',
-    sleepBullets: ['กำหนดช่วงเวลานอนที่ทำซ้ำได้ก่อนเพิ่มปริมาณการฝึก', 'รักษาเวลาตื่นให้ค่อนข้างคงที่ แม้หลังคืนที่นอนไม่ดี', 'หากการนอนหรือผลงานแย่ลงต่อเนื่อง ให้ลดภาระแทนการฝืนความล้า'],
-    supplementsEyebrow: 'หลักฐาน ไม่ใช่กระแส', supplementsTitle: 'อาหารมาก่อน อาหารเสริมเป็นทางเลือก', supplementsBody: 'อาหารเสริมแก้แผนที่ไม่สม่ำเสมอไม่ได้ ใช้เมื่อมีความต้องการจริง และขอคำแนะนำจากผู้เชี่ยวชาญเมื่อมีโรคประจำตัวหรือใช้ยา',
-    supplementsBullets: ['โปรตีนผงเป็นอาหารที่สะดวกเมื่อมื้ออาหารยังไม่ถึงเป้าหมาย แต่ไม่จำเป็นสำหรับทุกคน', 'ครีเอทีนโมโนไฮเดรตมีหลักฐานดีสำหรับแรงระเบิดซ้ำและงานเพิ่มความแข็งแรง แต่ประโยชน์ต่างกันตามกิจกรรมและแต่ละคน', 'ปลามันให้ EPA และ DHA ส่วน EPA/DHA จากสาหร่ายเป็นทางเลือกจากพืช ควรถามแพทย์หรือนักกำหนดอาหารกีฬาเมื่อเหมาะสม'],
+    ready: 'โปรแกรมของคุณ', overviewBody: (_sessions: number, venue: string) => `สร้างสำหรับ${venue} ตามอุปกรณ์และการฟื้นตัวที่คุณเลือก`,
+    overviewBullets: ['ปฏิทินมีวันเริ่มและวันสิ้นสุดจริง', 'ทุกเซสชันใช้อุปกรณ์ที่คุณเลือก', 'บันทึกสิ่งที่ทำจริง แล้ว APEX จะปรับตามข้อมูลนั้น'],
+    safetyEyebrow: 'ฝึกอย่างฉลาด', safetyTitle: 'รู้ว่าเมื่อไรควรหยุด', safetyBody: 'ความเหนื่อยเป็นเรื่องปกติ แต่ความเจ็บแปลบ แน่นหน้าอก หน้ามืด หรือหายใจลำบากฉับพลันไม่ใช่',
+    safetyBullets: ['หยุดท่าที่ทำให้เจ็บแปลบหรือเจ็บมากขึ้น', 'หากแน่นหน้าอก หมดสติ หรือหายใจลำบากฉับพลัน ให้โทรฉุกเฉิน (144 ในสวิตเซอร์แลนด์)', 'หากอาการเล็กน้อยไม่หายหรือกลับมา ให้พักการฝึกและปรึกษาแพทย์'],
+    clearance: 'คำตอบของคุณต้องได้รับอนุญาตก่อน เริ่มฝึกด้วยแรงต้านเมื่อแพทย์ผู้ดูแลการฟื้นตัวอนุญาตแล้วเท่านั้น',
+    hydrationEyebrow: 'การดื่มน้ำ', hydrationTitle: (target: string) => `เป้าหมายเริ่มต้น: ${target}`, hydrationBody: 'รวมเครื่องดื่มและน้ำในอาหาร กิจกรรมที่บันทึกอาจปรับเป้าหมายภายหลัง',
+    hydrationBullets: ['น้ำและอาหารตามปกติเพียงพอสำหรับเซสชันสั้นส่วนใหญ่', 'เซสชันที่ยาว ร้อน หรือเสียเหงื่อมากอาจเหมาะกับเครื่องดื่มเกลือแร่ที่มีสูตรชัดเจน', 'หากต้องจำกัดโซเดียม ให้ทำตามคำแนะนำของแพทย์'],
+    sleepEyebrow: 'การฟื้นตัว', sleepTitle: 'ทำเวลานอนให้สม่ำเสมอ', sleepBody: 'ช่วงเวลานอนที่สม่ำเสมอคือหนึ่งในเครื่องมือฝึกที่มีประโยชน์ที่สุด',
+    sleepBullets: ['ตั้งเป้าอย่างน้อยเจ็ดชั่วโมง', 'รักษาเวลาตื่นให้คงที่และรับแสงธรรมชาติช่วงเช้า', 'หากการนอนและผลงานลดลง ให้ลดภาระการฝึก'],
+    supplementsEyebrow: 'ตัวช่วยเพิ่มเติม', supplementsTitle: 'เริ่มจากสิ่งที่ได้ผล', supplementsBody: 'อาหารคือพื้นฐาน ใช้อาหารเสริมเพื่อเติมช่องว่างที่ชัดเจนด้านโภชนาการหรือการฝึก',
+    supplementsBullets: ['โปรตีนผงช่วยให้ถึงเป้าหมายโปรตีนได้สะดวก', 'ครีเอทีนโมโนไฮเดรตคือรูปแบบที่มีการศึกษาดีสำหรับแรงสูงซ้ำและความแข็งแรง', 'ปลามันให้ EPA และ DHA ส่วน EPA/DHA จากสาหร่ายคือทางเลือกจากพืช'],
   },
 } as const
+
+const BULLET_ICONS = {
+  overview: ['calendar', 'dumbbell.fill', 'chart.line.uptrend.xyaxis'],
+  safety: ['hand.raised.fill', 'phone.fill', 'stethoscope'],
+  hydration: ['drop.fill', 'bolt.heart.fill', 'wave.3.right'],
+  sleep: ['bed.double.fill', 'alarm.fill', 'gauge.with.dots.needle.67percent'],
+  supplements: ['fork.knife', 'figure.strengthtraining.traditional', 'fish.fill'],
+} as const satisfies Record<PlanBriefingSlideKind, readonly PlanBriefingBulletIcon[]>
+
+function bulletsFor(kind: PlanBriefingSlideKind, texts: readonly string[]): PlanBriefingBullet[] {
+  return texts.map((text, index) => ({ text, icon: BULLET_ICONS[kind][index] }))
+}
 
 function durationLabel(weeks: TrainingPlanWeeks, language: PlanBriefingLanguage): string {
   if (language === 'en') return weeks === 26 ? '6-month' : `${weeks}-week`
@@ -106,41 +140,44 @@ export function buildPlanBriefing(input: PlanBriefingInput): PlanBriefing {
   const venue = copy.venues[input.venue]
   const duration = durationLabel(input.planWeeks, input.language)
   const planTitle = input.language === 'en'
-    ? `Your ${duration} ${goal} plan`
+    ? `${duration} ${goal} · ${input.sessionsPerWeek} sessions/week`
     : input.language === 'ro'
-      ? `Planul tău de ${goal} · ${duration}`
-      : `แผน${goal}ของคุณ · ${duration}`
-  const safetyBullets: string[] = [...copy.safetyBullets]
-  if (input.caution === 'clearance') safetyBullets.unshift(copy.clearance)
+      ? `${goal} · ${duration} · ${input.sessionsPerWeek} sesiuni/săpt.`
+      : `${goal} · ${duration} · ${input.sessionsPerWeek} ครั้ง/สัปดาห์`
+  const safetyBody = input.caution === 'clearance' ? copy.clearance : copy.safetyBody
 
   return {
     hydrationTargetML: hydration.targetML,
     slides: [
       {
         kind: 'overview', eyebrow: copy.ready, title: planTitle,
-        body: copy.overviewBody(input.sessionsPerWeek, venue), bullets: [...copy.overviewBullets],
-        assetName: 'plan-briefing-overview', evidence: 'APEX plan facts',
+        body: copy.overviewBody(input.sessionsPerWeek, venue), bullets: bulletsFor('overview', copy.overviewBullets),
+        assetName: 'plan-briefing-overview', evidenceLabel: 'Your answers · APEX plan engine',
       },
       {
         kind: 'safety', eyebrow: copy.safetyEyebrow, title: copy.safetyTitle,
-        body: copy.safetyBody, bullets: safetyBullets,
-        assetName: 'plan-briefing-safety', evidence: 'CDC · American Heart Association',
+        body: safetyBody, bullets: bulletsFor('safety', copy.safetyBullets),
+        assetName: 'plan-briefing-safety', evidenceLabel: 'Swiss Heart Foundation',
+        evidenceURL: 'https://swissheart.ch/erkrankungen-und-notfall/notfall/verhalten-im-notfall',
       },
       {
         kind: 'hydration', eyebrow: copy.hydrationEyebrow,
         title: copy.hydrationTitle(targetLabel(hydration.targetML, input.displayUnit)),
-        body: copy.hydrationBody, bullets: [...copy.hydrationBullets],
-        assetName: 'plan-briefing-hydration', evidence: 'APEX hydration policy · American Heart Association',
+        body: copy.hydrationBody, bullets: bulletsFor('hydration', copy.hydrationBullets),
+        assetName: 'plan-briefing-hydration', evidenceLabel: 'Swiss FSVO · APEX hydration policy',
+        evidenceURL: 'https://www.blv.admin.ch/dam/blv/en/dokumente/lebensmittel-und-ernaehrung/ernaehrung/Ernaehrungsempfehlungen/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf.download.pdf/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf',
       },
       {
         kind: 'sleep', eyebrow: copy.sleepEyebrow, title: copy.sleepTitle,
-        body: copy.sleepBody, bullets: [...copy.sleepBullets],
-        assetName: 'plan-briefing-sleep', evidence: 'CDC sleep guidance',
+        body: copy.sleepBody, bullets: bulletsFor('sleep', copy.sleepBullets),
+        assetName: 'plan-briefing-sleep', evidenceLabel: 'Swiss Society for Sleep Research (SSSSC)',
+        evidenceURL: 'https://swiss-sleep.ch/',
       },
       {
         kind: 'supplements', eyebrow: copy.supplementsEyebrow, title: copy.supplementsTitle,
-        body: copy.supplementsBody, bullets: [...copy.supplementsBullets],
-        assetName: 'plan-briefing-supplements', evidence: 'NIH Office of Dietary Supplements',
+        body: copy.supplementsBody, bullets: bulletsFor('supplements', copy.supplementsBullets),
+        assetName: 'plan-briefing-supplements', evidenceLabel: 'Swiss Sports Nutrition Society (SSNS)',
+        evidenceURL: 'https://www.ssns.ch/sportsnutrition/supplemente/supplementguide/',
       },
     ],
   }
