@@ -790,3 +790,29 @@ GitHub publication evidence:
   - Hydration UI flow: passed in `22.907 seconds`, `** TEST SUCCEEDED **`.
   - `git diff --check`: clean.
 - Device evidence: exact SHA `031fd567e9be760107f412b25f3aeead90476e9c` built with `** BUILD SUCCEEDED **`, passed `codesign --verify --deep --strict`, installed to connected iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`. The embedded `APEX Water.app` and `APEXWatchWidgets.appex` were signed in the same build.
+
+## 2026-08-25 — Pre-1.8 repair: honest workout history and tracked entry
+
+- Implementation commit: `9243d9e59eb9de5434029d10d5d1fdafcd96f626` (`fix: restore honest workout history`).
+- Completed Simple Mode training cards now open the latest completed receipt for the exact selected date and programme day instead of offering to start the workout again.
+- Strength history now groups regenerated exercise rows by canonical movement, emits one chart point per completed session, and reports the real session count. The web and native engines share the same regenerated parity fixture.
+- Workout receipts now preserve distinct strength insights while rendering repeated first-baseline copy only once on both clients.
+- Tracked numeric fields keep keystrokes local, commit after a 300 ms pause or focus loss, and reuse cached exercise descriptors and work-group labels instead of rebuilding them for every row on every keypress.
+- Tests added:
+  - `SimpleHomeLogicTests.testCompletedTrainingOpensTheLatestReceiptForThatExactDayAndPrescription`
+  - `StrengthProgressParityTests.testTrackedHistoryKeepsOnePointPerSessionAcrossRegeneratedExerciseRows`
+  - `WorkoutReceiptTests.testStrengthSignalDeduplicatesIdenticalBaselineCopy`
+  - `ExerciseLoggingTests.testNumericFactDraftSeparatesCommittedValuesFromIncompleteTyping`
+  - matching TypeScript regenerated-row and receipt-deduplication tests in `tests/strength-progress.test.ts`
+- Red checks captured the prior failures: missing completed-session resolver; two one-session Front Lunge series; missing receipt deduplication helper; missing numeric draft resolver.
+- Verification:
+  - web focused strength suite: 8/8 passed
+  - web full suite: 545/545 passed in 4.75 s
+  - production web build: TypeScript passed; Vite transformed 1,171 modules
+  - native focused history/home suite: 15/15 passed
+  - native full suite: 465/465 passed, 0 failed, 0 skipped
+  - `git diff --check`: clean
+- Physical-device evidence for exact commit `9243d9e59eb9de5434029d10d5d1fdafcd96f626`:
+  - iPhone build succeeded; deep strict code-sign verification passed; installed and launched as `ch.apexperformance.APEX`
+  - embedded `APEX Water.app` and `APEXWatchWidgets.appex` strict signatures passed
+  - installed and launched directly on connected physical Apple Watch Ultra 3 as `ch.apexperformance.APEX.watchkitapp`
