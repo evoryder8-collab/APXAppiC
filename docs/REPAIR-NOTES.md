@@ -777,3 +777,16 @@ GitHub publication evidence:
 - Implementation commit: `20120a160c0abe8379e2d58f2fc0e6ee5ec01140` (`fix: open installed plans in simple mode`).
 - Physical iPhone: a fresh signed build from that exact SHA passed `codesign --verify --deep --strict`, validated the embedded `APEX Water` watch app and `APEXWatchWidgets` complication, installed on `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`.
 - Next: publish and verify this repair, then re-read the living roadmap before Task 1.8. Task 1.8 has not started.
+## 2026-08-25 — Pre-1.8 native hydration refinement
+
+- Files changed: `ios/APEXNative/APEX/Features/Portal/HydrationFigureWebView.swift`, `PortalShellView.swift`, `SimpleHomeView.swift`, both bundled hydration SVG/HTML resources, `HydrationGaugeTests.swift`, and `APEXSmokeUITests.swift`.
+- Implementation commit: `031fd567e9be760107f412b25f3aeead90476e9c` (`fix: refine native hydration entry`).
+- Tests added:
+  - `WatchHydrationFillStateTests.testFigureBridgeCarriesWeightedStopsAcrossTheVisibleFill` proves explicit 900 mL water / 100 mL coffee boundaries survive the Swift-to-WebKit bridge and remain confined to the visible fill.
+  - `APEXSmokeUITests.testWaterQuickAddDismissesAnEmptyNumericKeyboardAndKeepsSettingsAtTheBottom` opens the real sheet, focuses an empty numeric input, dismisses it without logging, verifies bottom-only settings placement, and captures the refined UI.
+- Test output:
+  - Native unit suite: `461 tests, 0 failures`, `** TEST SUCCEEDED **`.
+  - Focused hydration suite: `10 tests, 0 failures`.
+  - Hydration UI flow: passed in `22.907 seconds`, `** TEST SUCCEEDED **`.
+  - `git diff --check`: clean.
+- Device evidence: exact SHA `031fd567e9be760107f412b25f3aeead90476e9c` built with `** BUILD SUCCEEDED **`, passed `codesign --verify --deep --strict`, installed to connected iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched as `ch.apexperformance.APEX`. The embedded `APEX Water.app` and `APEXWatchWidgets.appex` were signed in the same build.
