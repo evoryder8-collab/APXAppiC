@@ -953,3 +953,14 @@ GitHub publication evidence:
 - Red proof: focused native build failed with missing `HydrationLedger.reductionPlan` and `HydrationMutationQueue`, demonstrating the old implementation had neither atomic reduction nor serialization.
 - Green proof: focused hydration suite 27/27; complete native unit suite 471/471, 0 failed, 0 skipped; `git diff --check` passed.
 - Physical-device and publication evidence will be recorded after the loaded-volume repair in the final aggregate build; no deployment claim is made here.
+
+## 2026-08-26 — Weighted bodyweight work contributes honest loaded volume
+
+- Implementation commit: `ea4eb548ae` (`fix: count weighted bodyweight volume`).
+- Files changed: `ios/APEXNative/APEX/Core/Engine/WorkoutReceipt.swift`, `ios/APEXNative/APEXTests/WorkoutReceiptTests.swift`, `src/lib/exerciseLogging.ts`, and `tests/exercise-logging.test.ts`.
+- Root cause: both receipt implementations admitted only movements resolved as `strength`, so every `bodyweight` movement was discarded before its signed external load was examined. A weighted push-up with `+7 kg` therefore contributed zero even though its measured reps and load were present.
+- Fix: loaded volume now accepts strength and bodyweight rows, counts only the positive side of the shared signed-load axis, and continues to treat negative assistance as zero.
+- Tests added: the shared regression scenario combines a `50 kg × 10` bench press, `−20 kg` assisted pull-up, and `+7 kg × 10` weighted push-up and requires an exact `570 kg` total in both clients.
+- Red proof: web focused suite failed with `500 !== 570`; native focused suite failed with `500 != 570`, demonstrating that the old readers dropped the weighted push-up.
+- Green proof: web exercise-logging suite 15/15; native WorkoutReceipt suite 9/9; complete web suite 552/552; complete native logic suite 471/471. The aggregate native run passed 484/485 before one unrelated Water Quick Add UI snapshot timed out; that exact UI test immediately passed 1/1 in isolation. `git diff --check` passed.
+- Physical-device and publication evidence will be added after the aggregate build is signed, installed, pushed, and deployed; no deployment claim is made here.
