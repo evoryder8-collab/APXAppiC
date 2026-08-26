@@ -1112,3 +1112,12 @@ GitHub publication evidence:
 - Tests added: cross-client category order and visible-label assertions. Red proof: web returned therapy/camera/work/life, while native could not compile because the required shared presentation contract did not exist.
 - Green proof: focused web 1/1; focused native 1/1; complete web suite 567/567; complete native suite 489/489; TypeScript/Vite production build passed; `git diff --check` passed. Native result bundle: `build/activity-order-red/Logs/Test/Test-APEX-2026.08.26_21-19-29-+0200.xcresult`.
 - Physical-device proof for exact source SHA `6af666fa1e713dc32901ce2f6c8d16fd716ec1c4`: the signed build and strict signature checks passed. APEX installed and launched on `iConstantine Main` at database sequence 5856. The embedded `ch.apexperformance.APEX.watchkitapp` installed and launched on the connected physical Apple Watch Ultra 3 at database sequence 1208.
+
+## 2026-08-26 — Nutrition ring reports the real calorie excess
+
+- Implementation commit: `b7c8c00238d8829f662689e8f16a72ec271a7324` (`fix: report calorie excess honestly`).
+- Files changed: shared web calorie-balance resolver and Nutrition at a glance presentation; native calorie-balance contract and Nutrition card; Romanian/Thai web translations; eight native localizations; focused web and native regressions.
+- Result: an over-target day now says `Exceeding by` and displays the actual excess in red (for example, 2,119 eaten against 1,685 shows 434), while under-target days retain the existing `Remaining` behavior.
+- Tests added: two web and two native behavior tests covering both over-target and under-target days. Red proof: both suites failed because the calorie-balance contracts did not exist; green proof: focused web 2/2 and native 2/2.
+- Full verification: complete web suite 569/569; complete native suite 491/491; TypeScript/Vite production build passed; all eight edited `.strings` files passed `plutil -lint`; `git diff --check` passed. Native result bundle: `build/activity-order-red/Logs/Test/Test-APEX-2026.08.26_21-27-37-+0200.xcresult`.
+- Physical-device proof for exact source SHA `b7c8c00238d8829f662689e8f16a72ec271a7324`: signed iPhone and embedded Watch builds succeeded and both passed strict signature verification. APEX installed and launched on `iConstantine Main` at database sequence 5864. `ch.apexperformance.APEX.watchkitapp` installed and launched on the connected physical Apple Watch Ultra 3 at database sequence 1216.
