@@ -954,6 +954,15 @@ GitHub publication evidence:
 - Green proof: focused hydration suite 27/27; complete native unit suite 471/471, 0 failed, 0 skipped; `git diff --check` passed.
 - Physical-device and publication evidence: aggregate source SHA `96c6b82f18` built successfully for a signed physical device, passed deep signature verification, installed and launched on `iConstantine Main` (iOS 27.0), and its signed companion installed and launched on `Constantin’s Apple Watch` (watchOS 27.0). Pages run `32937833636` built and deployed successfully; the live site returned HTTP 200.
 
+## 2026-08-26 — Calendar keeps the real current day visible
+
+- Implementation commit: `25439159a4` (`fix: keep today visible in calendars`).
+- Files changed: `ios/APEXNative/APEX/Core/Engine/FocusT25.swift`, `Features/Nutrition/NutritionParityViews.swift`, `APEXTests/TrainingCalendarDayTests.swift`, `src/lib/activeDate.ts`, `src/pages/SimpleHome.tsx`, `src/components/NutritionLogCalendar.tsx`, and `tests/active-date.test.ts`.
+- Fix: selection and current-day state are now independent. Native and web calendars keep a conventional circular marker around the real current date while another day is selected, and expose the date through VoiceOver/`aria-current="date"` rather than relying on colour alone.
+- Red proof: focused web failed because `calendarDayState` did not exist; focused native failed because `APEXDateMath.calendarDayState` did not exist.
+- Green proof: active-date web contract 4/4; native current-day regression 1/1; native calendar suite 12/12; complete web suite 553/553; production TypeScript/Vite build succeeded with 1,172 modules; `git diff --check` passed.
+- Before this task, the unchanged signed companion from aggregate app SHA `96c6b82f18` was reinstalled and launched successfully on the connected `Constantin’s Apple Watch` (watchOS 27.0, process 460), as explicitly requested. The calendar implementation will be included in the next aggregate physical-device build.
+
 ## 2026-08-26 — Weighted bodyweight work contributes honest loaded volume
 
 - Implementation commit: `ea4eb548ae` (`fix: count weighted bodyweight volume`).
