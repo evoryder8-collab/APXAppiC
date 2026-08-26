@@ -329,17 +329,6 @@ export function Nutrition() {
     }
   }
 
-  const logAsPlanned = async (meal: TargetMeal): Promise<void> => {
-    const existing = foodStore.meals.find((value) => value.local_date === selectedLogDate && value.source_planned_meal_id === meal.id)
-    if (existing) return
-    const item = await plannedFoodItem(meal)
-    await foodStore.logMeal({
-      date: selectedLogDate, slot: mealSlotFor(meal), name: meal.name, items: [item], sourcePlannedMealId: meal.id,
-      finishedAt: selectedLogDate === today ? undefined : zonedDateTimeToIso(selectedLogDate, meal.time, mealTimeZone),
-      loggedAs: 'planned', idempotencyKey: `planned:${profile?.user_id}:${selectedLogDate}:${meal.id}`,
-    })
-  }
-
   const snapshotFood = async (entry: LoggedFoodEntry): Promise<FoodRecord> => {
     const existing = entry.food_id ? foodStore.foods.find((food) => food.id === entry.food_id) : null
     const frozenUnitSize = entry.quantity > 0 ? entry.equivalent_amount / entry.quantity : null
@@ -643,31 +632,6 @@ export function Nutrition() {
     if (!unchanged) upsert('daily_logs', next)
   }, [consumed.carbs_g, consumed.fat_g, consumed.kcal, consumed.protein_g, consumedMeals.length, data.daily_logs, profile, selectedLogDate, upsert])
 
-  /* Meal check-offs for the selected day */
-  const toggleMeal = async (row: PlannedMealTrackerRow): Promise<void> => {
-    const meal = mealPlan.find((candidate) => candidate.id === row.id)
-    if (!meal || !profile) return
-    const existingCheck = data.meal_logs.find((log) => log.date === selectedLogDate && log.meal_id === meal.id)
-    const actualMeals = foodStore.meals.filter((actual) => actual.local_date === selectedLogDate && actual.source_planned_meal_id === meal.id)
-    if (row.done) {
-      for (const actual of actualMeals) await foodStore.deleteMeal(actual.id)
-      if (existingCheck) remove('meal_logs', existingCheck.id)
-      toast(`${meal.name} reopened`, 'ok')
-      return
-    }
-    await logAsPlanned(meal)
-    if (!existingCheck) {
-      upsert('meal_logs', {
-        id: crypto.randomUUID(),
-        user_id: profile.user_id,
-        date: selectedLogDate,
-        meal_id: meal.id,
-        checked_at: new Date().toISOString(),
-      })
-    }
-    toast(`${meal.name} logged as planned`, 'ok')
-  }
-
   /* Supplements resolved to today's clock and grouped */
   const trainingTime = profile?.training_time ?? '19:00'
   const nowMin = clockToMinute(zonedClock(new Date(), mealTimeZone).time)
@@ -955,10 +919,7 @@ export function Nutrition() {
           target={{ kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g }}
           consumed={consumed}
           burnedKcal={burnedKcal}
-          consumedMeals={consumedMeals}
           plannedRows={plannedRows}
-          activityLabel={activeDayLabel}
-          onTogglePlanned={toggleMeal}
           onEditPlanned={editAndLog}
           onEditLogged={editLoggedMeal}
           onDeleteLogged={deleteLoggedMeal}
@@ -972,6 +933,7 @@ export function Nutrition() {
           </summary>
           <div className="mt-4 space-y-4 border-t border-ink/7 pt-4">
         <TodaysActivities
+          date={selectedLogDate}
           profile={profile}
           activityTypes={data.activity_types}
           blocks={activityBlocks}

@@ -43,13 +43,13 @@ test('meal row gestures own horizontal deletion without producing day offsets', 
   assert.equal(mealRowSwipeOffset({ x: 140, y: 100 }, { x: 200, y: 104 }, true), 0)
   assert.equal(mealRowSwipeOffset({ x: 140, y: 100 }, { x: 142, y: 102 }, true), -104)
 
-  const source = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
-  assert.match(source, /data-nutrition-local-gesture/)
-  assert.match(source, /data-meal-row-gesture/)
-  assert.match(source, /event\.stopPropagation\(\)/)
-  assert.match(source, /tabIndex=\{open \? 0 : -1\}/)
-  assert.match(source, /standaloneLoggedBlockStatuses/)
-  assert.doesNotMatch(source, /confirmDelete/)
+  const dayline = readFileSync(new URL('../src/components/food/MealDayline.tsx', import.meta.url), 'utf8')
+  const nutrition = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
+  assert.match(dayline, /data-nutrition-local-gesture/)
+  assert.match(dayline, /mealRowSwipeOffset/)
+  assert.match(dayline, /event\.stopPropagation\(\)/)
+  assert.match(dayline, /tabIndex=\{open \? 0 : -1\}/)
+  assert.doesNotMatch(nutrition, /standaloneLoggedBlockStatuses|<SwipeMealRow|confirmDelete/)
 })
 
 test('meal completion callbacks are invalidated at the account boundary', () => {
@@ -79,6 +79,16 @@ test('Open Food Facts provenance asks for the package label without redundant pr
   const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
   assert.match(source, /food\.source === 'open_food_facts'\) return 'Check the package label\.'/)
   assert.doesNotMatch(source, /Open Food Facts community record\. Check the package label\./)
+})
+
+test('Nutrition keeps one editable meal surface and removes the duplicate meal timeline', () => {
+  const web = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
+  const native = readFileSync(new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionView.swift', import.meta.url), 'utf8')
+
+  assert.match(web, /<MealDayline/)
+  assert.doesNotMatch(web, /standaloneLoggedBlockStatuses|<SwipeMealRow|setAddMealOpen/)
+  assert.match(native, /APEXDaylineView\(/)
+  assert.doesNotMatch(native, /LoggedMealsCard\(|MealTimeline\(/)
 })
 
 test('generic meal guidance is structured and activity switching uses plain wearable language', () => {

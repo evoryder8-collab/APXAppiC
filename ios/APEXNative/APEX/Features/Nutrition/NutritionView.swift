@@ -95,11 +95,6 @@ struct NutritionView: View {
                             onAddMeal: { showMealSlotPicker = true },
                             compact: false
                         )
-                        LoggedMealsCard(
-                            date: selectedDate,
-                            onAdd: { showMealSlotPicker = true },
-                            onEdit: { composerRequest = .edit($0) }
-                        )
 
                         CollapsibleSection(
                             id: "activities",
@@ -121,14 +116,6 @@ struct NutritionView: View {
                                 )
                                 DailyTargetsCard(targets: targets, precise: !dayActivities.isEmpty)
                             }
-                        }
-
-                        CollapsibleSection(
-                            id: "meal-timeline",
-                            title: language.text("Meal timeline"),
-                            subtitle: language.text("Portions adapt to your activity and goal selection.")
-                        ) {
-                            MealTimeline(date: selectedDate, targets: targets)
                         }
 
                         CollapsibleSection(
@@ -302,6 +289,11 @@ private struct TodaysActivitiesPanel: View {
                         }
                     }
                 }
+
+                CompletedWorkoutHistoryCards(
+                    date: date.apexDateKey,
+                    accent: APEXColor.amber
+                )
 
                 ScrollView(.horizontal, showsIndicators: false) {
                     HStack(spacing: 9) {

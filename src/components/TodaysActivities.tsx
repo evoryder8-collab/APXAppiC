@@ -19,10 +19,12 @@ import { ACCENTS } from '../lib/theme'
 import { GlassCard, GradientButton, Sheet, Stepper } from './ui'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import type { IntroLanguage } from '../lib/introLanguage'
+import { CompletedWorkoutHistoryCards } from './workout/CompletedWorkoutHistoryCards'
 
 const amber = ACCENTS.amber
 
 interface TodaysActivitiesProps {
+  date: string
   profile: Profile
   activityTypes: ActivityType[]
   blocks: ActivityBlock[]
@@ -306,6 +308,7 @@ function ActivityEditor({
 }
 
 export function TodaysActivities({
+  date,
   profile,
   activityTypes,
   blocks,
@@ -531,6 +534,10 @@ export function TodaysActivities({
               </motion.button>
             )}
           </AnimatePresence>
+
+          <div className="mt-4">
+            <CompletedWorkoutHistoryCards date={date} accent={amber} />
+          </div>
 
           <div className="mt-4 grid grid-cols-[1fr_auto_1fr_auto_1fr] items-center gap-2 rounded-2xl border border-ink/5 bg-white/38 px-3 py-2.5 text-center">
             <div>

@@ -81,6 +81,16 @@ test('completed workout history is rendered directly below Simple Mode metrics a
   assert.match(phase, /CompletedWorkoutHistoryCards/)
 })
 
+test("Nutrition Today's Activities reuses the same date-owned finished workout receipts", () => {
+  const nutrition = readFileSync(new URL('../src/pages/Nutrition.tsx', import.meta.url), 'utf8')
+  const activities = readFileSync(new URL('../src/components/TodaysActivities.tsx', import.meta.url), 'utf8')
+  const native = readFileSync(new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionView.swift', import.meta.url), 'utf8')
+
+  assert.match(nutrition, /<TodaysActivities[\s\S]*date=\{selectedLogDate\}/)
+  assert.match(activities, /<CompletedWorkoutHistoryCards date=\{date\}/)
+  assert.match(native, /TodaysActivitiesPanel\([\s\S]*CompletedWorkoutHistoryCards\(\s*date: date\.apexDateKey/)
+})
+
 test('deleting a finished workout targets the owned session and all of its owned set rows only', () => {
   const owned = session({ id: 'owned', date: '2026-08-26', program_day_id: 'day' })
   const foreign = session({ id: 'foreign', user_id: 'someone-else', date: '2026-08-26', program_day_id: 'day' })
