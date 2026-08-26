@@ -2,6 +2,7 @@ import test from 'node:test'
 import assert from 'node:assert/strict'
 import {
   ACTIVITY_BY_ID,
+  ACTIVITY_CATEGORIES,
   activityBmr,
   activityLevelForPal,
   calibrateActivityK,
@@ -33,6 +34,20 @@ function block(typeId: string, patch: Partial<ActivityBlock> = {}): ActivityBloc
   assert.ok(type, `Missing catalog type ${typeId}`)
   return { ...emptyActivityBlock(type, `${typeId}-test`), ...patch }
 }
+
+test('activity catalogue leads with broadly useful groups before specialist work', () => {
+  assert.deepEqual(
+    ACTIVITY_CATEGORIES.map(({ id, label }) => [id, label]),
+    [
+      ['work', 'Work: general'],
+      ['life', 'Errands & life'],
+      ['camera', 'Work: camera'],
+      ['therapy', 'Work: hands-on therapy'],
+      ['training', 'Training'],
+      ['device', 'Device import'],
+    ],
+  )
+})
 
 test('zero-block day starts at the 1.2 floor, maps sedentary, applies recomp, and respects safety floor', () => {
   const estimate = estimateActivityDay(baseProfile, [])

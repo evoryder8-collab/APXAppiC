@@ -72,10 +72,10 @@ export interface CalibrationResult {
 }
 
 export const ACTIVITY_CATEGORIES: Array<{ id: ActivityCategory; label: string }> = [
-  { id: 'therapy', label: 'Hands-on therapy' },
-  { id: 'camera', label: 'Camera work' },
-  { id: 'work', label: 'General work' },
-  { id: 'life', label: 'Errands and life' },
+  { id: 'work', label: 'Work: general' },
+  { id: 'life', label: 'Errands & life' },
+  { id: 'camera', label: 'Work: camera' },
+  { id: 'therapy', label: 'Work: hands-on therapy' },
   { id: 'training', label: 'Training' },
   { id: 'device', label: 'Device import' },
 ]

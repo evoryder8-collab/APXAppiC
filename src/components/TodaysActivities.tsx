@@ -320,7 +320,7 @@ export function TodaysActivities({
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const [sheet, setSheet] = useState<'catalog' | 'guide' | null>(null)
-  const [category, setCategory] = useState<ActivityCategory>('camera')
+  const [category, setCategory] = useState<ActivityCategory>('work')
   const [draft, setDraft] = useState<ActivityBlock | null>(null)
   const catalog = useMemo(() => activityCatalogMap(activityTypes), [activityTypes])
   const availableTypes = activityTypes.length > 0 ? activityTypes : ACTIVITY_CATALOG

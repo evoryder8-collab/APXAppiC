@@ -1,5 +1,21 @@
 import SwiftUI
 
+enum ActivityCategoryPresentation {
+    static let order = ["work", "life", "camera", "therapy", "training", "device"]
+
+    static func title(_ category: String) -> String {
+        switch category {
+        case "work": "Work: general"
+        case "life": "Errands & life"
+        case "camera": "Work: camera"
+        case "therapy": "Work: hands-on therapy"
+        case "training": "Training"
+        case "device": "Device import"
+        default: category
+        }
+    }
+}
+
 struct AddActivitySheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
@@ -9,9 +25,8 @@ struct AddActivitySheet: View {
     @State private var selectedType: ActivityType?
 
     private var groups: [(String, [ActivityType])] {
-        let order = ["therapy", "camera", "work", "life", "training", "device"]
         let grouped = Dictionary(grouping: session.data.activityTypes, by: \.category)
-        return order.compactMap { category in
+        return ActivityCategoryPresentation.order.compactMap { category in
             guard let rows = grouped[category], !rows.isEmpty else { return nil }
             return (category, rows)
         }
@@ -31,7 +46,7 @@ struct AddActivitySheet: View {
 
                     ForEach(groups, id: \.0) { category, types in
                         VStack(alignment: .leading, spacing: 10) {
-                            Text(language.text(categoryTitle(category)).uppercased(with: language.language.locale))
+                            Text(language.text(ActivityCategoryPresentation.title(category)).uppercased(with: language.language.locale))
                                 .font(APEXFont.mono(10))
                                 .tracking(1.5)
                                 .foregroundStyle(APEXColor.secondaryInk)
@@ -86,17 +101,6 @@ struct AddActivitySheet: View {
         }
     }
 
-    private func categoryTitle(_ category: String) -> String {
-        switch category {
-        case "therapy": "Work: hands-on therapy"
-        case "camera": "Work: camera"
-        case "work": "Work: general"
-        case "life": "Errands & life"
-        case "training": "Training"
-        case "device": "Device import"
-        default: category
-        }
-    }
 }
 
 private struct ActivityEntryForm: View {

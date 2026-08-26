@@ -2,6 +2,24 @@ import XCTest
 @testable import APEX
 
 final class EnergyEngineTests: XCTestCase {
+    func testActivityCatalogueLeadsWithBroadlyUsefulGroupsBeforeSpecialistWork() {
+        XCTAssertEqual(
+            ActivityCategoryPresentation.order,
+            ["work", "life", "camera", "therapy", "training", "device"]
+        )
+        XCTAssertEqual(
+            ActivityCategoryPresentation.order.map(ActivityCategoryPresentation.title),
+            [
+                "Work: general",
+                "Errands & life",
+                "Work: camera",
+                "Work: hands-on therapy",
+                "Training",
+                "Device import",
+            ]
+        )
+    }
+
     func testQuickSedentaryRecompUsesProfileAndSafetyFloor() {
         let result = EnergyEngine.targets(profile: profile(weight: 70, level: .sedentary, goal: .recomp), logs: [], catalog: [])
 
