@@ -939,7 +939,7 @@ GitHub publication evidence:
 - Result: restored the exact earlier 888×900 transparent illustration in both clients and converted the asset test into an owner-approval lock on SHA-256 `b28b785dafb6d58d8e1abd72b8d7cafb9c13dd671b8bc83e876984832ea79b83`.
 - Red proof: focused briefing suite ran 7/8; the asset contract rejected the replacement SHA `2c800f7dc38112a6cb8ba27649459be2987333985f5f82d7d8581726ff5bcf20`.
 - Green proof: focused briefing suite ran 8/8 in 44.546 ms; web/native assets are byte-identical and retain RGBA transparency; `git diff --check` passed.
-- Physical-device and publication evidence will be recorded on the final aggregate build after the two reported data-integrity repairs are committed; this entry does not claim deployment yet.
+- Physical-device and publication evidence: aggregate source SHA `96c6b82f18` built successfully for a signed physical device, passed deep signature verification, installed and launched on `iConstantine Main` (iOS 27.0), and its signed companion installed and launched on `Constantin’s Apple Watch` (watchOS 27.0). Pages run `32937833636` built and deployed successfully; the live site returned HTTP 200 and served this approved asset at exact SHA-256 `b28b785dafb6d58d8e1abd72b8d7cafb9c13dd671b8bc83e876984832ea79b83`.
 
 ## 2026-08-26 — Past-day hydration reductions cannot increase water
 
@@ -952,7 +952,7 @@ GitHub publication evidence:
   - `testRapidHydrationAdjustmentsRunInTapOrderWithoutOverlap` proves a delayed first tap finishes before the next mutation starts.
 - Red proof: focused native build failed with missing `HydrationLedger.reductionPlan` and `HydrationMutationQueue`, demonstrating the old implementation had neither atomic reduction nor serialization.
 - Green proof: focused hydration suite 27/27; complete native unit suite 471/471, 0 failed, 0 skipped; `git diff --check` passed.
-- Physical-device and publication evidence will be recorded after the loaded-volume repair in the final aggregate build; no deployment claim is made here.
+- Physical-device and publication evidence: aggregate source SHA `96c6b82f18` built successfully for a signed physical device, passed deep signature verification, installed and launched on `iConstantine Main` (iOS 27.0), and its signed companion installed and launched on `Constantin’s Apple Watch` (watchOS 27.0). Pages run `32937833636` built and deployed successfully; the live site returned HTTP 200.
 
 ## 2026-08-26 — Weighted bodyweight work contributes honest loaded volume
 
@@ -963,4 +963,4 @@ GitHub publication evidence:
 - Tests added: the shared regression scenario combines a `50 kg × 10` bench press, `−20 kg` assisted pull-up, and `+7 kg × 10` weighted push-up and requires an exact `570 kg` total in both clients.
 - Red proof: web focused suite failed with `500 !== 570`; native focused suite failed with `500 != 570`, demonstrating that the old readers dropped the weighted push-up.
 - Green proof: web exercise-logging suite 15/15; native WorkoutReceipt suite 9/9; complete web suite 552/552; complete native logic suite 471/471. The aggregate native run passed 484/485 before one unrelated Water Quick Add UI snapshot timed out; that exact UI test immediately passed 1/1 in isolation. `git diff --check` passed.
-- Physical-device and publication evidence will be added after the aggregate build is signed, installed, pushed, and deployed; no deployment claim is made here.
+- Physical-device and publication evidence: aggregate source SHA `96c6b82f18` built successfully for a signed physical device, passed deep signature verification, installed and launched on `iConstantine Main` (iOS 27.0), and its signed companion installed and launched on `Constantin’s Apple Watch` (watchOS 27.0). Pages run `32937833636` built and deployed successfully; the live site returned HTTP 200.
