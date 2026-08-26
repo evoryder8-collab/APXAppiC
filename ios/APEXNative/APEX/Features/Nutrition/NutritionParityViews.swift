@@ -1,5 +1,20 @@
 import SwiftUI
 
+struct NutritionCalorieBalance: Equatable {
+    let label: String
+    let amount: Int
+    let isOverTarget: Bool
+
+    static func resolve(target: Int, consumed: Int) -> NutritionCalorieBalance {
+        let isOverTarget = consumed > target
+        return NutritionCalorieBalance(
+            label: isOverTarget ? "Exceeding by" : "Remaining",
+            amount: abs(target - consumed),
+            isOverTarget: isOverTarget
+        )
+    }
+}
+
 /// The native equivalent of the web "Nutrition at a glance" card. All values
 /// come from the selected user's structured Supabase meal rows, with the daily
 /// log used only as the backward-compatible fallback for older/manual days.
@@ -39,8 +54,11 @@ struct NutritionGlanceCard: View {
         )
     }
 
-    private var remaining: Int {
-        max(0, targets.targetCalories - Int(totals.kcal.rounded()))
+    private var calorieBalance: NutritionCalorieBalance {
+        NutritionCalorieBalance.resolve(
+            target: targets.targetCalories,
+            consumed: Int(totals.kcal.rounded())
+        )
     }
 
     private var wearableActiveCalories: Int? {
@@ -131,12 +149,17 @@ struct NutritionGlanceCard: View {
                     Button(action: onEditTargets) {
                         ZStack {
                             Circle()
-                                .stroke(APEXColor.ink.opacity(0.07), lineWidth: 15)
+                                .stroke(
+                                    calorieBalance.isOverTarget ? Color.red.opacity(0.13) : APEXColor.ink.opacity(0.07),
+                                    lineWidth: 15
+                                )
                             Circle()
                                 .trim(from: 0, to: max(calorieProgress, 0.012))
                                 .stroke(
                                     AngularGradient(
-                                        colors: [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
+                                        colors: calorieBalance.isOverTarget
+                                            ? [Color.orange, Color.red, Color.orange]
+                                            : [APEXColor.amber, APEXColor.cyan, APEXColor.amber],
                                         center: .center
                                     ),
                                     style: StrokeStyle(lineWidth: 15, lineCap: .round)
@@ -144,13 +167,14 @@ struct NutritionGlanceCard: View {
                                 .rotationEffect(.degrees(-90))
                                 .animation(.snappy, value: calorieProgress)
                             VStack(spacing: 2) {
-                                Text(language.text("Remaining"))
+                                Text(language.text(calorieBalance.label))
                                     .font(APEXFont.body(10, weight: .semibold))
-                                    .foregroundStyle(APEXColor.secondaryInk)
-                                Text("\(remaining)")
+                                    .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.secondaryInk)
+                                Text("\(calorieBalance.amount)")
                                     .font(APEXFont.display(34))
                                     .lineLimit(1)
                                     .minimumScaleFactor(0.5)
+                                    .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.ink)
                                     .contentTransition(.numericText())
                                 Text(language.format("of %d kcal", targets.targetCalories))
                                     .font(APEXFont.mono(8))

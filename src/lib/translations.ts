@@ -544,6 +544,7 @@ const rows: Array<[string, string, string]> = [
   ['Eaten', 'Consumate', 'กินแล้ว'],
   ['Remaining', 'Rămase', 'เหลือ'],
   ['Over by', 'Peste obiectiv cu', 'เกินเป้า'],
+  ['Exceeding by', 'Depășire cu', 'เกินเป้า'],
   ['One tap logs the plan. Change anything you actually ate.', 'O atingere înregistrează planul. Schimbă orice ai mâncat diferit.', 'แตะครั้งเดียวเพื่อบันทึกตามแผน แล้วแก้สิ่งที่กินจริงได้'],
   ['Activity & nutrition targets', 'Activitate și obiective nutriționale', 'กิจกรรมและเป้าหมายโภชนาการ'],
   ['Logged exactly as shown', 'Înregistrat exact ca în plan', 'บันทึกตรงตามที่แสดง'],

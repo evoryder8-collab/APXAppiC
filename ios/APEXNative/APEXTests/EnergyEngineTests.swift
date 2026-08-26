@@ -2,6 +2,22 @@ import XCTest
 @testable import APEX
 
 final class EnergyEngineTests: XCTestCase {
+    func testNutritionBalanceReportsActualExcessInsteadOfZeroRemaining() {
+        let balance = NutritionCalorieBalance.resolve(target: 1_685, consumed: 2_119)
+
+        XCTAssertEqual(balance.label, "Exceeding by")
+        XCTAssertEqual(balance.amount, 434)
+        XCTAssertTrue(balance.isOverTarget)
+    }
+
+    func testNutritionBalanceStillReportsCaloriesRemainingBelowTarget() {
+        let balance = NutritionCalorieBalance.resolve(target: 1_685, consumed: 1_200)
+
+        XCTAssertEqual(balance.label, "Remaining")
+        XCTAssertEqual(balance.amount, 485)
+        XCTAssertFalse(balance.isOverTarget)
+    }
+
     func testActivityCatalogueLeadsWithBroadlyUsefulGroupsBeforeSpecialistWork() {
         XCTAssertEqual(
             ActivityCategoryPresentation.order,

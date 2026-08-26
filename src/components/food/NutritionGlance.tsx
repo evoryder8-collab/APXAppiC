@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ACCENTS } from '../../lib/theme'
 import type { MealTotals } from '../../lib/food'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import { resolveNutritionCalorieBalance } from '../../lib/nutritionBalance'
 import { AccentChip } from '../ui'
 
 const amber = ACCENTS.amber
@@ -33,7 +34,7 @@ export function NutritionGlance({
   const { language } = useLanguage()
   const reduceMotion = useReducedMotion()
   const t = (value: string): string => translateInterfaceText(value, language)
-  const remaining = target.kcal - consumed.kcal
+  const balance = resolveNutritionCalorieBalance(target.kcal, consumed.kcal)
   const calorieProgress = target.kcal > 0 ? Math.min(1, consumed.kcal / target.kcal) : 0
   const metrics = [
     ['Protein', 'protein_g', consumed.protein_g, target.protein_g, '#ec4899'],
@@ -83,14 +84,14 @@ export function NutritionGlance({
         >
           <motion.div
             className="absolute -inset-3 rounded-full blur-xl"
-            style={{ background: remaining < 0 ? 'rgba(249,115,22,.28)' : 'radial-gradient(circle, rgba(251,191,36,.35), rgba(56,189,248,.12) 58%, transparent 72%)' }}
+            style={{ background: balance.isOverTarget ? 'rgba(239,68,68,.30)' : 'radial-gradient(circle, rgba(251,191,36,.35), rgba(56,189,248,.12) 58%, transparent 72%)' }}
             animate={reduceMotion ? undefined : { opacity: [0.42, 0.86, 0.48], scale: [0.94, 1.06, 0.97] }}
             transition={{ duration: 3.4, repeat: Infinity, ease: 'easeInOut' }}
             aria-hidden
           />
           <div
             className="absolute inset-0 rounded-full p-[9px] shadow-[0_18px_45px_-22px_rgba(245,158,11,.72)]"
-            style={{ background: `conic-gradient(from -90deg, ${remaining < 0 ? '#f97316' : '#fb923c'} 0deg, ${remaining < 0 ? '#ef4444' : '#fbbf24'} ${calorieProgress * 270}deg, ${remaining < 0 ? '#fb7185' : '#22d3ee'} ${calorieProgress * 360}deg, rgba(26,26,34,.075) 0deg)` }}
+            style={{ background: `conic-gradient(from -90deg, ${balance.isOverTarget ? '#f97316' : '#fb923c'} 0deg, ${balance.isOverTarget ? '#ef4444' : '#fbbf24'} ${calorieProgress * 270}deg, ${balance.isOverTarget ? '#fb7185' : '#22d3ee'} ${calorieProgress * 360}deg, rgba(26,26,34,.075) 0deg)` }}
           >
             <div className="relative grid h-full w-full place-items-center overflow-hidden rounded-full border border-white/85 bg-[radial-gradient(circle_at_35%_25%,rgba(255,255,255,.98),rgba(255,251,235,.93)_48%,rgba(236,254,255,.88))] shadow-[inset_0_2px_10px_rgba(255,255,255,.95),inset_0_-10px_24px_rgba(245,158,11,.08)]">
               <motion.div
@@ -101,8 +102,8 @@ export function NutritionGlance({
                 aria-hidden
               />
               <motion.div className="relative min-w-0 max-w-full px-1" animate={reduceMotion ? undefined : { scale: [1, 1.025, 1] }} transition={{ duration: 2.8, repeat: Infinity, ease: 'easeInOut' }}>
-                <p className="text-[10px] font-semibold text-ink-soft">{t(remaining >= 0 ? 'Remaining' : 'Over by')}</p>
-                <p className="whitespace-nowrap font-mono text-[clamp(1.35rem,7vw,1.875rem)] leading-tight font-bold tracking-[-0.06em] text-ink tabular-nums">{Math.abs(Math.round(remaining))}</p>
+                <p className={`text-[10px] font-semibold ${balance.isOverTarget ? 'text-red-600' : 'text-ink-soft'}`}>{t(balance.label)}</p>
+                <p className={`whitespace-nowrap font-mono text-[clamp(1.35rem,7vw,1.875rem)] leading-tight font-bold tracking-[-0.06em] tabular-nums ${balance.isOverTarget ? 'text-red-600' : 'text-ink'}`}>{balance.amount}</p>
                 <p className="whitespace-nowrap font-mono text-[clamp(7px,2vw,9px)] font-semibold tracking-[-0.035em] text-ink-faint">{t('of')} {Math.round(target.kcal)} kcal</p>
               </motion.div>
             </div>
