@@ -1161,3 +1161,18 @@ GitHub publication evidence:
 - Physical release: build `357`, source SHA `4ac3c5b0d43efa939f1d1585f72d89552b33e32d`; strict deep signature verification passed for both bundles.
 - Installed and launched on physical iPhone 15 Pro Max `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5896`.
 - Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1248`.
+
+## Compact meal serving-unit layout repair — 2026-08-27
+
+- Implementation commit: `db06034d99fd7a52e8a4c2b60ffa2880873282e8` (`fix: keep meal units on one line`).
+- Replaced the undersized compact-row system picker with the same constrained, single-line serving-unit menu used by expanded rows. The compact control now reserves a 72 x 40 pt frame for `g`, `ml`, and `serving`, so millilitres cannot wrap into `m` / `l` or stretch and displace the food row.
+- Added a realistic 200 ml high-protein-milk UI fixture so the rendered compact meal row exercises the exact failure shown on-device.
+- Tests added:
+  - `MealComposerTests.testCompactUnitControlReservesOneLineForMillilitresAndServingLabels`
+  - `APEXSmokeUITests.testCompactMealMillilitreUnitStaysOnOneLineInsideItsCard`
+- Red proof: the focused layout test failed before implementation because `MealComposerCompactLayout` did not exist (`build/meal-unit-layout-red/Logs/Test/Test-APEX-2026.08.27_01-00-09-+0200.xcresult`, exit 65).
+- Green proof: focused unit test 1/1 passed (`build/meal-unit-layout-red/Logs/Test/Test-APEX-2026.08.27_01-02-27-+0200.xcresult`); rendered UI test 1/1 passed in 14.089 seconds (`build/meal-unit-layout-red/Logs/Test/Test-APEX-2026.08.27_01-08-56-+0200.xcresult`).
+- Full verification: native 498/498 passed with 0 failures (`build/meal-unit-layout-full/Logs/Test/Test-APEX-2026.08.27_01-09-44-+0200.xcresult`); web 575/575 passed with 0 failures; `npm run build` passed; `git diff --check` passed.
+- Release build: APEX 1.0.0 (358), built from exact implementation SHA `db06034d99fd7a52e8a4c2b60ffa2880873282e8`; strict deep code-sign verification passed for both the iPhone app and embedded Watch app.
+- Installed and launched on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5904`.
+- Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1256`.
