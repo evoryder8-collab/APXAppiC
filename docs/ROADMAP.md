@@ -84,79 +84,44 @@ it contains are for bugs that are **live in production right now** (see Phase 2)
 - **`session_mode` appears in exactly one Swift file** (the model, uncommitted). Nothing reads it.
 - **`Features/Onboarding` contains no "skip" string anywhere.**
 
-### COMMERCIAL RULE — DECIDED, DO NOT RE-ASK
+### COMMERCIAL RULE — SUPERSEDED 26 Aug
 
-The owner settled this directly: **during beta there is no free trial at all.** Ignore
-`Entitlement.trialDays` and any paywall copy that still promises "7 days free" — both are stale and
-must be removed.
+The earlier rule here described a hard paywall at launch with purchasable pricing cards. **That is
+no longer the plan.** The app now ships to TestFlight first and does not charge at all in that
+phase. See Phase 4.
 
-The gate is hard and immediate after sign-up:
+What survives from it, because it was never about pricing:
 - The four founding/bespoke accounts pass permanently and **do not consume beta codes**.
-- The five beta codes belong to five entirely new family accounts, one redemption each.
-- Everyone else sees the three-slide intro deck ending at the paywall, and cannot reach a single
-  protected APEX screen without a verified StoreKit entitlement or a redeemed code. Not even one
-  frame of the portal.
-- Entitlement is account-scoped and server-authoritative. The current build stores a **device-wide**
-  unlock flag, which would let one redeemed family account unlock a different account on the same
-  iPhone. That is a security defect, not a preference.
-- The Coach card stays visible, greyed out, labelled "Coming soon", excluded from StoreKit.
+- Entitlement must be **account-scoped and server-authoritative**. The current build stores a
+  **device-wide** unlock flag, which would let one account unlock a different account on the same
+  iPhone. That is a security defect, not a preference, and it is fixed in 4.4.
+- `Entitlement.trialDays` and any paywall copy promising "7 days free" are stale and must be removed.
 
----
+Everything else about prices, codes on the paywall and the Coach card is settled in Phases 4 and 5.
 
-## STRANDED WORK — READ BEFORE STARTING ANYTHING
-
-Codex repaired a set of audit findings in `~/APXAppiC-codex-release`, then abandoned that clone and
-rebuilt only **part** of that work on the current branch. I diffed both. These fixes exist **only**
-on the frozen commit `909cd63` and are **not** on `codex/main-critical-repair`:
-
-| finding | status on the active branch |
-|---|---|
-| Realtime subscribed to the whole public schema | **still unfiltered** — `SupabaseService.swift:306` is still `postgresChange(AnyAction.self, schema: "public")` |
-| Web supplement `21000` duplicate batch | **not fixed** — no dedup in `src/store/AppStore.tsx` |
-| `food_preferences` `23503` stale references | **not fixed** |
-| `020_restrict_rls_auto_enable.sql` | **missing** — the grant was hardened directly in the production DB via MCP, so prod is fixed but the migration file is absent; a fresh environment would not get it |
-| Orbit nutrition recorded as consumed | **unverified** — verify against the current code before assuming |
-| Orbit run import deleting unrelated activity | **unverified** — an `overlapping` guard exists but is also present on `main`, so it predates the repair |
-
-`9f6c34e` touched only five files (`AppSession`, `APEXModels`, `OfflineStore`, `MealComposerView`,
-`MealComposerTests`). Everything else from the first repair attempt was left behind.
-
-**Do not re-implement these from scratch.** Read `909cd63` in `~/APXAppiC-codex-release` first and
-port what is sound, with tests.
-
-## LAUNCH SCOPE AND WORKING POLICY — decided 22 Aug
-
-**Order is unchanged: finish the work, then launch paid.** A free or code-only beta was
-considered and rejected. Phases run in their existing numbered order; do not pull Phase 4 or 5
-forward, and do not ship an interim free release.
-
-### Launch scope, decided
-- **Two products only**: Premium monthly and Premium yearly. Do not create Coach products —
-  a subscription with no platform behind it is a 3.1.2 rejection risk. The Coach card stays
-  visible, greyed, "Coming soon", excluded from StoreKit.
-- Pricing cards are purchasable at launch. The five beta codes bypass the paywall for family
-  accounts, per 4.2.
-- **Defer App Store Server Notifications V2 to 1.1.** For launch, `Transaction.currentEntitlements`
-  checked on launch and on foreground, mirrored to Supabase, is sufficient. Do not build the
-  JWS-verifying Edge Function now; it processes renewals that will not exist for a month.
-
-### Owner-side, runs in parallel and blocks nothing you build
-The Paid Applications agreement (App Store Connect → Business) must be Active before IAP products
-can be created. That is the owner's task. **The StoreKit client code does not depend on it** — only
-sandbox testing does. When you reach Phase 4, build and unit-test against a local `.storekit`
-configuration file so the two never block each other.
-
-### Review-effort policy, effective now
-This matters more than it looks. The Task 5 review loop ran roughly ten rounds and consumed a
-disproportionate share of the owner's weekly budget. It found real defects — the fabricated profile
-defaults were worth every round — but it is not the right setting for everything, and at that burn
-rate "finish everything first" is not affordable.
+### Review-effort policy
+The Task 5 review loop ran roughly ten rounds and consumed a disproportionate share of the owner's
+budget. It found real defects — the fabricated profile defaults were worth every round — but it is
+not the right setting for everything.
 
 - **Full independent review**: anything touching persistence, account isolation, entitlements,
   money, or health data.
 - **Single-pass review**: UI, copy, layout, labels, animation.
 
 A chip label does not earn a review cycle. Spend the budget where a defect would cost data or money.
+
+---
+
+## EXECUTION ORDER — read this, the numbers are identity, not sequence
+
+Phase numbers are stable identifiers so the cross-references throughout this document keep working.
+**They are not the order of work.** The order is:
+
+> **1 → 2 → 3 → 9 (Apple Watch) → 4 (TestFlight) → 5 → 6 → 7 → 8**
+
+Phase 9 moves ahead of TestFlight on the owner's decision, 26 Aug: the testers are friends who own
+Apple Watches, and a companion that only tracks water invites the same question from every one of
+them. See the sequencing note at the head of Phase 9 for what may be deferred within it.
 
 ---
 
@@ -301,115 +266,147 @@ one shared record.
 
 ---
 
-## PHASE 4 — Beta access, onboarding deck, StoreKit, paywall
+## PHASE 4 — TestFlight release
 
-Design work already exists — read these before writing anything new, and extend rather than
-duplicate them:
-- `docs/plans/2026-08-21-beta-access-storekit-design.md`
-- `docs/plans/2026-08-21-beta-access-storekit-implementation.md`
+**Runs after Phase 9, not before it.** See the execution order above.
 
-**Get the trial decision from the owner first (section 1, DECISION REQUIRED).**
+**Decided 26 Aug: the app ships to TestFlight, not the App Store, and it does not charge yet.**
+The previous Phase 4 (StoreKit and paywall) and Phase 5 (App Store submission) are replaced by
+this. Monetisation is deferred to Phase 5 below and does not gate anything here.
 
-### 4.1 Entitlement gate
-Server-backed and authoritative. Must not be bypassable by reinstalling, clearing local storage,
-editing defaults, deep links, the web client, restoring a stale cache, or switching accounts. Cache
-for resilience; reconcile securely.
+The reasoning is that bugs get found by people using the app, not by more rounds of internal
+review, and nobody should be charged for a build still finding its shape.
 
-### 4.2 Beta codes
-Five codes exist, stored hashed in `beta_codes` with `redeem_beta_code(p_code_hash text)`
-(security definer, returns `ok | already_redeemed | not_signed_in | invalid_or_used`), a unique
-partial index on `claimed_by`, and `profile.beta_code_redeemed`. **Do not put plaintext codes in
-Swift or JS.** The four bespoke accounts are grandfathered server-side and do not consume codes.
-Tests: valid unused, invalid, already used, concurrent redemption, same account retrying,
-whitespace/case variants, network interruption, RLS isolation.
+### 4.1 What TestFlight actually needs
+Far less than an App Store submission. **No StoreKit, no paywall, no screenshots, no listing copy,
+no App Review** for internal testers.
 
-### 4.3 Premium onboarding deck
-Roughly three manually swiped slides, then the paywall as the final card. Cinematic, calm, fast.
-Suggested: (1) one connected performance system — nutrition, hydration, supplements, recovery,
-training and Avatar signals communicating; (2) training intelligence — adaptive programming,
-guided or tracked, progressive overload, exercise-specific logging, recovery-aware scheduling;
-(3) APEX Orbit — route intelligence, run missions, marathon preparation.
+- An App Store Connect record for `ch.apexperformance.APEX`.
+- A **Release** archive, not Debug, signed for distribution.
+- The export-compliance answer. The app uses HTTPS only, so it is almost certainly exempt, but the
+  question must be answered or the build will not process.
+- `PrivacyInfo.xcprivacy` — **already present** at `ios/APEXNative/APEX/PrivacyInfo.xcprivacy`.
+- Build number incremented on every upload. Version stays `1.0.0`; the build number is what
+  distinguishes uploads.
 
-Use GPT Image 2 for the slide artwork (via the session's image-generation MCP tooling), for
-supporting imagery only. **Never ask an image model to invent readable app UI** — use genuine APEX
-screenshots or native recreations for any product claim. Keep all copy as native SwiftUI text for
-localisation and accessibility; do not bake English into rasters. Respect Reduce Motion, allow
-manual swiping, show progress, do not auto-advance aggressively.
+The Paid Applications agreement is **not** required. That gates selling, and nothing here sells.
 
-### 4.4 StoreKit 2
-Real subscriptions for Premium monthly and annual. Purchase, pending, cancellation, failure,
-verification, restore, current entitlements, revocation, expiration, upgrade/downgrade, family
-sharing per product config, backend entitlement sync, App Store Server Notifications where
-practical, sandbox testing, a StoreKit configuration file for local tests.
-**Do not hardcode CHF prices** — the paywall currently does. Use `Product.displayPrice` and derive
-the savings percentage from actual StoreKit prices. Do not invent product IDs; configure or inspect
-the real App Store Connect products.
+### 4.2 Internal versus external
+- **Internal** — up to 100 people, added as users in App Store Connect, **no Beta App Review**,
+  builds live within about an hour of processing. This is the near-term target.
+- **External** — up to 10,000 via a public link, needs a light Beta App Review and a "what to test"
+  note plus a contact email. Worth enabling once the internal group stops finding basics.
 
-### 4.5 Coach card
-Visible as a future tier but greyed out, labelled "Coming soon", non-purchasable, excluded from
-StoreKit actions. Do not sell an unfinished tier.
+### 4.3 Access during TestFlight
+Testers get the build; there is no purchase to make. So during this phase:
+- **No paywall, no price display.** A price with nothing behind it is pointless here and becomes an
+  App Store rejection later if it survives into submission.
+- Entitlement still resolves server-side and still grants everyone, per 4.4. Build the gate now
+  even though it says yes to everybody.
+- The Coach card stays out entirely rather than greyed. There is nothing to preview yet.
 
-### 4.6 Legal (App Store blocker)
-The paywall currently has none of this. Add: Terms of Use link, Privacy Policy link, auto-renewing
-subscription disclosure, duration, billing and renewal behaviour, how to cancel, Restore Purchases,
-correct localised pricing. The legal URLs must resolve publicly without authentication.
+### 4.4 Ship the gate, granting everyone — this is the load-bearing part
+If this build has no entitlement concept, then the version that introduces charging has to add
+gating to clients whose installed binaries contain no gate, and everyone who does not update keeps
+full access forever. They will not choose to install the update that removes their access.
 
-### 4.7 Web entitlement parity
-The web fallback reads the same entitlement state. An entitled subscriber can use it after sign-in;
-a non-entitled account must not bypass the native paywall via GitHub Pages. No fake Apple purchase
-flow in the browser — an honest entitlement message instead.
+So: every account carries a server-side entitlement row with a state and an `expires_at`. During
+TestFlight it resolves to granted with a stated date. The app checks it on launch and on foreground,
+caches it for offline, reconciles when online. Flipping to paid later becomes a **server change**,
+and old clients ask the same question and get a different answer.
+
+Two supporting pieces, both cheap now and impossible to retrofit:
+- **A server-side minimum-version check.** You cannot add one later to clients that lack it.
+- **`created_at` on every profile**, which is the grandfathering list when charging begins.
+
+### 4.5 Feedback path
+TestFlight has a built-in feedback channel and captures screenshots plus device state. Put a visible
+in-app route to it as well. A tester who cannot report a bug in ten seconds does not report it.
+
+### 4.6 What still applies from the old Phase 5
+These were written for an App Store submission and remain correct work, just not blocking here:
+
+**Technical hygiene** — Release configuration, version and build numbering, signing, icons, launch
+experience, privacy manifest, required-reason APIs, HealthKit entitlements, location, motion, camera,
+photo library, notifications, background modes, account deletion, data export, offline behaviour,
+crash handling. No development endpoints, embedded credentials, embedded beta codes, private APIs,
+placeholder buttons, or unfinished screens presented as complete.
+
+**Accessibility** — done already: Dynamic Type via `UIFontMetrics` across every call site, `AnyLayout`
+reflow at accessibility sizes, Reduce Motion honoured. **Not yet checked: Bold Text, Increase
+Contrast, and VoiceOver labels on icon-only buttons.** Also audit touch-target size, charts, 3D-body
+alternatives, calendar navigation, the workout player in motion, and error messages.
+
+**Health and fitness boundaries** — APEX gives fitness, education and performance guidance. It must
+not claim to diagnose, medically clear anyone for exercise, replace a doctor or physiotherapist,
+guarantee injury prevention, interpret medication compatibility, guarantee a race result, or
+guarantee route safety. Label estimates honestly and keep calculations transparent.
 
 ---
 
-## PHASE 5 — App Store readiness
+## PHASE 5 — Monetisation and public release
 
-### 5.1 Technical
-Release configuration, version/build numbering, signing, bundle ID, icons, launch experience,
-StoreKit products, privacy manifest, required-reason APIs, HealthKit entitlements, location,
-motion, camera, photo library, notifications, background modes, account deletion, data export,
-offline behaviour, crash handling. No development endpoints, embedded test credentials, embedded
-beta codes, private APIs, placeholder buttons, or unfinished screens presented as complete.
+**Not now.** This begins only after TestFlight has run long enough that the internal group stops
+finding basics. Nothing in Phase 4 depends on any of it.
 
-### 5.2 Accessibility
-Already done: Dynamic Type via `UIFontMetrics` across all 874 call sites, `AnyLayout` reflow at
-accessibility sizes, Reduce Motion honoured on the animations that never stopped.
-**Not yet checked: Bold Text, Increase Contrast, and VoiceOver labels on icon-only buttons.**
-Also audit touch-target size, charts, 3D-body alternatives, calendar navigation, the workout player
-in motion, the paywall, the onboarding slides, and error messages.
+### 5.1 StoreKit 2
+Two products only: Premium monthly and Premium yearly. **No Coach products** — a subscription with
+no platform behind it is a 3.1.2 rejection risk. Purchase, pending, cancellation, failure,
+verification, restore, current entitlements, revocation, expiration, upgrade and downgrade, family
+sharing per product configuration, backend entitlement sync, sandbox testing, and a local
+`.storekit` configuration so the client can be built and unit-tested before App Store Connect is
+ready. **Do not hardcode prices** — use `Product.displayPrice` and derive any saving from real
+StoreKit values.
 
-### 5.3 Health and fitness boundaries
-APEX gives fitness, education and performance guidance. It must not claim to diagnose, medically
-clear anyone for exercise, replace a doctor or physiotherapist, guarantee injury prevention,
-interpret medication compatibility, guarantee a race result, or guarantee route safety. Label
-estimates honestly and keep calculations transparent.
+**Defer App Store Server Notifications V2 to a point release.** `Transaction.currentEntitlements`
+checked on launch and foreground, mirrored to Supabase, covers launch. Do not build the
+JWS-verifying Edge Function for renewals that will not exist for a month.
+
+### 5.2 Beta codes and multiplatform access
+Apple's own **Subscription Offer Codes** are the sanctioned way to give family free access to a paid
+subscription — configure a free-period offer, generate one-time codes, redeem through
+`AppStore.presentOfferCodeRedeemSheet(in:)`. Apple enforces single use and there is no 3.1.1
+exposure, because the whole thing runs through their system. The redeemed offer then appears in
+`Transaction.currentEntitlements` like any other subscription, so one code path serves both a paying
+customer and a family member.
+
+The existing hashed Supabase codes move **off the iOS paywall** and stay useful for web sign-ups,
+where Apple's rules do not apply, and later for coach-granted client seats in Phase 6. A redeem field
+sitting beside in-app prices is the part that reads as bypassing IAP.
+
+Guideline **3.1.3(b) Multiplatform Services** permits a user to sign in and access entitlement
+acquired on the web, provided the same thing is also purchasable in-app. Do not steer users to the
+web from inside the app.
+
+### 5.3 Legal, required before submission
+Terms of Use link, Privacy Policy link, auto-renewing subscription disclosure, duration, billing and
+renewal behaviour, how to cancel, Restore Purchases, correct localised pricing. The legal URLs must
+resolve publicly without authentication.
 
 ### 5.4 Listing screenshots — the owner's specific direction
 Three to four compositions, each a **real APEX screenshot half-revealed** behind a generated subject,
-poster-like and seamless rather than a screenshot pasted next to an image:
+poster-like and seamless rather than a screenshot beside an image:
 - **Nutrition** — the interface partly covered by food items.
-- **Orbit** — partly covered by a runner's body in a running stance, route detail still legible.
+- **Orbit** — partly covered by a runner in a running stance, route detail still legible.
 - **Live workout** — partly covered by a fitness model mid-exercise, matching the session shown.
-- **Avatar / connected system** — a refined holographic or human-performance motif.
+- **Avatar** — a refined holographic or human-performance motif.
 
 Use GPT Image 2 for the generated subjects. **Never let an image model invent app UI** — every pixel
-of interface must be a genuine capture. **Do not include the paywall**; the listing states in-app
-purchases on its own. No private user data, no exact home-route locations. Produce the current
-required device sizes, keep sources editable, verify every export visually.
+of interface must be a genuine capture. **Do not include the paywall.** No private user data, no
+exact home-route locations. Current required device sizes, sources kept editable, every export
+verified visually.
 
 ### 5.5 Listing copy
-Write it to sit comfortably beside world-class fitness apps: natural English, confident, unfussy
-grammar, no translated-sounding phrasing. It is the first impression a stranger forms of the product.
-App name, subtitle, promotional text, full description, keywords, What's New template, support URL,
-privacy URL, marketing URL, App Review notes, subscription explanation, health and location
-explanation, demo account instructions, and short forms for localisation. Position APEX on the fact
-that it connects nutrition, training, activity, recovery, hydration, supplements, running and
-long-term body development into one private system. No "best app" claims, no medical claims.
+Natural English, confident, unfussy grammar, no translated-sounding phrasing, sitting comfortably
+beside world-class fitness apps. App name, subtitle, promotional text, description, keywords, What's
+New template, support and privacy URLs, App Review notes, subscription explanation, health and
+location explanation, demo account instructions, and short forms for localisation. No "best app"
+claims, no medical claims.
 
-### 5.6 Release path
-Critical repairs → launch-critical parity → accessibility and privacy audits → StoreKit local and
-sandbox testing → beta-code testing → archive → App Store Connect/TestFlight → controlled TestFlight
-pass → resolve blockers → final metadata → submit only what is genuinely complete, Coach still
-"Coming soon".
+### 5.6 App Review account
+An app that shows nothing until sign-in is rejected under 2.1, or 4.2 for minimum functionality, if
+the reviewer cannot see what it does. Provide a working account with entitlement already granted in
+the App Review notes.
 
 ---
 
@@ -666,6 +663,91 @@ An override is permanent. A supplement the user moved does not get re-suggested 
 model**, so a coach-authored schedule arrives as real blocks the client can see and reason about,
 rather than a second parallel representation. Whether a client may edit a coach-assigned block is a
 permission question that belongs with the other scopes in 6.3.
+
+
+## PHASE 9 — Apple Watch
+
+**This runs before Phase 4 (TestFlight), not last.** The number is an identifier, not a position.
+
+Sequencing within the phase, if it needs shortening: **9.1, 9.2, 9.4 and 9.5 are what a tester
+notices in the first five minutes** — the workout player with its two-stage haptics, complications,
+and supplement ticking. 9.3 (Avatar) and 9.6 to 9.7 follow. **9.8, the live run, should not hold
+TestFlight up** — it is the largest single item here and the least likely to be missed by someone
+who has not yet trained with the app.
+
+The Watch already carries the hydration companion. This extends it to the surfaces that genuinely
+belong on a wrist. The filter throughout: **something you do while moving, one-handed, in under five
+seconds — or that you want without unlocking anything.** Everything failing that test stays on the
+phone.
+
+### 9.1 The follow-along workout player — the reason this phase exists
+During a session the phone is on the floor, in a bag, or across the gym. The watch is on the wrist
+already.
+
+- **Haptic rest timer**, so nobody watches a screen between sets.
+- **Set logging on the wrist** — load and reps by the Digital Crown, RIR by tap, using the same
+  descriptor-driven field model as the phone so a carry asks for distance and an isometric for time.
+- **Continuous heart rate for the session**, which is what feeds 7.6.
+
+Technically this requires an `HKWorkoutSession`. Without one, watchOS suspends the app between sets
+and both the timer and the heart rate stop. That session also closes the user's rings, which is worth
+having on its own.
+
+**Watch the double count.** A watch workout session and a phone-logged session must resolve to one
+expenditure record under the 7.5 precedence rule, never two.
+
+### 9.2 The pre-warning haptic — owner's specification
+A single buzz at the end of rest is too late; the user is still sitting down. So the timer fires
+**twice**: a distinct pre-warning while rest is still running, then the end-of-rest cue.
+
+- Configurable: **30, 25, 20, 15 or 10 seconds** before rest ends, plus off.
+- The two cues must be **haptically distinguishable** — a lighter single tap for the warning, a
+  firmer double for the end — so they are told apart without looking.
+- Suppress the pre-warning when the configured lead is longer than the rest itself. A ten second rest
+  with a thirty second warning must not fire immediately, and must not fire both cues at once.
+- Honour Reduce Motion and the system haptic setting, and keep working when the wrist is down.
+
+### 9.3 Avatar on the wrist — owner's specification
+Not a port of the phone page. A concise version that opens with the **user's avatar portrait**,
+because seeing yourself on your own watch is the moment this reads as a premium product rather than
+a utility.
+
+Carries: the portrait, strength progress, the joint check-in slides, and the headline trend
+direction per stat.
+
+Everything not suited to the screen states so plainly and stops:
+- The photo comparison engine shows **"Available on iPhone"**.
+- Denser sections show **"More on iPhone"** rather than a cramped rendering of themselves.
+
+A watch screen that says honestly what it cannot do reads as considered. One that tries to show a
+radar chart at 40mm reads as broken.
+
+### 9.4 Complications — the cheapest permanent value here
+A watch-face slot is real estate won once and never paid for again. Offer several so people pick
+what they care about: calories remaining, water progress, next session with its time, or readiness.
+Respect the complication refresh budget rather than fighting it.
+
+### 9.5 Supplement blocks
+Pairs directly with Phase 8. A block reminder fires on the wrist and dismisses **as taken** with one
+tap. The use case is standing in the kitchen at 07:15 with the phone in the bedroom.
+
+### 9.6 Morning readiness and the joint check-in
+One question, answered on waking without finding a phone. Skipped check-ins are why readiness-aware
+scheduling has nothing to work with, and the friction being removed is precisely "get the phone out
+at 6am".
+
+### 9.7 Planned meals
+Tick a **planned** meal as eaten, or repeat a Food Memory favourite. **Not** the meal composer —
+food search on a 40mm screen is a bad idea and should not be attempted.
+
+### 9.8 Live run — high value, expensive, sequence it last
+Nobody carries a phone for a 10k, so serious running needs this eventually. It means GPS on the
+watch, workout sessions, background location, and standing directly beside Apple's own Workout app.
+After the strength player, not before.
+
+### 9.9 Explicitly not on the watch
+The full Avatar page and any chart, the meal composer, plan browsing, the calendar, settings.
+Dense reading on a small screen is where watch apps go to be uninstalled.
 
 
 ## VOICE AND TRAINING-SCIENCE ITEMS
