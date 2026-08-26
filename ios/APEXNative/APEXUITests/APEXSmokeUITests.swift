@@ -88,13 +88,11 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertEqual(pain.value as? String, "1")
 
         app.buttons["induction-install"].tap()
-        let briefing = allElements["plan-briefing"]
+        let closeBriefing = app.buttons["plan-briefing-close"]
         XCTAssertTrue(
-            briefing.waitForExistence(timeout: 8),
+            closeBriefing.waitForExistence(timeout: 8),
             "a successfully installed plan must present its briefing before returning to training"
         )
-        let closeBriefing = app.buttons["Close plan briefing"]
-        XCTAssertTrue(closeBriefing.waitForExistence(timeout: 2))
         closeBriefing.tap()
         XCTAssertTrue(app.buttons["induction-rebuild"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["induction-briefing-open"].exists)
@@ -129,9 +127,15 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(simpleMode.waitForExistence(timeout: 5))
         XCTAssertTrue(simpleMode.isSelected, "Open my plan must select Simple Mode")
         XCTAssertFalse(app.buttons["ADVANCED"].isSelected)
+        let nutritionCard = app.otherElements["nutrition-glance-card"]
+        XCTAssertTrue(
+            nutritionCard.waitForExistence(timeout: 3),
+            "an installed plan must never leave a new account with blank Simple or Nutrition surfaces"
+        )
+        app.swipeUp()
         XCTAssertTrue(
             app.buttons["simple-training-metric"].waitForExistence(timeout: 3),
-            "Open my plan must land on the daily Simple Mode surface"
+            "Open my plan must expose the daily training tile below the nutrition dayline"
         )
         XCTAssertFalse(app.buttons["induction-rebuild"].exists)
     }

@@ -117,8 +117,11 @@ struct TrainingInductionPanel: View {
                     briefing: briefing,
                     onDismiss: { showBriefing = false },
                     onOpenPlan: {
-                        session.setInterfaceMode(.simple)
-                        showBriefing = false
+                        Task {
+                            guard await session.prepareCommittedPlanForPortal() else { return }
+                            session.setInterfaceMode(.simple)
+                            showBriefing = false
+                        }
                     }
                 )
             }
@@ -949,7 +952,6 @@ private struct PlanBriefingDeck: View {
                 .accessibilityIdentifier("plan-briefing-done")
             }
         }
-        .accessibilityIdentifier("plan-briefing")
         .task {
             guard !accessibilityReduceMotion else { return }
             try? await Task.sleep(for: .milliseconds(550))
@@ -976,6 +978,7 @@ private struct PlanBriefingDeck: View {
                     .background(.ultraThinMaterial, in: Circle())
             }
             .buttonStyle(.plain)
+            .accessibilityIdentifier("plan-briefing-close")
             .accessibilityLabel(language.text("Close plan briefing"))
         }
         .padding(.horizontal, 20)

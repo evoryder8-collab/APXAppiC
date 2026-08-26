@@ -6,6 +6,8 @@ struct ProfileCreationRequest: Encodable, Sendable {
     let id: UUID
     let userID: UUID
     let goal: String?
+    let displayName = "APEX Athlete"
+    let seedVersion = SeedVersion.current
 
     init(userID: UUID, goal: String?) {
         /* One account owns one profile. Reusing the authenticated UUID makes
@@ -20,6 +22,8 @@ struct ProfileCreationRequest: Encodable, Sendable {
         case id
         case userID = "user_id"
         case goal
+        case displayName = "display_name"
+        case seedVersion = "seed_version"
     }
 }
 

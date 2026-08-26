@@ -913,7 +913,49 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(json["id"] as? String, userID.uuidString.uppercased())
         XCTAssertEqual(json["user_id"] as? String, userID.uuidString.uppercased())
         XCTAssertEqual(json["goal"] as? String, "muscle")
+        XCTAssertEqual(json["display_name"] as? String, "APEX Athlete")
+        XCTAssertEqual(json["seed_version"] as? Int, SeedVersion.current)
         XCTAssertNil(json["trial_started_at"], "beta accounts must not start a free trial")
+    }
+
+    func testOnlyAnAuthenticatedCommittedPlanRecoversItsMissingProfile() throws {
+        let userID = UUID(uuidString: "A11CE000-0000-4000-8000-000000000002")!
+        var dashboard = APEXDebugFixture.dashboard(userID: userID)
+        var input = TrainingInduction.Input(startDate: "2026-08-26")
+        input.goal = "muscle"
+        let plan = TrainingInduction.generate(
+            userID: userID,
+            input: input,
+            existingPrograms: []
+        )
+        dashboard.settings = TrainingInduction.Submission.answered(input)
+            .applyingAccountMetadata(to: dashboard.settings!, plan: plan)
+        dashboard.profile = nil
+
+        XCTAssertEqual(
+            TrainingInduction.missingProfileBootstrap(
+                in: dashboard,
+                authenticatedUserID: userID
+            ),
+            TrainingInduction.MissingProfileBootstrap(userID: userID, goal: "bulk")
+        )
+        XCTAssertNil(
+            TrainingInduction.missingProfileBootstrap(
+                in: dashboard,
+                authenticatedUserID: UUID()
+            ),
+            "a different signed-in account must never adopt this plan"
+        )
+
+        dashboard.settings = TrainingInduction.Submission.skipped
+            .applyingAccountMetadata(to: dashboard.settings!, plan: nil)
+        XCTAssertNil(
+            TrainingInduction.missingProfileBootstrap(
+                in: dashboard,
+                authenticatedUserID: userID
+            ),
+            "Skip deliberately remains settings-only"
+        )
     }
 
     func testFirstRunQuestionnaireOffersEveryApprovedDayAndAnExplicitNoConcernsChoice() throws {
@@ -997,6 +1039,17 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertFalse(
             install.contains("service.createProfileIfNeeded"),
             "a profileless Skip account must remain settings-only instead of persisting unanswered body defaults"
+        )
+        let prepareStart = try XCTUnwrap(appSession.range(of: "func prepareCommittedPlanForPortal"))
+        let prepareEnd = try XCTUnwrap(
+            appSession.range(of: "private func applyInductionPlan", range: prepareStart.upperBound..<appSession.endIndex)
+        )
+        let prepare = String(appSession[prepareStart.lowerBound..<prepareEnd.lowerBound])
+        XCTAssertTrue(prepare.contains("missingProfileBootstrap"))
+        XCTAssertTrue(prepare.contains("refreshDashboard(expectedUserID: authenticatedUserID)"))
+        XCTAssertTrue(
+            prepare.contains("data.profile?.userID == authenticatedUserID"),
+            "Simple Mode must remain gated until the recovered profile belongs to the authenticated account"
         )
     }
 

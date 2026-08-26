@@ -2,8 +2,7 @@
 import Foundation
 
 enum APEXDebugFixture {
-    static func dashboard() -> DashboardData {
-        let userID = UUID()
+    static func dashboard(userID: UUID = UUID()) -> DashboardData {
         let transitionID = UUID()
         let mainID = UUID()
         let transitionDayID = UUID()

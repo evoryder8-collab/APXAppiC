@@ -198,6 +198,32 @@ enum TrainingInduction {
             .allSatisfy { $0 == userID }
     }
 
+    struct MissingProfileBootstrap: Equatable, Sendable {
+        let userID: UUID
+        let goal: String
+    }
+
+    /// A committed generated plan came from answered questions, unlike an
+    /// explicit Skip. Older clients could persist that plan and then fail the
+    /// profile insert, leaving every nutrition surface without inputs. Repair
+    /// only the authenticated owner and derive its energy slot from the
+    /// already-committed plan; never turn a settings-only Skip into a persona.
+    static func missingProfileBootstrap(
+        in data: DashboardData,
+        authenticatedUserID: UUID
+    ) -> MissingProfileBootstrap? {
+        guard data.profile == nil,
+              let settings = data.settings,
+              settings.userID == authenticatedUserID,
+              let induction = settings.addons["training_induction"]?.objectValue
+        else { return nil }
+        let restored = input(from: induction, fallbackStartDate: Date().apexDateKey)
+        return MissingProfileBootstrap(
+            userID: authenticatedUserID,
+            goal: goalColumn(for: restored.goal)
+        )
+    }
+
     static func venueDisplayName(for venue: String) -> String {
         switch venue {
         case "gym": "Gym"

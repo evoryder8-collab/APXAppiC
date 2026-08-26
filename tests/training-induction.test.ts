@@ -17,6 +17,7 @@ import {
   isInsideInductionWindow,
   isTrainingInductionEligible,
   markPendingTrainingPlanAddons,
+  missingProfileTrainingGoal,
   pendingTrainingDayIds,
   restoreTrainingPlanAddons,
   searchEquipment,
@@ -384,6 +385,34 @@ test('a skipped settings-only account can build without becoming another persona
   const app = readFileSync(join(process.cwd(), 'src/App.tsx'), 'utf8')
   assert.match(app, /data\.profile\?\.user_id \?\? data\.settings\?\.user_id \?\? 'signed-out'/)
   assert.match(app, /settingsOnly \? <WorkoutSection/)
+})
+
+test('a committed cross-platform plan recovers only its authenticated missing profile', () => {
+  const seeded = buildSeedData(userId, 'constantine')
+  const generated = generateTrainingPlan(userId, { ...baseInput, goal: 'muscle' })
+  const committed = {
+    ...seeded,
+    profile: null,
+    settings: {
+      ...seeded.settings!,
+      addons: commitTrainingPlanAddons(seeded.settings!.addons, generated),
+    },
+  }
+
+  assert.equal(missingProfileTrainingGoal(committed, userId), 'muscle')
+  assert.equal(missingProfileTrainingGoal(committed, '29292929-aaaa-4bbb-8ccc-191919191919'), null)
+  assert.equal(missingProfileTrainingGoal({ ...committed, profile: seeded.profile }, userId), null)
+  assert.equal(missingProfileTrainingGoal({
+    ...committed,
+    settings: {
+      ...committed.settings,
+      addons: { ...committed.settings.addons, training_induction: null, training_induction_skipped: true },
+    },
+  }, userId), null)
+
+  const store = readFileSync(join(process.cwd(), 'src/store/AppStore.tsx'), 'utf8')
+  assert.match(store, /missingProfileTrainingGoal\(next, sessionUserId\)/)
+  assert.match(store, /id: sessionUserId,[\s\S]*user_id: sessionUserId,[\s\S]*display_name: 'APEX Athlete'/)
 })
 
 test('a profileless installed plan remains followable without weight-derived activity', () => {

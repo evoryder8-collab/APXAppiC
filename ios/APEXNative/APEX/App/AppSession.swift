@@ -429,12 +429,16 @@ final class AppSession {
     /// production Supabase data or allowing a preview-only no-op to pass.
     private func submitInductionToFirstRunFixture(_ submission: TrainingInduction.Submission) {
         let userID = UUID(uuidString: "7d3e70bf-c420-4b66-90ae-5a103465f1c1")!
-        var settings = APEXDebugFixture.dashboard().settings!.rebound(to: userID)
+        let fixture = APEXDebugFixture.dashboard(userID: userID)
+        var settings = fixture.settings!
         settings.addons = [:]
         let plan = submission.generatedPlan(userID: userID, existingPrograms: [])
         settings = submission.applyingAccountMetadata(to: settings, plan: plan, existingData: data)
 
-        data.profile = nil
+        data.profile = submission.requiresProfile ? fixture.profile : nil
+        if let goal = submission.profileGoal.flatMap(Goal.init(rawValue:)) {
+            data.profile?.goal = goal
+        }
         data.settings = settings
         data.programs = plan?.programs ?? []
         data.programDays = plan?.programDays ?? []
@@ -505,6 +509,17 @@ final class AppSession {
             ?? next.settings?.userID
             ?? expectedUserID
             ?? currentUserID
+        if let authenticatedUserID,
+           let bootstrap = TrainingInduction.missingProfileBootstrap(
+               in: next,
+               authenticatedUserID: authenticatedUserID
+           ) {
+            next.profile = try await service.createProfileIfNeeded(
+                userID: bootstrap.userID,
+                goal: bootstrap.goal
+            )
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+        }
         if let authenticatedUserID {
             EntitlementStore.shared.prepareForAccount(authenticatedUserID)
             next.settings = next.settings?.rebound(to: authenticatedUserID)
@@ -3705,6 +3720,61 @@ final class AppSession {
         }
     }
 
+    /// Finish the account boundary before the briefing opens Simple Mode.
+    /// A settings-only Skip remains profileless; only the durable committed
+    /// plan it later installs is sufficient evidence to repair the account.
+    /// Deferring this until the final button also keeps the briefing stable
+    /// while the portal changes from a settings identity to a full profile.
+    func prepareCommittedPlanForPortal() async -> Bool {
+        let accountToken = accountGeneration.token
+        guard !isBusy else { return false }
+        guard data.profile == nil else { return true }
+        guard let settings = data.settings,
+              let bootstrap = TrainingInduction.missingProfileBootstrap(
+                  in: data,
+                  authenticatedUserID: settings.userID
+              )
+        else {
+            alertMessage = "Your plan is not fully synced yet. Please try again."
+            return false
+        }
+
+        isBusy = true
+        defer {
+            if accountGeneration.accepts(accountToken) { isBusy = false }
+        }
+
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+            var profile = APEXDebugFixture.dashboard(userID: bootstrap.userID).profile!
+            profile.goal = Goal(rawValue: bootstrap.goal) ?? .maintain
+            data.profile = profile
+            return true
+        }
+        #endif
+
+        guard let authenticatedUserID = await service.currentUserID(),
+              authenticatedUserID == bootstrap.userID,
+              accountGeneration.accepts(accountToken)
+        else {
+            alertMessage = "Sign in again to open your plan."
+            return false
+        }
+        do {
+            try await refreshDashboard(expectedUserID: authenticatedUserID)
+            guard accountGeneration.accepts(accountToken) else { return false }
+            guard data.profile?.userID == authenticatedUserID else {
+                alertMessage = "Your account setup is not complete yet. Please try again."
+                return false
+            }
+            return true
+        } catch {
+            guard accountGeneration.accepts(accountToken) else { return false }
+            alertMessage = error.localizedDescription
+            return false
+        }
+    }
+
     private func applyInductionPlan(
         _ plan: TrainingInduction.GeneratedPlan,
         settings: UserSettings
@@ -3768,6 +3838,17 @@ final class AppSession {
         ownerID: UUID? = nil,
         surfacePermanentFailure: Bool = true
     ) async {
+        #if DEBUG
+        /* The authenticated first-run UI fixture is deliberately local. Once
+           its missing profile is repaired, view tasks may save preferences or
+           Health-derived defaults; allowing those calls to reach Supabase
+           both violates the fixture boundary and covers the recovered screen
+           with an irrelevant network alert. */
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+            lastSyncAt = .now
+            return
+        }
+        #endif
         let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         await saveLocalSnapshot()
         do {
@@ -3803,6 +3884,12 @@ final class AppSession {
     }
 
     private func persistDelete(table: String, id: UUID, ownerID: UUID? = nil) async {
+        #if DEBUG
+        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+            lastSyncAt = .now
+            return
+        }
+        #endif
         let persistenceOwnerID = verifiedPersistenceOwnerID(ownerID)
         await saveLocalSnapshot()
         do {

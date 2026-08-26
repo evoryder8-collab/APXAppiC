@@ -41,7 +41,8 @@ import {
   estimateActivityDay,
   normalizeActivityType,
 } from '../lib/activity'
-import { computeTargets, nutritionPlanContext } from '../lib/nutrition'
+import { computeTargets, nutritionPlanContext, recommendedGoalForTrainingGoal } from '../lib/nutrition'
+import { missingProfileTrainingGoal } from '../lib/trainingInduction'
 import {
   dedupeUpsertRows,
   enqueuePendingSyncOperation,
@@ -707,6 +708,27 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         ;(next as unknown as Record<string, unknown>)[table] = replayPendingList(table, remoteRows, pending)
       })
       next.daily_logs = next.daily_logs.map(normalizeDailyLog)
+
+      const missingProfileGoal = missingProfileTrainingGoal(next, sessionUserId)
+      if (missingProfileGoal) {
+        const recovered = await sb.from('profile').upsert({
+          id: sessionUserId,
+          user_id: sessionUserId,
+          display_name: 'APEX Athlete',
+          goal: recommendedGoalForTrainingGoal(missingProfileGoal),
+          seed_version: CURRENT_SEED_VERSION,
+        }, { onConflict: 'user_id' }).select('*').single()
+        if (recovered.error) throw recovered.error
+        if (
+          scopeRef.current !== sessionUserId ||
+          fetchGeneration.current !== generation ||
+          mutationRevision.current !== revision
+        ) {
+          setHydrationRetry((value) => value + 1)
+          return
+        }
+        next.profile = recovered.data as AppData['profile']
+      }
 
       const needsSeedRepair = shouldRepairSeedDefinitions(next)
       if (needsSeedRepair) {

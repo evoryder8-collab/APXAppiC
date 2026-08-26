@@ -160,6 +160,19 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
   }
 }
 
+/** A committed plan is proof that the questionnaire was answered. It is the
+ * only settings-only state allowed to recreate a missing profile; Skip and an
+ * interrupted pending write deliberately remain profileless. */
+export function missingProfileTrainingGoal(
+  data: Pick<AppData, 'profile' | 'settings'>,
+  authenticatedUserId: string,
+): TrainingGoal | null {
+  if (data.profile || data.settings?.user_id !== authenticatedUserId) return null
+  const induction = jsonRecord(data.settings.addons.training_induction)
+  if (!induction) return null
+  return trainingInputFromProfile(induction, '1970-01-01').goal
+}
+
 export function assessTrainingInput(input: TrainingInductionInput): TrainingAssessment {
   if (input.recent_operation) {
     return {
