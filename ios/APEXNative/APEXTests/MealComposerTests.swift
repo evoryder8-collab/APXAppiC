@@ -239,6 +239,45 @@ final class MealComposerTests: XCTestCase {
         XCTAssertNil(undo.removedName)
     }
 
+    func testUndoExpiresAfterFiveSecondsAndReportsTheVisibleCountdown() {
+        let first = MealComposerItem(
+            food: food(name: "Milk", kcal100: 54, protein100: 8, carbs100: 5, fat100: 0.2),
+            quantity: 250,
+            unit: "g"
+        )
+        let removed = MealComposerItem(
+            food: food(name: "Oats", kcal100: 370, protein100: 13, carbs100: 60, fat100: 7),
+            quantity: 75,
+            unit: "g"
+        )
+        let last = MealComposerItem(
+            food: food(name: "Walnuts", kcal100: 654, protein100: 15.2, carbs100: 13.7, fat100: 65.2),
+            quantity: 27,
+            unit: "g"
+        )
+        let start = Date(timeIntervalSince1970: 10_000)
+        var items = [first, removed, last]
+        var undo = MealComposerUndoBuffer()
+
+        XCTAssertTrue(undo.remove(removed.id, from: &items, at: start))
+        XCTAssertEqual(undo.secondsRemaining(at: start), 5)
+        XCTAssertEqual(undo.secondsRemaining(at: start.addingTimeInterval(4.001)), 1)
+        XCTAssertFalse(undo.restore(into: &items, at: start.addingTimeInterval(5)))
+        XCTAssertEqual(items.map(\.id), [first.id, last.id])
+        XCTAssertNil(undo.removedName)
+    }
+
+    func testUndoBarOwnsItsFiveSecondTaskAndVisibleCountdown() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/MealComposerView.swift"))
+
+        XCTAssertTrue(source.contains("TimelineView(.periodic"))
+        XCTAssertTrue(source.contains(".task(id: undoBuffer.removalToken)"))
+        XCTAssertTrue(source.contains("undoBuffer.secondsRemaining(at: context.date)"))
+    }
+
     func testPieceAndServingUnitsUseFoodEquivalents() {
         var egg = food(name: "Egg", kcal100: 143, protein100: 13, carbs100: 1, fat100: 10)
         egg.pieceGramsOrML = 50

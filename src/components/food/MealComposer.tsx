@@ -38,6 +38,12 @@ import { ATHLETE_SUPPORT_PROTOCOLS } from '../../lib/personalProtocol'
 import type { IntroLanguage } from '../../lib/introLanguage'
 import { mealMacroStatus, type MealMacroKind } from '../../lib/mealMacroGuidance'
 import { defaultMealGuideSections } from '../../lib/mealGuide'
+import {
+  mealUndoSecondsRemaining,
+  removeMealItemWithUndo,
+  restoreMealItemFromUndo,
+  type MealUndoState,
+} from '../../lib/mealUndo'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -165,6 +171,8 @@ export function MealComposer({
   const [manual, setManual] = useState({ name: '', kcal: '', protein: '', carbs: '', fat: '', preparation: 'as_sold' as FoodRecord['preparation_state'] })
   const [protocolOpen, setProtocolOpen] = useState(false)
   const [protocolEditing, setProtocolEditing] = useState(false)
+  const [undoRemoval, setUndoRemoval] = useState<MealUndoState<ComposerFoodItem> | null>(null)
+  const [undoClock, setUndoClock] = useState(() => Date.now())
 
   const mealBlockSettings = useMemo(() => normalizeMealBlockSettings(data.settings?.addons.meal_blocks), [data.settings?.addons.meal_blocks])
   const effectiveTargetTime = targetTime
@@ -215,6 +223,7 @@ export function MealComposer({
     [displayedFoods, foodFinderExpanded, query],
   )
   const totals = useMemo(() => mealTotals(items), [items])
+  const undoSecondsRemaining = mealUndoSecondsRemaining(undoRemoval, undoClock)
   const selectedPresetItems = useMemo(
     () => items.filter((item) => selectedItemIds.includes(item.id)),
     [items, selectedItemIds],
@@ -292,6 +301,19 @@ export function MealComposer({
   useEffect(() => () => {
     if (quickAddedTimer.current != null) window.clearTimeout(quickAddedTimer.current)
   }, [])
+
+  useEffect(() => {
+    if (!undoRemoval) return
+    setUndoClock(Date.now())
+    const interval = window.setInterval(() => setUndoClock(Date.now()), 250)
+    const timeout = window.setTimeout(() => {
+      setUndoRemoval((current) => current === undoRemoval ? null : current)
+    }, Math.max(0, undoRemoval.expiresAt - Date.now()))
+    return () => {
+      window.clearInterval(interval)
+      window.clearTimeout(timeout)
+    }
+  }, [undoRemoval])
 
   useEffect(() => {
     const trimmed = query.trim()
@@ -412,8 +434,20 @@ export function MealComposer({
   }
 
   const removeItem = (id: string) => {
-    setItems((current) => current.filter((item) => item.id !== id))
+    const removed = removeMealItemWithUndo(items, id)
+    if (!removed.undo) return
+    setItems(removed.items.map((item, sort_order) => ({ ...item, sort_order })))
+    setUndoClock(Date.now())
+    setUndoRemoval(removed.undo)
     setSelectedItemIds((current) => current.filter((itemId) => itemId !== id))
+  }
+
+  const undoItemRemoval = () => {
+    const restored = restoreMealItemFromUndo(items, undoRemoval)
+    if (restored.restored) {
+      setItems(restored.items.map((item, sort_order) => ({ ...item, sort_order })))
+    }
+    setUndoRemoval(null)
   }
 
   const toggleItemSelection = (id: string) => {
@@ -1222,6 +1256,30 @@ export function MealComposer({
               )
             })}
           </div>
+
+          <AnimatePresence initial={false}>
+            {undoRemoval && undoSecondsRemaining > 0 && (
+              <motion.div
+                initial={{ opacity: 0, y: 12 }}
+                animate={{ opacity: 1, y: 0 }}
+                exit={{ opacity: 0, y: 10 }}
+                className="flex items-center gap-3 rounded-2xl border border-red-400/20 bg-white/82 px-4 py-2.5 shadow-[0_12px_30px_-24px_rgba(127,29,29,.65)]"
+                role="status"
+              >
+                <span className="min-w-0 flex-1 truncate text-xs font-bold text-ink-soft">
+                  {displayFoodName(undoRemoval.item.food, language)} {t('removed')}
+                </span>
+                <button
+                  type="button"
+                  onClick={undoItemRemoval}
+                  aria-label="Undo removed meal item"
+                  className="shrink-0 rounded-full bg-amber-500/15 px-4 py-2 text-xs font-black text-amber-800"
+                >
+                  {t('Undo')} · {undoSecondsRemaining}s
+                </button>
+              </motion.div>
+            )}
+          </AnimatePresence>
 
           {items.length > 0 && (
             <motion.button

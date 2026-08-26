@@ -66,28 +66,58 @@ enum MealComposerHydration {
 }
 
 struct MealComposerUndoBuffer {
+    private static let lifetime: TimeInterval = 5
+
     private struct Removal {
         let item: MealComposerItem
         let index: Int
+        let token: UUID
+        let expiresAt: Date
     }
 
     private var removal: Removal?
 
     var removedName: String? { removal?.item.name }
+    var removalToken: UUID? { removal?.token }
 
-    mutating func remove(_ id: UUID, from items: inout [MealComposerItem]) -> Bool {
+    mutating func remove(
+        _ id: UUID,
+        from items: inout [MealComposerItem],
+        at now: Date = Date()
+    ) -> Bool {
         guard let index = items.firstIndex(where: { $0.id == id }) else { return false }
-        removal = Removal(item: items.remove(at: index), index: index)
+        removal = Removal(
+            item: items.remove(at: index),
+            index: index,
+            token: UUID(),
+            expiresAt: now.addingTimeInterval(Self.lifetime)
+        )
         return true
     }
 
-    mutating func restore(into items: inout [MealComposerItem]) -> Bool {
+    func secondsRemaining(at now: Date = Date()) -> Int {
+        guard let removal else { return 0 }
+        return max(0, Int(ceil(removal.expiresAt.timeIntervalSince(now))))
+    }
+
+    mutating func restore(
+        into items: inout [MealComposerItem],
+        at now: Date = Date()
+    ) -> Bool {
         guard let removal else { return false }
+        guard now < removal.expiresAt else {
+            self.removal = nil
+            return false
+        }
         items.insert(removal.item, at: min(removal.index, items.endIndex))
         self.removal = nil
         return true
     }
 
+    mutating func expire(token: UUID) {
+        guard removal?.token == token else { return }
+        removal = nil
+    }
 }
 
 struct MealComposerView: View {
@@ -673,22 +703,28 @@ struct MealComposerView: View {
         VStack(spacing: 0) {
             Divider().opacity(0.4)
             if let removedName = undoBuffer.removedName {
-                HStack(spacing: 10) {
-                    Image(systemName: "fork.knife")
-                        .foregroundStyle(APEXColor.danger)
-                    Text(language.format("%@ removed", removedName))
-                        .font(APEXFont.body(12, weight: .semibold))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                        .lineLimit(1)
-                    Spacer(minLength: 4)
-                    Button(language.text("Undo")) { undoRemoval() }
+                TimelineView(.periodic(from: .now, by: 0.25)) { context in
+                    let seconds = undoBuffer.secondsRemaining(at: context.date)
+                    HStack(spacing: 10) {
+                        Image(systemName: "fork.knife")
+                            .foregroundStyle(APEXColor.danger)
+                        Text(language.format("%@ removed", removedName))
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .lineLimit(1)
+                        Spacer(minLength: 4)
+                        Button { undoRemoval() } label: {
+                            Text("\(language.text("Undo")) · \(seconds)s")
+                        }
                         .font(APEXFont.body(13, weight: .bold))
                         .foregroundStyle(APEXColor.amberDeep)
                         .padding(.horizontal, 14)
                         .frame(height: 44)
                         .background(APEXColor.amber.opacity(0.13), in: Capsule())
                         .buttonStyle(.plain)
+                        .disabled(seconds == 0)
                         .accessibilityIdentifier("meal-item-undo")
+                    }
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 9)
@@ -709,6 +745,12 @@ struct MealComposerView: View {
             .padding(.vertical, 10)
         }
         .background(.ultraThinMaterial)
+        .task(id: undoBuffer.removalToken) {
+            guard let token = undoBuffer.removalToken else { return }
+            try? await Task.sleep(for: .seconds(5))
+            guard Task.isCancelled == false else { return }
+            withAnimation(.snappy) { undoBuffer.expire(token: token) }
+        }
     }
 
     private var selectedItems: [MealComposerItem] {
