@@ -5,9 +5,10 @@ import Foundation
  * WorkoutStatsSheet.
  *
  * Loaded volume is the honest measure of what a session cost: every working
- * set's weight multiplied by its reps. A skipped set contributes nothing, and
- * Focus T25 is excluded because a bodyweight conditioning episode has no load
- * to report and would otherwise read as a session of zero effort.
+ * set's positive external load multiplied by its reps. Added load on a
+ * bodyweight movement counts; assistance is negative on that same axis and
+ * therefore contributes zero. A skipped set contributes nothing, and Focus
+ * T25 is excluded because a conditioning episode has no load to report.
  */
 enum WorkoutReceipt {
     struct Summary: Hashable, Sendable {
@@ -26,7 +27,10 @@ enum WorkoutReceipt {
                 movementNamed: log.exerciseName,
                 movementID: log.movementID
             )
-            guard !log.skipped, descriptor.kind == .strength else { return total }
+            guard !log.skipped,
+                  descriptor.kind == .strength || descriptor.kind == .bodyweight else {
+                return total
+            }
             return total + max(0, log.weightKG ?? 0) * Double(max(0, log.reps ?? 0))
         }
         /* Movements count every exercise performed, conditioning included,

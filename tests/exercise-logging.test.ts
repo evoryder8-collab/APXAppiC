@@ -118,12 +118,12 @@ test('normalization makes bodyweight explicit and skipped facts empty', () => {
   )
 })
 
-test('loaded volume counts external strength load but never signed bodyweight assistance', () => {
+test('loaded volume counts added bodyweight load but never assistance', () => {
   assert.equal(loadedStrengthVolume([
     log({ exercise_name: 'Bench Press', movement_id: 'bench_press_barbell', weight_kg: 50, reps: 10 }),
     log({ exercise_name: 'Pull-Up', movement_id: 'pull_up', weight_kg: -20, reps: 8 }),
-    log({ exercise_name: 'Pull-Up', movement_id: 'pull_up', weight_kg: 10, reps: 5 }),
-  ]), 500)
+    log({ exercise_name: 'Weighted Push-Up', movement_id: 'weighted_push_up', weight_kg: 7, reps: 10 }),
+  ]), 570)
 })
 
 test('pace is derived from two measured facts and never persisted', () => {

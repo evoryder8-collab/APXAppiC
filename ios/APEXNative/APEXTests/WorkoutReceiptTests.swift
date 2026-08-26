@@ -10,13 +10,14 @@ import XCTest
 final class WorkoutReceiptTests: XCTestCase {
     private func log(
         _ name: String, set: Int, weight: Double?, reps: Int?,
-        skipped: Bool = false, session: UUID = UUID(), exerciseID: UUID? = nil
+        skipped: Bool = false, session: UUID = UUID(), exerciseID: UUID? = nil,
+        movementID: String? = nil
     ) -> WorkoutLog {
         WorkoutLog(
             id: UUID(), userID: UUID(), sessionID: session, exerciseID: exerciseID,
             exerciseName: name, setNumber: set, weightKG: weight, reps: reps,
-            rir: 2, skipped: skipped, overrideFlag: false,
-            createdAt: "2026-08-19T10:00:00.000Z"
+            rir: 2, movementID: movementID, skipped: skipped,
+            overrideFlag: false, createdAt: "2026-08-19T10:00:00.000Z"
         )
     }
 
@@ -65,14 +66,14 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(summary.workingSets, 2)
     }
 
-    func testSignedBodyweightLoadNeverChangesExternalLoadedVolume() {
+    func testAddedBodyweightLoadCountsButAssistanceDoesNot() {
         let summary = WorkoutReceipt.summarize([
             log("Bench Press", set: 1, weight: 50, reps: 10),
-            log("Pull-Up", set: 1, weight: -20, reps: 8),
-            log("Pull-Up", set: 2, weight: 10, reps: 5),
+            log("Pull-Up", set: 1, weight: -20, reps: 8, movementID: "pull_up"),
+            log("Weighted Push-Up", set: 1, weight: 7, reps: 10, movementID: "weighted_push_up"),
         ])
 
-        XCTAssertEqual(summary.loadedVolumeKG, 500, accuracy: 0.0001)
+        XCTAssertEqual(summary.loadedVolumeKG, 570, accuracy: 0.0001)
         XCTAssertEqual(summary.workingSets, 3)
     }
 

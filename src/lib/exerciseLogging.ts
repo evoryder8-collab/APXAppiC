@@ -228,11 +228,11 @@ export function workoutLogFactSummary(log: WorkoutLog): string[] {
   return facts
 }
 
-/** Traditional kg × reps applies only to externally loaded strength rows. */
+/** Positive external kg × reps, including added load on bodyweight movements. */
 export function loadedStrengthVolume(logs: WorkoutLog[]): number {
   return logs.reduce((total, log) => {
     const descriptor = descriptorForExercise({ name: log.exercise_name, movement_id: log.movement_id })
-    if (log.skipped || descriptor.kind !== 'strength') return total
+    if (log.skipped || (descriptor.kind !== 'strength' && descriptor.kind !== 'bodyweight')) return total
     return total + Math.max(0, log.weight_kg ?? 0) * Math.max(0, log.reps ?? 0)
   }, 0)
 }
