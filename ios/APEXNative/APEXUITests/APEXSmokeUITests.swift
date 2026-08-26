@@ -485,6 +485,43 @@ final class APEXSmokeUITests: XCTestCase {
         capture("meal-composer-selection")
     }
 
+    func testCompactMealMillilitreUnitStaysOnOneLineInsideItsCard() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+
+        let breakfast = app.staticTexts["meal-dayline-title-breakfast"]
+        XCTAssertTrue(scrollUntilVisible(breakfast, in: app))
+        tapClearOfDock(breakfast)
+
+        let unitControls = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-unit-")
+        )
+        let millilitres = unitControls.element(boundBy: 1)
+        XCTAssertTrue(millilitres.waitForExistence(timeout: 2))
+        for _ in 0..<8 where !millilitres.frame.intersects(app.frame) {
+            app.swipeUp()
+        }
+        XCTAssertTrue(millilitres.frame.intersects(app.frame))
+        XCTAssertTrue(millilitres.label.localizedCaseInsensitiveContains("ml"))
+
+        let cardIdentifier = millilitres.identifier.replacingOccurrences(
+            of: "meal-item-unit-", with: "meal-item-card-"
+        )
+        let cardElements = app.descendants(matching: .any).matching(
+            NSPredicate(format: "identifier == %@", cardIdentifier)
+        ).allElementsBoundByIndex
+        XCTAssertGreaterThan(cardElements.count, 1)
+        let cardFrame = cardElements.map(\.frame).reduce(CGRect.null) { $0.union($1) }
+        XCTAssertGreaterThanOrEqual(millilitres.frame.width, 60)
+        XCTAssertLessThanOrEqual(millilitres.frame.height, 44)
+        XCTAssertGreaterThanOrEqual(millilitres.frame.minY, cardFrame.minY - 1)
+        XCTAssertLessThanOrEqual(millilitres.frame.maxY, cardFrame.maxY + 1)
+        XCTAssertLessThanOrEqual(cardFrame.height, 96)
+    }
+
     func testMealComposerBarcodeButtonOpensScannerWithoutOpeningFoodMemory() {
         let app = configuredApp()
         app.launch()

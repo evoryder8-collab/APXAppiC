@@ -1,5 +1,10 @@
 import SwiftUI
 
+enum MealComposerCompactLayout {
+    static let unitControlWidth: CGFloat = 72
+    static let controlHeight: CGFloat = 40
+}
+
 struct MealComposerRequest: Identifiable, Hashable {
     let id = UUID()
     let date: Date
@@ -955,6 +960,39 @@ private struct MealComposerItemCard: View {
         return units
     }
 
+    private func unitMenu(width: CGFloat, height: CGFloat, fontSize: CGFloat, radius: CGFloat) -> some View {
+        Menu {
+            ForEach(availableUnits, id: \.self) { unit in
+                Button {
+                    item.setUnit(unit, food: food)
+                } label: {
+                    if unit == item.unit {
+                        Label(language.text(unit), systemImage: "checkmark")
+                    } else {
+                        Text(language.text(unit))
+                    }
+                }
+            }
+        } label: {
+            HStack(spacing: 4) {
+                Text(language.text(item.unit))
+                    .lineLimit(1)
+                    .fixedSize(horizontal: true, vertical: false)
+                Image(systemName: "chevron.up.chevron.down")
+                    .font(.system(size: 9, weight: .bold))
+            }
+            .font(APEXFont.body(fontSize, weight: .bold))
+            .foregroundStyle(APEXColor.amber)
+            .frame(width: width, height: height)
+            .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .contentShape(RoundedRectangle(cornerRadius: radius, style: .continuous))
+            .accessibilityElement(children: .combine)
+            .accessibilityLabel(language.format("Serving type %@", language.text(item.unit)))
+            .accessibilityIdentifier("meal-item-unit-\(item.id.uuidString)")
+        }
+        .buttonStyle(.plain)
+    }
+
     var body: some View {
         GlassCard(radius: density == .compact ? 18 : 25, padding: density == .compact ? 9 : 17) {
             VStack(alignment: .leading, spacing: density == .compact ? 0 : 15) {
@@ -1002,20 +1040,12 @@ private struct MealComposerItemCard: View {
                             .padding(.vertical, 7)
                             .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
 
-                        Picker("Unit", selection: Binding(
-                            get: { item.unit },
-                            set: { item.setUnit($0, food: food) }
-                        )) {
-                            ForEach(availableUnits, id: \.self) { unit in
-                                Text(language.text(unit)).tag(unit)
-                            }
-                        }
-                        .pickerStyle(.menu)
-                        .labelsHidden()
-                        .font(APEXFont.body(12, weight: .bold))
-                        .frame(width: 54)
-                        .padding(.vertical, 1)
-                        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 11, style: .continuous))
+                        unitMenu(
+                            width: MealComposerCompactLayout.unitControlWidth,
+                            height: MealComposerCompactLayout.controlHeight,
+                            fontSize: 12,
+                            radius: 11
+                        )
 
                         VStack(spacing: 1) {
                             Button(action: onMoveUp) { Image(systemName: "arrow.up") }.disabled(!canMoveUp)
@@ -1087,19 +1117,7 @@ private struct MealComposerItemCard: View {
                         .padding(.vertical, 11)
                         .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
 
-                    Picker("Unit", selection: Binding(
-                        get: { item.unit },
-                        set: { item.setUnit($0, food: food) }
-                    )) {
-                        ForEach(availableUnits, id: \.self) { unit in
-                            Text(language.text(unit)).tag(unit)
-                        }
-                    }
-                    .pickerStyle(.menu)
-                    .font(APEXFont.body(13, weight: .bold))
-                    .frame(minWidth: 65)
-                    .padding(.vertical, 5)
-                    .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    unitMenu(width: 84, height: 48, fontSize: 13, radius: 14)
 
                     VStack(spacing: 2) {
                         Button(action: onMoveUp) { Image(systemName: "arrow.up") }.disabled(!canMoveUp)
@@ -1142,6 +1160,7 @@ private struct MealComposerItemCard: View {
                 }
             }
         }
+        .accessibilityIdentifier("meal-item-card-\(item.id.uuidString)")
     }
 
     private var waterBadge: some View {

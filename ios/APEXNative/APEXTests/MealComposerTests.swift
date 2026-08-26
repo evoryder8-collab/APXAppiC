@@ -278,6 +278,11 @@ final class MealComposerTests: XCTestCase {
         XCTAssertTrue(source.contains("undoBuffer.secondsRemaining(at: context.date)"))
     }
 
+    func testCompactUnitControlReservesOneLineForMillilitresAndServingLabels() {
+        XCTAssertEqual(MealComposerCompactLayout.unitControlWidth, 72)
+        XCTAssertEqual(MealComposerCompactLayout.controlHeight, 40)
+    }
+
     func testPieceAndServingUnitsUseFoodEquivalents() {
         var egg = food(name: "Egg", kcal100: 143, protein100: 13, carbs100: 1, fat100: 10)
         egg.pieceGramsOrML = 50

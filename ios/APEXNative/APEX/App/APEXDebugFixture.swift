@@ -84,7 +84,11 @@ enum APEXDebugFixture {
         let berriesID = UUID()
         let foods = [
             food(id: oatsID, name: "Swiss rolled oats", brand: "APEX Food Memory", kcal: 370, protein: 13, carbs: 60, fat: 7),
-            food(id: wheyID, name: "Whey protein isolate", brand: "APEX Food Memory", kcal: 360, protein: 86, carbs: 2, fat: 1),
+            food(
+                id: wheyID, name: "High protein milk", brand: "APEX Food Memory",
+                kcal: 54, protein: 8, carbs: 5.2, fat: 0.2,
+                nutritionBasis: "per_100ml"
+            ),
             food(id: berriesID, name: "Strawberries, fresh", brand: nil, kcal: 32, protein: 0.7, carbs: 7.7, fat: 0.3),
         ]
         let breakfastID = UUID()
@@ -92,11 +96,14 @@ enum APEXDebugFixture {
             id: breakfastID, userID: userID, localDate: today, mealSlot: "breakfast",
             displayName: "Breakfast", sourcePresetID: nil, sourcePlannedMealID: meals[0].id,
             loggedAt: now, clientIdempotencyKey: "ui-breakfast", loggedAs: "actual",
-            totalKcal: 330, totalProteinG: 33.6, totalCarbsG: 36.6, totalFatG: 4.5
+            totalKcal: 330, totalProteinG: 23.8, totalCarbsG: 46.4, totalFatG: 4.6
         )
         let loggedEntries = [
             foodEntry(id: UUID(), mealID: breakfastID, userID: userID, food: foods[0], foodID: oatsID, order: 0, quantity: 60),
-            foodEntry(id: UUID(), mealID: breakfastID, userID: userID, food: foods[1], foodID: wheyID, order: 1, quantity: 30),
+            foodEntry(
+                id: UUID(), mealID: breakfastID, userID: userID, food: foods[1],
+                foodID: wheyID, order: 1, quantity: 200, unit: "ml"
+            ),
         ]
         let presetID = UUID()
         let breakfastPreset = MealPreset(
@@ -111,7 +118,7 @@ enum APEXDebugFixture {
             ),
             MealPresetItem(
                 id: UUID(), presetID: presetID, userID: userID, foodID: wheyID, sortOrder: 1,
-                quantity: 30, unit: "g", optional: false, locked: true, adjustable: false,
+                quantity: 200, unit: "ml", optional: false, locked: true, adjustable: false,
                 minimumAmount: nil, maximumAmount: nil, stepAmount: nil, adjustmentRole: "protein"
             ),
         ]
@@ -210,12 +217,13 @@ enum APEXDebugFixture {
         kcal: Double,
         protein: Double,
         carbs: Double,
-        fat: Double
+        fat: Double,
+        nutritionBasis: String = "per_100g"
     ) -> Food {
         Food(
             id: id.uuidString, ownerUserID: nil, name: name, namesI18n: [:], brand: brand,
             barcode: nil, source: "ui_fixture", providerProductID: nil, externalImageURL: nil,
-            packageQuantity: nil, nutritionBasis: "per_100g", preparationState: "as_sold",
+            packageQuantity: nil, nutritionBasis: nutritionBasis, preparationState: "as_sold",
             kcal100: kcal, protein100: protein, carbs100: carbs, fat100: fat,
             fibre100: nil, sugar100: nil, saturatedFat100: nil, salt100: nil,
             servingAmount: nil, servingUnit: nil, servingGramsOrML: nil,
@@ -230,7 +238,8 @@ enum APEXDebugFixture {
         food: Food,
         foodID: UUID,
         order: Int,
-        quantity: Double
+        quantity: Double,
+        unit: String = "g"
     ) -> LoggedFoodEntry {
         let scale = quantity / 100
         return LoggedFoodEntry(
@@ -242,7 +251,7 @@ enum APEXDebugFixture {
             snapshotProtein100: food.protein100 ?? 0,
             snapshotCarbs100: food.carbs100 ?? 0,
             snapshotFat100: food.fat100 ?? 0,
-            quantity: quantity, unit: "g", equivalentAmount: quantity,
+            quantity: quantity, unit: unit, equivalentAmount: quantity,
             kcal: (food.kcal100 ?? 0) * scale,
             proteinG: (food.protein100 ?? 0) * scale,
             carbsG: (food.carbs100 ?? 0) * scale,
