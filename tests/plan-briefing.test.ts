@@ -108,13 +108,13 @@ test('briefing copy is scannable, semantic and cites primary Swiss guidance', ()
   assert.doesNotMatch(briefing.slides.map((slide) => slide.evidenceLabel).join(' '), /CDC|American Heart|NIH/i)
 })
 
-test('the refined safety illustration is shared by both clients and remains a real-alpha cutout', () => {
+test('the owner-approved safety illustration is shared unchanged by both clients', () => {
   const nativeAsset = readFileSync(join(process.cwd(), 'ios/APEXNative/APEX/Resources/Assets.xcassets/plan-briefing-safety.imageset/plan-briefing-safety.png'))
   const webAsset = readFileSync(join(process.cwd(), 'public/plan-briefing/plan-briefing-safety.png'))
-  const legacyHash = 'b28b785dafb6d58d8e1abd72b8d7cafb9c13dd671b8bc83e876984832ea79b83'
+  const approvedHash = 'b28b785dafb6d58d8e1abd72b8d7cafb9c13dd671b8bc83e876984832ea79b83'
 
   assert.deepEqual(webAsset, nativeAsset)
-  assert.notEqual(createHash('sha256').update(nativeAsset).digest('hex'), legacyHash)
+  assert.equal(createHash('sha256').update(nativeAsset).digest('hex'), approvedHash)
   assert.equal(nativeAsset[25], 6, 'PNG must use RGBA color type instead of a baked checkerboard')
 })
 
