@@ -75,6 +75,12 @@ test('meal food picker keeps configure and exact-amount quick add as separate ac
   assert.doesNotMatch(source, />\s*\{translateInterfaceText\(searching \? 'Searching more foods…' : 'Extend search'/)
 })
 
+test('Open Food Facts provenance asks for the package label without redundant provider copy', () => {
+  const source = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
+  assert.match(source, /food\.source === 'open_food_facts'\) return 'Check the package label\.'/)
+  assert.doesNotMatch(source, /Open Food Facts community record\. Check the package label\./)
+})
+
 test('generic meal guidance is structured and activity switching uses plain wearable language', () => {
   const composer = readFileSync(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
   const nutrition = readFileSync(new URL('../src/pages/Nutrition.tsx', import.meta.url), 'utf8')

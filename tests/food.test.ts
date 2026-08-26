@@ -502,6 +502,31 @@ test('Bodylab Cluster Dextrin, Migros protein milk and Lee-Sport isolate use ver
   assert.ok([cluster, milk, isolate].every((food) => food.confidence === 'provider_verified'))
 })
 
+test('Sportyfeel peach iced-tea Clear Whey is exact, searchable and barcode-ready', () => {
+  const clearWhey = COMMON_FOODS.find((food) => food.barcode === '4335619267756')
+
+  assert.ok(clearWhey, 'the photographed Sportyfeel product must be available offline by EAN')
+  assert.equal(clearWhey.provider_product_id, 'apex-curated:sportyfeel-clear-whey-peach-iced-tea-label')
+  assert.equal(clearWhey.brand, 'Sportyfeel')
+  assert.equal(clearWhey.serving_amount, 25)
+  assert.equal(clearWhey.serving_unit, 'g')
+  assert.deepEqual(
+    {
+      kcal: clearWhey.kcal_100,
+      protein: clearWhey.protein_100,
+      carbs: clearWhey.carbs_100,
+      fat: clearWhey.fat_100,
+      water: clearWhey.water_ml_100,
+      waterBasis: clearWhey.water_basis,
+    },
+    { kcal: 347, protein: 84, carbs: 2.4, fat: 0.1, water: 10, waterBasis: 'difference' },
+  )
+  for (const query of ['sportyfeel clear whey', 'eistee pfirsich', 'peach iced tea whey']) {
+    assert.equal(rankFoods(query, COMMON_FOODS, [], 'snack')[0]?.id, clearWhey.id, query)
+  }
+  assert.equal(clearWhey.confidence, 'provider_verified')
+})
+
 test('olive oil searches prioritize generic EVOO and cover Romanian, English and Thai', () => {
   const generic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:extra-virgin-olive-oil-reference')!
   const migrosClassic = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:migros-m-classic-cold-pressed-extra-virgin-olive-oil-label')!

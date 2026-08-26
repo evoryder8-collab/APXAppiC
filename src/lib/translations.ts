@@ -487,7 +487,7 @@ const rows: Array<[string, string, string]> = [
   ['drained', 'scurs', 'สะเด็ดน้ำ'],
   ['unknown', 'necunoscut', 'ไม่ทราบ'],
   ['Your private food', 'Alimentul tău privat', 'อาหารส่วนตัวของคุณ'],
-  ['Open Food Facts community record. Check the package label.', 'Înregistrare comunitară Open Food Facts. Verifică eticheta ambalajului.', 'ข้อมูลจากชุมชน Open Food Facts โปรดตรวจสอบฉลากบนบรรจุภัณฑ์'],
+  ['Check the package label.', 'Verifică eticheta ambalajului.', 'โปรดตรวจสอบฉลากบนบรรจุภัณฑ์'],
   ['Verified label or nutrition-provider reference', 'Etichetă verificată sau referință de la furnizorul nutrițional', 'ฉลากที่ตรวจสอบแล้วหรือข้อมูลอ้างอิงจากผู้ให้บริการโภชนาการ'],
   ['Curated reference profile. Product labels can vary.', 'Profil de referință selectat. Etichetele produselor pot varia.', 'ข้อมูลโภชนาการอ้างอิงที่คัดสรร ฉลากของแต่ละผลิตภัณฑ์อาจแตกต่างกัน'],
   ['Adding…', 'Se adaugă…', 'กำลังเพิ่ม…'],

@@ -164,6 +164,6 @@ final class FoodPortionParityTests: XCTestCase {
         XCTAssertEqual(FoodPortionMath.provenanceLabel(food(source: "private")), "Your private food")
         XCTAssertEqual(
             FoodPortionMath.provenanceLabel(food(source: "open_food_facts")),
-            "Open Food Facts community record. Check the package label.")
+            "Check the package label.")
     }
 }

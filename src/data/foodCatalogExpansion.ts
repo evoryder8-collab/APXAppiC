@@ -13,6 +13,8 @@ export interface CatalogFoodSpec {
   id?: string
   slug: string
   providerId?: string
+  brand?: string
+  barcode?: string
   names: CatalogNames
   kcal: number
   protein: number
@@ -918,6 +920,33 @@ const SWISS_REFERENCE_FOODS: CatalogFoodSpec[] = [
   },
 ]
 
+const CURATED_PRODUCT_FOODS: CatalogFoodSpec[] = [
+  {
+    id: '10000000-0000-4000-8000-000000000086',
+    slug: 'sportyfeel-clear-whey-peach-iced-tea',
+    providerId: 'apex-curated:sportyfeel-clear-whey-peach-iced-tea-label',
+    brand: 'Sportyfeel',
+    barcode: '4335619267756',
+    names: {
+      en: 'Clear Whey, peach iced tea',
+      de: 'Clear Whey, Eistee-Pfirsich-Geschmack',
+      fr: 'Clear Whey, thé glacé à la pêche',
+      it: 'Clear Whey, tè freddo alla pesca',
+      ro: 'Clear Whey, ceai rece cu piersică',
+      th: 'เคลียร์เวย์ รสชาพีชเย็น',
+    },
+    kcal: 347,
+    protein: 84,
+    carbs: 2.4,
+    fat: 0.1,
+    servingAmount: 25,
+    servingUnit: 'g',
+    preparation: 'as_sold',
+    retailerReference: false,
+    confidence: 'provider_verified',
+  },
+]
+
 export const EXPANDED_FOOD_SPECS: CatalogFoodSpec[] = [
   ...FISH_FOODS,
   ...MEAT_FOODS,
@@ -927,4 +956,5 @@ export const EXPANDED_FOOD_SPECS: CatalogFoodSpec[] = [
   ...FAT_AND_BUTTER_FOODS,
   ...THAI_AND_ASIAN_FOODS,
   ...SWISS_REFERENCE_FOODS,
+  ...CURATED_PRODUCT_FOODS,
 ]

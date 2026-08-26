@@ -93,6 +93,7 @@ const LOCALIZED_NAMES: Record<string, { ro: string; th: string }> = {
 
 interface FoodOptions {
   brand?: string
+  barcode?: string
   providerId?: string
   servingGrams?: number
   servingAmount?: number
@@ -175,7 +176,7 @@ function food(
     name,
     names_i18n: { en: name, de, fr, it, ...LOCALIZED_NAMES[id] },
     brand: options.brand ?? null,
-    barcode: null,
+    barcode: options.barcode ?? null,
     source: 'apex_cache',
     provider_product_id: options.providerId ?? `apex-common:${id}`,
     external_image_url: null,
@@ -659,7 +660,8 @@ function protocolFood(
     spec.fat,
     spec.preparation ?? 'as_sold',
     {
-      brand: retailer?.brand,
+      brand: retailer?.brand ?? spec.brand,
+      barcode: spec.barcode,
       providerId: retailer
         ? `apex-protocol:${retailer.slug}:${spec.slug}`
         : spec.providerId ?? `apex-protocol:generic:${spec.slug}`,

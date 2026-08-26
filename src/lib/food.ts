@@ -868,6 +868,11 @@ function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPrefe
 }
 
 const FOOD_CATALOG_ALIASES: Record<string, string[]> = {
+  'apex-curated:sportyfeel-clear-whey-peach-iced-tea-label': [
+    'sportyfeel clear whey', 'sporty feel clear whey', 'lidl clear whey',
+    'eistee pfirsich', 'eistee pfirsich geschmack', 'clear whey pfirsich',
+    'peach iced tea whey', 'peach tea clear whey',
+  ],
   'apex-curated:swiss-fsvo-v7.1:1572': [
     'kebab', 'kebap', 'kebal', 'kebah', 'doner', 'döner', 'doner kebab', 'döner kebab',
     'shawarma', 'shaorma', 'shoarma', 'dürüm', 'durum', 'kebab im fladenbrot',

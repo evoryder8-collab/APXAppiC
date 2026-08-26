@@ -65,7 +65,7 @@ interface MealComposerProps {
 
 function foodProvenanceLabel(food: FoodRecord): string {
   if (food.source === 'private') return 'Your private food'
-  if (food.source === 'open_food_facts') return 'Open Food Facts community record. Check the package label.'
+  if (food.source === 'open_food_facts') return 'Check the package label.'
   if (food.confidence === 'provider_verified') return 'Verified label or nutrition-provider reference'
   return 'Curated reference profile. Product labels can vary.'
 }
