@@ -251,10 +251,14 @@ struct CompletedWorkoutHistoryCards: View {
     @State private var language = LanguageState.shared
     @State private var expanded: Set<UUID> = []
     @State private var receipt: FinishedSession?
-    @State private var manualEdit: WorkoutSession?
+    @State private var pendingDeletion: WorkoutReceipt.HistoryItem?
+    @State private var revealedSessionID: UUID?
+    @State private var swipingSessionID: UUID?
+    @State private var liveRevealOffset: CGFloat = 0
 
     let date: String
     var accent: Color = APEXColor.teal
+    private let revealWidth: CGFloat = 82
 
     private var history: [WorkoutReceipt.HistoryItem] {
         WorkoutReceipt.history(
@@ -288,12 +292,50 @@ struct CompletedWorkoutHistoryCards: View {
                 WorkoutReceiptSheet(sessionID: finished.id) { receipt = nil }
                     .environment(session)
             }
-            .sheet(item: $manualEdit) { workout in
-                ManualWorkoutLoggerView(date: date, editing: workout) {
-                    manualEdit = nil
+            .alert(
+                language.text("Delete this finished workout?"),
+                isPresented: Binding(
+                    get: { pendingDeletion != nil },
+                    set: { if !$0 { pendingDeletion = nil } }
+                ),
+                presenting: pendingDeletion
+            ) { item in
+                Button(language.text("Delete workout"), role: .destructive) {
+                    pendingDeletion = nil
+                    revealedSessionID = nil
+                    expanded.remove(item.id)
+                    Task { await session.deleteCompletedWorkoutSession(id: item.id) }
                 }
-                .environment(session)
+                Button(language.text("Cancel"), role: .cancel) { pendingDeletion = nil }
+            } message: { _ in
+                Text(language.text("Its receipt and recorded sets will be removed from your history and progression."))
             }
+        }
+    }
+
+    private func revealOffset(for id: UUID) -> CGFloat {
+        if swipingSessionID == id { return liveRevealOffset }
+        return revealedSessionID == id ? -revealWidth : 0
+    }
+
+    private func updateReveal(id: UUID, translation: CGSize, expanded: Bool) {
+        guard !expanded, abs(translation.width) > abs(translation.height) else { return }
+        let base: CGFloat = revealedSessionID == id ? -revealWidth : 0
+        swipingSessionID = id
+        liveRevealOffset = max(-revealWidth, min(0, base + translation.width))
+    }
+
+    private func finishReveal(id: UUID, translation: CGSize, expanded: Bool) {
+        guard !expanded, abs(translation.width) > abs(translation.height) else {
+            swipingSessionID = nil
+            liveRevealOffset = 0
+            return
+        }
+        let base: CGFloat = revealedSessionID == id ? -revealWidth : 0
+        withAnimation(.spring(response: 0.28, dampingFraction: 0.86)) {
+            revealedSessionID = base + translation.width < -revealWidth / 3 ? id : nil
+            swipingSessionID = nil
+            liveRevealOffset = 0
         }
     }
 
@@ -303,10 +345,36 @@ struct CompletedWorkoutHistoryCards: View {
         let summary = WorkoutReceipt.summarize(logs)
         let time = item.session.completedAt.flatMap(Self.timeText)
 
-        return VStack(spacing: 0) {
+        return ZStack(alignment: .trailing) {
+            if !isExpanded {
+                Button {
+                    pendingDeletion = item
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 15, weight: .black))
+                        Text(language.text("DELETE"))
+                            .font(APEXFont.mono(7, weight: .bold))
+                    }
+                    .foregroundStyle(.white)
+                    .frame(width: revealWidth)
+                    .frame(maxHeight: .infinity)
+                    .background(APEXColor.danger)
+                }
+                .buttonStyle(.plain)
+                .accessibilityIdentifier("completed-workout-delete-\(item.id.uuidString.lowercased())")
+            }
+
+            VStack(spacing: 0) {
             Button {
                 withAnimation(.snappy) {
-                    if isExpanded { expanded.remove(item.id) } else { expanded.insert(item.id) }
+                    if revealedSessionID == item.id {
+                        revealedSessionID = nil
+                    } else if isExpanded {
+                        expanded.remove(item.id)
+                    } else {
+                        expanded.insert(item.id)
+                    }
                 }
             } label: {
                 HStack(alignment: .top, spacing: 12) {
@@ -343,38 +411,68 @@ struct CompletedWorkoutHistoryCards: View {
 
             if isExpanded {
                 Divider().overlay(.white.opacity(0.9))
-                HStack(spacing: 8) {
-                    historyMetric("Loaded volume", value: language.format("%.0f kg", summary.loadedVolumeKG))
-                    historyMetric("Working sets", value: String(summary.workingSets))
-                    historyMetric("Movements", value: String(summary.movements))
+                HStack(alignment: .top, spacing: 8) {
+                    HStack(spacing: 8) {
+                        historyMetric("Loaded volume", value: language.format("%.0f kg", summary.loadedVolumeKG))
+                        historyMetric("Working sets", value: String(summary.workingSets))
+                        historyMetric("Movements", value: String(summary.movements))
+                    }
+                    Button {
+                        pendingDeletion = item
+                    } label: {
+                        Image(systemName: "xmark")
+                            .font(.system(size: 13, weight: .black))
+                            .foregroundStyle(APEXColor.danger)
+                            .frame(width: 38, height: 38)
+                            .background(APEXColor.danger.opacity(0.10), in: RoundedRectangle(cornerRadius: 12, style: .continuous))
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 12, style: .continuous)
+                                    .stroke(APEXColor.danger.opacity(0.20), lineWidth: 1)
+                            }
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityLabel(language.text("Delete workout"))
                 }
                 .padding(.horizontal, 15)
                 .padding(.top, 12)
 
-                HStack(spacing: 8) {
-                    Button {
-                        receipt = FinishedSession(id: item.id)
-                    } label: {
-                        Text(language.text("View & edit receipt"))
-                            .font(APEXFont.body(12, weight: .bold))
-                            .frame(maxWidth: .infinity, minHeight: 42)
-                            .foregroundStyle(.white)
-                            .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
-                    }
-                    .buttonStyle(.plain)
-                    if item.isQuickLog {
-                        Button {
-                            manualEdit = item.session
-                        } label: {
-                            Text(language.text("Edit workout"))
-                                .font(APEXFont.body(12, weight: .bold))
-                                .frame(maxWidth: .infinity, minHeight: 42)
-                                .foregroundStyle(accent)
-                                .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                VStack(alignment: .leading, spacing: 8) {
+                    ForEach(WorkoutReceipt.grouped(logs), id: \.name) { group in
+                        VStack(alignment: .leading, spacing: 7) {
+                            Text(language.text(group.name))
+                                .font(APEXFont.body(13, weight: .bold))
+                                .foregroundStyle(APEXColor.ink)
+                            ForEach(group.logs) { log in
+                                HStack(alignment: .top, spacing: 10) {
+                                    Text(language.format("SET %d", log.setNumber))
+                                        .font(APEXFont.mono(8, weight: .bold))
+                                        .foregroundStyle(APEXColor.secondaryInk)
+                                    Text(ExerciseLogging.factSummary(log).map(language.text).joined(separator: " · "))
+                                        .font(APEXFont.mono(9, weight: .semibold))
+                                        .foregroundStyle(APEXColor.ink)
+                                        .frame(maxWidth: .infinity, alignment: .leading)
+                                }
+                                .padding(.vertical, 2)
+                            }
                         }
-                        .buttonStyle(.plain)
+                        .frame(maxWidth: .infinity, alignment: .leading)
+                        .padding(12)
+                        .background(.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
                     }
                 }
+                .padding(.horizontal, 15)
+                .padding(.top, 2)
+
+                Button {
+                    receipt = FinishedSession(id: item.id)
+                } label: {
+                    Text(language.text("Edit receipt"))
+                        .font(APEXFont.body(12, weight: .bold))
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .foregroundStyle(.white)
+                        .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                }
+                .buttonStyle(.plain)
                 .padding(15)
                 .padding(.top, -4)
             }
@@ -399,6 +497,18 @@ struct CompletedWorkoutHistoryCards: View {
                     .allowsHitTesting(false)
             }
         }
+        .offset(x: isExpanded ? 0 : revealOffset(for: item.id))
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+        .simultaneousGesture(
+            DragGesture(minimumDistance: 16)
+                .onChanged { value in
+                    updateReveal(id: item.id, translation: value.translation, expanded: isExpanded)
+                }
+                .onEnded { value in
+                    finishReveal(id: item.id, translation: value.translation, expanded: isExpanded)
+                }
+        )
     }
 
     private func historyMetric(_ label: String, value: String) -> some View {

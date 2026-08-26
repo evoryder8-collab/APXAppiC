@@ -7,6 +7,36 @@ export interface CompletedWorkoutHistoryItem {
   isQuickLog: boolean
 }
 
+export interface CompletedWorkoutDeletionPlan {
+  sessionId: string
+  logIds: string[]
+}
+
+/**
+ * A destructive action must resolve from the signed-in owner, never merely
+ * from a session id supplied by the interface. Set rows are independently
+ * owner-checked so a malformed foreign row cannot be deleted with the workout.
+ */
+export function completedWorkoutDeletionPlan(
+  data: Pick<AppData, 'profile' | 'settings' | 'workout_sessions' | 'workout_logs'>,
+  sessionId: string,
+): CompletedWorkoutDeletionPlan | null {
+  const ownerId = data.profile?.user_id ?? data.settings?.user_id ?? null
+  if (!ownerId) return null
+  const session = data.workout_sessions.find((candidate) => (
+    candidate.id === sessionId
+    && candidate.user_id === ownerId
+    && candidate.completed
+  ))
+  if (!session) return null
+  return {
+    sessionId: session.id,
+    logIds: data.workout_logs
+      .filter((log) => log.session_id === session.id && log.user_id === ownerId)
+      .map((log) => log.id),
+  }
+}
+
 /**
  * A day owns every completed workout recorded on it, regardless of whether
  * the current generated plan still contains the session's programme row.

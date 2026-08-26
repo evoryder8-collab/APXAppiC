@@ -28,6 +28,30 @@ enum WorkoutReceipt {
         var hasLoad: Bool { loadedVolumeKG > 0 }
     }
 
+    struct DeletionPlan: Equatable, Sendable {
+        let sessionID: UUID
+        let logIDs: [UUID]
+    }
+
+    /// Resolve deletion from the authenticated owner rather than trusting the
+    /// id supplied by a card. Independently owner-check every child set row.
+    static func deletionPlan(
+        sessions: [WorkoutSession],
+        logs: [WorkoutLog],
+        sessionID: UUID,
+        ownerID: UUID
+    ) -> DeletionPlan? {
+        guard let session = sessions.first(where: {
+            $0.id == sessionID && $0.userID == ownerID && $0.completed
+        }) else { return nil }
+        return DeletionPlan(
+            sessionID: session.id,
+            logIDs: logs
+                .filter { $0.sessionID == session.id && $0.userID == ownerID }
+                .map(\.id)
+        )
+    }
+
     static func summarize(_ logs: [WorkoutLog]) -> Summary {
         let working = logs.filter { !FocusT25.isFocusName($0.exerciseName) }
         let volume = working.reduce(0.0) { total, log in

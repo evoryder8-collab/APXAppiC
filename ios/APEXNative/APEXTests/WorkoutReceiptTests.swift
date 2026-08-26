@@ -148,6 +148,69 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(history.map(\.isQuickLog), [true, false])
     }
 
+    func testDeletionPlanIncludesOnlyTheOwnedSessionAndItsOwnedSetRows() {
+        let owner = UUID()
+        let sessionID = UUID()
+        let foreignSessionID = UUID()
+        let dayID = UUID()
+        let owned = workout(
+            id: sessionID, userID: owner, dayID: dayID,
+            completedAt: "2026-08-26T09:00:00.000Z"
+        )
+        let foreign = workout(
+            id: foreignSessionID, userID: UUID(), dayID: dayID,
+            completedAt: "2026-08-26T10:00:00.000Z"
+        )
+        let first = WorkoutLog(
+            id: UUID(), userID: owner, sessionID: sessionID, exerciseID: nil,
+            exerciseName: "Front Lunge", setNumber: 1, weightKG: 25, reps: 12,
+            rir: 2, skipped: false, overrideFlag: false,
+            createdAt: "2026-08-26T08:15:00.000Z"
+        )
+        let second = WorkoutLog(
+            id: UUID(), userID: owner, sessionID: sessionID, exerciseID: nil,
+            exerciseName: "Front Lunge", setNumber: 2, weightKG: 25, reps: 12,
+            rir: nil, skipped: false, overrideFlag: false,
+            createdAt: "2026-08-26T08:17:00.000Z"
+        )
+        let foreignSet = WorkoutLog(
+            id: UUID(), userID: UUID(), sessionID: sessionID, exerciseID: nil,
+            exerciseName: "Injected", setNumber: 3, weightKG: 999, reps: 1,
+            rir: 0, skipped: false, overrideFlag: false,
+            createdAt: "2026-08-26T08:18:00.000Z"
+        )
+
+        XCTAssertEqual(
+            WorkoutReceipt.deletionPlan(
+                sessions: [owned, foreign], logs: [first, second, foreignSet],
+                sessionID: sessionID, ownerID: owner
+            ),
+            WorkoutReceipt.DeletionPlan(sessionID: sessionID, logIDs: [first.id, second.id])
+        )
+        XCTAssertNil(
+            WorkoutReceipt.deletionPlan(
+                sessions: [owned, foreign], logs: [first, second],
+                sessionID: foreignSessionID, ownerID: owner
+            )
+        )
+    }
+
+    func testExpandedHistoryCardShowsTheReceiptBeforeOfferingOneEditActionAndDeletion() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/WorkoutReceiptSheet.swift")
+        )
+
+        XCTAssertTrue(source.contains("ExerciseLogging.factSummary(log)"))
+        XCTAssertTrue(source.contains("DragGesture(minimumDistance: 16)"))
+        XCTAssertTrue(source.contains("Delete this finished workout?"))
+        XCTAssertTrue(source.contains("Text(language.text(\"Edit receipt\"))"))
+        XCTAssertFalse(source.contains("View & edit receipt"))
+        XCTAssertFalse(source.contains("Text(language.text(\"Edit workout\"))"))
+    }
+
     func testGroupingKeepsThePerformedOrder() {
         let grouped = WorkoutReceipt.grouped([
             log("Bench press", set: 1, weight: 60, reps: 8),

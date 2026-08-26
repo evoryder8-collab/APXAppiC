@@ -1,8 +1,8 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { EMPTY_DATA, type AppData, type WorkoutSession } from '../src/lib/types.ts'
-import { completedWorkoutHistoryForDate } from '../src/lib/completedWorkoutHistory.ts'
+import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '../src/lib/types.ts'
+import { completedWorkoutDeletionPlan, completedWorkoutHistoryForDate } from '../src/lib/completedWorkoutHistory.ts'
 import { manualWorkoutNotes } from '../src/lib/manualWorkout.ts'
 
 function session(overrides: Partial<WorkoutSession> & Pick<WorkoutSession, 'id' | 'date' | 'program_day_id'>): WorkoutSession {
@@ -19,6 +19,14 @@ function session(overrides: Partial<WorkoutSession> & Pick<WorkoutSession, 'id' 
     started_at: overrides.started_at ?? `${overrides.date}T08:00:00.000Z`,
     completed_at: overrides.completed_at ?? `${overrides.date}T09:00:00.000Z`,
     notes: overrides.notes ?? 'Completed in tracked mode',
+  }
+}
+
+function log(id: string, sessionId: string, userId = 'owner'): WorkoutLog {
+  return {
+    id, user_id: userId, session_id: sessionId, exercise_id: null,
+    exercise_name: 'Front Lunge', set_no: 1, weight_kg: 25, reps: 12, rir: 2,
+    skipped: false, override_flag: false, created_at: '2026-08-26T08:15:00.000Z',
   }
 }
 
@@ -71,4 +79,37 @@ test('completed workout history is rendered directly below Simple Mode metrics a
   const phase = readFileSync(new URL('../src/pages/WorkoutSection.tsx', import.meta.url), 'utf8')
   assert.match(simple, /simple-summary-actions[\s\S]*CompletedWorkoutHistoryCards/)
   assert.match(phase, /CompletedWorkoutHistoryCards/)
+})
+
+test('deleting a finished workout targets the owned session and all of its owned set rows only', () => {
+  const owned = session({ id: 'owned', date: '2026-08-26', program_day_id: 'day' })
+  const foreign = session({ id: 'foreign', user_id: 'someone-else', date: '2026-08-26', program_day_id: 'day' })
+  const data: AppData = {
+    ...EMPTY_DATA,
+    profile: {
+      id: 'profile', user_id: 'owner', persona: 'constantine', display_name: 'Owner', sex: 'male',
+      weight_kg: 80, body_fat_pct: 15, custom_bmr: null, height_cm: 180, birthdate: '1990-01-01',
+      activity_level: 'moderate', goal: 'maintain', target_kcal: null, target_protein_g: null,
+      target_fat_g: null, target_carbs_g: null, training_time: '18:00', baseline_date: '2026-01-01',
+      profile_note: '', seed_version: 1, calibration_k: 1, calibration_history: [],
+      updated_at: '2026-08-26T00:00:00.000Z',
+    },
+    workout_sessions: [owned, foreign],
+    workout_logs: [log('set-a', 'owned'), log('set-b', 'owned'), log('foreign-set', 'owned', 'someone-else')],
+  }
+
+  assert.deepEqual(completedWorkoutDeletionPlan(data, 'owned'), {
+    sessionId: 'owned',
+    logIds: ['set-a', 'set-b'],
+  })
+  assert.equal(completedWorkoutDeletionPlan(data, 'foreign'), null)
+})
+
+test('expanded finished-workout cards show the receipt inline with one edit action and confirmed deletion', () => {
+  const cards = readFileSync(new URL('../src/components/workout/CompletedWorkoutHistoryCards.tsx', import.meta.url), 'utf8')
+  assert.match(cards, /workoutLogFactSummary/)
+  assert.match(cards, /Delete this finished workout\?/)
+  assert.match(cards, /onPointerDown/)
+  assert.match(cards, />\{t\('Edit receipt'\)\}</)
+  assert.doesNotMatch(cards, /View & edit receipt|Edit workout structure/)
 })

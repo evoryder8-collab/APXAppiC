@@ -2855,6 +2855,34 @@ final class AppSession {
         return true
     }
 
+    /// Remove a completed receipt and all of its measured set rows. Activity
+    /// records are deliberately not guessed by date/source: without a durable
+    /// session id link, deleting one would risk removing unrelated expenditure.
+    @discardableResult
+    func deleteCompletedWorkoutSession(id: UUID) async -> Bool {
+        guard let ownerID = verifiedPersistenceOwnerID(),
+              let plan = WorkoutReceipt.deletionPlan(
+                sessions: data.workoutSessions,
+                logs: data.workoutLogs,
+                sessionID: id,
+                ownerID: ownerID
+              ) else {
+            return false
+        }
+
+        let logIDs = Set(plan.logIDs)
+        data.workoutLogs.removeAll { logIDs.contains($0.id) }
+        data.workoutSessions.removeAll { $0.id == plan.sessionID }
+        recomputeBrain()
+        await saveLocalSnapshot()
+
+        for logID in plan.logIDs {
+            await persistDelete(table: "workout_logs", id: logID, ownerID: ownerID)
+        }
+        await persistDelete(table: "workout_sessions", id: plan.sessionID, ownerID: ownerID)
+        return true
+    }
+
     func toggleDeload(on date: Date = .now) async {
         guard let ownerID = verifiedPersistenceOwnerID() else { return }
         let day = date.apexDateKey
