@@ -1147,3 +1147,17 @@ GitHub publication evidence:
 - Server result: production applied migration 031. A post-apply SQL inspection returned `archived | boolean | NO | false`, confirming the non-null `profile_supplements.archived` column and default.
 - Tests added: shared-surface/parity and catalogue-order regressions on web; catalogue priority and alphabetical-tail regressions on native. Red proof: web failed because the ordered catalogue contract did not exist, and native returned `five_htp`/`agmatine` before the required research-led pair. Green proof: focused web 3/3; complete web suite 574/574 in 4.02 seconds; complete native suite 496/496; TypeScript/Vite production build passed with 1,179 modules; `git diff --check` passed. Native result bundle: `build/codex-supplement-stack/Logs/Test/Test-APEX-2026.08.26_23-28-20-+0200.xcresult`.
 - Physical-device proof for exact source SHA `d3a432c43f`: signed Release build 356 succeeded and both APEX and the embedded Watch app passed strict code-sign verification. APEX installed and launched on `iConstantine Main` at database sequence `5888`. `ch.apexperformance.APEX.watchkitapp` installed and launched on the connected physical Apple Watch Ultra 3 at database sequence `1240`.
+
+## 2026-08-27 — Finished-workout deletion is hidden until requested
+
+- Implementation commit: `4ac3c5b0d43efa939f1d1585f72d89552b33e32d` (`fix: hide workout deletion until swipe`).
+- Files changed: `src/lib/completedWorkoutHistory.ts`, `src/components/workout/CompletedWorkoutHistoryCards.tsx`, `tests/completed-workout-history.test.ts`, `ios/APEXNative/APEX/Core/Engine/WorkoutReceipt.swift`, `ios/APEXNative/APEX/Features/Training/WorkoutReceiptSheet.swift`, `ios/APEXNative/APEXTests/WorkoutReceiptTests.swift`, `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`, `ios/APEXNative/APEX/App/APEXDebugFixture.swift`, and `ios/APEXNative/APEX/App/AppSession.swift`.
+- Behavior: collapsed receipts contain no destructive tray at rest; only a negative left-swipe offset renders it. Expanded receipts retain the compact confirmed-delete corner action.
+- Test fixture: the UI fixture now resolves a profile-backed beta entitlement through `EntitlementStore`; it does not bypass the server-authoritative entitlement model.
+- Red proof: focused web/native tests first failed because the reveal predicate did not exist; native result bundle `build/finished-workout-tray-red/Red.xcresult`. The prior permanent-tray implementation fails the new zero-offset assertions.
+- Focused green: web completed-workout history `6/6`; native `WorkoutReceiptTests` `14/14` (`build/finished-workout-tray-red/Green.xcresult`).
+- Rendered UI green: `testFinishedWorkoutDeletionIsHiddenAtRestAndMovesIntoExpandedCard` `1/1` in 13.369 seconds (`build/finished-workout-tray-red/UI5.xcresult`).
+- Full green: web `575/575` in 4019.4915 ms; native `497/497` in 2.137 seconds (`build/finished-workout-tray-red/Full.xcresult`); `npm run build` passed; `git diff --check` passed.
+- Physical release: build `357`, source SHA `4ac3c5b0d43efa939f1d1585f72d89552b33e32d`; strict deep signature verification passed for both bundles.
+- Installed and launched on physical iPhone 15 Pro Max `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5896`.
+- Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1248`.
