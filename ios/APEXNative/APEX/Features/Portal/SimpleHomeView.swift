@@ -359,7 +359,7 @@ struct SimpleHomeView: View {
         )) { panel in
             switch panel {
             case .supplements:
-                SupplementQuickSheet(date: selectedDate, onClose: { quickPanel = nil })
+                SupplementStackEditor(date: selectedDate, onClose: { quickPanel = nil })
             case .stats:
                 StatsQuickSheet(date: selectedDate, onClose: { quickPanel = nil })
             case .training:
@@ -1714,11 +1714,12 @@ private struct HydrationFigureGauge: View {
     }
 }
 
-private struct SupplementQuickSheet: View {
+struct SupplementStackEditor: View {
     @State private var language = LanguageState.shared
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     let date: Date
+    var showsHeader = true
     var onClose: () -> Void = {}
 
     @State private var showPicker = false
@@ -1738,11 +1739,13 @@ private struct SupplementQuickSheet: View {
         /* Card content, not a screen: no stack, no bar, no scrolling to see
            what is a short list. */
         VStack(alignment: .leading, spacing: 14) {
-            APEXPopoverHeader(
-                title: "Supplement stack",
-                subtitle: "\(taken) of \(session.activeSupplements.count) taken",
-                onClose: onClose
-            )
+            if showsHeader {
+                APEXPopoverHeader(
+                    title: "Supplement stack",
+                    subtitle: "\(taken) of \(session.activeSupplements.count) taken",
+                    onClose: onClose
+                )
+            }
 
             /* A List rather than a stack of buttons, because swipe-to-delete
                should be the real gesture -- it comes with the resistance, the
@@ -1759,10 +1762,13 @@ private struct SupplementQuickSheet: View {
                                 .font(.system(size: 19))
                                 .foregroundStyle(done ? APEXColor.green : APEXColor.secondaryInk)
                             VStack(alignment: .leading, spacing: 2) {
-                                Text(supplement.name).font(APEXFont.body(14, weight: .bold))
+                                Text(supplement.name)
+                                    .font(APEXFont.body(14, weight: .bold))
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Text("\(supplement.dose) · \(supplement.groupLabel)")
                                     .font(APEXFont.body(10))
                                     .foregroundStyle(APEXColor.secondaryInk)
+                                    .fixedSize(horizontal: false, vertical: true)
                             }
                             Spacer(minLength: 0)
                         }
@@ -1794,7 +1800,7 @@ private struct SupplementQuickSheet: View {
             /* A definite height, not a maximum: a List has no intrinsic
                height of its own, so maxHeight let it collapse to nothing and
                the sheet rendered empty. Capped so a long stack scrolls. */
-            .frame(height: min(CGFloat(max(1, supplements.count)) * 66, 420))
+            .frame(height: min(CGFloat(max(1, supplements.count)) * 78, 420))
             .scrollDisabled(false)
 
             Button {
@@ -2544,17 +2550,21 @@ private struct SupplementPickerSheet: View {
     var body: some View {
         NavigationStack {
             List {
-                ForEach(results) { entry in
-                    SupplementPickerRow(
-                        entry: entry,
-                        isFemale: (session.profile?.sex ?? "").lowercased().hasPrefix("f"),
-                        isUnderEighteen: (session.profile?.age ?? 0) > 0 && (session.profile?.age ?? 0) < 18,
-                        onAdd: { dose in
-                            onAdd(entry, dose)
-                            dismiss()
+                if query.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty, results.count >= 2 {
+                    Section(language.text("Core evidence")) {
+                        ForEach(Array(results.prefix(2))) { entry in
+                            pickerRow(entry)
                         }
-                    )
-                    .listRowBackground(Color.clear)
+                    }
+                    Section(language.text("A to Z catalogue")) {
+                        ForEach(Array(results.dropFirst(2))) { entry in
+                            pickerRow(entry)
+                        }
+                    }
+                } else {
+                    ForEach(results) { entry in
+                        pickerRow(entry)
+                    }
                 }
 
                 if results.isEmpty {
@@ -2576,6 +2586,20 @@ private struct SupplementPickerSheet: View {
                 }
             }
         }
+    }
+
+    @ViewBuilder
+    private func pickerRow(_ entry: SupplementCatalogue.Entry) -> some View {
+        SupplementPickerRow(
+            entry: entry,
+            isFemale: (session.profile?.sex ?? "").lowercased().hasPrefix("f"),
+            isUnderEighteen: (session.profile?.age ?? 0) > 0 && (session.profile?.age ?? 0) < 18,
+            onAdd: { dose in
+                onAdd(entry, dose)
+                dismiss()
+            }
+        )
+        .listRowBackground(Color.clear)
     }
 }
 
@@ -2621,7 +2645,9 @@ private struct SupplementPickerRow: View {
     private var header: some View {
         HStack(spacing: 8) {
             VStack(alignment: .leading, spacing: 2) {
-                Text(language.text(entry.name)).font(APEXFont.body(15, weight: .bold))
+                Text(language.text(entry.name))
+                    .font(APEXFont.body(15, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(language.text(entry.category))
                     .font(APEXFont.body(10))
                     .foregroundStyle(APEXColor.secondaryInk)

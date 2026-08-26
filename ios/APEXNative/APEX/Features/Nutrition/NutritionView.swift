@@ -123,7 +123,7 @@ struct NutritionView: View {
                             title: language.text("Supplement stack"),
                             subtitle: supplementSummary
                         ) {
-                            SupplementTimeline(date: selectedDate)
+                            SupplementStackEditor(date: selectedDate, showsHeader: false)
                         }
 
                         DailyLogCard(
@@ -626,68 +626,6 @@ private struct FoodLoggingCard: View {
                 .buttonStyle(.plain)
             }
         }
-    }
-}
-
-private struct SupplementTimeline: View {
-    @Environment(AppSession.self) private var session
-    @State private var language = LanguageState.shared
-    let date: Date
-
-    private var groups: [(String, [Supplement])] {
-        Dictionary(grouping: session.activeSupplements, by: \.groupLabel)
-            .map { ($0.key, $0.value.sorted { $0.sortOrder < $1.sortOrder }) }
-            .sorted { ($0.1.first?.sortOrder ?? 0) < ($1.1.first?.sortOrder ?? 0) }
-    }
-
-    var body: some View {
-        VStack(alignment: .leading, spacing: 14) {
-            HStack {
-                Text(language.text("Supplement stack"))
-                    .font(APEXFont.display(28))
-                Spacer()
-                Text(language.format("Training at %@", session.profile?.trainingTime ?? "19:00"))
-                    .font(APEXFont.body(12, weight: .semibold))
-                    .foregroundStyle(APEXColor.secondaryInk)
-            }
-            ForEach(groups, id: \.0) { group, supplements in
-                GlassCard(radius: 27, padding: 18) {
-                    VStack(alignment: .leading, spacing: 12) {
-                        HStack {
-                            Text(language.text(group))
-                                .font(APEXFont.display(19))
-                            Spacer()
-                            Text(displayTime(supplements.first))
-                                .font(APEXFont.mono(12))
-                                .foregroundStyle(APEXColor.amberDeep)
-                        }
-                        FlowLayout(spacing: 8) {
-                            ForEach(supplements) { supplement in
-                                let checked = session.data.supplementLogs.contains {
-                                    $0.date == date.apexDateKey && $0.supplementID == supplement.id
-                                }
-                                Button {
-                                    Task { await session.toggleSupplement(supplement, on: date) }
-                                } label: {
-                                    HStack(spacing: 6) {
-                                        if checked { Image(systemName: "checkmark") }
-                                        Text([language.text(supplement.name), language.text(supplement.dose)].filter { !$0.isEmpty }.joined(separator: " "))
-                                    }
-                                }
-                                .buttonStyle(ChoicePillStyle(selected: checked))
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-
-    private func displayTime(_ supplement: Supplement?) -> String {
-        guard let supplement else { return "" }
-        if let clock = supplement.clockTime { return clock }
-        let offset = supplement.offsetMinutes ?? 0
-        return offset == 0 ? language.text("TRAINING") : "T\(offset > 0 ? "+" : "")\(offset)"
     }
 }
 

@@ -132,7 +132,13 @@ enum SupplementCatalogue {
         let all = visible(forAge: age)
         let query = normalise(raw)
         guard !query.isEmpty else {
-            return Array(all.sorted { $0.name < $1.name }.prefix(limit))
+            let coreIDs = ["whey_protein", "creatine_monohydrate"]
+            let core = coreIDs.compactMap { id in all.first { $0.id == id } }
+            let coreSet = Set(core.map(\.id))
+            let alphabetical = all
+                .filter { !coreSet.contains($0.id) }
+                .sorted { $0.name.localizedCaseInsensitiveCompare($1.name) == .orderedAscending }
+            return Array((core + alphabetical).prefix(limit))
         }
         let queryChars = Array(query)
         let budget = tolerance(for: query)

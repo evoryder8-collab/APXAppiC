@@ -53,6 +53,17 @@ final class SupplementCatalogueTests: XCTestCase {
                        "opening the picker should show something to browse")
     }
 
+    func testBrowseOrderLeadsWithProteinThenCreatineBeforeAlphabeticalCatalogue() {
+        let results = SupplementCatalogue.search("", limit: 200)
+
+        XCTAssertEqual(Array(results.prefix(2).map(\.id)), ["whey_protein", "creatine_monohydrate"])
+        XCTAssertEqual(
+            results.dropFirst(2).map(\.name),
+            results.dropFirst(2).map(\.name).sorted { $0.localizedCaseInsensitiveCompare($1) == .orderedAscending }
+        )
+        XCTAssertEqual(Set(results.map(\.id)).count, results.count, "browse order must not duplicate the core entries")
+    }
+
     func testNonsenseFindsNothingRatherThanSomethingWrong() {
         // Offering a confident wrong answer is worse than offering none.
         XCTAssertTrue(SupplementCatalogue.search("qwertyuiop").isEmpty)

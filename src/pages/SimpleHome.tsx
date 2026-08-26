@@ -50,6 +50,7 @@ import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/act
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { resolveDailyBurnedEnergy } from '../lib/activity'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
+import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 
 const emerald = ACCENTS.emerald
@@ -396,18 +397,6 @@ export function SimpleHome() {
 
   const groupIsDone = (group: { items: Supplement[] }): boolean =>
     group.items.length > 0 && group.items.every((item) => supplementDoneIds.has(item.id))
-
-  const toggleSupplement = (item: Supplement): void => {
-    const existing = dateSupplementLogs.find((log) => log.supplement_id === item.id)
-    if (existing) {
-      remove('supplement_logs', existing.id)
-      return
-    }
-    upsert('supplement_logs', {
-      id: crypto.randomUUID(), user_id: profile.user_id, date: selectedDate, supplement_id: item.id,
-      checked_at: new Date().toISOString(),
-    })
-  }
 
   const enabledCustomMealBlocks = mealBlockSettings.custom_blocks.filter((block) => block.enabled)
   const completedCustomMealBlocks = enabledCustomMealBlocks.filter((block) => dateFoodMeals.some((meal) => mealMomentIdFromIdempotencyKey(meal.client_idempotency_key) === block.id)).length
@@ -1442,25 +1431,7 @@ export function SimpleHome() {
                 </div>
               ) : quickPanel === 'supplements' ? (
                 <div className="mt-3 flex min-h-0 flex-1 flex-col">
-                  <div className="min-h-0 flex-1 space-y-2 overflow-y-auto pr-0.5">
-                    {supplementGroups.map((group) => (
-                      <section key={group.label}>
-                        <div className="mb-1 flex items-center justify-between gap-2 px-1"><p className="truncate text-[9px] font-black tracking-wide text-ink-faint uppercase">{t(group.label)}</p><span className="font-mono text-[8px] font-bold text-ink-faint">{clockOf(group.time)}</span></div>
-                        <div className="space-y-1">
-                          {group.items.map((item) => {
-                            const done = supplementDoneIds.has(item.id)
-                            return (
-                              <button key={item.id} type="button" onClick={() => toggleSupplement(item)} aria-pressed={done} className="flex w-full items-center gap-2 rounded-2xl bg-slate-50/90 px-3 py-2 text-left transition active:scale-[.985]">
-                                <span className={`grid h-6 w-6 shrink-0 place-items-center rounded-full text-[10px] font-black ${done ? 'bg-emerald text-white' : 'border border-violet-200 bg-white text-transparent'}`}>✓</span>
-                                <span className="min-w-0 flex-1"><span className={`block truncate text-[11px] font-black ${done ? 'text-ink-soft' : 'text-ink'}`}>{t(item.name)}</span><span className="block truncate font-mono text-[8px] font-semibold text-ink-faint">{t(item.dose)}</span></span>
-                              </button>
-                            )
-                          })}
-                        </div>
-                      </section>
-                    ))}
-                  </div>
-                  <button type="button" onClick={() => openNutritionSection('supplements')} className="mt-3 w-full rounded-2xl bg-violet-100/80 px-3 py-2.5 text-xs font-black text-violet-900">{t('Open full supplement stack')}</button>
+                  <SupplementStackEditor date={selectedDate} compact />
                 </div>
               ) : quickPanel === 'targets' ? (
                 <div className="mt-4">

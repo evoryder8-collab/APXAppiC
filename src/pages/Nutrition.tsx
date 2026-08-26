@@ -13,7 +13,7 @@ import {
 } from '../components/ui'
 import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, goalPresetForPlan, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
+import type { ActivityLevel, DailyLog, ProgramSlug } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
 import { TodaysActivities } from '../components/TodaysActivities'
@@ -54,19 +54,10 @@ import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { planForDate } from '../lib/plan'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
+import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
-
-function minutesOf(hm: string): number {
-  const [h, m] = hm.split(':').map(Number)
-  return h * 60 + m
-}
-
-function hmOf(minutes: number): string {
-  const m = ((minutes % 1440) + 1440) % 1440
-  return `${String(Math.floor(m / 60)).padStart(2, '0')}:${String(m % 60).padStart(2, '0')}`
-}
 
 function emptyDailyLog(date: string, userId: string): DailyLog {
   return {
@@ -83,11 +74,6 @@ function emptyDailyLog(date: string, userId: string): DailyLog {
     activity_mode: 'quick',
     weight_kg: null,
   }
-}
-
-export function resolveSupplementTime(s: Supplement, trainingTime: string): number {
-  if (s.timing === 'clock' && s.clock_time) return minutesOf(s.clock_time)
-  return minutesOf(trainingTime) + (s.offset_min ?? 0)
 }
 
 export function Nutrition() {
@@ -594,9 +580,13 @@ export function Nutrition() {
       }
     }), [actualByPlannedMeal, dayMealIds, foodStore.entries, mealPlan])
   const daySupplementIds = useMemo(
-    () => new Set(data.supplement_logs.filter((log) => log.date === selectedLogDate).map((log) => log.supplement_id)),
-    [data.supplement_logs, selectedLogDate],
+    () => {
+      const activeIDs = new Set(data.supplements.filter((supplement) => supplement.archived !== true).map((supplement) => supplement.id))
+      return new Set(data.supplement_logs.filter((log) => log.date === selectedLogDate && activeIDs.has(log.supplement_id)).map((log) => log.supplement_id))
+    },
+    [data.supplement_logs, data.supplements, selectedLogDate],
   )
+  const activeSupplementCount = data.supplements.filter((supplement) => supplement.archived !== true).length
 
   /* Keep the daily record, the nutrition brain consumed by Avatar, reports and
      history, in lockstep with the reconciled ledger. This also repairs legacy
@@ -631,38 +621,6 @@ export function Nutrition() {
       && existing.manual_fat_g === next.manual_fat_g
     if (!unchanged) upsert('daily_logs', next)
   }, [consumed.carbs_g, consumed.fat_g, consumed.kcal, consumed.protein_g, consumedMeals.length, data.daily_logs, profile, selectedLogDate, upsert])
-
-  /* Supplements resolved to today's clock and grouped */
-  const trainingTime = profile?.training_time ?? '19:00'
-  const nowMin = clockToMinute(zonedClock(new Date(), mealTimeZone).time)
-  const isTrainingDay = true // every weekday has a session in these programs
-  const groups = useMemo(() => {
-    const map = new Map<string, { time: number; items: Supplement[] }>()
-    for (const s of [...data.supplements].sort((a, b) => a.sort_order - b.sort_order)) {
-      if (s.training_days_only && !isTrainingDay) continue
-      const t = resolveSupplementTime(s, trainingTime)
-      const g = map.get(s.group_label) ?? { time: t, items: [] }
-      g.items.push(s)
-      map.set(s.group_label, g)
-    }
-    return [...map.entries()]
-      .map(([label, g]) => ({ label, ...g }))
-      .sort((a, b) => a.time - b.time)
-  }, [data.supplements, trainingTime, isTrainingDay])
-
-  const supDone = (id: string): boolean => daySupplementIds.has(id)
-  const toggleSup = (id: string): void => {
-    const existing = data.supplement_logs.find((l) => l.date === selectedLogDate && l.supplement_id === id)
-    if (existing) remove('supplement_logs', existing.id)
-    else
-      upsert('supplement_logs', {
-        id: crypto.randomUUID(),
-        user_id: profile?.user_id ?? '',
-        date: selectedLogDate,
-        supplement_id: id,
-        checked_at: new Date().toISOString(),
-      })
-  }
 
   const enableNotifications = async (): Promise<void> => {
     const ok = await ensurePermission()
@@ -1128,76 +1086,11 @@ export function Nutrition() {
         {/* -------- Supplement timeline -------- */}
         <details id="nutrition-supplements" className="glass group scroll-mt-28 rounded-3xl p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3">
-            <div><p className="font-display text-sm font-bold text-ink">{tx('Supplement stack')}</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{data.supplements.length} · {format(selectedDateObject, 'd MMM')}</p></div>
+            <div><p className="font-display text-sm font-bold text-ink">{tx('Supplement stack')}</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{daySupplementIds.size}/{activeSupplementCount} · {format(selectedDateObject, 'd MMM')}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
           </summary>
           <div className="mt-4 border-t border-ink/7 pt-4">
-          <div className="mb-3 flex items-center justify-end">
-            <div className="flex items-center gap-2 text-xs font-semibold text-ink-soft">
-              {tx('Training at')}
-              <input
-                type="time"
-                value={trainingTime}
-                onChange={(e) => setProfile({ training_time: e.target.value })}
-                className="glass rounded-lg px-2 py-1 font-mono text-base font-bold text-ink"
-              />
-            </div>
-          </div>
-          <div className="relative space-y-3 pl-6">
-            <div
-              className="absolute top-2 bottom-2 left-[9px] w-0.5 rounded-full"
-              style={{ background: `linear-gradient(180deg, ${amber.soft}, ${amber.bright})`, opacity: 0.4 }}
-              aria-hidden
-            />
-            {groups.map((group) => {
-              const active = selectedLogDate === today && nowMin >= group.time - 10 && nowMin <= group.time + 50
-              const allDone = group.items.every((s) => supDone(s.id))
-              return (
-                <div key={group.label} className="relative">
-                  <span
-                    className="absolute top-4 -left-6 h-3 w-3 rounded-full border-2 border-white"
-                    style={{ background: allDone ? amber.gradient : 'rgba(26,26,34,0.15)' }}
-                    aria-hidden
-                  />
-                  <GlassCard accent={amber} breathe={active} className="defer-paint p-4">
-                    <div className="flex items-center justify-between">
-                      <p className="font-display text-sm font-bold text-ink">{tx(group.label)}</p>
-                      <span className="font-mono text-xs font-bold" style={{ color: amber.deep }}>
-                        {hmOf(group.time)}
-                        {active && ` · ${tx('now')}`}
-                      </span>
-                    </div>
-                    <div className="mt-2.5 flex flex-wrap gap-2">
-                      {group.items.map((s) => {
-                        const done = supDone(s.id)
-                        return (
-                          <button
-                            key={s.id}
-                            type="button"
-                            onClick={() => toggleSup(s.id)}
-                            className="rounded-full px-3 py-1.5 text-xs font-bold transition-all active:scale-95"
-                            style={
-                              done
-                                ? { background: amber.gradient, color: '#fff' }
-                                : {
-                                    background: 'rgba(255,255,255,0.65)',
-                                    color: '#3f3f48',
-                                    border: `1px solid ${amber.glowSoft}`,
-                                  }
-                            }
-                          >
-                            {tx(s.name)}
-                            {s.dose ? ` ${tx(s.dose)}` : ''}
-                            {s.training_days_only ? ` (${tx('training days')})` : ''}
-                          </button>
-                        )
-                      })}
-                    </div>
-                  </GlassCard>
-                </div>
-              )
-            })}
-          </div>
+            <SupplementStackEditor date={selectedLogDate} />
           </div>
         </details>
 

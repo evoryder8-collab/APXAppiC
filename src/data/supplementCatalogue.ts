@@ -353,3 +353,45 @@ export const SUPPLEMENT_CATALOGUE: SupplementEntry[] = [
   { id: 'hyaluronic_acid', name: 'Hyaluronic Acid', aliases: ['hyaluronic', 'ha'], category: 'Joints and connective tissue', doses: [80, 120, 200], unit: 'mg', evidence: 'limited',
     summary: 'Oral doses show small effects on knee comfort and skin hydration in early trials.', timing: 'With food' },
 ]
+
+const CORE_SUPPLEMENT_IDS = ['whey_protein', 'creatine_monohydrate'] as const
+
+/**
+ * The order shown before somebody starts searching.
+ *
+ * Protein and creatine are deliberately separated from the commercial
+ * alphabet: they are the two useful first stops for most training plans. The
+ * remainder stays alphabetical so a long catalogue remains predictable.
+ */
+export function orderedSupplementCatalogue(entries: readonly SupplementEntry[] = SUPPLEMENT_CATALOGUE): SupplementEntry[] {
+  const byId = new Map(entries.map((entry) => [entry.id, entry]))
+  const core = CORE_SUPPLEMENT_IDS.flatMap((id) => {
+    const entry = byId.get(id)
+    return entry ? [entry] : []
+  })
+  const coreIds = new Set(core.map((entry) => entry.id))
+  const remainder = entries
+    .filter((entry) => !coreIds.has(entry.id))
+    .sort((left, right) => left.name.localeCompare(right.name))
+  return [...core, ...remainder]
+}
+
+export function supplementCatalogueForAge(age: number): SupplementEntry[] {
+  const visible = age > 0 && age < 18
+    ? SUPPLEMENT_CATALOGUE.filter((entry) => entry.adultOnly !== true)
+    : SUPPLEMENT_CATALOGUE
+  return orderedSupplementCatalogue(visible)
+}
+
+export function searchSupplementCatalogue(query: string, age = 0): SupplementEntry[] {
+  const ordered = supplementCatalogueForAge(age)
+  const needle = query.trim().toLocaleLowerCase()
+  if (!needle) return ordered
+  return ordered.filter((entry) =>
+    [entry.name, ...entry.aliases].some((candidate) => candidate.toLocaleLowerCase().includes(needle)),
+  )
+}
+
+export function formatSupplementDose(entry: SupplementEntry, dose: number): string {
+  return `${Number.isInteger(dose) ? dose.toFixed(0) : dose.toFixed(1)} ${entry.unit}`
+}

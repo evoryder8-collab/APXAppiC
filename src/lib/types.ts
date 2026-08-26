@@ -81,6 +81,7 @@ export interface Supplement {
   group_label: string // 'Wake', 'T-60', 'Post-workout', ...
   training_days_only: boolean
   sort_order: number
+  archived?: boolean
 }
 
 export interface SupplementLog {
