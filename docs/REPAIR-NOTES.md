@@ -931,3 +931,12 @@ GitHub publication evidence:
   - Pushed the implementation SHA to `main`, `codex/main-critical-repair` and `codex/main-integration-20260824`.
   - GitHub Pages run `32904688560` succeeded.
   - `https://evoryder8-collab.github.io/APXAppiC/` returned HTTP 200; the live safety asset returned HTTP 200 and matched the committed SHA-256 exactly.
+
+## 2026-08-26 — Restore the owner-approved plan safety artwork
+
+- Implementation commit: `ac8a46347` (`fix: restore approved plan safety artwork`).
+- Files changed: the matching web and native `plan-briefing-safety.png` assets and `tests/plan-briefing.test.ts`.
+- Result: restored the exact earlier 888×900 transparent illustration in both clients and converted the asset test into an owner-approval lock on SHA-256 `b28b785dafb6d58d8e1abd72b8d7cafb9c13dd671b8bc83e876984832ea79b83`.
+- Red proof: focused briefing suite ran 7/8; the asset contract rejected the replacement SHA `2c800f7dc38112a6cb8ba27649459be2987333985f5f82d7d8581726ff5bcf20`.
+- Green proof: focused briefing suite ran 8/8 in 44.546 ms; web/native assets are byte-identical and retain RGBA transparency; `git diff --check` passed.
+- Physical-device and publication evidence will be recorded on the final aggregate build after the two reported data-integrity repairs are committed; this entry does not claim deployment yet.
