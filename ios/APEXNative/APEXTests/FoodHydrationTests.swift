@@ -122,6 +122,65 @@ final class FoodHydrationTests: XCTestCase {
         XCTAssertEqual(Set(presets.map(\.id)).count, presets.count)
     }
 
+    func testPastDayReductionsNeverResurrectTheLegacyAggregate() {
+        var events = [hydrationEvent(amountML: 1_000)]
+        var mirroredAggregateLiters = 1.0
+
+        for amountML in [250, 500, 300] {
+            let before = HydrationLedger.resolve(
+                ownerID: hydrationOwner,
+                date: "2026-08-25",
+                events: events,
+                legacyDrinkLiters: mirroredAggregateLiters
+            ).drinkML
+            let plan = HydrationLedger.reductionPlan(
+                ownerID: hydrationOwner,
+                date: "2026-08-25",
+                events: events,
+                amountML: amountML,
+                updatedAt: "2026-08-26T08:00:00Z"
+            )
+            events = plan.resultingEvents
+            mirroredAggregateLiters = Double(plan.drinkML) / 1_000
+            let after = HydrationLedger.resolve(
+                ownerID: hydrationOwner,
+                date: "2026-08-25",
+                events: events,
+                legacyDrinkLiters: mirroredAggregateLiters
+            ).drinkML
+
+            XCTAssertEqual(after, max(0, before - amountML))
+            XCTAssertLessThanOrEqual(after, before, "a remove preset must never increase water")
+        }
+
+        XCTAssertEqual(events.count, 0)
+        XCTAssertEqual(mirroredAggregateLiters, 0)
+    }
+
+    @MainActor
+    func testRapidHydrationAdjustmentsRunInTapOrderWithoutOverlap() async {
+        let queue = HydrationMutationQueue()
+        var trace: [String] = []
+        let first = queue.enqueue {
+            trace.append("first-start")
+            try? await Task.sleep(for: .milliseconds(20))
+            trace.append("first-end")
+            return 0.75
+        }
+        let second = queue.enqueue {
+            trace.append("second-start")
+            trace.append("second-end")
+            return 0.25
+        }
+
+        let firstValue = await first.value
+        let secondValue = await second.value
+
+        XCTAssertEqual(firstValue, 0.75)
+        XCTAssertEqual(secondValue, 0.25)
+        XCTAssertEqual(trace, ["first-start", "first-end", "second-start", "second-end"])
+    }
+
     func testWatchCompanionSnapshotCannotCarryAnotherAccountsRows() throws {
         let ownPreset = HydrationPreset(
             id: UUID(), userID: hydrationOwner, name: "Coffee", amountML: 190,

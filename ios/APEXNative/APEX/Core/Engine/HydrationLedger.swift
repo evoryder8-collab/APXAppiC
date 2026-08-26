@@ -521,6 +521,42 @@ enum HydrationMutationOrdering {
     }
 }
 
+struct HydrationEventReplacement: Sendable {
+    let original: HydrationEvent
+    var replacement: HydrationEvent
+}
+
+struct HydrationReductionPlan: Sendable {
+    let resultingEvents: [HydrationEvent]
+    let deletedEvents: [HydrationEvent]
+    let replacements: [HydrationEventReplacement]
+    let drinkML: Int
+}
+
+@MainActor
+final class HydrationMutationQueue {
+    private var tail: Task<Double, Never>?
+    private var revision: UInt64 = 0
+
+    func enqueue(
+        _ operation: @escaping @MainActor @Sendable () async -> Double
+    ) -> Task<Double, Never> {
+        let previous = tail
+        revision &+= 1
+        let operationRevision = revision
+        let task = Task { @MainActor [weak self] in
+            _ = await previous?.value
+            let value = await operation()
+            if self?.revision == operationRevision {
+                self?.tail = nil
+            }
+            return value
+        }
+        tail = task
+        return task
+    }
+}
+
 enum HydrationLedger {
     static let legacyAnchorPalette = "legacy_anchor"
     static let legacyAdjustedPalette = "legacy_adjusted"
@@ -547,6 +583,62 @@ enum HydrationLedger {
             rows[key] = candidate
         }
         return rows.values.sorted { $0.occurredAt > $1.occurredAt }
+    }
+
+    static func reductionPlan(
+        ownerID: UUID,
+        date: String,
+        events: [HydrationEvent],
+        amountML: Int,
+        updatedAt: String
+    ) -> HydrationReductionPlan {
+        var resultingEvents = events
+        var deletedEvents: [HydrationEvent] = []
+        var replacements: [HydrationEventReplacement] = []
+        var remaining = max(0, amountML)
+        let candidates = events.filter {
+            $0.userID == ownerID && $0.localDate == date
+                && ($0.source == .iPhone || $0.source == .legacy)
+                && $0.kind != .food && $0.amountML > 0
+        }.sorted {
+            ($0.occurredAt, $0.createdAt, $0.id.uuidString)
+                > ($1.occurredAt, $1.createdAt, $1.id.uuidString)
+        }
+
+        for original in candidates where remaining > 0 {
+            if original.amountML <= remaining {
+                remaining -= original.amountML
+                deletedEvents.append(original)
+                resultingEvents.removeAll {
+                    $0.id == original.id && $0.userID == ownerID
+                }
+            } else {
+                var replacement = original
+                replacement.amountML = original.amountML - remaining
+                replacement.healthKitSampleID = nil
+                replacement.updatedAt = updatedAt
+                remaining = 0
+                replacements.append(.init(original: original, replacement: replacement))
+                if let index = resultingEvents.firstIndex(where: {
+                    $0.id == original.id && $0.userID == ownerID
+                }) {
+                    resultingEvents[index] = replacement
+                }
+            }
+        }
+
+        let resolved = resolve(
+            ownerID: ownerID,
+            date: date,
+            events: resultingEvents,
+            legacyDrinkLiters: 0
+        )
+        return HydrationReductionPlan(
+            resultingEvents: resultingEvents,
+            deletedEvents: deletedEvents,
+            replacements: replacements,
+            drinkML: resolved.drinkML
+        )
     }
 
     static func legacyMigration(
