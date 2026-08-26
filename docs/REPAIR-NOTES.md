@@ -940,3 +940,16 @@ GitHub publication evidence:
 - Red proof: focused briefing suite ran 7/8; the asset contract rejected the replacement SHA `2c800f7dc38112a6cb8ba27649459be2987333985f5f82d7d8581726ff5bcf20`.
 - Green proof: focused briefing suite ran 8/8 in 44.546 ms; web/native assets are byte-identical and retain RGBA transparency; `git diff --check` passed.
 - Physical-device and publication evidence will be recorded on the final aggregate build after the two reported data-integrity repairs are committed; this entry does not claim deployment yet.
+
+## 2026-08-26 — Past-day hydration reductions cannot increase water
+
+- Implementation commit: `f64063174a` (`fix: make hydration reductions monotonic`).
+- Files changed: `ios/APEXNative/APEX/App/AppSession.swift`, `Core/Engine/HydrationLedger.swift`, and `APEXTests/FoodHydrationTests.swift`.
+- Root cause: partial reduction deleted the current event through the full delete path and then logged its retained amount as a new event. Between those operations, the now-empty ledger fell back to the stale `DailyLog.waterL`; past-day legacy materialization could treat that old aggregate as fresh water and then add the retained amount, producing the reported upward jump. Concurrent remove taps could interleave across the same suspension points.
+- Fix: reductions now calculate one deterministic final ledger, stage its exact legacy mirror before the first persistence suspension, update partial events in place, and serialize rapid adjustment taps in their original order. HealthKit mirrors are replaced only after the local total is already monotonic.
+- Tests added:
+  - `testPastDayReductionsNeverResurrectTheLegacyAggregate` applies −250, −500 and −300 successively and proves every result is non-increasing through exact zero.
+  - `testRapidHydrationAdjustmentsRunInTapOrderWithoutOverlap` proves a delayed first tap finishes before the next mutation starts.
+- Red proof: focused native build failed with missing `HydrationLedger.reductionPlan` and `HydrationMutationQueue`, demonstrating the old implementation had neither atomic reduction nor serialization.
+- Green proof: focused hydration suite 27/27; complete native unit suite 471/471, 0 failed, 0 skipped; `git diff --check` passed.
+- Physical-device and publication evidence will be recorded after the loaded-volume repair in the final aggregate build; no deployment claim is made here.
