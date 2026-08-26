@@ -902,6 +902,48 @@ final class TrainingInductionTests: XCTestCase {
         )
     }
 
+    func testFirstRunProfileInsertOwnsAStablePrimaryKeyWithoutStartingATrial() throws {
+        let userID = UUID(uuidString: "A11CE000-0000-4000-8000-000000000001")!
+        let request = ProfileCreationRequest(userID: userID, goal: "muscle")
+        let encoded = try JSONEncoder().encode(request)
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+
+        XCTAssertEqual(json["id"] as? String, userID.uuidString.uppercased())
+        XCTAssertEqual(json["user_id"] as? String, userID.uuidString.uppercased())
+        XCTAssertEqual(json["goal"] as? String, "muscle")
+        XCTAssertNil(json["trial_started_at"], "beta accounts must not start a free trial")
+    }
+
+    func testFirstRunQuestionnaireOffersEveryApprovedDayAndAnExplicitNoConcernsChoice() throws {
+        var answers = TrainingInduction.Input(startDate: "2026-08-26")
+        answers.recentOperation = true
+        answers.chronicLowerBackPain = true
+        answers.painAreas = ["knee", "shoulder"]
+        answers.clearHealthConcerns()
+
+        XCTAssertFalse(answers.hasHealthConcerns)
+        XCTAssertFalse(answers.recentOperation)
+        XCTAssertFalse(answers.chronicLowerBackPain)
+        XCTAssertTrue(answers.painAreas.isEmpty)
+
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Onboarding/InductionView.swift")
+        )
+        XCTAssertTrue(source.contains("ForEach(Array((2...7).enumerated())"))
+        XCTAssertTrue(source.contains("highFrequencyAdvisory"))
+        XCTAssertTrue(source.contains("InductionIllustration(step: step)"))
+        let illustration = try XCTUnwrap(source.range(of: "InductionIllustration(step: step)"))
+        let title = try XCTUnwrap(source.range(of: "Text(title)"))
+        XCTAssertLessThan(illustration.lowerBound, title.lowerBound)
+        XCTAssertTrue(source.contains("Skip Questionnaire"))
+        XCTAssertTrue(source.contains("clearHealthConcerns()"))
+    }
+
     func testCommittedInductionRefreshIsBestEffortAndCachesSettingsOnlyAccounts() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -1497,7 +1539,7 @@ final class TrainingInductionTests: XCTestCase {
         let supplements = try XCTUnwrap(briefing.slides.first { $0.kind == .supplements })
 
         XCTAssertTrue(safety.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("emergency"))
-        XCTAssertTrue(safety.bullets.map(\.text).joined(separator: " ").contains("144"))
+        XCTAssertFalse(safety.bullets.map(\.text).joined(separator: " ").contains("144"))
         XCTAssertTrue(safety.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("persistent"))
         XCTAssertTrue(hydration.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("long, hot, or very sweaty"))
         XCTAssertFalse(hydration.bullets.map(\.text).joined(separator: " ").localizedCaseInsensitiveContains("pinch of salt"))

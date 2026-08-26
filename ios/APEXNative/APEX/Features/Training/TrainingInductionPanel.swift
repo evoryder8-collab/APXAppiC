@@ -877,6 +877,7 @@ struct TrainingInductionPanel: View {
 }
 
 private struct PlanBriefingDeck: View {
+    @Environment(AppSession.self) private var session
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var language = LanguageState.shared
     @State private var page = 0
@@ -1012,30 +1013,37 @@ private struct PlanBriefingDeck: View {
                     HStack(spacing: 7) {
                         ForEach(slide.energyPresets, id: \.goal) { preset in
                             let recommended = preset.goal == slide.recommendedGoal
+                            let selected = session.data.profile?.goal == preset.goal
                             let percent = Int(((preset.factor - 1) * 100).rounded())
-                            VStack(spacing: 3) {
-                                Text(language.text(preset.label))
-                                    .font(APEXFont.body(9, weight: .bold))
-                                    .multilineTextAlignment(.center)
-                                    .lineLimit(2)
-                                Text("\(percent > 0 ? "+" : "")\(percent)%")
-                                    .font(APEXFont.mono(8, weight: .bold))
-                                if recommended {
-                                    Text(language.text("RECOMMENDED"))
+                            Button {
+                                Task { await session.setGoal(preset.goal) }
+                            } label: {
+                                VStack(spacing: 3) {
+                                    Text(language.text(preset.label))
+                                        .font(APEXFont.body(9, weight: .bold))
+                                        .multilineTextAlignment(.center)
+                                        .lineLimit(2)
+                                    Text("\(percent > 0 ? "+" : "")\(percent)%")
+                                        .font(APEXFont.mono(8, weight: .bold))
+                                    Text(language.text(selected ? "Selected" : recommended ? "Recommended" : "Select").uppercased())
                                         .font(APEXFont.mono(6, weight: .bold))
-                                        .foregroundStyle(APEXColor.violet)
+                                        .foregroundStyle(selected ? Color.white : APEXColor.violet)
+                                }
+                                .frame(maxWidth: .infinity, minHeight: 64)
+                                .padding(.horizontal, 3)
+                                .foregroundStyle(selected ? Color.white : Color.primary)
+                                .background(
+                                    selected ? AnyShapeStyle(APEXColor.violet.gradient) : AnyShapeStyle(Color.white.opacity(0.72)),
+                                    in: RoundedRectangle(cornerRadius: 13)
+                                )
+                                .overlay {
+                                    RoundedRectangle(cornerRadius: 13)
+                                        .stroke(APEXColor.violet.opacity(selected ? 0 : recommended ? 0.42 : 0.10), lineWidth: 1)
                                 }
                             }
-                            .frame(maxWidth: .infinity, minHeight: 64)
-                            .padding(.horizontal, 3)
-                            .background(
-                                recommended ? APEXColor.violet.opacity(0.13) : Color.white.opacity(0.72),
-                                in: RoundedRectangle(cornerRadius: 13)
-                            )
-                            .overlay {
-                                RoundedRectangle(cornerRadius: 13)
-                                    .stroke(APEXColor.violet.opacity(recommended ? 0.42 : 0.10), lineWidth: 1)
-                            }
+                            .buttonStyle(.plain)
+                            .accessibilityAddTraits(selected ? .isSelected : [])
+                            .accessibilityHint(language.text("Select"))
                         }
                     }
                 }

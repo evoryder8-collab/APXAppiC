@@ -28,6 +28,16 @@ enum TrainingInduction {
         var sessionsPerWeek = 3
         var planWeeks = 12
         var goal: String = "general"
+
+        var hasHealthConcerns: Bool {
+            recentOperation || chronicLowerBackPain || !painAreas.isEmpty
+        }
+
+        mutating func clearHealthConcerns() {
+            recentOperation = false
+            chronicLowerBackPain = false
+            painAreas.removeAll()
+        }
     }
 
     static func input(
@@ -1170,7 +1180,7 @@ enum TrainingInduction {
                     body: safetyBody,
                     bullets: [
                         PlanBriefingBullet(text: "Stop immediately for sharp or escalating pain.", icon: .stop),
-                        PlanBriefingBullet(text: "For chest pressure, fainting, or sudden breathlessness, call emergency services (144 in Switzerland).", icon: .emergency),
+                        PlanBriefingBullet(text: "For chest pressure, fainting, or sudden breathlessness, call emergency services.", icon: .emergency),
                         PlanBriefingBullet(text: "Persistent or worsening symptoms need medical assessment before your next session.", icon: .medical),
                     ],
                     assetName: "plan-briefing-safety",

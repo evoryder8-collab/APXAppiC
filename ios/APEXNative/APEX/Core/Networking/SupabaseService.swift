@@ -3,14 +3,23 @@ import AuthenticationServices
 import Supabase
 
 struct ProfileCreationRequest: Encodable, Sendable {
+    let id: UUID
     let userID: UUID
     let goal: String?
-    let trialStartedAt: String
+
+    init(userID: UUID, goal: String?) {
+        /* One account owns one profile. Reusing the authenticated UUID makes
+           retries deterministic and satisfies the schema's non-null primary
+           key without inventing a second account identity. */
+        id = userID
+        self.userID = userID
+        self.goal = goal
+    }
 
     enum CodingKeys: String, CodingKey {
+        case id
         case userID = "user_id"
         case goal
-        case trialStartedAt = "trial_started_at"
     }
 }
 
@@ -147,8 +156,7 @@ actor SupabaseService {
         let inserted: [Profile] = try await client.from("profile")
             .insert(ProfileCreationRequest(
                 userID: userID,
-                goal: goal,
-                trialStartedAt: ISO8601DateFormatter().string(from: .now)
+                goal: goal
             ))
             .select()
             .execute().value

@@ -1735,3 +1735,5 @@
 "ROUND %d" = "RONDA %d";
 "NEXT IN GROUP" = "SIGUIENTE EN EL GRUPO";
 "REST AFTER ROUND" = "DESCANSO TRAS LA RONDA";
+"Selected" = "Seleccionado";
+"Skip Questionnaire" = "Omitir cuestionario";

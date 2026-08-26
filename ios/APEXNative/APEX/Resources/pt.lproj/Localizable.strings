@@ -1735,3 +1735,5 @@
 "ROUND %d" = "RODADA %d";
 "NEXT IN GROUP" = "PRÓXIMO NO GRUPO";
 "REST AFTER ROUND" = "DESCANSO APÓS A RODADA";
+"Selected" = "Selecionado";
+"Skip Questionnaire" = "Ignorar questionário";

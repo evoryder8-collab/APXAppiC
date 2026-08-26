@@ -1,7 +1,7 @@
 import { useMemo, useRef, useState } from 'react'
 import { motion, useReducedMotion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
-import type { ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingPlanWeeks, TrainingVenue } from '../../lib/types'
+import type { Goal, ProgramSlug, TrainingGoal, TrainingInactivity, TrainingPainArea, TrainingPlanWeeks, TrainingVenue } from '../../lib/types'
 import { useLanguage } from '../../lib/i18n'
 import { todayIso } from '../../lib/plan'
 import {
@@ -219,7 +219,7 @@ function BriefingBulletIcon({ icon }: { icon: PlanBriefingBulletIcon }) {
   )
 }
 
-function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { briefing: PlanBriefing; language: Language; onDismiss: () => void; onOpenPlan: () => void }) {
+function PlanBriefingDeck({ briefing, language, selectedEnergyGoal, onSelectEnergy, onDismiss, onOpenPlan }: { briefing: PlanBriefing; language: Language; selectedEnergyGoal: Goal | null; onSelectEnergy: (goal: Goal) => void; onDismiss: () => void; onOpenPlan: () => void }) {
   const [activeSlide, setActiveSlide] = useState(0)
   const trackRef = useRef<HTMLDivElement>(null)
   const reduceMotion = useReducedMotion()
@@ -292,13 +292,22 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
                 <div className="mt-2 grid grid-cols-3 gap-2">
                   {slide.energyPresets.map((preset) => {
                     const recommended = preset.goal === slide.recommendedGoal
+                    const selected = preset.goal === selectedEnergyGoal
                     const delta = Math.round((preset.factor - 1) * 100)
                     return (
-                      <div key={preset.goal} className={`rounded-xl border px-2 py-2.5 text-center ${recommended ? 'border-violet-400 bg-violet-100 text-violet-950' : 'border-violet-100 bg-white text-ink-soft'}`}>
+                      <button
+                        key={preset.goal}
+                        type="button"
+                        aria-pressed={selected}
+                        onClick={() => onSelectEnergy(preset.goal)}
+                        className={`rounded-xl border px-2 py-2.5 text-center transition ${selected ? 'border-violet-600 bg-violet-700 text-white shadow-md' : recommended ? 'border-violet-400 bg-violet-100 text-violet-950' : 'border-violet-100 bg-white text-ink-soft'}`}
+                      >
                         <p className="text-[10px] font-black leading-tight">{preset.label}</p>
                         <p className="mt-1 font-mono text-[9px] font-bold">{delta > 0 ? '+' : ''}{delta}%</p>
-                        {recommended && <p className="mt-1 text-[8px] font-black tracking-wide text-violet-700 uppercase">Recommended</p>}
-                      </div>
+                        <p className={`mt-1 text-[8px] font-black tracking-wide uppercase ${selected ? 'text-white' : 'text-violet-700'}`}>
+                          {selected ? 'Selected' : recommended ? 'Recommended' : 'Choose'}
+                        </p>
+                      </button>
                     )
                   })}
                 </div>
@@ -675,6 +684,8 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
           <PlanBriefingDeck
             briefing={briefing}
             language={lang}
+            selectedEnergyGoal={data.profile?.goal ?? null}
+            onSelectEnergy={(goal) => setProfile({ goal })}
             onDismiss={() => setBriefingOpen(false)}
             onOpenPlan={openInstalledPlan}
           />

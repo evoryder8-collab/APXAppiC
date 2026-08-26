@@ -11,6 +11,7 @@ struct InductionView: View {
     @State private var language = LanguageState.shared
     @State private var step = 0
     @State private var input = TrainingInduction.Input(startDate: Date().apexDateKey)
+    @State private var pendingHighFrequencyDays: Int?
     /* Drives the per-question entrance. Keyed on the step so each question
        assembles itself rather than the whole screen blinking. */
     @State private var shown = false
@@ -26,6 +27,8 @@ struct InductionView: View {
                 progress
                 ScrollView {
                     VStack(alignment: .leading, spacing: 18) {
+                        InductionIllustration(step: step)
+                            .rise(shown, delay: 0)
                         Text(title)
                             .font(APEXFont.display(26))
                             .fixedSize(horizontal: false, vertical: true)
@@ -52,6 +55,27 @@ struct InductionView: View {
                staggered entrance the first one did. */
             shown = false
             withAnimation(.smooth(duration: 0.5)) { shown = true }
+        }
+        .alert(
+            language.text(
+                pendingHighFrequencyDays
+                    .flatMap(TrainingInduction.highFrequencyAdvisory(for:))?.title
+                    ?? ""
+            ),
+            isPresented: Binding(
+                get: { pendingHighFrequencyDays != nil },
+                set: { if !$0 { pendingHighFrequencyDays = nil } }
+            )
+        ) {
+            Button(language.text("Continue")) { pendingHighFrequencyDays = nil }
+        } message: {
+            if let advisory = pendingHighFrequencyDays.flatMap(TrainingInduction.highFrequencyAdvisory(for:)) {
+                Text(
+                    ([advisory.summary] + advisory.adaptations + advisory.recoveryTips + [advisory.disclaimer])
+                        .map(language.text)
+                        .joined(separator: "\n\n")
+                )
+            }
         }
     }
 
@@ -105,7 +129,7 @@ struct InductionView: View {
                 .disabled(session.isBusy)
             }
 
-            Button("Skip", action: skip)
+            Button(language.text("Skip Questionnaire"), action: skip)
                 .font(APEXFont.body(14, weight: .semibold))
                 .frame(minWidth: 88, minHeight: 44)
                 .buttonStyle(.plain)
@@ -214,13 +238,16 @@ struct InductionView: View {
 
     private var sessions: some View {
         VStack(spacing: 9) {
-            ForEach(Array((2...5).enumerated()), id: \.element) { position, count in
+            ForEach(Array((2...7).enumerated()), id: \.element) { position, count in
                 selectRow(
                     label: language.format("%d days a week", count),
                     selected: input.sessionsPerWeek == count,
                     index: position
                 ) {
                     input.sessionsPerWeek = count
+                    if TrainingInduction.highFrequencyAdvisory(for: count) != nil {
+                        pendingHighFrequencyDays = count
+                    }
                 }
             }
         }
@@ -267,6 +294,14 @@ struct InductionView: View {
                     }
                 }
             }
+            selectRow(
+                label: language.text("None"),
+                selected: !input.hasHealthConcerns,
+                index: 8
+            ) {
+                input.clearHealthConcerns()
+            }
+            .accessibilityIdentifier("induction-health-none")
         }
     }
 
@@ -334,5 +369,97 @@ struct InductionView: View {
         .padding(.horizontal, 16)
         .padding(.vertical, 11)
         .background(.white.opacity(0.6), in: RoundedRectangle(cornerRadius: 16))
+    }
+}
+
+/// A native vector illustration keeps every question immediately legible,
+/// scales cleanly for Dynamic Type, and avoids the synthetic-photo look that
+/// does not belong in the product's editorial language.
+private struct InductionIllustration: View {
+    let step: Int
+
+    private var symbols: (primary: String, secondary: String) {
+        switch step {
+        case 0: ("scope", "figure.run")
+        case 1: ("clock.arrow.circlepath", "figure.walk")
+        case 2: ("house.fill", "location.fill")
+        case 3: ("dumbbell.fill", "checkmark.seal.fill")
+        case 4: ("calendar", "figure.strengthtraining.traditional")
+        case 5: ("calendar.badge.clock", "flag.checkered")
+        default: ("figure.arms.open", "cross.case.fill")
+        }
+    }
+
+    private var accent: Color {
+        switch step {
+        case 0, 5: APEXColor.violet
+        case 1, 4: APEXColor.cyan
+        case 2: APEXColor.green
+        case 3: APEXColor.amberDeep
+        default: .red
+        }
+    }
+
+    var body: some View {
+        ZStack {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .fill(.ultraThinMaterial)
+
+            Circle()
+                .fill(accent.opacity(0.16))
+                .frame(width: 164, height: 164)
+                .offset(x: -88, y: 35)
+                .blur(radius: 2)
+
+            Circle()
+                .fill(APEXColor.teal.opacity(0.15))
+                .frame(width: 136, height: 136)
+                .offset(x: 112, y: -43)
+                .blur(radius: 3)
+
+            HStack(spacing: 26) {
+                ZStack {
+                    Circle()
+                        .fill(Color.white.opacity(0.76))
+                        .frame(width: 92, height: 92)
+                        .shadow(color: accent.opacity(0.18), radius: 20, y: 9)
+                    Image(systemName: symbols.primary)
+                        .font(.system(size: 42, weight: .medium))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(accent)
+
+                    if step == 6 {
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 9, height: 9)
+                            .shadow(color: .red.opacity(0.65), radius: 7)
+                            .offset(x: 20, y: -4)
+                        Circle()
+                            .fill(Color.red)
+                            .frame(width: 9, height: 9)
+                            .shadow(color: .red.opacity(0.65), radius: 7)
+                            .offset(x: -11, y: 29)
+                    }
+                }
+
+                ZStack {
+                    RoundedRectangle(cornerRadius: 20, style: .continuous)
+                        .fill(Color.white.opacity(0.68))
+                        .frame(width: 72, height: 72)
+                    Image(systemName: symbols.secondary)
+                        .font(.system(size: 29, weight: .semibold))
+                        .symbolRenderingMode(.hierarchical)
+                        .foregroundStyle(APEXColor.violet)
+                }
+                .rotationEffect(.degrees(-6))
+            }
+        }
+        .frame(maxWidth: .infinity, minHeight: 136, maxHeight: 136)
+        .overlay {
+            RoundedRectangle(cornerRadius: 28, style: .continuous)
+                .stroke(Color.white.opacity(0.82), lineWidth: 1)
+        }
+        .clipped()
+        .accessibilityHidden(true)
     }
 }

@@ -67,7 +67,7 @@ const COPY = {
     ready: 'WHY THIS PLAN FITS', overviewBody: (_sessions: number, venue: string) => `Your goal and answers set the training load, recovery spacing and energy choices. Built ${venue}.`,
     overviewBullets: ['The calendar has real start and finish dates.', 'Every session matches the equipment you selected.', 'Log the work you complete; APEX adapts from it.'],
     safetyEyebrow: 'TRAIN SMART', safetyTitle: 'Know when to stop', safetyBody: 'Training effort is normal. Stop for sharp pain, chest pressure, fainting, or sudden breathlessness.',
-    safetyBullets: ['Stop any movement that causes sharp or worsening pain.', 'For chest pressure, fainting, or sudden breathlessness, call emergency services (144 in Switzerland).', 'For milder symptoms that persist or return, pause training and seek clinical advice.'],
+    safetyBullets: ['Stop any movement that causes sharp or worsening pain.', 'For chest pressure, fainting, or sudden breathlessness, call emergency services.', 'For milder symptoms that persist or return, pause training and seek clinical advice.'],
     clearance: 'Your answers require clearance first. Begin loaded training only after the clinician managing your recovery clears it.',
     hydrationEyebrow: 'HYDRATION', hydrationTitle: (target: string) => `Your starting target: ${target}`, hydrationBody: 'This includes drinks and water in food. Recorded activity can adjust it later.',
     hydrationBullets: ['Water and regular meals cover most shorter sessions.', 'Long, hot, or very sweaty sessions may benefit from a formulated electrolyte drink.', 'If you are sodium-restricted, follow your clinician’s guidance.'],
