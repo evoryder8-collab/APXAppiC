@@ -20,6 +20,7 @@ import {
 } from '../../lib/trainingInduction'
 import { ACCENTS } from '../../lib/theme'
 import { buildPlanBriefing, type PlanBriefing, type PlanBriefingBulletIcon } from '../../lib/planBriefing'
+import { recommendedGoalForTrainingGoal } from '../../lib/nutrition'
 import { planBriefingExit } from '../../lib/simpleMode'
 import { useStore } from '../../store/AppStore'
 import { AccentChip, GhostButton, GlassCard, GradientButton, Sheet } from '../ui'
@@ -42,7 +43,7 @@ const COPY = {
     homeLabel: 'At home', homeBody: 'Bodyweight and only the tools you select', gymLabel: 'In a gym', gymBody: 'Machines, cables and free weights', outdoorLabel: 'Outdoors', outdoorBody: 'Open-air training with only the tools you select',
     equipmentTitle: 'What equipment is available?', equipmentBody: 'Type a few letters. “dum” immediately finds both dumbbell types.',
     equipmentPlaceholder: 'Search equipment', noEquipment: 'No equipment is completely fine. A bodyweight version will be built.',
-    goalTitle: 'What should the next phase prioritize?', rebuild: 'Rebuild consistency', muscle: 'Build muscle', fatLoss: 'Lose fat', strength: 'Build strength', endurance: 'Build endurance',
+    goalTitle: 'What should the next phase prioritize?', rebuild: 'General fitness', muscle: 'Build muscle', fatLoss: 'Lose fat', strength: 'Build strength', endurance: 'Build endurance',
     durationTitle: 'How long should your plan be?', durationBody: 'Choose the horizon you can commit to. APEX stores a real end date and will never repeat this plan forever.', weeks: 'weeks', sixMonths: '6 months',
     reviewTitle: 'Your plan logic', standard: 'Standard foundation', cautious: 'Conservative foundation', clearance: 'Clearance-first path',
     standardBody: 'A repeatable schedule with gradual volume and logged-load progression.',
@@ -65,7 +66,7 @@ const COPY = {
     homeLabel: 'Acasă', homeBody: 'Greutatea corpului și doar echipamentul selectat', gymLabel: 'La sală', gymBody: 'Aparate, cabluri și greutăți libere', outdoorLabel: 'În aer liber', outdoorBody: 'Antrenament afară cu doar echipamentul selectat',
     equipmentTitle: 'Ce echipament ai disponibil?', equipmentBody: 'Scrie câteva litere. „gan” găsește imediat ambele tipuri de gantere.',
     equipmentPlaceholder: 'Caută echipament', noEquipment: 'Este în regulă și fără echipament. Va fi creată o variantă cu greutatea corpului.',
-    goalTitle: 'Care este prioritatea fazei următoare?', rebuild: 'Refacerea consecvenței', muscle: 'Masă musculară', fatLoss: 'Pierdere de grăsime', strength: 'Forță', endurance: 'Rezistență',
+    goalTitle: 'Care este prioritatea fazei următoare?', rebuild: 'Fitness general', muscle: 'Masă musculară', fatLoss: 'Pierdere de grăsime', strength: 'Forță', endurance: 'Rezistență',
     durationTitle: 'Cât de lung să fie planul tău?', durationBody: 'Alege perioada pe care o poți urma. APEX salvează o dată reală de final și nu va repeta planul la nesfârșit.', weeks: 'săptămâni', sixMonths: '6 luni',
     reviewTitle: 'Logica planului tău', standard: 'Fundație standard', cautious: 'Fundație conservatoare', clearance: 'Traseu cu aviz medical',
     standardBody: 'Un program repetabil, cu volum gradual și progresie bazată pe greutățile înregistrate.',
@@ -88,7 +89,7 @@ const COPY = {
     homeLabel: 'ที่บ้าน', homeBody: 'น้ำหนักตัวและอุปกรณ์ที่คุณเลือกเท่านั้น', gymLabel: 'ในยิม', gymBody: 'เครื่อง เคเบิล และฟรีเวท', outdoorLabel: 'กลางแจ้ง', outdoorBody: 'ฝึกกลางแจ้งด้วยอุปกรณ์ที่คุณเลือกเท่านั้น',
     equipmentTitle: 'คุณมีอุปกรณ์อะไรบ้าง?', equipmentBody: 'พิมพ์เพียงไม่กี่ตัว ระบบจะแสดงตัวเลือกที่ใกล้เคียงทันที',
     equipmentPlaceholder: 'ค้นหาอุปกรณ์', noEquipment: 'ไม่มีอุปกรณ์ก็ได้ ระบบจะสร้างเวอร์ชันน้ำหนักตัวให้',
-    goalTitle: 'ช่วงถัดไปควรเน้นอะไร?', rebuild: 'กลับมาสม่ำเสมอ', muscle: 'สร้างกล้ามเนื้อ', fatLoss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'เพิ่มความทนทาน',
+    goalTitle: 'ช่วงถัดไปควรเน้นอะไร?', rebuild: 'สมรรถภาพทั่วไป', muscle: 'สร้างกล้ามเนื้อ', fatLoss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'เพิ่มความทนทาน',
     durationTitle: 'คุณต้องการให้แผนนานเท่าไร?', durationBody: 'เลือกช่วงเวลาที่ทำได้จริง APEX จะบันทึกวันสิ้นสุดและไม่ทำให้แผนวนซ้ำตลอดไป', weeks: 'สัปดาห์', sixMonths: '6 เดือน',
     reviewTitle: 'เหตุผลของแผน', standard: 'พื้นฐานมาตรฐาน', cautious: 'พื้นฐานแบบระมัดระวัง', clearance: 'เริ่มหลังได้รับอนุญาต',
     standardBody: 'ตารางที่ทำซ้ำได้ เพิ่มปริมาณทีละน้อย และใช้ค่าน้ำหนักที่บันทึกเพื่อพัฒนา',
@@ -285,6 +286,24 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
                 draggable={false}
               />
             </div>
+            {slide.energyPresets && (
+              <div className="mt-5 rounded-2xl border border-violet-200/70 bg-white/80 p-3">
+                <p className="font-mono text-[9px] font-black tracking-[.14em] text-violet-700 uppercase">Your energy choices</p>
+                <div className="mt-2 grid grid-cols-3 gap-2">
+                  {slide.energyPresets.map((preset) => {
+                    const recommended = preset.goal === slide.recommendedGoal
+                    const delta = Math.round((preset.factor - 1) * 100)
+                    return (
+                      <div key={preset.goal} className={`rounded-xl border px-2 py-2.5 text-center ${recommended ? 'border-violet-400 bg-violet-100 text-violet-950' : 'border-violet-100 bg-white text-ink-soft'}`}>
+                        <p className="text-[10px] font-black leading-tight">{preset.label}</p>
+                        <p className="mt-1 font-mono text-[9px] font-bold">{delta > 0 ? '+' : ''}{delta}%</p>
+                        {recommended && <p className="mt-1 text-[8px] font-black tracking-wide text-violet-700 uppercase">Recommended</p>}
+                      </div>
+                    )
+                  })}
+                </div>
+              </div>
+            )}
             <ul className="mt-5 space-y-2.5">
               {slide.bullets.map((bullet) => (
                 <li key={bullet.text} className="flex items-start gap-3 rounded-2xl bg-violet-50/65 px-3.5 py-3 text-sm leading-relaxed font-semibold text-ink-soft">
@@ -312,7 +331,7 @@ function PlanBriefingDeck({ briefing, language, onDismiss, onOpenPlan }: { brief
 }
 
 export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
-  const { data, bulkUpsert, setSettings, toast } = useStore()
+  const { data, bulkUpsert, setProfile, setSettings, toast } = useStore()
   const navigate = useNavigate()
   const { language } = useLanguage()
   const lang = language as Language
@@ -427,6 +446,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     bulkUpsert('program_days', generated.program_days, { syncGroup })
     bulkUpsert('exercises', generated.exercises, { syncGroup })
     setSettings({ addons: commitTrainingPlanAddons(addons, generated) }, { syncGroup })
+    setProfile({ goal: recommendedGoalForTrainingGoal(draft.goal) })
     setBriefing(briefingFor(draft, generated.program_days.map((day) => day.est_minutes)))
     toast(copy.installed, 'ok')
     setOpen(false)

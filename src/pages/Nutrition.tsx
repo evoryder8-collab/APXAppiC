@@ -11,9 +11,9 @@ import {
   SectionHeader,
   Toggle,
 } from '../components/ui'
-import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, GOALS, type TargetMeal } from '../lib/nutrition'
+import { computeTargets, buildTargetMealPlan, ACTIVITY_MULTIPLIERS, goalPresetForPlan, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, Goal, ProgramSlug, Supplement } from '../lib/types'
+import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
 import { ensurePermission } from '../lib/notify'
 import { NutritionLogCalendar } from '../components/NutritionLogCalendar'
 import { TodaysActivities } from '../components/TodaysActivities'
@@ -53,6 +53,7 @@ import { clockToMinute, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } f
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { planForDate } from '../lib/plan'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
+import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -128,10 +129,19 @@ export function Nutrition() {
     () => selectedActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
     [catalog, selectedActivityLogs],
   )
-  const quickTargets = useMemo(() => (profile ? computeTargets(profile) : null), [profile])
+  const planNutritionContext = useMemo(
+    () => nutritionPlanContext(data.settings?.addons.training_induction),
+    [data.settings?.addons.training_induction],
+  )
+  const nutritionGoalPresets = useMemo(
+    () => goalPresetsForPlan(planNutritionContext),
+    [planNutritionContext],
+  )
+  const activeNutritionGoalPreset = nutritionGoalPresets.find((preset) => preset.goal === profile?.goal) ?? nutritionGoalPresets[1]
+  const quickTargets = useMemo(() => (profile ? computeTargets(profile, planNutritionContext) : null), [planNutritionContext, profile])
   const activityEstimate = useMemo(
-    () => (profile ? estimateActivityDay(profile, activityBlocks, catalog) : null),
-    [profile, activityBlocks, catalog],
+    () => (profile ? estimateActivityDay(profile, activityBlocks, catalog, goalPresetForPlan(profile.goal, planNutritionContext).factor) : null),
+    [profile, activityBlocks, catalog, planNutritionContext],
   )
   const preciseMode = activityBlocks.length > 0
   const usesWholeDayProtocol = Boolean(profile && personalTargetFor(profile))
@@ -957,7 +967,7 @@ export function Nutrition() {
 
         <details className="glass group rounded-3xl p-3 sm:p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-1 text-left">
-            <div><p className="font-display text-sm font-bold text-ink">Activity & nutrition targets</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{targets.kcal} kcal · {activeDayLabel} · {GOALS[profile.goal].label}</p></div>
+            <div><p className="font-display text-sm font-bold text-ink">Activity & nutrition targets</p><p className="mt-0.5 text-[10px] font-medium text-ink-soft">{targets.kcal} kcal · {activeDayLabel} · {activeNutritionGoalPreset.label}</p></div>
             <span className="grid h-8 w-8 place-items-center rounded-full bg-white/65 text-lg text-ink-soft transition group-open:rotate-45">+</span>
           </summary>
           <div className="mt-4 space-y-4 border-t border-ink/7 pt-4">
@@ -979,7 +989,7 @@ export function Nutrition() {
           <div className="flex items-start justify-between">
             <h2 className="font-display text-lg font-bold text-ink">Daily targets</h2>
             <AccentChip accent={amber}>
-              {preciseMode && !usesWholeDayProtocol ? `PRECISE · ${GOALS[profile.goal].label.toUpperCase()}` : GOALS[profile.goal].label.toUpperCase()}
+              {preciseMode && !usesWholeDayProtocol ? `PRECISE · ${activeNutritionGoalPreset.label.toUpperCase()}` : activeNutritionGoalPreset.label.toUpperCase()}
             </AccentChip>
           </div>
 
@@ -1117,21 +1127,12 @@ export function Nutrition() {
           <div className="mt-3 rounded-2xl border border-amber-300/15 bg-amber-50/48 p-3.5">
             <p className="mb-2 font-mono text-[10px] font-black tracking-[0.18em] text-amber-800 uppercase">Goal</p>
             <div className="grid gap-2 sm:grid-cols-3">
-              {Object.entries(GOALS).map(([key, v]) => (
-                <button
-                  key={key}
-                  type="button"
-                  onClick={() => setProfile({ goal: key as Goal })}
-                  className="min-h-12 rounded-2xl px-4 py-2.5 text-sm font-bold transition-all"
-                  style={
-                    profile.goal === key
-                      ? { background: amber.gradient, color: '#fff', boxShadow: `0 12px 26px -14px ${amber.glowStrong}` }
-                      : { background: 'rgba(255,255,255,0.82)', color: '#3f3f48', border: '1px solid rgba(245,158,11,0.15)' }
-                  }
-                >
-                  {v.label}
-                </button>
-              ))}
+              <NutritionGoalPresetPicker
+                presets={nutritionGoalPresets}
+                selected={profile.goal}
+                onSelect={(goal) => setProfile({ goal })}
+                translate={tx}
+              />
             </div>
           </div>
         </GlassCard>

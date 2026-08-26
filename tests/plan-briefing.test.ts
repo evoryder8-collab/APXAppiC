@@ -33,6 +33,13 @@ test('generated plan briefing is ordered and begins with the installed plan fact
   assert.match(briefing.slides[0].title, /12-week strength/i)
   assert.match(briefing.slides[0].title, /4 sessions\/week/i)
   assert.equal(briefing.slides[0].assetName, 'plan-briefing-overview')
+  assert.match(briefing.slides[0].eyebrow, /why this plan fits/i)
+  assert.deepEqual(
+    briefing.slides[0].energyPresets?.map((preset) => preset.label),
+    ['Strength recomp', 'Strength base', 'Power surplus'],
+  )
+  assert.equal(briefing.slides[0].recommendedGoal, 'maintain')
+  assert.match(briefing.slides[0].body, /answers|goal/i)
 })
 
 test('six-month plans are described as six months rather than twenty-six weeks', () => {
@@ -130,6 +137,8 @@ test('web and native completion paths present a swipeable, reduce-motion-aware d
 
   assert.match(web, /PlanBriefingDeck/)
   assert.match(web, /BriefingBulletIcon/)
+  assert.match(web, /slide\.energyPresets/)
+  assert.match(web, /recommendedGoalForTrainingGoal/)
   assert.doesNotMatch(web, />✦</)
   assert.match(web, /text-sm leading-relaxed font-semibold/)
   assert.match(web, /activeSlide === briefing\.slides\.length - 1/)
@@ -140,6 +149,8 @@ test('web and native completion paths present a swipeable, reduce-motion-aware d
 
   assert.match(native, /PlanBriefingDeck/)
   assert.match(native, /Image\(systemName: bullet\.icon\.rawValue\)/)
+  assert.match(native, /slide\.energyPresets/)
+  assert.match(native, /slide\.recommendedGoal/)
   assert.doesNotMatch(native, /systemName: "sparkle"/)
   assert.match(native, /APEXFont\.body\(14, weight: \.semibold\)/)
   assert.match(native, /page == briefing\.slides\.count - 1/)

@@ -905,7 +905,12 @@ final class AppSession {
         guard let profile else { return }
         let today = Date().apexDateKey
         let logs = data.activityLogs.filter { $0.date == today }
-        let targets = EnergyEngine.targets(profile: profile, logs: logs, catalog: data.activityTypes)
+        let targets = EnergyEngine.targets(
+            profile: profile,
+            logs: logs,
+            catalog: data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: data.settings)
+        )
         let consumed = data.loggedMeals
             .filter { $0.localDate == today }
             .reduce(0.0) { $0 + $1.totalProteinG }
@@ -3327,7 +3332,12 @@ final class AppSession {
         }
 
         let dayLogs = data.activityLogs.filter { $0.date == run.localDate }
-        let targets = EnergyEngine.targets(profile: profile, logs: dayLogs, catalog: data.activityTypes)
+        let targets = EnergyEngine.targets(
+            profile: profile,
+            logs: dayLogs,
+            catalog: data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: data.settings)
+        )
         let existing = data.dailyLogs.first { $0.date == run.localDate }
         let daily = DailyLog(
             id: existing?.id ?? APEXStableID.scopedUUID(namespace: "daily-log", date: run.localDate, userID: profile.userID),

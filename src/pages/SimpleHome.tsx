@@ -18,10 +18,10 @@ import { AnimatePresence, motion, Reorder, useDragControls } from 'framer-motion
 import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
-import { ACTIVITY_MULTIPLIERS, GOALS, buildTargetMealPlan, computeTargets, type TargetMeal } from '../lib/nutrition'
+import { ACTIVITY_MULTIPLIERS, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
 import { planForDate } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
-import type { ActivityLevel, DailyLog, Goal, ProgramSlug, Supplement } from '../lib/types'
+import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, DumbbellIcon, OrbitIcon } from '../components/Icons'
@@ -49,6 +49,7 @@ import { isFocusT25Name } from '../lib/focusT25'
 import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { resolveDailyBurnedEnergy } from '../lib/activity'
+import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -165,7 +166,16 @@ export function SimpleHome() {
     () => resolveDailyBurnedEnergy(selectedWearableActivity?.active_calories, selectedActivityLogs),
     [selectedActivityLogs, selectedWearableActivity?.active_calories],
   )
-  const targets = useMemo(() => profile ? computeTargets(profile) : null, [profile])
+  const planNutritionContext = useMemo(
+    () => nutritionPlanContext(settings?.addons.training_induction),
+    [settings?.addons.training_induction],
+  )
+  const nutritionGoalPresets = useMemo(
+    () => goalPresetsForPlan(planNutritionContext),
+    [planNutritionContext],
+  )
+  const activeNutritionGoalPreset = nutritionGoalPresets.find((preset) => preset.goal === profile?.goal) ?? nutritionGoalPresets[1]
+  const targets = useMemo(() => profile ? computeTargets(profile, planNutritionContext) : null, [planNutritionContext, profile])
   const mealPlan = useMemo(
     () => profile && targets
       ? buildTargetMealPlan(data.meals, targets, ACTIVITY_MULTIPLIERS[profile.activity_level].label)
@@ -1299,7 +1309,7 @@ export function SimpleHome() {
               aria-label={quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}
             >
               <div className="flex items-start justify-between gap-3">
-                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${hydration.totalL.toFixed(2)} / ${waterTargetL.toFixed(2)} L · ${hydration.drinkL.toFixed(2)} L ${t('drinks')}${hydration.foodL > 0 ? ` + ${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(GOALS[profile.goal].label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
+                <div><p className="font-display text-base font-black text-ink">{quickPanel === 'training' ? trainingPanelTitle : t(quickPanel === 'water' ? 'Water quick add' : quickPanel === 'supplements' ? 'Quick supplements' : quickPanel === 'targets' ? 'Daily calorie target' : quickPanel === 'macro' ? 'Daily food contributors' : quickPanel === 'weight' ? 'Weight trend' : 'Quick meals')}</p><p className="mt-0.5 text-[10px] font-semibold text-ink-faint">{quickPanel === 'water' ? `${hydration.totalL.toFixed(2)} / ${waterTargetL.toFixed(2)} L · ${hydration.drinkL.toFixed(2)} L ${t('drinks')}${hydration.foodL > 0 ? ` + ${hydration.foodL.toFixed(2)} L ${t('from food')}` : ''}` : quickPanel === 'supplements' ? t('Tap any supplement to check or reopen it.') : quickPanel === 'training' ? trainingPanelSubtitle : quickPanel === 'targets' ? `${targets.kcal} kcal · ${t(activeNutritionGoalPreset.label)} · ${t(ACTIVITY_MULTIPLIERS[profile.activity_level].label)}` : quickPanel === 'macro' ? t('Ranked by contribution from today’s logged foods.') : quickPanel === 'weight' ? t('Your saved morning weigh-ins across weeks and months.') : t('Tap a meal to add, edit or remove it.')}</p></div>
                 <button type="button" onClick={() => setQuickPanel(null)} aria-label={t('Close')} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-ink/5 text-lg font-black text-ink-soft">×</button>
               </div>
 
@@ -1451,11 +1461,13 @@ export function SimpleHome() {
               ) : quickPanel === 'targets' ? (
                 <div className="mt-4">
                   <p className="font-mono text-[9px] font-black tracking-wide text-ink-faint uppercase">{t('Goal')}</p>
-                  <div className="mt-2 grid grid-cols-3 gap-1.5">
-                    {(Object.keys(GOALS) as Goal[]).map((goal) => {
-                      const active = profile.goal === goal
-                      return <button key={goal} type="button" aria-pressed={active} onClick={() => setProfile({ goal })} className={`rounded-xl px-2 py-2.5 text-[9px] font-black transition active:scale-95 ${active ? 'bg-amber-500 text-white shadow-sm' : 'bg-amber-50 text-amber-900'}`}>{t(GOALS[goal].label)}</button>
-                    })}
+                  <div className="mt-2">
+                    <NutritionGoalPresetPicker
+                      presets={nutritionGoalPresets}
+                      selected={profile.goal}
+                      onSelect={(goal) => setProfile({ goal })}
+                      translate={t}
+                    />
                   </div>
                   <p className="mt-4 border-t border-ink/8 pt-3 font-mono text-[9px] font-black tracking-wide text-ink-faint uppercase">{t('Activity level')}</p>
                   <div className="mt-2 grid grid-cols-2 gap-1.5">

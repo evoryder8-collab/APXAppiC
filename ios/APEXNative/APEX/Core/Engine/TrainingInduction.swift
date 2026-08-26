@@ -548,18 +548,10 @@ enum TrainingInduction {
         )
     }
 
-    /// Which nutrition goal a training answer implies.
-    ///
-    /// The questionnaire asks what someone trains for; the profile stores how
-    /// they eat. Only losing fat and building muscle actually pin the calories,
-    /// so everything else maintains rather than guessing at a surplus nobody
-    /// asked for.
+    /// Which of the three persisted energy slots is the safe default for a new
+    /// training plan. The slot's visible meaning is resolved from the plan.
     static func goalColumn(for trainingGoal: String) -> String {
-        switch trainingGoal {
-        case "fat_loss": "recomp"
-        case "muscle": "bulk"
-        default: "maintain"
-        }
+        NutritionGoalPolicy.recommendedGoal(for: trainingGoal).rawValue
     }
 
     // MARK: - Equipment
@@ -1094,6 +1086,8 @@ enum TrainingInduction {
         let assetName: String
         let evidenceLabel: String
         let evidenceURL: URL?
+        let energyPresets: [NutritionGoalPreset]
+        let recommendedGoal: Goal?
     }
 
     struct PlanBriefing: Equatable, Sendable {
@@ -1129,7 +1123,7 @@ enum TrainingInduction {
         case "fat_loss": goal = "fat-loss"
         case "strength": goal = "strength"
         case "endurance": goal = "endurance"
-        default: goal = "consistency"
+        default: goal = "general fitness"
         }
         let venue: String
         switch input.venue {
@@ -1146,15 +1140,18 @@ enum TrainingInduction {
         let safetyBody = caution == "clearance"
             ? "Your answers require clinical clearance before loaded training. Start only when the clinician managing your recovery approves it."
             : "Training effort is normal. Stop for sharp pain, chest pressure, fainting, or sudden breathlessness."
+        let energyPresets = NutritionGoalPolicy.presets(
+            context: NutritionPlanContext(trainingGoal: input.goal, planWeeks: input.planWeeks)
+        )
 
         return PlanBriefing(
             hydrationTargetML: hydration.targetML,
             slides: [
                 PlanBriefingSlide(
                     kind: .overview,
-                    eyebrow: "YOUR PLAN",
+                    eyebrow: "WHY THIS PLAN FITS",
                     title: "\(duration) \(goal) · \(input.sessionsPerWeek) sessions/week",
-                    body: "Built for \(venue), your equipment, and enough recovery to make progression repeatable.",
+                    body: "Your goal and answers set the training load, recovery spacing and energy choices. Built \(venue).",
                     bullets: [
                         PlanBriefingBullet(text: "Your calendar now has real start and end dates.", icon: .calendar),
                         PlanBriefingBullet(text: "Every session respects the equipment and recovery limits you selected.", icon: .dumbbell),
@@ -1162,7 +1159,9 @@ enum TrainingInduction {
                     ],
                     assetName: "plan-briefing-overview",
                     evidenceLabel: "Your answers · APEX plan engine",
-                    evidenceURL: nil
+                    evidenceURL: nil,
+                    energyPresets: energyPresets,
+                    recommendedGoal: NutritionGoalPolicy.recommendedGoal(for: input.goal)
                 ),
                 PlanBriefingSlide(
                     kind: .safety,
@@ -1176,7 +1175,9 @@ enum TrainingInduction {
                     ],
                     assetName: "plan-briefing-safety",
                     evidenceLabel: "Swiss Heart Foundation",
-                    evidenceURL: URL(string: "https://swissheart.ch/erkrankungen-und-notfall/notfall/verhalten-im-notfall")
+                    evidenceURL: URL(string: "https://swissheart.ch/erkrankungen-und-notfall/notfall/verhalten-im-notfall"),
+                    energyPresets: [],
+                    recommendedGoal: nil
                 ),
                 PlanBriefingSlide(
                     kind: .hydration,
@@ -1190,7 +1191,9 @@ enum TrainingInduction {
                     ],
                     assetName: "plan-briefing-hydration",
                     evidenceLabel: "Swiss FSVO · APEX hydration policy",
-                    evidenceURL: URL(string: "https://www.blv.admin.ch/dam/blv/en/dokumente/lebensmittel-und-ernaehrung/ernaehrung/Ernaehrungsempfehlungen/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf.download.pdf/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf")
+                    evidenceURL: URL(string: "https://www.blv.admin.ch/dam/blv/en/dokumente/lebensmittel-und-ernaehrung/ernaehrung/Ernaehrungsempfehlungen/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf.download.pdf/Schweizer%20Ern%C3%A4hrungsempfehlungen_Langversion_EN.pdf"),
+                    energyPresets: [],
+                    recommendedGoal: nil
                 ),
                 PlanBriefingSlide(
                     kind: .sleep,
@@ -1204,7 +1207,9 @@ enum TrainingInduction {
                     ],
                     assetName: "plan-briefing-sleep",
                     evidenceLabel: "Swiss Society for Sleep Research (SSSSC)",
-                    evidenceURL: URL(string: "https://swiss-sleep.ch/")
+                    evidenceURL: URL(string: "https://swiss-sleep.ch/"),
+                    energyPresets: [],
+                    recommendedGoal: nil
                 ),
                 PlanBriefingSlide(
                     kind: .supplements,
@@ -1218,7 +1223,9 @@ enum TrainingInduction {
                     ],
                     assetName: "plan-briefing-supplements",
                     evidenceLabel: "Swiss Sports Nutrition Society (SSNS)",
-                    evidenceURL: URL(string: "https://www.ssns.ch/sportsnutrition/supplemente/supplementguide/")
+                    evidenceURL: URL(string: "https://www.ssns.ch/sportsnutrition/supplemente/supplementguide/"),
+                    energyPresets: [],
+                    recommendedGoal: nil
                 ),
             ]
         )

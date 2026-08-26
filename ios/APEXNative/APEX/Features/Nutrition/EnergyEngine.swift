@@ -18,6 +18,109 @@ struct EnergyMacroTargets: Equatable, Sendable {
     let carbsG: Int
 }
 
+struct NutritionPlanContext: Equatable, Sendable {
+    let trainingGoal: String
+    let planWeeks: Int
+}
+
+struct NutritionGoalPreset: Equatable, Sendable {
+    let goal: Goal
+    let label: String
+    let factor: Double
+    let explanation: String
+    let caution: String
+}
+
+enum NutritionGoalPolicy {
+    static func context(from settings: UserSettings?) -> NutritionPlanContext? {
+        guard let induction = settings?.addons["training_induction"]?.objectValue,
+              let trainingGoal = induction["goal"]?.stringValue else { return nil }
+        return NutritionPlanContext(
+            trainingGoal: trainingGoal,
+            planWeeks: Int(induction["plan_weeks"]?.numberValue ?? 12)
+        )
+    }
+
+    static func presets(context: NutritionPlanContext?) -> [NutritionGoalPreset] {
+        guard let context else {
+            return [
+                preset(.recomp, "Lean recomp", 0.89, "A moderate deficit with extra protein support.", "Review recovery, hunger, and weight trend after two weeks."),
+                preset(.maintain, "Maintain", 1, "Match estimated daily expenditure without targeting weight change.", "Wearable estimates are a starting point, not a metabolic measurement."),
+                preset(.bulk, "Lean bulk", 1.07, "A controlled surplus to support training progression.", "Reduce the surplus if weight rises faster than intended."),
+            ]
+        }
+
+        switch context.trainingGoal {
+        case "muscle":
+            return [
+                preset(.recomp, "Lean recomp", 0.95, "Build skill and preserve muscle while trimming slowly.", "Choose Maintain if training performance or recovery declines."),
+                preset(.maintain, "Maintain", 1, "Hold body weight while progressive training drives recomposition.", "Progress is slower, so judge the trend over several weeks."),
+                preset(.bulk, "Lean bulk", 1.07, "Use a small surplus to support muscle gain and harder sessions.", "Review the two-week weight trend and reduce if gain is too fast."),
+            ]
+        case "fat_loss":
+            let accelerated: Double = switch context.planWeeks {
+            case 4: 0.80
+            case 8: 0.82
+            case 26: 0.86
+            default: 0.84
+            }
+            let steady: Double = switch context.planWeeks {
+            case 4: 0.86
+            case 8: 0.87
+            case 26: 0.89
+            default: 0.88
+            }
+            return [
+                preset(.recomp, "Accelerated cut", accelerated, "The largest bounded deficit for this plan horizon.", "Not the default. Stop and reassess if recovery, sleep, or performance falls."),
+                preset(.maintain, "Steady cut", steady, "A repeatable deficit balanced against training and lean-mass retention.", "Best default; use measured trends instead of cutting harder too soon."),
+                preset(.bulk, "Gentle cut", 0.93, "A smaller deficit with more room for training and appetite control.", "Loss is intentionally slower and depends on consistent weeks."),
+            ]
+        case "strength":
+            return [
+                preset(.recomp, "Strength recomp", 0.95, "A small deficit while strength skill remains the priority.", "Move to Strength base if load or recovery trends down."),
+                preset(.maintain, "Strength base", 1, "Maintenance energy for repeatable heavy practice and recovery.", "The recommended starting point for most strength plans."),
+                preset(.bulk, "Power surplus", 1.05, "A small surplus for higher volume and progressive loading.", "Review body-weight trend after two weeks; more is not automatically better."),
+            ]
+        case "endurance":
+            return [
+                preset(.recomp, "Light fuel", 0.96, "A slight deficit while protecting useful training fuel.", "Avoid on high-volume weeks if pace, mood, or recovery deteriorates."),
+                preset(.maintain, "Balanced fuel", 1, "Match daily expenditure for consistent endurance work.", "The recommended base before adding fuel for longer sessions."),
+                preset(.bulk, "High-volume fuel", 1.06, "Extra energy for long or dense training weeks.", "Use for real workload, then return to Balanced fuel as volume falls."),
+            ]
+        default:
+            return [
+                preset(.recomp, "Light balance", 0.95, "A small deficit while rebuilding a consistent routine.", "Choose Balanced fitness if hunger or recovery disrupts consistency."),
+                preset(.maintain, "Balanced fitness", 1, "Maintenance fuel for broad fitness and repeatable sessions.", "The recommended start when body-weight change is not the main goal."),
+                preset(.bulk, "Fuel progress", 1.04, "A small surplus for higher volume and easier recovery.", "Review body-weight trend after two weeks and adjust deliberately."),
+            ]
+        }
+    }
+
+    static func preset(for goal: Goal, context: NutritionPlanContext?) -> NutritionGoalPreset {
+        presets(context: context).first { $0.goal == goal }!
+    }
+
+    static func recommendedGoal(for trainingGoal: String) -> Goal {
+        trainingGoal == "muscle" ? .bulk : .maintain
+    }
+
+    private static func preset(
+        _ goal: Goal,
+        _ label: String,
+        _ factor: Double,
+        _ explanation: String,
+        _ caution: String
+    ) -> NutritionGoalPreset {
+        NutritionGoalPreset(
+            goal: goal,
+            label: label,
+            factor: factor,
+            explanation: explanation,
+            caution: caution
+        )
+    }
+}
+
 enum EnergyEngine {
     static let calibrationLowerBound = 0.85
     static let calibrationUpperBound = 1.15
@@ -77,7 +180,12 @@ enum EnergyEngine {
         return Int(estimate.rounded())
     }
 
-    static func targets(profile: Profile, logs: [ActivityLog], catalog: [ActivityType]) -> NutritionTargets {
+    static func targets(
+        profile: Profile,
+        logs: [ActivityLog],
+        catalog: [ActivityType],
+        planContext: NutritionPlanContext? = nil
+    ) -> NutritionTargets {
         let bmr = bmr(for: profile)
         let precise = !logs.isEmpty
         let tdee: Double
@@ -90,7 +198,7 @@ enum EnergyEngine {
 
         let pal = tdee / max(bmr, 1)
         let level = level(forPAL: pal)
-        let rawTarget = tdee * profile.goal.factor
+        let rawTarget = tdee * NutritionGoalPolicy.preset(for: profile.goal, context: planContext).factor
         let floor = bmr * 1.05
         let target = max(rawTarget, floor)
         let roundedTarget = Int(target.rounded())

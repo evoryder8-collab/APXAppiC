@@ -351,7 +351,24 @@ struct NutritionTargetSheet: View {
 
     private var targets: NutritionTargets? {
         guard let profile = session.profile else { return nil }
-        return EnergyEngine.targets(profile: profile, logs: logs, catalog: session.data.activityTypes)
+        return EnergyEngine.targets(
+            profile: profile,
+            logs: logs,
+            catalog: session.data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+        )
+    }
+
+    private var goalPresets: [NutritionGoalPreset] {
+        NutritionGoalPolicy.presets(context: NutritionGoalPolicy.context(from: session.data.settings))
+    }
+
+    private var activeGoalLabel: String {
+        guard let goal = session.profile?.goal else { return "Goal" }
+        return NutritionGoalPolicy.preset(
+            for: goal,
+            context: NutritionGoalPolicy.context(from: session.data.settings)
+        ).label
     }
 
     var body: some View {
@@ -369,7 +386,7 @@ struct NutritionTargetSheet: View {
                                 .foregroundStyle(APEXColor.secondaryInk)
                             Spacer()
                             VStack(alignment: .trailing, spacing: 3) {
-                                Text(language.text(session.profile?.goal.title ?? "Goal"))
+                                Text(language.text(activeGoalLabel))
                                 Text(language.text(targets.level.title))
                             }
                             .font(APEXFont.mono(10))
@@ -378,14 +395,11 @@ struct NutritionTargetSheet: View {
                     }
 
                     targetGroup(title: "GOAL") {
-                        HStack(spacing: 8) {
-                            ForEach(Goal.allCases, id: \.self) { goal in
-                                Button(language.text(goal.title)) {
-                                    Task { await session.setGoal(goal) }
-                                }
-                                .buttonStyle(TargetChoiceStyle(selected: session.profile?.goal == goal, color: APEXColor.amber))
-                            }
-                        }
+                        NutritionGoalPresetPicker(
+                            presets: goalPresets,
+                            selected: session.profile?.goal,
+                            onSelect: { goal in Task { await session.setGoal(goal) } }
+                        )
                     }
 
                     targetGroup(title: "ACTIVITY LEVEL") {
@@ -467,6 +481,82 @@ struct NutritionTargetSheet: View {
         .frame(maxWidth: .infinity)
         .padding(.vertical, 12)
         .background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 15))
+    }
+}
+
+struct NutritionGoalPresetPicker: View {
+    @State private var language = LanguageState.shared
+    @State private var explainedGoal: Goal?
+
+    let presets: [NutritionGoalPreset]
+    let selected: Goal?
+    let onSelect: (Goal) -> Void
+
+    private let columns = Array(repeating: GridItem(.flexible(), spacing: 7), count: 3)
+
+    var body: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            LazyVGrid(columns: columns, spacing: 7) {
+                ForEach(presets, id: \.goal) { preset in
+                    goalChoice(preset)
+                }
+            }
+
+            if let explained = presets.first(where: { $0.goal == explainedGoal }) {
+                VStack(alignment: .leading, spacing: 4) {
+                    let percent = Int(((explained.factor - 1) * 100).rounded())
+                    Text("\(language.text(explained.label)) · \(percent > 0 ? "+" : "")\(percent)%")
+                        .font(APEXFont.body(11, weight: .bold))
+                    Text(language.text(explained.explanation))
+                        .font(APEXFont.body(10, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    Text(language.text(explained.caution))
+                        .font(APEXFont.body(9, weight: .bold))
+                        .foregroundStyle(APEXColor.amberDeep)
+                }
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(11)
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .background(APEXColor.amber.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
+            }
+        }
+    }
+
+    private func goalChoice(_ preset: NutritionGoalPreset) -> some View {
+        let active = selected == preset.goal
+        return ZStack(alignment: .topTrailing) {
+            Button {
+                onSelect(preset.goal)
+            } label: {
+                Text(language.text(preset.label))
+                    .font(APEXFont.body(10, weight: .bold))
+                    .multilineTextAlignment(.center)
+                    .frame(maxWidth: .infinity, minHeight: 58)
+                    .padding(.horizontal, 4)
+                    .foregroundStyle(active ? Color.white : Color.primary)
+                    .background {
+                        RoundedRectangle(cornerRadius: 15)
+                            .fill(active ? AnyShapeStyle(APEXColor.amber.gradient) : AnyShapeStyle(Color.white.opacity(0.78)))
+                    }
+                    .overlay {
+                        RoundedRectangle(cornerRadius: 15)
+                            .stroke(APEXColor.amber.opacity(active ? 0 : 0.18), lineWidth: 1)
+                    }
+            }
+            .buttonStyle(.plain)
+            .accessibilityAddTraits(active ? .isSelected : [])
+
+            Button {
+                explainedGoal = explainedGoal == preset.goal ? nil : preset.goal
+            } label: {
+                Image(systemName: "info")
+                    .font(.system(size: 10, weight: .bold))
+                    .frame(width: 28, height: 28)
+                    .foregroundStyle(active ? Color.white : APEXColor.amberDeep)
+            }
+            .buttonStyle(.plain)
+            .accessibilityLabel(language.text("About \(preset.label)"))
+        }
     }
 }
 

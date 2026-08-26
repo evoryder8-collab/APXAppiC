@@ -1003,6 +1003,46 @@ private struct PlanBriefingDeck: View {
                 .foregroundStyle(APEXColor.secondaryInk)
                 .fixedSize(horizontal: false, vertical: true)
 
+            if !slide.energyPresets.isEmpty {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(language.text("YOUR ENERGY CHOICES"))
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(APEXColor.violet)
+                    HStack(spacing: 7) {
+                        ForEach(slide.energyPresets, id: \.goal) { preset in
+                            let recommended = preset.goal == slide.recommendedGoal
+                            let percent = Int(((preset.factor - 1) * 100).rounded())
+                            VStack(spacing: 3) {
+                                Text(language.text(preset.label))
+                                    .font(APEXFont.body(9, weight: .bold))
+                                    .multilineTextAlignment(.center)
+                                    .lineLimit(2)
+                                Text("\(percent > 0 ? "+" : "")\(percent)%")
+                                    .font(APEXFont.mono(8, weight: .bold))
+                                if recommended {
+                                    Text(language.text("RECOMMENDED"))
+                                        .font(APEXFont.mono(6, weight: .bold))
+                                        .foregroundStyle(APEXColor.violet)
+                                }
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 64)
+                            .padding(.horizontal, 3)
+                            .background(
+                                recommended ? APEXColor.violet.opacity(0.13) : Color.white.opacity(0.72),
+                                in: RoundedRectangle(cornerRadius: 13)
+                            )
+                            .overlay {
+                                RoundedRectangle(cornerRadius: 13)
+                                    .stroke(APEXColor.violet.opacity(recommended ? 0.42 : 0.10), lineWidth: 1)
+                            }
+                        }
+                    }
+                }
+                .padding(12)
+                .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 17))
+            }
+
             VStack(spacing: 9) {
                 ForEach(slide.bullets, id: \.text) { bullet in
                     HStack(alignment: .top, spacing: 10) {

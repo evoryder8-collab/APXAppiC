@@ -29,7 +29,12 @@ struct SimpleHomeView: View {
     private var activities: [ActivityLog] { session.data.activityLogs.filter { $0.date == today } }
     private var targets: NutritionTargets? {
         guard let profile else { return nil }
-        return EnergyEngine.targets(profile: profile, logs: activities, catalog: session.data.activityTypes)
+        return EnergyEngine.targets(
+            profile: profile,
+            logs: activities,
+            catalog: session.data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+        )
     }
     private var adaptivePlan: [AdaptiveMeal] {
         guard let targets else { return [] }

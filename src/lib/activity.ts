@@ -341,6 +341,7 @@ export function estimateActivityDay(
   profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'custom_bmr' | 'goal'> & { calibration_k?: number },
   blocks: ActivityBlock[],
   catalog = ACTIVITY_BY_ID,
+  goalFactor = GOAL_FACTORS[profile.goal],
 ): ActivityEstimate {
   const bmr = activityBmr(profile)
   const floorKcal = bmr * 1.2
@@ -350,7 +351,7 @@ export function estimateActivityDay(
   const tdee = floorKcal + adjustedBlockKcal
   const pal = tdee / bmr
   const safetyFloorKcal = bmr * 1.05
-  const proposedTarget = tdee * GOAL_FACTORS[profile.goal]
+  const proposedTarget = tdee * goalFactor
   const targetKcal = Math.max(safetyFloorKcal, proposedTarget)
   const level = activityLevelForPal(pal)
   const macros = computeMacroTargets(profile.weight_kg, level, profile.goal, targetKcal)

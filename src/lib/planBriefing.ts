@@ -1,5 +1,7 @@
 import type { TrainingGoal, TrainingPlanWeeks, TrainingVenue } from './types.ts'
 import { resolveHydrationTarget, type HydrationTargetMode } from './hydration.ts'
+import { goalPresetsForPlan, recommendedGoalForTrainingGoal, type NutritionGoalPreset } from './nutrition.ts'
+import type { Goal } from './types.ts'
 
 export type PlanBriefingLanguage = 'en' | 'ro' | 'th'
 export type PlanBriefingSlideKind = 'overview' | 'safety' | 'hydration' | 'sleep' | 'supplements'
@@ -49,6 +51,8 @@ export interface PlanBriefingSlide {
   assetName: `plan-briefing-${PlanBriefingSlideKind}`
   evidenceLabel: string
   evidenceURL?: string
+  energyPresets?: NutritionGoalPreset[]
+  recommendedGoal?: Goal
 }
 
 export interface PlanBriefing {
@@ -58,9 +62,9 @@ export interface PlanBriefing {
 
 const COPY = {
   en: {
-    goals: { rebuild: 'consistency', muscle: 'muscle-building', fat_loss: 'fat-loss', strength: 'strength', endurance: 'endurance' },
+    goals: { rebuild: 'general fitness', muscle: 'muscle-building', fat_loss: 'fat-loss', strength: 'strength', endurance: 'endurance' },
     venues: { home: 'at home', gym: 'in the gym', outdoors: 'outdoors' },
-    ready: 'YOUR PROGRAM', overviewBody: (_sessions: number, venue: string) => `Built ${venue}, around the equipment and recovery limits you selected.`,
+    ready: 'WHY THIS PLAN FITS', overviewBody: (_sessions: number, venue: string) => `Your goal and answers set the training load, recovery spacing and energy choices. Built ${venue}.`,
     overviewBullets: ['The calendar has real start and finish dates.', 'Every session matches the equipment you selected.', 'Log the work you complete; APEX adapts from it.'],
     safetyEyebrow: 'TRAIN SMART', safetyTitle: 'Know when to stop', safetyBody: 'Training effort is normal. Stop for sharp pain, chest pressure, fainting, or sudden breathlessness.',
     safetyBullets: ['Stop any movement that causes sharp or worsening pain.', 'For chest pressure, fainting, or sudden breathlessness, call emergency services (144 in Switzerland).', 'For milder symptoms that persist or return, pause training and seek clinical advice.'],
@@ -73,9 +77,9 @@ const COPY = {
     supplementsBullets: ['Protein powder is a practical way to reach your protein target.', 'Creatine monohydrate is the well-studied form for repeated high-intensity and strength work.', 'Fatty fish provides EPA and DHA; algae-derived EPA/DHA is the plant-based option.'],
   },
   ro: {
-    goals: { rebuild: 'consecvență', muscle: 'masă musculară', fat_loss: 'pierdere de grăsime', strength: 'forță', endurance: 'rezistență' },
+    goals: { rebuild: 'fitness general', muscle: 'masă musculară', fat_loss: 'pierdere de grăsime', strength: 'forță', endurance: 'rezistență' },
     venues: { home: 'acasă', gym: 'la sală', outdoors: 'în aer liber' },
-    ready: 'PROGRAMUL TĂU', overviewBody: (_sessions: number, venue: string) => `Creat ${venue}, pentru echipamentul și recuperarea alese de tine.`,
+    ready: 'DE CE ȚI SE POTRIVEȘTE', overviewBody: (_sessions: number, venue: string) => `Obiectivul și răspunsurile tale stabilesc efortul, recuperarea și energia. Creat ${venue}.`,
     overviewBullets: ['Calendarul are date reale de început și final.', 'Fiecare sesiune folosește echipamentul selectat.', 'Înregistrează ce faci; APEX se adaptează din date reale.'],
     safetyEyebrow: 'ANTRENEAZĂ-TE INTELIGENT', safetyTitle: 'Știi când să te oprești', safetyBody: 'Efortul este normal. Durerea ascuțită, presiunea toracică, leșinul sau lipsa bruscă de aer nu sunt.',
     safetyBullets: ['Oprește orice mișcare ce provoacă durere ascuțită sau crescândă.', 'Pentru presiune toracică, leșin sau lipsă bruscă de aer, sună la urgențe (144 în Elveția).', 'Dacă simptomele ușoare persistă sau revin, oprește antrenamentul și cere sfat medical.'],
@@ -88,9 +92,9 @@ const COPY = {
     supplementsBullets: ['Pudra proteică te poate ajuta practic să atingi ținta de proteină.', 'Creatina monohidrat este forma bine studiată pentru efort intens repetat și forță.', 'Peștele gras oferă EPA și DHA; EPA/DHA din alge este alternativa vegetală.'],
   },
   th: {
-    goals: { rebuild: 'ความสม่ำเสมอ', muscle: 'สร้างกล้ามเนื้อ', fat_loss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'ความทนทาน' },
+    goals: { rebuild: 'สมรรถภาพทั่วไป', muscle: 'สร้างกล้ามเนื้อ', fat_loss: 'ลดไขมัน', strength: 'เพิ่มความแข็งแรง', endurance: 'ความทนทาน' },
     venues: { home: 'ที่บ้าน', gym: 'ในยิม', outdoors: 'กลางแจ้ง' },
-    ready: 'โปรแกรมของคุณ', overviewBody: (_sessions: number, venue: string) => `สร้างสำหรับ${venue} ตามอุปกรณ์และการฟื้นตัวที่คุณเลือก`,
+    ready: 'ทำไมแผนนี้เหมาะกับคุณ', overviewBody: (_sessions: number, venue: string) => `เป้าหมายและคำตอบของคุณกำหนดภาระ การฟื้นตัว และพลังงาน สร้างสำหรับ${venue}`,
     overviewBullets: ['ปฏิทินมีวันเริ่มและวันสิ้นสุดจริง', 'ทุกเซสชันใช้อุปกรณ์ที่คุณเลือก', 'บันทึกสิ่งที่ทำจริง แล้ว APEX จะปรับตามข้อมูลนั้น'],
     safetyEyebrow: 'ฝึกอย่างฉลาด', safetyTitle: 'รู้ว่าเมื่อไรควรหยุด', safetyBody: 'ความเหนื่อยเป็นเรื่องปกติ แต่ความเจ็บแปลบ แน่นหน้าอก หน้ามืด หรือหายใจลำบากฉับพลันไม่ใช่',
     safetyBullets: ['หยุดท่าที่ทำให้เจ็บแปลบหรือเจ็บมากขึ้น', 'หากแน่นหน้าอก หมดสติ หรือหายใจลำบากฉับพลัน ให้โทรฉุกเฉิน (144 ในสวิตเซอร์แลนด์)', 'หากอาการเล็กน้อยไม่หายหรือกลับมา ให้พักการฝึกและปรึกษาแพทย์'],
@@ -145,6 +149,7 @@ export function buildPlanBriefing(input: PlanBriefingInput): PlanBriefing {
       ? `${goal} · ${duration} · ${input.sessionsPerWeek} sesiuni/săpt.`
       : `${goal} · ${duration} · ${input.sessionsPerWeek} ครั้ง/สัปดาห์`
   const safetyBody = input.caution === 'clearance' ? copy.clearance : copy.safetyBody
+  const energyPresets = goalPresetsForPlan({ trainingGoal: input.goal, planWeeks: input.planWeeks })
 
   return {
     hydrationTargetML: hydration.targetML,
@@ -153,6 +158,7 @@ export function buildPlanBriefing(input: PlanBriefingInput): PlanBriefing {
         kind: 'overview', eyebrow: copy.ready, title: planTitle,
         body: copy.overviewBody(input.sessionsPerWeek, venue), bullets: bulletsFor('overview', copy.overviewBullets),
         assetName: 'plan-briefing-overview', evidenceLabel: 'Your answers · APEX plan engine',
+        energyPresets, recommendedGoal: recommendedGoalForTrainingGoal(input.goal),
       },
       {
         kind: 'safety', eyebrow: copy.safetyEyebrow, title: copy.safetyTitle,

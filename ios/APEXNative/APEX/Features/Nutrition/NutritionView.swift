@@ -19,15 +19,20 @@ struct NutritionView: View {
     }
     private var targets: NutritionTargets? {
         guard let profile = session.profile else { return nil }
-        return EnergyEngine.targets(profile: profile, logs: dayActivities, catalog: session.data.activityTypes)
+        return EnergyEngine.targets(
+            profile: profile,
+            logs: dayActivities,
+            catalog: session.data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+        )
     }
 
     private var goalLabel: String {
-        switch session.profile?.goal.rawValue {
-        case "bulk": return "Lean bulk"
-        case "maintain": return "Maintain"
-        default: return "Lean recomp"
-        }
+        guard let goal = session.profile?.goal else { return "Goal" }
+        return NutritionGoalPolicy.preset(
+            for: goal,
+            context: NutritionGoalPolicy.context(from: session.data.settings)
+        ).label
     }
 
     /* Mirrors the web's collapsed supplement row: "3/7 · 17 Aug" */
@@ -378,6 +383,14 @@ private struct DailyTargetsCard: View {
     let targets: NutritionTargets
     let precise: Bool
 
+    private var activeGoalLabel: String {
+        guard let goal = session.profile?.goal else { return "Goal" }
+        return NutritionGoalPolicy.preset(
+            for: goal,
+            context: NutritionGoalPolicy.context(from: session.data.settings)
+        ).label
+    }
+
     var body: some View {
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 20) {
@@ -385,7 +398,7 @@ private struct DailyTargetsCard: View {
                     Text(language.text("Daily targets"))
                         .font(APEXFont.display(27))
                     Spacer()
-                    Text(language.text(session.profile?.goal.title ?? "Goal").uppercased(with: language.language.locale))
+                    Text(language.text(activeGoalLabel).uppercased(with: language.language.locale))
                         .font(APEXFont.mono(10))
                         .tracking(1.2)
                         .foregroundStyle(APEXColor.amberDeep)
@@ -435,14 +448,13 @@ private struct DailyTargetsCard: View {
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
 
-                HStack(spacing: 8) {
-                    ForEach(Goal.allCases, id: \.self) { goal in
-                        Button(language.text(goal.title)) {
-                            Task { await session.setGoal(goal) }
-                        }
-                        .buttonStyle(ChoicePillStyle(selected: session.profile?.goal == goal))
-                    }
-                }
+                NutritionGoalPresetPicker(
+                    presets: NutritionGoalPolicy.presets(
+                        context: NutritionGoalPolicy.context(from: session.data.settings)
+                    ),
+                    selected: session.profile?.goal,
+                    onSelect: { goal in Task { await session.setGoal(goal) } }
+                )
 
                 if targets.safetyFloorApplied {
                     Label(language.text("Target held above the recovery safety floor"), systemImage: "shield.lefthalf.filled")
@@ -934,7 +946,11 @@ private struct BodyAssessmentCard: View {
                 targets.proteinG
             ))
         } else {
-            statements.append(language.format("Protein coverage is on track for %@.", language.lowercased(profile.goal.title)))
+            let goalLabel = NutritionGoalPolicy.preset(
+                for: profile.goal,
+                context: NutritionGoalPolicy.context(from: session.data.settings)
+            ).label
+            statements.append(language.format("Protein coverage is on track for %@.", language.lowercased(goalLabel)))
         }
         if water < 1.5 {
             statements.append(language.text("Hydration is still light in the log. Add water progressively, especially around training or physical work."))

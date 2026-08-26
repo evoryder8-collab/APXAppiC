@@ -1,5 +1,13 @@
 import { differenceInYears } from 'date-fns'
-import type { ActivityLevel, Goal, Meal, Profile } from './types'
+import type {
+  ActivityLevel,
+  Goal,
+  Meal,
+  Profile,
+  TrainingGoal,
+  TrainingInductionProfile,
+  TrainingPlanWeeks,
+} from './types'
 import { personalTargetFor } from './personalProtocol.ts'
 
 export function ageFrom(birthdate: string, at: Date = new Date()): number {
@@ -31,6 +39,99 @@ export const GOALS: Record<Goal, { label: string; factor: number }> = {
   recomp: { label: 'Lean recomp', factor: 0.89 },
   maintain: { label: 'Maintain', factor: 1 },
   bulk: { label: 'Lean bulk', factor: 1.07 },
+}
+
+export interface NutritionPlanContext {
+  trainingGoal: TrainingGoal
+  planWeeks: TrainingPlanWeeks
+}
+
+export interface NutritionGoalPreset {
+  goal: Goal
+  label: string
+  factor: number
+  explanation: string
+  caution: string
+}
+
+export function nutritionPlanContext(
+  induction: TrainingInductionProfile | null | undefined,
+): NutritionPlanContext | undefined {
+  if (!induction) return undefined
+  return {
+    trainingGoal: induction.goal,
+    planWeeks: induction.plan_weeks ?? 12,
+  }
+}
+
+function preset(
+  goal: Goal,
+  label: string,
+  factor: number,
+  explanation: string,
+  caution: string,
+): NutritionGoalPreset {
+  return { goal, label, factor, explanation, caution }
+}
+
+/**
+ * The persisted profile keeps its stable three-value axis. The active training
+ * plan gives those positions honest goal-specific meaning at read time, so a
+ * fat-loss plan never offers a surplus disguised as "Lean bulk" and changing
+ * the resolver needs no data migration.
+ */
+export function goalPresetsForPlan(context?: NutritionPlanContext): NutritionGoalPreset[] {
+  if (!context) {
+    return [
+      preset('recomp', 'Lean recomp', 0.89, 'A moderate deficit with extra protein support.', 'Review recovery, hunger, and weight trend after two weeks.'),
+      preset('maintain', 'Maintain', 1, 'Match estimated daily expenditure without targeting weight change.', 'Wearable estimates are a starting point, not a metabolic measurement.'),
+      preset('bulk', 'Lean bulk', 1.07, 'A controlled surplus to support training progression.', 'Reduce the surplus if weight rises faster than intended.'),
+    ]
+  }
+
+  switch (context.trainingGoal) {
+  case 'muscle':
+    return [
+      preset('recomp', 'Lean recomp', 0.95, 'Build skill and preserve muscle while trimming slowly.', 'Choose Maintain if training performance or recovery declines.'),
+      preset('maintain', 'Maintain', 1, 'Hold body weight while progressive training drives recomposition.', 'Progress is slower, so judge the trend over several weeks.'),
+      preset('bulk', 'Lean bulk', 1.07, 'Use a small surplus to support muscle gain and harder sessions.', 'Review the two-week weight trend and reduce if gain is too fast.'),
+    ]
+  case 'fat_loss': {
+    const acceleratedFactor: Record<TrainingPlanWeeks, number> = { 4: 0.80, 8: 0.82, 12: 0.84, 26: 0.86 }
+    const steadyFactor: Record<TrainingPlanWeeks, number> = { 4: 0.86, 8: 0.87, 12: 0.88, 26: 0.89 }
+    return [
+      preset('recomp', 'Accelerated cut', acceleratedFactor[context.planWeeks], 'The largest bounded deficit for this plan horizon.', 'Not the default. Stop and reassess if recovery, sleep, or performance falls.'),
+      preset('maintain', 'Steady cut', steadyFactor[context.planWeeks], 'A repeatable deficit balanced against training and lean-mass retention.', 'Best default; use measured trends instead of cutting harder too soon.'),
+      preset('bulk', 'Gentle cut', 0.93, 'A smaller deficit with more room for training and appetite control.', 'Loss is intentionally slower and depends on consistent weeks.'),
+    ]
+  }
+  case 'strength':
+    return [
+      preset('recomp', 'Strength recomp', 0.95, 'A small deficit while strength skill remains the priority.', 'Move to Strength base if load or recovery trends down.'),
+      preset('maintain', 'Strength base', 1, 'Maintenance energy for repeatable heavy practice and recovery.', 'The recommended starting point for most strength plans.'),
+      preset('bulk', 'Power surplus', 1.05, 'A small surplus for higher volume and progressive loading.', 'Review body-weight trend after two weeks; more is not automatically better.'),
+    ]
+  case 'endurance':
+    return [
+      preset('recomp', 'Light fuel', 0.96, 'A slight deficit while protecting useful training fuel.', 'Avoid on high-volume weeks if pace, mood, or recovery deteriorates.'),
+      preset('maintain', 'Balanced fuel', 1, 'Match daily expenditure for consistent endurance work.', 'The recommended base before adding fuel for longer sessions.'),
+      preset('bulk', 'High-volume fuel', 1.06, 'Extra energy for long or dense training weeks.', 'Use for real workload, then return to Balanced fuel as volume falls.'),
+    ]
+  case 'rebuild':
+    return [
+      preset('recomp', 'Light balance', 0.95, 'A small deficit while rebuilding a consistent routine.', 'Choose Balanced fitness if hunger or recovery disrupts consistency.'),
+      preset('maintain', 'Balanced fitness', 1, 'Maintenance fuel for broad fitness and repeatable sessions.', 'The recommended start when body-weight change is not the main goal.'),
+      preset('bulk', 'Fuel progress', 1.04, 'A small surplus for higher volume and easier recovery.', 'Review body-weight trend after two weeks and adjust deliberately.'),
+    ]
+  }
+}
+
+export function goalPresetForPlan(goal: Goal, context?: NutritionPlanContext): NutritionGoalPreset {
+  return goalPresetsForPlan(context).find((candidate) => candidate.goal === goal)!
+}
+
+export function recommendedGoalForTrainingGoal(trainingGoal: TrainingGoal): Goal {
+  return trainingGoal === 'muscle' ? 'bulk' : 'maintain'
 }
 
 export interface Targets {
@@ -113,7 +214,7 @@ export function computeMacroTargets(
 }
 
 /* TDEE builds on Katch-McArdle when a credible body-fat value is available. */
-export function computeTargets(p: Profile): Targets {
+export function computeTargets(p: Profile, planContext?: NutritionPlanContext): Targets {
   const katch = bmrKatch(p)
   const mifflin = bmrMifflin(p)
   const hasBodyFat = Number.isFinite(p.body_fat_pct) && p.body_fat_pct > 0 && p.body_fat_pct < 75
@@ -135,7 +236,7 @@ export function computeTargets(p: Profile): Targets {
     }
   }
   const tdee = Math.round(activeBmr * ACTIVITY_MULTIPLIERS[p.activity_level].factor)
-  const formulaTarget = Math.max(activeBmr * 1.05, tdee * GOALS[p.goal].factor)
+  const formulaTarget = Math.max(activeBmr * 1.05, tdee * goalPresetForPlan(p.goal, planContext).factor)
   const kcal = Math.round(formulaTarget)
   const macros = computeMacroTargets(p.weight_kg, p.activity_level, p.goal, kcal)
   return {

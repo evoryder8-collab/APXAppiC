@@ -3,7 +3,7 @@ import { AccentChip, GlassCard, GradientButton, SectionHeader, Stepper, Toggle }
 import { ACCENTS } from '../lib/theme'
 import { useStore } from '../store/AppStore'
 import { isLocalMode } from '../lib/supabase'
-import { ageFrom, computeTargets } from '../lib/nutrition'
+import { ageFrom, computeTargets, nutritionPlanContext } from '../lib/nutrition'
 import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
@@ -73,7 +73,7 @@ export function Settings() {
   }, [profile?.custom_bmr])
   useEffect(() => setTimeZoneDraft(resolvedTimeZone), [resolvedTimeZone])
   if (!profile || !settings) return null
-  const targets = computeTargets(profile)
+  const targets = computeTargets(profile, nutritionPlanContext(settings.addons.training_induction))
   const mealBlockSettings = normalizeMealBlockSettings(settings.addons.meal_blocks)
   const timeZoneOptions = searchTimeZoneOptions(
     timeZoneDraft === resolvedTimeZone ? '' : timeZoneDraft,

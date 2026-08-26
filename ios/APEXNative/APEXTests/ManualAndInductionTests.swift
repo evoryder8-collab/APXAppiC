@@ -1453,6 +1453,12 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(briefing.slides.map(\.kind), [.overview, .safety, .hydration, .sleep, .supplements])
         XCTAssertTrue(briefing.slides[0].title.localizedCaseInsensitiveContains("12-week strength"))
         XCTAssertTrue(briefing.slides[0].title.localizedCaseInsensitiveContains("4 sessions/week"))
+        XCTAssertTrue(briefing.slides[0].eyebrow.localizedCaseInsensitiveContains("why this plan fits"))
+        XCTAssertEqual(
+            briefing.slides[0].energyPresets.map(\.label),
+            ["Strength recomp", "Strength base", "Power surplus"]
+        )
+        XCTAssertEqual(briefing.slides[0].recommendedGoal, .maintain)
         XCTAssertEqual(briefing.hydrationTargetML, 3_250)
         XCTAssertTrue(briefing.slides[2].title.contains("3.25 L"))
         XCTAssertTrue(briefing.slides[2].body.localizedCaseInsensitiveContains("drinks and water in food"))

@@ -103,6 +103,53 @@ final class EnergyEngineTests: XCTestCase {
         }
     }
 
+    func testQuestionnaireGoalsResolveThreePlanAwareEnergyChoices() {
+        let expected: [String: [String]] = [
+            "rebuild": ["Light balance", "Balanced fitness", "Fuel progress"],
+            "muscle": ["Lean recomp", "Maintain", "Lean bulk"],
+            "fat_loss": ["Accelerated cut", "Steady cut", "Gentle cut"],
+            "strength": ["Strength recomp", "Strength base", "Power surplus"],
+            "endurance": ["Light fuel", "Balanced fuel", "High-volume fuel"],
+        ]
+
+        for (trainingGoal, labels) in expected {
+            let presets = NutritionGoalPolicy.presets(
+                context: .init(trainingGoal: trainingGoal, planWeeks: 12)
+            )
+            XCTAssertEqual(presets.map(\.label), labels)
+            XCTAssertEqual(presets.map(\.goal), [.recomp, .maintain, .bulk])
+            XCTAssertTrue(presets.allSatisfy { $0.explanation.count > 20 })
+            XCTAssertTrue(presets.allSatisfy { $0.caution.count > 20 })
+        }
+    }
+
+    func testShortFatLossPlanStaysBoundedAndFeedsTheEnergyEngine() {
+        let fourWeek = NutritionGoalPolicy.presets(
+            context: .init(trainingGoal: "fat_loss", planWeeks: 4)
+        )
+        let sixMonth = NutritionGoalPolicy.presets(
+            context: .init(trainingGoal: "fat_loss", planWeeks: 26)
+        )
+        XCTAssertEqual(fourWeek[0].factor, 0.80, accuracy: 0.0001)
+        XCTAssertEqual(sixMonth[0].factor, 0.86, accuracy: 0.0001)
+        XCTAssertTrue(fourWeek.allSatisfy { $0.factor >= 0.80 && $0.factor < 1 })
+
+        let context = NutritionPlanContext(trainingGoal: "fat_loss", planWeeks: 8)
+        let result = EnergyEngine.targets(
+            profile: profile(weight: 80, level: .moderate, goal: .maintain),
+            logs: [],
+            catalog: [],
+            planContext: context
+        )
+        let factor = NutritionGoalPolicy.presets(context: context)[1].factor
+        XCTAssertEqual(
+            result.targetCalories,
+            Int(max(Double(result.bmr) * 1.05, Double(result.tdee) * factor).rounded())
+        )
+        XCTAssertEqual(NutritionGoalPolicy.recommendedGoal(for: "fat_loss"), .maintain)
+        XCTAssertEqual(NutritionGoalPolicy.recommendedGoal(for: "muscle"), .bulk)
+    }
+
     func testMacroPolicyMatchesCrossClientLiteralFixtures() {
         XCTAssertEqual(
             EnergyEngine.macroTargets(

@@ -33,7 +33,7 @@ import { mealBlockIdempotencyKey, normalizeMealBlockSettings, type MealBlockIden
 import { useStore } from '../../store/AppStore'
 import { rankMealHistoryRecommendations } from '../../lib/mealExperience'
 import { timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../../lib/mealTiming'
-import { computeTargets } from '../../lib/nutrition'
+import { computeTargets, nutritionPlanContext } from '../../lib/nutrition'
 import { ATHLETE_SUPPORT_PROTOCOLS } from '../../lib/personalProtocol'
 import type { IntroLanguage } from '../../lib/introLanguage'
 import { mealMacroStatus, type MealMacroKind } from '../../lib/mealMacroGuidance'
@@ -219,7 +219,12 @@ export function MealComposer({
     () => items.filter((item) => selectedItemIds.includes(item.id)),
     [items, selectedItemIds],
   )
-  const dailyTargets = useMemo(() => data.profile ? computeTargets(data.profile) : null, [data.profile])
+  const dailyTargets = useMemo(
+    () => data.profile
+      ? computeTargets(data.profile, nutritionPlanContext(data.settings?.addons.training_induction))
+      : null,
+    [data.profile, data.settings?.addons.training_induction],
+  )
   const postWorkoutDinnerActive = mealBlockId === 'post_workout'
     && (data.settings?.addons.adaptive_post_workout_dinner ?? true)
     && finishedTime >= '19:00'

@@ -718,7 +718,12 @@ struct MealComposerView: View {
     private var mealTargets: (protein: Double, carbs: Double, fat: Double) {
         guard let profile = session.profile else { return (0, 0, 0) }
         let logs = session.data.activityLogs.filter { $0.date == request.date.apexDateKey }
-        let targets = EnergyEngine.targets(profile: profile, logs: logs, catalog: session.data.activityTypes)
+        let targets = EnergyEngine.targets(
+            profile: profile,
+            logs: logs,
+            catalog: session.data.activityTypes,
+            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+        )
         let share: Double
         switch draft.mealSlot {
         case "breakfast": share = 0.25

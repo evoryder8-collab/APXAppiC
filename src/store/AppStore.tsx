@@ -41,7 +41,7 @@ import {
   estimateActivityDay,
   normalizeActivityType,
 } from '../lib/activity'
-import { computeTargets } from '../lib/nutrition'
+import { computeTargets, nutritionPlanContext } from '../lib/nutrition'
 import {
   dedupeUpsertRows,
   enqueuePendingSyncOperation,
@@ -795,7 +795,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const activityLogs = data.activity_logs.filter((log) => log.date === date)
     const blocks = activityLogs.map((log) => blockFromActivityLog(log, catalog))
     const estimate = estimateActivityDay(profile, blocks, catalog)
-    const quickTargets = computeTargets(profile)
+    const quickTargets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction))
     const usesWholeDayProtocol = Boolean(personalTargetFor(profile))
     const mode = blocks.length > 0 && !usesWholeDayProtocol ? 'precise' : 'quick'
     const estimatedTdee = mode === 'precise' ? estimate.tdee : quickTargets.tdee
