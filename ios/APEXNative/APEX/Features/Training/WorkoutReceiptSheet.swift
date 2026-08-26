@@ -67,7 +67,7 @@ struct WorkoutReceiptSheet: View {
             Text(language.text("Stats at a glance"))
                 .font(APEXFont.display(24))
                 .foregroundStyle(APEXColor.ink)
-            Text(language.text("Every strength set is recorded. Conditioning episodes carry no load to report."))
+            Text(language.text("Every measured set stays editable here. Conditioning episodes carry no load to report."))
                 .font(APEXFont.body(11))
                 .foregroundStyle(APEXColor.secondaryInk)
         }
@@ -142,32 +142,39 @@ struct WorkoutReceiptSheet: View {
                         .font(APEXFont.body(13, weight: .bold))
                         .foregroundStyle(APEXColor.ink)
                     ForEach(group.logs) { log in
-                        HStack(spacing: 10) {
-                            Text("S\(log.setNumber)")
-                                .font(APEXFont.mono(9, weight: .bold))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                                .frame(width: 26, alignment: .leading)
-                            if log.skipped {
-                                Text(language.text("Not completed"))
-                                    .font(APEXFont.body(11, weight: .semibold))
+                        VStack(alignment: .leading, spacing: 7) {
+                            HStack {
+                                Text(language.format("SET %d", log.setNumber))
+                                    .font(APEXFont.mono(9, weight: .bold))
                                     .foregroundStyle(APEXColor.secondaryInk)
-                            } else {
-                                ScrollView(.horizontal, showsIndicators: false) {
-                                    HStack(spacing: 6) {
-                                        let facts = ExerciseLogging.factSummary(log)
-                                        if facts.isEmpty {
-                                            setValue("-")
-                                        } else {
-                                            ForEach(facts, id: \.self) { fact in setValue(fact) }
-                                        }
-                                        if let progress = ProgressionEngine.latestProgress(session.data, current: log) {
-                                            setValue(language.text(progressLabel(progress)))
-                                        }
-                                    }
-                                }
+                                Spacer()
+                                Toggle(language.text("Not completed"), isOn: skipped(log))
+                                    .font(APEXFont.body(10, weight: .semibold))
+                                    .tint(APEXColor.danger)
+                                    .fixedSize()
                             }
-                            Spacer(minLength: 0)
+                            if !(currentLog(log.id)?.skipped ?? log.skipped) {
+                                ExerciseFactFieldsView(
+                                    descriptor: ExerciseLogging.descriptor(
+                                        movementNamed: log.exerciseName,
+                                        movementID: log.movementID
+                                    ),
+                                    values: factValues(log)
+                                )
+                                if let current = currentLog(log.id),
+                                   let progress = ProgressionEngine.latestProgress(session.data, current: current) {
+                                    Text(language.text(progressLabel(progress)))
+                                        .font(APEXFont.mono(9, weight: .bold))
+                                        .foregroundStyle(APEXColor.secondaryInk)
+                                }
+                            } else {
+                                Text(language.text("This set is excluded from volume and progression."))
+                                    .font(APEXFont.body(10, weight: .semibold))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                            }
                         }
+                        .padding(10)
+                        .background(.white.opacity(0.55), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
                     }
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
@@ -177,10 +184,53 @@ struct WorkoutReceiptSheet: View {
         }
     }
 
-    private func setValue(_ text: String) -> some View {
-        Text(text)
-            .font(APEXFont.mono(11, weight: .bold))
-            .foregroundStyle(APEXColor.ink)
+    private func currentLog(_ id: UUID) -> WorkoutLog? {
+        session.data.workoutLogs.first { $0.id == id }
+    }
+
+    private func skipped(_ log: WorkoutLog) -> Binding<Bool> {
+        Binding(
+            get: { currentLog(log.id)?.skipped ?? log.skipped },
+            set: { next in
+                guard let current = currentLog(log.id) else { return }
+                var draft = WorkoutReceipt.editInput(current)
+                draft.skipped = next
+                Task { await session.updateWorkoutLog(id: current.id, draft: draft) }
+            }
+        )
+    }
+
+    private func factValues(_ log: WorkoutLog) -> Binding<ExerciseFactValues> {
+        Binding(
+            get: {
+                let current = currentLog(log.id) ?? log
+                return ExerciseFactValues(
+                    reps: current.reps,
+                    signedLoadKG: current.weightKG,
+                    rir: current.rir,
+                    durationSeconds: current.durationSeconds,
+                    distanceMeters: current.distanceMeters,
+                    contacts: current.contacts,
+                    rounds: current.rounds,
+                    workSeconds: current.workSeconds,
+                    recoverySeconds: current.recoverySeconds
+                )
+            },
+            set: { values in
+                guard let current = currentLog(log.id) else { return }
+                var draft = WorkoutReceipt.editInput(current)
+                draft.reps = values.reps
+                draft.weightKG = values.signedLoadKG
+                draft.rir = values.rir
+                draft.durationSeconds = values.durationSeconds
+                draft.distanceMeters = values.distanceMeters
+                draft.contacts = values.contacts
+                draft.rounds = values.rounds
+                draft.workSeconds = values.workSeconds
+                draft.recoverySeconds = values.recoverySeconds
+                Task { await session.updateWorkoutLog(id: current.id, draft: draft) }
+            }
+        )
     }
 
     private func progressLabel(_ progress: ExerciseProgress) -> String {
@@ -191,5 +241,187 @@ struct WorkoutReceiptSheet: View {
         case .adherence: return "Completed"
         case .incomparable: return "Needs matching facts to compare"
         }
+    }
+}
+
+/// A permanent, date-owned trail of finished work. The compact card is the
+/// visual receipt; expanding it exposes the full receipt and corrections.
+struct CompletedWorkoutHistoryCards: View {
+    @Environment(AppSession.self) private var session
+    @State private var language = LanguageState.shared
+    @State private var expanded: Set<UUID> = []
+    @State private var receipt: FinishedSession?
+    @State private var manualEdit: WorkoutSession?
+
+    let date: String
+    var accent: Color = APEXColor.teal
+
+    private var history: [WorkoutReceipt.HistoryItem] {
+        WorkoutReceipt.history(
+            sessions: session.data.workoutSessions,
+            days: session.data.programDays,
+            date: date,
+            ownerID: session.profile?.userID
+        )
+    }
+
+    var body: some View {
+        if !history.isEmpty {
+            VStack(alignment: .leading, spacing: 9) {
+                HStack {
+                    Text(language.text("FINISHED WORKOUTS"))
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(APEXColor.green)
+                    Spacer()
+                    Text(language.format("%d sessions", history.count))
+                        .font(APEXFont.mono(8, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                }
+                .padding(.horizontal, 4)
+
+                ForEach(history) { item in
+                    historyCard(item)
+                }
+            }
+            .sheet(item: $receipt) { finished in
+                WorkoutReceiptSheet(sessionID: finished.id) { receipt = nil }
+                    .environment(session)
+            }
+            .sheet(item: $manualEdit) { workout in
+                ManualWorkoutLoggerView(date: date, editing: workout) {
+                    manualEdit = nil
+                }
+                .environment(session)
+            }
+        }
+    }
+
+    private func historyCard(_ item: WorkoutReceipt.HistoryItem) -> some View {
+        let isExpanded = expanded.contains(item.id)
+        let logs = WorkoutLogOrder.performedOrder(session.data, sessionID: item.id)
+        let summary = WorkoutReceipt.summarize(logs)
+        let time = item.session.completedAt.flatMap(Self.timeText)
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.snappy) {
+                    if isExpanded { expanded.remove(item.id) } else { expanded.insert(item.id) }
+                }
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "checkmark")
+                        .font(.system(size: 14, weight: .black))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(APEXColor.green, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(language.text(item.isQuickLog ? "QUICK LOG COMPLETE" : "TRACKED WORKOUT COMPLETE"))
+                            .font(APEXFont.mono(8, weight: .bold))
+                            .tracking(1.1)
+                            .foregroundStyle(APEXColor.green)
+                        Text(language.text(item.title))
+                            .font(APEXFont.display(17))
+                            .foregroundStyle(APEXColor.ink)
+                            .lineLimit(2)
+                        Text([time, language.format("%d working sets", summary.workingSets), language.format("%d movements", summary.movements)].compactMap { $0 }.joined(separator: " · "))
+                            .font(APEXFont.mono(8, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(APEXColor.green)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(15)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("completed-workout-\(item.id.uuidString.lowercased())")
+
+            if isExpanded {
+                Divider().overlay(.white.opacity(0.9))
+                HStack(spacing: 8) {
+                    historyMetric("Loaded volume", value: language.format("%.0f kg", summary.loadedVolumeKG))
+                    historyMetric("Working sets", value: String(summary.workingSets))
+                    historyMetric("Movements", value: String(summary.movements))
+                }
+                .padding(.horizontal, 15)
+                .padding(.top, 12)
+
+                HStack(spacing: 8) {
+                    Button {
+                        receipt = FinishedSession(id: item.id)
+                    } label: {
+                        Text(language.text("View & edit receipt"))
+                            .font(APEXFont.body(12, weight: .bold))
+                            .frame(maxWidth: .infinity, minHeight: 42)
+                            .foregroundStyle(.white)
+                            .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    }
+                    .buttonStyle(.plain)
+                    if item.isQuickLog {
+                        Button {
+                            manualEdit = item.session
+                        } label: {
+                            Text(language.text("Edit workout"))
+                                .font(APEXFont.body(12, weight: .bold))
+                                .frame(maxWidth: .infinity, minHeight: 42)
+                                .foregroundStyle(accent)
+                                .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                        }
+                        .buttonStyle(.plain)
+                    }
+                }
+                .padding(15)
+                .padding(.top, -4)
+            }
+        }
+        .background(
+            LinearGradient(
+                colors: [APEXColor.green.opacity(0.10), .white.opacity(0.76), APEXColor.cyan.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 25, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 25, style: .continuous)
+                .stroke(.white.opacity(0.9), lineWidth: 1)
+        }
+        .overlay(alignment: .bottom) {
+            if !isExpanded {
+                LinearGradient(colors: [.clear, APEXColor.cyan.opacity(0.12)], startPoint: .top, endPoint: .bottom)
+                    .frame(height: 18)
+                    .clipShape(.rect(bottomLeadingRadius: 25, bottomTrailingRadius: 25))
+                    .allowsHitTesting(false)
+            }
+        }
+    }
+
+    private func historyMetric(_ label: String, value: String) -> some View {
+        VStack(spacing: 3) {
+            Text(language.text(label).uppercased())
+                .font(APEXFont.mono(7, weight: .bold))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .lineLimit(2, reservesSpace: true)
+            Text(value)
+                .font(APEXFont.mono(12, weight: .bold))
+                .foregroundStyle(APEXColor.ink)
+                .lineLimit(1)
+                .minimumScaleFactor(0.65)
+        }
+        .frame(maxWidth: .infinity)
+        .padding(.vertical, 9)
+        .background(.white.opacity(0.68), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+    }
+
+    private static func timeText(_ iso: String) -> String? {
+        guard iso.count >= 16 else { return nil }
+        let start = iso.index(iso.startIndex, offsetBy: 11)
+        let end = iso.index(start, offsetBy: 5)
+        return String(iso[start..<end])
     }
 }

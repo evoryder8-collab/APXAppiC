@@ -31,6 +31,7 @@ import { UI_TRANSLATIONS } from '../lib/translations'
 import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/workout/ManualWorkoutLogger'
 import { useFoodStore } from '../store/FoodStore'
 import { timeZoneFromSettings } from '../lib/mealTiming'
+import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -213,6 +214,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           }}
           accent={accent}
         />
+
+        <CompletedWorkoutHistoryCards date={today} accent={accent} includeQuickLogs={false} />
 
         {/* Calendar */}
         <GlassCard accent={accent} className="p-4 sm:p-5">

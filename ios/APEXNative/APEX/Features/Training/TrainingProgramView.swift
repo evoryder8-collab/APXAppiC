@@ -300,6 +300,8 @@ struct TrainingProgramView: View {
 
                 if slug != "custom" { todayHero }
 
+                CompletedWorkoutHistoryCards(date: Date().apexDateKey, accent: accent)
+
                 if slug == "custom" || hasUsablePrescription {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,

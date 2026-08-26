@@ -50,6 +50,7 @@ import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/act
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { resolveDailyBurnedEnergy } from '../lib/activity'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
+import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -1101,19 +1102,22 @@ export function SimpleHome() {
                 }}
               />
             ) : blockId === 'quick-actions' ? (
-              <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
-                <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${hydration.totalL.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
-                <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
-                <SimpleMetric
-                  icon={<img src={personaBySlug(profile.persona).portrait} alt="" className="h-full w-full scale-[2.35] object-contain [transform-origin:50%_32%]" />}
-                  value=""
-                  label={t('Stats')}
-                  done={false}
-                  portrait
-                  onClick={() => navigate('/avatar')}
-                  ariaLabel={t('Open body stats')}
-                />
-                <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
+              <div className="space-y-3">
+                <div ref={summaryActionsRef} id="simple-summary-actions" className="grid scroll-mt-28 grid-cols-4 gap-2" data-simple-local-gesture>
+                  <SimpleMetric icon={<DropletIcon className="h-4 w-4" />} value={`${hydration.totalL.toFixed(1)}L`} label={t('Water')} done={waterDone} onClick={() => { setCustomWaterOpen(false); setQuickPanel('water') }} ariaLabel={t('Add water')} />
+                  <SimpleMetric icon="✦" value={`${supplementDoneIds.size}/${data.supplements.length}`} label={t('Supps')} done={data.supplements.length > 0 && supplementDoneIds.size === data.supplements.length} onClick={() => setQuickPanel('supplements')} ariaLabel={t('Open supplements')} />
+                  <SimpleMetric
+                    icon={<img src={personaBySlug(profile.persona).portrait} alt="" className="h-full w-full scale-[2.35] object-contain [transform-origin:50%_32%]" />}
+                    value=""
+                    label={t('Stats')}
+                    done={false}
+                    portrait
+                    onClick={() => navigate('/avatar')}
+                    ariaLabel={t('Open body stats')}
+                  />
+                  <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
+                </div>
+                <CompletedWorkoutHistoryCards date={selectedDate} accent={ACCENTS.teal} />
               </div>
             ) : blockId === 'activity' ? (
               <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>

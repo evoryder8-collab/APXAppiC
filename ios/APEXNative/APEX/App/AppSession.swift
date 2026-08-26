@@ -2834,6 +2834,22 @@ final class AppSession {
         return workout.id
     }
 
+    /// Correct measured facts from a finished-session receipt. A correction
+    /// keeps the original row identity, so history and progression never split
+    /// one performed set into two events.
+    @discardableResult
+    func updateWorkoutLog(id: UUID, draft: WorkoutSetInput) async -> Bool {
+        guard let ownerID = verifiedPersistenceOwnerID(),
+              let index = data.workoutLogs.firstIndex(where: { $0.id == id }),
+              data.workoutLogs[index].userID == ownerID else {
+            return false
+        }
+        let updated = WorkoutReceipt.correctedLog(data.workoutLogs[index], with: draft)
+        data.workoutLogs[index] = updated
+        await persistUpsert(updated, table: "workout_logs", ownerID: ownerID)
+        return true
+    }
+
     func toggleDeload(on date: Date = .now) async {
         guard let ownerID = verifiedPersistenceOwnerID() else { return }
         let day = date.apexDateKey

@@ -8,6 +8,20 @@ import XCTest
 @testable import APEX
 
 final class WorkoutReceiptTests: XCTestCase {
+    private func workout(
+        id: UUID = UUID(), userID: UUID, date: String = "2026-08-26",
+        dayID: UUID, completed: Bool = true, completedAt: String,
+        notes: String = "Completed in tracked mode"
+    ) -> WorkoutSession {
+        WorkoutSession(
+            id: id, userID: userID, date: date, programDayID: dayID,
+            isLite: false, isDeload: false, isEventRecovery: false,
+            completed: completed, qualityScore: 1,
+            startedAt: "\(date)T08:00:00.000Z", completedAt: completedAt,
+            notes: notes
+        )
+    }
+
     private func log(
         _ name: String, set: Int, weight: Double?, reps: Int?,
         skipped: Bool = false, session: UUID = UUID(), exerciseID: UUID? = nil,
@@ -75,6 +89,63 @@ final class WorkoutReceiptTests: XCTestCase {
 
         XCTAssertEqual(summary.loadedVolumeKG, 570, accuracy: 0.0001)
         XCTAssertEqual(summary.workingSets, 3)
+    }
+
+    func testReceiptCorrectionUpdatesFactsWithoutChangingTheRecordedSetIdentity() {
+        let original = log(
+            "Weighted Push-Up", set: 1, weight: 7, reps: 10,
+            movementID: "weighted_push_up"
+        )
+        var correction = WorkoutReceipt.editInput(original)
+        correction.weightKG = 12
+        correction.reps = 8
+        correction.rir = nil
+
+        let updated = WorkoutReceipt.correctedLog(original, with: correction)
+
+        XCTAssertEqual(updated.id, original.id)
+        XCTAssertEqual(updated.sessionID, original.sessionID)
+        XCTAssertEqual(updated.weightKG, 12)
+        XCTAssertEqual(updated.reps, 8)
+        XCTAssertNil(updated.rir, "an unrated set must remain unrated after correction")
+        XCTAssertEqual(WorkoutReceipt.summarize([updated]).loadedVolumeKG, 96, accuracy: 0.0001)
+    }
+
+    func testHistoryIncludesQuickAndTrackedSessionsWithoutDependingOnTheCurrentPlanDay() {
+        let owner = UUID()
+        let trackedDay = UUID()
+        let customDay = UUID()
+        let tracked = workout(
+            userID: owner, dayID: trackedDay,
+            completedAt: "2026-08-26T09:00:00.000Z"
+        )
+        let quick = workout(
+            userID: owner, dayID: customDay,
+            completedAt: "2026-08-26T12:00:00.000Z",
+            notes: ManualWorkout.notes(title: "Lunch break lift")
+        )
+        let unfinished = workout(
+            userID: owner, dayID: trackedDay, completed: false,
+            completedAt: "2026-08-26T13:00:00.000Z"
+        )
+        let foreign = workout(
+            userID: UUID(), dayID: trackedDay,
+            completedAt: "2026-08-26T14:00:00.000Z"
+        )
+        let day = ProgramDay(
+            id: trackedDay, userID: owner, programID: UUID(), weekday: 3,
+            name: "Tracked legs", dayType: "legs_a", estimatedMinutes: 45,
+            warmupNote: "", sortOrder: 0
+        )
+
+        let history = WorkoutReceipt.history(
+            sessions: [tracked, quick, unfinished, foreign],
+            days: [day], date: "2026-08-26", ownerID: owner
+        )
+
+        XCTAssertEqual(history.map(\.session.id), [quick.id, tracked.id])
+        XCTAssertEqual(history.map(\.title), ["Lunch break lift", "Tracked legs"])
+        XCTAssertEqual(history.map(\.isQuickLog), [true, false])
     }
 
     func testGroupingKeepsThePerformedOrder() {

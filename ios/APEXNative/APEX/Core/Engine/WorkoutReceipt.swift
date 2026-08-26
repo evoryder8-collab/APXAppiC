@@ -11,6 +11,14 @@ import Foundation
  * T25 is excluded because a conditioning episode has no load to report.
  */
 enum WorkoutReceipt {
+    struct HistoryItem: Identifiable, Hashable, Sendable {
+        let session: WorkoutSession
+        let title: String
+        let isQuickLog: Bool
+
+        var id: UUID { session.id }
+    }
+
     struct Summary: Hashable, Sendable {
         /// Kilograms moved: the sum of weight times reps across working sets.
         let loadedVolumeKG: Double
@@ -42,6 +50,76 @@ enum WorkoutReceipt {
             workingSets: working.filter { !$0.skipped }.count,
             movements: names.count
         )
+    }
+
+    /// Completed work belongs to its calendar date, not to whichever generated
+    /// plan happens to be active now. That makes regenerated tracked sessions
+    /// and ad-hoc Quick Logs equally discoverable afterwards.
+    static func history(
+        sessions: [WorkoutSession],
+        days: [ProgramDay],
+        date: String,
+        ownerID: UUID?
+    ) -> [HistoryItem] {
+        let dayNames = Dictionary(uniqueKeysWithValues: days.map { ($0.id, $0.name) })
+        return sessions
+            .filter { item in
+                item.completed
+                    && item.date == date
+                    && (ownerID == nil || item.userID == ownerID)
+            }
+            .sorted { left, right in
+                let leftTime = left.completedAt ?? left.startedAt ?? "\(left.date)T00:00:00.000Z"
+                let rightTime = right.completedAt ?? right.startedAt ?? "\(right.date)T00:00:00.000Z"
+                if leftTime == rightTime { return left.id.uuidString > right.id.uuidString }
+                return leftTime > rightTime
+            }
+            .map { item in
+                let quickTitle = ManualWorkout.title(fromNotes: item.notes)
+                return HistoryItem(
+                    session: item,
+                    title: quickTitle ?? dayNames[item.programDayID] ?? "Completed workout",
+                    isQuickLog: quickTitle != nil
+                )
+            }
+    }
+
+    static func editInput(_ log: WorkoutLog) -> WorkoutSetInput {
+        WorkoutSetInput(
+            exerciseID: log.exerciseID,
+            exerciseName: log.exerciseName,
+            setNumber: log.setNumber,
+            weightKG: log.weightKG,
+            reps: log.reps,
+            rir: log.rir,
+            movementID: log.movementID,
+            durationSeconds: log.durationSeconds,
+            distanceMeters: log.distanceMeters,
+            contacts: log.contacts,
+            rounds: log.rounds,
+            workSeconds: log.workSeconds,
+            recoverySeconds: log.recoverySeconds,
+            skipped: log.skipped
+        )
+    }
+
+    /// Apply corrected measured facts without changing the durable identity or
+    /// chronology of the recorded set.
+    static func correctedLog(_ log: WorkoutLog, with draft: WorkoutSetInput) -> WorkoutLog {
+        let value = draft.normalizedForPersistence()
+        var updated = log
+        updated.weightKG = value.weightKG
+        updated.reps = value.reps
+        updated.rir = value.rir
+        updated.movementID = value.movementID
+        updated.durationSeconds = value.durationSeconds
+        updated.distanceMeters = value.distanceMeters
+        updated.contacts = value.contacts
+        updated.rounds = value.rounds
+        updated.workSeconds = value.workSeconds
+        updated.recoverySeconds = value.recoverySeconds
+        updated.skipped = value.skipped
+        return updated
     }
 
     /// One sentence per movement, in the language the app is running in.
