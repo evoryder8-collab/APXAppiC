@@ -1103,3 +1103,12 @@ GitHub publication evidence:
 - Red proof: web failed for the missing EAN and former provenance phrase, the database contract failed because the migration did not exist, and native failed because the old source copy was still returned.
 - Green proof: focused web/database suites 3/3; focused native suite 1/1; complete web suite 566/566; complete native suite 488/488; TypeScript/Vite production build passed; all eight localization files passed `plutil`; `git diff --check` passed. Native result bundles: `build/food-red/FocusedGreen.xcresult` and `build/food-red/FullGreen.xcresult`.
 - Physical-device proof for exact source SHA `e2d044d8d10b8deef79744c3d28553b1c4c86dfa`: the signed device build succeeded and strict signature verification passed for APEX and its embedded Watch app. APEX installed on `iConstantine Main` at database sequence 5848 and launched. `ch.apexperformance.APEX.watchkitapp` installed directly on the connected physical Apple Watch Ultra 3 at database sequence 1200 and launched.
+
+## 2026-08-26 — Activity picker starts with broadly useful work and life groups
+
+- Implementation commit: `6af666fa1e713dc32901ce2f6c8d16fd716ec1c4` (`fix: lead activity picker with general needs`).
+- Files changed: shared web activity category presentation and picker default; native Add Activity grouping/presentation; focused web and native regressions.
+- Result: both clients now present `Work: general`, `Errands & life`, `Work: camera`, `Work: hands-on therapy`, `Training`, then `Device import`. The web picker opens on General Work instead of Camera, and native grouping consumes the same explicit priority rather than database row order.
+- Tests added: cross-client category order and visible-label assertions. Red proof: web returned therapy/camera/work/life, while native could not compile because the required shared presentation contract did not exist.
+- Green proof: focused web 1/1; focused native 1/1; complete web suite 567/567; complete native suite 489/489; TypeScript/Vite production build passed; `git diff --check` passed. Native result bundle: `build/activity-order-red/Logs/Test/Test-APEX-2026.08.26_21-19-29-+0200.xcresult`.
+- Physical-device proof for exact source SHA `6af666fa1e713dc32901ce2f6c8d16fd716ec1c4`: the signed build and strict signature checks passed. APEX installed and launched on `iConstantine Main` at database sequence 5856. The embedded `ch.apexperformance.APEX.watchkitapp` installed and launched on the connected physical Apple Watch Ultra 3 at database sequence 1208.
