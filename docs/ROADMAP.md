@@ -41,48 +41,47 @@ Supabase project: `rrzcrcjsbkmidlafrhfv`
 
 ---
 
-## 1. STATE AS OF HANDOFF
+## 1. WHERE THINGS STAND
 
-### Landed on `codex/main-critical-repair` (7 commits ahead of `main`)
+**This section deliberately holds no snapshot.** The previous version named a HEAD, a commit count
+and three uncommitted files; within a day all three were wrong, and a stale status block is worse
+than none because it is read as current.
 
-| commit | what |
-|---|---|
-| `9f6c34e` | sync hardening: meal-kind normalisation, settings rebound to authenticated user, 4xx quarantined instead of jamming the offline queue |
-| `d92a591` | meal-edit fix: `clientIdempotencyKey` is now computed and differs on reopen, plus `replaceMealID`, so edits are no longer swallowed |
-| `fb29aee` | dayline duplicate time labels removed |
-| `0306f5a`, `21e9504` | docs only: beta access and StoreKit plan |
-| `130d861` | workout receipt preserved, UI coverage |
-| `c1b0e77` | rest-day truth: `SessionBriefing`, `TrainingPlanEngine`, `MuscleMapView`, `TrainingProgramView` + parity tests |
+The live record is **`docs/REPAIR-NOTES.md`**, appended after every task. Read it, then run
+`git log --oneline -15`. Between them you will know more than any paragraph here could say.
 
-### Uncommitted, in progress — finish it, do not restart it
+Completed as of 26 Aug: **Phase 1 sections 1.1 through 1.7**, and **Phase 2 sections 2.1, 2.3 and
+2.4**. Those subsections are left in place rather than deleted, so the record shows what was covered
+and what the tests guard. Do not redo them; verify against the code if in doubt.
 
-- `ios/APEXNative/APEX/Core/Engine/ManualWorkout.swift` — `var rir: Int?` on `SetDraft`, clamped 0–5
-- `ios/APEXNative/APEX/Core/Models/APEXModels.swift` — `enum WorkoutSessionMode` with
-  `resolve(lastUsed:dayDefault:)`, and `sessionMode` mapped to `session_mode`
-- `ios/APEXNative/APEXTests/ManualAndInductionTests.swift` — tests for both
+### Recovered work — closed, kept for the record
+Six fixes were once written in an abandoned clone and left behind. All six were recovered in Task 1
+and verified present: realtime subscription filtering, the web supplement duplicate-batch fix, the
+`food_preferences` stale-reference repair, migration `020_restrict_rls_auto_enable.sql`, and the two
+Orbit items. Commit `909cd63` on `codex/critical-ios-fixes` in `~/APXAppiC-codex-release` remains
+frozen as history and has nothing left to give.
 
-### Frozen reference branch
+### Traps still live — verified 26 Aug, do not assume these are fixed
 
-`909cd63` on `codex/critical-ios-fixes` in `~/APXAppiC-codex-release` holds an earlier repair
-attempt: 23 files, +1352/−172, including **web fixes** (`src/lib/foodSync.ts`,
-`src/store/AppStore.tsx`, `src/store/FoodStore.tsx`) and a migration
-(`020_restrict_rls_auto_enable.sql`). Do not merge blindly, but do not lose it — the web fixes
-it contains are for bugs that are **live in production right now** (see Phase 2).
+**`SyncFailurePolicy` still treats the whole 4xx range as permanent** except 408/425/429.
+`OfflineStore.swift:23` reads `if (400..<500).contains(statusCode) { return .permanent }`. So a
+**401 from an expired JWT quarantines and discards the write** rather than refreshing the token and
+retrying. That is silent data loss, it has been open since the handoff, and it now has a numbered
+home at 2.8.
 
-### Context that is expensive to rediscover
+**`log_structured_meal` (migration 009) is still create-only.** It short-circuits on a known
+`client_idempotency_key` and returns before any replace or insert. The only `update` inside it
+writes computed totals during creation; there is no path that edits an existing meal. `d92a591`
+works around this client-side by varying the key on reopen. Do not assume the RPC can update.
 
-- **`log_structured_meal` (migration 009) is CREATE-ONLY.** It short-circuits on a known
-  `client_idempotency_key` and returns before any replace or insert. `d92a591` works around this
-  client-side. Do not assume the RPC can update anything.
-- **`SyncFailurePolicy` treats all of 4xx as permanent** except 408/425/429. A **401 from an
-  expired JWT therefore quarantines and discards the write** — silent data loss. 401 should
-  refresh the token and retry. Reconsider 403 too.
-- A verification meal named **"Codex server signoff"** is sitting in the Breakfast slot of the
-  live account and needs deleting.
-- **RIR is fabricated at both capture points**: `TrainingProgramView.swift:1424`
-  (`rir: skipped ? nil : 2`) and `AppSession.swift:1605` (`rir: 2`).
-- **`session_mode` appears in exactly one Swift file** (the model, uncommitted). Nothing reads it.
-- **`Features/Onboarding` contains no "skip" string anywhere.**
+**`LazyVStack` has bitten this codebase twice** — the training month grid and the nutrition page,
+where a lazy stack never materialised the cards below the fold and content was unreachable by
+scrolling. Both were made eager. Check before adding a third.
+
+**Never surface `Swift.CancellationError` to a user.** Cancel stale work deliberately; do not show
+that error.
+
+---
 
 ### COMMERCIAL RULE — SUPERSEDED 26 Aug
 
@@ -157,7 +156,7 @@ currently gated on `settings.addons["newbie_mode"] && (slug == "transition" || s
 which hides it from exactly the advanced users who skipped. Gate it on "no generated plan exists".
 
 ### 1.5 Exercise-kind-aware logging
-244 typed movements exist. Do not show barbell-rep inputs for everything. Strength: sets/reps/load/RIR.
+332 typed movement definitions, 96 of them selectable exist. Do not show barbell-rep inputs for everything. Strength: sets/reps/load/RIR.
 Bodyweight: sets/reps/assist or added load/RIR. Isometric: duration, optional load. Carry:
 distance or duration + load. Cardio: duration/distance/pace. Mobility: duration or completion.
 Intervals: work/recovery. Circuits: rounds and time.
@@ -221,6 +220,19 @@ with no table filter and no user filter, so every change anywhere in the public 
 client. The reload it triggers is exactly 34 concurrent `async let` queries. This is a credible
 cause of battery drain, network traffic and sluggishness. Filter the subscription to the tables and
 user that matter, and debounce or scope the reload.
+
+### 2.8 401 must refresh and retry, not quarantine
+`SyncFailurePolicy.classify` treats every 4xx except 408/425/429 as permanent, so an expired JWT
+causes the write to be quarantined and dropped. Token expiry after the app sits backgrounded is the
+most ordinary 401 there is and it heals completely on a refresh.
+
+Fix: 401 refreshes the session and retries with bounded backoff. Reconsider 403 as well —
+post-4.4 it should not occur, but discarding user data on one is the wrong failure direction.
+
+Related: a quarantined write is currently **silent**. `quarantine()` records the failure and removes
+the operation with nothing surfaced. The queue no longer jams, which was the fix, but the discarded
+write still vanishes without telling anyone — and the original complaint that started all of this
+was a meal disappearing. A quarantined write needs to be visible.
 
 ### 2.5 Parity matrix
 Build and execute a matrix comparing real behaviour — not screenshots — across: auth and identity,
