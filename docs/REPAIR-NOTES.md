@@ -1039,3 +1039,32 @@ GitHub publication evidence:
 - Red proof: web failed because `mealUndo.ts` did not exist; native failed to compile because `MealComposerUndoBuffer` had no deadline, remaining-seconds API or time-aware restore.
 - Green proof: focused web undo suite 2/2; focused native Meal Composer suite 15/15; complete web suite 562/562; TypeScript/Vite production build transformed 1,176 modules; `git diff --check` passed. The preceding complete native gate remains green at 479/479, with the subsequent changed-area hydration and Meal Composer suites green at 36/36 and 15/15.
 - Physical-device proof for exact source SHA `f9fd70f7020dea72c052d8bcd3f8710f338103af`: the signed iOS build installed and launched `ch.apexperformance.APEX` on `iConstantine Main` as process 1780. The signed watchOS artifact installed at CoreDevice database sequence 1168 and launched `ch.apexperformance.APEX.watchkitapp` on the connected Apple Watch Ultra 3.
+
+## 2026-08-26 — First-run plan creation and induction repair
+
+- Implementation commit: `e6eb97ee3cb53cec9b566d2b08eb98ab3cac7898`
+- Files changed:
+  - `ios/APEXNative/APEX/Core/Engine/TrainingInduction.swift`
+  - `ios/APEXNative/APEX/Core/Networking/SupabaseService.swift`
+  - `ios/APEXNative/APEX/Features/Onboarding/InductionView.swift`
+  - `ios/APEXNative/APEX/Features/Training/TrainingInductionPanel.swift`
+  - `ios/APEXNative/APEX/Resources/{de-CH,de,es,it,ja,pt,ro,th}.lproj/Localizable.strings`
+  - `ios/APEXNative/APEXTests/ManualAndInductionTests.swift`
+  - `src/components/workout/TrainingInductionPanel.tsx`
+  - `src/lib/planBriefing.ts`
+  - `tests/plan-briefing.test.ts`
+- Result: first-run profile creation now supplies the schema-required deterministic profile `id`, uses the authenticated account UUID for `id` and `user_id`, and does not start a beta trial. The native induction offers 2–7 days, presents the shared high-frequency recovery advisory for 6/7 days, adds a native vector cue above every question, gives health concerns an explicit `None` reset, and labels the exit `Skip Questionnaire`. Native and web briefing energy presets now persist real goal changes; emergency copy no longer hard-codes Switzerland's 144 number. No existing briefing image asset was changed.
+- Tests added/extended:
+  - `testFirstRunProfileInsertOwnsAStablePrimaryKeyWithoutStartingATrial`
+  - `testFirstRunQuestionnaireOffersEveryApprovedDayAndAnExplicitNoConcernsChoice`
+  - briefing safety and actionable energy-choice regressions on native and web
+- Verification:
+  - `npm test`: 562 passed, 0 failed.
+  - `xcodebuild ... -only-testing:APEXTests`: 485 passed, 0 failed; `TEST SUCCEEDED`.
+  - Focused onboarding UI flow: 1 passed, 0 failed (skip, 7-day warning, plan installation, briefing, and Simple Mode landing).
+  - `npm run build`: passed; 1,176 modules transformed.
+  - `git diff --check`: passed.
+  - Signed generic iOS build from `e6eb97ee3c`: `BUILD SUCCEEDED`; embedded `APEX Water.app` validation passed.
+- Physical installs from the exact implementation SHA:
+  - iPhone 15 Pro Max `iConstantine Main`: `ch.apexperformance.APEX` installed and launched successfully.
+  - Apple Watch Ultra 3 `Constantin's Apple Watch`: `ch.apexperformance.APEX.watchkitapp` installed successfully and confirmed by device app inventory. Command-line foreground launch timed out while enabling the beta developer disk image, so no launch-success claim is made for that step.
