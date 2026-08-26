@@ -18,6 +18,7 @@ final class FoodHydrationTests: XCTestCase {
         kind: HydrationKind = .water,
         palette: String = "aqua",
         source: HydrationSource = .iPhone,
+        occurredAt: String = "2026-08-25T08:00:00Z",
         updatedAt: String = "2026-08-25T08:00:00Z"
     ) -> HydrationEvent {
         HydrationEvent(
@@ -25,7 +26,7 @@ final class FoodHydrationTests: XCTestCase {
             userID: ownerID ?? hydrationOwner,
             clientIdempotencyKey: key,
             localDate: date,
-            occurredAt: "2026-08-25T08:00:00Z",
+            occurredAt: occurredAt,
             amountML: amountML,
             kind: kind,
             paletteToken: palette,
@@ -93,6 +94,32 @@ final class FoodHydrationTests: XCTestCase {
         XCTAssertEqual(resolved.foodML, 420)
         XCTAssertEqual(resolved.totalML, 1_040)
         XCTAssertEqual(resolved.composition.map(\.kind), [.water, .coffee, .external, .food])
+    }
+
+    func testHydrationCompositionPlacesTheMostRecentlyAddedLiquidAtTheTop() {
+        let resolved = HydrationLedger.resolve(
+            ownerID: hydrationOwner,
+            date: "2026-08-25",
+            events: [
+                hydrationEvent(
+                    key: "iphone:water",
+                    amountML: 900,
+                    occurredAt: "2026-08-25T08:00:00Z"
+                ),
+                hydrationEvent(
+                    key: "iphone:coffee",
+                    amountML: 100,
+                    kind: .coffee,
+                    palette: "espresso",
+                    occurredAt: "2026-08-25T09:00:00Z",
+                    updatedAt: "2026-08-25T09:00:00Z"
+                ),
+            ],
+            legacyDrinkLiters: 0
+        )
+
+        XCTAssertEqual(resolved.composition.map(\.kind), [.coffee, .water])
+        XCTAssertEqual(resolved.composition.map(\.milliliters), [100, 900])
     }
 
     func testHydrationMergeIsIdempotentPerAccountAndKey() {

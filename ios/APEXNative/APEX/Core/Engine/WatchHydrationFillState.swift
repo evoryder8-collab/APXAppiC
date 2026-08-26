@@ -34,7 +34,7 @@ struct HydrationCompositionStop: Equatable, Sendable {
 }
 
 enum HydrationCompositionLayout {
-    private static let maximumTransitionHalfWidth = 0.002
+    private static let maximumTransitionHalfWidth = 0.0023
 
     static func stops(
         for bands: [HydrationCompositionBand],
@@ -77,8 +77,8 @@ enum HydrationCompositionLayout {
             let nextShare = Double(next.milliliters) / total
             let transitionHalfWidth = min(
                 maximumTransitionHalfWidth,
-                currentShare * 0.08,
-                nextShare * 0.08
+                currentShare * 0.092,
+                nextShare * 0.092
             )
 
             stops.append(

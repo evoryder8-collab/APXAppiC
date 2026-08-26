@@ -706,29 +706,72 @@ enum HydrationLedger {
             let palette: String
             let icon: String
         }
-        var totals: [BandKey: Int] = [:]
+        struct BandAggregate {
+            var milliliters: Int
+            var latestOccurredAt: String
+            var latestCreatedAt: String
+            var latestID: String
+        }
+        var totals: [BandKey: BandAggregate] = [:]
         for fact in facts {
             let key = BandKey(kind: fact.kind, palette: fact.paletteToken, icon: fact.iconToken)
-            totals[key, default: 0] += fact.amountML
+            let factOrder = (fact.occurredAt, fact.createdAt, fact.id.uuidString)
+            if var aggregate = totals[key] {
+                aggregate.milliliters += fact.amountML
+                let aggregateOrder = (
+                    aggregate.latestOccurredAt,
+                    aggregate.latestCreatedAt,
+                    aggregate.latestID
+                )
+                if factOrder > aggregateOrder {
+                    aggregate.latestOccurredAt = fact.occurredAt
+                    aggregate.latestCreatedAt = fact.createdAt
+                    aggregate.latestID = fact.id.uuidString
+                }
+                totals[key] = aggregate
+            } else {
+                totals[key] = BandAggregate(
+                    milliliters: fact.amountML,
+                    latestOccurredAt: fact.occurredAt,
+                    latestCreatedAt: fact.createdAt,
+                    latestID: fact.id.uuidString
+                )
+            }
         }
         if legacyML > 0 {
-            totals[BandKey(kind: .legacy, palette: "legacy", icon: "drop.circle")] = legacyML
+            totals[BandKey(kind: .legacy, palette: "legacy", icon: "drop.circle")] = BandAggregate(
+                milliliters: legacyML,
+                latestOccurredAt: "",
+                latestCreatedAt: "",
+                latestID: ""
+            )
         }
 
         let order: [HydrationKind: Int] = [
             .water: 0, .coffee: 1, .tea: 2, .juice: 3, .shake: 4,
             .other: 5, .external: 6, .food: 7, .legacy: 8,
         ]
-        let composition = totals.map { key, value in
+        let composition = totals.sorted { lhs, rhs in
+            let lhsOrder = (
+                lhs.value.latestOccurredAt,
+                lhs.value.latestCreatedAt,
+                lhs.value.latestID
+            )
+            let rhsOrder = (
+                rhs.value.latestOccurredAt,
+                rhs.value.latestCreatedAt,
+                rhs.value.latestID
+            )
+            if lhsOrder != rhsOrder { return lhsOrder > rhsOrder }
+            return (order[lhs.key.kind] ?? Int.max, lhs.key.palette, lhs.key.icon)
+                < (order[rhs.key.kind] ?? Int.max, rhs.key.palette, rhs.key.icon)
+        }.map { key, aggregate in
             HydrationCompositionBand(
                 kind: key.kind,
                 paletteToken: key.palette,
                 iconToken: key.icon,
-                milliliters: value
+                milliliters: aggregate.milliliters
             )
-        }.sorted {
-            (order[$0.kind] ?? Int.max, $0.paletteToken, $0.iconToken)
-                < (order[$1.kind] ?? Int.max, $1.paletteToken, $1.iconToken)
         }
         let foodML = composition.filter { $0.kind == .food }.reduce(0) { $0 + $1.milliliters }
         let drinkML = composition.filter { $0.kind != .food }.reduce(0) { $0 + $1.milliliters }

@@ -214,6 +214,30 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual(last.location, 1)
     }
 
+    func testCompositionTransitionIsFifteenPercentSofterWithoutMovingItsBoundary() throws {
+        let bands = [
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 900
+            ),
+            HydrationCompositionBand(
+                kind: .coffee,
+                paletteToken: "espresso",
+                iconToken: "cup.and.saucer.fill",
+                milliliters: 100
+            ),
+        ]
+
+        let stops = HydrationCompositionLayout.stops(for: bands)
+        let waterEnd = try XCTUnwrap(stops.last { $0.paletteToken == "aqua" })
+        let coffeeStart = try XCTUnwrap(stops.first { $0.paletteToken == "espresso" })
+
+        XCTAssertEqual((waterEnd.location + coffeeStart.location) / 2, 0.9, accuracy: 0.000_001)
+        XCTAssertEqual(coffeeStart.location - waterEnd.location, 0.0046, accuracy: 0.000_001)
+    }
+
     func testCompositionStopsMapExactProportionsIntoOnlyTheFilledSilhouette() throws {
         let bands = [
             HydrationCompositionBand(
