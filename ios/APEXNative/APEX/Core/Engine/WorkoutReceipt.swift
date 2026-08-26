@@ -33,6 +33,13 @@ enum WorkoutReceipt {
         let logIDs: [UUID]
     }
 
+    /// A resting compact receipt has no destructive tray in its hierarchy.
+    /// The tray exists only during or after a deliberate leftward reveal;
+    /// expanded cards use their separate compact corner action.
+    static func collapsedDeleteTrayVisible(isExpanded: Bool, revealOffset: CGFloat) -> Bool {
+        !isExpanded && revealOffset < 0
+    }
+
     /// Resolve deletion from the authenticated owner rather than trusting the
     /// id supplied by a card. Independently owner-check every child set row.
     static func deletionPlan(

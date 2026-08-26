@@ -13,6 +13,15 @@ export interface CompletedWorkoutDeletionPlan {
 }
 
 /**
+ * The destructive tray is not part of a resting compact card. Render it only
+ * while a deliberate leftward reveal is in progress or has settled open.
+ * Expanded cards own their separate, compact corner action.
+ */
+export function collapsedWorkoutDeleteTrayVisible(isExpanded: boolean, revealOffset: number): boolean {
+  return !isExpanded && revealOffset < 0
+}
+
+/**
  * A destructive action must resolve from the signed-in owner, never merely
  * from a session id supplied by the interface. Set rows are independently
  * owner-checked so a malformed foreign row cannot be deleted with the workout.

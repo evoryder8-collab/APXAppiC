@@ -1,6 +1,10 @@
 import { useMemo, useRef, useState, type PointerEvent as ReactPointerEvent } from 'react'
 import { loadedStrengthVolume, workoutLogFactSummary } from '../../lib/exerciseLogging'
-import { completedWorkoutDeletionPlan, completedWorkoutHistoryForDate } from '../../lib/completedWorkoutHistory'
+import {
+  collapsedWorkoutDeleteTrayVisible,
+  completedWorkoutDeletionPlan,
+  completedWorkoutHistoryForDate,
+} from '../../lib/completedWorkoutHistory'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
 import type { Accent } from '../../lib/theme'
 import { ACCENTS } from '../../lib/theme'
@@ -115,7 +119,7 @@ export function CompletedWorkoutHistoryCards({
           : revealedSessionId === session.id ? -88 : 0
         return (
           <article key={session.id} className="relative overflow-hidden rounded-[26px] border border-emerald-100/90 bg-gradient-to-br from-emerald-50/95 via-white/92 to-cyan-50/85 shadow-[0_20px_52px_-38px_rgba(5,150,105,.8)]">
-            {!open && (
+            {collapsedWorkoutDeleteTrayVisible(open, swipeOffset) && (
               <button
                 type="button"
                 onClick={() => setPendingDelete({ id: session.id, title })}

@@ -344,9 +344,13 @@ struct CompletedWorkoutHistoryCards: View {
         let logs = WorkoutLogOrder.performedOrder(session.data, sessionID: item.id)
         let summary = WorkoutReceipt.summarize(logs)
         let time = item.session.completedAt.flatMap(Self.timeText)
+        let currentRevealOffset = revealOffset(for: item.id)
 
         return ZStack(alignment: .trailing) {
-            if !isExpanded {
+            if WorkoutReceipt.collapsedDeleteTrayVisible(
+                isExpanded: isExpanded,
+                revealOffset: currentRevealOffset
+            ) {
                 Button {
                     pendingDeletion = item
                 } label: {
@@ -497,7 +501,7 @@ struct CompletedWorkoutHistoryCards: View {
                     .allowsHitTesting(false)
             }
         }
-        .offset(x: isExpanded ? 0 : revealOffset(for: item.id))
+        .offset(x: isExpanded ? 0 : currentRevealOffset)
         }
         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
         .simultaneousGesture(

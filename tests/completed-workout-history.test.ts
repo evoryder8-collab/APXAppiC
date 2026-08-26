@@ -2,7 +2,11 @@ import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
 import { EMPTY_DATA, type AppData, type WorkoutLog, type WorkoutSession } from '../src/lib/types.ts'
-import { completedWorkoutDeletionPlan, completedWorkoutHistoryForDate } from '../src/lib/completedWorkoutHistory.ts'
+import {
+  collapsedWorkoutDeleteTrayVisible,
+  completedWorkoutDeletionPlan,
+  completedWorkoutHistoryForDate,
+} from '../src/lib/completedWorkoutHistory.ts'
 import { manualWorkoutNotes } from '../src/lib/manualWorkout.ts'
 
 function session(overrides: Partial<WorkoutSession> & Pick<WorkoutSession, 'id' | 'date' | 'program_day_id'>): WorkoutSession {
@@ -115,11 +119,19 @@ test('deleting a finished workout targets the owned session and all of its owned
   assert.equal(completedWorkoutDeletionPlan(data, 'foreign'), null)
 })
 
+test('a collapsed workout delete tray does not exist until a deliberate left swipe reveals it', () => {
+  assert.equal(collapsedWorkoutDeleteTrayVisible(false, 0), false)
+  assert.equal(collapsedWorkoutDeleteTrayVisible(false, 18), false)
+  assert.equal(collapsedWorkoutDeleteTrayVisible(false, -1), true)
+  assert.equal(collapsedWorkoutDeleteTrayVisible(true, -88), false)
+})
+
 test('expanded finished-workout cards show the receipt inline with one edit action and confirmed deletion', () => {
   const cards = readFileSync(new URL('../src/components/workout/CompletedWorkoutHistoryCards.tsx', import.meta.url), 'utf8')
   assert.match(cards, /workoutLogFactSummary/)
   assert.match(cards, /Delete this finished workout\?/)
   assert.match(cards, /onPointerDown/)
+  assert.match(cards, /collapsedWorkoutDeleteTrayVisible\(open, swipeOffset\)/)
   assert.match(cards, />\{t\('Edit receipt'\)\}</)
   assert.doesNotMatch(cards, /View & edit receipt|Edit workout structure/)
 })

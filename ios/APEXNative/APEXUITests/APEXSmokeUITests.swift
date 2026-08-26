@@ -243,6 +243,34 @@ final class APEXSmokeUITests: XCTestCase {
         capture("simple-bespoke-main-workout")
     }
 
+    func testFinishedWorkoutDeletionIsHiddenAtRestAndMovesIntoExpandedCard() {
+        let app = configuredApp()
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        tapClearOfDock(simpleMode)
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) { syncAlert.buttons["OK"].tap() }
+
+        let card = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND NOT identifier BEGINSWITH %@",
+                "completed-workout-", "completed-workout-delete-"
+            )
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(card, in: app, attempts: 12))
+
+        let collapsedDelete = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "completed-workout-delete-")
+        ).firstMatch
+        XCTAssertFalse(collapsedDelete.exists, "a resting receipt must not contain the red delete tray")
+
+        tapClearOfDock(card)
+        XCTAssertTrue(app.buttons["Delete workout"].waitForExistence(timeout: 2))
+        XCTAssertFalse(collapsedDelete.exists, "expanded content uses its compact corner action, not the tray")
+    }
+
     func testMorningCheckAcceptsWeightWithoutForcingASleepScore() {
         let app = configuredApp()
         app.launch()

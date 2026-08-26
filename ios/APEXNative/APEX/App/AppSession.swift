@@ -157,6 +157,10 @@ final class AppSession {
                 data.settings = settings
             }
             selectedPersona = .constantine
+            if let debugProfile = data.profile {
+                EntitlementStore.shared.prepareForAccount(debugProfile.userID)
+                EntitlementStore.shared.resolve(profile: debugProfile)
+            }
             route = .portal
             return
         }

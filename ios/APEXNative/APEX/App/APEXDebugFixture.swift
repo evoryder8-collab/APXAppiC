@@ -34,7 +34,8 @@ enum APEXDebugFixture {
             seedVersion: 1,
             calibrationK: 1,
             calibrationHistory: [],
-            updatedAt: now
+            updatedAt: now,
+            betaCodeRedeemed: true
         )
         let settings = UserSettings(
             userID: userID,

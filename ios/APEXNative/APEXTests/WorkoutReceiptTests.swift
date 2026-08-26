@@ -205,10 +205,18 @@ final class WorkoutReceiptTests: XCTestCase {
 
         XCTAssertTrue(source.contains("ExerciseLogging.factSummary(log)"))
         XCTAssertTrue(source.contains("DragGesture(minimumDistance: 16)"))
+        XCTAssertTrue(source.contains("WorkoutReceipt.collapsedDeleteTrayVisible"))
         XCTAssertTrue(source.contains("Delete this finished workout?"))
         XCTAssertTrue(source.contains("Text(language.text(\"Edit receipt\"))"))
         XCTAssertFalse(source.contains("View & edit receipt"))
         XCTAssertFalse(source.contains("Text(language.text(\"Edit workout\"))"))
+    }
+
+    func testCollapsedDeleteTrayRequiresANegativeSwipeOffsetAndNeverReplacesExpandedContent() {
+        XCTAssertFalse(WorkoutReceipt.collapsedDeleteTrayVisible(isExpanded: false, revealOffset: 0))
+        XCTAssertFalse(WorkoutReceipt.collapsedDeleteTrayVisible(isExpanded: false, revealOffset: 18))
+        XCTAssertTrue(WorkoutReceipt.collapsedDeleteTrayVisible(isExpanded: false, revealOffset: -1))
+        XCTAssertFalse(WorkoutReceipt.collapsedDeleteTrayVisible(isExpanded: true, revealOffset: -82))
     }
 
     func testGroupingKeepsThePerformedOrder() {
