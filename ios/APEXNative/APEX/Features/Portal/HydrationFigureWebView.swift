@@ -59,6 +59,7 @@ struct HydrationFigureWebView: UIViewRepresentable {
         view.backgroundColor = .clear
         view.scrollView.backgroundColor = .clear
         view.scrollView.isScrollEnabled = false
+        view.isUserInteractionEnabled = false
         view.navigationDelegate = context.coordinator
         context.coordinator.webView = view
         loadAsset(in: view, coordinator: context.coordinator)

@@ -69,6 +69,26 @@ final class HydrationGaugeTests: XCTestCase {
         XCTAssertEqual(583.6 / 1015.0, 0.5750, accuracy: 0.0005, "male figure")
         XCTAssertEqual(568.0 / 1015.0, 0.5596, accuracy: 0.0005, "female figure")
     }
+
+    func testQuickAddFigureCannotBlockTheCustomFieldAndDisabledActionStaysReadable() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Portal/SimpleHomeView.swift"))
+
+        XCTAssertTrue(
+            source.contains(".allowsHitTesting(false) // hydration gauge is presentation only"),
+            "the transparent figure renderer must never intercept taps below its visual bounds"
+        )
+        XCTAssertTrue(
+            source.contains(".onTapGesture { customIsFocused = true }"),
+            "the whole custom-amount control must focus immediately, not only a narrow text glyph"
+        )
+        XCTAssertFalse(
+            source.contains(".opacity(customAmountML == nil ? 0.45 : 1)"),
+            "disabled Add copy needs a deliberate high-contrast palette rather than whole-control fading"
+        )
+    }
 }
 
 final class WatchHydrationFillStateTests: XCTestCase {

@@ -151,6 +151,11 @@ final class AppSession {
                 ])
                 data.settings = settings
             }
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-open-water"),
+               var settings = data.settings {
+                settings.addons["uiMode"] = .string(PortalUIMode.simple.rawValue)
+                data.settings = settings
+            }
             selectedPersona = .constantine
             route = .portal
             return

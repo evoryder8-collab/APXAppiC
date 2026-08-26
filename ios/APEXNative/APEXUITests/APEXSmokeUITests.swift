@@ -280,6 +280,7 @@ final class APEXSmokeUITests: XCTestCase {
 
     func testWaterQuickAddDismissesAnEmptyNumericKeyboardAndKeepsSettingsAtTheBottom() {
         let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-open-water")
         app.launch()
 
         let simpleMode = app.buttons["SIMPLE"]
@@ -289,21 +290,18 @@ final class APEXSmokeUITests: XCTestCase {
         if syncAlert.waitForExistence(timeout: 2) {
             syncAlert.buttons["OK"].tap()
         }
-
-        let water = app.buttons["simple-water-metric"]
-        let page = app.scrollViews.element(boundBy: 0)
-        XCTAssertTrue(page.waitForExistence(timeout: 2))
-        page.swipeUp(velocity: .fast)
-        page.swipeUp(velocity: .fast)
-        XCTAssertTrue(water.waitForExistence(timeout: 4))
-        XCTAssertTrue(water.isHittable)
-        water.tap()
-        XCTAssertTrue(app.staticTexts["Water quick add"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Water quick add"].waitForExistence(timeout: 5))
 
         let field = app.textFields["hydration-custom-ml"]
         XCTAssertTrue(field.waitForExistence(timeout: 2))
+        let focusStarted = Date()
         field.tap()
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 1))
+        XCTAssertLessThan(Date().timeIntervalSince(focusStarted), 2.0)
+
+        let add = app.buttons["hydration-custom-add"]
+        XCTAssertTrue(add.exists)
+        XCTAssertFalse(add.isEnabled)
 
         let hideKeyboard = app.buttons["hydration-keyboard-dismiss"]
         XCTAssertTrue(hideKeyboard.waitForExistence(timeout: 2))

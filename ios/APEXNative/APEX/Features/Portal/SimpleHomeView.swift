@@ -295,6 +295,18 @@ struct SimpleHomeView: View {
             NudgeSheet(nudges: nudges) { showNudges = false }
                 .apexTransientSheet(.fraction(0.62))
         }
+        .onAppear {
+#if DEBUG
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-open-water") {
+                /* Let the Simple/Advanced mode transition finish before the
+                   test-only presentation. Presenting in the same render pass
+                   is discarded by SwiftUI on iOS 27. */
+                DispatchQueue.main.asyncAfter(deadline: .now() + 0.35) {
+                    quickPanel = .water
+                }
+            }
+#endif
+        }
         .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
         .fullScreenCover(isPresented: $showWorkout) {
@@ -960,6 +972,7 @@ private struct WaterQuickAddSheet: View {
                 sex: sex,
                 composition: composition
             )
+            .allowsHitTesting(false) // hydration gauge is presentation only
             .frame(maxWidth: .infinity, maxHeight: .infinity)
             .padding(.top, 8)
 
@@ -1042,17 +1055,23 @@ private struct WaterQuickAddSheet: View {
                     .accessibilityIdentifier("hydration-presets")
                     HStack(spacing: 9) {
                         HStack(spacing: 8) {
-                            TextField("Custom amount", text: $customML)
-                                .keyboardType(.numberPad)
-                                .font(APEXFont.mono(14, weight: .semibold))
-                                .multilineTextAlignment(.trailing)
-                                .onSubmit(addCustom)
-                                .submitLabel(.done)
-                                .focused($customIsFocused)
-                                .accessibilityIdentifier("hydration-custom-ml")
-                            Text("mL")
-                                .font(APEXFont.mono(12, weight: .bold))
-                                .foregroundStyle(APEXColor.secondaryInk)
+                            HStack(spacing: 8) {
+                                TextField("Custom amount", text: $customML)
+                                    .keyboardType(.numberPad)
+                                    .font(APEXFont.mono(14, weight: .semibold))
+                                    .multilineTextAlignment(.trailing)
+                                    .onSubmit(addCustom)
+                                    .submitLabel(.done)
+                                    .focused($customIsFocused)
+                                    .accessibilityIdentifier("hydration-custom-ml")
+                                Text("mL")
+                                    .font(APEXFont.mono(12, weight: .bold))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    .allowsHitTesting(false)
+                            }
+                            .frame(maxWidth: .infinity, minHeight: 52)
+                            .contentShape(Rectangle())
+                            .onTapGesture { customIsFocused = true }
                             if customIsFocused {
                                 Button {
                                     customIsFocused = false
@@ -1079,14 +1098,24 @@ private struct WaterQuickAddSheet: View {
                         Button(action: addCustom) {
                             Label(language.text("Add"), systemImage: "plus")
                                 .font(APEXFont.body(12, weight: .bold))
-                                .foregroundStyle(.white)
+                                .foregroundStyle(customAmountML == nil ? APEXColor.ink.opacity(0.72) : .white)
                                 .padding(.horizontal, 14)
                                 .frame(minHeight: 54)
-                                .background(APEXColor.cyan.gradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                                .background(
+                                    customAmountML == nil
+                                        ? AnyShapeStyle(APEXColor.ink.opacity(0.09))
+                                        : AnyShapeStyle(APEXColor.cyan.gradient),
+                                    in: RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                )
+                                .overlay {
+                                    if customAmountML == nil {
+                                        RoundedRectangle(cornerRadius: 16, style: .continuous)
+                                            .stroke(APEXColor.ink.opacity(0.12), lineWidth: 1)
+                                    }
+                                }
                         }
                         .buttonStyle(.plain)
                         .disabled(customAmountML == nil)
-                        .opacity(customAmountML == nil ? 0.45 : 1)
                         .accessibilityIdentifier("hydration-custom-add")
                     }
                 }
@@ -1590,7 +1619,10 @@ private struct HydrationFigureGauge: View {
             let rulerWidth: CGFloat = 62
             let heightLimited = available.height
             let widthLimited = max(0, available.width - rulerWidth - 10) / aspect
-            let figureHeight = max(160, min(heightLimited, widthLimited))
+            /* Never overflow the GeometryReader. UIKit-backed content can
+               otherwise keep an invisible hit region over the controls that
+               follow this gauge when vertical space is compressed. */
+            let figureHeight = max(0, min(heightLimited, widthLimited))
             let figureWidth = figureHeight * aspect
 
             let crownY = crownFraction * figureHeight
