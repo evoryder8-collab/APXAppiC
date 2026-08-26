@@ -132,9 +132,7 @@ struct APEXTopBar: View {
        empty bell trains people to stop looking at it. */
     var nudges: NudgeCenter?
     var onOpenNudges: (() -> Void)?
-    /* The diamond is the way back to the offer while a trial is running. It is
-       read from the shared store rather than passed in, so no screen can forget
-       to show it and quietly strand someone mid-trial with no way to subscribe. */
+    /// Retained as an API hook for screens that offer membership management.
     var onOpenPaywall: (() -> Void)?
 
     var body: some View {
@@ -165,24 +163,6 @@ struct APEXTopBar: View {
                     .padding(.horizontal, 13)
                     .padding(.vertical, 9)
                     .background(.white.opacity(0.55), in: Capsule())
-            }
-            if let days = EntitlementStore.shared.trialDaysRemaining, let onOpenPaywall {
-                Button(action: onOpenPaywall) {
-                    Image(systemName: "diamond.fill")
-                        .font(.system(size: 16, weight: .semibold))
-                        .foregroundStyle(
-                            LinearGradient(
-                                colors: [APEXColor.violet, APEXColor.cyan],
-                                startPoint: .topLeading,
-                                endPoint: .bottomTrailing
-                            )
-                        )
-                        .frame(width: 38, height: 40)
-                }
-                .buttonStyle(.plain)
-                .accessibilityLabel(
-                    LanguageState.shared.format("%d days left in your trial", days)
-                )
             }
             if let nudges, !nudges.pending.isEmpty {
                 Button(action: { onOpenNudges?() }) {

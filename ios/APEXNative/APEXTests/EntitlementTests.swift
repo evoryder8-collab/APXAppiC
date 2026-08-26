@@ -12,36 +12,34 @@ final class EntitlementTests: XCTestCase {
         // so a bespoke account is never shown a paywall by accident.
         let access = Entitlement.access(
             foundingMember: true,
-            developerCodeRedeemed: false,
+            betaCodeRedeemed: false,
             subscribedTier: nil,
-            subscriptionExpires: nil,
-            trialStarted: date(daysAgo: 400)
+            subscriptionExpires: nil
         )
         XCTAssertEqual(access, .founding)
         XCTAssertTrue(Entitlement.isUnlocked(access))
     }
 
-    func testTheTrialRunsForOneTrainingWeekThenAsks() {
-        func remaining(_ daysAgo: Int) -> Entitlement.Access {
-            Entitlement.access(
-                foundingMember: false, developerCodeRedeemed: false,
-                subscribedTier: nil, subscriptionExpires: nil,
-                trialStarted: date(daysAgo: daysAgo))
-        }
-        XCTAssertEqual(remaining(0), .trial(daysRemaining: 7))
-        XCTAssertEqual(remaining(6), .trial(daysRemaining: 1))
-        XCTAssertEqual(remaining(7), .expired)
-        XCTAssertEqual(remaining(90), .expired)
+    func testBetaDoesNotGrantAnAutomaticTrial() {
+        let access = Entitlement.access(
+            foundingMember: false,
+            betaCodeRedeemed: false,
+            subscribedTier: nil,
+            subscriptionExpires: nil
+        )
+        XCTAssertEqual(access, .locked)
+        XCTAssertFalse(Entitlement.isUnlocked(access))
     }
 
-    func testAnUnopenedAccountHasNotBurnedItsTrial() {
-        // The clock starts on first open, not on creation, so an account made
-        // in advance does not expire sitting unopened.
+    func testAClaimedBetaCodeUnlocksOnlyThroughTheAccountProfile() {
         XCTAssertEqual(
             Entitlement.access(
-                foundingMember: false, developerCodeRedeemed: false,
-                subscribedTier: nil, subscriptionExpires: nil, trialStarted: nil),
-            .trial(daysRemaining: 7)
+                foundingMember: false,
+                betaCodeRedeemed: true,
+                subscribedTier: nil,
+                subscriptionExpires: nil
+            ),
+            .beta
         )
     }
 
@@ -50,17 +48,16 @@ final class EntitlementTests: XCTestCase {
         // never lock out someone who has paid.
         XCTAssertEqual(
             Entitlement.access(
-                foundingMember: false, developerCodeRedeemed: false,
-                subscribedTier: .premium, subscriptionExpires: nil, trialStarted: nil),
+                foundingMember: false, betaCodeRedeemed: false,
+                subscribedTier: .premium, subscriptionExpires: nil),
             .subscribed(.premium)
         )
         // An expiry in the past does end access.
         XCTAssertEqual(
             Entitlement.access(
-                foundingMember: false, developerCodeRedeemed: false,
-                subscribedTier: .premium, subscriptionExpires: date(daysAgo: 1),
-                trialStarted: date(daysAgo: 400)),
-            .expired
+                foundingMember: false, betaCodeRedeemed: false,
+                subscribedTier: .premium, subscriptionExpires: date(daysAgo: 1)),
+            .locked
         )
     }
 
@@ -89,9 +86,9 @@ final class EntitlementTests: XCTestCase {
             Entitlement.CoachFeature.allCases.contains { $0.rawValue.contains("meal") },
             "meal lists must stay available to individual accounts"
         )
-        // The trial shows everything, including the coach tools.
-        XCTAssertTrue(Entitlement.allows(.planAuthoring, access: .trial(daysRemaining: 3)))
-        XCTAssertFalse(Entitlement.allows(.planAuthoring, access: .expired))
+        // A claimed beta account is deliberately full-access during beta.
+        XCTAssertTrue(Entitlement.allows(.planAuthoring, access: .beta))
+        XCTAssertFalse(Entitlement.allows(.planAuthoring, access: .locked))
     }
 
     @MainActor
@@ -106,12 +103,75 @@ final class EntitlementTests: XCTestCase {
         let profilelessAccount = UUID()
         store.prepareForAccount(profilelessAccount)
         XCTAssertEqual(store.resolvedUserID, profilelessAccount)
-        XCTAssertEqual(store.access, .trial(daysRemaining: Entitlement.trialDays))
+        XCTAssertEqual(store.access, .locked)
         XCTAssertNotEqual(store.access, .founding)
 
         store.resetAccount()
         XCTAssertNil(store.resolvedUserID)
-        XCTAssertEqual(store.access, .trial(daysRemaining: Entitlement.trialDays))
+        XCTAssertEqual(store.access, .locked)
+    }
+
+    @MainActor
+    func testHistoricalTrialDataCannotUnlockTheBetaBuild() throws {
+        let store = EntitlementStore()
+        var profile = try XCTUnwrap(APEXDebugFixture.dashboard().profile)
+        profile.foundingMember = false
+        profile.betaCodeRedeemed = false
+        profile.subscriptionTier = nil
+        profile.subscriptionExpiresAt = nil
+        profile.trialStartedAt = Date().ISO8601Format()
+
+        store.resolve(profile: profile)
+
+        XCTAssertEqual(store.access, .locked)
+        XCTAssertFalse(store.isUnlocked)
+    }
+
+    func testBetaAuthorityAndCopyStayServerScoped() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let entitlement = try String(contentsOf: nativeRoot.appending(path: "APEX/Core/Engine/Entitlement.swift"))
+        let store = try String(contentsOf: nativeRoot.appending(path: "APEX/Core/Engine/EntitlementStore.swift"))
+        let session = try String(contentsOf: nativeRoot.appending(path: "APEX/App/AppSession.swift"))
+        let paywall = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Settings/PaywallView.swift"))
+        let auth = try String(contentsOf: nativeRoot.appending(path: "APEX/Features/Auth/EmailAuthView.swift"))
+        let service = try String(contentsOf: nativeRoot.appending(path: "APEX/Core/Networking/SupabaseService.swift"))
+        let migration = try String(contentsOf: nativeRoot
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+            .appending(path: "supabase/migrations/029_account_scoped_beta_entitlements.sql"))
+
+        XCTAssertFalse(entitlement.contains("trialDays"))
+        XCTAssertFalse(entitlement.contains("case trial"))
+        XCTAssertFalse(store.contains("UserDefaults.standard"))
+        XCTAssertFalse(store.contains("developerCodeHash"))
+        XCTAssertFalse(session.contains("profile.trialStartedAt ="))
+        XCTAssertFalse(paywall.contains("days left in your trial"))
+        XCTAssertFalse(paywall.contains("Your trial has ended"))
+        XCTAssertFalse(auth.contains("Seven days, everything unlocked"))
+        XCTAssertTrue(store.contains("betaCodeRedeemed"))
+        XCTAssertTrue(service.contains("let p_code_hash: String"))
+        XCTAssertTrue(service.contains("Params(p_code_hash: hash)"))
+        XCTAssertTrue(migration.contains("beta_code_redeemed"))
+        XCTAssertTrue(migration.contains("protect_profile_beta_entitlement"))
+        XCTAssertTrue(migration.contains("redeem_beta_code"))
+
+        let resourceRoot = nativeRoot.appending(path: "APEX/Resources")
+        let localizedFiles = try FileManager.default.contentsOfDirectory(
+            at: resourceRoot,
+            includingPropertiesForKeys: nil
+        ).map { $0.appending(path: "Localizable.strings") }
+            .filter { FileManager.default.fileExists(atPath: $0.path) }
+        for file in localizedFiles {
+            let text = try String(contentsOf: file)
+            XCTAssertFalse(text.contains("7 days free, then"), file.path)
+            XCTAssertFalse(text.contains("Fourteen days, everything unlocked"), file.path)
+            XCTAssertFalse(text.contains("Start my 14 days"), file.path)
+            XCTAssertFalse(text.contains("Start my 7 days"), file.path)
+            XCTAssertFalse(text.contains("days left in your trial"), file.path)
+            XCTAssertFalse(text.contains("Seven days, everything unlocked"), file.path)
+        }
     }
 
     func testAuthCallbackDropsTheOldAccountBeforeAFallibleDashboardRefresh() throws {
@@ -242,14 +302,15 @@ final class ProfileEntitlementDecodingTests: XCTestCase {
         """
         let profile = try JSONDecoder().decode(Profile.self, from: Data(json.utf8))
         XCTAssertNil(profile.foundingMember)
+        XCTAssertNil(profile.betaCodeRedeemed)
         XCTAssertNil(profile.trialStartedAt)
         // And an unknown flag must not accidentally grant permanent free access.
         XCTAssertEqual(
             Entitlement.access(
                 foundingMember: profile.foundingMember ?? false,
-                developerCodeRedeemed: false,
-                subscribedTier: nil, subscriptionExpires: nil, trialStarted: nil),
-            .trial(daysRemaining: Entitlement.trialDays)
+                betaCodeRedeemed: profile.betaCodeRedeemed ?? false,
+                subscribedTier: nil, subscriptionExpires: nil),
+            .locked
         )
     }
 }

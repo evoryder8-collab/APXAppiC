@@ -9,34 +9,16 @@ final class EntitlementStore {
 
     static let shared = EntitlementStore()
 
-    private(set) var access: Entitlement.Access = .trial(daysRemaining: Entitlement.trialDays)
+    private(set) var access: Entitlement.Access = .locked
     private(set) var resolvedUserID: UUID?
 
     var isUnlocked: Bool { Entitlement.isUnlocked(access) }
-
-    /// Whether to show a countdown. Founding members and subscribers should
-    /// never see one, and neither should someone on their first day.
-    var trialDaysRemaining: Int? {
-        if case .trial(let days) = access { return days }
-        return nil
-    }
 
     func allows(_ feature: Entitlement.CoachFeature) -> Bool {
         Entitlement.allows(feature, access: access)
     }
 
     // MARK: - Beta unlock
-
-    /* The code is compared as a hash so the plain string is not sitting in the
-       binary for anyone who runs `strings` on it. This is a beta convenience,
-       not a security boundary, and it is not treated as one. */
-    private static let developerCodeHash =
-        "1f0a81ad875113b14cdbe6b14df69d4297e6e630feb37136a1b529e4683cabf6"
-    private static let redeemedKey = "apex.entitlement.developerCode"
-
-    var developerCodeRedeemed: Bool {
-        UserDefaults.standard.bool(forKey: Self.redeemedKey)
-    }
 
     /// What happened when a code was entered.
     enum RedeemOutcome: Equatable {
@@ -47,25 +29,12 @@ final class EntitlementStore {
         case unavailable
     }
 
-    /// The developer code, which is mine and unlimited, checked on device.
-    /// Returns whether the code was accepted.
-    @discardableResult
-    func redeem(code: String) -> Bool {
-        guard hash(of: code) == Self.developerCodeHash else { return false }
-        UserDefaults.standard.set(true, forKey: Self.redeemedKey)
-        return true
-    }
-
     /// A shared beta code, which belongs to whichever account claims it first.
     ///
     /// This cannot be decided on the device: a local flag is per install, so
     /// the same code would work again on another phone, or after deleting and
     /// reinstalling. The claim is recorded against the account server side.
     func redeemBeta(code: String, service: SupabaseService) async -> RedeemOutcome {
-        /* The developer code still short-circuits, so my own testing never
-           consumes one of the five. */
-        if redeem(code: code) { return .unlocked }
-
         let result: String
         do {
             result = try await service.redeemBetaCode(hash: hash(of: code))
@@ -74,9 +43,7 @@ final class EntitlementStore {
         }
 
         switch result {
-        case "ok":
-            UserDefaults.standard.set(true, forKey: Self.redeemedKey)
-            return .unlocked
+        case "ok": return .unlocked
         case "already_redeemed": return .alreadyRedeemed
         case "not_signed_in": return .notSignedIn
         default: return .notRecognised
@@ -94,19 +61,16 @@ final class EntitlementStore {
 
     // MARK: - Resolution
 
-    /// Temporary account boundary for the pre-Phase-4 entitlement model. It
-    /// prevents a founding/subscriber decision leaking across sign-ins while
-    /// preserving the existing trial behavior until the server gate replaces
-    /// it atomically.
+    /// Clear the previous account's answer before any fallible network work.
     func prepareForAccount(_ userID: UUID) {
         guard resolvedUserID != userID else { return }
         resolvedUserID = userID
-        access = .trial(daysRemaining: Entitlement.trialDays)
+        access = .locked
     }
 
     func resetAccount() {
         resolvedUserID = nil
-        access = .trial(daysRemaining: Entitlement.trialDays)
+        access = .locked
     }
 
     func resolve(profile: Profile?) {
@@ -114,10 +78,9 @@ final class EntitlementStore {
         prepareForAccount(profile.userID)
         access = Entitlement.access(
             foundingMember: profile.foundingMember ?? false,
-            developerCodeRedeemed: developerCodeRedeemed,
+            betaCodeRedeemed: profile.betaCodeRedeemed ?? false,
             subscribedTier: profile.subscriptionTier.flatMap(Entitlement.Tier.init(rawValue:)),
-            subscriptionExpires: profile.subscriptionExpiresAt.flatMap(Self.parse),
-            trialStarted: profile.trialStartedAt.flatMap(Self.parse)
+            subscriptionExpires: profile.subscriptionExpiresAt.flatMap(Self.parse)
         )
     }
 

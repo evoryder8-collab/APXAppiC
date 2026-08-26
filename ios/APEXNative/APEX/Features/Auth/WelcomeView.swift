@@ -6,8 +6,7 @@ import CryptoKit
 /// open it from the App Store, before any account exists.
 ///
 /// Three ways in and nothing else. A first screen that explains the product at
-/// length is a first screen nobody reads, so the atmosphere does the work and
-/// the trial does the explaining.
+/// length is a first screen nobody reads, so the atmosphere does the work.
 struct WelcomeView: View {
     @Environment(AppSession.self) private var session
     @Environment(\.accessibilityReduceMotion) private var reduceMotion

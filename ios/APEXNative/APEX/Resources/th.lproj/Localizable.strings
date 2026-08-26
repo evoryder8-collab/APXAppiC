@@ -3644,9 +3644,6 @@
 "Save %d%%" = "ประหยัด %d%%";
 "CHF %@" = "CHF %@";
 "%d clients included, then CHF %@ each per month" = "รวมลูกค้า %d คน จากนั้นคนละ CHF %@ ต่อเดือน";
-"%d days left in your trial" = "เหลือช่วงทดลองอีก %d วัน";
-"Your trial has ended" = "ช่วงทดลองสิ้นสุดแล้ว";
-"Your trial has ended." = "ช่วงทดลองสิ้นสุดแล้ว";
 "Adaptive plans built from your own training history" = "แผนที่ปรับตามประวัติการฝึกของคุณเอง";
 "The follow-along player, with pacing and rest built in" = "ตัวเล่นแบบทำตาม พร้อมจังหวะและเวลาพักในตัว";
 "Food, water, supplements and recovery in one day view" = "อาหาร น้ำ อาหารเสริม และการฟื้นตัว ในมุมมองวันเดียว";
@@ -3665,7 +3662,6 @@
 "Founding account. Full access, permanently, with nothing to pay." = "บัญชีผู้ร่วมก่อตั้ง เข้าถึงได้เต็มที่ตลอดไป โดยไม่ต้องจ่าย";
 "Unlocked with a beta code." = "ปลดล็อกด้วยรหัสเบต้า";
 "Subscribed to %@." = "สมัครใช้งาน %@ แล้ว";
-"Trial, %d days left. Everything is unlocked until then." = "ช่วงทดลอง เหลือ %d วัน ทุกอย่างปลดล็อกจนถึงตอนนั้น";
 "Send these to my lock screen" = "ส่งไปที่หน้าจอล็อกของฉัน";
 
 /* First run: welcome, sign in, questionnaire, consent */
@@ -3677,7 +3673,6 @@
 "Apple did not return a usable sign-in. Please try again." = "Apple ไม่ได้ส่งข้อมูลเข้าสู่ระบบที่ใช้ได้ กรุณาลองใหม่";
 "Create your account" = "สร้างบัญชีของคุณ";
 "Welcome back" = "ยินดีต้อนรับกลับมา";
-"Fourteen days, everything unlocked, no card needed." = "สิบสี่วัน ปลดล็อกทุกอย่าง ไม่ต้องใช้บัตร";
 "Sign in with the email and password you already use." = "เข้าสู่ระบบด้วยอีเมลและรหัสผ่านที่คุณใช้อยู่แล้ว";
 "Use at least 6 characters." = "ใช้อย่างน้อย 6 ตัวอักษร";
 "Create account" = "สร้างบัญชี";
@@ -3727,7 +3722,6 @@
 "Allow Health access" = "อนุญาตให้เข้าถึง Health";
 "One quiet reminder in the evening, only on days you are short on protein or have not taken your creatine. Without it, the same reminders wait for you inside the app." = "การเตือนเบา ๆ ครั้งเดียวในตอนเย็น เฉพาะวันที่โปรตีนขาดหรือยังไม่ได้กินครีเอทีน หากไม่อนุญาต การเตือนเดียวกันจะรออยู่ในแอป";
 "Allow reminders" = "อนุญาตการแจ้งเตือน";
-"Start my 14 days" = "เริ่ม 14 วันของฉัน";
 
 /* Interface coverage sweep */
 "1 hour" = "1 ชั่วโมง";
@@ -3992,9 +3986,7 @@
 "This account has already used a beta code." = "บัญชีนี้ใช้รหัสเบต้าไปแล้ว";
 "Sign in first, then enter your code." = "เข้าสู่ระบบก่อน แล้วจึงกรอกรหัส";
 "Could not reach APEX. Try again when you are online." = "ไม่สามารถเชื่อมต่อ APEX ลองใหม่เมื่อออนไลน์";
-"Seven days, everything unlocked, no card needed." = "เจ็ดวัน ปลดล็อกทุกอย่าง ไม่ต้องใช้บัตร";
-"Start my 7 days" = "เริ่ม 7 วันของฉัน";
-"7 days free, then" = "ฟรี 7 วัน จากนั้น";
+"Premium access or a beta code is required." = "ต้องมีสิทธิ์ Premium หรือโค้ดเบต้า";
 "Monthly" = "รายเดือน";
 "Yearly" = "รายปี";
 "ROUND" = "รอบ";

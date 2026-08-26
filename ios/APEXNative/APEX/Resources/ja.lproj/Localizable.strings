@@ -10,7 +10,6 @@
 "Back" = "戻る";
 "Create your account" = "アカウントを作成";
 "Welcome back" = "おかえりなさい";
-"Fourteen days, everything unlocked, no card needed." = "14日間、すべての機能が使えます。カード登録は不要です。";
 "Sign in with the email and password you already use." = "すでにお使いのメールアドレスとパスワードでログインしてください。";
 "Use at least 6 characters." = "6文字以上で入力してください。";
 "Create account" = "アカウント作成";
@@ -43,7 +42,6 @@
 "Allow Health access" = "ヘルスケアへのアクセスを許可";
 "Allow reminders" = "リマインダーを許可";
 "Asked" = "確認済み";
-"Start my 14 days" = "14日間を始める";
 "Reminders" = "リマインダー";
 "Nutrition" = "栄養";
 "Transition Phase" = "移行フェーズ";
@@ -146,8 +144,6 @@
 "Code" = "コード";
 "Redeem" = "適用";
 "That code was not recognised." = "このコードは認識できません。";
-"Your trial has ended" = "体験期間が終了しました";
-"%d days left in your trial" = "体験期間はあと%d日です";
 "Protein is short today" = "今日はタンパク質が不足しています";
 "Creatine not logged" = "クレアチン未記録";
 "It works by staying topped up. Today still counts." = "継続することで効果が出ます。今日もまだ間に合います。";
@@ -234,7 +230,6 @@
 "Low" = "低い";
 "Very low" = "非常に低い";
 "Founding account. Full access, permanently, with nothing to pay." = "創設メンバーのアカウントです。追加費用なしで、すべての機能をずっとご利用いただけます。";
-"Trial, %d days left. Everything is unlocked until then." = "体験期間はあと%d日です。それまではすべての機能をご利用いただけます。";
 "Unlocked with a beta code." = "ベータコードで解除済みです。";
 "Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "購入はApp Storeでの公開に合わせて開始します。それまではベータコードですべて解除できます。";
 
@@ -1416,7 +1411,6 @@
 "Your personal main phase" = "あなた専用のメインフェーズ";
 "Your private performance system." = "あなただけのパフォーマンス システム。";
 "Your 12-week foundation" = "12週間の土台";
-"Your trial has ended." = "体験期間が終了しました。";
 "Your programme is syncing from APEX." = "プログラムをAPEXから同期しています。";
 "What APEX will do" = "APEXがすること";
 "Searching APEX Food Memory" = "APEX Food Memoryを検索中";
@@ -1725,9 +1719,7 @@
 "This account has already used a beta code." = "このアカウントはすでにベータコードを使用しています。";
 "Sign in first, then enter your code." = "先にログインしてから、コードを入力してください。";
 "Could not reach APEX. Try again when you are online." = "APEXに接続できませんでした。オンラインのときにもう一度お試しください。";
-"Seven days, everything unlocked, no card needed." = "7日間、すべての機能が使えます。カード登録は不要です。";
-"Start my 7 days" = "7日間を始める";
-"7 days free, then" = "7日間無料、その後";
+"Premium access or a beta code is required." = "Premiumアクセスまたはベータコードが必要です。";
 "Monthly" = "月額";
 "Yearly" = "年額";
 "ROUND" = "ラウンド";

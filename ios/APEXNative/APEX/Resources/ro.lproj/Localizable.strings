@@ -3644,9 +3644,6 @@
 "Save %d%%" = "Economisești %d%%";
 "CHF %@" = "CHF %@";
 "%d clients included, then CHF %@ each per month" = "%d clienți incluși, apoi CHF %@ pentru fiecare, pe lună";
-"%d days left in your trial" = "Mai ai %d zile de probă";
-"Your trial has ended" = "Perioada de probă s-a încheiat";
-"Your trial has ended." = "Perioada de probă s-a încheiat.";
 "Adaptive plans built from your own training history" = "Planuri adaptive construite din propriul tău istoric de antrenament";
 "The follow-along player, with pacing and rest built in" = "Playerul de urmărit, cu ritm și pauze incluse";
 "Food, water, supplements and recovery in one day view" = "Mâncare, apă, suplimente și recuperare într-o singură zi";
@@ -3665,7 +3662,6 @@
 "Founding account. Full access, permanently, with nothing to pay." = "Cont fondator. Acces complet, permanent, fără nimic de plată.";
 "Unlocked with a beta code." = "Deblocat cu un cod de beta.";
 "Subscribed to %@." = "Abonat la %@.";
-"Trial, %d days left. Everything is unlocked until then." = "Probă, mai ai %d zile. Totul e deblocat până atunci.";
 "Send these to my lock screen" = "Trimite-le pe ecranul de blocare";
 
 /* First run: welcome, sign in, questionnaire, consent */
@@ -3677,7 +3673,6 @@
 "Apple did not return a usable sign-in. Please try again." = "Apple nu a returnat o autentificare utilizabilă. Încearcă din nou.";
 "Create your account" = "Creează-ți contul";
 "Welcome back" = "Bine ai revenit";
-"Fourteen days, everything unlocked, no card needed." = "Paisprezece zile, totul deblocat, fără card.";
 "Sign in with the email and password you already use." = "Intră cu emailul și parola pe care le folosești deja.";
 "Use at least 6 characters." = "Folosește cel puțin 6 caractere.";
 "Create account" = "Creează cont";
@@ -3727,7 +3722,6 @@
 "Allow Health access" = "Permite accesul la Health";
 "One quiet reminder in the evening, only on days you are short on protein or have not taken your creatine. Without it, the same reminders wait for you inside the app." = "Un singur memento discret seara, doar în zilele în care ești sub proteine sau nu ți-ai luat creatina. Fără el, aceleași mementouri te așteaptă în aplicație.";
 "Allow reminders" = "Permite mementourile";
-"Start my 14 days" = "Începe cele 14 zile";
 
 /* Interface coverage sweep */
 "1 hour" = "1 oră";
@@ -3992,9 +3986,7 @@
 "This account has already used a beta code." = "Acest cont a folosit deja un cod beta.";
 "Sign in first, then enter your code." = "Autentifică-te mai întâi, apoi introdu codul.";
 "Could not reach APEX. Try again when you are online." = "Nu s-a putut contacta APEX. Încearcă din nou când ești online.";
-"Seven days, everything unlocked, no card needed." = "Șapte zile, totul deblocat, fără card.";
-"Start my 7 days" = "Începe cele 7 zile";
-"7 days free, then" = "7 zile gratuit, apoi";
+"Premium access or a beta code is required." = "Este necesar acces Premium sau un cod beta.";
 "Monthly" = "Lunar";
 "Yearly" = "Anual";
 "ROUND" = "RUNDĂ";

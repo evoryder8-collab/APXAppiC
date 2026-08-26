@@ -1,6 +1,6 @@
 import SwiftUI
 
-/// The two tiers, shown when the trial ends and whenever someone asks.
+/// The two tiers, shown when an account needs access and whenever someone asks.
 ///
 /// Prices are stated in full, including what the yearly plan actually saves and
 /// what a fourth client costs a coach. A tier sheet that hides the second
@@ -93,15 +93,9 @@ struct PaywallView: View {
             Text(language.text("APEX"))
                 .font(APEXFont.display(30))
                 .tracking(6)
-            if let days = entitlements.trialDaysRemaining {
-                Text(language.format("%d days left in your trial", days))
-                    .font(APEXFont.body(14, weight: .semibold))
-                    .foregroundStyle(APEXColor.amber)
-            } else {
-                Text(language.text("Your trial has ended"))
-                    .font(APEXFont.body(14, weight: .semibold))
-                    .foregroundStyle(APEXColor.amber)
-            }
+            Text(language.text("Premium access or a beta code is required."))
+                .font(APEXFont.body(14, weight: .semibold))
+                .foregroundStyle(APEXColor.amber)
         }
         .padding(.top, 6)
     }
@@ -133,12 +127,6 @@ struct PaywallView: View {
                 }
 
                 VStack(alignment: .leading, spacing: 5) {
-                    /* The trial is the offer, so it leads. Every plan starts
-                       the same way and the price is what happens afterwards. */
-                    Text(language.text("7 days free, then"))
-                        .font(APEXFont.body(11, weight: .semibold))
-                        .foregroundStyle(APEXColor.amber)
-
                     if yearly, let annual = price.yearlyRappen {
                         priceRow(amount: annual, period: language.text("per year"), emphasised: true)
                     } else {
@@ -297,8 +285,16 @@ struct PaywallView: View {
         defer { redeeming = false }
         switch await entitlements.redeemBeta(code: code, service: .shared) {
         case .unlocked:
-            entitlements.resolve(profile: session.profile)
-            onClose?()
+            do {
+                try await session.refreshDashboard()
+                guard entitlements.isUnlocked else {
+                    codeMessage = language.text("APEX could not verify this account's beta access yet. Try again.")
+                    return
+                }
+                onClose?()
+            } catch {
+                codeMessage = language.text("Could not reach APEX. Try again when you are online.")
+            }
         case .alreadyRedeemed:
             codeMessage = language.text("This account has already used a beta code.")
         case .notSignedIn:

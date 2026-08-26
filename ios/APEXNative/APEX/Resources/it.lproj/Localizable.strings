@@ -10,7 +10,6 @@
 "Back" = "Indietro";
 "Create your account" = "Crea il tuo account";
 "Welcome back" = "Bentornato";
-"Fourteen days, everything unlocked, no card needed." = "Quattordici giorni, tutto sbloccato, senza carta.";
 "Sign in with the email and password you already use." = "Accedi con l'email e la password che usi già.";
 "Use at least 6 characters." = "Usa almeno 6 caratteri.";
 "Create account" = "Crea account";
@@ -43,7 +42,6 @@
 "Allow Health access" = "Consenti accesso a Salute";
 "Allow reminders" = "Consenti i promemoria";
 "Asked" = "Richiesto";
-"Start my 14 days" = "Inizia i miei 14 giorni";
 "Reminders" = "Promemoria";
 "Nutrition" = "Nutrizione";
 "Transition Phase" = "Fase di transizione";
@@ -146,8 +144,6 @@
 "Code" = "Codice";
 "Redeem" = "Riscatta";
 "That code was not recognised." = "Codice non riconosciuto.";
-"Your trial has ended" = "La tua prova è terminata";
-"%d days left in your trial" = "Ti restano %d giorni di prova";
 "Protein is short today" = "Oggi manca proteina";
 "Creatine not logged" = "Creatina non registrata";
 "It works by staying topped up. Today still counts." = "Funziona con la costanza. Oggi conta ancora.";
@@ -234,7 +230,6 @@
 "Low" = "Basso";
 "Very low" = "Molto basso";
 "Founding account. Full access, permanently, with nothing to pay." = "Account fondatore. Accesso completo, per sempre, senza pagare nulla.";
-"Trial, %d days left. Everything is unlocked until then." = "Prova, restano %d giorni. Fino ad allora è tutto sbloccato.";
 "Unlocked with a beta code." = "Sbloccato con un codice beta.";
 "Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "L'acquisto arriva con la pubblicazione sull'App Store. Fino ad allora un codice beta sblocca tutto.";
 
@@ -1416,7 +1411,6 @@
 "Your personal main phase" = "La tua fase principale";
 "Your private performance system." = "Il tuo sistema di performance privato.";
 "Your 12-week foundation" = "La tua base di 12 settimane";
-"Your trial has ended." = "La tua prova è terminata.";
 "Your programme is syncing from APEX." = "Il tuo programma si sta sincronizzando da APEX.";
 "What APEX will do" = "Cosa farà APEX";
 "Searching APEX Food Memory" = "Ricerca in APEX Food Memory";
@@ -1725,9 +1719,7 @@
 "This account has already used a beta code." = "Questo account ha già usato un codice beta.";
 "Sign in first, then enter your code." = "Accedi prima, poi inserisci il codice.";
 "Could not reach APEX. Try again when you are online." = "APEX non raggiungibile. Riprova quando sei online.";
-"Seven days, everything unlocked, no card needed." = "Sette giorni, tutto sbloccato, senza carta.";
-"Start my 7 days" = "Inizia i miei 7 giorni";
-"7 days free, then" = "7 giorni gratis, poi";
+"Premium access or a beta code is required." = "È richiesto l’accesso Premium o un codice beta.";
 "Monthly" = "Mensile";
 "Yearly" = "Annuale";
 "ROUND" = "GIRO";

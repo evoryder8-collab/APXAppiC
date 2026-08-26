@@ -405,7 +405,7 @@ struct PortalLanguagePicker: View {
         AppLanguage.allCases.filter {
             $0.isReleaseReady
                 || $0 == state.language
-                || EntitlementStore.shared.developerCodeRedeemed
+                || EntitlementStore.shared.access == .beta
         }
     }
 

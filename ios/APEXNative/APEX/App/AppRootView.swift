@@ -50,9 +50,8 @@ struct AppRootView: View {
                 .transition(.opacity)
             }
         }
-        /* Only once the trial is actually over, and never over the sign-in
-           screen: being asked to pay before you have seen anything is how an
-           app gets deleted. */
+        /* Access is resolved after authentication. A locked account never
+           flashes the portal underneath a dismissible sheet. */
         .sheet(isPresented: Binding(
             get: { session.route == .portal && !entitlements.isUnlocked },
             set: { _ in }

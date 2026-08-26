@@ -126,6 +126,7 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
        earlier build has none of these, and losing the whole dashboard over an
        absent entitlement flag is far worse than not knowing the flag. */
     var foundingMember: Bool?
+    var betaCodeRedeemed: Bool?
     var trialStartedAt: String?
     var subscriptionTier: String?
     var subscriptionExpiresAt: String?
@@ -136,6 +137,7 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         case id
         case userID = "user_id"
         case foundingMember = "founding_member"
+        case betaCodeRedeemed = "beta_code_redeemed"
         case trialStartedAt = "trial_started_at"
         case subscriptionTier = "subscription_tier"
         case subscriptionExpiresAt = "subscription_expires_at"

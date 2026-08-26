@@ -2,11 +2,8 @@ import Foundation
 
 /// Who can use what, and what it costs.
 ///
-/// The model is a full-access trial rather than a crippled free tier: a
-/// training app cannot prove itself in a week of partial features, and a plan
-/// generator that hands back half a programme is worse than no demonstration
-/// at all. Everything works for fourteen days, which is two complete training
-/// weeks, then it asks.
+/// During beta, access is granted only by an account-owned server fact: a
+/// founding profile, a claimed beta code, or an active subscription.
 enum Entitlement {
 
     enum Tier: String, Codable, Sendable, CaseIterable {
@@ -19,15 +16,10 @@ enum Entitlement {
     /// shown a countdown or a price.
     enum Access: Equatable, Sendable {
         case founding
-        case developerCode
+        case beta
         case subscribed(Tier)
-        case trial(daysRemaining: Int)
-        case expired
+        case locked
     }
-
-    /// Two complete training weeks. Long enough to finish a programme block and
-    /// see progression happen, which is the thing worth paying for.
-    static let trialDays = 7
 
     // MARK: - Pricing
 
@@ -69,19 +61,15 @@ enum Entitlement {
 
     /// Resolve what this account is entitled to, right now.
     ///
-    /// `trialStarted` is when the account first opened the app rather than when
-    /// it was created, so an account made in advance does not burn its trial
-    /// sitting unopened.
     static func access(
         foundingMember: Bool,
-        developerCodeRedeemed: Bool,
+        betaCodeRedeemed: Bool,
         subscribedTier: Tier?,
         subscriptionExpires: Date?,
-        trialStarted: Date?,
         now: Date = Date()
     ) -> Access {
         if foundingMember { return .founding }
-        if developerCodeRedeemed { return .developerCode }
+        if betaCodeRedeemed { return .beta }
         if let subscribedTier, let expiry = subscriptionExpires, expiry > now {
             return .subscribed(subscribedTier)
         }
@@ -91,14 +79,10 @@ enum Entitlement {
         if let subscribedTier, subscriptionExpires == nil {
             return .subscribed(subscribedTier)
         }
-        guard let trialStarted else { return .trial(daysRemaining: trialDays) }
-        let elapsed = Calendar.current.dateComponents([.day], from: trialStarted, to: now).day ?? 0
-        let remaining = trialDays - elapsed
-        return remaining > 0 ? .trial(daysRemaining: remaining) : .expired
+        return .locked
     }
 
-    /// Everything except an expired trial keeps the app open.
-    static func isUnlocked(_ access: Access) -> Bool { access != .expired }
+    static func isUnlocked(_ access: Access) -> Bool { access != .locked }
 
     /// Features that exist only for coaches. Client rosters and plan authoring
     /// are a different job from training yourself, not a bigger version of it.
@@ -115,10 +99,9 @@ enum Entitlement {
 
     static func allows(_ feature: CoachFeature, access: Access) -> Bool {
         switch access {
-        case .founding, .developerCode: true
+        case .founding, .beta: true
         case .subscribed(let tier): tier == .coach
-        case .trial: true
-        case .expired: false
+        case .locked: false
         }
     }
 }

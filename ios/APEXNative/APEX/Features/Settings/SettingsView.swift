@@ -49,7 +49,7 @@ struct SettingsView: View {
     }
 
     /// What this account is entitled to, in plain words, and a way to see the
-    /// tiers without waiting for the trial to run out.
+    /// available tiers without implying a temporary free-access period.
     private var membershipCard: some View {
         GlassCard(radius: 31, padding: 20) {
             VStack(alignment: .leading, spacing: 12) {
@@ -77,14 +77,12 @@ struct SettingsView: View {
         switch entitlements.access {
         case .founding:
             language.text("Founding account. Full access, permanently, with nothing to pay.")
-        case .developerCode:
+        case .beta:
             language.text("Unlocked with a beta code.")
         case .subscribed(let tier):
             language.format("Subscribed to %@.", language.text(tier == .premium ? "Premium" : "Coach"))
-        case .trial(let days):
-            language.format("Trial, %d days left. Everything is unlocked until then.", days)
-        case .expired:
-            language.text("Your trial has ended.")
+        case .locked:
+            language.text("Premium access or a beta code is required.")
         }
     }
 

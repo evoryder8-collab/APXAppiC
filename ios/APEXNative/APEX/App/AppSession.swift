@@ -448,8 +448,8 @@ final class AppSession {
     }
     #endif
 
-    /// The last step of a first run: permissions have been offered, the trial
-    /// is running, and the app opens for real.
+    /// The last step of a first run: permissions have been offered and the
+    /// authenticated account opens for real.
     func finishOnboarding() async {
         route = .portal
         await startRealtimeSync()
@@ -596,22 +596,12 @@ final class AppSession {
         hydrationConnectivity.send(.stopping(ownerID: ownerID))
     }
 
-    /// Work out what this account may use, and start the trial clock on the
-    /// first open rather than at account creation, so an account made in
-    /// advance does not expire sitting unopened.
+    /// Resolve access only from the authenticated account's server profile.
     func resolveEntitlements() async {
-        let accountToken = accountGeneration.token
         if let userID = data.profile?.userID ?? data.settings?.userID {
             EntitlementStore.shared.prepareForAccount(userID)
         }
-        guard var profile else { return }
-        if profile.foundingMember != true, profile.trialStartedAt == nil {
-            profile.trialStartedAt = Date().ISO8601Format()
-            profile.updatedAt = Date().ISO8601Format()
-            data.profile = profile
-            await persistUpsert(profile, table: "profile", onConflict: "user_id")
-            guard accountGeneration.accepts(accountToken) else { return }
-        }
+        guard let profile else { return }
         EntitlementStore.shared.resolve(profile: profile)
     }
 

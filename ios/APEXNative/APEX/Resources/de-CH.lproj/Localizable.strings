@@ -10,7 +10,6 @@
 "Back" = "Zurück";
 "Create your account" = "Konto erstellen";
 "Welcome back" = "Willkommen zurück";
-"Fourteen days, everything unlocked, no card needed." = "Vierzehn Tage, alles freigeschaltet, ohne Karte.";
 "Sign in with the email and password you already use." = "Melde dich mit der E-Mail und dem Passwort an, die du bereits nutzt.";
 "Use at least 6 characters." = "Mindestens 6 Zeichen verwenden.";
 "Create account" = "Konto erstellen";
@@ -43,7 +42,6 @@
 "Allow Health access" = "Health-Zugriff erlauben";
 "Allow reminders" = "Erinnerungen erlauben";
 "Asked" = "Angefragt";
-"Start my 14 days" = "Meine 14 Tage starten";
 "Reminders" = "Erinnerungen";
 "Nutrition" = "Ernährung";
 "Transition Phase" = "Übergangsphase";
@@ -146,8 +144,6 @@
 "Code" = "Code";
 "Redeem" = "Iilöse";
 "That code was not recognised." = "Dä Code isch nöd erkennt worde.";
-"Your trial has ended" = "Dini Testphase isch verbi";
-"%d days left in your trial" = "No %d Täg i dinere Testphase";
 "Protein is short today" = "Hüt fehlt Protein";
 "Creatine not logged" = "Kreatin nöd erfasst";
 "It works by staying topped up. Today still counts." = "Es wirkt dur Beständigkeit. Hüt zellt no.";
@@ -234,7 +230,6 @@
 "Low" = "Nidrig";
 "Very low" = "Sehr nidrig";
 "Founding account. Full access, permanently, with nothing to pay." = "Gründigskonto. Duurhaft volle Zuegang, ohni Choste.";
-"Trial, %d days left. Everything is unlocked until then." = "Testphase, no %d Täg. Bis dänn isch alles frei.";
 "Unlocked with a beta code." = "Mit em Beta-Code freigschaltet.";
 "Purchasing opens with the App Store listing. Until then, a beta code unlocks everything." = "De Chauf startet mit em App-Store-Iitrag. Bis dänn schaltet en Beta-Code alles frei.";
 
@@ -1416,7 +1411,6 @@
 "Your personal main phase" = "Dini persönlichi Hauptphase";
 "Your private performance system." = "Dis privats Leistigssystem.";
 "Your 12-week foundation" = "Dini Basis über 12 Wuche";
-"Your trial has ended." = "Dini Testphase isch verbi.";
 "Your programme is syncing from APEX." = "Dis Programm wird vo APEX synchronisiert.";
 "What APEX will do" = "Was APEX tue wird";
 "Searching APEX Food Memory" = "APEX Food Memory wird durehsuecht";
@@ -1725,9 +1719,7 @@
 "This account has already used a beta code." = "Das Konto hät scho en Beta-Code bruucht.";
 "Sign in first, then enter your code." = "Mäld di zerscht a und gib dänn din Code ii.";
 "Could not reach APEX. Try again when you are online." = "APEX isch nöd erreichbar gsi. Probier s online no emal.";
-"Seven days, everything unlocked, no card needed." = "Sibe Täg, alles freigschaltet, ohni Charte.";
-"Start my 7 days" = "Mini 7 Täg starte";
-"7 days free, then" = "7 Täg gratis, dernah";
+"Premium access or a beta code is required." = "Du bruchsch Premium-Zuegang oder en Beta-Code.";
 "Monthly" = "Monatlich";
 "Yearly" = "Jährlich";
 "ROUND" = "RUNDE";

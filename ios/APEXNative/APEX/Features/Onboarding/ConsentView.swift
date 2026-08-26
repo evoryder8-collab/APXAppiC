@@ -61,7 +61,7 @@ struct ConsentView: View {
                 Task { await session.finishOnboarding() }
             } label: {
                 HStack {
-                    Text(language.text("Start my 7 days"))
+                    Text(language.text("Continue"))
                     Image(systemName: "arrow.right")
                 }
             }
