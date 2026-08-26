@@ -20,6 +20,25 @@ export function resolveActiveDate(input: {
   return input.today
 }
 
+export interface CalendarDayState {
+  isSelected: boolean
+  isToday: boolean
+  ariaCurrent: 'date' | undefined
+}
+
+export function calendarDayState(input: {
+  date: string
+  selectedDate: string
+  today: string
+}): CalendarDayState {
+  const isToday = input.date === input.today
+  return {
+    isSelected: input.date === input.selectedDate,
+    isToday,
+    ariaCurrent: isToday ? 'date' : undefined,
+  }
+}
+
 export function loadActiveDate(
   userId: string | null | undefined,
   today: string,

@@ -8,7 +8,6 @@ import {
   endOfMonth,
   endOfWeek,
   format,
-  isSameDay,
   isSameMonth,
   parseISO,
   startOfMonth,
@@ -47,7 +46,7 @@ import { personaBySlug } from '../lib/persona'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 import { estimatedTimelineMinutes } from '../lib/playerTimeline'
 import { isFocusT25Name } from '../lib/focusT25'
-import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
+import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { resolveDailyBurnedEnergy } from '../lib/activity'
 
@@ -1195,11 +1194,12 @@ export function SimpleHome() {
               </div>
               <div className="mt-1 grid min-h-0 flex-1 grid-cols-7 gap-0.5" style={{ gridTemplateRows: `repeat(${Math.ceil(calendarDays.length / 7)}, minmax(0, 1fr))` }}>
                 {calendarDays.map((date) => {
-                  const active = isSameDay(date, selectedDateObject)
-                  const todayDate = isSameDay(date, parseISO(today))
                   const inMonth = isSameMonth(date, calendarMonth)
                   const populated = hasDayData(date)
                   const iso = format(date, 'yyyy-MM-dd')
+                  const dayState = calendarDayState({ date: iso, selectedDate, today })
+                  const active = dayState.isSelected
+                  const todayDate = dayState.isToday
                   const copiedSource = copiedDay === iso
                   const pasteable = canPasteSimpleDay(copiedDay, iso)
                   return (
@@ -1218,10 +1218,13 @@ export function SimpleHome() {
                       }}
                       onClick={() => activateCalendarDate(date)}
                       aria-pressed={active}
-                      aria-label={new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)}
+                      aria-current={dayState.ariaCurrent}
+                      aria-label={`${new Intl.DateTimeFormat(dateLocale, { weekday: 'long', day: 'numeric', month: 'long', year: 'numeric' }).format(date)}${todayDate ? `, ${t('Today')}` : ''}`}
                       className={`relative grid min-h-0 touch-manipulation place-items-center rounded-xl font-mono text-[10px] font-black transition active:scale-90 ${copiedSource ? 'bg-cyan-700 text-white ring-2 ring-cyan-200' : pasteable ? 'border border-dashed border-cyan-400 bg-cyan-50 text-cyan-900' : active ? 'bg-violet-500 text-white shadow-sm' : todayDate ? 'bg-violet-100 text-violet-800' : inMonth ? 'text-ink' : 'text-ink-faint/45'}`}
                     >
-                      {format(date, 'd')}
+                      <span className={`grid h-6 w-6 place-items-center rounded-full ${todayDate ? active ? 'ring-2 ring-white/90' : 'bg-white/70 ring-2 ring-violet-600' : ''}`}>
+                        {format(date, 'd')}
+                      </span>
                       {copiedSource && <span className="absolute top-0.5 right-1 text-[7px]" aria-hidden>⧉</span>}
                       {populated && !active && <span className="absolute bottom-1 h-1 w-1 rounded-full bg-emerald" />}
                     </button>

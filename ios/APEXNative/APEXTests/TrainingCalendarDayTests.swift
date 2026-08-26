@@ -367,4 +367,22 @@ final class TrainingCalendarDayTests: XCTestCase {
         XCTAssertEqual(result.title, "First authored")
         XCTAssertEqual(result.dayType, "pull")
     }
+
+    func testCurrentDayCueSurvivesSelectingAnotherCalendarDay() {
+        let today = APEXDateMath.calendarDayState(
+            date: "2026-08-26",
+            selectedDate: "2026-08-01",
+            today: "2026-08-26"
+        )
+        XCTAssertTrue(today.isToday)
+        XCTAssertFalse(today.isSelected)
+
+        let selectedPastDay = APEXDateMath.calendarDayState(
+            date: "2026-08-01",
+            selectedDate: "2026-08-01",
+            today: "2026-08-26"
+        )
+        XCTAssertFalse(selectedPastDay.isToday)
+        XCTAssertTrue(selectedPastDay.isSelected)
+    }
 }

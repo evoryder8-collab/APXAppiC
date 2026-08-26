@@ -1,7 +1,7 @@
 import assert from 'node:assert/strict'
 import { readFileSync } from 'node:fs'
 import test from 'node:test'
-import { activeDateStorageKey, isIsoDate, resolveActiveDate } from '../src/lib/activeDate.ts'
+import { activeDateStorageKey, calendarDayState, isIsoDate, resolveActiveDate } from '../src/lib/activeDate.ts'
 
 test('active date context prefers an explicit route date, then the saved per-user date', () => {
   assert.equal(resolveActiveDate({
@@ -30,4 +30,26 @@ test('completed Simple Mode training opens summaries and editable stats', () => 
   assert.match(simple, /setWorkoutStatsSessionId\(session\.id\)/)
   assert.match(simple, /daylineDateTimeToIso\(selectedDate, completedWorkoutTimeDraft, mealTimeZone\)/)
   assert.match(simple, /<WorkoutStatsSheet/)
+})
+
+test('the real current day stays identified when another calendar day is selected', () => {
+  assert.deepEqual(calendarDayState({
+    date: '2026-08-26',
+    selectedDate: '2026-08-01',
+    today: '2026-08-26',
+  }), {
+    isSelected: false,
+    isToday: true,
+    ariaCurrent: 'date',
+  })
+
+  assert.deepEqual(calendarDayState({
+    date: '2026-08-01',
+    selectedDate: '2026-08-01',
+    today: '2026-08-26',
+  }), {
+    isSelected: true,
+    isToday: false,
+    ariaCurrent: undefined,
+  })
 })

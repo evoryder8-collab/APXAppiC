@@ -1445,12 +1445,24 @@ struct NutritionCalendarSheet: View {
     }
 
     private func calendarCell(_ date: Date) -> some View {
-        let selected = calendar.isDate(date, inSameDayAs: selectedDate)
+        let dayState = APEXDateMath.calendarDayState(
+            date: date.apexDateKey,
+            selectedDate: selectedDate.apexDateKey,
+            today: Date.now.apexDateKey
+        )
+        let selected = dayState.isSelected
         let source = copiedSource.map { calendar.isDate(date, inSameDayAs: $0) } ?? false
         let choosingDestination = copiedSource != nil && !source
         return VStack(spacing: 4) {
-            Text("\(calendar.component(.day, from: date))")
-                .font(APEXFont.mono(12))
+            ZStack {
+                if dayState.isToday {
+                    Circle()
+                        .stroke(selected || source ? .white.opacity(0.9) : APEXColor.violet, lineWidth: 2)
+                }
+                Text("\(calendar.component(.day, from: date))")
+                    .font(APEXFont.mono(12))
+            }
+            .frame(width: 28, height: 28)
             Circle()
                 .fill(hasEvidence(on: date) ? APEXColor.green : Color.clear)
                 .frame(width: 5, height: 5)
@@ -1483,7 +1495,12 @@ struct NutritionCalendarSheet: View {
             UIImpactFeedbackGenerator(style: .medium).impactOccurred()
         }
         .accessibilityAddTraits(selected ? .isSelected : [])
-        .accessibilityLabel(date.formatted(date: .long, time: .omitted))
+        .accessibilityLabel(
+            dayState.isToday
+                ? "\(date.formatted(date: .long, time: .omitted)), \(language.text("Today"))"
+                : date.formatted(date: .long, time: .omitted)
+        )
+        .accessibilityIdentifier(dayState.isToday ? "nutrition-calendar-today" : "nutrition-calendar-day-\(date.apexDateKey)")
     }
 
     @ViewBuilder

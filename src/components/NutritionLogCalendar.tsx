@@ -5,6 +5,7 @@ import type { AppData } from '../lib/types'
 import type { LoggedMeal } from '../lib/food'
 import { ChevronLeftIcon, ChevronRightIcon } from './Icons'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
+import { calendarDayState } from '../lib/activeDate'
 
 interface NutritionLogCalendarProps {
   month: Date
@@ -125,7 +126,8 @@ export function NutritionLogCalendar({
           )
           const hasAny = hasNutrition || mealCount > 0 || supplementCount > 0
           const complete = waterHit && mealHit && supplementHit
-          const selected = dateIso === selectedDate
+          const dayState = calendarDayState({ date: dateIso, selectedDate, today })
+          const selected = dayState.isSelected
           const copiedSource = dateIso === copySourceDate
           const pasteTarget = Boolean(copySourceDate && dateIso !== copySourceDate)
 
@@ -162,7 +164,8 @@ export function NutritionLogCalendar({
                 if (pasteTarget && onCopyTarget) onCopyTarget(dateIso)
                 else onSelectDate(dateIso)
               }}
-              aria-label={`${format(date, 'd MMMM yyyy')}: ${mealCount} meals, ${supplementCount} supplements, ${daily?.water_l ?? 0} litres water`}
+              aria-current={dayState.ariaCurrent}
+              aria-label={`${format(date, 'd MMMM yyyy')}${dayState.isToday ? `, ${t('Today')}` : ''}: ${mealCount} meals, ${supplementCount} supplements, ${daily?.water_l ?? 0} litres water`}
               className="relative aspect-square touch-manipulation overflow-hidden rounded-xl transition-transform active:scale-95 disabled:cursor-default"
               style={{
                 background: !inMonth
@@ -185,7 +188,11 @@ export function NutritionLogCalendar({
                 boxShadow: copiedSource ? '0 10px 24px -14px rgba(8,145,178,.9)' : selected ? `0 0 16px -5px ${accent.glowStrong}` : undefined,
               }}
             >
-              {inMonth && <span className="absolute top-1 left-1.5 font-mono text-[11px] font-bold">{format(date, 'd')}</span>}
+              {inMonth && (
+                <span className={`absolute top-0.5 left-0.5 grid h-6 w-6 place-items-center rounded-full font-mono text-[11px] font-bold ${dayState.isToday ? selected ? 'ring-2 ring-white/90' : 'bg-white/80 ring-2 ring-violet-600' : ''}`}>
+                  {format(date, 'd')}
+                </span>
+              )}
               {copiedSource && <span className="absolute top-1 right-1.5 text-[8px] font-black" aria-hidden>⧉</span>}
               {pasteTarget && <span className="absolute top-1 right-1.5 h-1.5 w-1.5 rounded-full bg-cyan-500" aria-hidden />}
               {inMonth && future && !hasAny && <span className="absolute right-1.5 bottom-1 font-mono text-[11px] font-black text-amber-600">+</span>}

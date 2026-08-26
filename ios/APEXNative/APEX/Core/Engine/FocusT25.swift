@@ -109,6 +109,11 @@ enum FocusT25 {
 /// Date arithmetic on the app's own yyyy-MM-dd keys, matching the web's habit
 /// of parsing at midday so a timezone can never shift a day boundary.
 enum APEXDateMath {
+    struct CalendarDayState: Equatable, Sendable {
+        let isSelected: Bool
+        let isToday: Bool
+    }
+
     static let calendar: Calendar = {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = TimeZone(secondsFromGMT: 0) ?? .gmt
@@ -146,5 +151,16 @@ enum APEXDateMath {
               let moved = calendar.date(byAdding: .day, value: days, to: date)
         else { return key }
         return self.key(from: moved)
+    }
+
+    static func calendarDayState(
+        date: String,
+        selectedDate: String,
+        today: String
+    ) -> CalendarDayState {
+        CalendarDayState(
+            isSelected: date == selectedDate,
+            isToday: date == today
+        )
     }
 }
