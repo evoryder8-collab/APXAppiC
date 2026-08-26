@@ -568,6 +568,7 @@ final class AppSession {
     /// button for data the system already has.
     func importHealthQuietly() async {
         guard let profile else { return }
+        await HealthKitManager.shared.requestNewReadAccessIfNeeded()
         if HealthKitManager.shared.waterWriteState == .authorized {
             try? await HealthKitManager.shared.syncFoodWater(
                 liters: foodHydrationLiters(on: .now),
@@ -1857,16 +1858,23 @@ final class AppSession {
         guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
 
         if snapshot.steps != nil || snapshot.activeEnergyKcal != nil || snapshot.exerciseMinutes != nil {
-            let wearable = WearableActivityRecord(
-                date: snapshot.date,
-                steps: Int((snapshot.steps ?? 0).rounded()),
-                activeCalories: Int((snapshot.activeEnergyKcal ?? 0).rounded()),
-                exerciseMinutes: Int((snapshot.exerciseMinutes ?? 0).rounded()),
-                source: "apple_health",
-                updatedAt: Date().ISO8601Format()
+            let history = WearableActivityRecord.history(
+                from: data.settings?.addons["watch_activity_history"]
             )
-            await saveWearableActivity(wearable, automaticallyApply: snapshot.date == Date().apexDateKey)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            if let wearable = WearableActivityRecord.mergingHealthImport(
+                date: snapshot.date,
+                existing: history.last { $0.date == snapshot.date },
+                steps: snapshot.steps,
+                activeEnergyKcal: snapshot.activeEnergyKcal,
+                exerciseMinutes: snapshot.exerciseMinutes,
+                updatedAt: Date().ISO8601Format()
+            ) {
+                await saveWearableActivity(
+                    wearable,
+                    automaticallyApply: snapshot.date == Date().apexDateKey
+                )
+                guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+            }
         }
 
         if snapshot.sleepDurationHours != nil || snapshot.heartRateVariabilityMS != nil {

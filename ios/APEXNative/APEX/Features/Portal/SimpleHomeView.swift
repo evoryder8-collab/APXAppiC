@@ -881,6 +881,33 @@ struct WearableActivityRecord: Hashable, Sendable {
             )
         }
     }
+
+    static func mergingHealthImport(
+        date: String,
+        existing: Self?,
+        steps: Double?,
+        activeEnergyKcal: Double?,
+        exerciseMinutes: Double?,
+        updatedAt: String
+    ) -> Self? {
+        guard steps != nil || activeEnergyKcal != nil || exerciseMinutes != nil else {
+            return nil
+        }
+        let prior = existing?.date == date ? existing : nil
+        return Self(
+            date: date,
+            steps: resolvedCount(steps, fallback: prior?.steps ?? 0),
+            activeCalories: resolvedCount(activeEnergyKcal, fallback: prior?.activeCalories ?? 0),
+            exerciseMinutes: resolvedCount(exerciseMinutes, fallback: prior?.exerciseMinutes ?? 0),
+            source: "apple_health",
+            updatedAt: updatedAt
+        )
+    }
+
+    private static func resolvedCount(_ value: Double?, fallback: Int) -> Int {
+        guard let value, value.isFinite else { return fallback }
+        return Int(min(Double(Int.max), max(0, value)).rounded())
+    }
 }
 
 enum WearableActivityEngine {

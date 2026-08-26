@@ -84,6 +84,25 @@ struct HealthWaterTotals: Sendable {
     static let unavailable = HealthWaterTotals(total: nil, importableDrink: nil)
 }
 
+enum HealthActivityEnergyResolver {
+    static func resolve(
+        activitySummaryKcal: Double?,
+        cumulativeSampleKcal: Double?
+    ) -> Double? {
+        if let activitySummaryKcal, activitySummaryKcal.isFinite {
+            return max(0, activitySummaryKcal)
+        }
+        guard let cumulativeSampleKcal, cumulativeSampleKcal.isFinite else {
+            return nil
+        }
+        return max(0, cumulativeSampleKcal)
+    }
+}
+
+private enum HealthActivityEnergyReadError: Error {
+    case unavailable
+}
+
 enum HealthMetricRead<Value: Sendable>: Sendable {
     case available(Value)
     case unavailable
@@ -297,6 +316,29 @@ final class HealthKitManager {
         return snapshot
     }
 
+    /// Existing users may have approved Health access before APEX started
+    /// reading Apple's Activity Summary. HealthKit decides whether another
+    /// system sheet is required, so this never manufactures an authorization
+    /// state or repeatedly prompts after the user has answered.
+    func requestNewReadAccessIfNeeded() async {
+        guard isAvailable else { return }
+        do {
+            let status = try await store.statusForAuthorizationRequest(
+                toShare: Set(writeTypes),
+                read: Set(readTypes)
+            )
+            guard status == .shouldRequest else { return }
+            try await store.requestAuthorization(
+                toShare: Set(writeTypes),
+                read: Set(readTypes)
+            )
+            isAuthorized = true
+            refreshWaterWriteState()
+        } catch {
+            message = error.localizedDescription
+        }
+    }
+
     func readToday() async throws -> HealthSnapshot {
         let calendar = Calendar.current
         let start = calendar.startOfDay(for: .now)
@@ -319,7 +361,7 @@ final class HealthKitManager {
                 try await cumulativeQuantity(.stepCount, unit: .count(), start: start, end: end)
             },
             activeEnergyKcal: { [self] in
-                try await cumulativeQuantity(.activeEnergyBurned, unit: .kilocalorie(), start: start, end: end)
+                try await resolvedActiveEnergyKcal(start: start, end: end)
             },
             exerciseMinutes: { [self] in
                 try await cumulativeQuantity(.appleExerciseTime, unit: .minute(), start: start, end: end)
@@ -519,7 +561,8 @@ final class HealthKitManager {
             quantity(.bodyMass), quantity(.vo2Max), quantity(.restingHeartRate),
             quantity(.dietaryWater), quantity(.stepCount), quantity(.activeEnergyBurned),
             quantity(.appleExerciseTime), quantity(.heartRateVariabilitySDNN),
-            HKObjectType.categoryType(forIdentifier: .sleepAnalysis), HKObjectType.workoutType()
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
+            HKObjectType.workoutType(), HKObjectType.activitySummaryType()
         ].compactMap { $0 }
     }
 
@@ -555,6 +598,49 @@ final class HealthKitManager {
             let query = HKStatisticsQuery(quantityType: type, quantitySamplePredicate: predicate, options: .cumulativeSum) { _, stats, error in
                 if let error { continuation.resume(throwing: error); return }
                 continuation.resume(returning: stats?.sumQuantity()?.doubleValue(for: unit))
+            }
+            store.execute(query)
+        }
+    }
+
+    private func resolvedActiveEnergyKcal(start: Date, end: Date) async throws -> Double? {
+        async let summaryRead = HealthMetricRead<Double?>.capture { [self] in
+            try await activitySummaryEnergyKcal(on: end)
+        }
+        async let cumulativeRead = HealthMetricRead<Double?>.capture { [self] in
+            try await cumulativeQuantity(
+                .activeEnergyBurned,
+                unit: .kilocalorie(),
+                start: start,
+                end: end
+            )
+        }
+        let (summary, cumulative) = try await (summaryRead, cumulativeRead)
+        guard summary.completed || cumulative.completed else {
+            throw HealthActivityEnergyReadError.unavailable
+        }
+        return HealthActivityEnergyResolver.resolve(
+            activitySummaryKcal: summary.resolved(or: nil),
+            cumulativeSampleKcal: cumulative.resolved(or: nil)
+        )
+    }
+
+    private func activitySummaryEnergyKcal(on date: Date) async throws -> Double? {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = .current
+        let components = calendar.dateComponents([.era, .year, .month, .day], from: date)
+        let predicate = HKQuery.predicateForActivitySummary(with: components)
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKActivitySummaryQuery(predicate: predicate) { _, summaries, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let calories = summaries?
+                    .map { $0.activeEnergyBurned.doubleValue(for: .kilocalorie()) }
+                    .filter(\.isFinite)
+                    .max()
+                continuation.resume(returning: calories)
             }
             store.execute(query)
         }

@@ -251,6 +251,76 @@ private func unavailableHealthTodayPlan() -> HealthTodayQueryPlan {
     )
 }
 
+final class HealthActivityEnergyResolutionTests: XCTestCase {
+    func testAppleFitnessActivitySummaryWinsWhenRawEnergySamplesLag() {
+        XCTAssertEqual(
+            HealthActivityEnergyResolver.resolve(
+                activitySummaryKcal: 204,
+                cumulativeSampleKcal: 22
+            ),
+            204
+        )
+    }
+
+    func testAppleFitnessActivitySummaryAlsoWinsOverHigherOverlappingSamples() {
+        XCTAssertEqual(
+            HealthActivityEnergyResolver.resolve(
+                activitySummaryKcal: 204,
+                cumulativeSampleKcal: 231
+            ),
+            204
+        )
+    }
+
+    func testPartialHealthRefreshPreservesLastReadableMetrics() {
+        let existing = WearableActivityRecord(
+            date: "2026-08-26",
+            steps: 5_143,
+            activeCalories: 204,
+            exerciseMinutes: 31,
+            source: "apple_health",
+            updatedAt: "2026-08-26T17:30:00Z"
+        )
+
+        let merged = WearableActivityRecord.mergingHealthImport(
+            date: "2026-08-26",
+            existing: existing,
+            steps: 5_221,
+            activeEnergyKcal: nil,
+            exerciseMinutes: nil,
+            updatedAt: "2026-08-26T17:40:00Z"
+        )
+
+        XCTAssertEqual(merged?.steps, 5_221)
+        XCTAssertEqual(merged?.activeCalories, 204)
+        XCTAssertEqual(merged?.exerciseMinutes, 31)
+    }
+
+    func testCompleteHealthRefreshReplacesAllWearableFacts() {
+        let existing = WearableActivityRecord(
+            date: "2026-08-26",
+            steps: 5_143,
+            activeCalories: 204,
+            exerciseMinutes: 31,
+            source: "apple_health",
+            updatedAt: "2026-08-26T17:30:00Z"
+        )
+
+        let merged = WearableActivityRecord.mergingHealthImport(
+            date: "2026-08-26",
+            existing: existing,
+            steps: 6_000,
+            activeEnergyKcal: 260,
+            exerciseMinutes: 42,
+            updatedAt: "2026-08-26T18:00:00Z"
+        )
+
+        XCTAssertEqual(merged?.steps, 6_000)
+        XCTAssertEqual(merged?.activeCalories, 260)
+        XCTAssertEqual(merged?.exerciseMinutes, 42)
+    }
+}
+
 final class HealthTodayReadingsTests: XCTestCase {
     func testDeniedMetricDoesNotEraseReadableActivity() async throws {
         let snapshot = try await makeHealthTodayPlan(
