@@ -6,6 +6,7 @@ struct PortalHomeView: View {
     @State private var showNudges = false
     @State private var showPaywall = false
     @State private var language = LanguageState.shared
+    @State private var showingSyncIssues = false
 
     private var greeting: String {
         let hour = Calendar.current.component(.hour, from: .now)
@@ -99,7 +100,11 @@ struct PortalHomeView: View {
                 HStack {
                     PortalLanguagePicker()
                     Spacer()
-                    if session.isRefreshing {
+                    if session.failedSyncCount > 0 {
+                        SyncIssuesButton(count: session.failedSyncCount) {
+                            showingSyncIssues = true
+                        }
+                    } else if session.isRefreshing {
                         ProgressView().tint(APEXColor.teal)
                     } else if let sync = session.lastSyncAt {
                         Label(sync.formatted(.relative(presentation: .named).locale(language.language.locale)), systemImage: "checkmark.icloud")
@@ -117,6 +122,12 @@ struct PortalHomeView: View {
         .refreshable { await session.refresh() }
         .sheet(isPresented: $showPaywall) {
             PaywallView { showPaywall = false }
+        }
+        .sheet(isPresented: $showingSyncIssues) {
+            SyncIssuesSheet()
+                .environment(session)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .sheet(isPresented: $showNudges) {
             NudgeSheet(nudges: nudges) { showNudges = false }

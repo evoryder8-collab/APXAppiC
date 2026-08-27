@@ -781,12 +781,37 @@ final class APEXSmokeUITests: XCTestCase {
             syncAlert.buttons["OK"].tap()
         }
 
-        let warning = app.staticTexts.matching(
+        let warning = app.buttons.matching(
             NSPredicate(format: "label CONTAINS %@", "needs attention")
         ).firstMatch
         XCTAssertTrue(
             scrollUntilVisible(warning, in: app, attempts: 20),
             "a quarantined write must remain visible on the daily surface"
+        )
+        XCTAssertFalse(app.staticTexts["Synced"].exists)
+        warning.tap()
+
+        XCTAssertTrue(app.navigationBars["Sync issues"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Meal change"].exists)
+        XCTAssertTrue(app.staticTexts["The server rejected this change."].exists)
+
+        let technicalReason = app.buttons[
+            "sync-technical-reason-b72e51d1-5d0b-4585-b361-9af511f98964"
+        ]
+        XCTAssertTrue(technicalReason.exists)
+        technicalReason.tap()
+        XCTAssertTrue(app.staticTexts["UI fixture: server rejected this write"].exists)
+
+        app.buttons["Done"].tap()
+        let advancedMode = app.buttons["ADVANCED"]
+        XCTAssertTrue(advancedMode.waitForExistence(timeout: 3))
+        tapClearOfDock(advancedMode)
+        let advancedWarning = app.buttons.matching(
+            NSPredicate(format: "label CONTAINS %@", "needs attention")
+        ).firstMatch
+        XCTAssertTrue(
+            scrollUntilVisible(advancedWarning, in: app, attempts: 20),
+            "Advanced mode must expose the same quarantined-write details"
         )
         XCTAssertFalse(app.staticTexts["Synced"].exists)
     }

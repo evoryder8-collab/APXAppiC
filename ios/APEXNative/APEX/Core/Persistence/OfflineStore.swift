@@ -7,6 +7,15 @@ enum SyncFailureDisposition: Equatable, Sendable {
     case permanent
 }
 
+enum PersistedSyncFailureCategory: Equatable, Sendable {
+    case authentication
+    case duplicate
+    case missingDependency
+    case invalidValue
+    case permission
+    case rejected
+}
+
 /// Only connectivity and service-availability failures belong in the retry
 /// outbox. Bad input and denied writes will never heal by replaying them.
 enum SyncFailurePolicy {
@@ -26,7 +35,7 @@ enum SyncFailurePolicy {
         }
 
         if let databaseCode = databaseCode?.uppercased() {
-            if ["PGRST301", "PGRST302"].contains(databaseCode) {
+            if ["PGRST301", "PGRST302", "PGRST303"].contains(databaseCode) {
                 return .authenticationRequired
             }
             if databaseCode.hasPrefix("08")
@@ -62,7 +71,7 @@ enum SyncFailurePolicy {
         let message = error.localizedDescription.lowercased()
         let authenticationTerms = [
             "status code 401", "http 401", "jwt expired", "invalid jwt",
-            "token has expired", "authentication required"
+            "jwt issued at future", "token has expired", "authentication required"
         ]
         if authenticationTerms.contains(where: message.contains) { return .authenticationRequired }
 
@@ -259,6 +268,32 @@ enum OfflineQueueDrainer {
     }
 }
 
+extension SyncFailurePolicy {
+    static func classify(persistedReason: String) -> SyncFailureDisposition {
+        classify(
+            NSError(
+                domain: "APEXPersistedSyncFailure",
+                code: 0,
+                userInfo: [NSLocalizedDescriptionKey: persistedReason]
+            )
+        )
+    }
+
+    static func category(persistedReason: String) -> PersistedSyncFailureCategory {
+        if classify(persistedReason: persistedReason) == .authenticationRequired {
+            return .authentication
+        }
+        let reason = persistedReason.lowercased()
+        if reason.contains("duplicate key") { return .duplicate }
+        if reason.contains("foreign key") || reason.contains("_fkey") {
+            return .missingDependency
+        }
+        if reason.contains("check constraint") { return .invalidValue }
+        if reason.contains("permission denied") { return .permission }
+        return .rejected
+    }
+}
+
 actor OfflineStore {
     static let shared = OfflineStore()
 
@@ -297,7 +332,6 @@ actor OfflineStore {
         let url = outboxURL(for: userID)
         guard fileManager.fileExists(atPath: url.path) else { return [] }
         return try JSONDecoder.apex.decode([OfflineOperation].self, from: Data(contentsOf: url))
-            .sorted { $0.createdAt < $1.createdAt }
     }
 
     func removeOperation(_ id: UUID, for userID: UUID) throws {
@@ -316,11 +350,7 @@ actor OfflineStore {
         var failures = try failedOperations(for: userID)
         failures.removeAll { $0.id == operation.id }
         failures.append(FailedOfflineOperation(operation: operation, reason: reason))
-        try prepareDirectory(for: userID)
-        try JSONEncoder.apex.encode(failures).write(
-            to: failedOutboxURL(for: userID),
-            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
-        )
+        try saveFailures(failures, for: userID)
     }
 
     func failedOperations(for userID: UUID) throws -> [FailedOfflineOperation] {
@@ -330,10 +360,67 @@ actor OfflineStore {
             .sorted { $0.failedAt < $1.failedAt }
     }
 
+    /// Move explicitly selected failures back to the durable retry queue.
+    /// The outbox is written first so a second file-write failure can create
+    /// a duplicate notice, but can never lose the user's original change.
+    @discardableResult
+    func requeueFailures(ids: Set<UUID>, for userID: UUID) throws -> Int {
+        guard ids.isEmpty == false else { return 0 }
+        let failures = try failedOperations(for: userID)
+        let selected = failures.filter { ids.contains($0.id) }
+        guard selected.isEmpty == false else { return 0 }
+
+        var pending = try pendingOperations(for: userID)
+        var pendingIDs = Set(pending.map(\.id))
+        for failure in selected where pendingIDs.insert(failure.operation.id).inserted {
+            pending.append(failure.operation)
+        }
+        try saveOperations(pending, for: userID)
+        try saveFailures(failures.filter { ids.contains($0.id) == false }, for: userID)
+        return selected.count
+    }
+
+    /// Persist a parent write and its dependent writes in one ordered file
+    /// replacement so a child can never race ahead of its required row.
+    func enqueue(
+        parent: OfflineOperation,
+        dependents: [OfflineOperation],
+        for userID: UUID
+    ) throws {
+        var pending = try pendingOperations(for: userID)
+        var pendingIDs = Set(pending.map(\.id))
+        for operation in [parent] + dependents
+        where pendingIDs.insert(operation.id).inserted {
+            pending.append(operation)
+        }
+        try saveOperations(pending, for: userID)
+    }
+
+    @discardableResult
+    func requeueAuthenticationFailures(for userID: UUID) throws -> Int {
+        let ids = Set(
+            try failedOperations(for: userID)
+                .filter {
+                    SyncFailurePolicy.classify(persistedReason: $0.reason)
+                        == .authenticationRequired
+                }
+                .map(\.id)
+        )
+        return try requeueFailures(ids: ids, for: userID)
+    }
+
     private func saveOperations(_ operations: [OfflineOperation], for userID: UUID) throws {
         try prepareDirectory(for: userID)
         try JSONEncoder.apex.encode(operations).write(
             to: outboxURL(for: userID),
+            options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
+        )
+    }
+
+    private func saveFailures(_ failures: [FailedOfflineOperation], for userID: UUID) throws {
+        try prepareDirectory(for: userID)
+        try JSONEncoder.apex.encode(failures).write(
+            to: failedOutboxURL(for: userID),
             options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication]
         )
     }

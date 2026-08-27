@@ -14,6 +14,8 @@ struct AccountGenerationGate: Sendable {
     }
 }
 
+private struct SyncAccountBoundaryError: Error, Sendable {}
+
 @MainActor
 @Observable
 final class AppSession {
@@ -38,6 +40,7 @@ final class AppSession {
     var lastSyncAt: Date?
     var pendingSyncCount = 0
     var failedSyncCount = 0
+    var failedSyncOperations: [FailedOfflineOperation] = []
     var navigationPath: [PortalDestination] = []
 
     private let service = SupabaseService.shared
@@ -48,6 +51,7 @@ final class AppSession {
     @ObservationIgnored private var hydrationMutationsInFlight: Set<UUID> = []
     private var bootstrapped = false
     private var realtimeDebounceTask: Task<Void, Never>?
+    @ObservationIgnored private var workoutSyncTask: Task<Void, Never>?
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
 
     init() {
@@ -62,6 +66,11 @@ final class AppSession {
         hydrationConnectivity.publishDisconnected()
         realtimeDebounceTask?.cancel()
         realtimeDebounceTask = nil
+        workoutSyncTask?.cancel()
+        workoutSyncTask = nil
+        pendingSyncCount = 0
+        failedSyncCount = 0
+        failedSyncOperations = []
         isBusy = false
         isRefreshing = false
         return accountGeneration.token
@@ -75,6 +84,13 @@ final class AppSession {
 
     private func hydrationOperationIsCurrent(ownerID: UUID, token: UInt64) -> Bool {
         accountGeneration.accepts(token) && verifiedPersistenceOwnerID() == ownerID
+    }
+
+    private func requireCurrentSyncAccount(ownerID: UUID, token: UInt64) throws {
+        guard accountGeneration.accepts(token),
+              verifiedPersistenceOwnerID(ownerID) == ownerID else {
+            throw SyncAccountBoundaryError()
+        }
     }
 
     var profile: Profile? { data.profile }
@@ -2128,7 +2144,10 @@ final class AppSession {
     /// Saves a complete meal in one atomic Supabase operation. The same RPC is
     /// used by the web client, so edits, ordering and nutrition totals converge
     /// across both clients instead of creating one row per food.
-    func saveStructuredMeal(_ draft: MealComposerDraft) async throws {
+    func saveStructuredMeal(
+        _ draft: MealComposerDraft,
+        recordFoodUsage: Bool = true
+    ) async throws {
         guard let profile else { throw APEXServiceError.configurationMissing }
         let validItems = draft.items.filter { $0.equivalentAmount > 0 }
         guard validItems.isEmpty == false else { throw APEXServiceError.incompleteFood }
@@ -2228,12 +2247,14 @@ final class AppSession {
                 waterML: item.waterML100.map { $0 * item.equivalentAmount / 100 }
             )
         }
-        let preferenceUpdates = MealMemory.usagePreferenceUpdates(
-            current: data.foodPreferences,
-            items: validItems,
-            userID: profile.userID,
-            usedAt: request.loggedAt
-        )
+        let preferenceUpdates = recordFoodUsage
+            ? MealMemory.usagePreferenceUpdates(
+                current: data.foodPreferences,
+                items: validItems,
+                userID: profile.userID,
+                usedAt: request.loggedAt
+            )
+            : []
 
         let previousData = data
         let payload = StructuredMealRPCPayload(pMeal: request, pEntries: entryRequests)
@@ -2406,7 +2427,30 @@ final class AppSession {
         var meal = data.loggedMeals[index]
         meal.loggedAt = date.ISO8601Format()
         data.loggedMeals[index] = meal
-        await persistUpsert(meal, table: "logged_meals")
+        let draft = MealComposerDraft(
+            id: meal.id,
+            localDate: meal.localDate,
+            mealSlot: meal.mealSlot,
+            displayName: meal.displayName,
+            finishedAt: date,
+            sourcePresetID: meal.sourcePresetID,
+            sourcePlannedMealID: meal.sourcePlannedMealID,
+            replaceMealID: meal.id,
+            loggedAs: MealLogKind.normalized(meal.loggedAs),
+            items: data.loggedFoodEntries
+                .filter { $0.mealID == meal.id }
+                .sorted { $0.sortOrder < $1.sortOrder }
+                .map(MealComposerItem.init(entry:))
+        )
+
+        do {
+            try await saveStructuredMeal(
+                MealFinishedAtReplacement.retime(draft, to: date),
+                recordFoodUsage: false
+            )
+        } catch {
+            alertMessage = error.localizedDescription
+        }
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
@@ -2827,6 +2871,7 @@ final class AppSession {
         startedAt: Date
     ) async -> UUID? {
         guard let ownerID = TrainingInduction.workoutOwnerID(in: data, day: day) else { return nil }
+        let accountToken = accountGeneration.token
         let exercises = data.exercises
             .filter {
                 $0.userID == ownerID
@@ -2904,34 +2949,65 @@ final class AppSession {
 
         /* The receipt is part of completing the workout, so it must not wait
            for a chain of remote writes. Preserve one complete local snapshot
-           first, then let the normal offline-aware sync path drain in the
-           background. */
+           first, durably enqueue its dependency bundle, then let the normal
+           offline-aware sync path drain in the background. */
         await saveLocalSnapshot()
-        Task { @MainActor [weak self] in
-            guard let self, TrainingInduction.belongsToAccount(self.data, userID: ownerID) else { return }
-            await self.persistUpsert(
+        do {
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(ownerID) == ownerID,
+                  TrainingInduction.belongsToAccount(data, userID: ownerID) else {
+                return workout.id
+            }
+            let parent = try OfflineOperation.upsert(
                 workout,
                 table: "workout_sessions",
-                ownerID: ownerID,
-                surfacePermanentFailure: false
+                onConflict: nil
             )
-            for log in logs {
-                guard TrainingInduction.belongsToAccount(self.data, userID: ownerID) else { return }
-                await self.persistUpsert(
-                    log,
+            var dependents = try logs.map {
+                try OfflineOperation.upsert(
+                    $0,
                     table: "workout_logs",
-                    ownerID: ownerID,
-                    surfacePermanentFailure: false
+                    onConflict: nil
                 )
             }
-            if let linkedActivity, TrainingInduction.belongsToAccount(self.data, userID: ownerID) {
-                await self.persistUpsert(
-                    linkedActivity,
-                    table: "activity_logs",
-                    ownerID: ownerID,
-                    surfacePermanentFailure: false
+            if let linkedActivity {
+                dependents.append(
+                    try OfflineOperation.upsert(
+                        linkedActivity,
+                        table: "activity_logs",
+                        onConflict: nil
+                    )
                 )
             }
+            try await offlineStore.enqueue(
+                parent: parent,
+                dependents: dependents,
+                for: ownerID
+            )
+            let storedPendingCount =
+                try? await offlineStore.pendingOperations(for: ownerID).count
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
+                return workout.id
+            }
+            pendingSyncCount =
+                storedPendingCount ?? pendingSyncCount + dependents.count + 1
+        } catch {
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
+                return workout.id
+            }
+            alertMessage = error.localizedDescription
+            return workout.id
+        }
+
+        workoutSyncTask?.cancel()
+        workoutSyncTask = Task { @MainActor [weak self] in
+            guard let self,
+                  !Task.isCancelled,
+                  self.accountGeneration.accepts(accountToken),
+                  self.verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+            await self.flushPendingChanges(for: ownerID)
         }
         return workout.id
     }
@@ -4090,30 +4166,82 @@ final class AppSession {
         await persistUpsert(profile, table: "profile", onConflict: "user_id")
     }
 
+    func refreshFailedSyncOperations() async {
+        guard let profile else {
+            failedSyncOperations = []
+            failedSyncCount = 0
+            return
+        }
+        let ownerID = profile.userID
+        let accountToken = accountGeneration.token
+        let failures = (try? await offlineStore.failedOperations(for: ownerID)) ?? []
+        guard accountGeneration.accepts(accountToken),
+              verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+        failedSyncOperations = failures
+        failedSyncCount = failures.count
+    }
+
     private func flushPendingChanges(for userID: UUID) async {
+        let accountToken = accountGeneration.token
+        guard accountGeneration.accepts(accountToken),
+              verifiedPersistenceOwnerID(userID) == userID else { return }
+        let requeuedAuthenticationFailures =
+            (try? await offlineStore.requeueAuthenticationFailures(for: userID)) ?? 0
+        guard accountGeneration.accepts(accountToken),
+              verifiedPersistenceOwnerID(userID) == userID else { return }
+        if requeuedAuthenticationFailures > 0 {
+            let pendingCount = try? await offlineStore.pendingOperations(for: userID).count
+            let failureCount = try? await offlineStore.failedOperations(for: userID).count
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(userID) == userID else { return }
+            pendingSyncCount = pendingCount ?? pendingSyncCount
+            failedSyncCount = failureCount ?? failedSyncCount
+        }
+
         guard let operations = try? await offlineStore.pendingOperations(for: userID) else { return }
+        guard accountGeneration.accepts(accountToken),
+              verifiedPersistenceOwnerID(userID) == userID else { return }
         pendingSyncCount = operations.count
         let report = await OfflineQueueDrainer.drain(
             operations,
-            replay: { [service] operation in
+            replay: { [weak self, service] operation in
+                guard let self else { throw SyncAccountBoundaryError() }
+                try await self.requireCurrentSyncAccount(ownerID: userID, token: accountToken)
                 try await service.replay(operation)
+                try await self.requireCurrentSyncAccount(ownerID: userID, token: accountToken)
             },
-            remove: { [offlineStore] operation in
+            remove: { [weak self, offlineStore] operation in
+                guard let self else { throw SyncAccountBoundaryError() }
+                try await self.requireCurrentSyncAccount(ownerID: userID, token: accountToken)
                 try await offlineStore.removeOperation(operation.id, for: userID)
             },
-            quarantine: { [offlineStore] operation, reason in
+            quarantine: { [weak self, offlineStore] operation, reason in
+                guard let self else { throw SyncAccountBoundaryError() }
+                try await self.requireCurrentSyncAccount(ownerID: userID, token: accountToken)
                 try await offlineStore.quarantine(operation, reason: reason, for: userID)
             },
-            refreshAuthentication: { [service] in
+            refreshAuthentication: { [weak self, service] in
+                guard let self else { throw SyncAccountBoundaryError() }
+                try await self.requireCurrentSyncAccount(ownerID: userID, token: accountToken)
                 try await service.refreshAuthenticationSession()
             },
-            classify: SyncFailurePolicy.classify
+            classify: { error in
+                error is SyncAccountBoundaryError
+                    ? .transient
+                    : SyncFailurePolicy.classify(error)
+            }
         )
-        pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? max(
+        guard accountGeneration.accepts(accountToken),
+              verifiedPersistenceOwnerID(userID) == userID else { return }
+        let pendingCount = try? await offlineStore.pendingOperations(for: userID).count
+        let failureCount = try? await offlineStore.failedOperations(for: userID).count
+        guard accountGeneration.accepts(accountToken),
+              verifiedPersistenceOwnerID(userID) == userID else { return }
+        pendingSyncCount = pendingCount ?? max(
             0,
             operations.count - report.succeeded - report.quarantined
         )
-        failedSyncCount = (try? await offlineStore.failedOperations(for: userID).count) ?? failedSyncCount
+        failedSyncCount = failureCount ?? failedSyncCount
         if report.succeeded > 0 { lastSyncAt = .now }
     }
 

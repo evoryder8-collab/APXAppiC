@@ -15,6 +15,7 @@ struct SimpleHomeView: View {
     @State private var composerRequest: MealComposerRequest?
     @State private var health = HealthKitManager.shared
     @State private var quickPanel: SimpleQuickPanel?
+    @State private var showingSyncIssues = false
 
     private var today: String { selectedDate.apexDateKey }
 
@@ -269,12 +270,9 @@ struct SimpleHomeView: View {
                         PortalLanguagePicker()
                         Spacer()
                         if session.failedSyncCount > 0 {
-                            Label(
-                                "\(session.failedSyncCount) \(language.text("needs attention"))",
-                                systemImage: "exclamationmark.icloud"
-                            )
-                            .font(APEXFont.mono(9))
-                            .foregroundStyle(APEXColor.danger)
+                            SyncIssuesButton(count: session.failedSyncCount) {
+                                showingSyncIssues = true
+                            }
                         } else if session.pendingSyncCount > 0 {
                             Label(language.format("%d queued", session.pendingSyncCount), systemImage: "icloud.and.arrow.up")
                                 .font(APEXFont.mono(9))
@@ -301,6 +299,12 @@ struct SimpleHomeView: View {
         .sheet(isPresented: $showNudges) {
             NudgeSheet(nudges: nudges) { showNudges = false }
                 .apexTransientSheet(.fraction(0.62))
+        }
+        .sheet(isPresented: $showingSyncIssues) {
+            SyncIssuesSheet()
+                .environment(session)
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
         }
         .onAppear {
 #if DEBUG
