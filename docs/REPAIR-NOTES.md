@@ -1212,3 +1212,20 @@ GitHub publication evidence:
 - Installed and launched on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5920`.
 - Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1272`.
 - Next: add and verify the photographed Sportyfeel whey record and remove redundant Open Food Facts provenance copy from the portion sheet.
+
+## 2026-08-27 — Phase 1.8 custom workouts are fully runnable
+
+- Implementation commit: `1c00c4ba3ca944af2434cff1e3287e8a4f4ad5e8` (`feat: make custom workouts fully runnable`).
+- Web and native builders now preserve a user-authored movement order, expose honest set/target/rest controls for repetitions, seconds, minutes, metres, steps, and rounds, and persist adjacent linked movements through the existing generic work-group membership fields. The same round model handles pairs and longer circuits without introducing a second superset representation.
+- Guided and tracked sessions consume the stored units rather than treating every target as repetitions. Distance work stores distance instead of fabricating duration; manual-cadence step and round targets retain their measured count; grouped work runs through the existing round-major player timeline and the shared completion path.
+- Builder ergonomics now use 44-point reorder/remove/link controls, A1/A2 group labels, and dismiss the software keyboard after selection on both clients so the prescription remains reachable.
+- Tests added or expanded:
+  - web `custom-workout-builder.test.ts`: unit labels, lossless reorder, generic adjacent grouping, and safe removal at a linked boundary;
+  - native `CustomWorkoutBuilderTests`: lossless reorder, deterministic work-group positions, persisted order/prescription/group membership, honest distance facts, and manual-cadence round counts;
+  - native UI smoke flow: all 549 catalogue movements remain exposed, Power Snatch can be selected, and selection dismisses the keyboard.
+- Red proof: the replacement UI assertion failed against the old keyboard behavior (`build/custom-workout-ui-red/Logs/Test/Test-APEX-2026.08.27_03-55-27-+0200.xcresult`, exit 65); the Wrist Roller regression failed while manual-cadence rounds were being dropped (`build/custom-workout-round-red/Logs/Test/Test-APEX-2026.08.27_04-11-23-+0200.xcresult`, exit 65). Both passed after their scoped fixes (`build/custom-workout-ui-green/Logs/Test/Test-APEX-2026.08.27_03-59-58-+0200.xcresult`, 1/1; `build/custom-workout-round-green/Logs/Test/Test-APEX-2026.08.27_04-15-11-+0200.xcresult`, 1/1).
+- Full verification: native 506/506 passed with 0 failures (`build/custom-workout-full-tests-final/Logs/Test/Test-APEX-2026.08.27_04-18-08-+0200.xcresult`); web 581/581 passed with 0 failures; `npm run build` passed; `git diff --check` passed.
+- Release build: APEX 1.0.0 (361), built and strictly signature-verified for both iPhone and embedded Watch app from exact implementation SHA `1c00c4ba3ca944af2434cff1e3287e8a4f4ad5e8`.
+- Installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5928`; automatic CLI launch was denied because the phone was locked, not because of an install failure.
+- Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1280`.
+- Next: reread the living roadmap and begin the next numbered Phase 1 task only after this task is pushed and Pages is green.
