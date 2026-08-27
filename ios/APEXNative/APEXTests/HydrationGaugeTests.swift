@@ -836,6 +836,35 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual(last.location, 1)
     }
 
+    func testTimelineStopsRunFromOldestOnLeftToLatestOnRight() throws {
+        let newestFirstBands = [
+            HydrationCompositionBand(
+                kind: .coffee,
+                paletteToken: "espresso",
+                iconToken: "cup.and.saucer.fill",
+                milliliters: 100
+            ),
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 900
+            ),
+        ]
+
+        let stops = HydrationCompositionLayout.timelineStops(for: newestFirstBands)
+        let first = try XCTUnwrap(stops.first)
+        let last = try XCTUnwrap(stops.last)
+        let waterEnd = try XCTUnwrap(stops.last { $0.paletteToken == "aqua" })
+        let coffeeStart = try XCTUnwrap(stops.first { $0.paletteToken == "espresso" })
+
+        XCTAssertEqual(first.paletteToken, "aqua")
+        XCTAssertEqual(first.location, 0)
+        XCTAssertEqual((waterEnd.location + coffeeStart.location) / 2, 0.9, accuracy: 0.000_001)
+        XCTAssertEqual(last.paletteToken, "espresso")
+        XCTAssertEqual(last.location, 1)
+    }
+
     func testCompositionTransitionIsFifteenPercentSofterWithoutMovingItsBoundary() throws {
         let bands = [
             HydrationCompositionBand(

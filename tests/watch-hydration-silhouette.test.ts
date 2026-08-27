@@ -71,15 +71,18 @@ test('Watch hydration silhouette never floats vertically', () => {
   assert.doesNotMatch(silhouette, /\.offset\(y:/)
 })
 
-test('Watch silhouette and gleam share millilitre-weighted color stops', () => {
+test('Watch silhouette and horizontal gleam preserve weighted stops in their own orientation', () => {
   const view = readFileSync(
     new URL('../ios/APEXNative/APEXWatch/WatchHydrationView.swift', import.meta.url),
     'utf8',
   )
 
-  assert.equal(view.match(/HydrationPalette\.stops\(/g)?.length, 2)
+  assert.equal(view.match(/HydrationPalette\.stops\(/g)?.length, 1)
+  assert.equal(view.match(/HydrationPalette\.timelineStops\(/g)?.length, 1)
   assert.match(view, /mappedInto: fillState\.baseWaterline \.\.\. 1/)
   assert.match(view, /startPoint: \.top,\s*endPoint: \.bottom/)
+  assert.match(view, /timelineStops\(for: composition, fallback: \[violet, aqua\]\)/)
+  assert.match(view, /startPoint: \.leading,\s*endPoint: \.trailing/)
 })
 
 test('Watch history offers deliberate tap and swipe deletion', () => {

@@ -961,7 +961,7 @@ private struct WaterQuickAddSheet: View {
     }
 
     private var compositionGradient: LinearGradient {
-        let stops = HydrationCompositionLayout.stops(for: composition).map { stop in
+        let stops = HydrationCompositionLayout.timelineStops(for: composition).map { stop in
             Gradient.Stop(
                 color: hydrationColor(stop.paletteToken),
                 location: CGFloat(stop.location)

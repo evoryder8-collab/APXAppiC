@@ -429,6 +429,17 @@ struct HydrationCompositionStop: Equatable, Sendable {
 enum HydrationCompositionLayout {
     private static let maximumTransitionHalfWidth = 0.0023
 
+    /// Hydration composition is newest-first so the silhouette's zero offset
+    /// paints the latest addition at its top. A chronological horizontal
+    /// timeline needs the inverse order: morning on the left, latest on the
+    /// right.
+    static func timelineStops(
+        for bands: [HydrationCompositionBand],
+        mappedInto range: ClosedRange<Double> = 0 ... 1
+    ) -> [HydrationCompositionStop] {
+        stops(for: Array(bands.reversed()), mappedInto: range)
+    }
+
     static func stops(
         for bands: [HydrationCompositionBand],
         mappedInto range: ClosedRange<Double> = 0 ... 1

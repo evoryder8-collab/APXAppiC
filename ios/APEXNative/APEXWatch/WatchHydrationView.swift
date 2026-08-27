@@ -347,6 +347,22 @@ private enum HydrationPalette {
         mappedInto range: ClosedRange<Double> = 0 ... 1
     ) -> [Gradient.Stop] {
         let layout = HydrationCompositionLayout.stops(for: bands, mappedInto: range)
+        return gradientStops(for: layout, fallback: fallback)
+    }
+
+    static func timelineStops(
+        for bands: [HydrationCompositionBand],
+        fallback: [Color],
+        mappedInto range: ClosedRange<Double> = 0 ... 1
+    ) -> [Gradient.Stop] {
+        let layout = HydrationCompositionLayout.timelineStops(for: bands, mappedInto: range)
+        return gradientStops(for: layout, fallback: fallback)
+    }
+
+    private static func gradientStops(
+        for layout: [HydrationCompositionStop],
+        fallback: [Color]
+    ) -> [Gradient.Stop] {
         guard !layout.isEmpty else {
             let denominator = Double(max(1, fallback.count - 1))
             return fallback.enumerated().map { index, color in
@@ -380,7 +396,7 @@ private struct HydrationProgressGleam: View {
                 Capsule()
                     .fill(
                         LinearGradient(
-                            stops: HydrationPalette.stops(for: composition, fallback: [violet, aqua]),
+                            stops: HydrationPalette.timelineStops(for: composition, fallback: [violet, aqua]),
                             startPoint: .leading,
                             endPoint: .trailing
                         )
