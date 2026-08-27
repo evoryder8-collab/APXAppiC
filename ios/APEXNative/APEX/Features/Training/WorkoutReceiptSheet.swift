@@ -504,7 +504,7 @@ struct CompletedWorkoutHistoryCards: View {
         .offset(x: isExpanded ? 0 : currentRevealOffset)
         }
         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
-        .simultaneousGesture(
+        .highPriorityGesture(
             DragGesture(minimumDistance: 16)
                 .onChanged { value in
                     updateReveal(id: item.id, translation: value.translation, expanded: isExpanded)

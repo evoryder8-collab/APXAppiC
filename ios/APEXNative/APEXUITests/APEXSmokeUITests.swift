@@ -295,6 +295,34 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertFalse(collapsedDelete.exists, "expanded content uses its compact corner action, not the tray")
     }
 
+    func testFinishedWorkoutDeleteTrayStaysOpenAfterTheSwipeEnds() {
+        let app = configuredApp()
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        tapClearOfDock(simpleMode)
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) { syncAlert.buttons["OK"].tap() }
+
+        let card = app.buttons.matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND NOT identifier BEGINSWITH %@",
+                "completed-workout-", "completed-workout-delete-"
+            )
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(card, in: app, attempts: 12))
+
+        card.swipeLeft()
+        let collapsedDelete = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "completed-workout-delete-")
+        ).firstMatch
+        XCTAssertTrue(collapsedDelete.waitForExistence(timeout: 2))
+        Thread.sleep(forTimeInterval: 0.75)
+        XCTAssertTrue(collapsedDelete.exists, "the revealed delete tray must remain open after the finger lifts")
+        XCTAssertTrue(collapsedDelete.isHittable)
+    }
+
     func testMorningCheckAcceptsWeightWithoutForcingASleepScore() {
         let app = configuredApp()
         app.launch()
