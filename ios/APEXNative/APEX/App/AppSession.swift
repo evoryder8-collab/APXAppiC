@@ -549,6 +549,8 @@ final class AppSession {
         defer {
             if accountGeneration.accepts(accountToken) { isRefreshing = false }
         }
+        var followUpRefreshAvailable = true
+        while true {
         var next = try await service.loadDashboard()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         let currentUserID = await service.currentUserID()
@@ -586,6 +588,43 @@ final class AppSession {
             EntitlementStore.shared.prepareForAccount(authenticatedUserID)
             next.settings = next.settings?.rebound(to: authenticatedUserID)
         }
+        var pendingAfterReconciliation: [OfflineOperation]?
+        var failuresAfterReconciliation: [FailedOfflineOperation]?
+        if let userID = authenticatedUserID {
+            let cachedDashboard = try? await offlineStore.loadDashboard(for: userID)
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+            let reconciliation = try? await offlineStore.reconcileFailures(
+                for: userID,
+                dashboard: next
+            )
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+            let requeuedOperationIDs = reconciliation?.requeuedOperationIDs ?? []
+            if requeuedOperationIDs.isEmpty == false {
+                await flushPendingChanges(for: userID)
+                guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+                pendingAfterReconciliation = try? await offlineStore.pendingOperations(for: userID)
+                guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+                failuresAfterReconciliation = try? await offlineStore.failedOperations(for: userID)
+                guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+                switch OfflineFailureReplayRefreshPlan.make(
+                    requeuedOperationIDs: requeuedOperationIDs,
+                    pendingOperationIDs: pendingAfterReconciliation.map { Set($0.map(\.id)) },
+                    failedOperationIDs: failuresAfterReconciliation.map { Set($0.map(\.id)) },
+                    hasCachedDashboard: cachedDashboard != nil
+                ) {
+                case .reloadRemote:
+                    if followUpRefreshAvailable {
+                        followUpRefreshAvailable = false
+                        continue
+                    }
+                    if let cachedDashboard { next = cachedDashboard }
+                case .preserveCached:
+                    if let cachedDashboard { next = cachedDashboard }
+                case .useRemote:
+                    break
+                }
+            }
+        }
         data = next
         if let authenticatedUserID {
             await ensureHydrationDefaults(ownerID: authenticatedUserID)
@@ -595,12 +634,27 @@ final class AppSession {
         if let userID = authenticatedUserID {
             try? await offlineStore.saveDashboard(data, for: userID)
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
-            let count = try? await offlineStore.pendingOperations(for: userID).count
+            let count: Int?
+            if let pendingAfterReconciliation {
+                count = pendingAfterReconciliation.count
+            } else {
+                count = try? await offlineStore.pendingOperations(for: userID).count
+            }
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
             pendingSyncCount = count ?? 0
-            let failures = try? await offlineStore.failedOperations(for: userID).count
+            let failures: [FailedOfflineOperation]?
+            if let failuresAfterReconciliation {
+                failures = failuresAfterReconciliation
+            } else {
+                failures = try? await offlineStore.failedOperations(for: userID)
+            }
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
-            failedSyncCount = failures ?? 0
+            if let failures {
+                failedSyncOperations = failures
+                failedSyncCount = failures.count
+            }
+        }
+        break
         }
         await considerWeeklyCalibration()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }

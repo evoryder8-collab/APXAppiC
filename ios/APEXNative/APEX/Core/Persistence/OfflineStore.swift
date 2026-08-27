@@ -172,6 +172,157 @@ struct OfflineQueueDrainReport: Equatable, Sendable {
     let paused: Bool
 }
 
+struct OfflineFailureReconciliationReport: Equatable, Sendable {
+    let resolved: Int
+    let requeued: Int
+    let remaining: Int
+    let requeuedOperationIDs: Set<UUID>
+
+    init(
+        resolved: Int,
+        requeued: Int,
+        remaining: Int,
+        requeuedOperationIDs: Set<UUID> = []
+    ) {
+        self.resolved = resolved
+        self.requeued = requeued
+        self.remaining = remaining
+        self.requeuedOperationIDs = requeuedOperationIDs
+    }
+}
+
+enum OfflineFailureReplayRefreshPlan: Equatable, Sendable {
+    case useRemote
+    case preserveCached
+    case reloadRemote
+
+    static func make(
+        requeuedOperationIDs: Set<UUID>,
+        pendingOperationIDs: Set<UUID>?,
+        failedOperationIDs: Set<UUID>?,
+        hasCachedDashboard: Bool
+    ) -> Self {
+        guard requeuedOperationIDs.isEmpty == false else { return .useRemote }
+        if let pendingOperationIDs,
+           let failedOperationIDs,
+           pendingOperationIDs.isEmpty,
+           requeuedOperationIDs.isDisjoint(with: failedOperationIDs) {
+            return .reloadRemote
+        }
+        return hasCachedDashboard ? .preserveCached : .useRemote
+    }
+}
+
+private enum OfflineFailureReconciliationDisposition {
+    case resolved
+    case retry(OfflineOperation)
+    case attention
+}
+
+private struct FailedWorkoutLogReference: Decodable {
+    let id: UUID
+    let sessionID: UUID
+
+    enum CodingKeys: String, CodingKey {
+        case id
+        case sessionID = "session_id"
+    }
+}
+
+private enum OfflineFailureReconciler {
+    static func disposition(
+        for failure: FailedOfflineOperation,
+        dashboard: DashboardData
+    ) -> OfflineFailureReconciliationDisposition {
+        let operation = failure.operation
+        let category = SyncFailurePolicy.category(persistedReason: failure.reason)
+
+        if operation.rpcFunction == "log_structured_meal",
+           let payloadData = operation.payload,
+           let payload = try? JSONDecoder().decode(StructuredMealRPCPayload.self, from: payloadData) {
+            if category == .invalidValue {
+                let normalized = MealLogKind.normalized(payload.pMeal.loggedAs)
+                if normalized != payload.pMeal.loggedAs {
+                    let meal = payload.pMeal
+                    let repaired = StructuredMealRPCPayload(
+                        pMeal: StructuredMealRequest(
+                            id: meal.id,
+                            localDate: meal.localDate,
+                            mealSlot: meal.mealSlot,
+                            displayName: meal.displayName,
+                            sourcePresetID: meal.sourcePresetID,
+                            sourcePlannedMealID: meal.sourcePlannedMealID,
+                            loggedAt: meal.loggedAt,
+                            clientIdempotencyKey: meal.clientIdempotencyKey,
+                            loggedAs: normalized,
+                            replaceMealID: meal.replaceMealID
+                        ),
+                        pEntries: payload.pEntries
+                    )
+                    if let encoded = try? JSONEncoder().encode(repaired) {
+                        return .retry(operation.replacingPayload(encoded))
+                    }
+                }
+            }
+            return .attention
+        }
+
+        if operation.kind == .upsert,
+           operation.table == "logged_meals",
+           category == .permission,
+           let payloadData = operation.payload,
+           let failedMeal = try? JSONDecoder().decode(LoggedMeal.self, from: payloadData),
+           dashboard.loggedMeals.contains(failedMeal) {
+            // The authoritative row already has every value this operation
+            // attempted to write, so its failed legacy mutation has no
+            // remaining effect to preserve.
+            return .resolved
+        }
+
+        if operation.kind == .upsert,
+           operation.table == "health_metrics",
+           category == .duplicate,
+           let payloadData = operation.payload,
+           let failedMetric = try? JSONDecoder().decode(HealthMetric.self, from: payloadData),
+           dashboard.healthMetrics.contains(failedMetric) {
+            return .resolved
+        }
+
+        if operation.kind == .upsert,
+           operation.table == "workout_logs",
+           category == .missingDependency,
+           failure.reason.lowercased().contains("workout_logs_session_id_fkey"),
+           let payloadData = operation.payload,
+           let failedLog = try? JSONDecoder().decode(FailedWorkoutLogReference.self, from: payloadData) {
+            if let exactLog = try? JSONDecoder().decode(WorkoutLog.self, from: payloadData),
+               dashboard.workoutLogs.contains(exactLog) {
+                return .resolved
+            }
+            if dashboard.workoutSessions.contains(where: { $0.id == failedLog.sessionID }) {
+                return .retry(operation)
+            }
+            return .attention
+        }
+
+        return .attention
+    }
+}
+
+private extension OfflineOperation {
+    func replacingPayload(_ payload: Data) -> OfflineOperation {
+        OfflineOperation(
+            id: id,
+            kind: kind,
+            table: table,
+            payload: payload,
+            recordID: recordID,
+            onConflict: onConflict,
+            rpcFunction: rpcFunction,
+            createdAt: createdAt
+        )
+    }
+}
+
 /// Replays an outbox in order. A permanent poison entry is quarantined and the
 /// drain continues; a transient outage pauses the queue without losing work.
 enum OfflineQueueDrainer {
@@ -358,6 +509,63 @@ actor OfflineStore {
         guard fileManager.fileExists(atPath: url.path) else { return [] }
         return try JSONDecoder.apex.decode([FailedOfflineOperation].self, from: Data(contentsOf: url))
             .sorted { $0.failedAt < $1.failedAt }
+    }
+
+    /// Reconcile quarantine records only against a dashboard that was just
+    /// loaded successfully from the server. Proven replacements disappear,
+    /// repairable legacy writes return to the durable queue, and anything
+    /// ambiguous remains visible for the user.
+    func reconcileFailures(
+        for userID: UUID,
+        dashboard: DashboardData
+    ) throws -> OfflineFailureReconciliationReport {
+        let failures = try failedOperations(for: userID)
+        guard failures.isEmpty == false else {
+            return OfflineFailureReconciliationReport(resolved: 0, requeued: 0, remaining: 0)
+        }
+
+        var pending = try pendingOperations(for: userID)
+        var pendingIDs = Set(pending.map(\.id))
+        var remaining: [FailedOfflineOperation] = []
+        var resolved = 0
+        var requeued = 0
+        var requeuedOperationIDs: Set<UUID> = []
+
+        for failure in failures {
+            switch OfflineFailureReconciler.disposition(
+                for: failure,
+                dashboard: dashboard
+            ) {
+            case .resolved:
+                resolved += 1
+            case let .retry(operation):
+                requeuedOperationIDs.insert(operation.id)
+                if pendingIDs.insert(operation.id).inserted {
+                    let insertionIndex = pending.firstIndex {
+                        $0.createdAt >= operation.createdAt
+                    } ?? pending.endIndex
+                    pending.insert(operation, at: insertionIndex)
+                }
+                requeued += 1
+            case .attention:
+                remaining.append(failure)
+            }
+        }
+
+        if requeued > 0 {
+            // Write retryable work first: a later failure-file write can leave
+            // a duplicate notice, but can never lose the original change.
+            try saveOperations(pending, for: userID)
+        }
+        if remaining.count != failures.count {
+            try saveFailures(remaining, for: userID)
+        }
+        return OfflineFailureReconciliationReport(
+            resolved: resolved,
+            requeued: requeued,
+            remaining: remaining.count,
+            requeuedOperationIDs: requeuedOperationIDs
+        )
     }
 
     /// Move explicitly selected failures back to the durable retry queue.
