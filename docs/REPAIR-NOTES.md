@@ -1229,3 +1229,20 @@ GitHub publication evidence:
 - Installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5928`; automatic CLI launch was denied because the phone was locked, not because of an install failure.
 - Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1280`.
 - Next: reread the living roadmap and begin the next numbered Phase 1 task only after this task is pushed and Pages is green.
+
+## 2026-08-27 - Task 1.9: live metabolic Dayline parity
+
+- Implementation commit: `eacd9a0d28d44b072219d44058be0474717b5a73` (`feat: complete live metabolic dayline parity`).
+- Native now resolves factual meal and completed-workout timestamps against the account timezone and the logical 03:00-02:59 day, including the next-calendar-day portion before 03:00. The full Dayline refreshes every 30 seconds while visible, keeps planned and recorded states distinct, merges overlapping meal comfort windows, and lets completed workout times be corrected on the same configured snap increment.
+- Scheduled meal drags now persist through the shared account-scoped `meal_blocks` settings on native, Simple web, and Advanced web without dropping custom blocks or preset assignments. Actual meal drags continue to change factual finish time rather than schedule.
+- Native now renders factual completed workouts on the rail and the web-derived recovery context with a broad two-hour 20-40 g protein opportunity, timing score, and an explicit non-cliff explanation in detailed mode. Guidance remains contextual and does not claim medical certainty.
+- Tests added or expanded:
+  - native `MealTimingEngineTests`: selected-date validation, configured snapping, exact zoned instant construction, pre-03:00 logical-day behavior, completed workout timing, and source integration;
+  - web `meal-blocks.test.ts`: canonical and custom rescheduling while preserving assignments;
+  - native UI smoke flow: user-visible recovery guidance and completed workout both appear in Nutrition.
+- Red proof: the new native timing tests initially failed because the Dayline resolver/snap/workout APIs did not exist; the web test initially failed because `rescheduleMealBlock` did not exist. Self-review then reproduced the overnight bug with three failing assertions (`Test-APEX-2026.08.27_05-18-25-+0200.xcresult`, exit 65) before the logical-day fix; the same 16-test target then passed with 0 failures (`Test-APEX-2026.08.27_05-19-10-+0200.xcresult`).
+- Full verification: native 511/511 passed with 0 failures (`Test-APEX-2026.08.27_05-19-46-+0200.xcresult`); web 582/582 passed with 0 failures; the focused native UI flow passed 1/1 in 8.733 seconds (`Test-APEX-2026.08.27_05-20-05-+0200.xcresult`); `npm run build` and `git diff --check` passed.
+- Release build: APEX 1.0.0 (362), built and strictly signature-verified for both iPhone and embedded Watch app from exact implementation SHA `eacd9a0d28d44b072219d44058be0474717b5a73`.
+- Installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5936`; automatic CLI launch was denied because the phone was locked, not because of an install failure.
+- Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1288`.
+- Next: push this task to both remote refs, verify the main-backed Pages deployment and live 200 response, then reread the living roadmap before the next numbered task.
