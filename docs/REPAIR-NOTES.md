@@ -1195,3 +1195,20 @@ GitHub publication evidence:
 - Release build: APEX 1.0.0 (359), built and codesigned from exact implementation SHA `fe85132f9cef6324569e2d890c5f8763586fd34d`.
 - Installed and launched on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5912`.
 - Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1264`.
+
+## 2026-08-27 — Overlapping meal comfort windows
+
+- Implementation commit: `5bd5253391ba7cad45eb8a30cfe4acede569e427` (`fix: merge overlapping meal comfort windows`).
+- Replaced the latest-meal-wins rendering in both native and web Daylines with a shared interval resolver. Every meal contributes settling and transition intervals; overlapping intervals resolve by severity, adjacent equal bands coalesce, and a later snack may extend but can never shorten an active larger-meal context.
+- The native headline now selects the still-active context with the furthest honest ready time, while both rails render the complete resolved interval sequence. This also handles a later substantial meal re-entering a settling phase instead of assuming the day can only progress monotonically.
+- Tests added:
+  - `MealTimingEngineTests.testALaterLightSnackCannotEraseAnActiveLongerLunchComfortWindow`
+  - `MealTimingEngineTests.testNativeDaylineRendersMergedBandsInsteadOfOnlyTheLatestMeal`
+  - web `a later light snack cannot erase an active longer lunch comfort window` behavioral and renderer-integration assertion.
+- Red proof: web failed because `mergeMealComfortBands` did not exist; native failed because `ComfortAnchor` and the merge resolver did not exist (`build/meal-window-merge-red/Logs/Test/Test-APEX-2026.08.27_02-40-45-+0200.xcresult`, exit 65).
+- Green proof: web meal timing 20/20 passed; native focused regression 1/1 passed (`build/meal-window-merge-red/Logs/Test/Test-APEX-2026.08.27_02-43-15-+0200.xcresult`); native meal timing 11/11 passed (`build/meal-window-merge-red/Logs/Test/Test-APEX-2026.08.27_02-53-13-+0200.xcresult`).
+- Full verification: native 501/501 passed with 0 failures (`build/meal-window-merge-red/Logs/Test/Test-APEX-2026.08.27_02-56-03-+0200.xcresult`); web 577/577 passed with 0 failures; `npm run build` passed; `git diff --check` passed.
+- Release build: APEX 1.0.0 (360), built and codesigned from exact implementation SHA `5bd5253391ba7cad45eb8a30cfe4acede569e427`.
+- Installed and launched on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5920`.
+- Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1272`.
+- Next: add and verify the photographed Sportyfeel whey record and remove redundant Open Food Facts provenance copy from the portion sheet.
