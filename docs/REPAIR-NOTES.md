@@ -1285,3 +1285,33 @@ GitHub publication evidence:
 - Production web build: `tsc --noEmit && vite build` succeeded.
 - Signed Release `1.0.0 (363)` passed strict code-sign verification, installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched successfully from implementation SHA `ce22d14fe5ff8dda26a4c163afa16ec4cedc47f4`.
 - GitHub Pages run `33039117658` completed successfully from `main`; cache-busted live URL returned HTTP 200: `https://evoryder8-collab.github.io/APXAppiC/?task28=ce22d14fe5ff8dda26a4c163afa16ec4cedc47f4`.
+
+## 2026-08-27 — HealthKit activity-summary launch crash
+
+### Outcome
+
+- The physical-iPhone crash was reproduced from the device crash reports and symbolicated to `HKQuery.predicateForActivitySummary(with:)`, called by `HealthKitManager.activitySummaryEnergyKcal(on:)`.
+- The activity-summary day now carries the Gregorian calendar inside its `DateComponents`, as HealthKit requires, while preserving the account/device timezone. The entitlement screen was only the visible screen while the asynchronous HealthKit refresh aborted; it was not the crash source.
+
+### Files changed
+
+- `ios/APEXNative/APEX/Features/Health/HealthKitManager.swift`
+- `ios/APEXNative/APEXTests/HealthImportParityTests.swift`
+
+### Commit
+
+- Implementation: `a4375eaff9fb42bd15ceae0414bf88d82bbc2b9e` (`fix: prevent HealthKit launch crash`).
+
+### Tests added
+
+- `HealthTodayReadingsTests.testActivitySummaryDayCarriesTheGregorianCalendarHealthKitRequires` verifies the calendar identifier, timezone, era, year, month, and day, and exercises HealthKit's activity-summary predicate constructor so the former Objective-C exception cannot regress silently.
+
+### Verification
+
+- Red proof: the focused test failed to compile before implementation because `HealthActivitySummaryQueryDay` did not exist (`build/hotfix-healthkit-red/Logs/Test/Test-APEX-2026.08.27_06-44-08-+0200.xcresult`, exit 65).
+- Green proof: the exact regression passed 1/1, then the surrounding HealthKit activity-energy and today-readings suites passed **10/10 with 0 failures** (`build/hotfix-healthkit-red/Logs/Test/Test-APEX-2026.08.27_06-49-32-+0200.xcresult`).
+- Web regression suite: **582 passed, 0 failed**.
+- Production web build: `tsc --noEmit && vite build` succeeded.
+- Broader native run: **527 passed, 6 failed**. All six failures were pre-existing UI-smoke expectations/timeouts outside the two-file crash diff; a quiet isolated rerun reproduced them as five UI-query/main-run-loop failures and one performance assertion at 20.21 seconds versus 2 seconds (`build/hotfix-healthkit-ui-retry/Logs/Test/Test-APEX-2026.08.27_07-23-19-+0200.xcresult`). They are recorded rather than misreported as green.
+- Signed Release APEX 1.0.0 (364) passed strict code-sign verification and was installed from exact implementation SHA `a4375eaff9fb42bd15ceae0414bf88d82bbc2b9e` on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`.
+- After launch, the app remained alive as PID 4233; the newest `APEX-*.ips` crash report remained the pre-fix 06:31 report, with no post-install APEX crash generated.
