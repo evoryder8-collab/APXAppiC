@@ -7,6 +7,7 @@
  * does not duplicate work already recorded.
  */
 import XCTest
+import HealthKit
 @testable import APEX
 
 private struct HealthFixture: Decodable {
@@ -252,6 +253,25 @@ private func unavailableHealthTodayPlan() -> HealthTodayQueryPlan {
 }
 
 final class HealthActivityEnergyResolutionTests: XCTestCase {
+    func testActivitySummaryDayCarriesTheGregorianCalendarHealthKitRequires() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 7_200)!
+        let date = Date(timeIntervalSince1970: 1_777_000_000)
+
+        let components = HealthActivitySummaryQueryDay.components(for: date, calendar: calendar)
+
+        XCTAssertEqual(components.calendar?.identifier, .gregorian)
+        XCTAssertEqual(components.calendar?.timeZone, calendar.timeZone)
+        XCTAssertNotNil(components.era)
+        XCTAssertNotNil(components.year)
+        XCTAssertNotNil(components.month)
+        XCTAssertNotNil(components.day)
+        XCTAssertNotNil(
+            HKQuery.predicateForActivitySummary(with: components),
+            "HealthKit must accept the exact components before a launch refresh can query the activity ring"
+        )
+    }
+
     func testAppleFitnessActivitySummaryWinsWhenRawEnergySamplesLag() {
         XCTAssertEqual(
             HealthActivityEnergyResolver.resolve(

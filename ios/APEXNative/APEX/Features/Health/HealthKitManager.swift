@@ -99,6 +99,14 @@ enum HealthActivityEnergyResolver {
     }
 }
 
+enum HealthActivitySummaryQueryDay {
+    static func components(for date: Date, calendar: Calendar) -> DateComponents {
+        var gregorian = Calendar(identifier: .gregorian)
+        gregorian.timeZone = calendar.timeZone
+        return gregorian.dateComponents([.calendar, .era, .year, .month, .day], from: date)
+    }
+}
+
 private enum HealthActivityEnergyReadError: Error {
     case unavailable
 }
@@ -628,7 +636,7 @@ final class HealthKitManager {
     private func activitySummaryEnergyKcal(on date: Date) async throws -> Double? {
         var calendar = Calendar(identifier: .gregorian)
         calendar.timeZone = .current
-        let components = calendar.dateComponents([.era, .year, .month, .day], from: date)
+        let components = HealthActivitySummaryQueryDay.components(for: date, calendar: calendar)
         let predicate = HKQuery.predicateForActivitySummary(with: components)
         return try await withCheckedThrowingContinuation { continuation in
             let query = HKActivitySummaryQuery(predicate: predicate) { _, summaries, error in
