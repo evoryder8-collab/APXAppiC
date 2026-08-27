@@ -1343,3 +1343,31 @@ GitHub publication evidence:
 - Receipt unit suite: **14 passed, 0 failed** (`build/finished-workout-swipe-unit/Logs/Test/Test-APEX-2026.08.27_08-01-25-+0200.xcresult`).
 - Web regression suite: **582 passed, 0 failed**; `npm run build` and `git diff --check` passed.
 - Signed Release APEX 1.0.0 (365) passed strict code-sign verification, installed from exact implementation SHA `b9fa81e1b97da91f950bca63aed6b6eaf8d2f240` on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6` (database sequence 5960), launched, and remained present as PID 4411.
+
+## 2026-08-27 — Phase 2.3 and 2.5 status audit
+
+### Outcome
+
+- **2.3 is not complete.** Migration `020_restrict_rls_auto_enable.sql` contains the intended `public`/`anon`/`authenticated` revokes for `rls_auto_enable`, but repository and production migration histories have diverged, so that file alone does not prove the revoke reached production.
+- Production contains `beta_codes` and its uniqueness indexes, but the repository contains neither the table declaration nor an RLS policy for it. Migration 029 only protects `profile.beta_code_redeemed` and the redemption RPC.
+- Leaked-password protection has no repository-enforced configuration and remains reported disabled in the hosted project.
+- Foreign-key support is incomplete: production index inspection shows referenced columns without leading supporting indexes, including `program_days.program_id`, `exercises.program_day_id`, `workout_sessions.program_day_id`, and `workout_logs.exercise_id`.
+- Older RLS policies still use direct `auth.uid()` evaluation rather than the cached `(select auth.uid())` form.
+- Native Supabase reads still contain hard row caps, including workout sessions, workout logs, activity logs, daily logs, hydration events, meals, and food entries; long histories can therefore still truncate silently.
+- `supabase migration list --linked` reports local numeric migrations 001–031 without matching remote versions. A read-only `supabase db push --linked --dry-run --include-all` stops with `LegacyDbPushMissingLocalError`; migration history must be reconciled before any safe production hardening push.
+- **2.5 is untouched as a deliverable.** No web/native parity matrix document exists in the repository.
+- The existing parity work is partial 2.6 evidence, not a substitute for 2.5: nine Swift parity test files plus one web parity test file, exactly ten files total.
+- Per the roadmap instruction, completed 2.1 and 2.4 were not reopened and the existing 2.6 tests were not redone.
+
+### Verification evidence
+
+- `npx supabase inspect db index-stats --linked --output-format json` — authenticated production inspection succeeded and exposed the current index inventory.
+- `npx supabase db lint --linked --level warning` — completed without schema errors; this does not replace the hosted security/performance advisors.
+- `npx supabase migration list --linked` — confirmed local/remote migration-history divergence.
+- `npx supabase db push --linked --dry-run --include-all` — safely made no change and exposed the migration-history blocker.
+- Repository scan — no parity matrix document and no `beta_codes` policy migration.
+- Exact parity-file scan — 10 files: 9 native and 1 web.
+
+### Installed build
+
+- Latest installed iPhone build remains Release 365 from code SHA `b9fa81e1b97da91f950bca63aed6b6eaf8d2f240`; this audit changes documentation only.
