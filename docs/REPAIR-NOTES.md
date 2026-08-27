@@ -1315,3 +1315,31 @@ GitHub publication evidence:
 - Broader native run: **527 passed, 6 failed**. All six failures were pre-existing UI-smoke expectations/timeouts outside the two-file crash diff; a quiet isolated rerun reproduced them as five UI-query/main-run-loop failures and one performance assertion at 20.21 seconds versus 2 seconds (`build/hotfix-healthkit-ui-retry/Logs/Test/Test-APEX-2026.08.27_07-23-19-+0200.xcresult`). They are recorded rather than misreported as green.
 - Signed Release APEX 1.0.0 (364) passed strict code-sign verification and was installed from exact implementation SHA `a4375eaff9fb42bd15ceae0414bf88d82bbc2b9e` on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`.
 - After launch, the app remained alive as PID 4233; the newest `APEX-*.ips` crash report remained the pre-fix 06:31 report, with no post-install APEX crash generated.
+
+## 2026-08-27 — Finished-workout delete tray stays revealed
+
+### Outcome
+
+- A deliberate left swipe on a collapsed finished-workout card now wins gesture recognition over the nested expand button, so releasing the finger leaves the red delete action revealed instead of immediately bouncing the card closed.
+- Ordinary taps still expand the receipt, the expanded-card corner delete action remains unchanged, and the revealed action still requires the existing confirmation before any workout data is removed.
+
+### Files changed
+
+- `ios/APEXNative/APEX/Features/Training/WorkoutReceiptSheet.swift`
+- `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+
+### Commit
+
+- Implementation: `b9fa81e1b97da91f950bca63aed6b6eaf8d2f240` (`fix: keep workout deletion revealed`).
+
+### Tests added
+
+- `APEXSmokeUITests.testFinishedWorkoutDeleteTrayStaysOpenAfterTheSwipeEnds` swipes a real collapsed receipt, releases, waits 0.75 seconds, and requires the revealed delete action to remain present and hittable.
+
+### Verification
+
+- Red proof: the new behavioral test failed 0/1 because `completed-workout-delete-*` disappeared before its two-second existence check (`build/finished-workout-swipe-red/Logs/Test/Test-APEX-2026.08.27_07-49-58-+0200.xcresult`, exit 65).
+- Green proof: the same UI test passed 1/1 after the gesture-priority fix (`build/finished-workout-swipe-green/Logs/Test/Test-APEX-2026.08.27_07-57-32-+0200.xcresult`).
+- Receipt unit suite: **14 passed, 0 failed** (`build/finished-workout-swipe-unit/Logs/Test/Test-APEX-2026.08.27_08-01-25-+0200.xcresult`).
+- Web regression suite: **582 passed, 0 failed**; `npm run build` and `git diff --check` passed.
+- Signed Release APEX 1.0.0 (365) passed strict code-sign verification, installed from exact implementation SHA `b9fa81e1b97da91f950bca63aed6b6eaf8d2f240` on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6` (database sequence 5960), launched, and remained present as PID 4411.
