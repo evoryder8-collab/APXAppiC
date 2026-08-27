@@ -1246,3 +1246,42 @@ GitHub publication evidence:
 - Installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5936`; automatic CLI launch was denied because the phone was locked, not because of an install failure.
 - Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1288`.
 - Next: push this task to both remote refs, verify the main-backed Pages deployment and live 200 response, then reread the living roadmap before the next numbered task.
+
+## 2026-08-27 — Phase 2.8: recover queued writes after authentication expiry
+
+### Outcome
+
+- HTTP 401, expired/invalid JWT responses, and PostgREST authentication codes are no longer treated as permanently invalid writes.
+- The offline drainer refreshes the Supabase session once and replays the same idempotent operation once. A failed refresh or repeated authentication failure pauses the queue and preserves the write instead of quarantining it.
+- Genuinely permanent failures still move out of the retry path, but their count is now visible on Simple Mode as `needs attention`; the UI cannot claim `Synced` while failed writes exist.
+
+### Files changed
+
+- `ios/APEXNative/APEX/Core/Persistence/OfflineStore.swift`
+- `ios/APEXNative/APEX/Core/Networking/SupabaseService.swift`
+- `ios/APEXNative/APEX/App/AppSession.swift`
+- `ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift`
+- `ios/APEXNative/APEXTests/MealComposerTests.swift`
+- `ios/APEXNative/APEXUITests/APEXSmokeUITests.swift`
+
+### Commit
+
+- Implementation: `ce22d14fe5ff8dda26a4c163afa16ec4cedc47f4`
+
+### Tests added
+
+- 401/PGRST301 classification requires authentication recovery rather than quarantine.
+- An unauthorized replay refreshes authentication and retries exactly once.
+- A failed authentication refresh pauses without removing or quarantining the queued write.
+- A quarantined write is visible on Simple Mode and suppresses the false `Synced` state.
+
+### Verification
+
+- Red proof: the new unit contract initially failed to compile because `authenticationRequired` and the refresh callback did not exist.
+- Targeted offline-sync unit suite: **19 passed, 0 failed**.
+- Full native unit suite: **514 passed, 0 failed**.
+- Behavioural UI test: **1 passed, 0 failed**.
+- Web regression suite: **582 passed, 0 failed**.
+- Production web build: `tsc --noEmit && vite build` succeeded.
+- Signed Release `1.0.0 (363)` passed strict code-sign verification, installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched successfully from implementation SHA `ce22d14fe5ff8dda26a4c163afa16ec4cedc47f4`.
+- GitHub Pages run `33039117658` completed successfully from `main`; cache-busted live URL returned HTTP 200: `https://evoryder8-collab.github.io/APXAppiC/?task28=ce22d14fe5ff8dda26a4c163afa16ec4cedc47f4`.
