@@ -12,6 +12,7 @@ import {
   mealMomentIdFromIdempotencyKey,
   mealSlotForBlock,
   normalizeMealBlockSettings,
+  rescheduleMealBlock,
   resolveMealBlockStatuses,
   type MealBlockKind,
   type MealBlockIdentity,
@@ -64,7 +65,7 @@ export function ActualFoodTracker({
   onDeleteLogged: (meal: LoggedMeal) => Promise<void>
 }) {
   const store = useFoodStore()
-  const { data, upsert } = useStore()
+  const { data, upsert, setSettings } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const [composer, setComposer] = useState<ComposerTarget | null>(null)
@@ -188,6 +189,16 @@ export function ActualFoodTracker({
     openMealAtTime(new Date().toLocaleTimeString('en-GB', { hour: '2-digit', minute: '2-digit', timeZone: timeZoneFromSettings(data.settings) }))
   }
 
+  const rescheduleTimelineSlot = (slotId: string, time: string): void => {
+    if (!data.settings) return
+    setSettings({
+      addons: {
+        ...data.settings.addons,
+        meal_blocks: rescheduleMealBlock(data.settings.addons.meal_blocks, slotId, time),
+      },
+    })
+  }
+
   return (
     <>
       <GlassCard accent={amber} className="overflow-hidden p-0">
@@ -206,6 +217,7 @@ export function ActualFoodTracker({
             sessions={data.workout_sessions}
             snapMinutes={normalizeMealTimelineSnap(data.settings?.addons.meal_timeline_snap_minutes)}
             onMealFinishedAt={store.setMealFinishedAt}
+            onSlotTimeChanged={rescheduleTimelineSlot}
             onOpenMeal={openTimelineMeal}
             onOpenSlot={openTimelineSlot}
             onAddAtTime={openMealAtTime}

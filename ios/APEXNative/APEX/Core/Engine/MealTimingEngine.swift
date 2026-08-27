@@ -37,6 +37,141 @@ enum MealTimingEngine {
         var endMinute: Int
     }
 
+    struct DaylineMealTiming: Equatable, Sendable {
+        let minute: Int
+        let lineMinute: Int
+        let recorded: Bool
+    }
+
+    struct DaylineWorkoutTiming: Equatable, Sendable {
+        let sessionID: UUID
+        let minute: Int
+        let lineMinute: Int
+    }
+
+    /// Resolves a meal's display time exactly as the web Dayline does. A stale
+    /// or malformed timestamp is never presented as recorded evidence for a
+    /// different day; the configured slot remains visible instead.
+    static func daylineMealTiming(
+        loggedAt: String?,
+        localDate: String,
+        scheduledMinute: Int,
+        timeZone: String
+    ) -> DaylineMealTiming {
+        let fallback = clockMinute(scheduledMinute)
+        guard let loggedAt,
+              let date = instant(loggedAt),
+              daylineDateKey(for: date, timeZone: timeZone) == localDate else {
+            return DaylineMealTiming(
+                minute: fallback,
+                lineMinute: toDaylineMinute(fallback),
+                recorded: false
+            )
+        }
+        let minute = minuteOfDay(date, timeZone: timeZone)
+        return DaylineMealTiming(
+            minute: minute,
+            lineMinute: toDaylineMinute(minute),
+            recorded: true
+        )
+    }
+
+    /// A completed session is a factual Dayline event only when its completion
+    /// instant resolves to the selected date in the configured timezone.
+    static func daylineWorkoutTiming(
+        _ session: WorkoutSession,
+        localDate: String,
+        timeZone: String
+    ) -> DaylineWorkoutTiming? {
+        guard session.completed,
+              let completedAt = session.completedAt,
+              let date = instant(completedAt),
+              daylineDateKey(for: date, timeZone: timeZone) == localDate else { return nil }
+        let minute = minuteOfDay(date, timeZone: timeZone)
+        return DaylineWorkoutTiming(
+            sessionID: session.id,
+            minute: minute,
+            lineMinute: toDaylineMinute(minute)
+        )
+    }
+
+    /// Produces the actual instant represented by the 03:00–02:59 Dayline.
+    /// Building wall-clock components in the selected zone avoids applying the
+    /// device timezone or adding a fixed 24 hours across daylight-saving days.
+    static func daylineInstant(
+        localDate: String,
+        lineMinute: Int,
+        timeZone: String
+    ) -> Date? {
+        let fields = localDate.split(separator: "-").compactMap { Int($0) }
+        guard fields.count == 3 else { return nil }
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZone) ?? .current
+        var noon = DateComponents()
+        noon.timeZone = calendar.timeZone
+        noon.year = fields[0]
+        noon.month = fields[1]
+        noon.day = fields[2]
+        noon.hour = 12
+        guard let selectedNoon = calendar.date(from: noon),
+              let targetDay = calendar.date(byAdding: .day, value: max(0, lineMinute / 1_440), to: selectedNoon) else {
+            return nil
+        }
+        let day = calendar.dateComponents([.year, .month, .day], from: targetDay)
+        let minute = clockMinute(lineMinute)
+        var target = DateComponents()
+        target.timeZone = calendar.timeZone
+        target.year = day.year
+        target.month = day.month
+        target.day = day.day
+        target.hour = minute / 60
+        target.minute = minute % 60
+        return calendar.date(from: target)
+    }
+
+    static func snapDaylineMinute(_ minute: Int, increment: Int) -> Int {
+        let step = [5, 15, 30, 60].contains(increment) ? increment : 30
+        let clamped = min(max(minute, 180), 1_619)
+        let snapped = Int((Double(clamped) / Double(step)).rounded()) * step
+        return min(max(snapped, 180), 1_619)
+    }
+
+    /// Resolves a real instant onto the logical date represented by a Dayline.
+    /// Times before 03:00 belong to the line that began on the previous
+    /// calendar date, matching the inverse mapping in `daylineInstant`.
+    static func daylineDateKey(for date: Date, timeZone: String) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZone) ?? .current
+        let minute = minuteOfDay(date, timeZone: timeZone)
+        let logicalDate = minute < 180
+            ? calendar.date(byAdding: .day, value: -1, to: date) ?? date
+            : date
+        return localDateKey(logicalDate, timeZone: timeZone)
+    }
+
+    private static func clockMinute(_ minute: Int) -> Int {
+        ((minute % 1_440) + 1_440) % 1_440
+    }
+
+    private static func toDaylineMinute(_ minute: Int) -> Int {
+        let clock = clockMinute(minute)
+        return clock < 180 ? clock + 1_440 : clock
+    }
+
+    private static func localDateKey(_ date: Date, timeZone: String) -> String {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZone) ?? .current
+        let parts = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", parts.year ?? 0, parts.month ?? 0, parts.day ?? 0)
+    }
+
+    private static func minuteOfDay(_ date: Date, timeZone: String) -> Int {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(identifier: timeZone) ?? .current
+        let parts = calendar.dateComponents([.hour, .minute], from: date)
+        return (parts.hour ?? 0) * 60 + (parts.minute ?? 0)
+    }
+
     static func comfortWindow(kcal: Double, fatG: Double, fibreG: Double = 0) -> ComfortWindow {
         if kcal >= 900 || fatG >= 35 || fibreG >= 18 {
             return ComfortWindow(load: "large", transitionAfterMinutes: 120, readyAfterMinutes: 240, fibreG: fibreG)
@@ -178,11 +313,7 @@ enum MealTimingEngine {
     /// Minutes past midnight in the person's own zone.
     private static func minuteOfDay(_ value: String, timeZone: String) -> Int? {
         guard let date = instant(value) else { return nil }
-        var calendar = Calendar(identifier: .gregorian)
-        calendar.timeZone = TimeZone(identifier: timeZone) ?? .current
-        let parts = calendar.dateComponents([.hour, .minute], from: date)
-        guard let hour = parts.hour, let minute = parts.minute else { return nil }
-        return hour * 60 + minute
+        return minuteOfDay(date, timeZone: timeZone)
     }
 
     private static func standardDeviation(_ values: [Int]) -> Double? {

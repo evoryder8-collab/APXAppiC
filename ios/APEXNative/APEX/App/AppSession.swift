@@ -2394,6 +2394,40 @@ final class AppSession {
         UISelectionFeedbackGenerator().selectionChanged()
     }
 
+    /// Reschedules one configured meal block, including on a fresh account
+    /// where no legacy `meals` row exists yet. The settings object is shared by
+    /// web and native, so the moved moment stays identical on both clients.
+    func updateMealBlockTime(_ blockID: String, to time: String) async {
+        await updateSettings { settings in
+            var root = settings.addons["meal_blocks"]?.objectValue ?? [:]
+            let blocks = MealBlocks.normalized(settings.addons["meal_blocks"]).map { block in
+                JSONValue.object([
+                    "id": .string(block.id),
+                    "kind": .string(block.kind),
+                    "time": .string(block.id == blockID ? time : block.time),
+                    "enabled": .bool(block.enabled),
+                ])
+            }
+            root["blocks"] = .array(blocks)
+            if root["custom_blocks"] == nil { root["custom_blocks"] = .array([]) }
+            if root["preset_assignments"] == nil { root["preset_assignments"] = .object([:]) }
+            settings.addons["meal_blocks"] = .object(root)
+        }
+    }
+
+    /// Moves the factual finish marker for a completed workout. Meal timing
+    /// and recovery guidance consume this same account-scoped timestamp on web
+    /// and native, so correcting it never creates a second local-only truth.
+    func updateWorkoutCompletedAt(_ sessionID: UUID, to date: Date) async {
+        guard let index = data.workoutSessions.firstIndex(where: { $0.id == sessionID }) else { return }
+        var workout = data.workoutSessions[index]
+        guard workout.completed else { return }
+        workout.completedAt = date.ISO8601Format()
+        data.workoutSessions[index] = workout
+        await persistUpsert(workout, table: "workout_sessions")
+        UISelectionFeedbackGenerator().selectionChanged()
+    }
+
     private func copiedClock(from isoTimestamp: String, onto destination: Date) -> Date {
         let source = ISO8601DateFormatter().date(from: isoTimestamp) ?? destination
         let calendar = Calendar.current

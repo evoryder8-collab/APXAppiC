@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   mealBlockIdempotencyKey,
   normalizeMealBlockSettings,
+  rescheduleMealBlock,
   resolveMealBlockStatuses,
 } from '../src/lib/mealBlocks.ts'
 import type { LoggedMeal } from '../src/lib/food.ts'
@@ -132,4 +133,17 @@ test('meal block settings sanitize clocks and never allow an empty setup', () =>
   assert.equal(settings.blocks.find((block) => block.id === 'breakfast')?.enabled, true)
   assert.equal(settings.blocks.find((block) => block.id === 'breakfast')?.time, '07:00')
   assert.deepEqual(settings.preset_assignments, {})
+})
+
+test('a dayline drag reschedules canonical and custom blocks without dropping settings', () => {
+  const settings = normalizeMealBlockSettings({
+    custom_blocks: [{ id: 'custom:second-lunch', label: 'Second lunch', slot: 'lunch', time: '15:30', enabled: true }],
+    preset_assignments: { preset: 'lunch' },
+  })
+  const lunchMoved = rescheduleMealBlock(settings, 'lunch', '13:45')
+  const customMoved = rescheduleMealBlock(lunchMoved, 'custom:second-lunch', '16:10')
+
+  assert.equal(customMoved.blocks.find((block) => block.id === 'lunch')?.time, '13:45')
+  assert.equal(customMoved.custom_blocks[0]?.time, '16:10')
+  assert.deepEqual(customMoved.preset_assignments, { preset: 'lunch' })
 })

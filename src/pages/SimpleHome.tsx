@@ -36,7 +36,7 @@ import { QuickWorkoutLauncher } from '../components/workout/QuickWorkoutLauncher
 import { WeightTrend } from '../components/WeightTrend'
 import { FloatingActiveDate } from '../components/FloatingActiveDate'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
-import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
+import { mealBlockIdempotencyKey, mealBlockIdFromIdempotencyKey, mealBlockLabel, mealMomentIdFromIdempotencyKey, mealSlotForBlock, mealSlotForClock, normalizeMealBlockSettings, rescheduleMealBlock, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { manualSessionsForDate } from '../lib/manualWorkout'
 import { clockToMinute, daylineDateTimeToIso, normalizeMealDaylineDensity, normalizeMealTimelineSnap, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 import { MealDayline, type MealDaylineSlot } from '../components/food/MealDayline'
@@ -394,6 +394,15 @@ export function SimpleHome() {
   }, [])
 
   if (!profile || !targets || !settings) return null
+
+  const rescheduleTimelineSlot = (slotId: string, time: string): void => {
+    setSettings({
+      addons: {
+        ...settings.addons,
+        meal_blocks: rescheduleMealBlock(settings.addons.meal_blocks, slotId, time),
+      },
+    })
+  }
 
   const groupIsDone = (group: { items: Supplement[] }): boolean =>
     group.items.length > 0 && group.items.every((item) => supplementDoneIds.has(item.id))
@@ -1079,6 +1088,7 @@ export function SimpleHome() {
                 sessions={data.workout_sessions}
                 snapMinutes={normalizeMealTimelineSnap(settings.addons.meal_timeline_snap_minutes)}
                 onMealFinishedAt={foodStore.setMealFinishedAt}
+                onSlotTimeChanged={rescheduleTimelineSlot}
                 onOpenMeal={(meal) => void editQuickCustomMeal(meal)}
                 onOpenSlot={(slot) => void openTimelineSlot(slot)}
                 onAddAtTime={openMealAtTime}

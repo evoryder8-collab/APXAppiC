@@ -608,8 +608,16 @@ private struct DaylineEntry: Identifiable {
     let title: String
     let plannedMeal: Meal?
     let loggedMeal: LoggedMeal?
+    let recorded: Bool
 
     var isLogged: Bool { loggedMeal != nil }
+}
+
+private struct DaylineWorkoutEntry: Identifiable {
+    let session: WorkoutSession
+    let minute: Int
+
+    var id: UUID { session.id }
 }
 
 enum DaylineAxisLabels {
@@ -630,6 +638,7 @@ struct APEXDaylineView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
     @State private var dragPreview: [String: Int] = [:]
+    @State private var workoutDragPreview: [UUID: Int] = [:]
     /*
      * Swipe-to-delete state lives here, not inside the row. Rows are rebuilt
      * whenever the day's data changes, and row-local @State is discarded with
@@ -692,6 +701,8 @@ struct APEXDaylineView: View {
         return calendar
     }
 
+    private var selectedDateKey: String { date.apexDateKey }
+
     /*
      * The day's rows come from the configured meal blocks, exactly as the web
      * builds them, and a logged meal is matched into the block it belongs to.
@@ -703,7 +714,7 @@ struct APEXDaylineView: View {
      */
     private var entries: [DaylineEntry] {
         let logged = session.data.loggedMeals
-            .filter { $0.localDate == date.apexDateKey }
+            .filter { $0.localDate == selectedDateKey }
             .sorted { parsedTimestamp($0.loggedAt) < parsedTimestamp($1.loggedAt) }
         var claimed: Set<UUID> = []
 
@@ -714,16 +725,23 @@ struct APEXDaylineView: View {
             if let match { claimed.insert(match.id) }
             /* A saved schedule can move a block's time; the block keeps its
                place either way. */
-            let plannedTime = session.data.meals
-                .first { normalize(slot(for: $0)) == normalize(block.kind) }?
-                .time
+            let planned = session.data.meals
+                .first { normalize(slot(for: $0)) == normalize(block.kind) }
+            let scheduledMinute = minute(ofClock: block.time)
+            let timing = MealTimingEngine.daylineMealTiming(
+                loggedAt: match?.loggedAt,
+                localDate: selectedDateKey,
+                scheduledMinute: scheduledMinute,
+                timeZone: daylineTimeZone.identifier
+            )
             return DaylineEntry(
                 id: "block-\(block.id)",
-                minute: match.map { minute(of: $0.loggedAt) } ?? minute(ofClock: plannedTime ?? block.time),
+                minute: timing.minute,
                 slot: block.kind,
                 title: match?.displayName ?? language.text(block.label),
-                plannedMeal: nil,
-                loggedMeal: match
+                plannedMeal: planned,
+                loggedMeal: match,
+                recorded: timing.recorded
             )
         }
 
@@ -732,13 +750,23 @@ struct APEXDaylineView: View {
             contentsOf: logged
                 .filter { !claimed.contains($0.id) }
                 .map { meal in
-                    DaylineEntry(
+                    let fallback = MealBlocks.enabled(session.data.settings?.addons["meal_blocks"])
+                        .first { normalize($0.kind) == normalize(meal.mealSlot) }
+                        .map { minute(ofClock: $0.time) } ?? 12 * 60
+                    let timing = MealTimingEngine.daylineMealTiming(
+                        loggedAt: meal.loggedAt,
+                        localDate: selectedDateKey,
+                        scheduledMinute: fallback,
+                        timeZone: daylineTimeZone.identifier
+                    )
+                    return DaylineEntry(
                         id: "logged-\(meal.id)",
-                        minute: minute(of: meal.loggedAt),
+                        minute: timing.minute,
                         slot: normalize(meal.mealSlot),
                         title: meal.displayName,
                         plannedMeal: nil,
-                        loggedMeal: meal
+                        loggedMeal: meal,
+                        recorded: timing.recorded
                     )
                 }
         )
@@ -747,12 +775,28 @@ struct APEXDaylineView: View {
 
     private var visibleEntries: [DaylineEntry] { entries }
 
-    private var currentMinute: Int {
-        let components = daylineCalendar.dateComponents([.hour, .minute], from: .now)
+    private var workoutEntries: [DaylineWorkoutEntry] {
+        session.data.workoutSessions.compactMap { workout in
+            guard let timing = MealTimingEngine.daylineWorkoutTiming(
+                workout,
+                localDate: selectedDateKey,
+                timeZone: daylineTimeZone.identifier
+            ) else { return nil }
+            return DaylineWorkoutEntry(session: workout, minute: timing.minute)
+        }
+        .sorted { lineMinute($0.minute) < lineMinute($1.minute) }
+    }
+
+    private func currentMinute(at now: Date) -> Int {
+        let components = daylineCalendar.dateComponents([.hour, .minute], from: now)
         return (components.hour ?? 0) * 60 + (components.minute ?? 0)
     }
 
-    private var currentLineMinute: Int { lineMinute(currentMinute) }
+    private func currentLineMinute(at now: Date) -> Int { lineMinute(currentMinute(at: now)) }
+
+    private func isLiveDate(at now: Date) -> Bool {
+        MealTimingEngine.daylineDateKey(for: now, timeZone: daylineTimeZone.identifier) == selectedDateKey
+    }
 
     private var snapMinutes: Int {
         let value = Int(session.data.settings?.addons["meal_timeline_snap_minutes"]?.numberValue ?? 30)
@@ -770,7 +814,15 @@ struct APEXDaylineView: View {
 
     private var comfortContexts: [DaylineComfortContext] {
         session.data.loggedMeals
-            .filter { $0.localDate == date.apexDateKey }
+            .filter { meal in
+                guard meal.localDate == selectedDateKey else { return false }
+                return MealTimingEngine.daylineMealTiming(
+                    loggedAt: meal.loggedAt,
+                    localDate: selectedDateKey,
+                    scheduledMinute: 12 * 60,
+                    timeZone: daylineTimeZone.identifier
+                ).recorded
+            }
             .map { meal in
                 let window = MealTimingEngine.comfortWindow(for: meal, entries: session.data.loggedFoodEntries)
                 return DaylineComfortContext(
@@ -788,16 +840,17 @@ struct APEXDaylineView: View {
         MealTimingEngine.mergedComfortBands(comfortContexts.map(\.anchor))
     }
 
-    private var activeComfortContexts: [DaylineComfortContext] {
-        guard daylineCalendar.isDate(date, inSameDayAs: .now) else { return [] }
+    private func activeComfortContexts(at now: Date) -> [DaylineComfortContext] {
+        guard isLiveDate(at: now) else { return [] }
+        let current = currentLineMinute(at: now)
         return comfortContexts.filter { context in
-            context.anchor.startMinute <= currentLineMinute
-                && currentLineMinute < context.anchor.startMinute + context.anchor.window.readyAfterMinutes
+            context.anchor.startMinute <= current
+                && current < context.anchor.startMinute + context.anchor.window.readyAfterMinutes
         }
     }
 
-    private var activeComfortContext: DaylineComfortContext? {
-        activeComfortContexts.max { left, right in
+    private func activeComfortContext(at now: Date) -> DaylineComfortContext? {
+        activeComfortContexts(at: now).max { left, right in
             let leftReady = left.anchor.startMinute + left.anchor.window.readyAfterMinutes
             let rightReady = right.anchor.startMinute + right.anchor.window.readyAfterMinutes
             if leftReady == rightReady { return left.anchor.startMinute < right.anchor.startMinute }
@@ -814,7 +867,101 @@ struct APEXDaylineView: View {
         }
     }
 
+    private func recoveryRelation(for workout: DaylineWorkoutEntry) -> MealTimingEngine.PostWorkoutTiming? {
+        MealTimingEngine.postWorkoutNutrition(
+            sessions: session.data.workoutSessions.filter { $0.date == selectedDateKey },
+            meals: session.data.loggedMeals.filter { $0.localDate == selectedDateKey },
+            timeZone: daylineTimeZone.identifier
+        )
+        .first { $0.sessionID == workout.id }
+    }
+
+    @ViewBuilder
+    private func recoveryCard(for workout: DaylineWorkoutEntry, now: Date) -> some View {
+        let relation = recoveryRelation(for: workout)
+        let completed = workout.session.completedAt.map(parsedTimestamp)
+        let remaining: Int? = completed.flatMap { finish in
+            guard isLiveDate(at: now) else { return nil }
+            return max(0, 120 - Int(max(0, now.timeIntervalSince(finish)) / 60))
+        }
+        VStack(alignment: .leading, spacing: 8) {
+            HStack(alignment: .top, spacing: 10) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(language.text("RECOVERY NUTRITION"))
+                        .font(APEXFont.mono(8))
+                        .tracking(1.4)
+                        .foregroundStyle(APEXColor.green.opacity(0.72))
+                    Text(language.text("Protein opportunity is open"))
+                        .font(APEXFont.display(15))
+                        .foregroundStyle(.white)
+                    Text(language.text("Aim for 20 to 40 g of high-quality protein within two hours. Add carbohydrate based on session load and today’s target."))
+                        .font(APEXFont.body(9, weight: .semibold))
+                        .foregroundStyle(.white.opacity(0.48))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let remaining {
+                        Text(remaining > 0
+                             ? language.format("%d min left in the high-value window", remaining)
+                             : language.text("The broad two-hour window has passed. Recovery still depends most on the full day."))
+                            .font(APEXFont.mono(8, weight: .bold))
+                            .foregroundStyle(Color.cyan.opacity(0.72))
+                    }
+                }
+                Spacer()
+                if let score = relation?.timingScore {
+                    VStack(spacing: 2) {
+                        Text("\(score)")
+                            .font(APEXFont.display(22))
+                            .foregroundStyle(APEXColor.green)
+                        Text(language.text("TIMING"))
+                            .font(APEXFont.mono(6))
+                            .foregroundStyle(.white.opacity(0.38))
+                    }
+                    .padding(9)
+                    .background(.white.opacity(0.06), in: RoundedRectangle(cornerRadius: 13))
+                }
+            }
+            if let gap = relation?.gapMinutes {
+                Text(language.format("%d min · meal finished after training", gap))
+                    .font(APEXFont.mono(8, weight: .bold))
+                    .foregroundStyle(APEXColor.green.opacity(0.72))
+            }
+            Button {
+                onOpenComposer(.create(
+                    date: date,
+                    slot: "post_workout",
+                    name: language.text("Post-workout")
+                ))
+            } label: {
+                Label(language.text("Add post-workout meal"), systemImage: "plus")
+                    .font(APEXFont.body(10, weight: .bold))
+                    .foregroundStyle(Color.cyan.opacity(0.9))
+                    .padding(.horizontal, 12)
+                    .frame(height: 34)
+                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 12))
+            }
+            .buttonStyle(.plain)
+            if (session.data.settings?.addons["interface_mode"]?.stringValue ?? "clean") == "detailed" {
+                Text(language.text("This is a broad recovery window, not a minute-by-minute anabolic cliff. If another hard session starts within four hours, prioritize faster carbohydrate replacement."))
+                    .font(APEXFont.body(8, weight: .medium))
+                    .foregroundStyle(.white.opacity(0.3))
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .padding(13)
+        .background(APEXColor.green.opacity(0.075), in: RoundedRectangle(cornerRadius: 18))
+        .overlay(RoundedRectangle(cornerRadius: 18).stroke(APEXColor.green.opacity(0.16)))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("dayline-recovery-context")
+        .accessibilityLabel(language.text("Recovery nutrition"))
+    }
+
     var body: some View {
+        TimelineView(.periodic(from: .now, by: 30)) { context in
+            daylineBody(now: context.date)
+        }
+    }
+
+    private func daylineBody(now: Date) -> some View {
         VStack(alignment: .leading, spacing: 16) {
             HStack(alignment: .top) {
                 VStack(alignment: .leading, spacing: 5) {
@@ -827,23 +974,21 @@ struct APEXDaylineView: View {
                         .foregroundStyle(.white)
                 }
                 Spacer()
-                TimelineView(.periodic(from: .now, by: 60)) { context in
-                    VStack(spacing: 2) {
-                        Text(clockText(context.date))
-                            .font(APEXFont.mono(15))
-                            .foregroundStyle(.white)
-                        Text(daylineTimeZone.identifier)
-                            .font(APEXFont.mono(7))
-                            .foregroundStyle(.white.opacity(0.42))
-                            .lineLimit(1)
-                    }
-                    .padding(.horizontal, 12)
-                    .padding(.vertical, 9)
-                    .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
+                VStack(spacing: 2) {
+                    Text(clockText(now))
+                        .font(APEXFont.mono(15))
+                        .foregroundStyle(.white)
+                    Text(daylineTimeZone.identifier)
+                        .font(APEXFont.mono(7))
+                        .foregroundStyle(.white.opacity(0.42))
+                        .lineLimit(1)
                 }
+                .padding(.horizontal, 12)
+                .padding(.vertical, 9)
+                .background(.white.opacity(0.07), in: RoundedRectangle(cornerRadius: 16))
             }
 
-            if let context = activeComfortContext {
+            if let context = activeComfortContext(at: now) {
                 let window = context.anchor.window
                 let label = comfortLabel(window.load)
                 HStack(spacing: 7) {
@@ -863,6 +1008,10 @@ struct APEXDaylineView: View {
                 .background(.white.opacity(0.055), in: Capsule())
             }
 
+            if let latestWorkout = workoutEntries.last {
+                recoveryCard(for: latestWorkout, now: now)
+            }
+
             if visibleEntries.isEmpty {
                 Button(action: onAddMeal) {
                     Label(language.text("Add your first meal moment"), systemImage: "plus")
@@ -878,6 +1027,8 @@ struct APEXDaylineView: View {
                     let railX: CGFloat = 56
                     let occupiedClockMinutes = visibleEntries.map { entry in
                         dragPreview[entry.id] ?? entry.minute
+                    } + workoutEntries.map { workout in
+                        workoutDragPreview[workout.id] ?? workout.minute
                     }
                     ZStack(alignment: .topLeading) {
                         ForEach(Array(stride(from: 180, through: 1_620, by: 180)), id: \.self) { minute in
@@ -905,8 +1056,8 @@ struct APEXDaylineView: View {
 
                         readinessBands(railX: railX, height: timelineHeight)
 
-                        if daylineCalendar.isDate(date, inSameDayAs: .now) {
-                            let nowY = yPosition(for: currentLineMinute, height: timelineHeight)
+                        if isLiveDate(at: now) {
+                            let nowY = yPosition(for: currentLineMinute(at: now), height: timelineHeight)
                             Path { path in
                                 path.move(to: CGPoint(x: railX, y: nowY))
                                 path.addLine(to: CGPoint(x: proxy.size.width, y: nowY))
@@ -926,7 +1077,14 @@ struct APEXDaylineView: View {
                                 .position(x: 18, y: nowY)
                         }
 
-                        let laidOut = separated(visibleEntries, height: timelineHeight)
+                        let laidOut = separated(
+                            visibleEntries.map { entry in
+                                (entry.id, lineMinute(dragPreview[entry.id] ?? entry.minute))
+                            } + workoutEntries.map { workout in
+                                ("workout-\(workout.id)", lineMinute(workoutDragPreview[workout.id] ?? workout.minute))
+                            },
+                            height: timelineHeight
+                        )
                         ForEach(visibleEntries) { entry in
                             let y = laidOut[entry.id] ?? yPosition(
                                 for: lineMinute(dragPreview[entry.id] ?? entry.minute),
@@ -960,6 +1118,33 @@ struct APEXDaylineView: View {
                                     guard let logged = entry.loggedMeal else { return }
                                     closeReveal()
                                     Task { await session.deleteLoggedMeal(logged) }
+                                }
+                            )
+                            .frame(width: proxy.size.width)
+                            .position(x: proxy.size.width / 2, y: y)
+                        }
+
+                        ForEach(workoutEntries) { workout in
+                            let key = "workout-\(workout.id)"
+                            let shownMinute = workoutDragPreview[workout.id] ?? workout.minute
+                            let y = laidOut[key] ?? yPosition(for: lineMinute(shownMinute), height: timelineHeight)
+                            DaylineWorkoutRow(
+                                minute: shownMinute,
+                                isDragging: workoutDragPreview[workout.id] != nil,
+                                timelineOriginY: proxy.frame(in: .global).minY,
+                                onDragChanged: { locationY in
+                                    let snapped = snap(minuteAt(y: locationY, height: timelineHeight))
+                                    workoutDragPreview[workout.id] = lineClockMinute(snapped)
+                                },
+                                onDragEnded: { locationY in
+                                    let snapped = snap(minuteAt(y: locationY, height: timelineHeight))
+                                    workoutDragPreview[workout.id] = nil
+                                    Task {
+                                        await session.updateWorkoutCompletedAt(
+                                            workout.id,
+                                            to: dateAt(lineMinute: snapped)
+                                        )
+                                    }
                                 }
                             )
                             .frame(width: proxy.size.width)
@@ -1044,20 +1229,22 @@ struct APEXDaylineView: View {
         Task {
             if let logged = entry.loggedMeal {
                 await session.updateLoggedMealFinishedAt(logged.id, to: dateAt(lineMinute: lineMinute))
-            } else if let planned = entry.plannedMeal {
-                await session.updatePlannedMealTime(planned.id, to: clock(clockMinute))
+            } else {
+                await session.updateMealBlockTime(entry.slot, to: clock(clockMinute))
             }
         }
     }
 
     private func dateAt(lineMinute: Int) -> Date {
-        let start = daylineCalendar.startOfDay(for: date)
-        return daylineCalendar.date(byAdding: .minute, value: lineMinute, to: start) ?? date
+        MealTimingEngine.daylineInstant(
+            localDate: selectedDateKey,
+            lineMinute: lineMinute,
+            timeZone: daylineTimeZone.identifier
+        ) ?? date
     }
 
     private func snap(_ minute: Int) -> Int {
-        let clamped = min(max(minute, 180), 1_619)
-        return min(max(Int((Double(clamped) / Double(snapMinutes)).rounded()) * snapMinutes, 180), 1_619)
+        MealTimingEngine.snapDaylineMinute(minute, increment: snapMinutes)
     }
 
     private func lineMinute(_ minute: Int) -> Int {
@@ -1075,23 +1262,23 @@ struct APEXDaylineView: View {
      * its time unless the one above it is too close, and then it steps down
      * just far enough to stay its own target.
      */
-    private func separated(_ entries: [DaylineEntry], height: CGFloat) -> [String: CGFloat] {
+    private func separated(_ events: [(id: String, minute: Int)], height: CGFloat) -> [String: CGFloat] {
         let minimumGap: CGFloat = 84
         let cardHalf: CGFloat = 38
         var placed: [String: CGFloat] = [:]
         var lastY: CGFloat?
-        let ordered = entries.sorted { $0.minute < $1.minute }
+        let ordered = events.sorted { $0.minute < $1.minute }
         /* Nudging down can only go so far: the last card has to stay on the
            rail rather than spill past its end into the controls below, so each
            card reserves room for the ones still to come. */
         let ceiling = max(cardHalf, height - cardHalf)
-        for (index, entry) in ordered.enumerated() {
+        for (index, event) in ordered.enumerated() {
             let remaining = CGFloat(ordered.count - 1 - index)
             let limit = max(cardHalf, ceiling - remaining * minimumGap)
-            let wanted = yPosition(for: lineMinute(dragPreview[entry.id] ?? entry.minute), height: height)
+            let wanted = yPosition(for: event.minute, height: height)
             let stepped = lastY.map { max(wanted, $0 + minimumGap) } ?? wanted
             let y = min(limit, max(cardHalf, stepped))
-            placed[entry.id] = y
+            placed[event.id] = y
             lastY = y
         }
         return placed
@@ -1160,6 +1347,83 @@ private struct DaylineComfortContext {
     let anchor: MealTimingEngine.ComfortAnchor
 }
 
+private struct DaylineWorkoutRow: View {
+    @State private var language = LanguageState.shared
+
+    let minute: Int
+    let isDragging: Bool
+    let timelineOriginY: CGFloat
+    let onDragChanged: (CGFloat) -> Void
+    let onDragEnded: (CGFloat) -> Void
+
+    var body: some View {
+        HStack(alignment: .center, spacing: 12) {
+            VStack(spacing: 3) {
+                Text(clock(minute))
+                    .font(APEXFont.mono(10))
+                    .foregroundStyle(.white)
+                if isDragging {
+                    Text(language.text("MOVE"))
+                        .font(APEXFont.mono(6))
+                        .foregroundStyle(Color.cyan)
+                }
+            }
+            .frame(width: 42)
+
+            ZStack {
+                Circle().fill(Color(red: 0.025, green: 0.09, blue: 0.11)).frame(width: 27, height: 27)
+                Circle().stroke(APEXColor.violet, lineWidth: 3).frame(width: 23, height: 23)
+                Image(systemName: "figure.strengthtraining.traditional")
+                    .font(.system(size: 9, weight: .heavy))
+                    .foregroundStyle(APEXColor.violet)
+            }
+
+            HStack(spacing: 10) {
+                VStack(alignment: .leading, spacing: 3) {
+                    Text(language.text("Workout completed"))
+                        .font(APEXFont.display(14))
+                        .foregroundStyle(.white)
+                    Text(language.text("finish recorded"))
+                        .font(APEXFont.mono(7))
+                        .foregroundStyle(APEXColor.violet.opacity(0.86))
+                }
+                Spacer()
+                Text(language.text("DONE"))
+                    .font(APEXFont.mono(7))
+                    .foregroundStyle(.white.opacity(0.42))
+            }
+            .padding(.horizontal, 15)
+            .frame(height: 60)
+            .background(APEXColor.violet.opacity(0.13), in: RoundedRectangle(cornerRadius: 18))
+            .overlay(RoundedRectangle(cornerRadius: 18).stroke(APEXColor.violet.opacity(0.32)))
+        }
+        .frame(height: 60)
+        .contentShape(Rectangle())
+        .overlay(
+            MealRowGestures(
+                onTap: {},
+                onSwipeChanged: { _ in },
+                onSwipeEnded: { _, _ in },
+                onHoldChanged: { y in
+                    onDragChanged(y - timelineOriginY)
+                },
+                onHoldEnded: { y in
+                    onDragEnded(y - timelineOriginY)
+                }
+            )
+        )
+        .accessibilityElement(children: .combine)
+        .accessibilityIdentifier("dayline-workout-completed")
+        .accessibilityLabel(language.text("Workout completed"))
+        .accessibilityValue(clock(minute))
+        .accessibilityHint(language.text("Hold and drag to correct the finish time"))
+    }
+
+    private func clock(_ minute: Int) -> String {
+        String(format: "%02d:%02d", minute / 60, minute % 60)
+    }
+}
+
 private struct DaylineEntryRow: View {
     @State private var language = LanguageState.shared
     /* A completed hold-and-drag must not also open the composer on release */
@@ -1207,10 +1471,10 @@ private struct DaylineEntryRow: View {
 
             ZStack {
                 Circle().fill(Color(red: 0.025, green: 0.09, blue: 0.11)).frame(width: 27, height: 27)
-                Circle().stroke(entry.isLogged ? APEXColor.green : Color.white.opacity(0.32), lineWidth: 3).frame(width: 23, height: 23)
-                Image(systemName: entry.isLogged ? "checkmark" : "plus")
+                Circle().stroke(entry.recorded ? APEXColor.green : Color.white.opacity(0.32), lineWidth: 3).frame(width: 23, height: 23)
+                Image(systemName: entry.recorded ? "checkmark" : "plus")
                     .font(.system(size: 9, weight: .heavy))
-                    .foregroundStyle(entry.isLogged ? APEXColor.green : .white.opacity(0.72))
+                    .foregroundStyle(entry.recorded ? APEXColor.green : .white.opacity(0.72))
             }
             .zIndex(2)
 
@@ -1243,7 +1507,7 @@ private struct DaylineEntryRow: View {
                                 .foregroundStyle(.white)
                                 .lineLimit(1)
                                 .accessibilityIdentifier("meal-dayline-title-\(entry.slot)")
-                            if let meal = entry.loggedMeal {
+                            if let meal = entry.loggedMeal, entry.recorded {
                                 Text(language.format("%d kcal · finish recorded", Int(meal.totalKcal.rounded())))
                                     .font(APEXFont.mono(8))
                                     .foregroundStyle(Color(red: 0.65, green: 0.86, blue: 0.84))
@@ -1254,7 +1518,7 @@ private struct DaylineEntryRow: View {
                             }
                         }
                         Spacer()
-                        Text(entry.isLogged ? "LOGGED" : "SCHEDULED")
+                        Text(entry.recorded ? "LOGGED" : "SCHEDULED")
                             .font(APEXFont.mono(7))
                             .foregroundStyle(.white.opacity(0.34))
                         Image(systemName: "chevron.right")
@@ -1263,10 +1527,10 @@ private struct DaylineEntryRow: View {
                     }
                     .padding(.horizontal, 15)
                     .frame(height: 72)
-                    .background(.white.opacity(entry.isLogged ? 0.095 : 0.045), in: RoundedRectangle(cornerRadius: 19))
+                    .background(.white.opacity(entry.recorded ? 0.095 : 0.045), in: RoundedRectangle(cornerRadius: 19))
                     .overlay(
                         RoundedRectangle(cornerRadius: 19)
-                            .stroke(entry.isLogged ? APEXColor.green.opacity(0.26) : Color.white.opacity(0.11), style: StrokeStyle(lineWidth: 1, dash: entry.isLogged ? [] : [5]))
+                            .stroke(entry.recorded ? APEXColor.green.opacity(0.26) : Color.white.opacity(0.11), style: StrokeStyle(lineWidth: 1, dash: entry.recorded ? [] : [5]))
                     )
                 }
                 .buttonStyle(.plain)

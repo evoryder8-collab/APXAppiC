@@ -75,6 +75,90 @@ final class MealTimingEngineTests: XCTestCase {
         ])
     }
 
+    func testDaylineUsesTheRecordedFinishOnlyWhenItBelongsToTheSelectedDay() {
+        let recorded = MealTimingEngine.daylineMealTiming(
+            loggedAt: "2026-01-05T12:37:00Z",
+            localDate: "2026-01-05",
+            scheduledMinute: 13 * 60,
+            timeZone: "Europe/Zurich"
+        )
+        XCTAssertTrue(recorded.recorded)
+        XCTAssertEqual(recorded.minute, 13 * 60 + 37)
+
+        let stale = MealTimingEngine.daylineMealTiming(
+            loggedAt: "2026-01-04T12:37:00Z",
+            localDate: "2026-01-05",
+            scheduledMinute: 13 * 60,
+            timeZone: "Europe/Zurich"
+        )
+        XCTAssertFalse(stale.recorded)
+        XCTAssertEqual(stale.minute, 13 * 60)
+    }
+
+    func testDaylineBuildsAnExactZonedInstantAcrossItsThreeAMBoundary() throws {
+        let instant = try XCTUnwrap(MealTimingEngine.daylineInstant(
+            localDate: "2026-01-05",
+            lineMinute: 25 * 60 + 15,
+            timeZone: "Europe/Zurich"
+        ))
+        XCTAssertEqual(instant.ISO8601Format(), "2026-01-06T00:15:00Z")
+
+        let recorded = MealTimingEngine.daylineMealTiming(
+            loggedAt: "2026-01-06T00:15:00Z",
+            localDate: "2026-01-05",
+            scheduledMinute: 21 * 60,
+            timeZone: "Europe/Zurich"
+        )
+        XCTAssertTrue(recorded.recorded)
+        XCTAssertEqual(recorded.lineMinute, 25 * 60 + 15)
+    }
+
+    func testDaylineSnapsToTheConfiguredIncrement() {
+        XCTAssertEqual(MealTimingEngine.snapDaylineMinute(12 * 60 + 7, increment: 5), 12 * 60 + 5)
+        XCTAssertEqual(MealTimingEngine.snapDaylineMinute(12 * 60 + 7, increment: 15), 12 * 60)
+        XCTAssertEqual(MealTimingEngine.snapDaylineMinute(12 * 60 + 47, increment: 30), 13 * 60)
+        XCTAssertEqual(MealTimingEngine.snapDaylineMinute(12 * 60 + 31, increment: 60), 13 * 60)
+    }
+
+    func testCompletedWorkoutAppearsAtItsFinishTimeInTheConfiguredZone() throws {
+        let workout = session(
+            started: "2026-01-05T17:00:00Z",
+            completed: "2026-01-05T18:23:00Z"
+        )
+        let timing = try XCTUnwrap(MealTimingEngine.daylineWorkoutTiming(
+            workout,
+            localDate: "2026-01-05",
+            timeZone: "Europe/Zurich"
+        ))
+        XCTAssertEqual(timing.minute, 19 * 60 + 23)
+        XCTAssertEqual(timing.lineMinute, 19 * 60 + 23)
+
+        let afterMidnight = try XCTUnwrap(MealTimingEngine.daylineWorkoutTiming(
+            session(
+                started: "2026-01-05T22:30:00Z",
+                completed: "2026-01-06T00:15:00Z"
+            ),
+            localDate: "2026-01-05",
+            timeZone: "Europe/Zurich"
+        ))
+        XCTAssertEqual(afterMidnight.lineMinute, 25 * 60 + 15)
+    }
+
+    func testDaylineSourceKeepsScheduledMealsLiveAndRefreshesItsClock() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let dayline = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/NutritionParityViews.swift")
+        )
+
+        XCTAssertTrue(dayline.contains("plannedMeal: planned"))
+        XCTAssertTrue(dayline.contains("TimelineView(.periodic(from: .now, by: 30))"))
+        XCTAssertTrue(dayline.contains("session.data.workoutSessions"))
+        XCTAssertTrue(dayline.contains("updateMealBlockTime"))
+        XCTAssertTrue(dayline.contains("updateWorkoutCompletedAt"))
+    }
+
     func testNativeDaylineRendersMergedBandsInsteadOfOnlyTheLatestMeal() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()

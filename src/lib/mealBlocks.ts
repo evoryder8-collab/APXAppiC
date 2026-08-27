@@ -102,6 +102,26 @@ export function normalizeMealBlockSettings(value: unknown): MealBlockSettings {
   return { blocks, custom_blocks, preset_assignments }
 }
 
+/** Moves one configured meal moment while preserving every unrelated block,
+ * custom moment and preset assignment. Both Dayline clients persist this
+ * complete settings value, so a drag is immediately shared across devices. */
+export function rescheduleMealBlock(
+  value: unknown,
+  blockId: string,
+  time: string,
+): MealBlockSettings {
+  const settings = normalizeMealBlockSettings(value)
+  return {
+    ...settings,
+    blocks: settings.blocks.map((block) => block.id === blockId
+      ? { ...block, time: validClock(time, block.time) }
+      : block),
+    custom_blocks: settings.custom_blocks.map((block) => block.id === blockId
+      ? { ...block, time: validClock(time, block.time) }
+      : block),
+  }
+}
+
 function defaultTimeForSlot(slot: MealSlot): string {
   if (slot === 'breakfast') return '07:00'
   if (slot === 'lunch') return '13:00'

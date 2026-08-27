@@ -513,6 +513,23 @@ final class APEXSmokeUITests: XCTestCase {
         capture("meal-composer-selection")
     }
 
+    func testNutritionDaylineShowsTheCompletedWorkoutAndRecoveryContext() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+
+        let recovery = app.staticTexts["Protein opportunity is open"]
+        XCTAssertTrue(scrollUntilVisible(recovery, in: app))
+        XCTAssertTrue(recovery.frame.intersects(app.frame))
+
+        let workout = app.staticTexts["Workout completed"]
+        XCTAssertTrue(scrollUntilVisible(workout, in: app))
+        XCTAssertEqual(workout.label, "Workout completed")
+        capture("nutrition-dayline-workout-recovery")
+    }
+
     func testCompactMealMillilitreUnitStaysOnOneLineInsideItsCard() {
         let app = configuredApp()
         app.launch()
