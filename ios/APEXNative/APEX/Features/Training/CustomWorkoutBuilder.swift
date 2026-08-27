@@ -19,6 +19,7 @@ struct CustomWorkoutBuilder: View {
     @State private var category = "all"
     @State private var picks: [Pick] = []
     @State private var showValidation = false
+    @FocusState private var searchFocused: Bool
 
     /// Set as the sheet closes, so the presenter can react once it is gone.
     @Binding var didSave: Bool
@@ -28,7 +29,13 @@ struct CustomWorkoutBuilder: View {
         var sets: Int
         var reps: Int
         var rest: Int
+        var linkedToNext = false
         var id: String { item.id }
+    }
+
+    struct WorkGroupAssignment: Equatable {
+        let workGroupID: UUID?
+        let workGroupPosition: Int?
     }
 
     private static func isoWeekdayToday() -> Int {
@@ -42,9 +49,115 @@ struct CustomWorkoutBuilder: View {
         switch unit {
         case "minutes": return "MIN"
         case "seconds": return "SEC"
+        case "metres": return "DISTANCE M"
         case "steps": return "STEPS"
         case "rounds": return "ROUNDS"
         default: return "REPS"
+        }
+    }
+
+    static func workStep(for unit: String) -> Int {
+        switch unit {
+        case "seconds", "metres": 5
+        case "steps": 10
+        default: 1
+        }
+    }
+
+    static func moving(_ picks: [Pick], at index: Int, by offset: Int) -> [Pick] {
+        let destination = index + offset
+        guard picks.indices.contains(index), picks.indices.contains(destination) else { return picks }
+        var moved = picks
+        moved.swapAt(index, destination)
+        return moved
+    }
+
+    static func workGroupAssignments(
+        for picks: [Pick],
+        makeID: () -> UUID = { UUID() }
+    ) -> [WorkGroupAssignment] {
+        var assignments = Array(
+            repeating: WorkGroupAssignment(workGroupID: nil, workGroupPosition: nil),
+            count: picks.count
+        )
+        var index = 0
+        while index < picks.count - 1 {
+            guard picks[index].linkedToNext else {
+                index += 1
+                continue
+            }
+            let start = index
+            var end = index + 1
+            while end < picks.count - 1, picks[end].linkedToNext { end += 1 }
+            let groupID = makeID()
+            for member in start...end {
+                assignments[member] = WorkGroupAssignment(
+                    workGroupID: groupID,
+                    workGroupPosition: member - start + 1
+                )
+            }
+            index = end + 1
+        }
+        return assignments
+    }
+
+    static func groupLabels(for picks: [Pick]) -> [String?] {
+        var labels = Array<String?>(repeating: nil, count: picks.count)
+        var groupIndex = 0
+        var index = 0
+        while index < picks.count - 1 {
+            guard picks[index].linkedToNext else {
+                index += 1
+                continue
+            }
+            let start = index
+            var end = index + 1
+            while end < picks.count - 1, picks[end].linkedToNext { end += 1 }
+            let prefix = groupIndex < 26
+                ? String(UnicodeScalar(65 + groupIndex)!)
+                : "G\(groupIndex + 1)"
+            for member in start...end {
+                labels[member] = "\(prefix)\(member - start + 1)"
+            }
+            groupIndex += 1
+            index = end + 1
+        }
+        return labels
+    }
+
+    static func exerciseRows(
+        userID: UUID,
+        programDayID: UUID,
+        picks: [Pick],
+        makeExerciseID: () -> UUID = { UUID() },
+        makeGroupID: () -> UUID = { UUID() }
+    ) -> [Exercise] {
+        let workGroups = workGroupAssignments(for: picks, makeID: makeGroupID)
+        return picks.enumerated().map { index, pick in
+            Exercise(
+                id: makeExerciseID(),
+                userID: userID,
+                programDayID: programDayID,
+                name: pick.item.name,
+                movementID: pick.item.movementID,
+                workGroupID: workGroups[index].workGroupID,
+                workGroupPosition: workGroups[index].workGroupPosition,
+                sets: min(max(pick.sets, 1), 12),
+                repMin: min(max(pick.reps, 1), 600),
+                repMax: min(max(pick.reps, 1), 600),
+                repUnit: pick.item.unit,
+                perSide: pick.item.perSide,
+                restSeconds: min(max(pick.rest, 0), 600),
+                tempoUp: 1,
+                tempoDown: 2,
+                tempoPause: 0,
+                tempoNote: "",
+                notes: "\(pick.item.equipment) · \(pick.item.muscles.joined(separator: ", "))",
+                incrementKG: pick.item.incrementKG,
+                isLite: false,
+                optional: false,
+                sortOrder: index
+            )
         }
     }
 
@@ -127,14 +240,15 @@ struct CustomWorkoutBuilder: View {
                                     .font(APEXFont.mono(9))
                                     .foregroundStyle(APEXColor.secondaryInk)
                             }
-                            ForEach($picks) { $pick in
-                                pickRow($pick)
+                            ForEach(picks.indices, id: \.self) { index in
+                                pickRow($picks[index], index: index)
                             }
                         }
                     }
 
                     VStack(alignment: .leading, spacing: 9) {
                         TextField(language.text("Search movements"), text: $query)
+                            .focused($searchFocused)
                             .font(APEXFont.body(14, weight: .semibold))
                             .padding(.horizontal, 13)
                             .frame(height: 44)
@@ -183,6 +297,7 @@ struct CustomWorkoutBuilder: View {
                                     withAnimation(.snappy(duration: 0.2)) {
                                         picks.append(Pick(item: item, sets: item.sets, reps: item.reps, rest: item.rest))
                                     }
+                                    searchFocused = false
                                 } label: {
                                     HStack(spacing: 11) {
                                         VStack(alignment: .leading, spacing: 2) {
@@ -233,23 +348,59 @@ struct CustomWorkoutBuilder: View {
         }
     }
 
-    private func pickRow(_ pick: Binding<Pick>) -> some View {
-        GlassCard(radius: 16, padding: 11) {
+    private func pickRow(_ pick: Binding<Pick>, index: Int) -> some View {
+        let groupLabel = Self.groupLabels(for: picks)[index]
+        return GlassCard(radius: 16, padding: 11) {
             VStack(alignment: .leading, spacing: 8) {
                 HStack {
+                    if let groupLabel {
+                        Text(groupLabel)
+                            .font(APEXFont.mono(9, weight: .bold))
+                            .foregroundStyle(.white)
+                            .padding(.horizontal, 7)
+                            .frame(height: 24)
+                            .background(APEXColor.violet, in: Capsule())
+                    }
                     Text(pick.wrappedValue.item.localizedName(language.language))
                         .font(APEXFont.body(14, weight: .bold))
                         .lineLimit(1)
                     Spacer(minLength: 6)
                     Button {
                         withAnimation(.snappy(duration: 0.2)) {
-                            picks.removeAll { $0.id == pick.wrappedValue.id }
+                            picks = Self.moving(picks, at: index, by: -1)
+                        }
+                    } label: {
+                        Image(systemName: "arrow.up")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(index == 0)
+                    .opacity(index == 0 ? 0.25 : 1)
+                    .accessibilityLabel(language.text("Move up"))
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            picks = Self.moving(picks, at: index, by: 1)
+                        }
+                    } label: {
+                        Image(systemName: "arrow.down")
+                            .font(.system(size: 10, weight: .bold))
+                            .frame(width: 44, height: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .disabled(index == picks.count - 1)
+                    .opacity(index == picks.count - 1 ? 0.25 : 1)
+                    .accessibilityLabel(language.text("Move down"))
+                    Button {
+                        withAnimation(.snappy(duration: 0.2)) {
+                            if index > 0 { picks[index - 1].linkedToNext = false }
+                            picks.remove(at: index)
                         }
                     } label: {
                         Image(systemName: "xmark")
                             .font(.system(size: 11, weight: .bold))
                             .foregroundStyle(APEXColor.danger)
-                            .frame(width: 26, height: 26)
+                            .frame(width: 44, height: 44)
                             .background(APEXColor.danger.opacity(0.1), in: Circle())
                     }
                     .buttonStyle(.plain)
@@ -260,9 +411,31 @@ struct CustomWorkoutBuilder: View {
                         language.text(Self.workLabel(for: pick.wrappedValue.item.unit)),
                         value: pick.reps,
                         range: 1...600,
-                        step: pick.wrappedValue.item.unit == "seconds" ? 5 : 1
+                        step: Self.workStep(for: pick.wrappedValue.item.unit)
                     )
                     counter(language.text("REST"), value: pick.rest, range: 0...600, step: 15)
+                }
+                if index < picks.count - 1 {
+                    Button {
+                        pick.wrappedValue.linkedToNext.toggle()
+                    } label: {
+                        Label(
+                            language.text(pick.wrappedValue.linkedToNext
+                                ? "Linked into the same round"
+                                : "Link with next movement"),
+                            systemImage: pick.wrappedValue.linkedToNext ? "link" : "plus"
+                        )
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .padding(.horizontal, 11)
+                        .frame(minHeight: 44)
+                        .foregroundStyle(pick.wrappedValue.linkedToNext ? .white : APEXColor.violet)
+                        .background(
+                            pick.wrappedValue.linkedToNext ? APEXColor.violet : APEXColor.violet.opacity(0.1),
+                            in: Capsule()
+                        )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier("custom-workout-link-\(pick.wrappedValue.item.id)")
                 }
             }
         }

@@ -5,6 +5,7 @@ import XCTest
  * The custom builder has to agree with the web builder, otherwise the same
  * session reads as a different length depending on which device opened it.
  */
+@MainActor
 final class CustomWorkoutBuilderTests: XCTestCase {
     private func item(
         id: String = "test",
@@ -167,7 +168,109 @@ final class CustomWorkoutBuilderTests: XCTestCase {
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "reps"), "REPS")
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "seconds"), "SEC")
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "minutes"), "MIN")
+        XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "metres"), "DISTANCE M")
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "steps"), "STEPS")
         XCTAssertEqual(CustomWorkoutBuilder.workLabel(for: "rounds"), "ROUNDS")
+    }
+
+    func testSelectedMovementsCanBeReorderedWithoutRecreatingThem() {
+        let picks = [
+            CustomWorkoutBuilder.Pick(item: item(id: "first"), sets: 3, reps: 8, rest: 60),
+            CustomWorkoutBuilder.Pick(item: item(id: "second"), sets: 3, reps: 10, rest: 75),
+            CustomWorkoutBuilder.Pick(item: item(id: "third"), sets: 2, reps: 12, rest: 90),
+        ]
+
+        let moved = CustomWorkoutBuilder.moving(picks, at: 2, by: -1)
+
+        XCTAssertEqual(moved.map(\.id), ["first", "third", "second"])
+        XCTAssertEqual(moved.map(\.sets), [3, 2, 3])
+        XCTAssertEqual(CustomWorkoutBuilder.moving(moved, at: 0, by: -1), moved)
+    }
+
+    func testAdjacentLinksResolveToOneRoundGroupWithStableMemberPositions() {
+        let groupID = UUID(uuidString: "aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee")!
+        var first = CustomWorkoutBuilder.Pick(item: item(id: "first"), sets: 3, reps: 8, rest: 60)
+        var second = CustomWorkoutBuilder.Pick(item: item(id: "second"), sets: 3, reps: 10, rest: 75)
+        let third = CustomWorkoutBuilder.Pick(item: item(id: "third"), sets: 2, reps: 12, rest: 90)
+        first.linkedToNext = true
+        second.linkedToNext = false
+
+        let assignments = CustomWorkoutBuilder.workGroupAssignments(
+            for: [first, second, third],
+            makeID: { groupID }
+        )
+
+        XCTAssertEqual(assignments.map(\.workGroupID), [groupID, groupID, nil])
+        XCTAssertEqual(assignments.map(\.workGroupPosition), [1, 2, nil])
+        XCTAssertEqual(CustomWorkoutBuilder.groupLabels(for: [first, second, third]), ["A1", "A2", nil])
+    }
+
+    func testPersistedRowsKeepOrderPrescriptionAndReusableRoundMembership() {
+        let userID = UUID()
+        let dayID = UUID()
+        let groupID = UUID(uuidString: "bbbbbbbb-cccc-4ddd-8eee-ffffffffffff")!
+        var first = CustomWorkoutBuilder.Pick(item: item(id: "first"), sets: 4, reps: 8, rest: 75)
+        let carry = CustomWorkoutBuilder.Pick(
+            item: item(id: "carry", unit: "metres"), sets: 3, reps: 40, rest: 90
+        )
+        first.linkedToNext = true
+
+        let rows = CustomWorkoutBuilder.exerciseRows(
+            userID: userID,
+            programDayID: dayID,
+            picks: [first, carry],
+            makeGroupID: { groupID }
+        )
+
+        XCTAssertEqual(rows.map(\.movementID), ["first", "carry"])
+        XCTAssertEqual(rows.map(\.sortOrder), [0, 1])
+        XCTAssertEqual(rows.map(\.sets), [4, 3])
+        XCTAssertEqual(rows.map(\.repMax), [8, 40])
+        XCTAssertEqual(rows.map(\.repUnit), ["reps", "metres"])
+        XCTAssertEqual(rows.map(\.restSeconds), [75, 90])
+        XCTAssertEqual(rows.map(\.workGroupID), [groupID, groupID])
+        XCTAssertEqual(rows.map(\.workGroupPosition), [1, 2])
+    }
+
+    func testGuidedDistanceTargetPersistsDistanceInsteadOfFabricatingDuration() {
+        let carry = Exercise(
+            id: UUID(), userID: UUID(), programDayID: UUID(),
+            name: "Kettlebell Farmer's Walk", movementID: "kettlebell_farmers_walk",
+            sets: 3, repMin: 40, repMax: 40, repUnit: "metres", perSide: false,
+            restSeconds: 90, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 2.5, isLite: false,
+            optional: false, sortOrder: 0
+        )
+
+        let input = GuidedWorkout.setInput(
+            for: carry, setNumber: 1, measuredWork: 40,
+            signedLoadKG: 24, skipped: false
+        )
+
+        XCTAssertFalse(GuidedWorkout.usesAutomaticCadence(for: carry))
+        XCTAssertEqual(input.distanceMeters, 40)
+        XCTAssertNil(input.durationSeconds)
+        XCTAssertEqual(input.weightKG, 24)
+    }
+
+    func testGuidedRoundTargetPersistsAsTheStrengthMovementCount() {
+        let wristRoller = Exercise(
+            id: UUID(), userID: UUID(), programDayID: UUID(),
+            name: "Wrist Roller", movementID: "wrist_roller",
+            sets: 3, repMin: 3, repMax: 3, repUnit: "rounds", perSide: false,
+            restSeconds: 60, tempoUp: 1, tempoDown: 2, tempoPause: 0,
+            tempoNote: "", notes: "", incrementKG: 1.25, isLite: false,
+            optional: false, sortOrder: 0
+        )
+
+        let input = GuidedWorkout.setInput(
+            for: wristRoller, setNumber: 1, measuredWork: 3,
+            signedLoadKG: 10, skipped: false
+        )
+
+        XCTAssertFalse(GuidedWorkout.usesAutomaticCadence(for: wristRoller))
+        XCTAssertEqual(input.reps, 3)
+        XCTAssertNil(input.rounds)
+        XCTAssertNil(input.durationSeconds)
     }
 }

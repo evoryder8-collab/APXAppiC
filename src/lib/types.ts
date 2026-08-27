@@ -132,7 +132,7 @@ export interface ProgramDay {
   session_mode?: SessionMode | null
 }
 
-export type RepUnit = 'reps' | 'seconds' | 'minutes' | 'max' | 'check'
+export type RepUnit = 'reps' | 'seconds' | 'minutes' | 'metres' | 'steps' | 'rounds' | 'max' | 'check'
 
 export interface Exercise {
   id: string

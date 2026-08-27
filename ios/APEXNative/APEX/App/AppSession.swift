@@ -3484,30 +3484,11 @@ final class AppSession {
         )
 
         let replaced = data.exercises.filter { $0.programDayID == day.id }
-        let rows = picks.enumerated().map { index, pick -> Exercise in
-            return Exercise(
-                id: UUID(),
-                userID: userID,
-                programDayID: day.id,
-                name: pick.item.name,
-                movementID: pick.item.movementID,
-                sets: min(max(pick.sets, 1), 12),
-                repMin: min(max(pick.reps, 1), 600),
-                repMax: min(max(pick.reps, 1), 600),
-                repUnit: pick.item.unit,
-                perSide: pick.item.perSide,
-                restSeconds: min(max(pick.rest, 0), 600),
-                tempoUp: 1,
-                tempoDown: 2,
-                tempoPause: 0,
-                tempoNote: "",
-                notes: "\(pick.item.equipment) · \(pick.item.muscles.joined(separator: ", "))",
-                incrementKG: pick.item.incrementKG,
-                isLite: false,
-                optional: false,
-                sortOrder: index
-            )
-        }
+        let rows = CustomWorkoutBuilder.exerciseRows(
+            userID: userID,
+            programDayID: day.id,
+            picks: picks
+        )
 
         data.exercises.removeAll { $0.programDayID == day.id }
         if let index = data.programs.firstIndex(where: { $0.id == program.id }) {

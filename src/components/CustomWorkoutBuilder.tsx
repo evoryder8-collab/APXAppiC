@@ -17,17 +17,17 @@ import {
 } from '../data/exerciseCatalog'
 import { GhostButton, GradientButton, Sheet } from './ui'
 import { followAlongFields, suggestedRestSeconds } from '../lib/sessionShape'
+import {
+  customWorkoutGroupAssignments,
+  customWorkoutTargetLabel,
+  moveCustomWorkoutSelection,
+  removeCustomWorkoutSelection,
+  type CustomWorkoutSelection,
+} from '../lib/customWorkout'
 
 const HologramStage = lazy(() =>
   import('./hologram/HologramStage').then((module) => ({ default: module.HologramStage })),
 )
-
-interface SelectedExercise {
-  id: string
-  sets: number
-  reps: number
-  rest: number
-}
 
 const WEEKDAYS = [
   { id: 1, label: 'Monday' },
@@ -50,15 +50,15 @@ function clamp(value: number, min: number, max: number): number {
   return Math.max(min, Math.min(max, Math.round(value)))
 }
 
-function estimatedMinutes(selected: SelectedExercise[], byId: Map<string, ExerciseCatalogItem>): number {
+function estimatedMinutes(selected: CustomWorkoutSelection[], byId: Map<string, ExerciseCatalogItem>): number {
   const seconds = selected.reduce((total, selection) => {
     const exercise = byId.get(selection.id)
     if (!exercise) return total
     const workSeconds = exercise.unit === 'minutes'
-      ? selection.reps * 60
+      ? selection.target * 60
       : exercise.unit === 'seconds'
-        ? selection.reps
-        : Math.max(20, selection.reps * 3)
+        ? selection.target
+        : Math.max(20, selection.target * 3)
     return total + selection.sets * (workSeconds + selection.rest)
   }, 0)
   return Math.max(8, Math.round(seconds / 60))
@@ -86,7 +86,7 @@ export function CustomWorkoutBuilder({
   const [weekday, setWeekday] = useState(() => getISODay(new Date()))
   const [query, setQuery] = useState('')
   const [category, setCategory] = useState<'all' | ExerciseCategory>('all')
-  const [selected, setSelected] = useState<SelectedExercise[]>([])
+  const [selected, setSelected] = useState<CustomWorkoutSelection[]>([])
 
   const byId = useMemo(() => new Map(EXERCISE_CATALOG.map((item) => [item.id, item])), [])
   const results = useMemo(
@@ -98,22 +98,28 @@ export function CustomWorkoutBuilder({
     [byId, selected],
   )
   const selectedIds = useMemo(() => new Set(selected.map((item) => item.id)), [selected])
+  const previewWorkGroups = useMemo(
+    () => customWorkoutGroupAssignments(selected, () => 'preview'),
+    [selected],
+  )
 
   const addExercise = (item: ExerciseCatalogItem): void => {
+    if (document.activeElement instanceof HTMLElement) document.activeElement.blur()
     setSelected((current) => current.some((entry) => entry.id === item.id)
-      ? current.filter((entry) => entry.id !== item.id)
+      ? removeCustomWorkoutSelection(current, item.id)
       : [...current, {
           id: item.id,
           sets: item.sets,
-          reps: item.reps,
+          target: item.reps,
           // The picker starts on what the movement actually warrants -- a cuff
           // drill and a heavy hinge do not want the same interval -- and the
           // trainer can still change it to anything they like.
           rest: suggestedRestSeconds(item.name, 'hypertrophy') ?? item.rest,
+          linkedToNext: false,
         }])
   }
 
-  const updateExercise = (id: string, patch: Partial<Omit<SelectedExercise, 'id'>>): void => {
+  const updateExercise = (id: string, patch: Partial<Omit<CustomWorkoutSelection, 'id'>>): void => {
     setSelected((current) => current.map((entry) => entry.id === id ? { ...entry, ...patch } : entry))
   }
 
@@ -171,17 +177,21 @@ export function CustomWorkoutBuilder({
     }
     upsert('programs', program)
     upsert('program_days', day)
+    const workGroups = customWorkoutGroupAssignments(selected)
     bulkUpsert<Exercise>('exercises', selected.map((selection, index) => {
       const item = byId.get(selection.id)!
+      const workGroup = workGroups[index]
       return {
         id: crypto.randomUUID(),
         user_id: profile.user_id,
         program_day_id: day.id,
         name: item.name,
         sets: clamp(selection.sets, 1, 12),
-        rep_min: clamp(selection.reps, 1, 600),
-        rep_max: clamp(selection.reps, 1, 600),
+        rep_min: clamp(selection.target, 1, 600),
+        rep_max: clamp(selection.target, 1, 600),
         rep_unit: item.unit,
+        work_group_id: workGroup.workGroupId,
+        work_group_position: workGroup.workGroupPosition,
         ...(({ movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec }) => ({
           movement_id, tempo_up_s, tempo_down_s, tempo_pause_s, tempo_note, per_side, rest_sec,
         }))(followAlongFor(item, clamp(selection.rest, 0, 600))),
@@ -306,16 +316,24 @@ export function CustomWorkoutBuilder({
           <div className="mt-2 space-y-2">
             {selected.map((selection, index) => {
               const item = byId.get(selection.id)!
+              const workGroup = previewWorkGroups[index]
               return (
                 <div key={selection.id} className="rounded-2xl border border-white bg-white/72 p-3">
                   <div className="flex items-center justify-between gap-3">
-                    <p className="min-w-0 truncate text-sm font-bold text-ink"><span className="mr-2 font-mono text-[9px] text-violet-600">{String(index + 1).padStart(2, '0')}</span>{displayExerciseName(item, language)}</p>
-                    <button type="button" onClick={() => addExercise(item)} className="grid h-8 w-8 shrink-0 place-items-center rounded-full bg-rose-50 font-bold text-rose-600" aria-label={`${t('Remove')} ${displayExerciseName(item, language)}`}>×</button>
+                    <p className="min-w-0 truncate text-sm font-bold text-ink">
+                      <span className="mr-2 font-mono text-[9px] text-violet-600">{workGroup.label ?? String(index + 1).padStart(2, '0')}</span>
+                      {displayExerciseName(item, language)}
+                    </p>
+                    <div className="flex shrink-0 items-center gap-1">
+                      <button type="button" onClick={() => setSelected((current) => moveCustomWorkoutSelection(current, index, -1))} disabled={index === 0} className="grid h-11 w-11 place-items-center rounded-full bg-slate-50 font-bold text-ink-soft disabled:opacity-25" aria-label={`${t('Move up')} ${displayExerciseName(item, language)}`}>↑</button>
+                      <button type="button" onClick={() => setSelected((current) => moveCustomWorkoutSelection(current, index, 1))} disabled={index === selected.length - 1} className="grid h-11 w-11 place-items-center rounded-full bg-slate-50 font-bold text-ink-soft disabled:opacity-25" aria-label={`${t('Move down')} ${displayExerciseName(item, language)}`}>↓</button>
+                      <button type="button" onClick={() => addExercise(item)} className="grid h-11 w-11 place-items-center rounded-full bg-rose-50 font-bold text-rose-600" aria-label={`${t('Remove')} ${displayExerciseName(item, language)}`}>×</button>
+                    </div>
                   </div>
                   <div className="mt-2 grid grid-cols-3 gap-2">
                     {([
                       ['Sets', 'sets', selection.sets, 1, 12],
-                      [item.unit === 'reps' ? 'Repetitions' : item.unit, 'reps', selection.reps, 1, 600],
+                      [customWorkoutTargetLabel(item.unit), 'target', selection.target, 1, 600],
                       ['Rest seconds', 'rest', selection.rest, 0, 600],
                     ] as const).map(([label, key, value, min, max]) => (
                       <label key={key} className="min-w-0">
@@ -324,6 +342,17 @@ export function CustomWorkoutBuilder({
                       </label>
                     ))}
                   </div>
+                  {index < selected.length - 1 && (
+                    <button
+                      type="button"
+                      onClick={() => updateExercise(selection.id, { linkedToNext: !selection.linkedToNext })}
+                      className={`mt-2 inline-flex min-h-11 items-center gap-2 rounded-full px-3 text-[10px] font-black ${selection.linkedToNext ? 'bg-violet-600 text-white' : 'bg-violet-50 text-violet-700'}`}
+                      aria-pressed={selection.linkedToNext}
+                    >
+                      <span aria-hidden>{selection.linkedToNext ? '⛓' : '＋'}</span>
+                      {t(selection.linkedToNext ? 'Linked into the same round' : 'Link with next movement')}
+                    </button>
+                  )}
                 </div>
               )
             })}

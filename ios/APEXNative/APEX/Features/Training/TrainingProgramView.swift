@@ -679,6 +679,9 @@ enum TrackedWorkout {
         case reps
         case seconds
         case minutes
+        case metres
+        case steps
+        case rounds
         case max
         case check
     }
@@ -715,6 +718,9 @@ enum TrackedWorkout {
         switch exercise.repUnit {
         case "seconds": .seconds
         case "minutes": .minutes
+        case "metres": .metres
+        case "steps": .steps
+        case "rounds": .rounds
         case "max": .max
         case "check": .check
         default: .reps
@@ -733,7 +739,7 @@ enum TrackedWorkout {
         switch workUnit(for: exercise) {
         case .max: return "MAX"
         case .check: return "Check"
-        case .reps, .seconds, .minutes:
+        case .reps, .seconds, .minutes, .metres, .steps, .rounds:
             let range = plannedRange(for: exercise)
             return range.lowerBound == range.upperBound
                 ? "\(range.lowerBound)"
@@ -833,6 +839,10 @@ enum TrackedWorkout {
 }
 
 enum GuidedWorkout {
+    static func usesAutomaticCadence(for exercise: Exercise) -> Bool {
+        exercise.repUnit == "reps" || exercise.repUnit == "max"
+    }
+
     static func setInput(
         for exercise: Exercise,
         setNumber: Int,
@@ -851,10 +861,15 @@ enum GuidedWorkout {
             weightKG: !skipped && descriptor.fields.contains(.signedLoad)
                 ? (descriptor.kind == .bodyweight || signedLoadKG != 0 ? signedLoadKG : nil)
                 : nil,
+            // Steps and rounds are manual-cadence strength targets, but their
+            // measured count still belongs in the shared strength fact axis.
             reps: !skipped && descriptor.fields.contains(.reps) ? measuredWork : nil,
             rir: nil,
             movementID: exercise.movementID ?? MovementTiming.movement(named: exercise.name)?.id,
-            durationSeconds: !skipped && descriptor.fields.contains(.duration) ? measuredWork : nil,
+            durationSeconds: !skipped && descriptor.fields.contains(.duration)
+                && (exercise.repUnit == "seconds" || exercise.repUnit == "minutes") ? measuredWork : nil,
+            distanceMeters: !skipped && descriptor.fields.contains(.distance)
+                && exercise.repUnit == "metres" ? Double(measuredWork) : nil,
             contacts: !skipped && descriptor.fields.contains(.contacts) ? measuredWork : nil,
             rounds: !skipped && descriptor.fields.contains(.rounds) ? measuredWork : nil,
             skipped: skipped
@@ -1827,6 +1842,17 @@ struct WorkoutPlayerView: View {
                         Text(language.text(current.perSide ? "Hold · per side" : "Hold"))
                             .font(APEXFont.mono(13))
                             .foregroundStyle(APEXColor.secondaryInk)
+                    } else if !GuidedWorkout.usesAutomaticCadence(for: current) {
+                        Text("\(actualReps)")
+                            .font(APEXFont.mono(72))
+                            .foregroundStyle(accent)
+                        Text(language.format(
+                            "%@ target · tap Done when completed",
+                            language.text(CustomWorkoutBuilder.workLabel(for: current.repUnit))
+                        ))
+                            .font(APEXFont.mono(13))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .multilineTextAlignment(.center)
                     } else {
                         /* Auto-paced rep counter */
                         Text("\(actualReps)")
@@ -1845,9 +1871,11 @@ struct WorkoutPlayerView: View {
                     }
 
                     HStack(spacing: 12) {
-                        Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
-                            .buttonStyle(.bordered)
-                            .accessibilityIdentifier("workout-pause-set")
+                        if timedSeconds(current) != nil || GuidedWorkout.usesAutomaticCadence(for: current) {
+                            Button(language.text(paused ? "Resume" : "Pause")) { paused.toggle() }
+                                .buttonStyle(.bordered)
+                                .accessibilityIdentifier("workout-pause-set")
+                        }
 
                         Button {
                             endCurrentSet(skipped: false)
@@ -2322,6 +2350,8 @@ struct WorkoutPlayerView: View {
             return
         }
 
+        guard GuidedWorkout.usesAutomaticCadence(for: current) else { return }
+
         let duration = repDuration(current)
         let target = targetReps(current)
         let rep = Int(repElapsed / duration) + 1
@@ -2352,7 +2382,9 @@ struct WorkoutPlayerView: View {
             return
         }
         paused = false
-        actualReps = 0
+        actualReps = timedSeconds(exercise) == nil && !GuidedWorkout.usesAutomaticCadence(for: exercise)
+            ? (targetReps(exercise) ?? 0)
+            : 0
         repElapsed = 0
         announcedRep = 0
         currentWeight = suggestedWeight

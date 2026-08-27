@@ -430,6 +430,10 @@ final class APEXSmokeUITests: XCTestCase {
         result.tap()
         XCTAssertTrue(result.waitForNonExistence(timeout: 3))
         XCTAssertTrue(
+            app.keyboards.firstMatch.waitForNonExistence(timeout: 3),
+            "Selecting a movement should dismiss the keyboard so the builder remains usable."
+        )
+        XCTAssertTrue(
             app.descendants(matching: .any)["custom-workout-selected-power_snatch"]
                 .waitForExistence(timeout: 3)
         )
