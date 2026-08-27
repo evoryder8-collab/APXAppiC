@@ -191,6 +191,81 @@ approximate it from screenshots.**
 
 ---
 
+### 1.10 Session briefings that teach something true
+
+The "i" tooltip is one of the few places the app can earn affection rather than compliance. People
+stay with a tool that taught them something. That only works if the content is specific and correct;
+generic advice under a heading reading TODAY is worse than no tooltip, because it advertises
+intelligence and then does not have any.
+
+#### 1.10.1 One knowledge model per movement kind, not one template with variables
+`SessionBriefing.briefing` currently switches its narrative on `dayType` while deriving muscles from
+`dayType` and `exercises`. So the writing is category-level under day-level headings. Each kind needs
+its own vocabulary, mechanism and cautions:
+
+- **Strength / bodyweight** — load, tension, rep quality, proximity to failure, progression.
+- **Mobility / stretching** — see below. Strength vocabulary is wrong here.
+- **Yoga** — pose names in both Sanskrit and English, breath count, the intention of the sequence,
+  and genuine contraindications.
+- **Isometric** — time under tension at a joint angle, and how narrowly that strength transfers.
+- **Carry** — bracing, grip, gait under load, trunk position.
+- **Cardio / interval** — the physiological target of the session, not a rep count.
+- **Recovery** — what actually recovers, and what merely feels like it does.
+
+#### 1.10.2 Mobility content must not borrow strength framing
+A stretch does not "work" a muscle. Saying it does teaches something false and is spotted instantly
+by anyone with clinical training. The vocabulary and the mechanisms are different:
+
+- Most acute range gained is **increased stretch tolerance**, largely neural — not the muscle
+  becoming longer. Say that. It is more interesting than the myth and it is true.
+- **Static, dynamic, PNF and loaded end-range work have different mechanisms and different places.**
+  Roughly 30 to 60 seconds is where a static hold does its work; much beyond that adds little.
+- **End-range strength is what makes range stick.** Passive range without strength at end range
+  transfers poorly. The existing copy already says this well — "range you can control is the range
+  you keep" — and that idea should run through the mobility content rather than appearing once.
+- **Not every restriction is muscular.** Ankle dorsiflexion is often limited by the joint capsule or
+  by bone. Stretching a capsular restriction produces frustration, not range. Say when a limit is
+  probably not a muscle.
+- **Warm tissue is more compliant**, so the same work does more after activity than before it.
+
+#### 1.10.3 Three cautions that belong here and almost never appear in fitness apps
+- **Hypermobility.** For a hypermobile person, more passive range is the wrong prescription; they
+  need stability and end-range control. If the baseline questionnaire in 7.1 captures this, mobility
+  guidance must respond to it rather than pushing everyone deeper.
+- **Nerve tension is not muscle tension.** A sciatic nerve glide can feel like a hamstring stretch.
+  Pushing into it is not harmless. Teach the difference in sensation, and never coach someone deeper
+  into symptoms that read as nerve rather than muscle.
+- **Yoga has real contraindications** — inversions with uncontrolled blood pressure, deep twists and
+  prone work in pregnancy, loaded cervical positions. Yoga content that omits them is not calm, it
+  is careless.
+
+#### 1.10.4 Myths this app must never repeat
+Stretching does not lengthen muscle acutely. Foam rolling does not break up fascia and its effects
+are largely transient and neural. Lactic acid does not cause next-day soreness. Passive stretching
+does not prevent injury on its own. Repeating any of these once costs the credibility that
+everything else in this project has been built to earn.
+
+#### 1.10.5 What "adaptive" has to mean concretely
+The briefing must vary by more than day type:
+
+- **By the movements actually prescribed.** A session of six named stretches should read as though
+  the briefing has seen them.
+- **By position relative to training.** Pre-session and post-session mobility have different jobs;
+  the same content for both is wrong for at least one.
+- **By the user's own data.** Logged knee pain, a hypermobility baseline, a joint check-in flag — the
+  guidance should reflect what this person reported rather than what the category generally says.
+- **By history.** Someone twelve weeks in does not need the beginner explanation every time.
+
+#### 1.10.6 Honesty and sourcing, same standard as everything else
+Where a claim is well supported, state it plainly. Where evidence is mixed, say so rather than
+picking the confident version. Record the sourcing in a movement-science ledger alongside
+`docs/orbit/SCIENCE_LEDGER.md`, which already sets this precedent for running.
+
+No medical claims, no diagnosis, no promise of injury prevention. The line is education, not
+treatment.
+
+---
+
 ## PHASE 2 — Live production bugs and iOS/web parity
 
 ### 2.1 Web bugs firing in production right now
