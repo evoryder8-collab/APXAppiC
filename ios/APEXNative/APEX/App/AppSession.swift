@@ -37,6 +37,7 @@ final class AppSession {
     var alertMessage: String?
     var lastSyncAt: Date?
     var pendingSyncCount = 0
+    var failedSyncCount = 0
     var navigationPath: [PortalDestination] = []
 
     private let service = SupabaseService.shared
@@ -157,6 +158,27 @@ final class AppSession {
                 data.settings = settings
             }
             selectedPersona = .constantine
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-failed-sync"),
+               let debugProfile = data.profile,
+               let operationID = UUID(uuidString: "B72E51D1-5D0B-4585-B361-9AF511F98964"),
+               let recordID = UUID(uuidString: "B5325F4F-BCB4-48A2-AF63-2CD80312A14E") {
+                let rejectedWrite = OfflineOperation(
+                    id: operationID,
+                    kind: .delete,
+                    table: "meal_logs",
+                    payload: nil,
+                    recordID: recordID,
+                    onConflict: nil,
+                    rpcFunction: nil,
+                    createdAt: .now
+                )
+                try? await offlineStore.recordFailure(
+                    rejectedWrite,
+                    reason: "UI fixture: server rejected this write",
+                    for: debugProfile.userID
+                )
+                failedSyncCount = (try? await offlineStore.failedOperations(for: debugProfile.userID).count) ?? 1
+            }
             if let debugProfile = data.profile {
                 EntitlementStore.shared.prepareForAccount(debugProfile.userID)
                 EntitlementStore.shared.resolve(profile: debugProfile)
@@ -498,6 +520,7 @@ final class AppSession {
         guard accountGeneration.accepts(accountToken) else { return }
         data = .empty
         pendingSyncCount = 0
+        failedSyncCount = 0
         navigationPath.removeAll()
         selectedPersona = nil
         EntitlementStore.shared.resetAccount()
@@ -559,6 +582,9 @@ final class AppSession {
             let count = try? await offlineStore.pendingOperations(for: userID).count
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
             pendingSyncCount = count ?? 0
+            let failures = try? await offlineStore.failedOperations(for: userID).count
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+            failedSyncCount = failures ?? 0
         }
         await considerWeeklyCalibration()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -708,6 +734,7 @@ final class AppSession {
             EntitlementStore.shared.prepareForAccount(userID)
             data = .empty
             pendingSyncCount = 0
+            failedSyncCount = 0
             navigationPath.removeAll()
             selectedPersona = nil
             route = .induction
@@ -2232,7 +2259,7 @@ final class AppSession {
             lastSyncAt = .now
         } catch {
             switch SyncFailurePolicy.classify(error) {
-            case .transient:
+            case .transient, .authenticationRequired:
                 do {
                     try await offlineStore.enqueue(offlineOperation, for: profile.userID)
                     pendingSyncCount = (try? await offlineStore.pendingOperations(for: profile.userID).count)
@@ -3895,7 +3922,7 @@ final class AppSession {
             do {
                 let operation = try OfflineOperation.upsert(value, table: table, onConflict: onConflict)
                 switch SyncFailurePolicy.classify(error) {
-                case .transient:
+                case .transient, .authenticationRequired:
                     try await offlineStore.enqueue(operation, for: userID)
                     pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
                         ?? pendingSyncCount + 1
@@ -3907,6 +3934,8 @@ final class AppSession {
                         reason: error.localizedDescription,
                         for: userID
                     )
+                    failedSyncCount = (try? await offlineStore.failedOperations(for: userID).count)
+                        ?? failedSyncCount + 1
                     if surfacePermanentFailure {
                         alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
                     }
@@ -3936,7 +3965,7 @@ final class AppSession {
             do {
                 let operation = OfflineOperation.delete(table: table, id: id)
                 switch SyncFailurePolicy.classify(error) {
-                case .transient:
+                case .transient, .authenticationRequired:
                     try await offlineStore.enqueue(operation, for: userID)
                     pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count)
                         ?? pendingSyncCount + 1
@@ -3948,6 +3977,8 @@ final class AppSession {
                         reason: error.localizedDescription,
                         for: userID
                     )
+                    failedSyncCount = (try? await offlineStore.failedOperations(for: userID).count)
+                        ?? failedSyncCount + 1
                     alertMessage = "APEX could not sync that change. Please try again after refreshing your account."
                 }
             } catch {
@@ -4073,12 +4104,16 @@ final class AppSession {
             quarantine: { [offlineStore] operation, reason in
                 try await offlineStore.quarantine(operation, reason: reason, for: userID)
             },
+            refreshAuthentication: { [service] in
+                try await service.refreshAuthenticationSession()
+            },
             classify: SyncFailurePolicy.classify
         )
         pendingSyncCount = (try? await offlineStore.pendingOperations(for: userID).count) ?? max(
             0,
             operations.count - report.succeeded - report.quarantined
         )
+        failedSyncCount = (try? await offlineStore.failedOperations(for: userID).count) ?? failedSyncCount
         if report.succeeded > 0 { lastSyncAt = .now }
     }
 

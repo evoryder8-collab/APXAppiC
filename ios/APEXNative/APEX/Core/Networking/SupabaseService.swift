@@ -112,6 +112,11 @@ actor SupabaseService {
         return try? await client.auth.session.user.id
     }
 
+    func refreshAuthenticationSession() async throws {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        _ = try await client.auth.refreshSession()
+    }
+
     func signIn(email: String, password: String) async throws -> UUID {
         guard let client else { throw APEXServiceError.configurationMissing }
         let session = try await client.auth.signIn(email: email, password: password)

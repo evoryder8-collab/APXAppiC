@@ -60,6 +60,63 @@ final class MealComposerTests: XCTestCase {
         )
     }
 
+    func testUnauthorizedSyncFailuresRequireAuthenticationRecoveryInsteadOfQuarantine() {
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: 401, databaseCode: nil, isNetworkFailure: false),
+            .authenticationRequired
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(statusCode: nil, databaseCode: "PGRST301", isNetworkFailure: false),
+            .authenticationRequired
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(OfflineAuthenticationReplayHarness.UnauthorizedReplayError()),
+            .authenticationRequired
+        )
+    }
+
+    func testUnauthorizedOfflineWriteRefreshesAuthenticationAndRetriesExactlyOnce() async {
+        let operation = OfflineOperation.delete(table: "hydration_events", id: UUID())
+        let harness = OfflineAuthenticationReplayHarness()
+
+        let report = await OfflineQueueDrainer.drain(
+            [operation],
+            replay: { try await harness.replay($0) },
+            remove: { await harness.remove($0) },
+            quarantine: { await harness.quarantine($0, reason: $1) },
+            refreshAuthentication: { try await harness.refreshAuthentication() },
+            classify: SyncFailurePolicy.classify
+        )
+
+        XCTAssertEqual(report, OfflineQueueDrainReport(succeeded: 1, quarantined: 0, paused: false))
+        let snapshot = await harness.snapshot()
+        XCTAssertEqual(snapshot.replayed, [operation.id, operation.id])
+        XCTAssertEqual(snapshot.removed, [operation.id])
+        XCTAssertEqual(snapshot.quarantined, [])
+        XCTAssertEqual(snapshot.authenticationRefreshes, 1)
+    }
+
+    func testFailedAuthenticationRefreshPausesWithoutQuarantiningTheWrite() async {
+        let operation = OfflineOperation.delete(table: "hydration_events", id: UUID())
+        let harness = OfflineAuthenticationReplayHarness(refreshFails: true)
+
+        let report = await OfflineQueueDrainer.drain(
+            [operation],
+            replay: { try await harness.replay($0) },
+            remove: { await harness.remove($0) },
+            quarantine: { await harness.quarantine($0, reason: $1) },
+            refreshAuthentication: { try await harness.refreshAuthentication() },
+            classify: SyncFailurePolicy.classify
+        )
+
+        XCTAssertEqual(report, OfflineQueueDrainReport(succeeded: 0, quarantined: 0, paused: true))
+        let snapshot = await harness.snapshot()
+        XCTAssertEqual(snapshot.replayed, [operation.id])
+        XCTAssertEqual(snapshot.removed, [])
+        XCTAssertEqual(snapshot.quarantined, [])
+        XCTAssertEqual(snapshot.authenticationRefreshes, 1)
+    }
+
     func testPermanentPoisonOperationDoesNotBlockTheFollowingValidOperation() async throws {
         let poison = OfflineOperation.delete(table: "poison", id: UUID())
         let valid = OfflineOperation.delete(table: "valid", id: UUID())
@@ -70,6 +127,7 @@ final class MealComposerTests: XCTestCase {
             replay: { try await harness.replay($0) },
             remove: { try await harness.remove($0) },
             quarantine: { try await harness.quarantine($0, reason: $1) },
+            refreshAuthentication: {},
             classify: { error in
                 error is OfflineReplayHarness.PermanentReplayError ? .permanent : .transient
             }
@@ -104,6 +162,7 @@ final class MealComposerTests: XCTestCase {
             replay: { try await harness.replay($0) },
             remove: { try await store.removeOperation($0.id, for: userID) },
             quarantine: { try await store.quarantine($0, reason: $1, for: userID) },
+            refreshAuthentication: {},
             classify: { error in
                 error is OfflineReplayHarness.PermanentReplayError ? .permanent : .transient
             }
@@ -455,5 +514,52 @@ private actor OfflineReplayHarness {
 
     func snapshot() -> (replayed: [UUID], removed: [UUID], quarantined: [UUID]) {
         (replayed, removed, quarantined)
+    }
+}
+
+private actor OfflineAuthenticationReplayHarness {
+    struct UnauthorizedReplayError: LocalizedError, Sendable {
+        var errorDescription: String? { "request failed with status code 401" }
+    }
+
+    struct RefreshError: Error, Sendable {}
+
+    private let refreshFails: Bool
+    private var replayed: [UUID] = []
+    private var removed: [UUID] = []
+    private var quarantined: [UUID] = []
+    private var authenticationRefreshes = 0
+
+    init(refreshFails: Bool = false) {
+        self.refreshFails = refreshFails
+    }
+
+    func replay(_ operation: OfflineOperation) throws {
+        replayed.append(operation.id)
+        if replayed.count == 1 {
+            throw UnauthorizedReplayError()
+        }
+    }
+
+    func remove(_ operation: OfflineOperation) {
+        removed.append(operation.id)
+    }
+
+    func quarantine(_ operation: OfflineOperation, reason: String) {
+        quarantined.append(operation.id)
+    }
+
+    func refreshAuthentication() throws {
+        authenticationRefreshes += 1
+        if refreshFails { throw RefreshError() }
+    }
+
+    func snapshot() -> (
+        replayed: [UUID],
+        removed: [UUID],
+        quarantined: [UUID],
+        authenticationRefreshes: Int
+    ) {
+        (replayed, removed, quarantined, authenticationRefreshes)
     }
 }

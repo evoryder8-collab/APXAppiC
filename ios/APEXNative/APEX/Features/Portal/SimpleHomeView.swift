@@ -268,7 +268,14 @@ struct SimpleHomeView: View {
                     HStack {
                         PortalLanguagePicker()
                         Spacer()
-                        if session.pendingSyncCount > 0 {
+                        if session.failedSyncCount > 0 {
+                            Label(
+                                "\(session.failedSyncCount) \(language.text("needs attention"))",
+                                systemImage: "exclamationmark.icloud"
+                            )
+                            .font(APEXFont.mono(9))
+                            .foregroundStyle(APEXColor.danger)
+                        } else if session.pendingSyncCount > 0 {
                             Label(language.format("%d queued", session.pendingSyncCount), systemImage: "icloud.and.arrow.up")
                                 .font(APEXFont.mono(9))
                                 .foregroundStyle(APEXColor.amberDeep)

@@ -731,6 +731,29 @@ final class APEXSmokeUITests: XCTestCase {
         done.tap()
     }
 
+    func testQuarantinedSyncWorkIsVisibleInsteadOfPretendingEverythingSynced() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-failed-sync")
+        app.launch()
+
+        let simpleMode = app.buttons["SIMPLE"]
+        XCTAssertTrue(simpleMode.waitForExistence(timeout: 4))
+        tapClearOfDock(simpleMode)
+        let syncAlert = app.alerts["APEX"]
+        if syncAlert.waitForExistence(timeout: 2) {
+            syncAlert.buttons["OK"].tap()
+        }
+
+        let warning = app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS %@", "needs attention")
+        ).firstMatch
+        XCTAssertTrue(
+            scrollUntilVisible(warning, in: app, attempts: 20),
+            "a quarantined write must remain visible on the daily surface"
+        )
+        XCTAssertFalse(app.staticTexts["Synced"].exists)
+    }
+
     private func configuredApp() -> XCUIApplication {
         let app = XCUIApplication()
         app.launchArguments = ["-apex-ui-test", "-AppleLanguages", "(en)"]

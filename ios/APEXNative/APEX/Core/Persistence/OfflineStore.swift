@@ -3,6 +3,7 @@ import Supabase
 
 enum SyncFailureDisposition: Equatable, Sendable {
     case transient
+    case authenticationRequired
     case permanent
 }
 
@@ -17,6 +18,7 @@ enum SyncFailurePolicy {
         if isNetworkFailure { return .transient }
 
         if let statusCode {
+            if statusCode == 401 { return .authenticationRequired }
             if statusCode == 408 || statusCode == 425 || statusCode == 429 || statusCode >= 500 {
                 return .transient
             }
@@ -24,6 +26,9 @@ enum SyncFailurePolicy {
         }
 
         if let databaseCode = databaseCode?.uppercased() {
+            if ["PGRST301", "PGRST302"].contains(databaseCode) {
+                return .authenticationRequired
+            }
             if databaseCode.hasPrefix("08")
                 || databaseCode.hasPrefix("53")
                 || ["57P01", "57P02", "57P03"].contains(databaseCode) {
@@ -55,6 +60,12 @@ enum SyncFailurePolicy {
         }
 
         let message = error.localizedDescription.lowercased()
+        let authenticationTerms = [
+            "status code 401", "http 401", "jwt expired", "invalid jwt",
+            "token has expired", "authentication required"
+        ]
+        if authenticationTerms.contains(where: message.contains) { return .authenticationRequired }
+
         let networkTerms = [
             "network connection", "not connected to the internet", "timed out",
             "could not connect", "connection lost", "offline", "dns"
@@ -64,8 +75,8 @@ enum SyncFailurePolicy {
         let permanentTerms = [
             "row-level security", "permission denied", "invalid input syntax",
             "violates check constraint", "duplicate key", "foreign key constraint",
-            "status code 400", "status code 401", "status code 403", "status code 404",
-            "http 400", "http 401", "http 403", "http 404"
+            "status code 400", "status code 403", "status code 404",
+            "http 400", "http 403", "http 404"
         ]
         if permanentTerms.contains(where: message.contains) { return .permanent }
         return .transient
@@ -160,6 +171,7 @@ enum OfflineQueueDrainer {
         replay: @Sendable (OfflineOperation) async throws -> Void,
         remove: @Sendable (OfflineOperation) async throws -> Void,
         quarantine: @Sendable (OfflineOperation, String) async throws -> Void,
+        refreshAuthentication: @Sendable () async throws -> Void,
         classify: @Sendable (Error) -> SyncFailureDisposition
     ) async -> OfflineQueueDrainReport {
         var succeeded = 0
@@ -171,7 +183,52 @@ enum OfflineQueueDrainer {
                 try await remove(operation)
                 succeeded += 1
             } catch {
-                guard classify(error) == .permanent else {
+                let disposition = classify(error)
+
+                if disposition == .authenticationRequired {
+                    /* An expired access token says nothing about the validity
+                       of the queued write. Refresh once and replay the same
+                       idempotent operation; never move account data into the
+                       poison queue merely because its bearer token expired. */
+                    do {
+                        try await refreshAuthentication()
+                    } catch {
+                        return OfflineQueueDrainReport(
+                            succeeded: succeeded,
+                            quarantined: quarantined,
+                            paused: true
+                        )
+                    }
+
+                    do {
+                        try await replay(operation)
+                        try await remove(operation)
+                        succeeded += 1
+                        continue
+                    } catch {
+                        guard classify(error) == .permanent else {
+                            return OfflineQueueDrainReport(
+                                succeeded: succeeded,
+                                quarantined: quarantined,
+                                paused: true
+                            )
+                        }
+
+                        do {
+                            try await quarantine(operation, error.localizedDescription)
+                            quarantined += 1
+                            continue
+                        } catch {
+                            return OfflineQueueDrainReport(
+                                succeeded: succeeded,
+                                quarantined: quarantined,
+                                paused: true
+                            )
+                        }
+                    }
+                }
+
+                guard disposition == .permanent else {
                     return OfflineQueueDrainReport(
                         succeeded: succeeded,
                         quarantined: quarantined,
