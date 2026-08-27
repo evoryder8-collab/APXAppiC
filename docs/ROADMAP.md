@@ -21,6 +21,10 @@ it compacted again. Almost no work landed between compactions. Avoid that as fol
 4. **No status updates without a diff or a test result.** If you have nothing concrete, keep
    working. Do not narrate intent.
 5. **Do not restate this brief back.** It is on disk; refer to it.
+6. **Translate what you add, in the commit that adds it.** Any task introducing user-facing
+   strings translates them for every offered language in the same commit, and any string placed in
+   a width-constrained container gets its short forms in the same commit. Coverage regressed sixteen
+   points once because this rule did not exist. See 2.7.
 
 ## 0.1 Workspace and git safety
 
@@ -246,13 +250,108 @@ DB reads and writes, ownership, offline behaviour, error behaviour, localisation
 The two clients must not invent different enum strings for one concept. Create fixtures proving
 Swift and TypeScript encode and decode canonical Supabase payloads identically.
 
-### 2.7 Translations
-Chrome is complete in all 8 languages. **~2,269 content strings remain** for German, Swiss German,
-Italian, Spanish, Japanese and Portuguese (food quantities, export headings, marathon copy, engine
-content). `ios/APEXNative/Tools/audit-translation-coverage.mjs` measures coverage; six guards in
-`APEXTests/LocalisationCoverageTests.swift` catch invented keys, mixed scripts, stranded English,
+### 2.7 Localisation — rules, not a word count
+
+Nine languages are offered: English, German, Swiss German, Italian, Spanish, Portuguese, Japanese,
+Romanian, Thai. `ios/APEXNative/Tools/audit-translation-coverage.mjs` measures coverage. Six guards
+in `APEXTests/LocalisationCoverageTests.swift` catch invented keys, mixed scripts, stranded English,
 lowercased shouted labels, mismatched format arguments, and languages offered before completion.
-**No em dashes in UI copy. No language offered until finished.**
+
+**No em dashes in UI copy. No language offered until it is finished.**
+
+Coverage has regressed once already — from roughly 89% to 73.5% of 2,362 source strings — because
+new UI arrived faster than translation. The rules below exist so that cannot happen again, and so
+that closing the gap produces text a native speaker recognises rather than text that merely exists.
+
+#### 2.7.1 Exercise names are not interface copy
+In most gym cultures a proportion of movement names are used in English natively. Translating those
+produces text a local lifter finds confusing or cannot recognise. This is established for Romanian
+already: certain exercises stay in English because Romanians identify them that way.
+
+Classify every exercise name per language by dominant local usage, from evidence:
+
+| classification | meaning |
+|---|---|
+| `english` | the English term is what locals use and search for |
+| `native` | a genuine local term dominates |
+| `hybrid` | native head with an English modifier, e.g. a German "Bulgarian Split Squat" |
+| `transliterated` | the English word rendered in the local script |
+
+Evidence means authoritative local sources — national federation material, the exercise libraries of
+large local gym chains, established local forums, local-language editions of major training sites.
+Prefer sources written for that market over machine-translated ones, which echo the calques we are
+trying to avoid. **Record the source with the classification.** A decision nobody can check is a
+guess with better formatting.
+
+Where evidence is thin or split, default to `english`. A lifter who sees "deadlift" understands it;
+one who sees an invented calque may not.
+
+#### 2.7.2 Four cases that go wrong if treated generically
+- **Japanese** is not a keep-English-or-translate choice. The Japanese form is usually katakana —
+  ベンチプレス, not Latin script and not a kanji coinage. `transliterated` will be correct far more
+  often than `english`.
+- **Swiss German is written as standard German.** Swiss German is a spoken register; gym terminology
+  in dialect reads as a novelty. Follow German usage in `de-CH` and differentiate only where a
+  genuinely distinct written Swiss form exists.
+- **Portuguese needs a variant decision.** pt-PT and pt-BR diverge on gym vocabulary and Brazilian
+  usage carries more anglicisms. Decide which market `pt` targets and state it in the policy file.
+- **Names containing a nationality** are their own trap — "Romanian deadlift" in Romanian,
+  "Bulgarian split squat" in neighbouring languages. Handle explicitly rather than letting a rule
+  produce something absurd.
+
+#### 2.7.3 The policy is the stranded-English guard's allowlist
+The guard that fails on English inside a Japanese or Thai sentence was written after we shipped
+exactly that bug. An intentional keep-English exercise name is indistinguishable from that defect
+unless the guard knows the difference.
+
+A term classified `english` may appear in Latin script inside any language. Everything else remains
+a failure. **Never weaken or delete that guard to make new translations pass.**
+
+#### 2.7.4 Text expansion must not break the layout
+German runs roughly 30% longer than English and builds long compounds. Thai has no spaces between
+words, breaks lines differently and truncates less gracefully. Japanese is usually shorter but wraps
+by other rules. A layout tuned to English will clip or ellipsise in at least three of the nine.
+
+**The design does not change to accommodate this, and the fix is not to shrink text.**
+
+`minimumScaleFactor` conflicts directly with the Dynamic Type work already done — a user who chose a
+large text size gets it silently scaled back down, which is an accessibility regression wearing the
+costume of a layout fix. It also breaks visual rhythm; one label at 11pt beside another at 14pt
+reads as broken. Use it only as a last-resort safety net with a floor of 0.8, never as the primary
+strategy, and never on a number or a unit.
+
+**The primary strategy is authored short forms.** Every string in a width-constrained container gets
+a short variant authored per language. The app selects by available width; **the app never
+abbreviates anything itself**, because algorithmic truncation produces text no native speaker would
+write.
+
+These abbreviations are conventions, not inventions, and need the same evidence standard as the
+exercise names. German gym material writes "Wdh." for Wiederholungen and "Gew." for Gewicht;
+inventing a plausible alternative reads as wrong in exactly the way a mistranslated movement does.
+
+#### 2.7.5 Measure which strings are at risk — do not guess
+The constrained set is enumerable from source: tab and nav labels, the macro row, stat tiles, chips
+and badges, buttons, table headers, dayline meal labels, the player's current-exercise line, and
+supplement block headers. Only those need short variants. Body copy that wraps freely does not.
+
+**Never truncate or ellipsise**: numbers, units, exercise names in the player, supplement doses. A
+lifter mid-set needs to read what they are doing, and a truncated dose is a safety issue rather than
+a cosmetic one. If those cannot fit, the container is wrong, not the string.
+
+**Thai needs vertical room, not just width.** Vowel and tone marks sit above and below the baseline,
+so Thai at a Latin-tuned line height clips its diacritics. Check line height. Thai and Japanese also
+break lines by rules Latin layout does not use; verify wrapping rather than assuming.
+
+#### 2.7.6 Deliverable and proof
+One per-language policy file, checked in, holding the exercise-term classifications **and** the
+authored short forms, each with its source. The translation tooling consults it, the stranded-English
+guard consults it, and new guards assert: a term marked `english` matches the English source exactly,
+a term marked `native` differs from it, and a constrained string stays within its budget in every
+language.
+
+Verify visually at the worst case, not the average: the longest language at the largest accessibility
+text size. The simulator takes a language launch argument and a content-size override, so this is
+scriptable. **German at an accessibility size breaks first; Thai clips vertically.**
 
 ---
 
