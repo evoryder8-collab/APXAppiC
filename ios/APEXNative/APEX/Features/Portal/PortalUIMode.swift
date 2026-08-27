@@ -152,13 +152,15 @@ struct PortalModeSwitcher: View {
                     HStack(spacing: 5) {
                         Image(systemName: mode == .simple ? "sparkle" : "slider.horizontal.3")
                             .font(.system(size: 9, weight: .bold))
-                        Text(language.text(mode == .simple ? "Simple" : "Advanced").uppercased(with: language.language.locale))
+                        Text(language.shortText(mode == .simple ? "Simple" : "Advanced").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(9))
                             .tracking(0.7)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     .foregroundStyle(session.interfaceMode == mode ? .white : APEXColor.secondaryInk)
                     .padding(.horizontal, 13)
-                    .frame(height: 34)
+                    .padding(.vertical, 7)
+                    .frame(minHeight: 38)
                     .background(
                         session.interfaceMode == mode ? APEXColor.ink : Color.clear,
                         in: Capsule()

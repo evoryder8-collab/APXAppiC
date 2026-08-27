@@ -52,7 +52,7 @@ struct PortalHomeView: View {
                     Text(greetingLine)
                         .font(APEXFont.display(39))
                         .foregroundStyle(APEXColor.ink)
-                        .minimumScaleFactor(0.78)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 32)

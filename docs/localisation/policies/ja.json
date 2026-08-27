@@ -1,0 +1,4018 @@
+{
+  "language": "ja",
+  "market": "ja",
+  "writtenStandard": null,
+  "reviewedOn": "2026-08-27",
+  "rule": "Unverified variants remain English; localised, hybrid and transliterated terms follow the cited market convention.",
+  "sources": [
+    {
+      "id": "nsca-japan",
+      "title": "NSCAジャパン - レジスタンスエクササイズ",
+      "url": "https://www.nsca-japan.or.jp/23_member/exercise/resistance.html",
+      "authority": "NSCA Japan"
+    },
+    {
+      "id": "apex-authored-short-forms",
+      "title": "APEX authored compact interface copy",
+      "url": "docs/ROADMAP.md#27-localisation-completion--exercise-name-policy",
+      "authority": "APEX product policy"
+    }
+  ],
+  "shortForms": [
+    {
+      "key": "Simple",
+      "value": "シンプル",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Advanced",
+      "value": "詳細",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Nutrition",
+      "value": "栄養",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Training",
+      "value": "トレーニング",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Water",
+      "value": "水分",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Settings",
+      "value": "設定",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "History",
+      "value": "履歴",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Delete",
+      "value": "削除",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Cancel",
+      "value": "キャンセル",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Done",
+      "value": "完了",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Add",
+      "value": "追加",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Remove",
+      "value": "取り除く",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Start",
+      "value": "開始",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Resume",
+      "value": "再開",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Save",
+      "value": "保存",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Close",
+      "value": "閉じる",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Today",
+      "value": "今日",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Target",
+      "value": "目標",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Burned",
+      "value": "消費",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Remaining",
+      "value": "残り",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Protein",
+      "value": "タンパク質",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Carbs",
+      "value": "炭水化物",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Fat",
+      "value": "脂質",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Workout",
+      "value": "ワークアウト",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Exercises",
+      "value": "種目",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    }
+  ],
+  "exerciseTerms": [
+    {
+      "id": "barbell_romanian_deadlift",
+      "english": "Romanian Deadlift",
+      "display": "ルーマニアン・デッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_romanian_deadlift",
+      "english": "Dumbbell Romanian Deadlift",
+      "display": "Dumbbell ルーマニア語 デッドリフト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_romanian_deadlift",
+      "english": "Single-Leg Romanian Deadlift",
+      "display": "シングルレグルーマニアデッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "conventional_deadlift",
+      "english": "Conventional Deadlift",
+      "display": "コンベンショナル・デッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "trap_bar_deadlift",
+      "english": "Trap Bar Deadlift",
+      "display": "トラップバーデッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_thrust_barbell",
+      "english": "Barbell Hip Thrust",
+      "display": "バーベルヒップスラスト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_thrust_dumbbell",
+      "english": "Dumbbell Hip Thrust",
+      "display": "ダンベルヒップスラスト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_hip_thrust",
+      "english": "Machine Hip Thrust",
+      "display": "マシンヒップスラスト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "b_stance_hip_thrust",
+      "english": "B-Stance Hip Thrust",
+      "display": "Bスタンスヒップスラスト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "glute_bridge",
+      "english": "Glute Bridge",
+      "display": "グルートブリッジ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "frog_pump",
+      "english": "Frog Pump",
+      "display": "カエルポンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "back_extension",
+      "english": "Back Extension",
+      "display": "バックエクステンション",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_swing",
+      "english": "Kettlebell Swing",
+      "display": "Kettlebellスイング",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "good_morning",
+      "english": "Good Morning",
+      "display": "グッドモーニング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "backpack_rdl",
+      "english": "Backpack Romanian Deadlift",
+      "display": "バックパック ルーマニア語デッドリフト",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_back_squat",
+      "english": "Barbell Back Squat",
+      "display": "バーベル・バックスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_front_squat",
+      "english": "Barbell Front Squat",
+      "display": "バーベルフロントスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "goblet_squat",
+      "english": "Goblet Squat",
+      "display": "ゴブレットスクエア",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "heel_elevated_goblet_squat",
+      "english": "Heel-Elevated Goblet Squat",
+      "display": "Heel-Elevatedゴブレットスクエア",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hack_squat",
+      "english": "Hack Squat",
+      "display": "ハックスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "leg_press",
+      "english": "Leg Press",
+      "display": "脚プレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bodyweight_squat",
+      "english": "Bodyweight Squat",
+      "display": "体重スクワット",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sit_to_stand",
+      "english": "Sit-to-Stand",
+      "display": "シット・ツー・スタンド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pistol_squat",
+      "english": "Pistol Squat",
+      "display": "ピストルスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "smith_machine_squat",
+      "english": "Smith Machine Squat",
+      "display": "スミスマシンスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bulgarian_split_squat",
+      "english": "Bulgarian Split Squat",
+      "display": "ブルガリアの分割スクワット",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "split_squat",
+      "english": "Split Squat",
+      "display": "スプリットスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reverse_lunge",
+      "english": "Reverse Lunge",
+      "display": "逆Lunge",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "walking_lunge",
+      "english": "Walking Lunge",
+      "display": "ウォーキング・ランゲ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "forward_lunge",
+      "english": "Forward Lunge",
+      "display": "フォワード・ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "step_up",
+      "english": "Step-Up",
+      "display": "ステップアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "smith_split_squat",
+      "english": "Smith Machine Split Squat",
+      "display": "スミスマシンスプリットスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_bench_press",
+      "english": "Barbell Bench Press",
+      "display": "バーベル・ベンチプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_bench_press",
+      "english": "Flat Dumbbell Press",
+      "display": "フラットダンベルプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "incline_dumbbell_press",
+      "english": "Incline Dumbbell Press",
+      "display": "インラインダンベルプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_floor_press",
+      "english": "Dumbbell Floor Press",
+      "display": "ダンベルフロアプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_chest_press",
+      "english": "Machine Chest Press",
+      "display": "機械箱プレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "incline_smith_press",
+      "english": "Incline Smith Machine Press",
+      "display": "傾斜スミスマシンプレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "push_up",
+      "english": "Push-Up",
+      "display": "プッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "incline_push_up",
+      "english": "Incline Push-Up",
+      "display": "インラインプッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "knee_push_up",
+      "english": "Knee Push-Up",
+      "display": "Knee プッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "feet_elevated_push_up",
+      "english": "Feet-Elevated Push-Up",
+      "display": "フィート上昇したプッシュアップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "weighted_push_up",
+      "english": "Weighted Push-Up",
+      "display": "重み付きプッシュアップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "diamond_push_up",
+      "english": "Diamond Push-Up",
+      "display": "ダイヤモンドプッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dip",
+      "english": "Parallel Bar Dip",
+      "display": "パラレルバーディップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_fly",
+      "english": "Cable Fly",
+      "display": "ケーブル フライ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_overhead_press",
+      "english": "Barbell Overhead Press",
+      "display": "バーベル・オーバーヘッドプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_overhead_press",
+      "english": "Seated Dumbbell Press",
+      "display": "シートダンベルプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_shoulder_press",
+      "english": "Machine Shoulder Press",
+      "display": "機械ショルダープレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_press",
+      "english": "Landmine Press",
+      "display": "ランドマインプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pike_push_up",
+      "english": "Pike Push-Up",
+      "display": "Pikeプッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "elevated_pike_push_up",
+      "english": "Feet-Elevated Pike Push-Up",
+      "display": "フィート上昇したパイク プッシュアップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "handstand_push_up",
+      "english": "Handstand Push-Up",
+      "display": "ハンドスタンド プッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_row",
+      "english": "Barbell Row",
+      "display": "バーベル・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "one_arm_dumbbell_row",
+      "english": "One-Arm Dumbbell Row",
+      "display": "ワンアームダンベル列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chest_supported_row",
+      "english": "Chest-Supported Dumbbell Row",
+      "display": "チェストサポートDumbbellの列",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_row",
+      "english": "Chest-Supported Machine Row",
+      "display": "チェストサポートマシン列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "t_bar_row",
+      "english": "Chest-Supported T-Bar Row",
+      "display": "チェストサポートTバーロウ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_row",
+      "english": "Seated Cable Row",
+      "display": "座席ケーブル列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_cable_row",
+      "english": "Single-Arm Cable Row",
+      "display": "シングルアームケーブル列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "inverted_row",
+      "english": "Inverted Row",
+      "display": "変換された列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_row",
+      "english": "Band Row",
+      "display": "バンド・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "backpack_row",
+      "english": "Backpack Row",
+      "display": "バックパックの列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pull_up",
+      "english": "Pull-Up",
+      "display": "プルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chin_up",
+      "english": "Chin-Up",
+      "display": "チンアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_assisted_pull_up",
+      "english": "Band-Assisted Pull-Up",
+      "display": "バンドアシストプルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lat_pulldown",
+      "english": "Neutral-Grip Lat Pulldown",
+      "display": "ニュートラルグリップラットプルダウン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_lat_pulldown",
+      "english": "Band Lat Pulldown",
+      "display": "バンド ラットのプルダウン",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dead_hang",
+      "english": "Dead Hang",
+      "display": "デッドハング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "scapular_pull_up",
+      "english": "Scapular Pull-Up",
+      "display": "Scapular プルアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "muscle_up_practice",
+      "english": "Muscle-Up Transition Practice",
+      "display": "筋肉上トランジションの練習",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "suitcase_carry",
+      "english": "Suitcase Carry",
+      "display": "スーツケース キャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "farmers_carry",
+      "english": "Farmer's Carry",
+      "display": "ファーマーズキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "plank",
+      "english": "Plank",
+      "display": "プランク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "rkc_plank",
+      "english": "RKC Plank",
+      "display": "RKCプランク",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "side_plank",
+      "english": "Side Plank",
+      "display": "サイドプランク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dead_bug",
+      "english": "Dead Bug",
+      "display": "デッドバグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bird_dog",
+      "english": "Bird-Dog",
+      "display": "バードドッグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pallof_press",
+      "english": "Pallof Press",
+      "display": "Pallofプレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hanging_knee_raise",
+      "english": "Hanging Knee Raise",
+      "display": "掛かる膝の昇給",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hollow_body_hold",
+      "english": "Hollow Body Hold",
+      "display": "空のボディ ホールド",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_curl",
+      "english": "Dumbbell Curl",
+      "display": "ダンベルカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "incline_dumbbell_curl",
+      "english": "Incline Dumbbell Curl",
+      "display": "インラインダンベルカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hammer_curl",
+      "english": "Hammer Curl",
+      "display": "ハンマーカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_curl",
+      "english": "Cable Curl",
+      "display": "ケーブルカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_curl",
+      "english": "Band Curl",
+      "display": "バンドカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "overhead_triceps_extension",
+      "english": "Overhead Triceps Extension",
+      "display": "頭上式のTriceps延長",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lateral_raise",
+      "english": "Lateral Raise",
+      "display": "横の上昇",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_lateral_raise",
+      "english": "Cable Lateral Raise",
+      "display": "ケーブル 横の昇給",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_lateral_raise",
+      "english": "Band Lateral Raise",
+      "display": "バンド横上げ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "face_pull",
+      "english": "Cable Face Pull",
+      "display": "ケーブルの表面の引き",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_face_pull",
+      "english": "Band Face Pull",
+      "display": "バンド フェイス プル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_pull_apart",
+      "english": "Band Pull-Apart",
+      "display": "バンドプルパーツ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reverse_pec_deck",
+      "english": "Reverse Pec Deck",
+      "display": "逆のPecのデッキ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_external_rotation",
+      "english": "Cable External Rotation",
+      "display": "ケーブル外的な回転",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lying_leg_curl",
+      "english": "Lying Leg Curl",
+      "display": "ライイング脚カール",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "seated_leg_curl",
+      "english": "Seated Leg Curl",
+      "display": "シートレッグカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sliding_leg_curl",
+      "english": "Sliding Leg Curl",
+      "display": "足のカールを滑らせて下さい",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "nordic_curl",
+      "english": "Nordic Hamstring Curl",
+      "display": "北欧ハムストリングカール",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "leg_extension",
+      "english": "Leg Extension",
+      "display": "足延長",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_abduction",
+      "english": "Hip Abduction",
+      "display": "ヒップアブダクション",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "standing_calf_raise",
+      "english": "Standing Calf Raise",
+      "display": "スタンドカーフレイズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "seated_calf_raise",
+      "english": "Seated Calf Raise",
+      "display": "シートカーフレイズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_calf_raise",
+      "english": "Single-Leg Calf Raise",
+      "display": "シングルレッグカーフレイズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "l_sit",
+      "english": "L-Sit",
+      "display": "L-シット",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "tuck_planche_hold",
+      "english": "Tuck Planche Hold",
+      "display": "タックプランチェホールド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wall_handstand_hold",
+      "english": "Wall Handstand Hold",
+      "display": "壁のHandstandの把握",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "archer_push_up",
+      "english": "Archer Push-Up",
+      "display": "アーチャープッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ring_dip",
+      "english": "Ring Dip",
+      "display": "リングディップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "burpee",
+      "english": "Burpee",
+      "display": "ブルペ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "squat_thrust",
+      "english": "Squat Thrust",
+      "display": "スクワットスラスト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "mountain_climber",
+      "english": "Mountain Climber",
+      "display": "マウンテンクライマー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "high_knees",
+      "english": "High Knees",
+      "display": "高い膝",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "marching_in_place",
+      "english": "Marching in Place",
+      "display": "開催場所",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "jumping_jack",
+      "english": "Jumping Jack",
+      "display": "ジャンプジャック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "box_jump",
+      "english": "Box Jump",
+      "display": "ボックスジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "squat_jump",
+      "english": "Squat Jump",
+      "display": "スクワットジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "broad_jump",
+      "english": "Broad Jump",
+      "display": "ブロードジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "battle_ropes",
+      "english": "Battle Ropes",
+      "display": "バトルロープ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "downward_dog",
+      "english": "Downward-Facing Dog",
+      "display": "ダウンワードフィット犬",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "childs_pose",
+      "english": "Child's Pose",
+      "display": "子供のポーズ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cat_cow",
+      "english": "Cat-Cow",
+      "display": "猫ちゃん",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cobra_pose",
+      "english": "Cobra",
+      "display": "コブラ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "warrior_two",
+      "english": "Warrior II",
+      "display": "戦士II",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "triangle_pose",
+      "english": "Triangle Pose",
+      "display": "トライアングルポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pigeon_pose",
+      "english": "Pigeon Pose",
+      "display": "ピジョンポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "forward_fold",
+      "english": "Standing Forward Fold",
+      "display": "スタンドフォワードフォールド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bridge_pose",
+      "english": "Bridge Pose",
+      "display": "ブリッジポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sun_salutation",
+      "english": "Sun Salutation",
+      "display": "太陽の救助",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ninety_ninety_hip",
+      "english": "90/90 Hip Mobility",
+      "display": "90/90 ヒップ モビリティ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "figure_four_stretch",
+      "english": "Figure-Four Stretch",
+      "display": "図4ストレッチ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "couch_stretch",
+      "english": "Couch Stretch",
+      "display": "カウチストレッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_flexor_stretch",
+      "english": "Hip Flexor Stretch",
+      "display": "ヒップフレックスストレッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "thoracic_extension",
+      "english": "Thoracic Extension",
+      "display": "Thoracic延長",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wall_slide",
+      "english": "Wall Slide",
+      "display": "壁のスライド",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "mobility_flow",
+      "english": "Sun Salutation A",
+      "display": "太陽の救助 A",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "diaphragmatic_breathing",
+      "english": "Diaphragmatic Breathing",
+      "display": "ダイヤフラム性呼吸",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "joint_circles",
+      "english": "Controlled Articular Rotations",
+      "display": "制御された関節の回転",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pec_deck",
+      "english": "Pec Deck",
+      "display": "Pecのデッキ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "incline_chest_press_machine",
+      "english": "Incline Chest Press Machine",
+      "display": "インラインチェストプレス機",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "converging_row_machine",
+      "english": "Converging Row Machine",
+      "display": "コンバージング・ロウ・マシン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "straight_arm_pulldown",
+      "english": "Straight-Arm Pulldown",
+      "display": "ストレートアームプルダウン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pullover_machine",
+      "english": "Pullover Machine",
+      "display": "プルオーバーマシン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "assisted_pull_up_machine",
+      "english": "Assisted Pull-Up Machine",
+      "display": "アシストプルアップマシン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "preacher_curl_machine",
+      "english": "Preacher Curl Machine",
+      "display": "Preacherのカール機械",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "triceps_pushdown",
+      "english": "Triceps Pushdown",
+      "display": "Triceps プッシュダウン",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dip_machine",
+      "english": "Seated Dip Machine",
+      "display": "シートディップマシン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "shrug",
+      "english": "Dumbbell Shrug",
+      "display": "ダンベルシュラグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "upright_row",
+      "english": "Cable Upright Row",
+      "display": "ケーブル直立列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_lateral_raise",
+      "english": "Machine Lateral Raise",
+      "display": "マシン横上げ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_adduction",
+      "english": "Hip Adduction Machine",
+      "display": "ヒップのadduction機械",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "copenhagen_plank",
+      "english": "Copenhagen Plank",
+      "display": "コペンハーゲン プランク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_kickback",
+      "english": "Cable Glute Kickback",
+      "display": "ケーブルグルートキックバック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_pull_through",
+      "english": "Cable Pull-Through",
+      "display": "ケーブル プル棚",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "belt_squat",
+      "english": "Belt Squat",
+      "display": "ベルトスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pendulum_squat",
+      "english": "Pendulum Squat",
+      "display": "ペンデュラムスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "calf_press_leg_press",
+      "english": "Calf Press on Leg Press",
+      "display": "脚圧のカーフプレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_crunch",
+      "english": "Machine Crunch",
+      "display": "マシン クランチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_crunch",
+      "english": "Cable Crunch",
+      "display": "ケーブル クランチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "back_extension_machine",
+      "english": "Back Extension Machine",
+      "display": "バックエクステンションマシン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_thrust_smith",
+      "english": "Smith Machine Hip Thrust",
+      "display": "スミスマシンヒップスラスト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_row",
+      "english": "Landmine Row",
+      "display": "ランドミン・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_squat",
+      "english": "Landmine Squat",
+      "display": "ランドミンスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_hundred",
+      "english": "The Hundred",
+      "display": "数百人",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_roll_up",
+      "english": "Roll-Up",
+      "display": "ロールアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_single_leg_circle",
+      "english": "Single Leg Circles",
+      "display": "シングルレッグサークル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_single_leg_stretch",
+      "english": "Single Leg Stretch",
+      "display": "単一の足の伸張",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_double_leg_stretch",
+      "english": "Double Leg Stretch",
+      "display": "ダブルレッグストレッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_scissors",
+      "english": "Pilates Scissors",
+      "display": "ピラティス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_teaser",
+      "english": "Teaser",
+      "display": "ティーザー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_swan",
+      "english": "Swan",
+      "display": "スワン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_saw",
+      "english": "Saw",
+      "display": "ツイート",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_spine_stretch",
+      "english": "Spine Stretch Forward",
+      "display": "Spineストレッチフォワード",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_side_kick",
+      "english": "Side Kick Series",
+      "display": "サイドキックシリーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_clam",
+      "english": "Clam",
+      "display": "クラム",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pilates_swimming",
+      "english": "Pilates Swimming",
+      "display": "ピラティス水泳",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reformer_footwork",
+      "english": "Reformer Footwork",
+      "display": "Reformer フットワーク",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reformer_long_stretch",
+      "english": "Reformer Long Stretch",
+      "display": "Reformerの長い伸張",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reformer_elephant",
+      "english": "Reformer Elephant",
+      "display": "レフォーマーエレファント",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reformer_knee_stretch",
+      "english": "Reformer Knee Stretch",
+      "display": "Reformer Kneeストレッチ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reformer_short_box",
+      "english": "Reformer Short Box",
+      "display": "レフォーマーショートボックス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reformer_mermaid",
+      "english": "Reformer Mermaid",
+      "display": "Reformer の人魚",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chair_pose",
+      "english": "Chair Pose",
+      "display": "椅子のポーズ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "tree_pose",
+      "english": "Tree Pose",
+      "display": "ツリーポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "warrior_one",
+      "english": "Warrior I",
+      "display": "戦士 I",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "warrior_three",
+      "english": "Warrior III",
+      "display": "戦士III",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "half_moon",
+      "english": "Half Moon",
+      "display": "ハーフムーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "extended_side_angle",
+      "english": "Extended Side Angle",
+      "display": "延長側面の角度",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "revolved_triangle",
+      "english": "Revolved Triangle",
+      "display": "進化した三角形",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "crow_pose",
+      "english": "Crow Pose",
+      "display": "スローポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "boat_pose",
+      "english": "Boat Pose",
+      "display": "ボートポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "camel_pose",
+      "english": "Camel Pose",
+      "display": "キャメルポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bow_pose",
+      "english": "Bow Pose",
+      "display": "ボウポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "locust_pose",
+      "english": "Locust Pose",
+      "display": "Locust ポーズ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "seated_forward_fold",
+      "english": "Seated Forward Fold",
+      "display": "シートフォワードフォールド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "butterfly_stretch",
+      "english": "Butterfly",
+      "display": "バタフライ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "happy_baby",
+      "english": "Happy Baby",
+      "display": "ハッピーベイビー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "supine_twist",
+      "english": "Supine Twist",
+      "display": "Supineのねじれ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "legs_up_wall",
+      "english": "Legs Up the Wall",
+      "display": "足 アップ 壁",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "corpse_pose",
+      "english": "Corpse Pose",
+      "display": "コー スポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chaturanga",
+      "english": "Chaturanga",
+      "display": "ログイン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "upward_dog",
+      "english": "Upward-Facing Dog",
+      "display": "上向き犬",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "low_lunge",
+      "english": "Low Lunge",
+      "display": "低い肺",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lizard_pose",
+      "english": "Lizard Pose",
+      "display": "リザードポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "garland_pose",
+      "english": "Garland Pose",
+      "display": "ガーランドポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "eagle_pose",
+      "english": "Eagle Pose",
+      "display": "イーグルポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dancer_pose",
+      "english": "Dancer Pose",
+      "display": "ダンサーポーズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sled_push",
+      "english": "Sled Push",
+      "display": "Sledプッシュ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sled_pull",
+      "english": "Sled Pull",
+      "display": "導かれた引き",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "burpee_broad_jump",
+      "english": "Burpee Broad Jump",
+      "display": "ブルペ・ブロードジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sandbag_lunge",
+      "english": "Sandbag Lunge",
+      "display": "サンドバッグ ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wall_ball",
+      "english": "Wall Ball",
+      "display": "ウォールボール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "thruster",
+      "english": "Thruster",
+      "display": "スラスター",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "power_clean",
+      "english": "Power Clean",
+      "display": "パワークリーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "power_snatch",
+      "english": "Power Snatch",
+      "display": "パワースナッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "clean_and_jerk",
+      "english": "Clean and Jerk",
+      "display": "清潔で済む",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "push_press",
+      "english": "Push Press",
+      "display": "プッシュプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "overhead_squat",
+      "english": "Overhead Squat",
+      "display": "オーバーヘッドスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_rack_lunge",
+      "english": "Front Rack Lunge",
+      "display": "フロントラックLunge",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "double_under",
+      "english": "Double Under",
+      "display": "ダブルアンダー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_under",
+      "english": "Skipping",
+      "display": "スキャッピング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "toes_to_bar",
+      "english": "Toes to Bar",
+      "display": "棒へのつま先",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_clean",
+      "english": "Kettlebell Clean",
+      "display": "ケトルベルクリーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "turkish_get_up",
+      "english": "Turkish Get-Up",
+      "display": "トルコ語 Get-Up",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "devils_press",
+      "english": "Devil's Press",
+      "display": "Devilのプレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "man_maker",
+      "english": "Man Maker",
+      "display": "マンメーカー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sandbag_clean",
+      "english": "Sandbag Clean",
+      "display": "サンドバッグ クリーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "tire_flip",
+      "english": "Tire Flip",
+      "display": "タイヤフリップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bear_crawl",
+      "english": "Bear Crawl",
+      "display": "ベアクロール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sled_drag",
+      "english": "Sled Drag",
+      "display": "スライディングドラッグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "overhead_carry",
+      "english": "Overhead Carry",
+      "display": "オーバーヘッドキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_rack_carry",
+      "english": "Front Rack Carry",
+      "display": "フロントラックキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sandbag_carry",
+      "english": "Sandbag Carry",
+      "display": "サンドバッグ キャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "yoke_walk",
+      "english": "Yoke Walk",
+      "display": "ヨークウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "zercher_carry",
+      "english": "Zercher Carry",
+      "display": "Zercher キャリー",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "waiter_walk",
+      "english": "Waiter Walk",
+      "display": "ウェイターウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bottoms_up_carry",
+      "english": "Bottoms-Up Carry",
+      "display": "ボトムアップキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "mixed_carry",
+      "english": "Mixed Carry",
+      "display": "混合キャリー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "depth_jump",
+      "english": "Depth Jump",
+      "display": "深さのジャンプ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bounding",
+      "english": "Bounding",
+      "display": "バウンディング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lateral_bound",
+      "english": "Lateral Bound",
+      "display": "横のバウンド",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lateral_hop",
+      "english": "Lateral Hop",
+      "display": "横のホップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pogo_hop",
+      "english": "Pogo Hop",
+      "display": "ポゴホップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "tuck_jump",
+      "english": "Tuck Jump",
+      "display": "タックジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "split_jump",
+      "english": "Split Jump",
+      "display": "スプリットジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_hop",
+      "english": "Single-Leg Hop",
+      "display": "シングルラグホップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hurdle_hop",
+      "english": "Hurdle Hop",
+      "display": "ハルドルホップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "medicine_ball_slam",
+      "english": "Medicine Ball Slam",
+      "display": "薬ボールスラム",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "medicine_ball_chest_pass",
+      "english": "Medicine Ball Chest Pass",
+      "display": "薬の球の箱のパス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "medicine_ball_rotational_throw",
+      "english": "Rotational Throw",
+      "display": "回転スロー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "broad_jump_repeat",
+      "english": "Repeat Broad Jump",
+      "display": "繰り返しの広いジャンプ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_rotation",
+      "english": "Landmine Rotation",
+      "display": "地雷回転",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_chop",
+      "english": "Cable Chop",
+      "display": "ケーブルチョップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_lift",
+      "english": "Cable Lift",
+      "display": "ケーブルリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "renegade_row",
+      "english": "Renegade Row",
+      "display": "Renegade 行",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "suitcase_deadlift",
+      "english": "Suitcase Deadlift",
+      "display": "スーツケースデッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "half_kneeling_press",
+      "english": "Half-Kneeling Press",
+      "display": "ハーフキーリングプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "plank_pull_through",
+      "english": "Plank Pull-Through",
+      "display": "プランクプルスルー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bird_dog_row",
+      "english": "Bird-Dog Row",
+      "display": "バードドッグ・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_dumbbell_press",
+      "english": "Single-Arm Dumbbell Press",
+      "display": "シングルアームダンベルプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_floor_press",
+      "english": "Single-Arm Floor Press",
+      "display": "シングルアームフロアプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_bench_press",
+      "english": "Single-Arm Dumbbell Bench Press",
+      "display": "シングルアームダンベルベンチプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_landmine_press",
+      "english": "Single-Arm Landmine Press",
+      "display": "シングルアームランドミンプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_machine_press",
+      "english": "Single-Arm Machine Press",
+      "display": "シングルアームマシンプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "arnold_press",
+      "english": "Arnold Press",
+      "display": "アーノルドプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_raise",
+      "english": "Front Raise",
+      "display": "フロントレイズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "svend_press",
+      "english": "Svend Press",
+      "display": "スベンドプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "decline_press",
+      "english": "Decline Press",
+      "display": "Declineプレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ab_wheel_rollout",
+      "english": "Ab-Wheel Rollout",
+      "display": "Ab-Wheelロールアウト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reverse_crunch",
+      "english": "Reverse Crunch",
+      "display": "リバース・クランチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "decline_sit_up",
+      "english": "Decline Sit-Up",
+      "display": "シフトアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_lever_row",
+      "english": "Front Lever Row",
+      "display": "フロントレバー列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "human_flag_progression",
+      "english": "Human Flag Progression",
+      "display": "人間の旗の進歩",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "worlds_greatest_stretch",
+      "english": "World's Greatest Stretch",
+      "display": "世界最大級のストレッチ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_shoulder_dislocate",
+      "english": "Band Shoulder Dislocate",
+      "display": "バンド肩の転置",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lower_body_foam_roll",
+      "english": "Lower-Body Foam Roll",
+      "display": "低ボディ フォーム ロール",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_stand",
+      "english": "Single-Leg Stand",
+      "display": "シングルラグスタンド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "tandem_stance",
+      "english": "Tandem Stance",
+      "display": "タンデム・スタンス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "heel_toe_walk",
+      "english": "Heel-to-Toe Walk",
+      "display": "ヒール・ツー・トゥ・ウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_reach",
+      "english": "Single-Leg Reach",
+      "display": "シングルラグリーチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "airplane_balance",
+      "english": "Airplane Balance",
+      "display": "飛行機のバランス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "eyes_closed_balance",
+      "english": "Single-Leg Stand, Eyes Closed",
+      "display": "シングルラグスタンド、目が閉じる",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "step_down_control",
+      "english": "Controlled Step-Down",
+      "display": "制御ステップダウン",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bent_over_dumbbell_row",
+      "english": "Bent-Over Dumbbell Row",
+      "display": "ベントオーバーダンベル列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_bent_over_row",
+      "english": "Bent-Over Kettlebell Row",
+      "display": "ベントオーバー・ケトルベル・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_bent_over_row",
+      "english": "Bent-Over Band Row",
+      "display": "ベントオーバーバンド列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "prone_floor_row",
+      "english": "Prone Floor Row",
+      "display": "傾向がある床の列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "table_row",
+      "english": "Table Row",
+      "display": "テーブルの列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "towel_door_row",
+      "english": "Towel Door Row",
+      "display": "タオルのドアの列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_lat_pullover",
+      "english": "Band Lat Pullover",
+      "display": "バンド ラットのプルオーバー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_pullover",
+      "english": "Dumbbell Pullover",
+      "display": "ダンベルプルオーバー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "floor_pullover",
+      "english": "Floor Pullover",
+      "display": "フロアプルオーバー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "towel_door_pulldown",
+      "english": "Towel Door Pulldown",
+      "display": "タオルのドアのプルダウン",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_straight_arm_pulldown",
+      "english": "Band Straight-Arm Pulldown",
+      "display": "バンドストレートアームプルダウン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wall_sit",
+      "english": "Wall Sit",
+      "display": "壁シット",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cossack_squat",
+      "english": "Cossack Squat",
+      "display": "コザックスクエア",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lateral_lunge",
+      "english": "Lateral Lunge",
+      "display": "リアラル・ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "shrimp_squat",
+      "english": "Shrimp Squat",
+      "display": "エビスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chair_step_up",
+      "english": "Chair Step-Up",
+      "display": "椅子のステップアップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_glute_bridge",
+      "english": "Single-Leg Glute Bridge",
+      "display": "シングルラグナットブリッジ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "nordic_eccentric",
+      "english": "Nordic Curl, Eccentric",
+      "display": "ノルディックカール、エクセントリック",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hamstring_walkout",
+      "english": "Hamstring Walkout",
+      "display": "ハムストリング ウォークアウト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_good_morning",
+      "english": "Band Good Morning",
+      "display": "バンドグッドモーニング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "band_overhead_press",
+      "english": "Band Overhead Press",
+      "display": "バンドオーバーヘッドプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wall_walk",
+      "english": "Wall Walk",
+      "display": "ウォールウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "backpack_carry",
+      "english": "Loaded Backpack Carry",
+      "display": "ロードされたバックパックの運送",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "suitcase_hold",
+      "english": "Suitcase Hold",
+      "display": "スーツケースのホールド",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "tibialis_raise",
+      "english": "Tibialis Raise",
+      "display": "ティビアリス・レイズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "heel_walk",
+      "english": "Heel Walk",
+      "display": "ヒールウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "short_foot",
+      "english": "Short Foot Drill",
+      "display": "ショートフットドリル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "plate_pinch",
+      "english": "Plate Pinch",
+      "display": "プレートピンチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "towel_hang",
+      "english": "Towel Hang",
+      "display": "タオル掛け",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wrist_roller",
+      "english": "Wrist Roller",
+      "display": "腕時計のローラー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "neck_isometric",
+      "english": "Neck Isometric",
+      "display": "ネックイソメトリック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chin_tuck",
+      "english": "Chin Tuck",
+      "display": "チンタック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "side_plank_knees",
+      "english": "Side Plank from Knees",
+      "display": "Kneesのサイドプランク",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_side_bend",
+      "english": "Dumbbell Side Bend",
+      "display": "Dumbbell サイド ベンド",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_turkish_get_up",
+      "english": "Kettlebell Turkish Get-Up",
+      "display": "Kettlebell トルコ語 Get-Up",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "half_turkish_get_up",
+      "english": "Half Turkish Get-Up",
+      "display": "ハーフトルコ Get-Up",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_windmill",
+      "english": "Kettlebell Windmill",
+      "display": "ケトルベル風車",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_around_the_world",
+      "english": "Kettlebell Around-the-World",
+      "display": "Kettlebell 世界中で",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_halo",
+      "english": "Kettlebell Halo",
+      "display": "ケトルベル・ハロー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_figure_8",
+      "english": "Kettlebell Figure-8",
+      "display": "ケトルベル図8",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_figure_8_to_hold",
+      "english": "Kettlebell Figure-8 to Hold",
+      "display": "ケトルベル図8を握る",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dual_kettlebell_clean",
+      "english": "Dual-Kettlebell Clean",
+      "display": "デュアルケトルベルクリーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_clean_and_jerk",
+      "english": "Kettlebell Clean and Jerk",
+      "display": "ケトルベル クリーン と Jerk",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_clean_and_push_press",
+      "english": "Kettlebell Clean and Push Press",
+      "display": "ケトルベルクリーンプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_snatch",
+      "english": "Kettlebell Snatch",
+      "display": "ケトルベル スナッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_snatch_to_overhead_carry",
+      "english": "Kettlebell Snatch to Overhead Carry",
+      "display": "Kettlebell スナッチ へ 頭上 運送",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_swing_to_squat",
+      "english": "Kettlebell Swing to Squat",
+      "display": "Kettlebell スイング へ Squat",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_squat_to_press",
+      "english": "Kettlebell Squat to Press",
+      "display": "Kettlebell Squat へ プレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_front_rack_squat",
+      "english": "Kettlebell Front Rack Squat",
+      "display": "ケトルベルフロントラックスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_lateral_squat",
+      "english": "Kettlebell Lateral Squat",
+      "display": "ケトルベル横のスクワット",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_curtsy_lunge",
+      "english": "Kettlebell Curtsy Lunge",
+      "display": "ケトルベル・カーシー・ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_lunge_with_rotation",
+      "english": "Kettlebell Lunge with Rotation",
+      "display": "Kettlebell Lunge with 回転",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_reverse_lunge_to_press",
+      "english": "Kettlebell Reverse Lunge to Press",
+      "display": "Kettlebell 逆 Lunge へ プレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_step_up",
+      "english": "Kettlebell Step-up",
+      "display": "ケトルベルステップアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_walking_lunge",
+      "english": "Kettlebell Walking Lunge",
+      "display": "ケトルベルウォーキングルンゲ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_suitcase_deadlift",
+      "english": "Kettlebell Suitcase Deadlift",
+      "display": "Kettlebellのスーツケースのデッドリフト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_romanian_deadlift",
+      "english": "Kettlebell Romanian Deadlift",
+      "display": "Kettlebell ルーマニア語デッドリフト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_kettlebell_deadlift",
+      "english": "Single-leg Kettlebell Deadlift",
+      "display": "シングルラグケトルベルデッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_sumo_deadlift",
+      "english": "Kettlebell Sumo Deadlift",
+      "display": "Kettlebell Sumoデッドリフト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_good_morning",
+      "english": "Kettlebell Good Morning",
+      "display": "Kettlebell 良い朝",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_row",
+      "english": "Kettlebell Row",
+      "display": "ケトルベル・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_renegade_row",
+      "english": "Kettlebell Renegade Row",
+      "display": "ケトルベル・ルネガデ・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_gorilla_row",
+      "english": "Kettlebell Gorilla Row",
+      "display": "ケトルベル・ゴリラ・ロウ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_suitcase_row",
+      "english": "Kettlebell Suitcase Row",
+      "display": "Kettlebellのスーツケースの列",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_chest_supported_row",
+      "english": "Kettlebell Chest-Supported Row",
+      "display": "ケトルベルチェストサポート列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_floor_press",
+      "english": "Kettlebell Floor Press",
+      "display": "ケトルベルフロアプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_alternating_floor_press",
+      "english": "Kettlebell Alternating Floor Press",
+      "display": "Kettlebellの交流フロアプレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_bench_press",
+      "english": "Kettlebell Bench Press",
+      "display": "ケトルベルベンチプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_incline_bench_press",
+      "english": "Kettlebell Incline Bench Press",
+      "display": "Kettlebell Incline ベンチプレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_see_saw_press",
+      "english": "Kettlebell See-Saw Press",
+      "display": "Kettlebell See-Saw Press(ケトルベル)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_bottoms_up_press",
+      "english": "Kettlebell Bottoms-Up Press",
+      "display": "ケトルベルボトムアッププレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_bottoms_up_clean",
+      "english": "Kettlebell Bottoms-Up Clean",
+      "display": "ケトルベルボトムアップクリーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_bottoms_up_carry",
+      "english": "Kettlebell Bottoms-Up Carry",
+      "display": "ケトルベルボトムスアップキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_overhead_carry",
+      "english": "Kettlebell Overhead Carry",
+      "display": "ケトルベルオーバーヘッドキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "double_overhead_kettlebell_carry",
+      "english": "Double Overhead Kettlebell Carry",
+      "display": "ダブルオーバーヘッドケトルベルキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_rack_carry",
+      "english": "Kettlebell Rack Carry",
+      "display": "ケトルベルラックキャリー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_farmers_walk",
+      "english": "Kettlebell Farmer's Walk",
+      "display": "ケトルベルファーマーズウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_cross_body_carry",
+      "english": "Kettlebell Cross-Body Carry",
+      "display": "Kettlebell クロスボディ キャリー",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_crush_grip_push_up",
+      "english": "Kettlebell Crush-Grip Push-up",
+      "display": "ケトルベルクラッシュグリッププッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_push_up_to_row",
+      "english": "Kettlebell Push-up to Row",
+      "display": "Kettlebell 列へのプッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_pullover",
+      "english": "Kettlebell Pullover",
+      "display": "ケトルベルプルオーバー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_russian_twist",
+      "english": "Kettlebell Russian Twist",
+      "display": "Kettlebell ロシア ツイスト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_side_bend",
+      "english": "Kettlebell Side Bend",
+      "display": "Kettlebellサイドベンド",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_dead_bug",
+      "english": "Kettlebell Dead Bug",
+      "display": "ケトルベルデッドバグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_hollow_body_hold",
+      "english": "Kettlebell Hollow Body Hold",
+      "display": "Kettlebellの空のボディ ホールド",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_sit_up",
+      "english": "Kettlebell Sit-up",
+      "display": "ケトルベルシットアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_v_up",
+      "english": "Kettlebell V-Up",
+      "display": "ケトルベルV-Up",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_woodchopper",
+      "english": "Kettlebell Woodchopper",
+      "display": "ケトルベルウッドチョッパー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_slasher_to_halo",
+      "english": "Kettlebell Slasher-to-Halo",
+      "display": "ケトルベル 斬撃 - ハロー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_armbar",
+      "english": "Kettlebell Armbar",
+      "display": "ケトルベルアームバー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_surrender",
+      "english": "Kettlebell Surrender",
+      "display": "ケトルベル サーレンダー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_deck_squat",
+      "english": "Kettlebell Deck Squat",
+      "display": "ケトルベルデッキスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "kettlebell_man_maker",
+      "english": "Kettlebell Man Maker",
+      "display": "ケトルベルマンメーカー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "split_squat_jump",
+      "english": "Split Squat Jump",
+      "display": "スプリットスクワットジャンプ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "jumping_lunge",
+      "english": "Jumping Lunge",
+      "display": "ジャンプルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "box_step_up_bodyweight",
+      "english": "Box Step-up (Bodyweight)",
+      "display": "ボックスステップアップ(体重)",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "curtsy_lunge_bodyweight",
+      "english": "Curtsy Lunge (Bodyweight)",
+      "display": "Curtsy Lunge (ボディウェイト)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_box_squat",
+      "english": "Single-leg Box Squat",
+      "display": "シングルラグボックススクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "assisted_pistol_squat",
+      "english": "Assisted Pistol Squat",
+      "display": "アシストピストルスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "jumping_pistol_squat",
+      "english": "Jumping Pistol Squat",
+      "display": "ジャンプピストルスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sissy_squat_unloaded",
+      "english": "Sissy Squat (Unloaded)",
+      "display": "シシースクワット(アンロード)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "glute_ham_walkout",
+      "english": "Glute-Ham Walkout",
+      "display": "グルットハムウォークアウト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_thrust_bodyweight",
+      "english": "Hip Thrust (Bodyweight)",
+      "display": "ヒップスラスト(体重)",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_hip_thrust_bodyweight",
+      "english": "Single-leg Hip Thrust (Bodyweight)",
+      "display": "シングルレッグヒップスラスト(体重)",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reverse_lunge_to_knee_drive",
+      "english": "Reverse Lunge to Knee Drive",
+      "display": "Kneeドライブへの逆Lunge",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "step_back_lunge_with_twist",
+      "english": "Step-back Lunge with Twist",
+      "display": "ツイスト付きステップバックランゲ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lateral_step_up",
+      "english": "Lateral Step-up",
+      "display": "横ステップアップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "calf_raise_on_step",
+      "english": "Calf Raise on Step",
+      "display": "ステップでCalfレイズ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "donkey_calf_raise",
+      "english": "Donkey Calf Raise",
+      "display": "ドンキー・カーフ・レイズ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wall_calf_raise",
+      "english": "Wall Calf Raise",
+      "display": "壁カルフレイズ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "decline_push_up_high_feet",
+      "english": "Decline Push-up (High Feet)",
+      "display": "Decline プッシュアップ (ハイフィート)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "clap_push_up",
+      "english": "Clap Push-up",
+      "display": "Clap プッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "wide_grip_push_up",
+      "english": "Wide-Grip Push-up",
+      "display": "ワイドグリッププッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "close_grip_push_up",
+      "english": "Close-Grip Push-up",
+      "display": "クローズドグリッププッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "clock_push_up",
+      "english": "Clock Push-up",
+      "display": "クロックプッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "planche_lean",
+      "english": "Planche Lean",
+      "display": "プランチェ・リーン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "planche_push_up",
+      "english": "Planche Push-up",
+      "display": "Planche プッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hindu_push_up",
+      "english": "Hindu Push-up",
+      "display": "Hindu プッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "divebomber_push_up",
+      "english": "Divebomber Push-up",
+      "display": "Divebomber プッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "spiderman_push_up",
+      "english": "Spiderman Push-up",
+      "display": "スパイダーマンプッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ring_push_up",
+      "english": "Ring Push-up",
+      "display": "リングプッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ring_archer_push_up",
+      "english": "Ring Archer Push-up",
+      "display": "リングアーチャープッシュアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ring_fly",
+      "english": "Ring Fly",
+      "display": "リングフライ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bench_dip_feet_on_floor",
+      "english": "Bench Dip (Feet on Floor)",
+      "display": "ベンチディップ(床面)",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bench_dip_feet_elevated",
+      "english": "Bench Dip (Feet Elevated)",
+      "display": "ベンチディップ(Feet Elevated)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ring_dip_forward_lean",
+      "english": "Ring Dip - Forward Lean",
+      "display": "リングディップ - フォワードリアン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "assisted_ring_dip",
+      "english": "Assisted Ring Dip",
+      "display": "アシストリングディップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "isometric_dip_hold",
+      "english": "Isometric Dip Hold",
+      "display": "Isometric Dip ホールド",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "mixed_grip_pull_up",
+      "english": "Mixed-Grip Pull-up",
+      "display": "ミックスグリッププルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "archer_pull_up",
+      "english": "Archer Pull-up",
+      "display": "アーチャープルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "typewriter_pull_up",
+      "english": "Typewriter Pull-up",
+      "display": "タイプライター プルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "commando_pull_up",
+      "english": "Commando Pull-up",
+      "display": "Commando プルアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "behind_the_neck_pull_up",
+      "english": "Behind-the-Neck Pull-up",
+      "display": "バックザネックプルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "one_arm_pull_up_assisted",
+      "english": "One-Arm Pull-up (Assisted)",
+      "display": "ワンアームプルアップ(アシスト)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "false_grip_pull_up",
+      "english": "False-Grip Pull-up",
+      "display": "偽グリッププルアップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "chest_to_bar_pull_up_strict",
+      "english": "Chest-to-Bar Pull-up (Strict)",
+      "display": "チェスト・ツー・バー・プルアップ(Strict)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "inverted_row_underhand",
+      "english": "Inverted Row - Underhand",
+      "display": "倒立列 - アンダーハンド",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "inverted_row_wide_grip",
+      "english": "Inverted Row - Wide Grip",
+      "display": "反転列 - ワイドグリップ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ring_row_supinated",
+      "english": "Ring Row (Supinated)",
+      "display": "リング・ロウ(Supinated)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "rope_climb_feet_clamp",
+      "english": "Rope Climb (Feet Clamp)",
+      "display": "ロープクライム(フィートクランプ)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "rope_climb_legless",
+      "english": "Rope Climb (Legless)",
+      "display": "ロープクライム(Legless)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "towel_pull_up",
+      "english": "Towel Pull-up",
+      "display": "タオルプルアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "skin_the_cat",
+      "english": "Skin-the-Cat",
+      "display": "皮膚猫",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "german_hang",
+      "english": "German Hang",
+      "display": "ドイツのハング",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_lever_tuck_hold",
+      "english": "Front Lever Tuck Hold",
+      "display": "フロントレバータックホール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_lever_advanced_tuck",
+      "english": "Front Lever Advanced Tuck",
+      "display": "フロントレバーアドバンストタック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "back_lever_tuck_hold",
+      "english": "Back Lever Tuck Hold",
+      "display": "バックレバータックホール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "back_lever_full_hold",
+      "english": "Back Lever Full Hold",
+      "display": "バックレバーフルホールド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hollow_rock",
+      "english": "Hollow Rock",
+      "display": "ホローロック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "v_sit_hold",
+      "english": "V-Sit Hold",
+      "display": "V-Sitホールド",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "straddle_l_sit",
+      "english": "Straddle L-Sit",
+      "display": "ストラドル L-Sit",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "open_tuck_l_sit",
+      "english": "Open Tuck L-Sit",
+      "display": "オープンタックL-Sit",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "manna_progression_hold",
+      "english": "Manna Progression Hold",
+      "display": "マンナプログレッションホールド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dragon_flag_eccentrics",
+      "english": "Dragon Flag Eccentrics",
+      "display": "ドラゴンフラッグ偏心",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dragon_flag_full",
+      "english": "Dragon Flag Full",
+      "display": "ドラゴンフラッグフル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hip_raise_on_bench",
+      "english": "Hip Raise on Bench",
+      "display": "ベンチでヒップレイズ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "jackknife_sit_up",
+      "english": "Jackknife Sit-up",
+      "display": "Jackknife シットアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "bicycle_crunch",
+      "english": "Bicycle Crunch",
+      "display": "自転車 クランチ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cross_body_mountain_climber",
+      "english": "Cross-Body Mountain Climber",
+      "display": "クロスボディマウンテンクライマー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "plank_with_shoulder_tap",
+      "english": "Plank with Shoulder Tap",
+      "display": "ショルダータップ付きプランク",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_single_leg_plank",
+      "english": "Single-Arm Single-Leg Plank",
+      "display": "シングルアームシングルラグプランク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "side_plank_with_leg_lift",
+      "english": "Side Plank with Leg Lift",
+      "display": "足の上昇が付いている側面の板",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "copenhagen_side_plank_long_lever",
+      "english": "Copenhagen Side Plank - Long Lever",
+      "display": "コペンハーゲンサイドプランク - ロングレバー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "crab_walk",
+      "english": "Crab Walk",
+      "display": "カニウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "inchworm_walkout",
+      "english": "Inchworm Walkout",
+      "display": "インチワームウォークアウト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "walkout_to_push_up",
+      "english": "Walkout to Push-up",
+      "display": "プッシュアップウォークアウト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hollow_body_arch_rock",
+      "english": "Hollow Body Arch Rock",
+      "display": "ホローボディアーチロック",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_rack_pull",
+      "english": "Barbell Rack Pull",
+      "display": "バーベルラックプル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "deficit_romanian_deadlift",
+      "english": "Deficit Romanian Deadlift",
+      "display": "Deficit ルーマニア語デッドリフト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "snatch_grip_romanian_deadlift",
+      "english": "Snatch-Grip Romanian Deadlift",
+      "display": "Snatch-Gripルーマニアデッドリフト",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_hip_thrust_single_leg",
+      "english": "Barbell Hip Thrust - Single-Leg",
+      "display": "バーベルヒップスラスト - シングルラグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_glute_bridge",
+      "english": "Barbell Glute Bridge",
+      "display": "バーベル・グルット・ブリッジ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_step_up",
+      "english": "Barbell Step-up",
+      "display": "バーベルステップアップ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_walking_lunge_front_rack",
+      "english": "Barbell Walking Lunge (Front Rack)",
+      "display": "バーベルウォーキングルンネ(フロントラック)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_split_jerk",
+      "english": "Barbell Split Jerk",
+      "display": "バーベル・スプリット・ジェク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_push_jerk",
+      "english": "Barbell Push Jerk",
+      "display": "Barbell 押し Jerk",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_power_jerk",
+      "english": "Barbell Power Jerk",
+      "display": "バルベル パワー ジーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "barbell_floor_row",
+      "english": "Barbell Floor Row",
+      "display": "Barbellのフロア・ロウ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_reverse_lunge",
+      "english": "Landmine Reverse Lunge",
+      "display": "ランドミニ リバース ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_lateral_lunge",
+      "english": "Landmine Lateral Lunge",
+      "display": "ランドマイン・リアラル・ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_single_arm_row",
+      "english": "Landmine Single-Arm Row",
+      "display": "Landmineシングルアーム列",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_meadows_row",
+      "english": "Landmine Meadows Row",
+      "display": "Landmine Meadows ロウ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "landmine_single_arm_press_half_kneeling",
+      "english": "Landmine Single-Arm Press (Half-Kneeling)",
+      "display": "Landmineシングルアームプレス(ハーフ・カネリング)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_sumo_squat",
+      "english": "Dumbbell Sumo Squat",
+      "display": "Dumbbell Sumo スクワット",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_step_up_with_knee_drive",
+      "english": "Dumbbell Step-up with Knee Drive",
+      "display": "KneeドライブによるDumbbellのステップアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_curtsy_lunge",
+      "english": "Dumbbell Curtsy Lunge",
+      "display": "ダンベル・カルシー・ルンネ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_rdl_to_row",
+      "english": "Dumbbell RDL to Row",
+      "display": "Dumbbell RDL へ 行",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_renegade_row_with_push_up",
+      "english": "Dumbbell Renegade Row with Push-up",
+      "display": "Dumbbell Renegade Row with プッシュアップ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_pullover_to_press",
+      "english": "Dumbbell Pullover to Press",
+      "display": "Dumbbell プルオーバー へ プレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "alternating_dumbbell_bench_press",
+      "english": "Alternating Dumbbell Bench Press",
+      "display": "交流ダンベルベンチプレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_cross_body_hammer_curl",
+      "english": "Dumbbell Cross-Body Hammer Curl",
+      "display": "Dumbbell クロスボディ ハンマー カール",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_zottman_curl",
+      "english": "Dumbbell Zottman Curl",
+      "display": "ダンベル・ゾットマン・カール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_concentration_curl",
+      "english": "Dumbbell Concentration Curl",
+      "display": "ダンベル集中カール",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_reverse_fly_incline",
+      "english": "Dumbbell Reverse Fly (Incline)",
+      "display": "Dumbbell リバースフライ (株)",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_y_raise",
+      "english": "Dumbbell Y-Raise",
+      "display": "ダンベルYレイズ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_cuban_press",
+      "english": "Dumbbell Cuban Press",
+      "display": "ダンベルキューバプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_tate_press",
+      "english": "Dumbbell Tate Press",
+      "display": "Dumbbell Tateプレス",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_floor_fly",
+      "english": "Dumbbell Floor Fly",
+      "display": "ダンベルフロアフライ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "dumbbell_squeeze_press",
+      "english": "Dumbbell Squeeze Press",
+      "display": "ダンベル・スクイーズプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "farmers_walk_with_trap_bar",
+      "english": "Farmer's Walk with Trap Bar",
+      "display": "トラップバー付きファーマーズウォーク",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "suitcase_carry_single_dumbbell",
+      "english": "Suitcase Carry (Single Dumbbell)",
+      "display": "スーツケースキャリー(シングルダンベル)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "front_rack_carry_barbell",
+      "english": "Front Rack Carry (Barbell)",
+      "display": "フロントラックキャリー(バーベル)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sandbag_bear_hug_carry",
+      "english": "Sandbag Bear-Hug Carry",
+      "display": "サンドバッグベア - 抱擁キャリー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sandbag_shouldering",
+      "english": "Sandbag Shouldering",
+      "display": "サンドバッグ ショルダー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sandbag_over_the_shoulder_throw",
+      "english": "Sandbag Over-the-Shoulder Throw",
+      "display": "サンドバッグオーバーザショルダースロー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "atlas_stone_to_platform",
+      "english": "Atlas Stone to Platform",
+      "display": "プラットフォームへのアトラスストーン",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "smith_machine_back_squat",
+      "english": "Smith Machine Back Squat",
+      "display": "スミスマシンバックスクワット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "smith_machine_bench_press",
+      "english": "Smith Machine Bench Press",
+      "display": "スミスマシンベンチプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "smith_machine_incline_bench_press",
+      "english": "Smith Machine Incline Bench Press",
+      "display": "スミスマシン傾斜ベンチプレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "smith_machine_shoulder_press",
+      "english": "Smith Machine Shoulder Press",
+      "display": "スミスマシンショルダープレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hack_squat_reverse",
+      "english": "Hack Squat - Reverse",
+      "display": "ハックスクワット - 逆",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pendulum_squat_machine",
+      "english": "Pendulum Squat Machine",
+      "display": "Pendulumのスクワット機械",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "vertical_leg_press_machine",
+      "english": "Vertical Leg Press Machine",
+      "display": "縦の足の出版物機械",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "reverse_hyper_machine",
+      "english": "Reverse Hyper Machine",
+      "display": "逆のハイパー機械",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_cross_over_high_to_low",
+      "english": "Cable Cross-Over - High to Low",
+      "display": "ケーブル クロスオーバー - 高〜低",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_cross_over_low_to_high",
+      "english": "Cable Cross-Over - Low to High",
+      "display": "ケーブル クロスオーバー - 低〜高",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_cable_chest_press",
+      "english": "Single-Arm Cable Chest Press",
+      "display": "シングルアームケーブルチェストプレス",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "standing_cable_fly",
+      "english": "Standing Cable Fly",
+      "display": "スタンドケーブルフライ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_arm_cable_lateral_raise",
+      "english": "Single-Arm Cable Lateral Raise",
+      "display": "シングルアームケーブル横上げ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_rear_delt_fly_standing",
+      "english": "Cable Rear-Delt Fly (Standing)",
+      "display": "ケーブル リア フェルト フライ (スタンディング)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_rope_overhead_triceps_extension",
+      "english": "Cable Rope Overhead Triceps Extension",
+      "display": "ケーブル ロープの頭上式のトリムの延長",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_overhead_curl",
+      "english": "Cable Overhead Curl",
+      "display": "ケーブルオーバーヘッドカール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_rope_hammer_curl",
+      "english": "Cable Rope Hammer Curl",
+      "display": "ケーブル ロープのハンマーのカール",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_hip_flexion",
+      "english": "Cable Hip Flexion",
+      "display": "ケーブル ヒップの屈曲",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_kickback_glutes",
+      "english": "Cable Kickback (Glutes)",
+      "display": "ケーブル・キックバック(ゲルト)",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_deadlift",
+      "english": "Cable Deadlift",
+      "display": "ケーブルデッドリフト",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cable_squat_row",
+      "english": "Cable Squat Row",
+      "display": "ケーブルスクワット列",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "lat_pulldown_single_arm",
+      "english": "Lat Pulldown - Single-Arm",
+      "display": "ラットプルダウン - シングルアーム",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_chest_fly",
+      "english": "Machine Chest Fly",
+      "display": "マシンチェストフライ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "machine_reverse_fly",
+      "english": "Machine Reverse Fly",
+      "display": "機械逆のフライ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hammer_strength_row_machine",
+      "english": "Hammer-Strength Row Machine",
+      "display": "ハンマー強さの列機械",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "hammer_strength_incline_press",
+      "english": "Hammer-Strength Incline Press",
+      "display": "ハンマー強度傾斜プレス",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "seated_machine_shoulder_press_neutral",
+      "english": "Seated Machine Shoulder Press (Neutral)",
+      "display": "シートマシンショルダープレス(中立)",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "standing_hip_cars",
+      "english": "Standing Hip CARs",
+      "display": "ヒップカースタンド",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "shoulder_cars",
+      "english": "Shoulder CARs",
+      "display": "ショルダーカー",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ankle_cars",
+      "english": "Ankle CARs",
+      "display": "アンクル車",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "90_90_shin_box_switch",
+      "english": "90/90 Shin Box Switch",
+      "display": "90/90 箱スイッチ",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "frog_stretch",
+      "english": "Frog Stretch",
+      "display": "カエルストレッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "pigeon_stretch",
+      "english": "Pigeon Stretch",
+      "display": "ピジョンストレッチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "thread_the_needle_stretch",
+      "english": "Thread-the-Needle Stretch",
+      "display": "糸の針の伸張",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "brettzel_stretch",
+      "english": "Brettzel Stretch",
+      "display": "Brettzelストレッチ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "jefferson_curl",
+      "english": "Jefferson Curl",
+      "display": "ジェファーソン・カール",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "single_leg_balance_reach",
+      "english": "Single-Leg Balance Reach",
+      "display": "シングルラグバランスリーチ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_360",
+      "english": "Steel Mace 360",
+      "display": "鋼鉄マケ360",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_10_to_2",
+      "english": "Steel Mace 10-to-2",
+      "display": "スチールマケ10〜2",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_uppercut",
+      "english": "Steel Mace Uppercut",
+      "display": "スチールメークアッパーカット",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_offset_press",
+      "english": "Steel Mace Offset Press",
+      "display": "鋼鉄Maceのオフセット出版物",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_offset_squat",
+      "english": "Steel Mace Offset Squat",
+      "display": "鋼鉄Maceのオフセットのスクワット",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_rotational_lunge",
+      "english": "Steel Mace Rotational Lunge",
+      "display": "鋼鉄マケの回転Lunge",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_single_arm_swing",
+      "english": "Steel Mace Single-Arm Swing",
+      "display": "スチールメークシングルアームスイング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "steel_mace_overhead_carry",
+      "english": "Steel Mace Overhead Carry",
+      "display": "鋼鉄マケの頭上式の運送",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cycle_stationary",
+      "english": "Stationary Bike",
+      "display": "固定バイク",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "cycle_outdoor",
+      "english": "Outdoor Cycling",
+      "display": "屋外サイクリング",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "treadmill",
+      "english": "Treadmill",
+      "display": "トレッドミル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "run_outdoor",
+      "english": "Outdoor Running",
+      "display": "屋外のランニング",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "walk",
+      "english": "Walking",
+      "display": "ウォーキング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "incline_walk",
+      "english": "Incline Treadmill Walk",
+      "display": "インライントレッドミルウォーク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "row_erg",
+      "english": "Rowing Machine",
+      "display": "ロウイングマシン",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "ski_erg",
+      "english": "Ski Erg",
+      "display": "スキーアーグ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "air_bike",
+      "english": "Air Bike",
+      "display": "エアバイク",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "elliptical",
+      "english": "Elliptical",
+      "display": "エリプティカル",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "stair_climber",
+      "english": "Stair Climber",
+      "display": "階段クライマー",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "swim",
+      "english": "Swimming",
+      "display": "水泳",
+      "classification": "native",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "jump_rope",
+      "english": "Jump Rope",
+      "display": "ジャンプロープ",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "sled_push_drag",
+      "english": "Sled Push or Drag",
+      "display": "Sledプッシュまたはドラッグ",
+      "classification": "hybrid",
+      "source": "nsca-japan"
+    },
+    {
+      "id": "shadow_box",
+      "english": "Shadow Boxing",
+      "display": "シャドーボクシング",
+      "classification": "transliterated",
+      "source": "nsca-japan"
+    }
+  ]
+}

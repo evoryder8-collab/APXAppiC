@@ -479,8 +479,8 @@ struct RunDebriefView: View {
                 .foregroundStyle(APEXColor.secondaryInk)
             Text(value)
                 .font(APEXFont.display(17))
-                .minimumScaleFactor(0.65)
                 .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
     }

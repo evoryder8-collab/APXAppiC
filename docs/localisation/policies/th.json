@@ -1,0 +1,4018 @@
+{
+  "language": "th",
+  "market": "th",
+  "writtenStandard": null,
+  "reviewedOn": "2026-08-27",
+  "rule": "Unverified variants remain English; localised, hybrid and transliterated terms follow the cited market convention.",
+  "sources": [
+    {
+      "id": "thaihealth-th",
+      "title": "สำนักงานกองทุนสนับสนุนการสร้างเสริมสุขภาพ - คู่มือกิจกรรมทางกาย",
+      "url": "https://www.thaihealth.or.th/wp-content/uploads/2020/06/646.pdf",
+      "authority": "Thai Health Promotion Foundation"
+    },
+    {
+      "id": "apex-authored-short-forms",
+      "title": "APEX authored compact interface copy",
+      "url": "docs/ROADMAP.md#27-localisation-completion--exercise-name-policy",
+      "authority": "APEX product policy"
+    }
+  ],
+  "shortForms": [
+    {
+      "key": "Simple",
+      "value": "ง่าย",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Advanced",
+      "value": "ขั้นสูง",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Nutrition",
+      "value": "โภชนาการ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Training",
+      "value": "ออกกำลัง",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Water",
+      "value": "น้ำ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Settings",
+      "value": "ตั้งค่า",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "History",
+      "value": "ประวัติ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Delete",
+      "value": "ลบ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Cancel",
+      "value": "ยกเลิก",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Done",
+      "value": "เสร็จ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Add",
+      "value": "เพิ่ม",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Remove",
+      "value": "นำออก",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Start",
+      "value": "เริ่ม",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Resume",
+      "value": "ทำต่อ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Save",
+      "value": "บันทึก",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Close",
+      "value": "ปิด",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Today",
+      "value": "วันนี้",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Target",
+      "value": "เป้าหมาย",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Burned",
+      "value": "เผาผลาญ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Remaining",
+      "value": "คงเหลือ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Protein",
+      "value": "โปรตีน",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Carbs",
+      "value": "คาร์บ",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Fat",
+      "value": "ไขมัน",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Workout",
+      "value": "การออกกำลัง",
+      "maxCharacters": 11,
+      "source": "apex-authored-short-forms"
+    },
+    {
+      "key": "Exercises",
+      "value": "ท่า",
+      "maxCharacters": 8,
+      "source": "apex-authored-short-forms"
+    }
+  ],
+  "exerciseTerms": [
+    {
+      "id": "barbell_romanian_deadlift",
+      "english": "Romanian Deadlift",
+      "display": "โรมาเนียนเดดลิฟต์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_romanian_deadlift",
+      "english": "Dumbbell Romanian Deadlift",
+      "display": "Dumbbell Romanian Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_romanian_deadlift",
+      "english": "Single-Leg Romanian Deadlift",
+      "display": "Single-Leg Romanian Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "conventional_deadlift",
+      "english": "Conventional Deadlift",
+      "display": "เดดลิฟต์แบบปกติ",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "trap_bar_deadlift",
+      "english": "Trap Bar Deadlift",
+      "display": "Trap Bar Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_thrust_barbell",
+      "english": "Barbell Hip Thrust",
+      "display": "ฮิปทรัสต์ด้วยบาร์เบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_thrust_dumbbell",
+      "english": "Dumbbell Hip Thrust",
+      "display": "Dumbbell Hip Thrust",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_hip_thrust",
+      "english": "Machine Hip Thrust",
+      "display": "Machine Hip Thrust",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "b_stance_hip_thrust",
+      "english": "B-Stance Hip Thrust",
+      "display": "B-Stance Hip Thrust",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "glute_bridge",
+      "english": "Glute Bridge",
+      "display": "Glute Bridge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "frog_pump",
+      "english": "Frog Pump",
+      "display": "Frog Pump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "back_extension",
+      "english": "Back Extension",
+      "display": "Back Extension",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_swing",
+      "english": "Kettlebell Swing",
+      "display": "เคตเทิลเบลสวิง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "good_morning",
+      "english": "Good Morning",
+      "display": "Good Morning",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "backpack_rdl",
+      "english": "Backpack Romanian Deadlift",
+      "display": "Backpack Romanian Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_back_squat",
+      "english": "Barbell Back Squat",
+      "display": "แบ็กสควอตด้วยบาร์เบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_front_squat",
+      "english": "Barbell Front Squat",
+      "display": "ฟรอนต์สควอตด้วยบาร์เบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "goblet_squat",
+      "english": "Goblet Squat",
+      "display": "กอบเล็ตสควอต",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "heel_elevated_goblet_squat",
+      "english": "Heel-Elevated Goblet Squat",
+      "display": "Heel-Elevated Goblet Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hack_squat",
+      "english": "Hack Squat",
+      "display": "แฮ็กสควอต",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "leg_press",
+      "english": "Leg Press",
+      "display": "เลกเพรส",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bodyweight_squat",
+      "english": "Bodyweight Squat",
+      "display": "Bodyweight Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sit_to_stand",
+      "english": "Sit-to-Stand",
+      "display": "Sit-to-Stand",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pistol_squat",
+      "english": "Pistol Squat",
+      "display": "พิสตอลสควอต",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "smith_machine_squat",
+      "english": "Smith Machine Squat",
+      "display": "Smith Machine Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bulgarian_split_squat",
+      "english": "Bulgarian Split Squat",
+      "display": "บัลแกเรียนสปลิตสควอต",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "split_squat",
+      "english": "Split Squat",
+      "display": "Split Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reverse_lunge",
+      "english": "Reverse Lunge",
+      "display": "ลันจ์ถอยหลังด้วยดัมเบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "walking_lunge",
+      "english": "Walking Lunge",
+      "display": "เดินลันจ์ด้วยดัมเบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "forward_lunge",
+      "english": "Forward Lunge",
+      "display": "Forward Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "step_up",
+      "english": "Step-Up",
+      "display": "Step-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "smith_split_squat",
+      "english": "Smith Machine Split Squat",
+      "display": "Smith Machine Split Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_bench_press",
+      "english": "Barbell Bench Press",
+      "display": "เบนช์เพรสด้วยบาร์เบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_bench_press",
+      "english": "Flat Dumbbell Press",
+      "display": "Flat Dumbbell Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "incline_dumbbell_press",
+      "english": "Incline Dumbbell Press",
+      "display": "อินไคลน์ดัมเบลเพรส",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_floor_press",
+      "english": "Dumbbell Floor Press",
+      "display": "Dumbbell Floor Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_chest_press",
+      "english": "Machine Chest Press",
+      "display": "เครื่องดันอก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "incline_smith_press",
+      "english": "Incline Smith Machine Press",
+      "display": "Incline Smith Machine Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "push_up",
+      "english": "Push-Up",
+      "display": "วิดพื้น",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "incline_push_up",
+      "english": "Incline Push-Up",
+      "display": "Incline Push-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "knee_push_up",
+      "english": "Knee Push-Up",
+      "display": "Knee Push-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "feet_elevated_push_up",
+      "english": "Feet-Elevated Push-Up",
+      "display": "วิดพื้นยกเท้า",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "weighted_push_up",
+      "english": "Weighted Push-Up",
+      "display": "Weighted Push-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "diamond_push_up",
+      "english": "Diamond Push-Up",
+      "display": "วิดพื้นไดมอนด์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dip",
+      "english": "Parallel Bar Dip",
+      "display": "ดิพบนบาร์คู่",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_fly",
+      "english": "Cable Fly",
+      "display": "ดัมเบลฟลาย",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_overhead_press",
+      "english": "Barbell Overhead Press",
+      "display": "โอเวอร์เฮดเพรสด้วยบาร์เบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_overhead_press",
+      "english": "Seated Dumbbell Press",
+      "display": "Seated Dumbbell Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_shoulder_press",
+      "english": "Machine Shoulder Press",
+      "display": "เครื่องดันไหล่",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_press",
+      "english": "Landmine Press",
+      "display": "Landmine Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pike_push_up",
+      "english": "Pike Push-Up",
+      "display": "ไพก์พุชอัพ",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "elevated_pike_push_up",
+      "english": "Feet-Elevated Pike Push-Up",
+      "display": "Feet-Elevated Pike Push-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "handstand_push_up",
+      "english": "Handstand Push-Up",
+      "display": "วิดพื้นแฮนด์สแตนด์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_row",
+      "english": "Barbell Row",
+      "display": "บาร์เบลโรว์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "one_arm_dumbbell_row",
+      "english": "One-Arm Dumbbell Row",
+      "display": "ดัมเบลโรว์ข้างเดียว",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chest_supported_row",
+      "english": "Chest-Supported Dumbbell Row",
+      "display": "Chest-Supported Dumbbell Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_row",
+      "english": "Chest-Supported Machine Row",
+      "display": "เครื่องพายพิงอก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "t_bar_row",
+      "english": "Chest-Supported T-Bar Row",
+      "display": "Chest-Supported T-Bar Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_row",
+      "english": "Seated Cable Row",
+      "display": "นั่งพายเคเบิล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_cable_row",
+      "english": "Single-Arm Cable Row",
+      "display": "Single-Arm Cable Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "inverted_row",
+      "english": "Inverted Row",
+      "display": "อินเวิร์ทโรว์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_row",
+      "english": "Band Row",
+      "display": "Band Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "backpack_row",
+      "english": "Backpack Row",
+      "display": "Backpack Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pull_up",
+      "english": "Pull-Up",
+      "display": "ดึงข้อ",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chin_up",
+      "english": "Chin-Up",
+      "display": "ชินอัพ",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_assisted_pull_up",
+      "english": "Band-Assisted Pull-Up",
+      "display": "Band-Assisted Pull-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lat_pulldown",
+      "english": "Neutral-Grip Lat Pulldown",
+      "display": "ดึงข้อด้วยสายเคเบิล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_lat_pulldown",
+      "english": "Band Lat Pulldown",
+      "display": "Band Lat Pulldown",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dead_hang",
+      "english": "Dead Hang",
+      "display": "Dead Hang",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "scapular_pull_up",
+      "english": "Scapular Pull-Up",
+      "display": "Scapular Pull-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "muscle_up_practice",
+      "english": "Muscle-Up Transition Practice",
+      "display": "บาร์มัสเซิลอัพ",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "suitcase_carry",
+      "english": "Suitcase Carry",
+      "display": "Suitcase Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "farmers_carry",
+      "english": "Farmer's Carry",
+      "display": "ฟาร์เมอร์แคร์รี",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "plank",
+      "english": "Plank",
+      "display": "Plank",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "rkc_plank",
+      "english": "RKC Plank",
+      "display": "RKC Plank",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "side_plank",
+      "english": "Side Plank",
+      "display": "แพลงก์ด้านข้าง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dead_bug",
+      "english": "Dead Bug",
+      "display": "เดดบั๊ก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bird_dog",
+      "english": "Bird-Dog",
+      "display": "เบิร์ดด็อก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pallof_press",
+      "english": "Pallof Press",
+      "display": "Pallof Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hanging_knee_raise",
+      "english": "Hanging Knee Raise",
+      "display": "ยกขาห้อยบาร์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hollow_body_hold",
+      "english": "Hollow Body Hold",
+      "display": "ฮอลโลว์บอดี้โฮลด์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_curl",
+      "english": "Dumbbell Curl",
+      "display": "บาร์เบลเคิร์ล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "incline_dumbbell_curl",
+      "english": "Incline Dumbbell Curl",
+      "display": "Incline Dumbbell Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hammer_curl",
+      "english": "Hammer Curl",
+      "display": "แฮมเมอร์เคิร์ล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_curl",
+      "english": "Cable Curl",
+      "display": "เคเบิลเคิร์ล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_curl",
+      "english": "Band Curl",
+      "display": "Band Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "overhead_triceps_extension",
+      "english": "Overhead Triceps Extension",
+      "display": "ดัมเบลสกัลครัชเชอร์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lateral_raise",
+      "english": "Lateral Raise",
+      "display": "ยกแขนข้างด้วยดัมเบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_lateral_raise",
+      "english": "Cable Lateral Raise",
+      "display": "ยกแขนข้างด้วยเคเบิล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_lateral_raise",
+      "english": "Band Lateral Raise",
+      "display": "Band Lateral Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "face_pull",
+      "english": "Cable Face Pull",
+      "display": "เฟซพูลด้วยเคเบิล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_face_pull",
+      "english": "Band Face Pull",
+      "display": "Band Face Pull",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_pull_apart",
+      "english": "Band Pull-Apart",
+      "display": "Band Pull-Apart",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reverse_pec_deck",
+      "english": "Reverse Pec Deck",
+      "display": "รีเวิร์สดัมเบลฟลาย",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_external_rotation",
+      "english": "Cable External Rotation",
+      "display": "Cable External Rotation",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lying_leg_curl",
+      "english": "Lying Leg Curl",
+      "display": "นอนงอขาด้วยเครื่อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "seated_leg_curl",
+      "english": "Seated Leg Curl",
+      "display": "นั่งงอขาด้วยเครื่อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sliding_leg_curl",
+      "english": "Sliding Leg Curl",
+      "display": "Sliding Leg Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "nordic_curl",
+      "english": "Nordic Hamstring Curl",
+      "display": "นอร์ดิกแฮมสตริงเคิร์ล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "leg_extension",
+      "english": "Leg Extension",
+      "display": "เหยียดขาด้วยเครื่อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_abduction",
+      "english": "Hip Abduction",
+      "display": "เครื่องกางสะโพก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "standing_calf_raise",
+      "english": "Standing Calf Raise",
+      "display": "เครื่องยืนเขย่งน่อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "seated_calf_raise",
+      "english": "Seated Calf Raise",
+      "display": "นั่งเขย่งน่องด้วยเครื่อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_calf_raise",
+      "english": "Single-Leg Calf Raise",
+      "display": "Single-Leg Calf Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "l_sit",
+      "english": "L-Sit",
+      "display": "แอลซิตโฮลด์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "tuck_planche_hold",
+      "english": "Tuck Planche Hold",
+      "display": "Tuck Planche Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wall_handstand_hold",
+      "english": "Wall Handstand Hold",
+      "display": "Wall Handstand Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "archer_push_up",
+      "english": "Archer Push-Up",
+      "display": "Archer Push-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ring_dip",
+      "english": "Ring Dip",
+      "display": "Ring Dip",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "burpee",
+      "english": "Burpee",
+      "display": "เบอร์พี",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "squat_thrust",
+      "english": "Squat Thrust",
+      "display": "Squat Thrust",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "mountain_climber",
+      "english": "Mountain Climber",
+      "display": "เมาน์เทนไคลม์เบอร์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "high_knees",
+      "english": "High Knees",
+      "display": "High Knees",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "marching_in_place",
+      "english": "Marching in Place",
+      "display": "Marching in Place",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "jumping_jack",
+      "english": "Jumping Jack",
+      "display": "Jumping Jack",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "box_jump",
+      "english": "Box Jump",
+      "display": "บ็อกซ์จัมป์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "squat_jump",
+      "english": "Squat Jump",
+      "display": "จัมป์สควอต",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "broad_jump",
+      "english": "Broad Jump",
+      "display": "Broad Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "battle_ropes",
+      "english": "Battle Ropes",
+      "display": "แบทเทิลโรปเวฟ",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "downward_dog",
+      "english": "Downward-Facing Dog",
+      "display": "Downward-Facing Dog",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "childs_pose",
+      "english": "Child's Pose",
+      "display": "Child's Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cat_cow",
+      "english": "Cat-Cow",
+      "display": "ท่าแมวสลับวัว",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cobra_pose",
+      "english": "Cobra",
+      "display": "Cobra",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "warrior_two",
+      "english": "Warrior II",
+      "display": "Warrior II",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "triangle_pose",
+      "english": "Triangle Pose",
+      "display": "Triangle Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pigeon_pose",
+      "english": "Pigeon Pose",
+      "display": "Pigeon Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "forward_fold",
+      "english": "Standing Forward Fold",
+      "display": "Standing Forward Fold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bridge_pose",
+      "english": "Bridge Pose",
+      "display": "Bridge Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sun_salutation",
+      "english": "Sun Salutation",
+      "display": "Sun Salutation",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ninety_ninety_hip",
+      "english": "90/90 Hip Mobility",
+      "display": "สลับสะโพก 90/90",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "figure_four_stretch",
+      "english": "Figure-Four Stretch",
+      "display": "Figure-Four Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "couch_stretch",
+      "english": "Couch Stretch",
+      "display": "คาวช์สเตรตช์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_flexor_stretch",
+      "english": "Hip Flexor Stretch",
+      "display": "Hip Flexor Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "thoracic_extension",
+      "english": "Thoracic Extension",
+      "display": "หมุนกระดูกสันหลังช่วงอก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wall_slide",
+      "english": "Wall Slide",
+      "display": "Wall Slide",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "mobility_flow",
+      "english": "Sun Salutation A",
+      "display": "Sun Salutation A",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "diaphragmatic_breathing",
+      "english": "Diaphragmatic Breathing",
+      "display": "Diaphragmatic Breathing",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "joint_circles",
+      "english": "Controlled Articular Rotations",
+      "display": "โยกข้อเท้าเพิ่มความคล่องตัว",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pec_deck",
+      "english": "Pec Deck",
+      "display": "เครื่องบริหารอกเพ็กเด็ค",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "incline_chest_press_machine",
+      "english": "Incline Chest Press Machine",
+      "display": "Incline Chest Press Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "converging_row_machine",
+      "english": "Converging Row Machine",
+      "display": "Converging Row Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "straight_arm_pulldown",
+      "english": "Straight-Arm Pulldown",
+      "display": "Straight-Arm Pulldown",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pullover_machine",
+      "english": "Pullover Machine",
+      "display": "Pullover Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "assisted_pull_up_machine",
+      "english": "Assisted Pull-Up Machine",
+      "display": "Assisted Pull-Up Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "preacher_curl_machine",
+      "english": "Preacher Curl Machine",
+      "display": "พรีชเชอร์เคิร์ลด้วยบาร์ตรง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "triceps_pushdown",
+      "english": "Triceps Pushdown",
+      "display": "กดไตรเซ็ปส์ด้วยเคเบิล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dip_machine",
+      "english": "Seated Dip Machine",
+      "display": "Seated Dip Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "shrug",
+      "english": "Dumbbell Shrug",
+      "display": "ยักไหล่ด้วยบาร์เบล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "upright_row",
+      "english": "Cable Upright Row",
+      "display": "Cable Upright Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_lateral_raise",
+      "english": "Machine Lateral Raise",
+      "display": "Machine Lateral Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_adduction",
+      "english": "Hip Adduction Machine",
+      "display": "เครื่องหุบสะโพก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "copenhagen_plank",
+      "english": "Copenhagen Plank",
+      "display": "โคเปนเฮเกนแพลงก์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_kickback",
+      "english": "Cable Glute Kickback",
+      "display": "เครื่องเตะขาไปด้านหลัง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_pull_through",
+      "english": "Cable Pull-Through",
+      "display": "Cable Pull-Through",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "belt_squat",
+      "english": "Belt Squat",
+      "display": "Belt Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pendulum_squat",
+      "english": "Pendulum Squat",
+      "display": "Pendulum Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "calf_press_leg_press",
+      "english": "Calf Press on Leg Press",
+      "display": "เขย่งน่องบนเลกเพรส",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_crunch",
+      "english": "Machine Crunch",
+      "display": "ครันช์หน้าท้องด้วยเครื่อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_crunch",
+      "english": "Cable Crunch",
+      "display": "ครันช์หน้าท้องด้วยเคเบิล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "back_extension_machine",
+      "english": "Back Extension Machine",
+      "display": "Back Extension Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_thrust_smith",
+      "english": "Smith Machine Hip Thrust",
+      "display": "Smith Machine Hip Thrust",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_row",
+      "english": "Landmine Row",
+      "display": "Landmine Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_squat",
+      "english": "Landmine Squat",
+      "display": "Landmine Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_hundred",
+      "english": "The Hundred",
+      "display": "The Hundred",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_roll_up",
+      "english": "Roll-Up",
+      "display": "Roll-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_single_leg_circle",
+      "english": "Single Leg Circles",
+      "display": "Single Leg Circles",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_single_leg_stretch",
+      "english": "Single Leg Stretch",
+      "display": "Single Leg Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_double_leg_stretch",
+      "english": "Double Leg Stretch",
+      "display": "Double Leg Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_scissors",
+      "english": "Pilates Scissors",
+      "display": "Pilates Scissors",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_teaser",
+      "english": "Teaser",
+      "display": "Teaser",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_swan",
+      "english": "Swan",
+      "display": "Swan",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_saw",
+      "english": "Saw",
+      "display": "Saw",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_spine_stretch",
+      "english": "Spine Stretch Forward",
+      "display": "Spine Stretch Forward",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_side_kick",
+      "english": "Side Kick Series",
+      "display": "Side Kick Series",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_clam",
+      "english": "Clam",
+      "display": "Clam",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pilates_swimming",
+      "english": "Pilates Swimming",
+      "display": "Pilates Swimming",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reformer_footwork",
+      "english": "Reformer Footwork",
+      "display": "Reformer Footwork",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reformer_long_stretch",
+      "english": "Reformer Long Stretch",
+      "display": "Reformer Long Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reformer_elephant",
+      "english": "Reformer Elephant",
+      "display": "Reformer Elephant",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reformer_knee_stretch",
+      "english": "Reformer Knee Stretch",
+      "display": "Reformer Knee Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reformer_short_box",
+      "english": "Reformer Short Box",
+      "display": "Reformer Short Box",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reformer_mermaid",
+      "english": "Reformer Mermaid",
+      "display": "Reformer Mermaid",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chair_pose",
+      "english": "Chair Pose",
+      "display": "Chair Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "tree_pose",
+      "english": "Tree Pose",
+      "display": "Tree Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "warrior_one",
+      "english": "Warrior I",
+      "display": "Warrior I",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "warrior_three",
+      "english": "Warrior III",
+      "display": "Warrior III",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "half_moon",
+      "english": "Half Moon",
+      "display": "Half Moon",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "extended_side_angle",
+      "english": "Extended Side Angle",
+      "display": "Extended Side Angle",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "revolved_triangle",
+      "english": "Revolved Triangle",
+      "display": "Revolved Triangle",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "crow_pose",
+      "english": "Crow Pose",
+      "display": "Crow Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "boat_pose",
+      "english": "Boat Pose",
+      "display": "Boat Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "camel_pose",
+      "english": "Camel Pose",
+      "display": "Camel Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bow_pose",
+      "english": "Bow Pose",
+      "display": "Bow Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "locust_pose",
+      "english": "Locust Pose",
+      "display": "Locust Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "seated_forward_fold",
+      "english": "Seated Forward Fold",
+      "display": "Seated Forward Fold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "butterfly_stretch",
+      "english": "Butterfly",
+      "display": "Butterfly",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "happy_baby",
+      "english": "Happy Baby",
+      "display": "Happy Baby",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "supine_twist",
+      "english": "Supine Twist",
+      "display": "Supine Twist",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "legs_up_wall",
+      "english": "Legs Up the Wall",
+      "display": "Legs Up the Wall",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "corpse_pose",
+      "english": "Corpse Pose",
+      "display": "Corpse Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chaturanga",
+      "english": "Chaturanga",
+      "display": "Chaturanga",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "upward_dog",
+      "english": "Upward-Facing Dog",
+      "display": "Upward-Facing Dog",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "low_lunge",
+      "english": "Low Lunge",
+      "display": "Low Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lizard_pose",
+      "english": "Lizard Pose",
+      "display": "Lizard Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "garland_pose",
+      "english": "Garland Pose",
+      "display": "Garland Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "eagle_pose",
+      "english": "Eagle Pose",
+      "display": "Eagle Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dancer_pose",
+      "english": "Dancer Pose",
+      "display": "Dancer Pose",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sled_push",
+      "english": "Sled Push",
+      "display": "ดันสเลด",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sled_pull",
+      "english": "Sled Pull",
+      "display": "Sled Pull",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "burpee_broad_jump",
+      "english": "Burpee Broad Jump",
+      "display": "Burpee Broad Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sandbag_lunge",
+      "english": "Sandbag Lunge",
+      "display": "Sandbag Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wall_ball",
+      "english": "Wall Ball",
+      "display": "Wall Ball",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "thruster",
+      "english": "Thruster",
+      "display": "Thruster",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "power_clean",
+      "english": "Power Clean",
+      "display": "Power Clean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "power_snatch",
+      "english": "Power Snatch",
+      "display": "Power Snatch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "clean_and_jerk",
+      "english": "Clean and Jerk",
+      "display": "Clean and Jerk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "push_press",
+      "english": "Push Press",
+      "display": "Push Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "overhead_squat",
+      "english": "Overhead Squat",
+      "display": "Overhead Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_rack_lunge",
+      "english": "Front Rack Lunge",
+      "display": "Front Rack Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "double_under",
+      "english": "Double Under",
+      "display": "Double Under",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_under",
+      "english": "Skipping",
+      "display": "กระโดดเชือก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "toes_to_bar",
+      "english": "Toes to Bar",
+      "display": "Toes to Bar",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_clean",
+      "english": "Kettlebell Clean",
+      "display": "Kettlebell Clean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "turkish_get_up",
+      "english": "Turkish Get-Up",
+      "display": "Turkish Get-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "devils_press",
+      "english": "Devil's Press",
+      "display": "Devil's Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "man_maker",
+      "english": "Man Maker",
+      "display": "Man Maker",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sandbag_clean",
+      "english": "Sandbag Clean",
+      "display": "Sandbag Clean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "tire_flip",
+      "english": "Tire Flip",
+      "display": "Tire Flip",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bear_crawl",
+      "english": "Bear Crawl",
+      "display": "Bear Crawl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sled_drag",
+      "english": "Sled Drag",
+      "display": "Sled Drag",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "overhead_carry",
+      "english": "Overhead Carry",
+      "display": "Overhead Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_rack_carry",
+      "english": "Front Rack Carry",
+      "display": "Front Rack Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sandbag_carry",
+      "english": "Sandbag Carry",
+      "display": "Sandbag Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "yoke_walk",
+      "english": "Yoke Walk",
+      "display": "Yoke Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "zercher_carry",
+      "english": "Zercher Carry",
+      "display": "Zercher Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "waiter_walk",
+      "english": "Waiter Walk",
+      "display": "Waiter Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bottoms_up_carry",
+      "english": "Bottoms-Up Carry",
+      "display": "Bottoms-Up Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "mixed_carry",
+      "english": "Mixed Carry",
+      "display": "Mixed Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "depth_jump",
+      "english": "Depth Jump",
+      "display": "Depth Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bounding",
+      "english": "Bounding",
+      "display": "Bounding",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lateral_bound",
+      "english": "Lateral Bound",
+      "display": "Lateral Bound",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lateral_hop",
+      "english": "Lateral Hop",
+      "display": "Lateral Hop",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pogo_hop",
+      "english": "Pogo Hop",
+      "display": "Pogo Hop",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "tuck_jump",
+      "english": "Tuck Jump",
+      "display": "Tuck Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "split_jump",
+      "english": "Split Jump",
+      "display": "Split Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_hop",
+      "english": "Single-Leg Hop",
+      "display": "Single-Leg Hop",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hurdle_hop",
+      "english": "Hurdle Hop",
+      "display": "Hurdle Hop",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "medicine_ball_slam",
+      "english": "Medicine Ball Slam",
+      "display": "Medicine Ball Slam",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "medicine_ball_chest_pass",
+      "english": "Medicine Ball Chest Pass",
+      "display": "Medicine Ball Chest Pass",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "medicine_ball_rotational_throw",
+      "english": "Rotational Throw",
+      "display": "Rotational Throw",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "broad_jump_repeat",
+      "english": "Repeat Broad Jump",
+      "display": "Repeat Broad Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_rotation",
+      "english": "Landmine Rotation",
+      "display": "Landmine Rotation",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_chop",
+      "english": "Cable Chop",
+      "display": "Cable Chop",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_lift",
+      "english": "Cable Lift",
+      "display": "Cable Lift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "renegade_row",
+      "english": "Renegade Row",
+      "display": "Renegade Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "suitcase_deadlift",
+      "english": "Suitcase Deadlift",
+      "display": "Suitcase Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "half_kneeling_press",
+      "english": "Half-Kneeling Press",
+      "display": "Half-Kneeling Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "plank_pull_through",
+      "english": "Plank Pull-Through",
+      "display": "Plank Pull-Through",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bird_dog_row",
+      "english": "Bird-Dog Row",
+      "display": "Bird-Dog Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_dumbbell_press",
+      "english": "Single-Arm Dumbbell Press",
+      "display": "Single-Arm Dumbbell Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_floor_press",
+      "english": "Single-Arm Floor Press",
+      "display": "Single-Arm Floor Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_bench_press",
+      "english": "Single-Arm Dumbbell Bench Press",
+      "display": "Single-Arm Dumbbell Bench Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_landmine_press",
+      "english": "Single-Arm Landmine Press",
+      "display": "Single-Arm Landmine Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_machine_press",
+      "english": "Single-Arm Machine Press",
+      "display": "Single-Arm Machine Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "arnold_press",
+      "english": "Arnold Press",
+      "display": "อาร์โนลด์เพรส",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_raise",
+      "english": "Front Raise",
+      "display": "Front Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "svend_press",
+      "english": "Svend Press",
+      "display": "Svend Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "decline_press",
+      "english": "Decline Press",
+      "display": "Decline Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ab_wheel_rollout",
+      "english": "Ab-Wheel Rollout",
+      "display": "ลูกกลิ้งหน้าท้อง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reverse_crunch",
+      "english": "Reverse Crunch",
+      "display": "รีเวิร์สครันช์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "decline_sit_up",
+      "english": "Decline Sit-Up",
+      "display": "ซิตอัพบนม้านั่งลาด",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_lever_row",
+      "english": "Front Lever Row",
+      "display": "ฟรอนต์ลีเวอร์โรว์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "human_flag_progression",
+      "english": "Human Flag Progression",
+      "display": "ฝึกฮิวแมนแฟลก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "worlds_greatest_stretch",
+      "english": "World's Greatest Stretch",
+      "display": "เวิลด์เกรเทสต์สเตรตช์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_shoulder_dislocate",
+      "english": "Band Shoulder Dislocate",
+      "display": "หมุนไหล่ด้วยยางยืด",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lower_body_foam_roll",
+      "english": "Lower-Body Foam Roll",
+      "display": "โฟมโรลช่วงล่าง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_stand",
+      "english": "Single-Leg Stand",
+      "display": "Single-Leg Stand",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "tandem_stance",
+      "english": "Tandem Stance",
+      "display": "Tandem Stance",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "heel_toe_walk",
+      "english": "Heel-to-Toe Walk",
+      "display": "Heel-to-Toe Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_reach",
+      "english": "Single-Leg Reach",
+      "display": "Single-Leg Reach",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "airplane_balance",
+      "english": "Airplane Balance",
+      "display": "Airplane Balance",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "eyes_closed_balance",
+      "english": "Single-Leg Stand, Eyes Closed",
+      "display": "Single-Leg Stand, Eyes Closed",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "step_down_control",
+      "english": "Controlled Step-Down",
+      "display": "Controlled Step-Down",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bent_over_dumbbell_row",
+      "english": "Bent-Over Dumbbell Row",
+      "display": "Bent-Over Dumbbell Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_bent_over_row",
+      "english": "Bent-Over Kettlebell Row",
+      "display": "Bent-Over Kettlebell Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_bent_over_row",
+      "english": "Bent-Over Band Row",
+      "display": "Bent-Over Band Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "prone_floor_row",
+      "english": "Prone Floor Row",
+      "display": "Prone Floor Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "table_row",
+      "english": "Table Row",
+      "display": "Table Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "towel_door_row",
+      "english": "Towel Door Row",
+      "display": "Towel Door Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_lat_pullover",
+      "english": "Band Lat Pullover",
+      "display": "Band Lat Pullover",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_pullover",
+      "english": "Dumbbell Pullover",
+      "display": "Dumbbell Pullover",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "floor_pullover",
+      "english": "Floor Pullover",
+      "display": "Floor Pullover",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "towel_door_pulldown",
+      "english": "Towel Door Pulldown",
+      "display": "Towel Door Pulldown",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_straight_arm_pulldown",
+      "english": "Band Straight-Arm Pulldown",
+      "display": "Band Straight-Arm Pulldown",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wall_sit",
+      "english": "Wall Sit",
+      "display": "Wall Sit",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cossack_squat",
+      "english": "Cossack Squat",
+      "display": "Cossack Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lateral_lunge",
+      "english": "Lateral Lunge",
+      "display": "Lateral Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "shrimp_squat",
+      "english": "Shrimp Squat",
+      "display": "Shrimp Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chair_step_up",
+      "english": "Chair Step-Up",
+      "display": "Chair Step-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_glute_bridge",
+      "english": "Single-Leg Glute Bridge",
+      "display": "สะพานก้นขาเดียว",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "nordic_eccentric",
+      "english": "Nordic Curl, Eccentric",
+      "display": "Nordic Curl, Eccentric",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hamstring_walkout",
+      "english": "Hamstring Walkout",
+      "display": "Hamstring Walkout",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_good_morning",
+      "english": "Band Good Morning",
+      "display": "Band Good Morning",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "band_overhead_press",
+      "english": "Band Overhead Press",
+      "display": "Band Overhead Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wall_walk",
+      "english": "Wall Walk",
+      "display": "Wall Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "backpack_carry",
+      "english": "Loaded Backpack Carry",
+      "display": "Loaded Backpack Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "suitcase_hold",
+      "english": "Suitcase Hold",
+      "display": "Suitcase Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "tibialis_raise",
+      "english": "Tibialis Raise",
+      "display": "Tibialis Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "heel_walk",
+      "english": "Heel Walk",
+      "display": "Heel Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "short_foot",
+      "english": "Short Foot Drill",
+      "display": "Short Foot Drill",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "plate_pinch",
+      "english": "Plate Pinch",
+      "display": "Plate Pinch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "towel_hang",
+      "english": "Towel Hang",
+      "display": "Towel Hang",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wrist_roller",
+      "english": "Wrist Roller",
+      "display": "Wrist Roller",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "neck_isometric",
+      "english": "Neck Isometric",
+      "display": "Neck Isometric",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chin_tuck",
+      "english": "Chin Tuck",
+      "display": "Chin Tuck",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "side_plank_knees",
+      "english": "Side Plank from Knees",
+      "display": "Side Plank from Knees",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_side_bend",
+      "english": "Dumbbell Side Bend",
+      "display": "Dumbbell Side Bend",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_turkish_get_up",
+      "english": "Kettlebell Turkish Get-Up",
+      "display": "Kettlebell Turkish Get-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "half_turkish_get_up",
+      "english": "Half Turkish Get-Up",
+      "display": "Half Turkish Get-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_windmill",
+      "english": "Kettlebell Windmill",
+      "display": "Kettlebell Windmill",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_around_the_world",
+      "english": "Kettlebell Around-the-World",
+      "display": "Kettlebell Around-the-World",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_halo",
+      "english": "Kettlebell Halo",
+      "display": "Kettlebell Halo",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_figure_8",
+      "english": "Kettlebell Figure-8",
+      "display": "Kettlebell Figure-8",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_figure_8_to_hold",
+      "english": "Kettlebell Figure-8 to Hold",
+      "display": "Kettlebell Figure-8 to Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dual_kettlebell_clean",
+      "english": "Dual-Kettlebell Clean",
+      "display": "Dual-Kettlebell Clean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_clean_and_jerk",
+      "english": "Kettlebell Clean and Jerk",
+      "display": "Kettlebell Clean and Jerk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_clean_and_push_press",
+      "english": "Kettlebell Clean and Push Press",
+      "display": "Kettlebell Clean and Push Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_snatch",
+      "english": "Kettlebell Snatch",
+      "display": "Kettlebell Snatch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_snatch_to_overhead_carry",
+      "english": "Kettlebell Snatch to Overhead Carry",
+      "display": "Kettlebell Snatch to Overhead Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_swing_to_squat",
+      "english": "Kettlebell Swing to Squat",
+      "display": "Kettlebell Swing to Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_squat_to_press",
+      "english": "Kettlebell Squat to Press",
+      "display": "Kettlebell Squat to Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_front_rack_squat",
+      "english": "Kettlebell Front Rack Squat",
+      "display": "Kettlebell Front Rack Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_lateral_squat",
+      "english": "Kettlebell Lateral Squat",
+      "display": "Kettlebell Lateral Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_curtsy_lunge",
+      "english": "Kettlebell Curtsy Lunge",
+      "display": "Kettlebell Curtsy Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_lunge_with_rotation",
+      "english": "Kettlebell Lunge with Rotation",
+      "display": "Kettlebell Lunge with Rotation",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_reverse_lunge_to_press",
+      "english": "Kettlebell Reverse Lunge to Press",
+      "display": "Kettlebell Reverse Lunge to Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_step_up",
+      "english": "Kettlebell Step-up",
+      "display": "Kettlebell Step-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_walking_lunge",
+      "english": "Kettlebell Walking Lunge",
+      "display": "Kettlebell Walking Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_suitcase_deadlift",
+      "english": "Kettlebell Suitcase Deadlift",
+      "display": "Kettlebell Suitcase Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_romanian_deadlift",
+      "english": "Kettlebell Romanian Deadlift",
+      "display": "Kettlebell Romanian Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_kettlebell_deadlift",
+      "english": "Single-leg Kettlebell Deadlift",
+      "display": "Single-leg Kettlebell Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_sumo_deadlift",
+      "english": "Kettlebell Sumo Deadlift",
+      "display": "Kettlebell Sumo Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_good_morning",
+      "english": "Kettlebell Good Morning",
+      "display": "Kettlebell Good Morning",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_row",
+      "english": "Kettlebell Row",
+      "display": "Kettlebell Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_renegade_row",
+      "english": "Kettlebell Renegade Row",
+      "display": "Kettlebell Renegade Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_gorilla_row",
+      "english": "Kettlebell Gorilla Row",
+      "display": "Kettlebell Gorilla Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_suitcase_row",
+      "english": "Kettlebell Suitcase Row",
+      "display": "Kettlebell Suitcase Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_chest_supported_row",
+      "english": "Kettlebell Chest-Supported Row",
+      "display": "Kettlebell Chest-Supported Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_floor_press",
+      "english": "Kettlebell Floor Press",
+      "display": "Kettlebell Floor Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_alternating_floor_press",
+      "english": "Kettlebell Alternating Floor Press",
+      "display": "Kettlebell Alternating Floor Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_bench_press",
+      "english": "Kettlebell Bench Press",
+      "display": "Kettlebell Bench Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_incline_bench_press",
+      "english": "Kettlebell Incline Bench Press",
+      "display": "Kettlebell Incline Bench Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_see_saw_press",
+      "english": "Kettlebell See-Saw Press",
+      "display": "Kettlebell See-Saw Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_bottoms_up_press",
+      "english": "Kettlebell Bottoms-Up Press",
+      "display": "Kettlebell Bottoms-Up Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_bottoms_up_clean",
+      "english": "Kettlebell Bottoms-Up Clean",
+      "display": "Kettlebell Bottoms-Up Clean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_bottoms_up_carry",
+      "english": "Kettlebell Bottoms-Up Carry",
+      "display": "Kettlebell Bottoms-Up Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_overhead_carry",
+      "english": "Kettlebell Overhead Carry",
+      "display": "Kettlebell Overhead Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "double_overhead_kettlebell_carry",
+      "english": "Double Overhead Kettlebell Carry",
+      "display": "Double Overhead Kettlebell Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_rack_carry",
+      "english": "Kettlebell Rack Carry",
+      "display": "Kettlebell Rack Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_farmers_walk",
+      "english": "Kettlebell Farmer's Walk",
+      "display": "Kettlebell Farmer's Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_cross_body_carry",
+      "english": "Kettlebell Cross-Body Carry",
+      "display": "Kettlebell Cross-Body Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_crush_grip_push_up",
+      "english": "Kettlebell Crush-Grip Push-up",
+      "display": "Kettlebell Crush-Grip Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_push_up_to_row",
+      "english": "Kettlebell Push-up to Row",
+      "display": "Kettlebell Push-up to Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_pullover",
+      "english": "Kettlebell Pullover",
+      "display": "Kettlebell Pullover",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_russian_twist",
+      "english": "Kettlebell Russian Twist",
+      "display": "Kettlebell Russian Twist",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_side_bend",
+      "english": "Kettlebell Side Bend",
+      "display": "Kettlebell Side Bend",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_dead_bug",
+      "english": "Kettlebell Dead Bug",
+      "display": "Kettlebell Dead Bug",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_hollow_body_hold",
+      "english": "Kettlebell Hollow Body Hold",
+      "display": "Kettlebell Hollow Body Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_sit_up",
+      "english": "Kettlebell Sit-up",
+      "display": "Kettlebell Sit-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_v_up",
+      "english": "Kettlebell V-Up",
+      "display": "Kettlebell V-Up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_woodchopper",
+      "english": "Kettlebell Woodchopper",
+      "display": "Kettlebell Woodchopper",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_slasher_to_halo",
+      "english": "Kettlebell Slasher-to-Halo",
+      "display": "Kettlebell Slasher-to-Halo",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_armbar",
+      "english": "Kettlebell Armbar",
+      "display": "Kettlebell Armbar",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_surrender",
+      "english": "Kettlebell Surrender",
+      "display": "Kettlebell Surrender",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_deck_squat",
+      "english": "Kettlebell Deck Squat",
+      "display": "Kettlebell Deck Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "kettlebell_man_maker",
+      "english": "Kettlebell Man Maker",
+      "display": "Kettlebell Man Maker",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "split_squat_jump",
+      "english": "Split Squat Jump",
+      "display": "Split Squat Jump",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "jumping_lunge",
+      "english": "Jumping Lunge",
+      "display": "Jumping Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "box_step_up_bodyweight",
+      "english": "Box Step-up (Bodyweight)",
+      "display": "Box Step-up (Bodyweight)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "curtsy_lunge_bodyweight",
+      "english": "Curtsy Lunge (Bodyweight)",
+      "display": "Curtsy Lunge (Bodyweight)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_box_squat",
+      "english": "Single-leg Box Squat",
+      "display": "Single-leg Box Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "assisted_pistol_squat",
+      "english": "Assisted Pistol Squat",
+      "display": "Assisted Pistol Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "jumping_pistol_squat",
+      "english": "Jumping Pistol Squat",
+      "display": "Jumping Pistol Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sissy_squat_unloaded",
+      "english": "Sissy Squat (Unloaded)",
+      "display": "Sissy Squat (Unloaded)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "glute_ham_walkout",
+      "english": "Glute-Ham Walkout",
+      "display": "Glute-Ham Walkout",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_thrust_bodyweight",
+      "english": "Hip Thrust (Bodyweight)",
+      "display": "Hip Thrust (Bodyweight)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_hip_thrust_bodyweight",
+      "english": "Single-leg Hip Thrust (Bodyweight)",
+      "display": "Single-leg Hip Thrust (Bodyweight)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reverse_lunge_to_knee_drive",
+      "english": "Reverse Lunge to Knee Drive",
+      "display": "Reverse Lunge to Knee Drive",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "step_back_lunge_with_twist",
+      "english": "Step-back Lunge with Twist",
+      "display": "Step-back Lunge with Twist",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lateral_step_up",
+      "english": "Lateral Step-up",
+      "display": "Lateral Step-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "calf_raise_on_step",
+      "english": "Calf Raise on Step",
+      "display": "Calf Raise on Step",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "donkey_calf_raise",
+      "english": "Donkey Calf Raise",
+      "display": "Donkey Calf Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wall_calf_raise",
+      "english": "Wall Calf Raise",
+      "display": "Wall Calf Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "decline_push_up_high_feet",
+      "english": "Decline Push-up (High Feet)",
+      "display": "Decline Push-up (High Feet)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "clap_push_up",
+      "english": "Clap Push-up",
+      "display": "Clap Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "wide_grip_push_up",
+      "english": "Wide-Grip Push-up",
+      "display": "Wide-Grip Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "close_grip_push_up",
+      "english": "Close-Grip Push-up",
+      "display": "Close-Grip Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "clock_push_up",
+      "english": "Clock Push-up",
+      "display": "Clock Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "planche_lean",
+      "english": "Planche Lean",
+      "display": "Planche Lean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "planche_push_up",
+      "english": "Planche Push-up",
+      "display": "Planche Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hindu_push_up",
+      "english": "Hindu Push-up",
+      "display": "Hindu Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "divebomber_push_up",
+      "english": "Divebomber Push-up",
+      "display": "Divebomber Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "spiderman_push_up",
+      "english": "Spiderman Push-up",
+      "display": "Spiderman Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ring_push_up",
+      "english": "Ring Push-up",
+      "display": "Ring Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ring_archer_push_up",
+      "english": "Ring Archer Push-up",
+      "display": "Ring Archer Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ring_fly",
+      "english": "Ring Fly",
+      "display": "Ring Fly",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bench_dip_feet_on_floor",
+      "english": "Bench Dip (Feet on Floor)",
+      "display": "Bench Dip (Feet on Floor)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bench_dip_feet_elevated",
+      "english": "Bench Dip (Feet Elevated)",
+      "display": "Bench Dip (Feet Elevated)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ring_dip_forward_lean",
+      "english": "Ring Dip - Forward Lean",
+      "display": "Ring Dip - Forward Lean",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "assisted_ring_dip",
+      "english": "Assisted Ring Dip",
+      "display": "Assisted Ring Dip",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "isometric_dip_hold",
+      "english": "Isometric Dip Hold",
+      "display": "Isometric Dip Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "mixed_grip_pull_up",
+      "english": "Mixed-Grip Pull-up",
+      "display": "Mixed-Grip Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "archer_pull_up",
+      "english": "Archer Pull-up",
+      "display": "Archer Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "typewriter_pull_up",
+      "english": "Typewriter Pull-up",
+      "display": "Typewriter Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "commando_pull_up",
+      "english": "Commando Pull-up",
+      "display": "Commando Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "behind_the_neck_pull_up",
+      "english": "Behind-the-Neck Pull-up",
+      "display": "Behind-the-Neck Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "one_arm_pull_up_assisted",
+      "english": "One-Arm Pull-up (Assisted)",
+      "display": "One-Arm Pull-up (Assisted)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "false_grip_pull_up",
+      "english": "False-Grip Pull-up",
+      "display": "False-Grip Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "chest_to_bar_pull_up_strict",
+      "english": "Chest-to-Bar Pull-up (Strict)",
+      "display": "Chest-to-Bar Pull-up (Strict)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "inverted_row_underhand",
+      "english": "Inverted Row - Underhand",
+      "display": "Inverted Row - Underhand",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "inverted_row_wide_grip",
+      "english": "Inverted Row - Wide Grip",
+      "display": "Inverted Row - Wide Grip",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ring_row_supinated",
+      "english": "Ring Row (Supinated)",
+      "display": "Ring Row (Supinated)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "rope_climb_feet_clamp",
+      "english": "Rope Climb (Feet Clamp)",
+      "display": "Rope Climb (Feet Clamp)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "rope_climb_legless",
+      "english": "Rope Climb (Legless)",
+      "display": "Rope Climb (Legless)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "towel_pull_up",
+      "english": "Towel Pull-up",
+      "display": "Towel Pull-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "skin_the_cat",
+      "english": "Skin-the-Cat",
+      "display": "Skin-the-Cat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "german_hang",
+      "english": "German Hang",
+      "display": "German Hang",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_lever_tuck_hold",
+      "english": "Front Lever Tuck Hold",
+      "display": "Front Lever Tuck Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_lever_advanced_tuck",
+      "english": "Front Lever Advanced Tuck",
+      "display": "Front Lever Advanced Tuck",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "back_lever_tuck_hold",
+      "english": "Back Lever Tuck Hold",
+      "display": "Back Lever Tuck Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "back_lever_full_hold",
+      "english": "Back Lever Full Hold",
+      "display": "Back Lever Full Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hollow_rock",
+      "english": "Hollow Rock",
+      "display": "Hollow Rock",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "v_sit_hold",
+      "english": "V-Sit Hold",
+      "display": "V-Sit Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "straddle_l_sit",
+      "english": "Straddle L-Sit",
+      "display": "Straddle L-Sit",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "open_tuck_l_sit",
+      "english": "Open Tuck L-Sit",
+      "display": "Open Tuck L-Sit",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "manna_progression_hold",
+      "english": "Manna Progression Hold",
+      "display": "Manna Progression Hold",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dragon_flag_eccentrics",
+      "english": "Dragon Flag Eccentrics",
+      "display": "Dragon Flag Eccentrics",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dragon_flag_full",
+      "english": "Dragon Flag Full",
+      "display": "Dragon Flag Full",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hip_raise_on_bench",
+      "english": "Hip Raise on Bench",
+      "display": "Hip Raise on Bench",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "jackknife_sit_up",
+      "english": "Jackknife Sit-up",
+      "display": "Jackknife Sit-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "bicycle_crunch",
+      "english": "Bicycle Crunch",
+      "display": "Bicycle Crunch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cross_body_mountain_climber",
+      "english": "Cross-Body Mountain Climber",
+      "display": "Cross-Body Mountain Climber",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "plank_with_shoulder_tap",
+      "english": "Plank with Shoulder Tap",
+      "display": "Plank with Shoulder Tap",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_single_leg_plank",
+      "english": "Single-Arm Single-Leg Plank",
+      "display": "Single-Arm Single-Leg Plank",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "side_plank_with_leg_lift",
+      "english": "Side Plank with Leg Lift",
+      "display": "Side Plank with Leg Lift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "copenhagen_side_plank_long_lever",
+      "english": "Copenhagen Side Plank - Long Lever",
+      "display": "Copenhagen Side Plank - Long Lever",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "crab_walk",
+      "english": "Crab Walk",
+      "display": "Crab Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "inchworm_walkout",
+      "english": "Inchworm Walkout",
+      "display": "Inchworm Walkout",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "walkout_to_push_up",
+      "english": "Walkout to Push-up",
+      "display": "Walkout to Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hollow_body_arch_rock",
+      "english": "Hollow Body Arch Rock",
+      "display": "Hollow Body Arch Rock",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_rack_pull",
+      "english": "Barbell Rack Pull",
+      "display": "Barbell Rack Pull",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "deficit_romanian_deadlift",
+      "english": "Deficit Romanian Deadlift",
+      "display": "Deficit Romanian Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "snatch_grip_romanian_deadlift",
+      "english": "Snatch-Grip Romanian Deadlift",
+      "display": "Snatch-Grip Romanian Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_hip_thrust_single_leg",
+      "english": "Barbell Hip Thrust - Single-Leg",
+      "display": "Barbell Hip Thrust - Single-Leg",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_glute_bridge",
+      "english": "Barbell Glute Bridge",
+      "display": "Barbell Glute Bridge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_step_up",
+      "english": "Barbell Step-up",
+      "display": "Barbell Step-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_walking_lunge_front_rack",
+      "english": "Barbell Walking Lunge (Front Rack)",
+      "display": "Barbell Walking Lunge (Front Rack)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_split_jerk",
+      "english": "Barbell Split Jerk",
+      "display": "Barbell Split Jerk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_push_jerk",
+      "english": "Barbell Push Jerk",
+      "display": "Barbell Push Jerk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_power_jerk",
+      "english": "Barbell Power Jerk",
+      "display": "Barbell Power Jerk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "barbell_floor_row",
+      "english": "Barbell Floor Row",
+      "display": "Barbell Floor Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_reverse_lunge",
+      "english": "Landmine Reverse Lunge",
+      "display": "Landmine Reverse Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_lateral_lunge",
+      "english": "Landmine Lateral Lunge",
+      "display": "Landmine Lateral Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_single_arm_row",
+      "english": "Landmine Single-Arm Row",
+      "display": "Landmine Single-Arm Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_meadows_row",
+      "english": "Landmine Meadows Row",
+      "display": "Landmine Meadows Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "landmine_single_arm_press_half_kneeling",
+      "english": "Landmine Single-Arm Press (Half-Kneeling)",
+      "display": "Landmine Single-Arm Press (Half-Kneeling)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_sumo_squat",
+      "english": "Dumbbell Sumo Squat",
+      "display": "Dumbbell Sumo Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_step_up_with_knee_drive",
+      "english": "Dumbbell Step-up with Knee Drive",
+      "display": "Dumbbell Step-up with Knee Drive",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_curtsy_lunge",
+      "english": "Dumbbell Curtsy Lunge",
+      "display": "Dumbbell Curtsy Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_rdl_to_row",
+      "english": "Dumbbell RDL to Row",
+      "display": "Dumbbell RDL to Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_renegade_row_with_push_up",
+      "english": "Dumbbell Renegade Row with Push-up",
+      "display": "Dumbbell Renegade Row with Push-up",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_pullover_to_press",
+      "english": "Dumbbell Pullover to Press",
+      "display": "Dumbbell Pullover to Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "alternating_dumbbell_bench_press",
+      "english": "Alternating Dumbbell Bench Press",
+      "display": "Alternating Dumbbell Bench Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_cross_body_hammer_curl",
+      "english": "Dumbbell Cross-Body Hammer Curl",
+      "display": "Dumbbell Cross-Body Hammer Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_zottman_curl",
+      "english": "Dumbbell Zottman Curl",
+      "display": "Dumbbell Zottman Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_concentration_curl",
+      "english": "Dumbbell Concentration Curl",
+      "display": "Dumbbell Concentration Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_reverse_fly_incline",
+      "english": "Dumbbell Reverse Fly (Incline)",
+      "display": "Dumbbell Reverse Fly (Incline)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_y_raise",
+      "english": "Dumbbell Y-Raise",
+      "display": "Dumbbell Y-Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_cuban_press",
+      "english": "Dumbbell Cuban Press",
+      "display": "Dumbbell Cuban Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_tate_press",
+      "english": "Dumbbell Tate Press",
+      "display": "Dumbbell Tate Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_floor_fly",
+      "english": "Dumbbell Floor Fly",
+      "display": "Dumbbell Floor Fly",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "dumbbell_squeeze_press",
+      "english": "Dumbbell Squeeze Press",
+      "display": "Dumbbell Squeeze Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "farmers_walk_with_trap_bar",
+      "english": "Farmer's Walk with Trap Bar",
+      "display": "Farmer's Walk with Trap Bar",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "suitcase_carry_single_dumbbell",
+      "english": "Suitcase Carry (Single Dumbbell)",
+      "display": "Suitcase Carry (Single Dumbbell)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "front_rack_carry_barbell",
+      "english": "Front Rack Carry (Barbell)",
+      "display": "Front Rack Carry (Barbell)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sandbag_bear_hug_carry",
+      "english": "Sandbag Bear-Hug Carry",
+      "display": "Sandbag Bear-Hug Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sandbag_shouldering",
+      "english": "Sandbag Shouldering",
+      "display": "Sandbag Shouldering",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sandbag_over_the_shoulder_throw",
+      "english": "Sandbag Over-the-Shoulder Throw",
+      "display": "Sandbag Over-the-Shoulder Throw",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "atlas_stone_to_platform",
+      "english": "Atlas Stone to Platform",
+      "display": "Atlas Stone to Platform",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "smith_machine_back_squat",
+      "english": "Smith Machine Back Squat",
+      "display": "Smith Machine Back Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "smith_machine_bench_press",
+      "english": "Smith Machine Bench Press",
+      "display": "Smith Machine Bench Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "smith_machine_incline_bench_press",
+      "english": "Smith Machine Incline Bench Press",
+      "display": "Smith Machine Incline Bench Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "smith_machine_shoulder_press",
+      "english": "Smith Machine Shoulder Press",
+      "display": "Smith Machine Shoulder Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hack_squat_reverse",
+      "english": "Hack Squat - Reverse",
+      "display": "Hack Squat - Reverse",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pendulum_squat_machine",
+      "english": "Pendulum Squat Machine",
+      "display": "Pendulum Squat Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "vertical_leg_press_machine",
+      "english": "Vertical Leg Press Machine",
+      "display": "Vertical Leg Press Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "reverse_hyper_machine",
+      "english": "Reverse Hyper Machine",
+      "display": "Reverse Hyper Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_cross_over_high_to_low",
+      "english": "Cable Cross-Over - High to Low",
+      "display": "Cable Cross-Over - High to Low",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_cross_over_low_to_high",
+      "english": "Cable Cross-Over - Low to High",
+      "display": "Cable Cross-Over - Low to High",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_cable_chest_press",
+      "english": "Single-Arm Cable Chest Press",
+      "display": "Single-Arm Cable Chest Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "standing_cable_fly",
+      "english": "Standing Cable Fly",
+      "display": "Standing Cable Fly",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_arm_cable_lateral_raise",
+      "english": "Single-Arm Cable Lateral Raise",
+      "display": "Single-Arm Cable Lateral Raise",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_rear_delt_fly_standing",
+      "english": "Cable Rear-Delt Fly (Standing)",
+      "display": "Cable Rear-Delt Fly (Standing)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_rope_overhead_triceps_extension",
+      "english": "Cable Rope Overhead Triceps Extension",
+      "display": "Cable Rope Overhead Triceps Extension",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_overhead_curl",
+      "english": "Cable Overhead Curl",
+      "display": "Cable Overhead Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_rope_hammer_curl",
+      "english": "Cable Rope Hammer Curl",
+      "display": "Cable Rope Hammer Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_hip_flexion",
+      "english": "Cable Hip Flexion",
+      "display": "Cable Hip Flexion",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_kickback_glutes",
+      "english": "Cable Kickback (Glutes)",
+      "display": "Cable Kickback (Glutes)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_deadlift",
+      "english": "Cable Deadlift",
+      "display": "Cable Deadlift",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cable_squat_row",
+      "english": "Cable Squat Row",
+      "display": "Cable Squat Row",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "lat_pulldown_single_arm",
+      "english": "Lat Pulldown - Single-Arm",
+      "display": "Lat Pulldown - Single-Arm",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_chest_fly",
+      "english": "Machine Chest Fly",
+      "display": "Machine Chest Fly",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "machine_reverse_fly",
+      "english": "Machine Reverse Fly",
+      "display": "Machine Reverse Fly",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hammer_strength_row_machine",
+      "english": "Hammer-Strength Row Machine",
+      "display": "Hammer-Strength Row Machine",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "hammer_strength_incline_press",
+      "english": "Hammer-Strength Incline Press",
+      "display": "Hammer-Strength Incline Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "seated_machine_shoulder_press_neutral",
+      "english": "Seated Machine Shoulder Press (Neutral)",
+      "display": "Seated Machine Shoulder Press (Neutral)",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "standing_hip_cars",
+      "english": "Standing Hip CARs",
+      "display": "Standing Hip CARs",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "shoulder_cars",
+      "english": "Shoulder CARs",
+      "display": "Shoulder CARs",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ankle_cars",
+      "english": "Ankle CARs",
+      "display": "Ankle CARs",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "90_90_shin_box_switch",
+      "english": "90/90 Shin Box Switch",
+      "display": "90/90 Shin Box Switch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "frog_stretch",
+      "english": "Frog Stretch",
+      "display": "Frog Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "pigeon_stretch",
+      "english": "Pigeon Stretch",
+      "display": "Pigeon Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "thread_the_needle_stretch",
+      "english": "Thread-the-Needle Stretch",
+      "display": "Thread-the-Needle Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "brettzel_stretch",
+      "english": "Brettzel Stretch",
+      "display": "Brettzel Stretch",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "jefferson_curl",
+      "english": "Jefferson Curl",
+      "display": "Jefferson Curl",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "single_leg_balance_reach",
+      "english": "Single-Leg Balance Reach",
+      "display": "Single-Leg Balance Reach",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_360",
+      "english": "Steel Mace 360",
+      "display": "Steel Mace 360",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_10_to_2",
+      "english": "Steel Mace 10-to-2",
+      "display": "Steel Mace 10-to-2",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_uppercut",
+      "english": "Steel Mace Uppercut",
+      "display": "Steel Mace Uppercut",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_offset_press",
+      "english": "Steel Mace Offset Press",
+      "display": "Steel Mace Offset Press",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_offset_squat",
+      "english": "Steel Mace Offset Squat",
+      "display": "Steel Mace Offset Squat",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_rotational_lunge",
+      "english": "Steel Mace Rotational Lunge",
+      "display": "Steel Mace Rotational Lunge",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_single_arm_swing",
+      "english": "Steel Mace Single-Arm Swing",
+      "display": "Steel Mace Single-Arm Swing",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "steel_mace_overhead_carry",
+      "english": "Steel Mace Overhead Carry",
+      "display": "Steel Mace Overhead Carry",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cycle_stationary",
+      "english": "Stationary Bike",
+      "display": "Stationary Bike",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "cycle_outdoor",
+      "english": "Outdoor Cycling",
+      "display": "Outdoor Cycling",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "treadmill",
+      "english": "Treadmill",
+      "display": "เดินบนลู่วิ่ง",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "run_outdoor",
+      "english": "Outdoor Running",
+      "display": "Outdoor Running",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "walk",
+      "english": "Walking",
+      "display": "Walking",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "incline_walk",
+      "english": "Incline Treadmill Walk",
+      "display": "Incline Treadmill Walk",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "row_erg",
+      "english": "Rowing Machine",
+      "display": "เครื่องกรรเชียงบก",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "ski_erg",
+      "english": "Ski Erg",
+      "display": "สกีเอิร์กอินเทอร์วัล",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "air_bike",
+      "english": "Air Bike",
+      "display": "สปรินต์แอร์ไบค์",
+      "classification": "native",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "elliptical",
+      "english": "Elliptical",
+      "display": "Elliptical",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "stair_climber",
+      "english": "Stair Climber",
+      "display": "Stair Climber",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "swim",
+      "english": "Swimming",
+      "display": "Swimming",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "jump_rope",
+      "english": "Jump Rope",
+      "display": "Jump Rope",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "sled_push_drag",
+      "english": "Sled Push or Drag",
+      "display": "Sled Push or Drag",
+      "classification": "english",
+      "source": "thaihealth-th"
+    },
+    {
+      "id": "shadow_box",
+      "english": "Shadow Boxing",
+      "display": "Shadow Boxing",
+      "classification": "english",
+      "source": "thaihealth-th"
+    }
+  ]
+}

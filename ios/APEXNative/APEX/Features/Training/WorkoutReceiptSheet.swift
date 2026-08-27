@@ -100,8 +100,8 @@ struct WorkoutReceiptSheet: View {
             Text(value)
                 .font(APEXFont.display(19))
                 .foregroundStyle(APEXColor.ink)
-                .minimumScaleFactor(0.6)
                 .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
         .padding(12)
@@ -525,7 +525,7 @@ struct CompletedWorkoutHistoryCards: View {
                 .font(APEXFont.mono(12, weight: .bold))
                 .foregroundStyle(APEXColor.ink)
                 .lineLimit(1)
-                .minimumScaleFactor(0.65)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 9)

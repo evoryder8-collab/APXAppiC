@@ -32,7 +32,7 @@ test('daily completion lives inside the Simple Mode nutrition card', () => {
 test('nutrition glance reports resolved burned energy instead of meal count', () => {
   assert.doesNotMatch(nativeGlance, /configuredMealCount|language\.text\("Meals"\)/)
   assert.match(nativeGlance, /resolvedActiveCalories/)
-  assert.match(nativeGlance, /language\.text\("Burned"\)/)
+  assert.match(nativeGlance, /language\.shortText\("Burned"\)/)
   assert.doesNotMatch(webGlance, /mealsDone|mealsTotal|t\('Meals'\)/)
   assert.match(webGlance, /burnedKcal/)
   assert.match(webGlance, /t\('Burned'\)/)

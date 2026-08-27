@@ -258,7 +258,7 @@ struct FoodAmountSheet: View {
                 .font(APEXFont.mono(19, weight: .bold))
                 .foregroundStyle(APEXColor.ink)
                 .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .fixedSize(horizontal: true, vertical: false)
             Text(language.text(label))
                 .font(APEXFont.mono(8))
                 .foregroundStyle(APEXColor.secondaryInk)
@@ -353,8 +353,8 @@ struct FoodAmountSheet: View {
             }
             .font(APEXFont.mono(13, weight: .bold))
             .foregroundStyle(APEXColor.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.7)
+            .lineLimit(2)
+            .fixedSize(horizontal: false, vertical: true)
 
             Text(language.text(FoodPortionMath.provenanceLabel(food)))
                 .font(APEXFont.body(11, weight: .medium))
@@ -385,14 +385,12 @@ struct FoodAmountSheet: View {
             } label: {
                 Text(portion.map { language.format("Add food · %d kcal", Int($0.kcal)) } ?? language.text("Add food"))
                     .font(APEXFont.body(17, weight: .bold))
-                    /* Romanian and Thai run longer than the English this was
-                       sized for. One line that shrinks slightly beats a label
-                       reaching the edges of its own button. */
-                    .lineLimit(1)
-                    .minimumScaleFactor(0.7)
+                    .lineLimit(2)
+                    .multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true)
                     .foregroundStyle(.white)
                     .frame(maxWidth: .infinity)
-                    .frame(height: 46)
+                    .frame(minHeight: 46)
                     .background(APEXColor.amber.gradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
             }
             .buttonStyle(.plain)

@@ -256,7 +256,10 @@ struct LiveRunView: View {
 
     private func liveMetric(_ value: String, _ title: String) -> some View {
         VStack(spacing: 5) {
-            Text(value).font(APEXFont.display(24)).minimumScaleFactor(0.65).lineLimit(1)
+            Text(value)
+                .font(APEXFont.display(24))
+                .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             Text(language.text(title)).font(APEXFont.mono(8)).tracking(1).foregroundStyle(.white.opacity(0.68))
         }
         .frame(maxWidth: .infinity)

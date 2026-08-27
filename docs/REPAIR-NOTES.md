@@ -1371,3 +1371,30 @@ GitHub publication evidence:
 ### Installed build
 
 - Latest installed iPhone build remains Release 365 from code SHA `b9fa81e1b97da91f950bca63aed6b6eaf8d2f240`; this audit changes documentation only.
+
+## 2026-08-27 — Phase 2.7 localization closure
+
+### Outcome
+
+- All nine offered languages are now release-ready: English, German, Swiss-market standard German, Italian, Spanish, Portugal Portuguese (`pt-PT`), Japanese, Romanian, and Thai.
+- Every non-English runtime table contains the same 4,695 keys. The honest audit now measures the full visible runtime corpus rather than source literals alone and reports **4,541/4,541 (100.0%)** for every offered language.
+- The audit denominator includes source literals, typed localization keys, and legacy/runtime-only table copy. It excludes exercise names only through the committed, sourced exercise policy; 549 selectable movements are classified per language as English, native, hybrid, or transliterated.
+- Every offered language has an authored 25-key compact-label table for width-constrained controls. Layout changes remove text shrinking, preserve numbers, units, player movement names, and supplement doses, allow translated copy to wrap, and give Thai text additional vertical room.
+- The native guards now fail on missing locale tables, key drift, untranslated fallbacks, invented keys, format-argument drift, unrelated scripts, stranded English in Japanese/Thai, broken all-caps labels, prose em dashes, missing compact forms, and an offered language that is not complete.
+- The project generator now owns the compact localization resources and the shared hydration sources used by iPhone, Watch, and complications. Regeneration preserves both Watch app-group entitlements and the existing workout-processing background mode.
+
+### Policy records
+
+- `docs/localisation/policies/*.json` records the market decision, terminology source, classification, display form, and compact forms for all nine languages.
+- `ios/APEXNative/APEX/Resources/exercise-catalog.json` is the runtime source of the same localized exercise names.
+- `pt` is explicitly Portugal Portuguese, not Brazilian Portuguese; `de-CH` follows written standard German and forbids `ß`; Japanese uses sourced Japanese-market conventions; Thai controls retain diacritic-safe height.
+
+### Verification
+
+- Runtime coverage audit: **4,541/4,541 (100.0%)** for all nine languages.
+- Localization policy tests: **8/8 passed**.
+- Native `LocalisationCoverageTests`: **13/13 passed** (`/tmp/apex-localisation-20260827-1725.xcresult`).
+- Full web/repository regression suite: **590/590 passed**.
+- Production web build: `tsc --noEmit && vite build` succeeded.
+- All 17 full and compact `.strings` files passed `plutil -lint`; `git diff --check` passed before release preparation.
+- The canonical Apple build number advanced from the already-installed 365 to **366**. Release provenance, physical-iPhone installation, push, and Pages deployment are reported with the final task SHA in the completion handoff.

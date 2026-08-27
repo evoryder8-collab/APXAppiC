@@ -113,6 +113,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Romanian Deadlift",
+    "de": "Rumänisches Kreuzheben",
+    "de-CH": "Rumänisches Kreuzheben",
+    "it": "Stacco rumeno",
+    "es": "Peso muerto rumano",
+    "pt": "Peso morto romeno",
+    "ja": "ルーマニアン・デッドリフト",
     "ro": "Îndreptări românești",
     "th": "โรมาเนียนเดดลิฟต์"
    },
@@ -148,6 +154,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Romanian Deadlift",
+    "de": "Dumbbell Romanian Deadlift",
+    "de-CH": "Dumbbell Romanian Deadlift",
+    "it": "Dumbbell Romanian Deadlift",
+    "es": "Dumbbell Romanian Deadlift",
+    "pt": "Dumbbell Romanian Deadlift",
+    "ja": "Dumbbell ルーマニア語 デッドリフト",
     "ro": "Dumbbell Romanian Deadlift",
     "th": "Dumbbell Romanian Deadlift"
    },
@@ -183,6 +195,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Single-Leg Romanian Deadlift",
+    "de": "Single-Leg Romanian Deadlift",
+    "de-CH": "Single-Leg Romanian Deadlift",
+    "it": "Single-Leg Romanian Deadlift",
+    "es": "Single-Leg Romanian Deadlift",
+    "pt": "Single-Leg Romanian Deadlift",
+    "ja": "シングルレグルーマニアデッドリフト",
     "ro": "Single-Leg Romanian Deadlift",
     "th": "Single-Leg Romanian Deadlift"
    },
@@ -221,6 +239,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Conventional Deadlift",
+    "de": "Konventionelles Kreuzheben",
+    "de-CH": "Konventionelles Kreuzheben",
+    "it": "Stacco da terra classico",
+    "es": "Peso muerto convencional",
+    "pt": "Peso morto convencional",
+    "ja": "コンベンショナル・デッドリフト",
     "ro": "Îndreptări convenționale",
     "th": "เดดลิฟต์แบบปกติ"
    },
@@ -257,6 +281,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Trap Bar Deadlift",
+    "de": "Trap Bar Deadlift",
+    "de-CH": "Trap Bar Deadlift",
+    "it": "Trap Bar Deadlift",
+    "es": "Trap Bar Deadlift",
+    "pt": "Trap Bar Deadlift",
+    "ja": "トラップバーデッドリフト",
     "ro": "Trap Bar Deadlift",
     "th": "Trap Bar Deadlift"
    },
@@ -290,6 +320,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Hip Thrust",
+    "de": "Barbell Hip Thrust",
+    "de-CH": "Barbell Hip Thrust",
+    "it": "Barbell Hip Thrust",
+    "es": "Barbell Hip Thrust",
+    "pt": "Barbell Hip Thrust",
+    "ja": "バーベルヒップスラスト",
     "ro": "Hip thrust cu bara",
     "th": "ฮิปทรัสต์ด้วยบาร์เบล"
    },
@@ -325,6 +361,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Hip Thrust",
+    "de": "Dumbbell Hip Thrust",
+    "de-CH": "Dumbbell Hip Thrust",
+    "it": "Dumbbell Hip Thrust",
+    "es": "Dumbbell Hip Thrust",
+    "pt": "Dumbbell Hip Thrust",
+    "ja": "ダンベルヒップスラスト",
     "ro": "Dumbbell Hip Thrust",
     "th": "Dumbbell Hip Thrust"
    },
@@ -358,6 +400,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Machine Hip Thrust",
+    "de": "Machine Hip Thrust",
+    "de-CH": "Machine Hip Thrust",
+    "it": "Machine Hip Thrust",
+    "es": "Machine Hip Thrust",
+    "pt": "Machine Hip Thrust",
+    "ja": "マシンヒップスラスト",
     "ro": "Machine Hip Thrust",
     "th": "Machine Hip Thrust"
    },
@@ -391,6 +439,12 @@
    "incrementKG": 2,
    "names": {
     "en": "B-Stance Hip Thrust",
+    "de": "B-Stance Hip Thrust",
+    "de-CH": "B-Stance Hip Thrust",
+    "it": "B-Stance Hip Thrust",
+    "es": "B-Stance Hip Thrust",
+    "pt": "B-Stance Hip Thrust",
+    "ja": "Bスタンスヒップスラスト",
     "ro": "B-Stance Hip Thrust",
     "th": "B-Stance Hip Thrust"
    },
@@ -426,6 +480,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Glute Bridge",
+    "de": "Hüftbrücke",
+    "de-CH": "Hüftbrücke",
+    "it": "Ponte glutei",
+    "es": "Puente de glúteos",
+    "pt": "Ponte de glúteos",
+    "ja": "グルートブリッジ",
     "ro": "Glute Bridge",
     "th": "Glute Bridge"
    },
@@ -458,6 +518,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Frog Pump",
+    "de": "Frog Pump",
+    "de-CH": "Frog Pump",
+    "it": "Frog Pump",
+    "es": "Frog Pump",
+    "pt": "Frog Pump",
+    "ja": "カエルポンプ",
     "ro": "Frog Pump",
     "th": "Frog Pump"
    },
@@ -491,6 +557,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Back Extension",
+    "de": "Back Extension",
+    "de-CH": "Back Extension",
+    "it": "Back Extension",
+    "es": "Back Extension",
+    "pt": "Back Extension",
+    "ja": "バックエクステンション",
     "ro": "Back Extension",
     "th": "Back Extension"
    },
@@ -528,6 +600,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Kettlebell Swing",
+    "de": "Kettlebell Swing",
+    "de-CH": "Kettlebell Swing",
+    "it": "Kettlebell Swing",
+    "es": "Kettlebell Swing",
+    "pt": "Kettlebell Swing",
+    "ja": "Kettlebellスイング",
     "ro": "Balans cu kettlebell",
     "th": "เคตเทิลเบลสวิง"
    },
@@ -562,6 +640,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Good Morning",
+    "de": "Good Morning",
+    "de-CH": "Good Morning",
+    "it": "Good Morning",
+    "es": "Good Morning",
+    "pt": "Good Morning",
+    "ja": "グッドモーニング",
     "ro": "Good Morning",
     "th": "Good Morning"
    },
@@ -596,6 +680,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Backpack Romanian Deadlift",
+    "de": "Backpack Romanian Deadlift",
+    "de-CH": "Backpack Romanian Deadlift",
+    "it": "Backpack Romanian Deadlift",
+    "es": "Backpack Romanian Deadlift",
+    "pt": "Backpack Romanian Deadlift",
+    "ja": "バックパック ルーマニア語デッドリフト",
     "ro": "Backpack Romanian Deadlift",
     "th": "Backpack Romanian Deadlift"
    },
@@ -636,6 +726,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Back Squat",
+    "de": "Kniebeuge mit Langhantel",
+    "de-CH": "Kniebeuge mit Langhantel",
+    "it": "Squat con bilanciere",
+    "es": "Sentadilla trasera con barra",
+    "pt": "Agachamento com barra às costas",
+    "ja": "バーベル・バックスクワット",
     "ro": "Genuflexiuni cu bara la spate",
     "th": "แบ็กสควอตด้วยบาร์เบล"
    },
@@ -671,6 +767,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Front Squat",
+    "de": "Barbell Front Squat",
+    "de-CH": "Barbell Front Squat",
+    "it": "Barbell Front Squat",
+    "es": "Barbell Front Squat",
+    "pt": "Barbell Front Squat",
+    "ja": "バーベルフロントスクワット",
     "ro": "Genuflexiuni cu bara în față",
     "th": "ฟรอนต์สควอตด้วยบาร์เบล"
    },
@@ -707,6 +809,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Goblet Squat",
+    "de": "Goblet Squat",
+    "de-CH": "Goblet Squat",
+    "it": "Goblet Squat",
+    "es": "Goblet Squat",
+    "pt": "Goblet Squat",
+    "ja": "ゴブレットスクエア",
     "ro": "Genuflexiuni goblet",
     "th": "กอบเล็ตสควอต"
    },
@@ -742,6 +850,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Heel-Elevated Goblet Squat",
+    "de": "Heel-Elevated Goblet Squat",
+    "de-CH": "Heel-Elevated Goblet Squat",
+    "it": "Heel-Elevated Goblet Squat",
+    "es": "Heel-Elevated Goblet Squat",
+    "pt": "Heel-Elevated Goblet Squat",
+    "ja": "Heel-Elevatedゴブレットスクエア",
     "ro": "Heel-Elevated Goblet Squat",
     "th": "Heel-Elevated Goblet Squat"
    },
@@ -777,6 +891,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Hack Squat",
+    "de": "Hack Squat",
+    "de-CH": "Hack Squat",
+    "it": "Hack Squat",
+    "es": "Hack Squat",
+    "pt": "Hack Squat",
+    "ja": "ハックスクワット",
     "ro": "Genuflexiuni la hack squat",
     "th": "แฮ็กสควอต"
    },
@@ -811,6 +931,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Leg Press",
+    "de": "Leg Press",
+    "de-CH": "Leg Press",
+    "it": "Leg Press",
+    "es": "Leg Press",
+    "pt": "Leg Press",
+    "ja": "脚プレス",
     "ro": "Presă pentru picioare",
     "th": "เลกเพรส"
    },
@@ -844,6 +970,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bodyweight Squat",
+    "de": "Bodyweight Squat",
+    "de-CH": "Bodyweight Squat",
+    "it": "Bodyweight Squat",
+    "es": "Bodyweight Squat",
+    "pt": "Bodyweight Squat",
+    "ja": "体重スクワット",
     "ro": "Bodyweight Squat",
     "th": "Bodyweight Squat"
    },
@@ -876,6 +1008,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Sit-to-Stand",
+    "de": "Sit-to-Stand",
+    "de-CH": "Sit-to-Stand",
+    "it": "Sit-to-Stand",
+    "es": "Sit-to-Stand",
+    "pt": "Sit-to-Stand",
+    "ja": "シット・ツー・スタンド",
     "ro": "Sit-to-Stand",
     "th": "Sit-to-Stand"
    },
@@ -913,6 +1051,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pistol Squat",
+    "de": "Pistol Squat",
+    "de-CH": "Pistol Squat",
+    "it": "Pistol Squat",
+    "es": "Pistol Squat",
+    "pt": "Pistol Squat",
+    "ja": "ピストルスクワット",
     "ro": "Genuflexiuni pistol",
     "th": "พิสตอลสควอต"
    },
@@ -946,6 +1090,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Squat",
+    "de": "Smith Machine Squat",
+    "de-CH": "Smith Machine Squat",
+    "it": "Smith Machine Squat",
+    "es": "Smith Machine Squat",
+    "pt": "Smith Machine Squat",
+    "ja": "スミスマシンスクワット",
     "ro": "Smith Machine Squat",
     "th": "Smith Machine Squat"
    },
@@ -981,6 +1131,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Bulgarian Split Squat",
+    "de": "Bulgarian Split Squat",
+    "de-CH": "Bulgarian Split Squat",
+    "it": "Bulgarian Split Squat",
+    "es": "Bulgarian Split Squat",
+    "pt": "Bulgarian Split Squat",
+    "ja": "ブルガリアの分割スクワット",
     "ro": "Genuflexiuni bulgărești",
     "th": "บัลแกเรียนสปลิตสควอต"
    },
@@ -1018,6 +1174,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Split Squat",
+    "de": "Split Squat",
+    "de-CH": "Split Squat",
+    "it": "Split Squat",
+    "es": "Split Squat",
+    "pt": "Split Squat",
+    "ja": "スプリットスクワット",
     "ro": "Split Squat",
     "th": "Split Squat"
    },
@@ -1052,6 +1214,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Reverse Lunge",
+    "de": "Reverse Lunge",
+    "de-CH": "Reverse Lunge",
+    "it": "Reverse Lunge",
+    "es": "Reverse Lunge",
+    "pt": "Reverse Lunge",
+    "ja": "逆Lunge",
     "ro": "Fandări inverse cu gantere",
     "th": "ลันจ์ถอยหลังด้วยดัมเบล"
    },
@@ -1092,6 +1260,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Walking Lunge",
+    "de": "Walking Lunge",
+    "de-CH": "Walking Lunge",
+    "it": "Walking Lunge",
+    "es": "Walking Lunge",
+    "pt": "Walking Lunge",
+    "ja": "ウォーキング・ランゲ",
     "ro": "Fandări din mers cu gantere",
     "th": "เดินลันจ์ด้วยดัมเบล"
    },
@@ -1131,6 +1305,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Forward Lunge",
+    "de": "Forward Lunge",
+    "de-CH": "Forward Lunge",
+    "it": "Forward Lunge",
+    "es": "Forward Lunge",
+    "pt": "Forward Lunge",
+    "ja": "フォワード・ルンネ",
     "ro": "Forward Lunge",
     "th": "Forward Lunge"
    },
@@ -1166,6 +1346,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Step-Up",
+    "de": "Step-Up",
+    "de-CH": "Step-Up",
+    "it": "Step-Up",
+    "es": "Step-Up",
+    "pt": "Step-Up",
+    "ja": "ステップアップ",
     "ro": "Step-Up",
     "th": "Step-Up"
    },
@@ -1199,6 +1385,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Split Squat",
+    "de": "Smith Machine Split Squat",
+    "de-CH": "Smith Machine Split Squat",
+    "it": "Smith Machine Split Squat",
+    "es": "Smith Machine Split Squat",
+    "pt": "Smith Machine Split Squat",
+    "ja": "スミスマシンスプリットスクワット",
     "ro": "Smith Machine Split Squat",
     "th": "Smith Machine Split Squat"
    },
@@ -1234,6 +1426,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Bench Press",
+    "de": "Bankdrücken mit Langhantel",
+    "de-CH": "Bankdrücken mit Langhantel",
+    "it": "Panca piana con bilanciere",
+    "es": "Press de banca con barra",
+    "pt": "Press de peito com barra no banco",
+    "ja": "バーベル・ベンチプレス",
     "ro": "Împins la piept cu bara",
     "th": "เบนช์เพรสด้วยบาร์เบล"
    },
@@ -1268,6 +1466,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Flat Dumbbell Press",
+    "de": "Flat Dumbbell Press",
+    "de-CH": "Flat Dumbbell Press",
+    "it": "Flat Dumbbell Press",
+    "es": "Flat Dumbbell Press",
+    "pt": "Flat Dumbbell Press",
+    "ja": "フラットダンベルプレス",
     "ro": "Flat Dumbbell Press",
     "th": "Flat Dumbbell Press"
    },
@@ -1302,6 +1506,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Incline Dumbbell Press",
+    "de": "Incline Dumbbell Press",
+    "de-CH": "Incline Dumbbell Press",
+    "it": "Incline Dumbbell Press",
+    "es": "Incline Dumbbell Press",
+    "pt": "Incline Dumbbell Press",
+    "ja": "インラインダンベルプレス",
     "ro": "Împins înclinat cu gantere",
     "th": "อินไคลน์ดัมเบลเพรส"
    },
@@ -1336,6 +1546,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Floor Press",
+    "de": "Dumbbell Floor Press",
+    "de-CH": "Dumbbell Floor Press",
+    "it": "Dumbbell Floor Press",
+    "es": "Dumbbell Floor Press",
+    "pt": "Dumbbell Floor Press",
+    "ja": "ダンベルフロアプレス",
     "ro": "Dumbbell Floor Press",
     "th": "Dumbbell Floor Press"
    },
@@ -1370,6 +1586,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Machine Chest Press",
+    "de": "Machine Chest Press",
+    "de-CH": "Machine Chest Press",
+    "it": "Machine Chest Press",
+    "es": "Machine Chest Press",
+    "pt": "Machine Chest Press",
+    "ja": "機械箱プレス",
     "ro": "Împins la piept la aparat",
     "th": "เครื่องดันอก"
    },
@@ -1404,6 +1626,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Incline Smith Machine Press",
+    "de": "Incline Smith Machine Press",
+    "de-CH": "Incline Smith Machine Press",
+    "it": "Incline Smith Machine Press",
+    "es": "Incline Smith Machine Press",
+    "pt": "Incline Smith Machine Press",
+    "ja": "傾斜スミスマシンプレス",
     "ro": "Incline Smith Machine Press",
     "th": "Incline Smith Machine Press"
    },
@@ -1441,6 +1669,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Push-Up",
+    "de": "Liegestütz",
+    "de-CH": "Liegestütz",
+    "it": "Piegamento sulle braccia",
+    "es": "Flexión de brazos",
+    "pt": "Flexão de braços",
+    "ja": "プッシュアップ",
     "ro": "Flotări",
     "th": "วิดพื้น"
    },
@@ -1479,6 +1713,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Incline Push-Up",
+    "de": "Incline Push-Up",
+    "de-CH": "Incline Push-Up",
+    "it": "Incline Push-Up",
+    "es": "Incline Push-Up",
+    "pt": "Incline Push-Up",
+    "ja": "インラインプッシュアップ",
     "ro": "Incline Push-Up",
     "th": "Incline Push-Up"
    },
@@ -1511,6 +1751,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Knee Push-Up",
+    "de": "Knee Push-Up",
+    "de-CH": "Knee Push-Up",
+    "it": "Knee Push-Up",
+    "es": "Knee Push-Up",
+    "pt": "Knee Push-Up",
+    "ja": "Knee プッシュアップ",
     "ro": "Knee Push-Up",
     "th": "Knee Push-Up"
    },
@@ -1547,6 +1793,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Feet-Elevated Push-Up",
+    "de": "Feet-Elevated Push-Up",
+    "de-CH": "Feet-Elevated Push-Up",
+    "it": "Feet-Elevated Push-Up",
+    "es": "Feet-Elevated Push-Up",
+    "pt": "Feet-Elevated Push-Up",
+    "ja": "フィート上昇したプッシュアップ",
     "ro": "Flotări declinate",
     "th": "วิดพื้นยกเท้า"
    },
@@ -1587,6 +1839,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Weighted Push-Up",
+    "de": "Weighted Push-Up",
+    "de-CH": "Weighted Push-Up",
+    "it": "Weighted Push-Up",
+    "es": "Weighted Push-Up",
+    "pt": "Weighted Push-Up",
+    "ja": "重み付きプッシュアップ",
     "ro": "Weighted Push-Up",
     "th": "Weighted Push-Up"
    },
@@ -1624,6 +1882,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Diamond Push-Up",
+    "de": "Diamond Push-Up",
+    "de-CH": "Diamond Push-Up",
+    "it": "Diamond Push-Up",
+    "es": "Diamond Push-Up",
+    "pt": "Diamond Push-Up",
+    "ja": "ダイヤモンドプッシュアップ",
     "ro": "Flotări diamant",
     "th": "วิดพื้นไดมอนด์"
    },
@@ -1662,6 +1926,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Parallel Bar Dip",
+    "de": "Parallel Bar Dip",
+    "de-CH": "Parallel Bar Dip",
+    "it": "Parallel Bar Dip",
+    "es": "Parallel Bar Dip",
+    "pt": "Parallel Bar Dip",
+    "ja": "パラレルバーディップ",
     "ro": "Flotări la paralele",
     "th": "ดิพบนบาร์คู่"
    },
@@ -1701,6 +1971,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Fly",
+    "de": "Cable Fly",
+    "de-CH": "Cable Fly",
+    "it": "Cable Fly",
+    "es": "Cable Fly",
+    "pt": "Cable Fly",
+    "ja": "ケーブル フライ",
     "ro": "Fluturări cu gantere",
     "th": "ดัมเบลฟลาย"
    },
@@ -1741,6 +2017,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Overhead Press",
+    "de": "Schulterdrücken mit Langhantel",
+    "de-CH": "Schulterdrücken mit Langhantel",
+    "it": "Military press con bilanciere",
+    "es": "Press por encima de la cabeza con barra",
+    "pt": "Press de ombros com barra",
+    "ja": "バーベル・オーバーヘッドプレス",
     "ro": "Împins deasupra capului cu bara",
     "th": "โอเวอร์เฮดเพรสด้วยบาร์เบล"
    },
@@ -1774,6 +2056,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Seated Dumbbell Press",
+    "de": "Seated Dumbbell Press",
+    "de-CH": "Seated Dumbbell Press",
+    "it": "Seated Dumbbell Press",
+    "es": "Seated Dumbbell Press",
+    "pt": "Seated Dumbbell Press",
+    "ja": "シートダンベルプレス",
     "ro": "Seated Dumbbell Press",
     "th": "Seated Dumbbell Press"
    },
@@ -1810,6 +2098,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Machine Shoulder Press",
+    "de": "Machine Shoulder Press",
+    "de-CH": "Machine Shoulder Press",
+    "it": "Machine Shoulder Press",
+    "es": "Machine Shoulder Press",
+    "pt": "Machine Shoulder Press",
+    "ja": "機械ショルダープレス",
     "ro": "Împins pentru umeri la aparat",
     "th": "เครื่องดันไหล่"
    },
@@ -1844,6 +2138,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Press",
+    "de": "Landmine Press",
+    "de-CH": "Landmine Press",
+    "it": "Landmine Press",
+    "es": "Landmine Press",
+    "pt": "Landmine Press",
+    "ja": "ランドマインプレス",
     "ro": "Landmine Press",
     "th": "Landmine Press"
    },
@@ -1877,6 +2177,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pike Push-Up",
+    "de": "Pike Push-Up",
+    "de-CH": "Pike Push-Up",
+    "it": "Pike Push-Up",
+    "es": "Pike Push-Up",
+    "pt": "Pike Push-Up",
+    "ja": "Pikeプッシュアップ",
     "ro": "Flotări pike",
     "th": "ไพก์พุชอัพ"
    },
@@ -1909,6 +2215,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Feet-Elevated Pike Push-Up",
+    "de": "Feet-Elevated Pike Push-Up",
+    "de-CH": "Feet-Elevated Pike Push-Up",
+    "it": "Feet-Elevated Pike Push-Up",
+    "es": "Feet-Elevated Pike Push-Up",
+    "pt": "Feet-Elevated Pike Push-Up",
+    "ja": "フィート上昇したパイク プッシュアップ",
     "ro": "Feet-Elevated Pike Push-Up",
     "th": "Feet-Elevated Pike Push-Up"
    },
@@ -1948,6 +2260,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Handstand Push-Up",
+    "de": "Handstand Push-Up",
+    "de-CH": "Handstand Push-Up",
+    "it": "Handstand Push-Up",
+    "es": "Handstand Push-Up",
+    "pt": "Handstand Push-Up",
+    "ja": "ハンドスタンド プッシュアップ",
     "ro": "Flotări în stând pe mâini",
     "th": "วิดพื้นแฮนด์สแตนด์"
    },
@@ -1984,6 +2302,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Row",
+    "de": "Barbell Row",
+    "de-CH": "Barbell Row",
+    "it": "Barbell Row",
+    "es": "Barbell Row",
+    "pt": "Barbell Row",
+    "ja": "バーベル・ロウ",
     "ro": "Ramat cu bara",
     "th": "บาร์เบลโรว์"
    },
@@ -2022,6 +2346,12 @@
    "incrementKG": 2,
    "names": {
     "en": "One-Arm Dumbbell Row",
+    "de": "One-Arm Dumbbell Row",
+    "de-CH": "One-Arm Dumbbell Row",
+    "it": "One-Arm Dumbbell Row",
+    "es": "One-Arm Dumbbell Row",
+    "pt": "One-Arm Dumbbell Row",
+    "ja": "ワンアームダンベル列",
     "ro": "Ramat cu o ganteră",
     "th": "ดัมเบลโรว์ข้างเดียว"
    },
@@ -2061,6 +2391,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Chest-Supported Dumbbell Row",
+    "de": "Chest-Supported Dumbbell Row",
+    "de-CH": "Chest-Supported Dumbbell Row",
+    "it": "Chest-Supported Dumbbell Row",
+    "es": "Chest-Supported Dumbbell Row",
+    "pt": "Chest-Supported Dumbbell Row",
+    "ja": "チェストサポートDumbbellの列",
     "ro": "Chest-Supported Dumbbell Row",
     "th": "Chest-Supported Dumbbell Row"
    },
@@ -2096,6 +2432,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Chest-Supported Machine Row",
+    "de": "Chest-Supported Machine Row",
+    "de-CH": "Chest-Supported Machine Row",
+    "it": "Chest-Supported Machine Row",
+    "es": "Chest-Supported Machine Row",
+    "pt": "Chest-Supported Machine Row",
+    "ja": "チェストサポートマシン列",
     "ro": "Ramat la aparat cu pieptul sprijinit",
     "th": "เครื่องพายพิงอก"
    },
@@ -2137,6 +2479,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Chest-Supported T-Bar Row",
+    "de": "Chest-Supported T-Bar Row",
+    "de-CH": "Chest-Supported T-Bar Row",
+    "it": "Chest-Supported T-Bar Row",
+    "es": "Chest-Supported T-Bar Row",
+    "pt": "Chest-Supported T-Bar Row",
+    "ja": "チェストサポートTバーロウ",
     "ro": "Chest-Supported T-Bar Row",
     "th": "Chest-Supported T-Bar Row"
    },
@@ -2172,6 +2520,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Seated Cable Row",
+    "de": "Seated Cable Row",
+    "de-CH": "Seated Cable Row",
+    "it": "Seated Cable Row",
+    "es": "Seated Cable Row",
+    "pt": "Seated Cable Row",
+    "ja": "座席ケーブル列",
     "ro": "Ramat la cablu din șezut",
     "th": "นั่งพายเคเบิล"
    },
@@ -2211,6 +2565,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Single-Arm Cable Row",
+    "de": "Single-Arm Cable Row",
+    "de-CH": "Single-Arm Cable Row",
+    "it": "Single-Arm Cable Row",
+    "es": "Single-Arm Cable Row",
+    "pt": "Single-Arm Cable Row",
+    "ja": "シングルアームケーブル列",
     "ro": "Single-Arm Cable Row",
     "th": "Single-Arm Cable Row"
    },
@@ -2250,6 +2610,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Inverted Row",
+    "de": "Inverted Row",
+    "de-CH": "Inverted Row",
+    "it": "Inverted Row",
+    "es": "Inverted Row",
+    "pt": "Inverted Row",
+    "ja": "変換された列",
     "ro": "Ramat invers",
     "th": "อินเวิร์ทโรว์"
    },
@@ -2289,6 +2655,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Row",
+    "de": "Band Row",
+    "de-CH": "Band Row",
+    "it": "Band Row",
+    "es": "Band Row",
+    "pt": "Band Row",
+    "ja": "バンド・ロウ",
     "ro": "Band Row",
     "th": "Band Row"
    },
@@ -2323,6 +2695,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Backpack Row",
+    "de": "Backpack Row",
+    "de-CH": "Backpack Row",
+    "it": "Backpack Row",
+    "es": "Backpack Row",
+    "pt": "Backpack Row",
+    "ja": "バックパックの列",
     "ro": "Backpack Row",
     "th": "Backpack Row"
    },
@@ -2358,6 +2736,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Pull-Up",
+    "de": "Klimmzug",
+    "de-CH": "Klimmzug",
+    "it": "Trazione alla sbarra",
+    "es": "Dominada",
+    "pt": "Elevação na barra",
+    "ja": "プルアップ",
     "ro": "Tracțiuni la bară",
     "th": "ดึงข้อ"
    },
@@ -2399,6 +2783,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Chin-Up",
+    "de": "Chin-Up",
+    "de-CH": "Chin-Up",
+    "it": "Chin-Up",
+    "es": "Chin-Up",
+    "pt": "Chin-Up",
+    "ja": "チンアップ",
     "ro": "Tracțiuni cu priză inversă",
     "th": "ชินอัพ"
    },
@@ -2435,6 +2825,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band-Assisted Pull-Up",
+    "de": "Band-Assisted Pull-Up",
+    "de-CH": "Band-Assisted Pull-Up",
+    "it": "Band-Assisted Pull-Up",
+    "es": "Band-Assisted Pull-Up",
+    "pt": "Band-Assisted Pull-Up",
+    "ja": "バンドアシストプルアップ",
     "ro": "Band-Assisted Pull-Up",
     "th": "Band-Assisted Pull-Up"
    },
@@ -2471,6 +2867,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Neutral-Grip Lat Pulldown",
+    "de": "Neutral-Grip Lat Pulldown",
+    "de-CH": "Neutral-Grip Lat Pulldown",
+    "it": "Neutral-Grip Lat Pulldown",
+    "es": "Neutral-Grip Lat Pulldown",
+    "pt": "Neutral-Grip Lat Pulldown",
+    "ja": "ニュートラルグリップラットプルダウン",
     "ro": "Tracțiuni la helcometru",
     "th": "ดึงข้อด้วยสายเคเบิล"
    },
@@ -2505,6 +2907,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Lat Pulldown",
+    "de": "Band Lat Pulldown",
+    "de-CH": "Band Lat Pulldown",
+    "it": "Band Lat Pulldown",
+    "es": "Band Lat Pulldown",
+    "pt": "Band Lat Pulldown",
+    "ja": "バンド ラットのプルダウン",
     "ro": "Band Lat Pulldown",
     "th": "Band Lat Pulldown"
    },
@@ -2540,6 +2948,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Dead Hang",
+    "de": "Dead Hang",
+    "de-CH": "Dead Hang",
+    "it": "Dead Hang",
+    "es": "Dead Hang",
+    "pt": "Dead Hang",
+    "ja": "デッドハング",
     "ro": "Dead Hang",
     "th": "Dead Hang"
    },
@@ -2573,6 +2987,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Scapular Pull-Up",
+    "de": "Scapular Pull-Up",
+    "de-CH": "Scapular Pull-Up",
+    "it": "Scapular Pull-Up",
+    "es": "Scapular Pull-Up",
+    "pt": "Scapular Pull-Up",
+    "ja": "Scapular プルアップ",
     "ro": "Scapular Pull-Up",
     "th": "Scapular Pull-Up"
    },
@@ -2614,6 +3034,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Muscle-Up Transition Practice",
+    "de": "Muscle-Up Transition Practice",
+    "de-CH": "Muscle-Up Transition Practice",
+    "it": "Muscle-Up Transition Practice",
+    "es": "Muscle-Up Transition Practice",
+    "pt": "Muscle-Up Transition Practice",
+    "ja": "筋肉上トランジションの練習",
     "ro": "Muscle-up la bară",
     "th": "บาร์มัสเซิลอัพ"
    },
@@ -2651,6 +3077,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Suitcase Carry",
+    "de": "Suitcase Carry",
+    "de-CH": "Suitcase Carry",
+    "it": "Suitcase Carry",
+    "es": "Suitcase Carry",
+    "pt": "Suitcase Carry",
+    "ja": "スーツケース キャリー",
     "ro": "Suitcase Carry",
     "th": "Suitcase Carry"
    },
@@ -2689,6 +3121,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Farmer's Carry",
+    "de": "Farmer's Carry",
+    "de-CH": "Farmer's Carry",
+    "it": "Farmer's Carry",
+    "es": "Farmer's Carry",
+    "pt": "Farmer's Carry",
+    "ja": "ファーマーズキャリー",
     "ro": "Mersul fermierului",
     "th": "ฟาร์เมอร์แคร์รี"
    },
@@ -2727,6 +3165,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Plank",
+    "de": "Plank",
+    "de-CH": "Plank",
+    "it": "Plank",
+    "es": "Plank",
+    "pt": "Plank",
+    "ja": "プランク",
     "ro": "Plank",
     "th": "Plank"
    },
@@ -2762,6 +3206,12 @@
    "incrementKG": 0,
    "names": {
     "en": "RKC Plank",
+    "de": "RKC Plank",
+    "de-CH": "RKC Plank",
+    "it": "RKC Plank",
+    "es": "RKC Plank",
+    "pt": "RKC Plank",
+    "ja": "RKCプランク",
     "ro": "RKC Plank",
     "th": "RKC Plank"
    },
@@ -2796,6 +3246,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Side Plank",
+    "de": "Side Plank",
+    "de-CH": "Side Plank",
+    "it": "Side Plank",
+    "es": "Side Plank",
+    "pt": "Side Plank",
+    "ja": "サイドプランク",
     "ro": "Planșă laterală",
     "th": "แพลงก์ด้านข้าง"
    },
@@ -2829,7 +3285,13 @@
    "incrementKG": 0,
    "names": {
     "en": "Dead Bug",
-    "ro": "Dead bug",
+    "de": "Dead Bug",
+    "de-CH": "Dead Bug",
+    "it": "Dead Bug",
+    "es": "Dead Bug",
+    "pt": "Dead Bug",
+    "ja": "デッドバグ",
+    "ro": "Dead Bug",
     "th": "เดดบั๊ก"
    },
    "aliases": {
@@ -2864,6 +3326,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bird-Dog",
+    "de": "Bird-Dog",
+    "de-CH": "Bird-Dog",
+    "it": "Bird-Dog",
+    "es": "Bird-Dog",
+    "pt": "Bird-Dog",
+    "ja": "バードドッグ",
     "ro": "Bird dog",
     "th": "เบิร์ดด็อก"
    },
@@ -2897,6 +3365,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Pallof Press",
+    "de": "Pallof Press",
+    "de-CH": "Pallof Press",
+    "it": "Pallof Press",
+    "es": "Pallof Press",
+    "pt": "Pallof Press",
+    "ja": "Pallofプレス",
     "ro": "Pallof Press",
     "th": "Pallof Press"
    },
@@ -2931,6 +3405,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hanging Knee Raise",
+    "de": "Hanging Knee Raise",
+    "de-CH": "Hanging Knee Raise",
+    "it": "Hanging Knee Raise",
+    "es": "Hanging Knee Raise",
+    "pt": "Hanging Knee Raise",
+    "ja": "掛かる膝の昇給",
     "ro": "Ridicări de picioare la bară",
     "th": "ยกขาห้อยบาร์"
    },
@@ -2965,6 +3445,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hollow Body Hold",
+    "de": "Hollow Body Hold",
+    "de-CH": "Hollow Body Hold",
+    "it": "Hollow Body Hold",
+    "es": "Hollow Body Hold",
+    "pt": "Hollow Body Hold",
+    "ja": "空のボディ ホールド",
     "ro": "Menținere hollow body",
     "th": "ฮอลโลว์บอดี้โฮลด์"
    },
@@ -2998,6 +3484,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Dumbbell Curl",
+    "de": "Dumbbell Curl",
+    "de-CH": "Dumbbell Curl",
+    "it": "Dumbbell Curl",
+    "es": "Dumbbell Curl",
+    "pt": "Dumbbell Curl",
+    "ja": "ダンベルカール",
     "ro": "Flexii cu bara pentru biceps",
     "th": "บาร์เบลเคิร์ล"
    },
@@ -3032,6 +3524,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Incline Dumbbell Curl",
+    "de": "Incline Dumbbell Curl",
+    "de-CH": "Incline Dumbbell Curl",
+    "it": "Incline Dumbbell Curl",
+    "es": "Incline Dumbbell Curl",
+    "pt": "Incline Dumbbell Curl",
+    "ja": "インラインダンベルカール",
     "ro": "Incline Dumbbell Curl",
     "th": "Incline Dumbbell Curl"
    },
@@ -3065,6 +3563,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Hammer Curl",
+    "de": "Hammer Curl",
+    "de-CH": "Hammer Curl",
+    "it": "Hammer Curl",
+    "es": "Hammer Curl",
+    "pt": "Hammer Curl",
+    "ja": "ハンマーカール",
     "ro": "Flexii ciocan",
     "th": "แฮมเมอร์เคิร์ล"
    },
@@ -3103,6 +3607,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Curl",
+    "de": "Cable Curl",
+    "de-CH": "Cable Curl",
+    "it": "Cable Curl",
+    "es": "Cable Curl",
+    "pt": "Cable Curl",
+    "ja": "ケーブルカール",
     "ro": "Flexii biceps la cablu",
     "th": "เคเบิลเคิร์ล"
    },
@@ -3136,6 +3646,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Curl",
+    "de": "Band Curl",
+    "de-CH": "Band Curl",
+    "it": "Band Curl",
+    "es": "Band Curl",
+    "pt": "Band Curl",
+    "ja": "バンドカール",
     "ro": "Band Curl",
     "th": "Band Curl"
    },
@@ -3168,6 +3684,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Overhead Triceps Extension",
+    "de": "Overhead Triceps Extension",
+    "de-CH": "Overhead Triceps Extension",
+    "it": "Overhead Triceps Extension",
+    "es": "Overhead Triceps Extension",
+    "pt": "Overhead Triceps Extension",
+    "ja": "頭上式のTriceps延長",
     "ro": "Extensii triceps culcat cu gantere",
     "th": "ดัมเบลสกัลครัชเชอร์"
    },
@@ -3200,6 +3722,12 @@
    "incrementKG": 0.5,
    "names": {
     "en": "Lateral Raise",
+    "de": "Lateral Raise",
+    "de-CH": "Lateral Raise",
+    "it": "Lateral Raise",
+    "es": "Lateral Raise",
+    "pt": "Lateral Raise",
+    "ja": "横の上昇",
     "ro": "Ridicări laterale cu gantere",
     "th": "ยกแขนข้างด้วยดัมเบล"
    },
@@ -3234,6 +3762,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Lateral Raise",
+    "de": "Cable Lateral Raise",
+    "de-CH": "Cable Lateral Raise",
+    "it": "Cable Lateral Raise",
+    "es": "Cable Lateral Raise",
+    "pt": "Cable Lateral Raise",
+    "ja": "ケーブル 横の昇給",
     "ro": "Ridicări laterale la cablu",
     "th": "ยกแขนข้างด้วยเคเบิล"
    },
@@ -3265,6 +3799,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Lateral Raise",
+    "de": "Band Lateral Raise",
+    "de-CH": "Band Lateral Raise",
+    "it": "Band Lateral Raise",
+    "es": "Band Lateral Raise",
+    "pt": "Band Lateral Raise",
+    "ja": "バンド横上げ",
     "ro": "Band Lateral Raise",
     "th": "Band Lateral Raise"
    },
@@ -3299,6 +3839,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Face Pull",
+    "de": "Cable Face Pull",
+    "de-CH": "Cable Face Pull",
+    "it": "Cable Face Pull",
+    "es": "Cable Face Pull",
+    "pt": "Cable Face Pull",
+    "ja": "ケーブルの表面の引き",
     "ro": "Trageri la față la cablu",
     "th": "เฟซพูลด้วยเคเบิล"
    },
@@ -3333,6 +3879,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Face Pull",
+    "de": "Band Face Pull",
+    "de-CH": "Band Face Pull",
+    "it": "Band Face Pull",
+    "es": "Band Face Pull",
+    "pt": "Band Face Pull",
+    "ja": "バンド フェイス プル",
     "ro": "Band Face Pull",
     "th": "Band Face Pull"
    },
@@ -3366,6 +3918,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Pull-Apart",
+    "de": "Band Pull-Apart",
+    "de-CH": "Band Pull-Apart",
+    "it": "Band Pull-Apart",
+    "es": "Band Pull-Apart",
+    "pt": "Band Pull-Apart",
+    "ja": "バンドプルパーツ",
     "ro": "Band Pull-Apart",
     "th": "Band Pull-Apart"
    },
@@ -3403,6 +3961,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Reverse Pec Deck",
+    "de": "Reverse Pec Deck",
+    "de-CH": "Reverse Pec Deck",
+    "it": "Reverse Pec Deck",
+    "es": "Reverse Pec Deck",
+    "pt": "Reverse Pec Deck",
+    "ja": "逆のPecのデッキ",
     "ro": "Fluturări pentru deltoid posterior",
     "th": "รีเวิร์สดัมเบลฟลาย"
    },
@@ -3436,6 +4000,12 @@
    "incrementKG": 0.5,
    "names": {
     "en": "Cable External Rotation",
+    "de": "Cable External Rotation",
+    "de-CH": "Cable External Rotation",
+    "it": "Cable External Rotation",
+    "es": "Cable External Rotation",
+    "pt": "Cable External Rotation",
+    "ja": "ケーブル外的な回転",
     "ro": "Cable External Rotation",
     "th": "Cable External Rotation"
    },
@@ -3468,6 +4038,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Lying Leg Curl",
+    "de": "Lying Leg Curl",
+    "de-CH": "Lying Leg Curl",
+    "it": "Lying Leg Curl",
+    "es": "Lying Leg Curl",
+    "pt": "Lying Leg Curl",
+    "ja": "ライイング脚カール",
     "ro": "Flexii femurali din culcat",
     "th": "นอนงอขาด้วยเครื่อง"
    },
@@ -3500,6 +4076,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Seated Leg Curl",
+    "de": "Seated Leg Curl",
+    "de-CH": "Seated Leg Curl",
+    "it": "Seated Leg Curl",
+    "es": "Seated Leg Curl",
+    "pt": "Seated Leg Curl",
+    "ja": "シートレッグカール",
     "ro": "Flexii femurali din șezut",
     "th": "นั่งงอขาด้วยเครื่อง"
    },
@@ -3533,6 +4115,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Sliding Leg Curl",
+    "de": "Sliding Leg Curl",
+    "de-CH": "Sliding Leg Curl",
+    "it": "Sliding Leg Curl",
+    "es": "Sliding Leg Curl",
+    "pt": "Sliding Leg Curl",
+    "ja": "足のカールを滑らせて下さい",
     "ro": "Sliding Leg Curl",
     "th": "Sliding Leg Curl"
    },
@@ -3568,6 +4156,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Nordic Hamstring Curl",
+    "de": "Nordic Hamstring Curl",
+    "de-CH": "Nordic Hamstring Curl",
+    "it": "Nordic Hamstring Curl",
+    "es": "Nordic Hamstring Curl",
+    "pt": "Nordic Hamstring Curl",
+    "ja": "北欧ハムストリングカール",
     "ro": "Flexii nordice pentru femurali",
     "th": "นอร์ดิกแฮมสตริงเคิร์ล"
    },
@@ -3600,6 +4194,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Leg Extension",
+    "de": "Leg Extension",
+    "de-CH": "Leg Extension",
+    "it": "Leg Extension",
+    "es": "Leg Extension",
+    "pt": "Leg Extension",
+    "ja": "足延長",
     "ro": "Extensii pentru picioare",
     "th": "เหยียดขาด้วยเครื่อง"
    },
@@ -3632,6 +4232,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Hip Abduction",
+    "de": "Hip Abduction",
+    "de-CH": "Hip Abduction",
+    "it": "Hip Abduction",
+    "es": "Hip Abduction",
+    "pt": "Hip Abduction",
+    "ja": "ヒップアブダクション",
     "ro": "Abducții de șold la aparat",
     "th": "เครื่องกางสะโพก"
    },
@@ -3667,6 +4273,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Standing Calf Raise",
+    "de": "Standing Calf Raise",
+    "de-CH": "Standing Calf Raise",
+    "it": "Standing Calf Raise",
+    "es": "Standing Calf Raise",
+    "pt": "Standing Calf Raise",
+    "ja": "スタンドカーフレイズ",
     "ro": "Gambe la aparat din picioare",
     "th": "เครื่องยืนเขย่งน่อง"
    },
@@ -3716,6 +4328,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Seated Calf Raise",
+    "de": "Seated Calf Raise",
+    "de-CH": "Seated Calf Raise",
+    "it": "Seated Calf Raise",
+    "es": "Seated Calf Raise",
+    "pt": "Seated Calf Raise",
+    "ja": "シートカーフレイズ",
     "ro": "Gambe din șezut la aparat",
     "th": "นั่งเขย่งน่องด้วยเครื่อง"
    },
@@ -3755,6 +4373,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Single-Leg Calf Raise",
+    "de": "Single-Leg Calf Raise",
+    "de-CH": "Single-Leg Calf Raise",
+    "it": "Single-Leg Calf Raise",
+    "es": "Single-Leg Calf Raise",
+    "pt": "Single-Leg Calf Raise",
+    "ja": "シングルレッグカーフレイズ",
     "ro": "Single-Leg Calf Raise",
     "th": "Single-Leg Calf Raise"
    },
@@ -3794,6 +4418,12 @@
    "incrementKG": 0,
    "names": {
     "en": "L-Sit",
+    "de": "L-Sit",
+    "de-CH": "L-Sit",
+    "it": "L-Sit",
+    "es": "L-Sit",
+    "pt": "L-Sit",
+    "ja": "L-シット",
     "ro": "Menținere L-sit",
     "th": "แอลซิตโฮลด์"
    },
@@ -3828,6 +4458,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Tuck Planche Hold",
+    "de": "Tuck Planche Hold",
+    "de-CH": "Tuck Planche Hold",
+    "it": "Tuck Planche Hold",
+    "es": "Tuck Planche Hold",
+    "pt": "Tuck Planche Hold",
+    "ja": "タックプランチェホールド",
     "ro": "Tuck Planche Hold",
     "th": "Tuck Planche Hold"
    },
@@ -3862,6 +4498,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Wall Handstand Hold",
+    "de": "Wall Handstand Hold",
+    "de-CH": "Wall Handstand Hold",
+    "it": "Wall Handstand Hold",
+    "es": "Wall Handstand Hold",
+    "pt": "Wall Handstand Hold",
+    "ja": "壁のHandstandの把握",
     "ro": "Wall Handstand Hold",
     "th": "Wall Handstand Hold"
    },
@@ -3896,6 +4538,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Archer Push-Up",
+    "de": "Archer Push-Up",
+    "de-CH": "Archer Push-Up",
+    "it": "Archer Push-Up",
+    "es": "Archer Push-Up",
+    "pt": "Archer Push-Up",
+    "ja": "アーチャープッシュアップ",
     "ro": "Archer Push-Up",
     "th": "Archer Push-Up"
    },
@@ -3931,6 +4579,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ring Dip",
+    "de": "Ring Dip",
+    "de-CH": "Ring Dip",
+    "it": "Ring Dip",
+    "es": "Ring Dip",
+    "pt": "Ring Dip",
+    "ja": "リングディップ",
     "ro": "Ring Dip",
     "th": "Ring Dip"
    },
@@ -3968,6 +4622,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Burpee",
+    "de": "Burpee",
+    "de-CH": "Burpee",
+    "it": "Burpee",
+    "es": "Burpee",
+    "pt": "Burpee",
+    "ja": "ブルペ",
     "ro": "Burpee",
     "th": "เบอร์พี"
    },
@@ -4005,6 +4665,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Squat Thrust",
+    "de": "Squat Thrust",
+    "de-CH": "Squat Thrust",
+    "it": "Squat Thrust",
+    "es": "Squat Thrust",
+    "pt": "Squat Thrust",
+    "ja": "スクワットスラスト",
     "ro": "Squat Thrust",
     "th": "Squat Thrust"
    },
@@ -4039,6 +4705,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Mountain Climber",
+    "de": "Mountain Climber",
+    "de-CH": "Mountain Climber",
+    "it": "Mountain Climber",
+    "es": "Mountain Climber",
+    "pt": "Mountain Climber",
+    "ja": "マウンテンクライマー",
     "ro": "Cățărătorul",
     "th": "เมาน์เทนไคลม์เบอร์"
    },
@@ -4070,6 +4742,12 @@
    "incrementKG": 0,
    "names": {
     "en": "High Knees",
+    "de": "High Knees",
+    "de-CH": "High Knees",
+    "it": "High Knees",
+    "es": "High Knees",
+    "pt": "High Knees",
+    "ja": "高い膝",
     "ro": "High Knees",
     "th": "High Knees"
    },
@@ -4099,6 +4777,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Marching in Place",
+    "de": "Marching in Place",
+    "de-CH": "Marching in Place",
+    "it": "Marching in Place",
+    "es": "Marching in Place",
+    "pt": "Marching in Place",
+    "ja": "開催場所",
     "ro": "Marching in Place",
     "th": "Marching in Place"
    },
@@ -4134,6 +4818,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Jumping Jack",
+    "de": "Jumping Jack",
+    "de-CH": "Jumping Jack",
+    "it": "Jumping Jack",
+    "es": "Jumping Jack",
+    "pt": "Jumping Jack",
+    "ja": "ジャンプジャック",
     "ro": "Jumping Jack",
     "th": "Jumping Jack"
    },
@@ -4169,6 +4859,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Box Jump",
+    "de": "Box Jump",
+    "de-CH": "Box Jump",
+    "it": "Box Jump",
+    "es": "Box Jump",
+    "pt": "Box Jump",
+    "ja": "ボックスジャンプ",
     "ro": "Sărituri pe cutie",
     "th": "บ็อกซ์จัมป์"
    },
@@ -4204,6 +4900,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Squat Jump",
+    "de": "Squat Jump",
+    "de-CH": "Squat Jump",
+    "it": "Squat Jump",
+    "es": "Squat Jump",
+    "pt": "Squat Jump",
+    "ja": "スクワットジャンプ",
     "ro": "Genuflexiuni cu săritură",
     "th": "จัมป์สควอต"
    },
@@ -4238,6 +4940,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Broad Jump",
+    "de": "Broad Jump",
+    "de-CH": "Broad Jump",
+    "it": "Broad Jump",
+    "es": "Broad Jump",
+    "pt": "Broad Jump",
+    "ja": "ブロードジャンプ",
     "ro": "Broad Jump",
     "th": "Broad Jump"
    },
@@ -4273,6 +4981,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Battle Ropes",
+    "de": "Battle Ropes",
+    "de-CH": "Battle Ropes",
+    "it": "Battle Ropes",
+    "es": "Battle Ropes",
+    "pt": "Battle Ropes",
+    "ja": "バトルロープ",
     "ro": "Valuri cu frânghiile",
     "th": "แบทเทิลโรปเวฟ"
    },
@@ -4307,6 +5021,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Downward-Facing Dog",
+    "de": "Downward-Facing Dog",
+    "de-CH": "Downward-Facing Dog",
+    "it": "Downward-Facing Dog",
+    "es": "Downward-Facing Dog",
+    "pt": "Downward-Facing Dog",
+    "ja": "ダウンワードフィット犬",
     "ro": "Downward-Facing Dog",
     "th": "Downward-Facing Dog"
    },
@@ -4339,6 +5059,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Child's Pose",
+    "de": "Child's Pose",
+    "de-CH": "Child's Pose",
+    "it": "Child's Pose",
+    "es": "Child's Pose",
+    "pt": "Child's Pose",
+    "ja": "子供のポーズ",
     "ro": "Child's Pose",
     "th": "Child's Pose"
    },
@@ -4374,6 +5100,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Cat-Cow",
+    "de": "Cat-Cow",
+    "de-CH": "Cat-Cow",
+    "it": "Cat-Cow",
+    "es": "Cat-Cow",
+    "pt": "Cat-Cow",
+    "ja": "猫ちゃん",
     "ro": "Mobilizare pisică-vacă",
     "th": "ท่าแมวสลับวัว"
    },
@@ -4407,6 +5139,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Cobra",
+    "de": "Cobra",
+    "de-CH": "Cobra",
+    "it": "Cobra",
+    "es": "Cobra",
+    "pt": "Cobra",
+    "ja": "コブラ",
     "ro": "Cobra",
     "th": "Cobra"
    },
@@ -4440,6 +5178,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Warrior II",
+    "de": "Warrior II",
+    "de-CH": "Warrior II",
+    "it": "Warrior II",
+    "es": "Warrior II",
+    "pt": "Warrior II",
+    "ja": "戦士II",
     "ro": "Warrior II",
     "th": "Warrior II"
    },
@@ -4472,6 +5216,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Triangle Pose",
+    "de": "Triangle Pose",
+    "de-CH": "Triangle Pose",
+    "it": "Triangle Pose",
+    "es": "Triangle Pose",
+    "pt": "Triangle Pose",
+    "ja": "トライアングルポーズ",
     "ro": "Triangle Pose",
     "th": "Triangle Pose"
    },
@@ -4504,6 +5254,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pigeon Pose",
+    "de": "Pigeon Pose",
+    "de-CH": "Pigeon Pose",
+    "it": "Pigeon Pose",
+    "es": "Pigeon Pose",
+    "pt": "Pigeon Pose",
+    "ja": "ピジョンポーズ",
     "ro": "Pigeon Pose",
     "th": "Pigeon Pose"
    },
@@ -4536,6 +5292,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Standing Forward Fold",
+    "de": "Standing Forward Fold",
+    "de-CH": "Standing Forward Fold",
+    "it": "Standing Forward Fold",
+    "es": "Standing Forward Fold",
+    "pt": "Standing Forward Fold",
+    "ja": "スタンドフォワードフォールド",
     "ro": "Standing Forward Fold",
     "th": "Standing Forward Fold"
    },
@@ -4569,6 +5331,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bridge Pose",
+    "de": "Bridge Pose",
+    "de-CH": "Bridge Pose",
+    "it": "Bridge Pose",
+    "es": "Bridge Pose",
+    "pt": "Bridge Pose",
+    "ja": "ブリッジポーズ",
     "ro": "Bridge Pose",
     "th": "Bridge Pose"
    },
@@ -4605,6 +5373,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Sun Salutation",
+    "de": "Sun Salutation",
+    "de-CH": "Sun Salutation",
+    "it": "Sun Salutation",
+    "es": "Sun Salutation",
+    "pt": "Sun Salutation",
+    "ja": "太陽の救助",
     "ro": "Sun Salutation",
     "th": "Sun Salutation"
    },
@@ -4638,6 +5412,12 @@
    "incrementKG": 0,
    "names": {
     "en": "90/90 Hip Mobility",
+    "de": "90/90 Hip Mobility",
+    "de-CH": "90/90 Hip Mobility",
+    "it": "90/90 Hip Mobility",
+    "es": "90/90 Hip Mobility",
+    "pt": "90/90 Hip Mobility",
+    "ja": "90/90 ヒップ モビリティ",
     "ro": "Schimbare de șold 90/90",
     "th": "สลับสะโพก 90/90"
    },
@@ -4672,6 +5452,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Figure-Four Stretch",
+    "de": "Figure-Four Stretch",
+    "de-CH": "Figure-Four Stretch",
+    "it": "Figure-Four Stretch",
+    "es": "Figure-Four Stretch",
+    "pt": "Figure-Four Stretch",
+    "ja": "図4ストレッチ",
     "ro": "Figure-Four Stretch",
     "th": "Figure-Four Stretch"
    },
@@ -4704,6 +5490,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Couch Stretch",
+    "de": "Couch Stretch",
+    "de-CH": "Couch Stretch",
+    "it": "Couch Stretch",
+    "es": "Couch Stretch",
+    "pt": "Couch Stretch",
+    "ja": "カウチストレッチ",
     "ro": "Întindere couch",
     "th": "คาวช์สเตรตช์"
    },
@@ -4734,6 +5526,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hip Flexor Stretch",
+    "de": "Hip Flexor Stretch",
+    "de-CH": "Hip Flexor Stretch",
+    "it": "Hip Flexor Stretch",
+    "es": "Hip Flexor Stretch",
+    "pt": "Hip Flexor Stretch",
+    "ja": "ヒップフレックスストレッチ",
     "ro": "Hip Flexor Stretch",
     "th": "Hip Flexor Stretch"
    },
@@ -4769,6 +5567,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Thoracic Extension",
+    "de": "Thoracic Extension",
+    "de-CH": "Thoracic Extension",
+    "it": "Thoracic Extension",
+    "es": "Thoracic Extension",
+    "pt": "Thoracic Extension",
+    "ja": "Thoracic延長",
     "ro": "Rotație toracică",
     "th": "หมุนกระดูกสันหลังช่วงอก"
    },
@@ -4801,6 +5605,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Wall Slide",
+    "de": "Wall Slide",
+    "de-CH": "Wall Slide",
+    "it": "Wall Slide",
+    "es": "Wall Slide",
+    "pt": "Wall Slide",
+    "ja": "壁のスライド",
     "ro": "Wall Slide",
     "th": "Wall Slide"
    },
@@ -4839,6 +5649,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Sun Salutation A",
+    "de": "Sun Salutation A",
+    "de-CH": "Sun Salutation A",
+    "it": "Sun Salutation A",
+    "es": "Sun Salutation A",
+    "pt": "Sun Salutation A",
+    "ja": "太陽の救助 A",
     "ro": "Sun Salutation A",
     "th": "Sun Salutation A"
    },
@@ -4875,6 +5691,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Diaphragmatic Breathing",
+    "de": "Diaphragmatic Breathing",
+    "de-CH": "Diaphragmatic Breathing",
+    "it": "Diaphragmatic Breathing",
+    "es": "Diaphragmatic Breathing",
+    "pt": "Diaphragmatic Breathing",
+    "ja": "ダイヤフラム性呼吸",
     "ro": "Diaphragmatic Breathing",
     "th": "Diaphragmatic Breathing"
    },
@@ -4911,6 +5733,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Controlled Articular Rotations",
+    "de": "Controlled Articular Rotations",
+    "de-CH": "Controlled Articular Rotations",
+    "it": "Controlled Articular Rotations",
+    "es": "Controlled Articular Rotations",
+    "pt": "Controlled Articular Rotations",
+    "ja": "制御された関節の回転",
     "ro": "Mobilizare de gleznă",
     "th": "โยกข้อเท้าเพิ่มความคล่องตัว"
    },
@@ -4948,6 +5776,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Pec Deck",
+    "de": "Pec Deck",
+    "de-CH": "Pec Deck",
+    "it": "Pec Deck",
+    "es": "Pec Deck",
+    "pt": "Pec Deck",
+    "ja": "Pecのデッキ",
     "ro": "Fluturări la pec deck",
     "th": "เครื่องบริหารอกเพ็กเด็ค"
    },
@@ -4982,6 +5816,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Incline Chest Press Machine",
+    "de": "Incline Chest Press Machine",
+    "de-CH": "Incline Chest Press Machine",
+    "it": "Incline Chest Press Machine",
+    "es": "Incline Chest Press Machine",
+    "pt": "Incline Chest Press Machine",
+    "ja": "インラインチェストプレス機",
     "ro": "Incline Chest Press Machine",
     "th": "Incline Chest Press Machine"
    },
@@ -5016,6 +5856,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Converging Row Machine",
+    "de": "Converging Row Machine",
+    "de-CH": "Converging Row Machine",
+    "it": "Converging Row Machine",
+    "es": "Converging Row Machine",
+    "pt": "Converging Row Machine",
+    "ja": "コンバージング・ロウ・マシン",
     "ro": "Converging Row Machine",
     "th": "Converging Row Machine"
    },
@@ -5048,6 +5894,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Straight-Arm Pulldown",
+    "de": "Straight-Arm Pulldown",
+    "de-CH": "Straight-Arm Pulldown",
+    "it": "Straight-Arm Pulldown",
+    "es": "Straight-Arm Pulldown",
+    "pt": "Straight-Arm Pulldown",
+    "ja": "ストレートアームプルダウン",
     "ro": "Straight-Arm Pulldown",
     "th": "Straight-Arm Pulldown"
    },
@@ -5081,6 +5933,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Pullover Machine",
+    "de": "Pullover Machine",
+    "de-CH": "Pullover Machine",
+    "it": "Pullover Machine",
+    "es": "Pullover Machine",
+    "pt": "Pullover Machine",
+    "ja": "プルオーバーマシン",
     "ro": "Pullover Machine",
     "th": "Pullover Machine"
    },
@@ -5114,6 +5972,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Assisted Pull-Up Machine",
+    "de": "Assisted Pull-Up Machine",
+    "de-CH": "Assisted Pull-Up Machine",
+    "it": "Assisted Pull-Up Machine",
+    "es": "Assisted Pull-Up Machine",
+    "pt": "Assisted Pull-Up Machine",
+    "ja": "アシストプルアップマシン",
     "ro": "Assisted Pull-Up Machine",
     "th": "Assisted Pull-Up Machine"
    },
@@ -5147,6 +6011,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Preacher Curl Machine",
+    "de": "Preacher Curl Machine",
+    "de-CH": "Preacher Curl Machine",
+    "it": "Preacher Curl Machine",
+    "es": "Preacher Curl Machine",
+    "pt": "Preacher Curl Machine",
+    "ja": "Preacherのカール機械",
     "ro": "Flexii la banca Scott cu bara dreaptă",
     "th": "พรีชเชอร์เคิร์ลด้วยบาร์ตรง"
    },
@@ -5184,6 +6054,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Triceps Pushdown",
+    "de": "Triceps Pushdown",
+    "de-CH": "Triceps Pushdown",
+    "it": "Triceps Pushdown",
+    "es": "Triceps Pushdown",
+    "pt": "Triceps Pushdown",
+    "ja": "Triceps プッシュダウン",
     "ro": "Extensii triceps la scripete",
     "th": "กดไตรเซ็ปส์ด้วยเคเบิล"
    },
@@ -5220,6 +6096,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Seated Dip Machine",
+    "de": "Seated Dip Machine",
+    "de-CH": "Seated Dip Machine",
+    "it": "Seated Dip Machine",
+    "es": "Seated Dip Machine",
+    "pt": "Seated Dip Machine",
+    "ja": "シートディップマシン",
     "ro": "Seated Dip Machine",
     "th": "Seated Dip Machine"
    },
@@ -5253,6 +6135,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Shrug",
+    "de": "Dumbbell Shrug",
+    "de-CH": "Dumbbell Shrug",
+    "it": "Dumbbell Shrug",
+    "es": "Dumbbell Shrug",
+    "pt": "Dumbbell Shrug",
+    "ja": "ダンベルシュラグ",
     "ro": "Ridicări din umeri cu bara",
     "th": "ยักไหล่ด้วยบาร์เบล"
    },
@@ -5291,6 +6179,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Upright Row",
+    "de": "Cable Upright Row",
+    "de-CH": "Cable Upright Row",
+    "it": "Cable Upright Row",
+    "es": "Cable Upright Row",
+    "pt": "Cable Upright Row",
+    "ja": "ケーブル直立列",
     "ro": "Cable Upright Row",
     "th": "Cable Upright Row"
    },
@@ -5323,6 +6217,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Machine Lateral Raise",
+    "de": "Machine Lateral Raise",
+    "de-CH": "Machine Lateral Raise",
+    "it": "Machine Lateral Raise",
+    "es": "Machine Lateral Raise",
+    "pt": "Machine Lateral Raise",
+    "ja": "マシン横上げ",
     "ro": "Machine Lateral Raise",
     "th": "Machine Lateral Raise"
    },
@@ -5355,6 +6255,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Hip Adduction Machine",
+    "de": "Hip Adduction Machine",
+    "de-CH": "Hip Adduction Machine",
+    "it": "Hip Adduction Machine",
+    "es": "Hip Adduction Machine",
+    "pt": "Hip Adduction Machine",
+    "ja": "ヒップのadduction機械",
     "ro": "Aductori la aparat",
     "th": "เครื่องหุบสะโพก"
    },
@@ -5401,6 +6307,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Copenhagen Plank",
+    "de": "Copenhagen Plank",
+    "de-CH": "Copenhagen Plank",
+    "it": "Copenhagen Plank",
+    "es": "Copenhagen Plank",
+    "pt": "Copenhagen Plank",
+    "ja": "コペンハーゲン プランク",
     "ro": "Planșă Copenhagen pentru aductori",
     "th": "โคเปนเฮเกนแพลงก์"
    },
@@ -5441,6 +6353,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Glute Kickback",
+    "de": "Cable Glute Kickback",
+    "de-CH": "Cable Glute Kickback",
+    "it": "Cable Glute Kickback",
+    "es": "Cable Glute Kickback",
+    "pt": "Cable Glute Kickback",
+    "ja": "ケーブルグルートキックバック",
     "ro": "Extensii pentru fesieri la aparat",
     "th": "เครื่องเตะขาไปด้านหลัง"
    },
@@ -5474,6 +6392,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Pull-Through",
+    "de": "Cable Pull-Through",
+    "de-CH": "Cable Pull-Through",
+    "it": "Cable Pull-Through",
+    "es": "Cable Pull-Through",
+    "pt": "Cable Pull-Through",
+    "ja": "ケーブル プル棚",
     "ro": "Cable Pull-Through",
     "th": "Cable Pull-Through"
    },
@@ -5507,6 +6431,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Belt Squat",
+    "de": "Belt Squat",
+    "de-CH": "Belt Squat",
+    "it": "Belt Squat",
+    "es": "Belt Squat",
+    "pt": "Belt Squat",
+    "ja": "ベルトスクワット",
     "ro": "Belt Squat",
     "th": "Belt Squat"
    },
@@ -5540,6 +6470,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Pendulum Squat",
+    "de": "Pendulum Squat",
+    "de-CH": "Pendulum Squat",
+    "it": "Pendulum Squat",
+    "es": "Pendulum Squat",
+    "pt": "Pendulum Squat",
+    "ja": "ペンデュラムスクワット",
     "ro": "Pendulum Squat",
     "th": "Pendulum Squat"
    },
@@ -5572,6 +6508,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Calf Press on Leg Press",
+    "de": "Calf Press on Leg Press",
+    "de-CH": "Calf Press on Leg Press",
+    "it": "Calf Press on Leg Press",
+    "es": "Calf Press on Leg Press",
+    "pt": "Calf Press on Leg Press",
+    "ja": "脚圧のカーフプレス",
     "ro": "Gambe la presă",
     "th": "เขย่งน่องบนเลกเพรส"
    },
@@ -5611,6 +6553,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Machine Crunch",
+    "de": "Machine Crunch",
+    "de-CH": "Machine Crunch",
+    "it": "Machine Crunch",
+    "es": "Machine Crunch",
+    "pt": "Machine Crunch",
+    "ja": "マシン クランチ",
     "ro": "Abdomene la aparat",
     "th": "ครันช์หน้าท้องด้วยเครื่อง"
    },
@@ -5651,6 +6599,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Crunch",
+    "de": "Cable Crunch",
+    "de-CH": "Cable Crunch",
+    "it": "Cable Crunch",
+    "es": "Cable Crunch",
+    "pt": "Cable Crunch",
+    "ja": "ケーブル クランチ",
     "ro": "Abdomene la cablu",
     "th": "ครันช์หน้าท้องด้วยเคเบิล"
    },
@@ -5692,6 +6646,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Back Extension Machine",
+    "de": "Back Extension Machine",
+    "de-CH": "Back Extension Machine",
+    "it": "Back Extension Machine",
+    "es": "Back Extension Machine",
+    "pt": "Back Extension Machine",
+    "ja": "バックエクステンションマシン",
     "ro": "Back Extension Machine",
     "th": "Back Extension Machine"
    },
@@ -5725,6 +6685,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Hip Thrust",
+    "de": "Smith Machine Hip Thrust",
+    "de-CH": "Smith Machine Hip Thrust",
+    "it": "Smith Machine Hip Thrust",
+    "es": "Smith Machine Hip Thrust",
+    "pt": "Smith Machine Hip Thrust",
+    "ja": "スミスマシンヒップスラスト",
     "ro": "Smith Machine Hip Thrust",
     "th": "Smith Machine Hip Thrust"
    },
@@ -5759,6 +6725,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Row",
+    "de": "Landmine Row",
+    "de-CH": "Landmine Row",
+    "it": "Landmine Row",
+    "es": "Landmine Row",
+    "pt": "Landmine Row",
+    "ja": "ランドミン・ロウ",
     "ro": "Landmine Row",
     "th": "Landmine Row"
    },
@@ -5792,6 +6764,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Squat",
+    "de": "Landmine Squat",
+    "de-CH": "Landmine Squat",
+    "it": "Landmine Squat",
+    "es": "Landmine Squat",
+    "pt": "Landmine Squat",
+    "ja": "ランドミンスクワット",
     "ro": "Landmine Squat",
     "th": "Landmine Squat"
    },
@@ -5824,6 +6802,12 @@
    "incrementKG": 0,
    "names": {
     "en": "The Hundred",
+    "de": "The Hundred",
+    "de-CH": "The Hundred",
+    "it": "The Hundred",
+    "es": "The Hundred",
+    "pt": "The Hundred",
+    "ja": "数百人",
     "ro": "The Hundred",
     "th": "The Hundred"
    },
@@ -5856,6 +6840,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Roll-Up",
+    "de": "Roll-Up",
+    "de-CH": "Roll-Up",
+    "it": "Roll-Up",
+    "es": "Roll-Up",
+    "pt": "Roll-Up",
+    "ja": "ロールアップ",
     "ro": "Roll-Up",
     "th": "Roll-Up"
    },
@@ -5889,6 +6879,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single Leg Circles",
+    "de": "Single Leg Circles",
+    "de-CH": "Single Leg Circles",
+    "it": "Single Leg Circles",
+    "es": "Single Leg Circles",
+    "pt": "Single Leg Circles",
+    "ja": "シングルレッグサークル",
     "ro": "Single Leg Circles",
     "th": "Single Leg Circles"
    },
@@ -5921,6 +6917,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single Leg Stretch",
+    "de": "Single Leg Stretch",
+    "de-CH": "Single Leg Stretch",
+    "it": "Single Leg Stretch",
+    "es": "Single Leg Stretch",
+    "pt": "Single Leg Stretch",
+    "ja": "単一の足の伸張",
     "ro": "Single Leg Stretch",
     "th": "Single Leg Stretch"
    },
@@ -5953,6 +6955,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Double Leg Stretch",
+    "de": "Double Leg Stretch",
+    "de-CH": "Double Leg Stretch",
+    "it": "Double Leg Stretch",
+    "es": "Double Leg Stretch",
+    "pt": "Double Leg Stretch",
+    "ja": "ダブルレッグストレッチ",
     "ro": "Double Leg Stretch",
     "th": "Double Leg Stretch"
    },
@@ -5986,6 +6994,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pilates Scissors",
+    "de": "Pilates Scissors",
+    "de-CH": "Pilates Scissors",
+    "it": "Pilates Scissors",
+    "es": "Pilates Scissors",
+    "pt": "Pilates Scissors",
+    "ja": "ピラティス",
     "ro": "Pilates Scissors",
     "th": "Pilates Scissors"
    },
@@ -6018,6 +7032,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Teaser",
+    "de": "Teaser",
+    "de-CH": "Teaser",
+    "it": "Teaser",
+    "es": "Teaser",
+    "pt": "Teaser",
+    "ja": "ティーザー",
     "ro": "Teaser",
     "th": "Teaser"
    },
@@ -6051,6 +7071,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Swan",
+    "de": "Swan",
+    "de-CH": "Swan",
+    "it": "Swan",
+    "es": "Swan",
+    "pt": "Swan",
+    "ja": "スワン",
     "ro": "Swan",
     "th": "Swan"
    },
@@ -6084,6 +7110,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Saw",
+    "de": "Saw",
+    "de-CH": "Saw",
+    "it": "Saw",
+    "es": "Saw",
+    "pt": "Saw",
+    "ja": "ツイート",
     "ro": "Saw",
     "th": "Saw"
    },
@@ -6117,6 +7149,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Spine Stretch Forward",
+    "de": "Spine Stretch Forward",
+    "de-CH": "Spine Stretch Forward",
+    "it": "Spine Stretch Forward",
+    "es": "Spine Stretch Forward",
+    "pt": "Spine Stretch Forward",
+    "ja": "Spineストレッチフォワード",
     "ro": "Spine Stretch Forward",
     "th": "Spine Stretch Forward"
    },
@@ -6150,6 +7188,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Side Kick Series",
+    "de": "Side Kick Series",
+    "de-CH": "Side Kick Series",
+    "it": "Side Kick Series",
+    "es": "Side Kick Series",
+    "pt": "Side Kick Series",
+    "ja": "サイドキックシリーズ",
     "ro": "Side Kick Series",
     "th": "Side Kick Series"
    },
@@ -6181,6 +7225,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Clam",
+    "de": "Clam",
+    "de-CH": "Clam",
+    "it": "Clam",
+    "es": "Clam",
+    "pt": "Clam",
+    "ja": "クラム",
     "ro": "Clam",
     "th": "Clam"
    },
@@ -6213,6 +7263,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pilates Swimming",
+    "de": "Pilates Swimming",
+    "de-CH": "Pilates Swimming",
+    "it": "Pilates Swimming",
+    "es": "Pilates Swimming",
+    "pt": "Pilates Swimming",
+    "ja": "ピラティス水泳",
     "ro": "Pilates Swimming",
     "th": "Pilates Swimming"
    },
@@ -6247,6 +7303,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reformer Footwork",
+    "de": "Reformer Footwork",
+    "de-CH": "Reformer Footwork",
+    "it": "Reformer Footwork",
+    "es": "Reformer Footwork",
+    "pt": "Reformer Footwork",
+    "ja": "Reformer フットワーク",
     "ro": "Reformer Footwork",
     "th": "Reformer Footwork"
    },
@@ -6282,6 +7344,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reformer Long Stretch",
+    "de": "Reformer Long Stretch",
+    "de-CH": "Reformer Long Stretch",
+    "it": "Reformer Long Stretch",
+    "es": "Reformer Long Stretch",
+    "pt": "Reformer Long Stretch",
+    "ja": "Reformerの長い伸張",
     "ro": "Reformer Long Stretch",
     "th": "Reformer Long Stretch"
    },
@@ -6318,6 +7386,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reformer Elephant",
+    "de": "Reformer Elephant",
+    "de-CH": "Reformer Elephant",
+    "it": "Reformer Elephant",
+    "es": "Reformer Elephant",
+    "pt": "Reformer Elephant",
+    "ja": "レフォーマーエレファント",
     "ro": "Reformer Elephant",
     "th": "Reformer Elephant"
    },
@@ -6351,6 +7425,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reformer Knee Stretch",
+    "de": "Reformer Knee Stretch",
+    "de-CH": "Reformer Knee Stretch",
+    "it": "Reformer Knee Stretch",
+    "es": "Reformer Knee Stretch",
+    "pt": "Reformer Knee Stretch",
+    "ja": "Reformer Kneeストレッチ",
     "ro": "Reformer Knee Stretch",
     "th": "Reformer Knee Stretch"
    },
@@ -6385,6 +7465,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reformer Short Box",
+    "de": "Reformer Short Box",
+    "de-CH": "Reformer Short Box",
+    "it": "Reformer Short Box",
+    "es": "Reformer Short Box",
+    "pt": "Reformer Short Box",
+    "ja": "レフォーマーショートボックス",
     "ro": "Reformer Short Box",
     "th": "Reformer Short Box"
    },
@@ -6419,6 +7505,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reformer Mermaid",
+    "de": "Reformer Mermaid",
+    "de-CH": "Reformer Mermaid",
+    "it": "Reformer Mermaid",
+    "es": "Reformer Mermaid",
+    "pt": "Reformer Mermaid",
+    "ja": "Reformer の人魚",
     "ro": "Reformer Mermaid",
     "th": "Reformer Mermaid"
    },
@@ -6452,6 +7544,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Chair Pose",
+    "de": "Chair Pose",
+    "de-CH": "Chair Pose",
+    "it": "Chair Pose",
+    "es": "Chair Pose",
+    "pt": "Chair Pose",
+    "ja": "椅子のポーズ",
     "ro": "Chair Pose",
     "th": "Chair Pose"
    },
@@ -6485,6 +7583,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Tree Pose",
+    "de": "Tree Pose",
+    "de-CH": "Tree Pose",
+    "it": "Tree Pose",
+    "es": "Tree Pose",
+    "pt": "Tree Pose",
+    "ja": "ツリーポーズ",
     "ro": "Tree Pose",
     "th": "Tree Pose"
    },
@@ -6517,6 +7621,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Warrior I",
+    "de": "Warrior I",
+    "de-CH": "Warrior I",
+    "it": "Warrior I",
+    "es": "Warrior I",
+    "pt": "Warrior I",
+    "ja": "戦士 I",
     "ro": "Warrior I",
     "th": "Warrior I"
    },
@@ -6551,6 +7661,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Warrior III",
+    "de": "Warrior III",
+    "de-CH": "Warrior III",
+    "it": "Warrior III",
+    "es": "Warrior III",
+    "pt": "Warrior III",
+    "ja": "戦士III",
     "ro": "Warrior III",
     "th": "Warrior III"
    },
@@ -6584,6 +7700,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Half Moon",
+    "de": "Half Moon",
+    "de-CH": "Half Moon",
+    "it": "Half Moon",
+    "es": "Half Moon",
+    "pt": "Half Moon",
+    "ja": "ハーフムーン",
     "ro": "Half Moon",
     "th": "Half Moon"
    },
@@ -6617,6 +7739,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Extended Side Angle",
+    "de": "Extended Side Angle",
+    "de-CH": "Extended Side Angle",
+    "it": "Extended Side Angle",
+    "es": "Extended Side Angle",
+    "pt": "Extended Side Angle",
+    "ja": "延長側面の角度",
     "ro": "Extended Side Angle",
     "th": "Extended Side Angle"
    },
@@ -6650,6 +7778,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Revolved Triangle",
+    "de": "Revolved Triangle",
+    "de-CH": "Revolved Triangle",
+    "it": "Revolved Triangle",
+    "es": "Revolved Triangle",
+    "pt": "Revolved Triangle",
+    "ja": "進化した三角形",
     "ro": "Revolved Triangle",
     "th": "Revolved Triangle"
    },
@@ -6685,6 +7819,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Crow Pose",
+    "de": "Crow Pose",
+    "de-CH": "Crow Pose",
+    "it": "Crow Pose",
+    "es": "Crow Pose",
+    "pt": "Crow Pose",
+    "ja": "スローポーズ",
     "ro": "Crow Pose",
     "th": "Crow Pose"
    },
@@ -6717,6 +7857,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Boat Pose",
+    "de": "Boat Pose",
+    "de-CH": "Boat Pose",
+    "it": "Boat Pose",
+    "es": "Boat Pose",
+    "pt": "Boat Pose",
+    "ja": "ボートポーズ",
     "ro": "Boat Pose",
     "th": "Boat Pose"
    },
@@ -6750,6 +7896,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Camel Pose",
+    "de": "Camel Pose",
+    "de-CH": "Camel Pose",
+    "it": "Camel Pose",
+    "es": "Camel Pose",
+    "pt": "Camel Pose",
+    "ja": "キャメルポーズ",
     "ro": "Camel Pose",
     "th": "Camel Pose"
    },
@@ -6782,6 +7934,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bow Pose",
+    "de": "Bow Pose",
+    "de-CH": "Bow Pose",
+    "it": "Bow Pose",
+    "es": "Bow Pose",
+    "pt": "Bow Pose",
+    "ja": "ボウポーズ",
     "ro": "Bow Pose",
     "th": "Bow Pose"
    },
@@ -6815,6 +7973,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Locust Pose",
+    "de": "Locust Pose",
+    "de-CH": "Locust Pose",
+    "it": "Locust Pose",
+    "es": "Locust Pose",
+    "pt": "Locust Pose",
+    "ja": "Locust ポーズ",
     "ro": "Locust Pose",
     "th": "Locust Pose"
    },
@@ -6848,6 +8012,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Seated Forward Fold",
+    "de": "Seated Forward Fold",
+    "de-CH": "Seated Forward Fold",
+    "it": "Seated Forward Fold",
+    "es": "Seated Forward Fold",
+    "pt": "Seated Forward Fold",
+    "ja": "シートフォワードフォールド",
     "ro": "Seated Forward Fold",
     "th": "Seated Forward Fold"
    },
@@ -6880,6 +8050,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Butterfly",
+    "de": "Butterfly",
+    "de-CH": "Butterfly",
+    "it": "Butterfly",
+    "es": "Butterfly",
+    "pt": "Butterfly",
+    "ja": "バタフライ",
     "ro": "Butterfly",
     "th": "Butterfly"
    },
@@ -6912,6 +8088,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Happy Baby",
+    "de": "Happy Baby",
+    "de-CH": "Happy Baby",
+    "it": "Happy Baby",
+    "es": "Happy Baby",
+    "pt": "Happy Baby",
+    "ja": "ハッピーベイビー",
     "ro": "Happy Baby",
     "th": "Happy Baby"
    },
@@ -6944,6 +8126,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Supine Twist",
+    "de": "Supine Twist",
+    "de-CH": "Supine Twist",
+    "it": "Supine Twist",
+    "es": "Supine Twist",
+    "pt": "Supine Twist",
+    "ja": "Supineのねじれ",
     "ro": "Supine Twist",
     "th": "Supine Twist"
    },
@@ -6976,6 +8164,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Legs Up the Wall",
+    "de": "Legs Up the Wall",
+    "de-CH": "Legs Up the Wall",
+    "it": "Legs Up the Wall",
+    "es": "Legs Up the Wall",
+    "pt": "Legs Up the Wall",
+    "ja": "足 アップ 壁",
     "ro": "Legs Up the Wall",
     "th": "Legs Up the Wall"
    },
@@ -7011,6 +8205,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Corpse Pose",
+    "de": "Corpse Pose",
+    "de-CH": "Corpse Pose",
+    "it": "Corpse Pose",
+    "es": "Corpse Pose",
+    "pt": "Corpse Pose",
+    "ja": "コー スポーズ",
     "ro": "Corpse Pose",
     "th": "Corpse Pose"
    },
@@ -7045,6 +8245,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Chaturanga",
+    "de": "Chaturanga",
+    "de-CH": "Chaturanga",
+    "it": "Chaturanga",
+    "es": "Chaturanga",
+    "pt": "Chaturanga",
+    "ja": "ログイン",
     "ro": "Chaturanga",
     "th": "Chaturanga"
    },
@@ -7077,6 +8283,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Upward-Facing Dog",
+    "de": "Upward-Facing Dog",
+    "de-CH": "Upward-Facing Dog",
+    "it": "Upward-Facing Dog",
+    "es": "Upward-Facing Dog",
+    "pt": "Upward-Facing Dog",
+    "ja": "上向き犬",
     "ro": "Upward-Facing Dog",
     "th": "Upward-Facing Dog"
    },
@@ -7109,6 +8321,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Low Lunge",
+    "de": "Low Lunge",
+    "de-CH": "Low Lunge",
+    "it": "Low Lunge",
+    "es": "Low Lunge",
+    "pt": "Low Lunge",
+    "ja": "低い肺",
     "ro": "Low Lunge",
     "th": "Low Lunge"
    },
@@ -7141,6 +8359,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Lizard Pose",
+    "de": "Lizard Pose",
+    "de-CH": "Lizard Pose",
+    "it": "Lizard Pose",
+    "es": "Lizard Pose",
+    "pt": "Lizard Pose",
+    "ja": "リザードポーズ",
     "ro": "Lizard Pose",
     "th": "Lizard Pose"
    },
@@ -7174,6 +8398,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Garland Pose",
+    "de": "Garland Pose",
+    "de-CH": "Garland Pose",
+    "it": "Garland Pose",
+    "es": "Garland Pose",
+    "pt": "Garland Pose",
+    "ja": "ガーランドポーズ",
     "ro": "Garland Pose",
     "th": "Garland Pose"
    },
@@ -7206,6 +8436,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Eagle Pose",
+    "de": "Eagle Pose",
+    "de-CH": "Eagle Pose",
+    "it": "Eagle Pose",
+    "es": "Eagle Pose",
+    "pt": "Eagle Pose",
+    "ja": "イーグルポーズ",
     "ro": "Eagle Pose",
     "th": "Eagle Pose"
    },
@@ -7238,6 +8474,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Dancer Pose",
+    "de": "Dancer Pose",
+    "de-CH": "Dancer Pose",
+    "it": "Dancer Pose",
+    "es": "Dancer Pose",
+    "pt": "Dancer Pose",
+    "ja": "ダンサーポーズ",
     "ro": "Dancer Pose",
     "th": "Dancer Pose"
    },
@@ -7276,6 +8518,12 @@
    "incrementKG": 10,
    "names": {
     "en": "Sled Push",
+    "de": "Sled Push",
+    "de-CH": "Sled Push",
+    "it": "Sled Push",
+    "es": "Sled Push",
+    "pt": "Sled Push",
+    "ja": "Sledプッシュ",
     "ro": "Împins sania",
     "th": "ดันสเลด"
    },
@@ -7311,6 +8559,12 @@
    "incrementKG": 10,
    "names": {
     "en": "Sled Pull",
+    "de": "Sled Pull",
+    "de-CH": "Sled Pull",
+    "it": "Sled Pull",
+    "es": "Sled Pull",
+    "pt": "Sled Pull",
+    "ja": "導かれた引き",
     "ro": "Sled Pull",
     "th": "Sled Pull"
    },
@@ -7347,6 +8601,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Burpee Broad Jump",
+    "de": "Burpee Broad Jump",
+    "de-CH": "Burpee Broad Jump",
+    "it": "Burpee Broad Jump",
+    "es": "Burpee Broad Jump",
+    "pt": "Burpee Broad Jump",
+    "ja": "ブルペ・ブロードジャンプ",
     "ro": "Burpee Broad Jump",
     "th": "Burpee Broad Jump"
    },
@@ -7385,6 +8645,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Sandbag Lunge",
+    "de": "Sandbag Lunge",
+    "de-CH": "Sandbag Lunge",
+    "it": "Sandbag Lunge",
+    "es": "Sandbag Lunge",
+    "pt": "Sandbag Lunge",
+    "ja": "サンドバッグ ルンネ",
     "ro": "Sandbag Lunge",
     "th": "Sandbag Lunge"
    },
@@ -7423,6 +8689,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Wall Ball",
+    "de": "Wall Ball",
+    "de-CH": "Wall Ball",
+    "it": "Wall Ball",
+    "es": "Wall Ball",
+    "pt": "Wall Ball",
+    "ja": "ウォールボール",
     "ro": "Wall Ball",
     "th": "Wall Ball"
    },
@@ -7459,6 +8731,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Thruster",
+    "de": "Thruster",
+    "de-CH": "Thruster",
+    "it": "Thruster",
+    "es": "Thruster",
+    "pt": "Thruster",
+    "ja": "スラスター",
     "ro": "Thruster",
     "th": "Thruster"
    },
@@ -7497,6 +8775,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Power Clean",
+    "de": "Power Clean",
+    "de-CH": "Power Clean",
+    "it": "Power Clean",
+    "es": "Power Clean",
+    "pt": "Power Clean",
+    "ja": "パワークリーン",
     "ro": "Power Clean",
     "th": "Power Clean"
    },
@@ -7535,6 +8819,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Power Snatch",
+    "de": "Power Snatch",
+    "de-CH": "Power Snatch",
+    "it": "Power Snatch",
+    "es": "Power Snatch",
+    "pt": "Power Snatch",
+    "ja": "パワースナッチ",
     "ro": "Power Snatch",
     "th": "Power Snatch"
    },
@@ -7574,6 +8864,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Clean and Jerk",
+    "de": "Clean and Jerk",
+    "de-CH": "Clean and Jerk",
+    "it": "Clean and Jerk",
+    "es": "Clean and Jerk",
+    "pt": "Clean and Jerk",
+    "ja": "清潔で済む",
     "ro": "Clean and Jerk",
     "th": "Clean and Jerk"
    },
@@ -7610,6 +8906,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Push Press",
+    "de": "Push Press",
+    "de-CH": "Push Press",
+    "it": "Push Press",
+    "es": "Push Press",
+    "pt": "Push Press",
+    "ja": "プッシュプレス",
     "ro": "Push Press",
     "th": "Push Press"
    },
@@ -7646,6 +8948,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Overhead Squat",
+    "de": "Overhead Squat",
+    "de-CH": "Overhead Squat",
+    "it": "Overhead Squat",
+    "es": "Overhead Squat",
+    "pt": "Overhead Squat",
+    "ja": "オーバーヘッドスクワット",
     "ro": "Overhead Squat",
     "th": "Overhead Squat"
    },
@@ -7684,6 +8992,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Front Rack Lunge",
+    "de": "Front Rack Lunge",
+    "de-CH": "Front Rack Lunge",
+    "it": "Front Rack Lunge",
+    "es": "Front Rack Lunge",
+    "pt": "Front Rack Lunge",
+    "ja": "フロントラックLunge",
     "ro": "Front Rack Lunge",
     "th": "Front Rack Lunge"
    },
@@ -7717,6 +9031,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Double Under",
+    "de": "Double Under",
+    "de-CH": "Double Under",
+    "it": "Double Under",
+    "es": "Double Under",
+    "pt": "Double Under",
+    "ja": "ダブルアンダー",
     "ro": "Double Under",
     "th": "Double Under"
    },
@@ -7751,6 +9071,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Skipping",
+    "de": "Skipping",
+    "de-CH": "Skipping",
+    "it": "Skipping",
+    "es": "Skipping",
+    "pt": "Skipping",
+    "ja": "スキャッピング",
     "ro": "Sărit coarda",
     "th": "กระโดดเชือก"
    },
@@ -7786,6 +9112,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Toes to Bar",
+    "de": "Toes to Bar",
+    "de-CH": "Toes to Bar",
+    "it": "Toes to Bar",
+    "es": "Toes to Bar",
+    "pt": "Toes to Bar",
+    "ja": "棒へのつま先",
     "ro": "Toes to Bar",
     "th": "Toes to Bar"
    },
@@ -7824,6 +9156,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Kettlebell Clean",
+    "de": "Kettlebell Clean",
+    "de-CH": "Kettlebell Clean",
+    "it": "Kettlebell Clean",
+    "es": "Kettlebell Clean",
+    "pt": "Kettlebell Clean",
+    "ja": "ケトルベルクリーン",
     "ro": "Kettlebell Clean",
     "th": "Kettlebell Clean"
    },
@@ -7861,6 +9199,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Turkish Get-Up",
+    "de": "Turkish Get-Up",
+    "de-CH": "Turkish Get-Up",
+    "it": "Turkish Get-Up",
+    "es": "Turkish Get-Up",
+    "pt": "Turkish Get-Up",
+    "ja": "トルコ語 Get-Up",
     "ro": "Turkish Get-Up",
     "th": "Turkish Get-Up"
    },
@@ -7899,6 +9243,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Devil's Press",
+    "de": "Devil's Press",
+    "de-CH": "Devil's Press",
+    "it": "Devil's Press",
+    "es": "Devil's Press",
+    "pt": "Devil's Press",
+    "ja": "Devilのプレス",
     "ro": "Devil's Press",
     "th": "Devil's Press"
    },
@@ -7936,6 +9286,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Man Maker",
+    "de": "Man Maker",
+    "de-CH": "Man Maker",
+    "it": "Man Maker",
+    "es": "Man Maker",
+    "pt": "Man Maker",
+    "ja": "マンメーカー",
     "ro": "Man Maker",
     "th": "Man Maker"
    },
@@ -7973,6 +9329,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Sandbag Clean",
+    "de": "Sandbag Clean",
+    "de-CH": "Sandbag Clean",
+    "it": "Sandbag Clean",
+    "es": "Sandbag Clean",
+    "pt": "Sandbag Clean",
+    "ja": "サンドバッグ クリーン",
     "ro": "Sandbag Clean",
     "th": "Sandbag Clean"
    },
@@ -8008,6 +9370,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Tire Flip",
+    "de": "Tire Flip",
+    "de-CH": "Tire Flip",
+    "it": "Tire Flip",
+    "es": "Tire Flip",
+    "pt": "Tire Flip",
+    "ja": "タイヤフリップ",
     "ro": "Tire Flip",
     "th": "Tire Flip"
    },
@@ -8044,6 +9412,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bear Crawl",
+    "de": "Bear Crawl",
+    "de-CH": "Bear Crawl",
+    "it": "Bear Crawl",
+    "es": "Bear Crawl",
+    "pt": "Bear Crawl",
+    "ja": "ベアクロール",
     "ro": "Bear Crawl",
     "th": "Bear Crawl"
    },
@@ -8077,6 +9451,12 @@
    "incrementKG": 10,
    "names": {
     "en": "Sled Drag",
+    "de": "Sled Drag",
+    "de-CH": "Sled Drag",
+    "it": "Sled Drag",
+    "es": "Sled Drag",
+    "pt": "Sled Drag",
+    "ja": "スライディングドラッグ",
     "ro": "Sled Drag",
     "th": "Sled Drag"
    },
@@ -8113,6 +9493,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Overhead Carry",
+    "de": "Overhead Carry",
+    "de-CH": "Overhead Carry",
+    "it": "Overhead Carry",
+    "es": "Overhead Carry",
+    "pt": "Overhead Carry",
+    "ja": "オーバーヘッドキャリー",
     "ro": "Overhead Carry",
     "th": "Overhead Carry"
    },
@@ -8148,6 +9534,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Front Rack Carry",
+    "de": "Front Rack Carry",
+    "de-CH": "Front Rack Carry",
+    "it": "Front Rack Carry",
+    "es": "Front Rack Carry",
+    "pt": "Front Rack Carry",
+    "ja": "フロントラックキャリー",
     "ro": "Front Rack Carry",
     "th": "Front Rack Carry"
    },
@@ -8185,6 +9577,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Sandbag Carry",
+    "de": "Sandbag Carry",
+    "de-CH": "Sandbag Carry",
+    "it": "Sandbag Carry",
+    "es": "Sandbag Carry",
+    "pt": "Sandbag Carry",
+    "ja": "サンドバッグ キャリー",
     "ro": "Sandbag Carry",
     "th": "Sandbag Carry"
    },
@@ -8220,6 +9618,12 @@
    "incrementKG": 10,
    "names": {
     "en": "Yoke Walk",
+    "de": "Yoke Walk",
+    "de-CH": "Yoke Walk",
+    "it": "Yoke Walk",
+    "es": "Yoke Walk",
+    "pt": "Yoke Walk",
+    "ja": "ヨークウォーク",
     "ro": "Yoke Walk",
     "th": "Yoke Walk"
    },
@@ -8256,6 +9660,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Zercher Carry",
+    "de": "Zercher Carry",
+    "de-CH": "Zercher Carry",
+    "it": "Zercher Carry",
+    "es": "Zercher Carry",
+    "pt": "Zercher Carry",
+    "ja": "Zercher キャリー",
     "ro": "Zercher Carry",
     "th": "Zercher Carry"
    },
@@ -8290,6 +9700,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Waiter Walk",
+    "de": "Waiter Walk",
+    "de-CH": "Waiter Walk",
+    "it": "Waiter Walk",
+    "es": "Waiter Walk",
+    "pt": "Waiter Walk",
+    "ja": "ウェイターウォーク",
     "ro": "Waiter Walk",
     "th": "Waiter Walk"
    },
@@ -8324,6 +9740,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Bottoms-Up Carry",
+    "de": "Bottoms-Up Carry",
+    "de-CH": "Bottoms-Up Carry",
+    "it": "Bottoms-Up Carry",
+    "es": "Bottoms-Up Carry",
+    "pt": "Bottoms-Up Carry",
+    "ja": "ボトムアップキャリー",
     "ro": "Bottoms-Up Carry",
     "th": "Bottoms-Up Carry"
    },
@@ -8359,6 +9781,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Mixed Carry",
+    "de": "Mixed Carry",
+    "de-CH": "Mixed Carry",
+    "it": "Mixed Carry",
+    "es": "Mixed Carry",
+    "pt": "Mixed Carry",
+    "ja": "混合キャリー",
     "ro": "Mixed Carry",
     "th": "Mixed Carry"
    },
@@ -8393,6 +9821,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Depth Jump",
+    "de": "Depth Jump",
+    "de-CH": "Depth Jump",
+    "it": "Depth Jump",
+    "es": "Depth Jump",
+    "pt": "Depth Jump",
+    "ja": "深さのジャンプ",
     "ro": "Depth Jump",
     "th": "Depth Jump"
    },
@@ -8427,6 +9861,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bounding",
+    "de": "Bounding",
+    "de-CH": "Bounding",
+    "it": "Bounding",
+    "es": "Bounding",
+    "pt": "Bounding",
+    "ja": "バウンディング",
     "ro": "Bounding",
     "th": "Bounding"
    },
@@ -8461,6 +9901,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Lateral Bound",
+    "de": "Lateral Bound",
+    "de-CH": "Lateral Bound",
+    "it": "Lateral Bound",
+    "es": "Lateral Bound",
+    "pt": "Lateral Bound",
+    "ja": "横のバウンド",
     "ro": "Lateral Bound",
     "th": "Lateral Bound"
    },
@@ -8494,6 +9940,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Lateral Hop",
+    "de": "Lateral Hop",
+    "de-CH": "Lateral Hop",
+    "it": "Lateral Hop",
+    "es": "Lateral Hop",
+    "pt": "Lateral Hop",
+    "ja": "横のホップ",
     "ro": "Lateral Hop",
     "th": "Lateral Hop"
    },
@@ -8526,6 +9978,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pogo Hop",
+    "de": "Pogo Hop",
+    "de-CH": "Pogo Hop",
+    "it": "Pogo Hop",
+    "es": "Pogo Hop",
+    "pt": "Pogo Hop",
+    "ja": "ポゴホップ",
     "ro": "Pogo Hop",
     "th": "Pogo Hop"
    },
@@ -8559,6 +10017,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Tuck Jump",
+    "de": "Tuck Jump",
+    "de-CH": "Tuck Jump",
+    "it": "Tuck Jump",
+    "es": "Tuck Jump",
+    "pt": "Tuck Jump",
+    "ja": "タックジャンプ",
     "ro": "Tuck Jump",
     "th": "Tuck Jump"
    },
@@ -8592,6 +10056,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Split Jump",
+    "de": "Split Jump",
+    "de-CH": "Split Jump",
+    "it": "Split Jump",
+    "es": "Split Jump",
+    "pt": "Split Jump",
+    "ja": "スプリットジャンプ",
     "ro": "Split Jump",
     "th": "Split Jump"
    },
@@ -8626,6 +10096,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Leg Hop",
+    "de": "Single-Leg Hop",
+    "de-CH": "Single-Leg Hop",
+    "it": "Single-Leg Hop",
+    "es": "Single-Leg Hop",
+    "pt": "Single-Leg Hop",
+    "ja": "シングルラグホップ",
     "ro": "Single-Leg Hop",
     "th": "Single-Leg Hop"
    },
@@ -8659,6 +10135,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hurdle Hop",
+    "de": "Hurdle Hop",
+    "de-CH": "Hurdle Hop",
+    "it": "Hurdle Hop",
+    "es": "Hurdle Hop",
+    "pt": "Hurdle Hop",
+    "ja": "ハルドルホップ",
     "ro": "Hurdle Hop",
     "th": "Hurdle Hop"
    },
@@ -8695,6 +10177,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Medicine Ball Slam",
+    "de": "Medicine Ball Slam",
+    "de-CH": "Medicine Ball Slam",
+    "it": "Medicine Ball Slam",
+    "es": "Medicine Ball Slam",
+    "pt": "Medicine Ball Slam",
+    "ja": "薬ボールスラム",
     "ro": "Medicine Ball Slam",
     "th": "Medicine Ball Slam"
    },
@@ -8731,6 +10219,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Medicine Ball Chest Pass",
+    "de": "Medicine Ball Chest Pass",
+    "de-CH": "Medicine Ball Chest Pass",
+    "it": "Medicine Ball Chest Pass",
+    "es": "Medicine Ball Chest Pass",
+    "pt": "Medicine Ball Chest Pass",
+    "ja": "薬の球の箱のパス",
     "ro": "Medicine Ball Chest Pass",
     "th": "Medicine Ball Chest Pass"
    },
@@ -8766,6 +10260,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Rotational Throw",
+    "de": "Rotational Throw",
+    "de-CH": "Rotational Throw",
+    "it": "Rotational Throw",
+    "es": "Rotational Throw",
+    "pt": "Rotational Throw",
+    "ja": "回転スロー",
     "ro": "Rotational Throw",
     "th": "Rotational Throw"
    },
@@ -8800,6 +10300,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Repeat Broad Jump",
+    "de": "Repeat Broad Jump",
+    "de-CH": "Repeat Broad Jump",
+    "it": "Repeat Broad Jump",
+    "es": "Repeat Broad Jump",
+    "pt": "Repeat Broad Jump",
+    "ja": "繰り返しの広いジャンプ",
     "ro": "Repeat Broad Jump",
     "th": "Repeat Broad Jump"
    },
@@ -8834,6 +10340,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Rotation",
+    "de": "Landmine Rotation",
+    "de-CH": "Landmine Rotation",
+    "it": "Landmine Rotation",
+    "es": "Landmine Rotation",
+    "pt": "Landmine Rotation",
+    "ja": "地雷回転",
     "ro": "Landmine Rotation",
     "th": "Landmine Rotation"
    },
@@ -8868,6 +10380,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Chop",
+    "de": "Cable Chop",
+    "de-CH": "Cable Chop",
+    "it": "Cable Chop",
+    "es": "Cable Chop",
+    "pt": "Cable Chop",
+    "ja": "ケーブルチョップ",
     "ro": "Cable Chop",
     "th": "Cable Chop"
    },
@@ -8902,6 +10420,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Cable Lift",
+    "de": "Cable Lift",
+    "de-CH": "Cable Lift",
+    "it": "Cable Lift",
+    "es": "Cable Lift",
+    "pt": "Cable Lift",
+    "ja": "ケーブルリフト",
     "ro": "Cable Lift",
     "th": "Cable Lift"
    },
@@ -8937,6 +10461,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Renegade Row",
+    "de": "Renegade Row",
+    "de-CH": "Renegade Row",
+    "it": "Renegade Row",
+    "es": "Renegade Row",
+    "pt": "Renegade Row",
+    "ja": "Renegade 行",
     "ro": "Renegade Row",
     "th": "Renegade Row"
    },
@@ -8972,6 +10502,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Suitcase Deadlift",
+    "de": "Suitcase Deadlift",
+    "de-CH": "Suitcase Deadlift",
+    "it": "Suitcase Deadlift",
+    "es": "Suitcase Deadlift",
+    "pt": "Suitcase Deadlift",
+    "ja": "スーツケースデッドリフト",
     "ro": "Suitcase Deadlift",
     "th": "Suitcase Deadlift"
    },
@@ -9006,6 +10542,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Half-Kneeling Press",
+    "de": "Half-Kneeling Press",
+    "de-CH": "Half-Kneeling Press",
+    "it": "Half-Kneeling Press",
+    "es": "Half-Kneeling Press",
+    "pt": "Half-Kneeling Press",
+    "ja": "ハーフキーリングプレス",
     "ro": "Half-Kneeling Press",
     "th": "Half-Kneeling Press"
    },
@@ -9040,6 +10582,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Plank Pull-Through",
+    "de": "Plank Pull-Through",
+    "de-CH": "Plank Pull-Through",
+    "it": "Plank Pull-Through",
+    "es": "Plank Pull-Through",
+    "pt": "Plank Pull-Through",
+    "ja": "プランクプルスルー",
     "ro": "Plank Pull-Through",
     "th": "Plank Pull-Through"
    },
@@ -9074,6 +10622,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Bird-Dog Row",
+    "de": "Bird-Dog Row",
+    "de-CH": "Bird-Dog Row",
+    "it": "Bird-Dog Row",
+    "es": "Bird-Dog Row",
+    "pt": "Bird-Dog Row",
+    "ja": "バードドッグ・ロウ",
     "ro": "Bird-Dog Row",
     "th": "Bird-Dog Row"
    },
@@ -9109,6 +10663,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Single-Arm Dumbbell Press",
+    "de": "Single-Arm Dumbbell Press",
+    "de-CH": "Single-Arm Dumbbell Press",
+    "it": "Single-Arm Dumbbell Press",
+    "es": "Single-Arm Dumbbell Press",
+    "pt": "Single-Arm Dumbbell Press",
+    "ja": "シングルアームダンベルプレス",
     "ro": "Single-Arm Dumbbell Press",
     "th": "Single-Arm Dumbbell Press"
    },
@@ -9144,6 +10704,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Single-Arm Floor Press",
+    "de": "Single-Arm Floor Press",
+    "de-CH": "Single-Arm Floor Press",
+    "it": "Single-Arm Floor Press",
+    "es": "Single-Arm Floor Press",
+    "pt": "Single-Arm Floor Press",
+    "ja": "シングルアームフロアプレス",
     "ro": "Single-Arm Floor Press",
     "th": "Single-Arm Floor Press"
    },
@@ -9179,6 +10745,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Single-Arm Dumbbell Bench Press",
+    "de": "Single-Arm Dumbbell Bench Press",
+    "de-CH": "Single-Arm Dumbbell Bench Press",
+    "it": "Single-Arm Dumbbell Bench Press",
+    "es": "Single-Arm Dumbbell Bench Press",
+    "pt": "Single-Arm Dumbbell Bench Press",
+    "ja": "シングルアームダンベルベンチプレス",
     "ro": "Single-Arm Dumbbell Bench Press",
     "th": "Single-Arm Dumbbell Bench Press"
    },
@@ -9214,6 +10786,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Single-Arm Landmine Press",
+    "de": "Single-Arm Landmine Press",
+    "de-CH": "Single-Arm Landmine Press",
+    "it": "Single-Arm Landmine Press",
+    "es": "Single-Arm Landmine Press",
+    "pt": "Single-Arm Landmine Press",
+    "ja": "シングルアームランドミンプレス",
     "ro": "Single-Arm Landmine Press",
     "th": "Single-Arm Landmine Press"
    },
@@ -9247,6 +10825,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Single-Arm Machine Press",
+    "de": "Single-Arm Machine Press",
+    "de-CH": "Single-Arm Machine Press",
+    "it": "Single-Arm Machine Press",
+    "es": "Single-Arm Machine Press",
+    "pt": "Single-Arm Machine Press",
+    "ja": "シングルアームマシンプレス",
     "ro": "Single-Arm Machine Press",
     "th": "Single-Arm Machine Press"
    },
@@ -9281,6 +10865,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Arnold Press",
+    "de": "Arnold Press",
+    "de-CH": "Arnold Press",
+    "it": "Arnold Press",
+    "es": "Arnold Press",
+    "pt": "Arnold Press",
+    "ja": "アーノルドプレス",
     "ro": "Împins Arnold",
     "th": "อาร์โนลด์เพรส"
    },
@@ -9313,6 +10903,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Front Raise",
+    "de": "Front Raise",
+    "de-CH": "Front Raise",
+    "it": "Front Raise",
+    "es": "Front Raise",
+    "pt": "Front Raise",
+    "ja": "フロントレイズ",
     "ro": "Front Raise",
     "th": "Front Raise"
    },
@@ -9345,6 +10941,12 @@
    "incrementKG": 1.25,
    "names": {
     "en": "Svend Press",
+    "de": "Svend Press",
+    "de-CH": "Svend Press",
+    "it": "Svend Press",
+    "es": "Svend Press",
+    "pt": "Svend Press",
+    "ja": "スベンドプレス",
     "ro": "Svend Press",
     "th": "Svend Press"
    },
@@ -9378,6 +10980,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Decline Press",
+    "de": "Decline Press",
+    "de-CH": "Decline Press",
+    "it": "Decline Press",
+    "es": "Decline Press",
+    "pt": "Decline Press",
+    "ja": "Declineプレス",
     "ro": "Decline Press",
     "th": "Decline Press"
    },
@@ -9413,6 +11021,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ab-Wheel Rollout",
+    "de": "Ab-Wheel Rollout",
+    "de-CH": "Ab-Wheel Rollout",
+    "it": "Ab-Wheel Rollout",
+    "es": "Ab-Wheel Rollout",
+    "pt": "Ab-Wheel Rollout",
+    "ja": "Ab-Wheelロールアウト",
     "ro": "Abdomene cu roata abdominală",
     "th": "ลูกกลิ้งหน้าท้อง"
    },
@@ -9452,6 +11066,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reverse Crunch",
+    "de": "Reverse Crunch",
+    "de-CH": "Reverse Crunch",
+    "it": "Reverse Crunch",
+    "es": "Reverse Crunch",
+    "pt": "Reverse Crunch",
+    "ja": "リバース・クランチ",
     "ro": "Abdomene inverse",
     "th": "รีเวิร์สครันช์"
    },
@@ -9490,6 +11110,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Decline Sit-Up",
+    "de": "Decline Sit-Up",
+    "de-CH": "Decline Sit-Up",
+    "it": "Decline Sit-Up",
+    "es": "Decline Sit-Up",
+    "pt": "Decline Sit-Up",
+    "ja": "シフトアップ",
     "ro": "Abdomene pe bancă declinată",
     "th": "ซิตอัพบนม้านั่งลาด"
    },
@@ -9534,6 +11160,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Front Lever Row",
+    "de": "Front Lever Row",
+    "de-CH": "Front Lever Row",
+    "it": "Front Lever Row",
+    "es": "Front Lever Row",
+    "pt": "Front Lever Row",
+    "ja": "フロントレバー列",
     "ro": "Ramat în front lever",
     "th": "ฟรอนต์ลีเวอร์โรว์"
    },
@@ -9573,6 +11205,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Human Flag Progression",
+    "de": "Human Flag Progression",
+    "de-CH": "Human Flag Progression",
+    "it": "Human Flag Progression",
+    "es": "Human Flag Progression",
+    "pt": "Human Flag Progression",
+    "ja": "人間の旗の進歩",
     "ro": "Progresie steagul uman",
     "th": "ฝึกฮิวแมนแฟลก"
    },
@@ -9608,6 +11246,12 @@
    "incrementKG": 0,
    "names": {
     "en": "World's Greatest Stretch",
+    "de": "World's Greatest Stretch",
+    "de-CH": "World's Greatest Stretch",
+    "it": "World's Greatest Stretch",
+    "es": "World's Greatest Stretch",
+    "pt": "World's Greatest Stretch",
+    "ja": "世界最大級のストレッチ",
     "ro": "Întinderea completă a corpului",
     "th": "เวิลด์เกรเทสต์สเตรตช์"
    },
@@ -9641,6 +11285,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Shoulder Dislocate",
+    "de": "Band Shoulder Dislocate",
+    "de-CH": "Band Shoulder Dislocate",
+    "it": "Band Shoulder Dislocate",
+    "es": "Band Shoulder Dislocate",
+    "pt": "Band Shoulder Dislocate",
+    "ja": "バンド肩の転置",
     "ro": "Mobilizare umeri cu banda",
     "th": "หมุนไหล่ด้วยยางยืด"
    },
@@ -9675,6 +11325,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Lower-Body Foam Roll",
+    "de": "Lower-Body Foam Roll",
+    "de-CH": "Lower-Body Foam Roll",
+    "it": "Lower-Body Foam Roll",
+    "es": "Lower-Body Foam Roll",
+    "pt": "Lower-Body Foam Roll",
+    "ja": "低ボディ フォーム ロール",
     "ro": "Foam rolling pentru partea inferioară",
     "th": "โฟมโรลช่วงล่าง"
    },
@@ -9709,6 +11365,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Leg Stand",
+    "de": "Single-Leg Stand",
+    "de-CH": "Single-Leg Stand",
+    "it": "Single-Leg Stand",
+    "es": "Single-Leg Stand",
+    "pt": "Single-Leg Stand",
+    "ja": "シングルラグスタンド",
     "ro": "Single-Leg Stand",
     "th": "Single-Leg Stand"
    },
@@ -9741,6 +11403,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Tandem Stance",
+    "de": "Tandem Stance",
+    "de-CH": "Tandem Stance",
+    "it": "Tandem Stance",
+    "es": "Tandem Stance",
+    "pt": "Tandem Stance",
+    "ja": "タンデム・スタンス",
     "ro": "Tandem Stance",
     "th": "Tandem Stance"
    },
@@ -9774,6 +11442,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Heel-to-Toe Walk",
+    "de": "Heel-to-Toe Walk",
+    "de-CH": "Heel-to-Toe Walk",
+    "it": "Heel-to-Toe Walk",
+    "es": "Heel-to-Toe Walk",
+    "pt": "Heel-to-Toe Walk",
+    "ja": "ヒール・ツー・トゥ・ウォーク",
     "ro": "Heel-to-Toe Walk",
     "th": "Heel-to-Toe Walk"
    },
@@ -9806,6 +11480,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Leg Reach",
+    "de": "Single-Leg Reach",
+    "de-CH": "Single-Leg Reach",
+    "it": "Single-Leg Reach",
+    "es": "Single-Leg Reach",
+    "pt": "Single-Leg Reach",
+    "ja": "シングルラグリーチ",
     "ro": "Single-Leg Reach",
     "th": "Single-Leg Reach"
    },
@@ -9839,6 +11519,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Airplane Balance",
+    "de": "Airplane Balance",
+    "de-CH": "Airplane Balance",
+    "it": "Airplane Balance",
+    "es": "Airplane Balance",
+    "pt": "Airplane Balance",
+    "ja": "飛行機のバランス",
     "ro": "Airplane Balance",
     "th": "Airplane Balance"
    },
@@ -9871,6 +11557,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Leg Stand, Eyes Closed",
+    "de": "Single-Leg Stand, Eyes Closed",
+    "de-CH": "Single-Leg Stand, Eyes Closed",
+    "it": "Single-Leg Stand, Eyes Closed",
+    "es": "Single-Leg Stand, Eyes Closed",
+    "pt": "Single-Leg Stand, Eyes Closed",
+    "ja": "シングルラグスタンド、目が閉じる",
     "ro": "Single-Leg Stand, Eyes Closed",
     "th": "Single-Leg Stand, Eyes Closed"
    },
@@ -9904,6 +11596,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Controlled Step-Down",
+    "de": "Controlled Step-Down",
+    "de-CH": "Controlled Step-Down",
+    "it": "Controlled Step-Down",
+    "es": "Controlled Step-Down",
+    "pt": "Controlled Step-Down",
+    "ja": "制御ステップダウン",
     "ro": "Controlled Step-Down",
     "th": "Controlled Step-Down"
    },
@@ -9938,6 +11636,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Bent-Over Dumbbell Row",
+    "de": "Bent-Over Dumbbell Row",
+    "de-CH": "Bent-Over Dumbbell Row",
+    "it": "Bent-Over Dumbbell Row",
+    "es": "Bent-Over Dumbbell Row",
+    "pt": "Bent-Over Dumbbell Row",
+    "ja": "ベントオーバーダンベル列",
     "ro": "Bent-Over Dumbbell Row",
     "th": "Bent-Over Dumbbell Row"
    },
@@ -9972,6 +11676,12 @@
    "incrementKG": 4,
    "names": {
     "en": "Bent-Over Kettlebell Row",
+    "de": "Bent-Over Kettlebell Row",
+    "de-CH": "Bent-Over Kettlebell Row",
+    "it": "Bent-Over Kettlebell Row",
+    "es": "Bent-Over Kettlebell Row",
+    "pt": "Bent-Over Kettlebell Row",
+    "ja": "ベントオーバー・ケトルベル・ロウ",
     "ro": "Bent-Over Kettlebell Row",
     "th": "Bent-Over Kettlebell Row"
    },
@@ -10005,6 +11715,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bent-Over Band Row",
+    "de": "Bent-Over Band Row",
+    "de-CH": "Bent-Over Band Row",
+    "it": "Bent-Over Band Row",
+    "es": "Bent-Over Band Row",
+    "pt": "Bent-Over Band Row",
+    "ja": "ベントオーバーバンド列",
     "ro": "Bent-Over Band Row",
     "th": "Bent-Over Band Row"
    },
@@ -10037,6 +11753,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Prone Floor Row",
+    "de": "Prone Floor Row",
+    "de-CH": "Prone Floor Row",
+    "it": "Prone Floor Row",
+    "es": "Prone Floor Row",
+    "pt": "Prone Floor Row",
+    "ja": "傾向がある床の列",
     "ro": "Prone Floor Row",
     "th": "Prone Floor Row"
    },
@@ -10071,6 +11793,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Table Row",
+    "de": "Table Row",
+    "de-CH": "Table Row",
+    "it": "Table Row",
+    "es": "Table Row",
+    "pt": "Table Row",
+    "ja": "テーブルの列",
     "ro": "Table Row",
     "th": "Table Row"
    },
@@ -10104,6 +11832,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Towel Door Row",
+    "de": "Towel Door Row",
+    "de-CH": "Towel Door Row",
+    "it": "Towel Door Row",
+    "es": "Towel Door Row",
+    "pt": "Towel Door Row",
+    "ja": "タオルのドアの列",
     "ro": "Towel Door Row",
     "th": "Towel Door Row"
    },
@@ -10138,6 +11872,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Lat Pullover",
+    "de": "Band Lat Pullover",
+    "de-CH": "Band Lat Pullover",
+    "it": "Band Lat Pullover",
+    "es": "Band Lat Pullover",
+    "pt": "Band Lat Pullover",
+    "ja": "バンド ラットのプルオーバー",
     "ro": "Band Lat Pullover",
     "th": "Band Lat Pullover"
    },
@@ -10171,6 +11911,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Pullover",
+    "de": "Dumbbell Pullover",
+    "de-CH": "Dumbbell Pullover",
+    "it": "Dumbbell Pullover",
+    "es": "Dumbbell Pullover",
+    "pt": "Dumbbell Pullover",
+    "ja": "ダンベルプルオーバー",
     "ro": "Dumbbell Pullover",
     "th": "Dumbbell Pullover"
    },
@@ -10206,6 +11952,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Floor Pullover",
+    "de": "Floor Pullover",
+    "de-CH": "Floor Pullover",
+    "it": "Floor Pullover",
+    "es": "Floor Pullover",
+    "pt": "Floor Pullover",
+    "ja": "フロアプルオーバー",
     "ro": "Floor Pullover",
     "th": "Floor Pullover"
    },
@@ -10239,6 +11991,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Towel Door Pulldown",
+    "de": "Towel Door Pulldown",
+    "de-CH": "Towel Door Pulldown",
+    "it": "Towel Door Pulldown",
+    "es": "Towel Door Pulldown",
+    "pt": "Towel Door Pulldown",
+    "ja": "タオルのドアのプルダウン",
     "ro": "Towel Door Pulldown",
     "th": "Towel Door Pulldown"
    },
@@ -10273,6 +12031,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Straight-Arm Pulldown",
+    "de": "Band Straight-Arm Pulldown",
+    "de-CH": "Band Straight-Arm Pulldown",
+    "it": "Band Straight-Arm Pulldown",
+    "es": "Band Straight-Arm Pulldown",
+    "pt": "Band Straight-Arm Pulldown",
+    "ja": "バンドストレートアームプルダウン",
     "ro": "Band Straight-Arm Pulldown",
     "th": "Band Straight-Arm Pulldown"
    },
@@ -10305,6 +12069,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Wall Sit",
+    "de": "Wall Sit",
+    "de-CH": "Wall Sit",
+    "it": "Wall Sit",
+    "es": "Wall Sit",
+    "pt": "Wall Sit",
+    "ja": "壁シット",
     "ro": "Wall Sit",
     "th": "Wall Sit"
    },
@@ -10339,6 +12109,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Cossack Squat",
+    "de": "Cossack Squat",
+    "de-CH": "Cossack Squat",
+    "it": "Cossack Squat",
+    "es": "Cossack Squat",
+    "pt": "Cossack Squat",
+    "ja": "コザックスクエア",
     "ro": "Cossack Squat",
     "th": "Cossack Squat"
    },
@@ -10372,6 +12148,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Lateral Lunge",
+    "de": "Lateral Lunge",
+    "de-CH": "Lateral Lunge",
+    "it": "Lateral Lunge",
+    "es": "Lateral Lunge",
+    "pt": "Lateral Lunge",
+    "ja": "リアラル・ルンネ",
     "ro": "Lateral Lunge",
     "th": "Lateral Lunge"
    },
@@ -10407,6 +12189,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Shrimp Squat",
+    "de": "Shrimp Squat",
+    "de-CH": "Shrimp Squat",
+    "it": "Shrimp Squat",
+    "es": "Shrimp Squat",
+    "pt": "Shrimp Squat",
+    "ja": "エビスクワット",
     "ro": "Shrimp Squat",
     "th": "Shrimp Squat"
    },
@@ -10440,6 +12228,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Chair Step-Up",
+    "de": "Chair Step-Up",
+    "de-CH": "Chair Step-Up",
+    "it": "Chair Step-Up",
+    "es": "Chair Step-Up",
+    "pt": "Chair Step-Up",
+    "ja": "椅子のステップアップ",
     "ro": "Chair Step-Up",
     "th": "Chair Step-Up"
    },
@@ -10474,6 +12268,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Leg Glute Bridge",
+    "de": "Single-Leg Glute Bridge",
+    "de-CH": "Single-Leg Glute Bridge",
+    "it": "Single-Leg Glute Bridge",
+    "es": "Single-Leg Glute Bridge",
+    "pt": "Single-Leg Glute Bridge",
+    "ja": "シングルラグナットブリッジ",
     "ro": "Podul fesier pe un picior",
     "th": "สะพานก้นขาเดียว"
    },
@@ -10507,6 +12307,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Nordic Curl, Eccentric",
+    "de": "Nordic Curl, Eccentric",
+    "de-CH": "Nordic Curl, Eccentric",
+    "it": "Nordic Curl, Eccentric",
+    "es": "Nordic Curl, Eccentric",
+    "pt": "Nordic Curl, Eccentric",
+    "ja": "ノルディックカール、エクセントリック",
     "ro": "Nordic Curl, Eccentric",
     "th": "Nordic Curl, Eccentric"
    },
@@ -10541,6 +12347,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hamstring Walkout",
+    "de": "Hamstring Walkout",
+    "de-CH": "Hamstring Walkout",
+    "it": "Hamstring Walkout",
+    "es": "Hamstring Walkout",
+    "pt": "Hamstring Walkout",
+    "ja": "ハムストリング ウォークアウト",
     "ro": "Hamstring Walkout",
     "th": "Hamstring Walkout"
    },
@@ -10573,6 +12385,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Good Morning",
+    "de": "Band Good Morning",
+    "de-CH": "Band Good Morning",
+    "it": "Band Good Morning",
+    "es": "Band Good Morning",
+    "pt": "Band Good Morning",
+    "ja": "バンドグッドモーニング",
     "ro": "Band Good Morning",
     "th": "Band Good Morning"
    },
@@ -10607,6 +12425,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Band Overhead Press",
+    "de": "Band Overhead Press",
+    "de-CH": "Band Overhead Press",
+    "it": "Band Overhead Press",
+    "es": "Band Overhead Press",
+    "pt": "Band Overhead Press",
+    "ja": "バンドオーバーヘッドプレス",
     "ro": "Band Overhead Press",
     "th": "Band Overhead Press"
    },
@@ -10642,6 +12466,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Wall Walk",
+    "de": "Wall Walk",
+    "de-CH": "Wall Walk",
+    "it": "Wall Walk",
+    "es": "Wall Walk",
+    "pt": "Wall Walk",
+    "ja": "ウォールウォーク",
     "ro": "Wall Walk",
     "th": "Wall Walk"
    },
@@ -10678,6 +12508,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Loaded Backpack Carry",
+    "de": "Loaded Backpack Carry",
+    "de-CH": "Loaded Backpack Carry",
+    "it": "Loaded Backpack Carry",
+    "es": "Loaded Backpack Carry",
+    "pt": "Loaded Backpack Carry",
+    "ja": "ロードされたバックパックの運送",
     "ro": "Loaded Backpack Carry",
     "th": "Loaded Backpack Carry"
    },
@@ -10712,6 +12548,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Suitcase Hold",
+    "de": "Suitcase Hold",
+    "de-CH": "Suitcase Hold",
+    "it": "Suitcase Hold",
+    "es": "Suitcase Hold",
+    "pt": "Suitcase Hold",
+    "ja": "スーツケースのホールド",
     "ro": "Suitcase Hold",
     "th": "Suitcase Hold"
    },
@@ -10741,6 +12583,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Tibialis Raise",
+    "de": "Tibialis Raise",
+    "de-CH": "Tibialis Raise",
+    "it": "Tibialis Raise",
+    "es": "Tibialis Raise",
+    "pt": "Tibialis Raise",
+    "ja": "ティビアリス・レイズ",
     "ro": "Tibialis Raise",
     "th": "Tibialis Raise"
    },
@@ -10770,6 +12618,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Heel Walk",
+    "de": "Heel Walk",
+    "de-CH": "Heel Walk",
+    "it": "Heel Walk",
+    "es": "Heel Walk",
+    "pt": "Heel Walk",
+    "ja": "ヒールウォーク",
     "ro": "Heel Walk",
     "th": "Heel Walk"
    },
@@ -10800,6 +12654,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Short Foot Drill",
+    "de": "Short Foot Drill",
+    "de-CH": "Short Foot Drill",
+    "it": "Short Foot Drill",
+    "es": "Short Foot Drill",
+    "pt": "Short Foot Drill",
+    "ja": "ショートフットドリル",
     "ro": "Short Foot Drill",
     "th": "Short Foot Drill"
    },
@@ -10832,6 +12692,12 @@
    "incrementKG": 1.25,
    "names": {
     "en": "Plate Pinch",
+    "de": "Plate Pinch",
+    "de-CH": "Plate Pinch",
+    "it": "Plate Pinch",
+    "es": "Plate Pinch",
+    "pt": "Plate Pinch",
+    "ja": "プレートピンチ",
     "ro": "Plate Pinch",
     "th": "Plate Pinch"
    },
@@ -10864,6 +12730,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Towel Hang",
+    "de": "Towel Hang",
+    "de-CH": "Towel Hang",
+    "it": "Towel Hang",
+    "es": "Towel Hang",
+    "pt": "Towel Hang",
+    "ja": "タオル掛け",
     "ro": "Towel Hang",
     "th": "Towel Hang"
    },
@@ -10896,6 +12768,12 @@
    "incrementKG": 1.25,
    "names": {
     "en": "Wrist Roller",
+    "de": "Wrist Roller",
+    "de-CH": "Wrist Roller",
+    "it": "Wrist Roller",
+    "es": "Wrist Roller",
+    "pt": "Wrist Roller",
+    "ja": "腕時計のローラー",
     "ro": "Wrist Roller",
     "th": "Wrist Roller"
    },
@@ -10925,6 +12803,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Neck Isometric",
+    "de": "Neck Isometric",
+    "de-CH": "Neck Isometric",
+    "it": "Neck Isometric",
+    "es": "Neck Isometric",
+    "pt": "Neck Isometric",
+    "ja": "ネックイソメトリック",
     "ro": "Neck Isometric",
     "th": "Neck Isometric"
    },
@@ -10954,6 +12838,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Chin Tuck",
+    "de": "Chin Tuck",
+    "de-CH": "Chin Tuck",
+    "it": "Chin Tuck",
+    "es": "Chin Tuck",
+    "pt": "Chin Tuck",
+    "ja": "チンタック",
     "ro": "Chin Tuck",
     "th": "Chin Tuck"
    },
@@ -10986,6 +12876,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Side Plank from Knees",
+    "de": "Side Plank from Knees",
+    "de-CH": "Side Plank from Knees",
+    "it": "Side Plank from Knees",
+    "es": "Side Plank from Knees",
+    "pt": "Side Plank from Knees",
+    "ja": "Kneesのサイドプランク",
     "ro": "Side Plank from Knees",
     "th": "Side Plank from Knees"
    },
@@ -11018,6 +12914,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Side Bend",
+    "de": "Dumbbell Side Bend",
+    "de-CH": "Dumbbell Side Bend",
+    "it": "Dumbbell Side Bend",
+    "es": "Dumbbell Side Bend",
+    "pt": "Dumbbell Side Bend",
+    "ja": "Dumbbell サイド ベンド",
     "ro": "Dumbbell Side Bend",
     "th": "Dumbbell Side Bend"
    },
@@ -11057,6 +12959,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Turkish Get-Up",
+    "de": "Kettlebell Turkish Get-Up",
+    "de-CH": "Kettlebell Turkish Get-Up",
+    "it": "Kettlebell Turkish Get-Up",
+    "es": "Kettlebell Turkish Get-Up",
+    "pt": "Kettlebell Turkish Get-Up",
+    "ja": "Kettlebell トルコ語 Get-Up",
     "ro": "Kettlebell Turkish Get-Up",
     "th": "Kettlebell Turkish Get-Up"
    },
@@ -11095,6 +13003,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Half Turkish Get-Up",
+    "de": "Half Turkish Get-Up",
+    "de-CH": "Half Turkish Get-Up",
+    "it": "Half Turkish Get-Up",
+    "es": "Half Turkish Get-Up",
+    "pt": "Half Turkish Get-Up",
+    "ja": "ハーフトルコ Get-Up",
     "ro": "Half Turkish Get-Up",
     "th": "Half Turkish Get-Up"
    },
@@ -11130,6 +13044,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Windmill",
+    "de": "Kettlebell Windmill",
+    "de-CH": "Kettlebell Windmill",
+    "it": "Kettlebell Windmill",
+    "es": "Kettlebell Windmill",
+    "pt": "Kettlebell Windmill",
+    "ja": "ケトルベル風車",
     "ro": "Kettlebell Windmill",
     "th": "Kettlebell Windmill"
    },
@@ -11163,6 +13083,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Around-the-World",
+    "de": "Kettlebell Around-the-World",
+    "de-CH": "Kettlebell Around-the-World",
+    "it": "Kettlebell Around-the-World",
+    "es": "Kettlebell Around-the-World",
+    "pt": "Kettlebell Around-the-World",
+    "ja": "Kettlebell 世界中で",
     "ro": "Kettlebell Around-the-World",
     "th": "Kettlebell Around-the-World"
    },
@@ -11195,6 +13121,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Halo",
+    "de": "Kettlebell Halo",
+    "de-CH": "Kettlebell Halo",
+    "it": "Kettlebell Halo",
+    "es": "Kettlebell Halo",
+    "pt": "Kettlebell Halo",
+    "ja": "ケトルベル・ハロー",
     "ro": "Kettlebell Halo",
     "th": "Kettlebell Halo"
    },
@@ -11231,6 +13163,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Figure-8",
+    "de": "Kettlebell Figure-8",
+    "de-CH": "Kettlebell Figure-8",
+    "it": "Kettlebell Figure-8",
+    "es": "Kettlebell Figure-8",
+    "pt": "Kettlebell Figure-8",
+    "ja": "ケトルベル図8",
     "ro": "Kettlebell Figure-8",
     "th": "Kettlebell Figure-8"
    },
@@ -11267,6 +13205,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Figure-8 to Hold",
+    "de": "Kettlebell Figure-8 to Hold",
+    "de-CH": "Kettlebell Figure-8 to Hold",
+    "it": "Kettlebell Figure-8 to Hold",
+    "es": "Kettlebell Figure-8 to Hold",
+    "pt": "Kettlebell Figure-8 to Hold",
+    "ja": "ケトルベル図8を握る",
     "ro": "Kettlebell Figure-8 to Hold",
     "th": "Kettlebell Figure-8 to Hold"
    },
@@ -11306,6 +13250,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dual-Kettlebell Clean",
+    "de": "Dual-Kettlebell Clean",
+    "de-CH": "Dual-Kettlebell Clean",
+    "it": "Dual-Kettlebell Clean",
+    "es": "Dual-Kettlebell Clean",
+    "pt": "Dual-Kettlebell Clean",
+    "ja": "デュアルケトルベルクリーン",
     "ro": "Dual-Kettlebell Clean",
     "th": "Dual-Kettlebell Clean"
    },
@@ -11345,6 +13295,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Clean and Jerk",
+    "de": "Kettlebell Clean and Jerk",
+    "de-CH": "Kettlebell Clean and Jerk",
+    "it": "Kettlebell Clean and Jerk",
+    "es": "Kettlebell Clean and Jerk",
+    "pt": "Kettlebell Clean and Jerk",
+    "ja": "ケトルベル クリーン と Jerk",
     "ro": "Kettlebell Clean and Jerk",
     "th": "Kettlebell Clean and Jerk"
    },
@@ -11383,6 +13339,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Clean and Push Press",
+    "de": "Kettlebell Clean and Push Press",
+    "de-CH": "Kettlebell Clean and Push Press",
+    "it": "Kettlebell Clean and Push Press",
+    "es": "Kettlebell Clean and Push Press",
+    "pt": "Kettlebell Clean and Push Press",
+    "ja": "ケトルベルクリーンプレス",
     "ro": "Kettlebell Clean and Push Press",
     "th": "Kettlebell Clean and Push Press"
    },
@@ -11422,6 +13384,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Snatch",
+    "de": "Kettlebell Snatch",
+    "de-CH": "Kettlebell Snatch",
+    "it": "Kettlebell Snatch",
+    "es": "Kettlebell Snatch",
+    "pt": "Kettlebell Snatch",
+    "ja": "ケトルベル スナッチ",
     "ro": "Kettlebell Snatch",
     "th": "Kettlebell Snatch"
    },
@@ -11460,6 +13428,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Snatch to Overhead Carry",
+    "de": "Kettlebell Snatch to Overhead Carry",
+    "de-CH": "Kettlebell Snatch to Overhead Carry",
+    "it": "Kettlebell Snatch to Overhead Carry",
+    "es": "Kettlebell Snatch to Overhead Carry",
+    "pt": "Kettlebell Snatch to Overhead Carry",
+    "ja": "Kettlebell スナッチ へ 頭上 運送",
     "ro": "Kettlebell Snatch to Overhead Carry",
     "th": "Kettlebell Snatch to Overhead Carry"
    },
@@ -11497,6 +13471,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Swing to Squat",
+    "de": "Kettlebell Swing to Squat",
+    "de-CH": "Kettlebell Swing to Squat",
+    "it": "Kettlebell Swing to Squat",
+    "es": "Kettlebell Swing to Squat",
+    "pt": "Kettlebell Swing to Squat",
+    "ja": "Kettlebell スイング へ Squat",
     "ro": "Kettlebell Swing to Squat",
     "th": "Kettlebell Swing to Squat"
    },
@@ -11534,6 +13514,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Squat to Press",
+    "de": "Kettlebell Squat to Press",
+    "de-CH": "Kettlebell Squat to Press",
+    "it": "Kettlebell Squat to Press",
+    "es": "Kettlebell Squat to Press",
+    "pt": "Kettlebell Squat to Press",
+    "ja": "Kettlebell Squat へ プレス",
     "ro": "Kettlebell Squat to Press",
     "th": "Kettlebell Squat to Press"
    },
@@ -11571,6 +13557,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Front Rack Squat",
+    "de": "Kettlebell Front Rack Squat",
+    "de-CH": "Kettlebell Front Rack Squat",
+    "it": "Kettlebell Front Rack Squat",
+    "es": "Kettlebell Front Rack Squat",
+    "pt": "Kettlebell Front Rack Squat",
+    "ja": "ケトルベルフロントラックスクワット",
     "ro": "Kettlebell Front Rack Squat",
     "th": "Kettlebell Front Rack Squat"
    },
@@ -11606,6 +13598,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Lateral Squat",
+    "de": "Kettlebell Lateral Squat",
+    "de-CH": "Kettlebell Lateral Squat",
+    "it": "Kettlebell Lateral Squat",
+    "es": "Kettlebell Lateral Squat",
+    "pt": "Kettlebell Lateral Squat",
+    "ja": "ケトルベル横のスクワット",
     "ro": "Kettlebell Lateral Squat",
     "th": "Kettlebell Lateral Squat"
    },
@@ -11640,6 +13638,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Curtsy Lunge",
+    "de": "Kettlebell Curtsy Lunge",
+    "de-CH": "Kettlebell Curtsy Lunge",
+    "it": "Kettlebell Curtsy Lunge",
+    "es": "Kettlebell Curtsy Lunge",
+    "pt": "Kettlebell Curtsy Lunge",
+    "ja": "ケトルベル・カーシー・ルンネ",
     "ro": "Kettlebell Curtsy Lunge",
     "th": "Kettlebell Curtsy Lunge"
    },
@@ -11674,6 +13678,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Lunge with Rotation",
+    "de": "Kettlebell Lunge with Rotation",
+    "de-CH": "Kettlebell Lunge with Rotation",
+    "it": "Kettlebell Lunge with Rotation",
+    "es": "Kettlebell Lunge with Rotation",
+    "pt": "Kettlebell Lunge with Rotation",
+    "ja": "Kettlebell Lunge with 回転",
     "ro": "Kettlebell Lunge with Rotation",
     "th": "Kettlebell Lunge with Rotation"
    },
@@ -11710,6 +13720,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Reverse Lunge to Press",
+    "de": "Kettlebell Reverse Lunge to Press",
+    "de-CH": "Kettlebell Reverse Lunge to Press",
+    "it": "Kettlebell Reverse Lunge to Press",
+    "es": "Kettlebell Reverse Lunge to Press",
+    "pt": "Kettlebell Reverse Lunge to Press",
+    "ja": "Kettlebell 逆 Lunge へ プレス",
     "ro": "Kettlebell Reverse Lunge to Press",
     "th": "Kettlebell Reverse Lunge to Press"
    },
@@ -11746,6 +13762,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Step-up",
+    "de": "Kettlebell Step-up",
+    "de-CH": "Kettlebell Step-up",
+    "it": "Kettlebell Step-up",
+    "es": "Kettlebell Step-up",
+    "pt": "Kettlebell Step-up",
+    "ja": "ケトルベルステップアップ",
     "ro": "Kettlebell Step-up",
     "th": "Kettlebell Step-up"
    },
@@ -11780,6 +13802,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Walking Lunge",
+    "de": "Kettlebell Walking Lunge",
+    "de-CH": "Kettlebell Walking Lunge",
+    "it": "Kettlebell Walking Lunge",
+    "es": "Kettlebell Walking Lunge",
+    "pt": "Kettlebell Walking Lunge",
+    "ja": "ケトルベルウォーキングルンゲ",
     "ro": "Kettlebell Walking Lunge",
     "th": "Kettlebell Walking Lunge"
    },
@@ -11816,6 +13844,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Suitcase Deadlift",
+    "de": "Kettlebell Suitcase Deadlift",
+    "de-CH": "Kettlebell Suitcase Deadlift",
+    "it": "Kettlebell Suitcase Deadlift",
+    "es": "Kettlebell Suitcase Deadlift",
+    "pt": "Kettlebell Suitcase Deadlift",
+    "ja": "Kettlebellのスーツケースのデッドリフト",
     "ro": "Kettlebell Suitcase Deadlift",
     "th": "Kettlebell Suitcase Deadlift"
    },
@@ -11852,6 +13886,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Romanian Deadlift",
+    "de": "Kettlebell Romanian Deadlift",
+    "de-CH": "Kettlebell Romanian Deadlift",
+    "it": "Kettlebell Romanian Deadlift",
+    "es": "Kettlebell Romanian Deadlift",
+    "pt": "Kettlebell Romanian Deadlift",
+    "ja": "Kettlebell ルーマニア語デッドリフト",
     "ro": "Kettlebell Romanian Deadlift",
     "th": "Kettlebell Romanian Deadlift"
    },
@@ -11888,6 +13928,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Single-leg Kettlebell Deadlift",
+    "de": "Single-leg Kettlebell Deadlift",
+    "de-CH": "Single-leg Kettlebell Deadlift",
+    "it": "Single-leg Kettlebell Deadlift",
+    "es": "Single-leg Kettlebell Deadlift",
+    "pt": "Single-leg Kettlebell Deadlift",
+    "ja": "シングルラグケトルベルデッドリフト",
     "ro": "Single-leg Kettlebell Deadlift",
     "th": "Single-leg Kettlebell Deadlift"
    },
@@ -11924,6 +13970,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Sumo Deadlift",
+    "de": "Kettlebell Sumo Deadlift",
+    "de-CH": "Kettlebell Sumo Deadlift",
+    "it": "Kettlebell Sumo Deadlift",
+    "es": "Kettlebell Sumo Deadlift",
+    "pt": "Kettlebell Sumo Deadlift",
+    "ja": "Kettlebell Sumoデッドリフト",
     "ro": "Kettlebell Sumo Deadlift",
     "th": "Kettlebell Sumo Deadlift"
    },
@@ -11960,6 +14012,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Good Morning",
+    "de": "Kettlebell Good Morning",
+    "de-CH": "Kettlebell Good Morning",
+    "it": "Kettlebell Good Morning",
+    "es": "Kettlebell Good Morning",
+    "pt": "Kettlebell Good Morning",
+    "ja": "Kettlebell 良い朝",
     "ro": "Kettlebell Good Morning",
     "th": "Kettlebell Good Morning"
    },
@@ -11995,6 +14053,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Row",
+    "de": "Kettlebell Row",
+    "de-CH": "Kettlebell Row",
+    "it": "Kettlebell Row",
+    "es": "Kettlebell Row",
+    "pt": "Kettlebell Row",
+    "ja": "ケトルベル・ロウ",
     "ro": "Kettlebell Row",
     "th": "Kettlebell Row"
    },
@@ -12032,6 +14096,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Renegade Row",
+    "de": "Kettlebell Renegade Row",
+    "de-CH": "Kettlebell Renegade Row",
+    "it": "Kettlebell Renegade Row",
+    "es": "Kettlebell Renegade Row",
+    "pt": "Kettlebell Renegade Row",
+    "ja": "ケトルベル・ルネガデ・ロウ",
     "ro": "Kettlebell Renegade Row",
     "th": "Kettlebell Renegade Row"
    },
@@ -12067,6 +14137,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Gorilla Row",
+    "de": "Kettlebell Gorilla Row",
+    "de-CH": "Kettlebell Gorilla Row",
+    "it": "Kettlebell Gorilla Row",
+    "es": "Kettlebell Gorilla Row",
+    "pt": "Kettlebell Gorilla Row",
+    "ja": "ケトルベル・ゴリラ・ロウ",
     "ro": "Kettlebell Gorilla Row",
     "th": "Kettlebell Gorilla Row"
    },
@@ -12102,6 +14178,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Suitcase Row",
+    "de": "Kettlebell Suitcase Row",
+    "de-CH": "Kettlebell Suitcase Row",
+    "it": "Kettlebell Suitcase Row",
+    "es": "Kettlebell Suitcase Row",
+    "pt": "Kettlebell Suitcase Row",
+    "ja": "Kettlebellのスーツケースの列",
     "ro": "Kettlebell Suitcase Row",
     "th": "Kettlebell Suitcase Row"
    },
@@ -12137,6 +14219,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Chest-Supported Row",
+    "de": "Kettlebell Chest-Supported Row",
+    "de-CH": "Kettlebell Chest-Supported Row",
+    "it": "Kettlebell Chest-Supported Row",
+    "es": "Kettlebell Chest-Supported Row",
+    "pt": "Kettlebell Chest-Supported Row",
+    "ja": "ケトルベルチェストサポート列",
     "ro": "Kettlebell Chest-Supported Row",
     "th": "Kettlebell Chest-Supported Row"
    },
@@ -12171,6 +14259,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Floor Press",
+    "de": "Kettlebell Floor Press",
+    "de-CH": "Kettlebell Floor Press",
+    "it": "Kettlebell Floor Press",
+    "es": "Kettlebell Floor Press",
+    "pt": "Kettlebell Floor Press",
+    "ja": "ケトルベルフロアプレス",
     "ro": "Kettlebell Floor Press",
     "th": "Kettlebell Floor Press"
    },
@@ -12205,6 +14299,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Alternating Floor Press",
+    "de": "Kettlebell Alternating Floor Press",
+    "de-CH": "Kettlebell Alternating Floor Press",
+    "it": "Kettlebell Alternating Floor Press",
+    "es": "Kettlebell Alternating Floor Press",
+    "pt": "Kettlebell Alternating Floor Press",
+    "ja": "Kettlebellの交流フロアプレス",
     "ro": "Kettlebell Alternating Floor Press",
     "th": "Kettlebell Alternating Floor Press"
    },
@@ -12239,6 +14339,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Bench Press",
+    "de": "Kettlebell Bench Press",
+    "de-CH": "Kettlebell Bench Press",
+    "it": "Kettlebell Bench Press",
+    "es": "Kettlebell Bench Press",
+    "pt": "Kettlebell Bench Press",
+    "ja": "ケトルベルベンチプレス",
     "ro": "Kettlebell Bench Press",
     "th": "Kettlebell Bench Press"
    },
@@ -12273,6 +14379,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Incline Bench Press",
+    "de": "Kettlebell Incline Bench Press",
+    "de-CH": "Kettlebell Incline Bench Press",
+    "it": "Kettlebell Incline Bench Press",
+    "es": "Kettlebell Incline Bench Press",
+    "pt": "Kettlebell Incline Bench Press",
+    "ja": "Kettlebell Incline ベンチプレス",
     "ro": "Kettlebell Incline Bench Press",
     "th": "Kettlebell Incline Bench Press"
    },
@@ -12310,6 +14422,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell See-Saw Press",
+    "de": "Kettlebell See-Saw Press",
+    "de-CH": "Kettlebell See-Saw Press",
+    "it": "Kettlebell See-Saw Press",
+    "es": "Kettlebell See-Saw Press",
+    "pt": "Kettlebell See-Saw Press",
+    "ja": "Kettlebell See-Saw Press(ケトルベル)",
     "ro": "Kettlebell See-Saw Press",
     "th": "Kettlebell See-Saw Press"
    },
@@ -12345,6 +14463,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Bottoms-Up Press",
+    "de": "Kettlebell Bottoms-Up Press",
+    "de-CH": "Kettlebell Bottoms-Up Press",
+    "it": "Kettlebell Bottoms-Up Press",
+    "es": "Kettlebell Bottoms-Up Press",
+    "pt": "Kettlebell Bottoms-Up Press",
+    "ja": "ケトルベルボトムアッププレス",
     "ro": "Kettlebell Bottoms-Up Press",
     "th": "Kettlebell Bottoms-Up Press"
    },
@@ -12381,6 +14505,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Bottoms-Up Clean",
+    "de": "Kettlebell Bottoms-Up Clean",
+    "de-CH": "Kettlebell Bottoms-Up Clean",
+    "it": "Kettlebell Bottoms-Up Clean",
+    "es": "Kettlebell Bottoms-Up Clean",
+    "pt": "Kettlebell Bottoms-Up Clean",
+    "ja": "ケトルベルボトムアップクリーン",
     "ro": "Kettlebell Bottoms-Up Clean",
     "th": "Kettlebell Bottoms-Up Clean"
    },
@@ -12417,6 +14547,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Bottoms-Up Carry",
+    "de": "Kettlebell Bottoms-Up Carry",
+    "de-CH": "Kettlebell Bottoms-Up Carry",
+    "it": "Kettlebell Bottoms-Up Carry",
+    "es": "Kettlebell Bottoms-Up Carry",
+    "pt": "Kettlebell Bottoms-Up Carry",
+    "ja": "ケトルベルボトムスアップキャリー",
     "ro": "Kettlebell Bottoms-Up Carry",
     "th": "Kettlebell Bottoms-Up Carry"
    },
@@ -12453,6 +14589,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Overhead Carry",
+    "de": "Kettlebell Overhead Carry",
+    "de-CH": "Kettlebell Overhead Carry",
+    "it": "Kettlebell Overhead Carry",
+    "es": "Kettlebell Overhead Carry",
+    "pt": "Kettlebell Overhead Carry",
+    "ja": "ケトルベルオーバーヘッドキャリー",
     "ro": "Kettlebell Overhead Carry",
     "th": "Kettlebell Overhead Carry"
    },
@@ -12489,6 +14631,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Double Overhead Kettlebell Carry",
+    "de": "Double Overhead Kettlebell Carry",
+    "de-CH": "Double Overhead Kettlebell Carry",
+    "it": "Double Overhead Kettlebell Carry",
+    "es": "Double Overhead Kettlebell Carry",
+    "pt": "Double Overhead Kettlebell Carry",
+    "ja": "ダブルオーバーヘッドケトルベルキャリー",
     "ro": "Double Overhead Kettlebell Carry",
     "th": "Double Overhead Kettlebell Carry"
    },
@@ -12525,6 +14673,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Rack Carry",
+    "de": "Kettlebell Rack Carry",
+    "de-CH": "Kettlebell Rack Carry",
+    "it": "Kettlebell Rack Carry",
+    "es": "Kettlebell Rack Carry",
+    "pt": "Kettlebell Rack Carry",
+    "ja": "ケトルベルラックキャリー",
     "ro": "Kettlebell Rack Carry",
     "th": "Kettlebell Rack Carry"
    },
@@ -12563,6 +14717,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Farmer's Walk",
+    "de": "Kettlebell Farmer's Walk",
+    "de-CH": "Kettlebell Farmer's Walk",
+    "it": "Kettlebell Farmer's Walk",
+    "es": "Kettlebell Farmer's Walk",
+    "pt": "Kettlebell Farmer's Walk",
+    "ja": "ケトルベルファーマーズウォーク",
     "ro": "Kettlebell Farmer's Walk",
     "th": "Kettlebell Farmer's Walk"
    },
@@ -12599,6 +14759,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Cross-Body Carry",
+    "de": "Kettlebell Cross-Body Carry",
+    "de-CH": "Kettlebell Cross-Body Carry",
+    "it": "Kettlebell Cross-Body Carry",
+    "es": "Kettlebell Cross-Body Carry",
+    "pt": "Kettlebell Cross-Body Carry",
+    "ja": "Kettlebell クロスボディ キャリー",
     "ro": "Kettlebell Cross-Body Carry",
     "th": "Kettlebell Cross-Body Carry"
    },
@@ -12633,6 +14799,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Crush-Grip Push-up",
+    "de": "Kettlebell Crush-Grip Push-up",
+    "de-CH": "Kettlebell Crush-Grip Push-up",
+    "it": "Kettlebell Crush-Grip Push-up",
+    "es": "Kettlebell Crush-Grip Push-up",
+    "pt": "Kettlebell Crush-Grip Push-up",
+    "ja": "ケトルベルクラッシュグリッププッシュアップ",
     "ro": "Kettlebell Crush-Grip Push-up",
     "th": "Kettlebell Crush-Grip Push-up"
    },
@@ -12670,6 +14842,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Push-up to Row",
+    "de": "Kettlebell Push-up to Row",
+    "de-CH": "Kettlebell Push-up to Row",
+    "it": "Kettlebell Push-up to Row",
+    "es": "Kettlebell Push-up to Row",
+    "pt": "Kettlebell Push-up to Row",
+    "ja": "Kettlebell 列へのプッシュアップ",
     "ro": "Kettlebell Push-up to Row",
     "th": "Kettlebell Push-up to Row"
    },
@@ -12704,6 +14882,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Pullover",
+    "de": "Kettlebell Pullover",
+    "de-CH": "Kettlebell Pullover",
+    "it": "Kettlebell Pullover",
+    "es": "Kettlebell Pullover",
+    "pt": "Kettlebell Pullover",
+    "ja": "ケトルベルプルオーバー",
     "ro": "Kettlebell Pullover",
     "th": "Kettlebell Pullover"
    },
@@ -12738,6 +14922,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Russian Twist",
+    "de": "Kettlebell Russian Twist",
+    "de-CH": "Kettlebell Russian Twist",
+    "it": "Kettlebell Russian Twist",
+    "es": "Kettlebell Russian Twist",
+    "pt": "Kettlebell Russian Twist",
+    "ja": "Kettlebell ロシア ツイスト",
     "ro": "Kettlebell Russian Twist",
     "th": "Kettlebell Russian Twist"
    },
@@ -12772,6 +14962,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Side Bend",
+    "de": "Kettlebell Side Bend",
+    "de-CH": "Kettlebell Side Bend",
+    "it": "Kettlebell Side Bend",
+    "es": "Kettlebell Side Bend",
+    "pt": "Kettlebell Side Bend",
+    "ja": "Kettlebellサイドベンド",
     "ro": "Kettlebell Side Bend",
     "th": "Kettlebell Side Bend"
    },
@@ -12805,6 +15001,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Dead Bug",
+    "de": "Kettlebell Dead Bug",
+    "de-CH": "Kettlebell Dead Bug",
+    "it": "Kettlebell Dead Bug",
+    "es": "Kettlebell Dead Bug",
+    "pt": "Kettlebell Dead Bug",
+    "ja": "ケトルベルデッドバグ",
     "ro": "Kettlebell Dead Bug",
     "th": "Kettlebell Dead Bug"
    },
@@ -12838,6 +15040,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Hollow Body Hold",
+    "de": "Kettlebell Hollow Body Hold",
+    "de-CH": "Kettlebell Hollow Body Hold",
+    "it": "Kettlebell Hollow Body Hold",
+    "es": "Kettlebell Hollow Body Hold",
+    "pt": "Kettlebell Hollow Body Hold",
+    "ja": "Kettlebellの空のボディ ホールド",
     "ro": "Kettlebell Hollow Body Hold",
     "th": "Kettlebell Hollow Body Hold"
    },
@@ -12871,6 +15079,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Sit-up",
+    "de": "Kettlebell Sit-up",
+    "de-CH": "Kettlebell Sit-up",
+    "it": "Kettlebell Sit-up",
+    "es": "Kettlebell Sit-up",
+    "pt": "Kettlebell Sit-up",
+    "ja": "ケトルベルシットアップ",
     "ro": "Kettlebell Sit-up",
     "th": "Kettlebell Sit-up"
    },
@@ -12904,6 +15118,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell V-Up",
+    "de": "Kettlebell V-Up",
+    "de-CH": "Kettlebell V-Up",
+    "it": "Kettlebell V-Up",
+    "es": "Kettlebell V-Up",
+    "pt": "Kettlebell V-Up",
+    "ja": "ケトルベルV-Up",
     "ro": "Kettlebell V-Up",
     "th": "Kettlebell V-Up"
    },
@@ -12938,6 +15158,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Woodchopper",
+    "de": "Kettlebell Woodchopper",
+    "de-CH": "Kettlebell Woodchopper",
+    "it": "Kettlebell Woodchopper",
+    "es": "Kettlebell Woodchopper",
+    "pt": "Kettlebell Woodchopper",
+    "ja": "ケトルベルウッドチョッパー",
     "ro": "Kettlebell Woodchopper",
     "th": "Kettlebell Woodchopper"
    },
@@ -12971,6 +15197,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Slasher-to-Halo",
+    "de": "Kettlebell Slasher-to-Halo",
+    "de-CH": "Kettlebell Slasher-to-Halo",
+    "it": "Kettlebell Slasher-to-Halo",
+    "es": "Kettlebell Slasher-to-Halo",
+    "pt": "Kettlebell Slasher-to-Halo",
+    "ja": "ケトルベル 斬撃 - ハロー",
     "ro": "Kettlebell Slasher-to-Halo",
     "th": "Kettlebell Slasher-to-Halo"
    },
@@ -13003,6 +15235,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Armbar",
+    "de": "Kettlebell Armbar",
+    "de-CH": "Kettlebell Armbar",
+    "it": "Kettlebell Armbar",
+    "es": "Kettlebell Armbar",
+    "pt": "Kettlebell Armbar",
+    "ja": "ケトルベルアームバー",
     "ro": "Kettlebell Armbar",
     "th": "Kettlebell Armbar"
    },
@@ -13040,6 +15278,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Surrender",
+    "de": "Kettlebell Surrender",
+    "de-CH": "Kettlebell Surrender",
+    "it": "Kettlebell Surrender",
+    "es": "Kettlebell Surrender",
+    "pt": "Kettlebell Surrender",
+    "ja": "ケトルベル サーレンダー",
     "ro": "Kettlebell Surrender",
     "th": "Kettlebell Surrender"
    },
@@ -13075,6 +15319,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Deck Squat",
+    "de": "Kettlebell Deck Squat",
+    "de-CH": "Kettlebell Deck Squat",
+    "it": "Kettlebell Deck Squat",
+    "es": "Kettlebell Deck Squat",
+    "pt": "Kettlebell Deck Squat",
+    "ja": "ケトルベルデッキスクワット",
     "ro": "Kettlebell Deck Squat",
     "th": "Kettlebell Deck Squat"
    },
@@ -13114,6 +15364,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Kettlebell Man Maker",
+    "de": "Kettlebell Man Maker",
+    "de-CH": "Kettlebell Man Maker",
+    "it": "Kettlebell Man Maker",
+    "es": "Kettlebell Man Maker",
+    "pt": "Kettlebell Man Maker",
+    "ja": "ケトルベルマンメーカー",
     "ro": "Kettlebell Man Maker",
     "th": "Kettlebell Man Maker"
    },
@@ -13147,6 +15403,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Split Squat Jump",
+    "de": "Split Squat Jump",
+    "de-CH": "Split Squat Jump",
+    "it": "Split Squat Jump",
+    "es": "Split Squat Jump",
+    "pt": "Split Squat Jump",
+    "ja": "スプリットスクワットジャンプ",
     "ro": "Split Squat Jump",
     "th": "Split Squat Jump"
    },
@@ -13180,6 +15442,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Jumping Lunge",
+    "de": "Jumping Lunge",
+    "de-CH": "Jumping Lunge",
+    "it": "Jumping Lunge",
+    "es": "Jumping Lunge",
+    "pt": "Jumping Lunge",
+    "ja": "ジャンプルンネ",
     "ro": "Jumping Lunge",
     "th": "Jumping Lunge"
    },
@@ -13213,6 +15481,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Box Step-up (Bodyweight)",
+    "de": "Box Step-up (Bodyweight)",
+    "de-CH": "Box Step-up (Bodyweight)",
+    "it": "Box Step-up (Bodyweight)",
+    "es": "Box Step-up (Bodyweight)",
+    "pt": "Box Step-up (Bodyweight)",
+    "ja": "ボックスステップアップ(体重)",
     "ro": "Box Step-up (Bodyweight)",
     "th": "Box Step-up (Bodyweight)"
    },
@@ -13246,6 +15520,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Curtsy Lunge (Bodyweight)",
+    "de": "Curtsy Lunge (Bodyweight)",
+    "de-CH": "Curtsy Lunge (Bodyweight)",
+    "it": "Curtsy Lunge (Bodyweight)",
+    "es": "Curtsy Lunge (Bodyweight)",
+    "pt": "Curtsy Lunge (Bodyweight)",
+    "ja": "Curtsy Lunge (ボディウェイト)",
     "ro": "Curtsy Lunge (Bodyweight)",
     "th": "Curtsy Lunge (Bodyweight)"
    },
@@ -13281,6 +15561,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-leg Box Squat",
+    "de": "Single-leg Box Squat",
+    "de-CH": "Single-leg Box Squat",
+    "it": "Single-leg Box Squat",
+    "es": "Single-leg Box Squat",
+    "pt": "Single-leg Box Squat",
+    "ja": "シングルラグボックススクワット",
     "ro": "Single-leg Box Squat",
     "th": "Single-leg Box Squat"
    },
@@ -13316,6 +15602,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Assisted Pistol Squat",
+    "de": "Assisted Pistol Squat",
+    "de-CH": "Assisted Pistol Squat",
+    "it": "Assisted Pistol Squat",
+    "es": "Assisted Pistol Squat",
+    "pt": "Assisted Pistol Squat",
+    "ja": "アシストピストルスクワット",
     "ro": "Assisted Pistol Squat",
     "th": "Assisted Pistol Squat"
    },
@@ -13351,6 +15643,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Jumping Pistol Squat",
+    "de": "Jumping Pistol Squat",
+    "de-CH": "Jumping Pistol Squat",
+    "it": "Jumping Pistol Squat",
+    "es": "Jumping Pistol Squat",
+    "pt": "Jumping Pistol Squat",
+    "ja": "ジャンプピストルスクワット",
     "ro": "Jumping Pistol Squat",
     "th": "Jumping Pistol Squat"
    },
@@ -13385,6 +15683,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Sissy Squat (Unloaded)",
+    "de": "Sissy Squat (Unloaded)",
+    "de-CH": "Sissy Squat (Unloaded)",
+    "it": "Sissy Squat (Unloaded)",
+    "es": "Sissy Squat (Unloaded)",
+    "pt": "Sissy Squat (Unloaded)",
+    "ja": "シシースクワット(アンロード)",
     "ro": "Sissy Squat (Unloaded)",
     "th": "Sissy Squat (Unloaded)"
    },
@@ -13420,6 +15724,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Glute-Ham Walkout",
+    "de": "Glute-Ham Walkout",
+    "de-CH": "Glute-Ham Walkout",
+    "it": "Glute-Ham Walkout",
+    "es": "Glute-Ham Walkout",
+    "pt": "Glute-Ham Walkout",
+    "ja": "グルットハムウォークアウト",
     "ro": "Glute-Ham Walkout",
     "th": "Glute-Ham Walkout"
    },
@@ -13455,6 +15765,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hip Thrust (Bodyweight)",
+    "de": "Hip Thrust (Bodyweight)",
+    "de-CH": "Hip Thrust (Bodyweight)",
+    "it": "Hip Thrust (Bodyweight)",
+    "es": "Hip Thrust (Bodyweight)",
+    "pt": "Hip Thrust (Bodyweight)",
+    "ja": "ヒップスラスト(体重)",
     "ro": "Hip Thrust (Bodyweight)",
     "th": "Hip Thrust (Bodyweight)"
    },
@@ -13490,6 +15806,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-leg Hip Thrust (Bodyweight)",
+    "de": "Single-leg Hip Thrust (Bodyweight)",
+    "de-CH": "Single-leg Hip Thrust (Bodyweight)",
+    "it": "Single-leg Hip Thrust (Bodyweight)",
+    "es": "Single-leg Hip Thrust (Bodyweight)",
+    "pt": "Single-leg Hip Thrust (Bodyweight)",
+    "ja": "シングルレッグヒップスラスト(体重)",
     "ro": "Single-leg Hip Thrust (Bodyweight)",
     "th": "Single-leg Hip Thrust (Bodyweight)"
    },
@@ -13523,6 +15845,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Reverse Lunge to Knee Drive",
+    "de": "Reverse Lunge to Knee Drive",
+    "de-CH": "Reverse Lunge to Knee Drive",
+    "it": "Reverse Lunge to Knee Drive",
+    "es": "Reverse Lunge to Knee Drive",
+    "pt": "Reverse Lunge to Knee Drive",
+    "ja": "Kneeドライブへの逆Lunge",
     "ro": "Reverse Lunge to Knee Drive",
     "th": "Reverse Lunge to Knee Drive"
    },
@@ -13556,6 +15884,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Step-back Lunge with Twist",
+    "de": "Step-back Lunge with Twist",
+    "de-CH": "Step-back Lunge with Twist",
+    "it": "Step-back Lunge with Twist",
+    "es": "Step-back Lunge with Twist",
+    "pt": "Step-back Lunge with Twist",
+    "ja": "ツイスト付きステップバックランゲ",
     "ro": "Step-back Lunge with Twist",
     "th": "Step-back Lunge with Twist"
    },
@@ -13589,6 +15923,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Lateral Step-up",
+    "de": "Lateral Step-up",
+    "de-CH": "Lateral Step-up",
+    "it": "Lateral Step-up",
+    "es": "Lateral Step-up",
+    "pt": "Lateral Step-up",
+    "ja": "横ステップアップ",
     "ro": "Lateral Step-up",
     "th": "Lateral Step-up"
    },
@@ -13620,6 +15960,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Calf Raise on Step",
+    "de": "Calf Raise on Step",
+    "de-CH": "Calf Raise on Step",
+    "it": "Calf Raise on Step",
+    "es": "Calf Raise on Step",
+    "pt": "Calf Raise on Step",
+    "ja": "ステップでCalfレイズ",
     "ro": "Calf Raise on Step",
     "th": "Calf Raise on Step"
    },
@@ -13651,6 +15997,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Donkey Calf Raise",
+    "de": "Donkey Calf Raise",
+    "de-CH": "Donkey Calf Raise",
+    "it": "Donkey Calf Raise",
+    "es": "Donkey Calf Raise",
+    "pt": "Donkey Calf Raise",
+    "ja": "ドンキー・カーフ・レイズ",
     "ro": "Donkey Calf Raise",
     "th": "Donkey Calf Raise"
    },
@@ -13682,6 +16034,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Wall Calf Raise",
+    "de": "Wall Calf Raise",
+    "de-CH": "Wall Calf Raise",
+    "it": "Wall Calf Raise",
+    "es": "Wall Calf Raise",
+    "pt": "Wall Calf Raise",
+    "ja": "壁カルフレイズ",
     "ro": "Wall Calf Raise",
     "th": "Wall Calf Raise"
    },
@@ -13716,6 +16074,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Decline Push-up (High Feet)",
+    "de": "Decline Push-up (High Feet)",
+    "de-CH": "Decline Push-up (High Feet)",
+    "it": "Decline Push-up (High Feet)",
+    "es": "Decline Push-up (High Feet)",
+    "pt": "Decline Push-up (High Feet)",
+    "ja": "Decline プッシュアップ (ハイフィート)",
     "ro": "Decline Push-up (High Feet)",
     "th": "Decline Push-up (High Feet)"
    },
@@ -13750,6 +16114,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Clap Push-up",
+    "de": "Clap Push-up",
+    "de-CH": "Clap Push-up",
+    "it": "Clap Push-up",
+    "es": "Clap Push-up",
+    "pt": "Clap Push-up",
+    "ja": "Clap プッシュアップ",
     "ro": "Clap Push-up",
     "th": "Clap Push-up"
    },
@@ -13784,6 +16154,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Wide-Grip Push-up",
+    "de": "Wide-Grip Push-up",
+    "de-CH": "Wide-Grip Push-up",
+    "it": "Wide-Grip Push-up",
+    "es": "Wide-Grip Push-up",
+    "pt": "Wide-Grip Push-up",
+    "ja": "ワイドグリッププッシュアップ",
     "ro": "Wide-Grip Push-up",
     "th": "Wide-Grip Push-up"
    },
@@ -13818,6 +16194,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Close-Grip Push-up",
+    "de": "Close-Grip Push-up",
+    "de-CH": "Close-Grip Push-up",
+    "it": "Close-Grip Push-up",
+    "es": "Close-Grip Push-up",
+    "pt": "Close-Grip Push-up",
+    "ja": "クローズドグリッププッシュアップ",
     "ro": "Close-Grip Push-up",
     "th": "Close-Grip Push-up"
    },
@@ -13852,6 +16234,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Clock Push-up",
+    "de": "Clock Push-up",
+    "de-CH": "Clock Push-up",
+    "it": "Clock Push-up",
+    "es": "Clock Push-up",
+    "pt": "Clock Push-up",
+    "ja": "クロックプッシュアップ",
     "ro": "Clock Push-up",
     "th": "Clock Push-up"
    },
@@ -13886,6 +16274,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Planche Lean",
+    "de": "Planche Lean",
+    "de-CH": "Planche Lean",
+    "it": "Planche Lean",
+    "es": "Planche Lean",
+    "pt": "Planche Lean",
+    "ja": "プランチェ・リーン",
     "ro": "Planche Lean",
     "th": "Planche Lean"
    },
@@ -13920,6 +16314,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Planche Push-up",
+    "de": "Planche Push-up",
+    "de-CH": "Planche Push-up",
+    "it": "Planche Push-up",
+    "es": "Planche Push-up",
+    "pt": "Planche Push-up",
+    "ja": "Planche プッシュアップ",
     "ro": "Planche Push-up",
     "th": "Planche Push-up"
    },
@@ -13953,6 +16353,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hindu Push-up",
+    "de": "Hindu Push-up",
+    "de-CH": "Hindu Push-up",
+    "it": "Hindu Push-up",
+    "es": "Hindu Push-up",
+    "pt": "Hindu Push-up",
+    "ja": "Hindu プッシュアップ",
     "ro": "Hindu Push-up",
     "th": "Hindu Push-up"
    },
@@ -13986,6 +16392,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Divebomber Push-up",
+    "de": "Divebomber Push-up",
+    "de-CH": "Divebomber Push-up",
+    "it": "Divebomber Push-up",
+    "es": "Divebomber Push-up",
+    "pt": "Divebomber Push-up",
+    "ja": "Divebomber プッシュアップ",
     "ro": "Divebomber Push-up",
     "th": "Divebomber Push-up"
    },
@@ -14020,6 +16432,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Spiderman Push-up",
+    "de": "Spiderman Push-up",
+    "de-CH": "Spiderman Push-up",
+    "it": "Spiderman Push-up",
+    "es": "Spiderman Push-up",
+    "pt": "Spiderman Push-up",
+    "ja": "スパイダーマンプッシュアップ",
     "ro": "Spiderman Push-up",
     "th": "Spiderman Push-up"
    },
@@ -14054,6 +16472,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ring Push-up",
+    "de": "Ring Push-up",
+    "de-CH": "Ring Push-up",
+    "it": "Ring Push-up",
+    "es": "Ring Push-up",
+    "pt": "Ring Push-up",
+    "ja": "リングプッシュアップ",
     "ro": "Ring Push-up",
     "th": "Ring Push-up"
    },
@@ -14088,6 +16512,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ring Archer Push-up",
+    "de": "Ring Archer Push-up",
+    "de-CH": "Ring Archer Push-up",
+    "it": "Ring Archer Push-up",
+    "es": "Ring Archer Push-up",
+    "pt": "Ring Archer Push-up",
+    "ja": "リングアーチャープッシュアップ",
     "ro": "Ring Archer Push-up",
     "th": "Ring Archer Push-up"
    },
@@ -14122,6 +16552,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ring Fly",
+    "de": "Ring Fly",
+    "de-CH": "Ring Fly",
+    "it": "Ring Fly",
+    "es": "Ring Fly",
+    "pt": "Ring Fly",
+    "ja": "リングフライ",
     "ro": "Ring Fly",
     "th": "Ring Fly"
    },
@@ -14156,6 +16592,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bench Dip (Feet on Floor)",
+    "de": "Bench Dip (Feet on Floor)",
+    "de-CH": "Bench Dip (Feet on Floor)",
+    "it": "Bench Dip (Feet on Floor)",
+    "es": "Bench Dip (Feet on Floor)",
+    "pt": "Bench Dip (Feet on Floor)",
+    "ja": "ベンチディップ(床面)",
     "ro": "Bench Dip (Feet on Floor)",
     "th": "Bench Dip (Feet on Floor)"
    },
@@ -14190,6 +16632,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bench Dip (Feet Elevated)",
+    "de": "Bench Dip (Feet Elevated)",
+    "de-CH": "Bench Dip (Feet Elevated)",
+    "it": "Bench Dip (Feet Elevated)",
+    "es": "Bench Dip (Feet Elevated)",
+    "pt": "Bench Dip (Feet Elevated)",
+    "ja": "ベンチディップ(Feet Elevated)",
     "ro": "Bench Dip (Feet Elevated)",
     "th": "Bench Dip (Feet Elevated)"
    },
@@ -14225,6 +16673,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ring Dip - Forward Lean",
+    "de": "Ring Dip - Forward Lean",
+    "de-CH": "Ring Dip - Forward Lean",
+    "it": "Ring Dip - Forward Lean",
+    "es": "Ring Dip - Forward Lean",
+    "pt": "Ring Dip - Forward Lean",
+    "ja": "リングディップ - フォワードリアン",
     "ro": "Ring Dip - Forward Lean",
     "th": "Ring Dip - Forward Lean"
    },
@@ -14260,6 +16714,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Assisted Ring Dip",
+    "de": "Assisted Ring Dip",
+    "de-CH": "Assisted Ring Dip",
+    "it": "Assisted Ring Dip",
+    "es": "Assisted Ring Dip",
+    "pt": "Assisted Ring Dip",
+    "ja": "アシストリングディップ",
     "ro": "Assisted Ring Dip",
     "th": "Assisted Ring Dip"
    },
@@ -14295,6 +16755,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Isometric Dip Hold",
+    "de": "Isometric Dip Hold",
+    "de-CH": "Isometric Dip Hold",
+    "it": "Isometric Dip Hold",
+    "es": "Isometric Dip Hold",
+    "pt": "Isometric Dip Hold",
+    "ja": "Isometric Dip ホールド",
     "ro": "Isometric Dip Hold",
     "th": "Isometric Dip Hold"
    },
@@ -14331,6 +16797,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Mixed-Grip Pull-up",
+    "de": "Mixed-Grip Pull-up",
+    "de-CH": "Mixed-Grip Pull-up",
+    "it": "Mixed-Grip Pull-up",
+    "es": "Mixed-Grip Pull-up",
+    "pt": "Mixed-Grip Pull-up",
+    "ja": "ミックスグリッププルアップ",
     "ro": "Mixed-Grip Pull-up",
     "th": "Mixed-Grip Pull-up"
    },
@@ -14367,6 +16839,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Archer Pull-up",
+    "de": "Archer Pull-up",
+    "de-CH": "Archer Pull-up",
+    "it": "Archer Pull-up",
+    "es": "Archer Pull-up",
+    "pt": "Archer Pull-up",
+    "ja": "アーチャープルアップ",
     "ro": "Archer Pull-up",
     "th": "Archer Pull-up"
    },
@@ -14403,6 +16881,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Typewriter Pull-up",
+    "de": "Typewriter Pull-up",
+    "de-CH": "Typewriter Pull-up",
+    "it": "Typewriter Pull-up",
+    "es": "Typewriter Pull-up",
+    "pt": "Typewriter Pull-up",
+    "ja": "タイプライター プルアップ",
     "ro": "Typewriter Pull-up",
     "th": "Typewriter Pull-up"
    },
@@ -14439,6 +16923,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Commando Pull-up",
+    "de": "Commando Pull-up",
+    "de-CH": "Commando Pull-up",
+    "it": "Commando Pull-up",
+    "es": "Commando Pull-up",
+    "pt": "Commando Pull-up",
+    "ja": "Commando プルアップ",
     "ro": "Commando Pull-up",
     "th": "Commando Pull-up"
    },
@@ -14473,6 +16963,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Behind-the-Neck Pull-up",
+    "de": "Behind-the-Neck Pull-up",
+    "de-CH": "Behind-the-Neck Pull-up",
+    "it": "Behind-the-Neck Pull-up",
+    "es": "Behind-the-Neck Pull-up",
+    "pt": "Behind-the-Neck Pull-up",
+    "ja": "バックザネックプルアップ",
     "ro": "Behind-the-Neck Pull-up",
     "th": "Behind-the-Neck Pull-up"
    },
@@ -14508,6 +17004,12 @@
    "incrementKG": 0,
    "names": {
     "en": "One-Arm Pull-up (Assisted)",
+    "de": "One-Arm Pull-up (Assisted)",
+    "de-CH": "One-Arm Pull-up (Assisted)",
+    "it": "One-Arm Pull-up (Assisted)",
+    "es": "One-Arm Pull-up (Assisted)",
+    "pt": "One-Arm Pull-up (Assisted)",
+    "ja": "ワンアームプルアップ(アシスト)",
     "ro": "One-Arm Pull-up (Assisted)",
     "th": "One-Arm Pull-up (Assisted)"
    },
@@ -14543,6 +17045,12 @@
    "incrementKG": 0,
    "names": {
     "en": "False-Grip Pull-up",
+    "de": "False-Grip Pull-up",
+    "de-CH": "False-Grip Pull-up",
+    "it": "False-Grip Pull-up",
+    "es": "False-Grip Pull-up",
+    "pt": "False-Grip Pull-up",
+    "ja": "偽グリッププルアップ",
     "ro": "False-Grip Pull-up",
     "th": "False-Grip Pull-up"
    },
@@ -14580,6 +17088,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Chest-to-Bar Pull-up (Strict)",
+    "de": "Chest-to-Bar Pull-up (Strict)",
+    "de-CH": "Chest-to-Bar Pull-up (Strict)",
+    "it": "Chest-to-Bar Pull-up (Strict)",
+    "es": "Chest-to-Bar Pull-up (Strict)",
+    "pt": "Chest-to-Bar Pull-up (Strict)",
+    "ja": "チェスト・ツー・バー・プルアップ(Strict)",
     "ro": "Chest-to-Bar Pull-up (Strict)",
     "th": "Chest-to-Bar Pull-up (Strict)"
    },
@@ -14615,6 +17129,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Inverted Row - Underhand",
+    "de": "Inverted Row - Underhand",
+    "de-CH": "Inverted Row - Underhand",
+    "it": "Inverted Row - Underhand",
+    "es": "Inverted Row - Underhand",
+    "pt": "Inverted Row - Underhand",
+    "ja": "倒立列 - アンダーハンド",
     "ro": "Inverted Row - Underhand",
     "th": "Inverted Row - Underhand"
    },
@@ -14650,6 +17170,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Inverted Row - Wide Grip",
+    "de": "Inverted Row - Wide Grip",
+    "de-CH": "Inverted Row - Wide Grip",
+    "it": "Inverted Row - Wide Grip",
+    "es": "Inverted Row - Wide Grip",
+    "pt": "Inverted Row - Wide Grip",
+    "ja": "反転列 - ワイドグリップ",
     "ro": "Inverted Row - Wide Grip",
     "th": "Inverted Row - Wide Grip"
    },
@@ -14685,6 +17211,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ring Row (Supinated)",
+    "de": "Ring Row (Supinated)",
+    "de-CH": "Ring Row (Supinated)",
+    "it": "Ring Row (Supinated)",
+    "es": "Ring Row (Supinated)",
+    "pt": "Ring Row (Supinated)",
+    "ja": "リング・ロウ(Supinated)",
     "ro": "Ring Row (Supinated)",
     "th": "Ring Row (Supinated)"
    },
@@ -14721,6 +17253,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Rope Climb (Feet Clamp)",
+    "de": "Rope Climb (Feet Clamp)",
+    "de-CH": "Rope Climb (Feet Clamp)",
+    "it": "Rope Climb (Feet Clamp)",
+    "es": "Rope Climb (Feet Clamp)",
+    "pt": "Rope Climb (Feet Clamp)",
+    "ja": "ロープクライム(フィートクランプ)",
     "ro": "Rope Climb (Feet Clamp)",
     "th": "Rope Climb (Feet Clamp)"
    },
@@ -14757,6 +17295,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Rope Climb (Legless)",
+    "de": "Rope Climb (Legless)",
+    "de-CH": "Rope Climb (Legless)",
+    "it": "Rope Climb (Legless)",
+    "es": "Rope Climb (Legless)",
+    "pt": "Rope Climb (Legless)",
+    "ja": "ロープクライム(Legless)",
     "ro": "Rope Climb (Legless)",
     "th": "Rope Climb (Legless)"
    },
@@ -14792,6 +17336,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Towel Pull-up",
+    "de": "Towel Pull-up",
+    "de-CH": "Towel Pull-up",
+    "it": "Towel Pull-up",
+    "es": "Towel Pull-up",
+    "pt": "Towel Pull-up",
+    "ja": "タオルプルアップ",
     "ro": "Towel Pull-up",
     "th": "Towel Pull-up"
    },
@@ -14828,6 +17378,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Skin-the-Cat",
+    "de": "Skin-the-Cat",
+    "de-CH": "Skin-the-Cat",
+    "it": "Skin-the-Cat",
+    "es": "Skin-the-Cat",
+    "pt": "Skin-the-Cat",
+    "ja": "皮膚猫",
     "ro": "Skin-the-Cat",
     "th": "Skin-the-Cat"
    },
@@ -14860,6 +17416,12 @@
    "incrementKG": 0,
    "names": {
     "en": "German Hang",
+    "de": "German Hang",
+    "de-CH": "German Hang",
+    "it": "German Hang",
+    "es": "German Hang",
+    "pt": "German Hang",
+    "ja": "ドイツのハング",
     "ro": "German Hang",
     "th": "German Hang"
    },
@@ -14897,6 +17459,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Front Lever Tuck Hold",
+    "de": "Front Lever Tuck Hold",
+    "de-CH": "Front Lever Tuck Hold",
+    "it": "Front Lever Tuck Hold",
+    "es": "Front Lever Tuck Hold",
+    "pt": "Front Lever Tuck Hold",
+    "ja": "フロントレバータックホール",
     "ro": "Front Lever Tuck Hold",
     "th": "Front Lever Tuck Hold"
    },
@@ -14934,6 +17502,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Front Lever Advanced Tuck",
+    "de": "Front Lever Advanced Tuck",
+    "de-CH": "Front Lever Advanced Tuck",
+    "it": "Front Lever Advanced Tuck",
+    "es": "Front Lever Advanced Tuck",
+    "pt": "Front Lever Advanced Tuck",
+    "ja": "フロントレバーアドバンストタック",
     "ro": "Front Lever Advanced Tuck",
     "th": "Front Lever Advanced Tuck"
    },
@@ -14970,6 +17544,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Back Lever Tuck Hold",
+    "de": "Back Lever Tuck Hold",
+    "de-CH": "Back Lever Tuck Hold",
+    "it": "Back Lever Tuck Hold",
+    "es": "Back Lever Tuck Hold",
+    "pt": "Back Lever Tuck Hold",
+    "ja": "バックレバータックホール",
     "ro": "Back Lever Tuck Hold",
     "th": "Back Lever Tuck Hold"
    },
@@ -15006,6 +17586,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Back Lever Full Hold",
+    "de": "Back Lever Full Hold",
+    "de-CH": "Back Lever Full Hold",
+    "it": "Back Lever Full Hold",
+    "es": "Back Lever Full Hold",
+    "pt": "Back Lever Full Hold",
+    "ja": "バックレバーフルホールド",
     "ro": "Back Lever Full Hold",
     "th": "Back Lever Full Hold"
    },
@@ -15041,6 +17627,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hollow Rock",
+    "de": "Hollow Rock",
+    "de-CH": "Hollow Rock",
+    "it": "Hollow Rock",
+    "es": "Hollow Rock",
+    "pt": "Hollow Rock",
+    "ja": "ホローロック",
     "ro": "Hollow Rock",
     "th": "Hollow Rock"
    },
@@ -15073,6 +17665,12 @@
    "incrementKG": 0,
    "names": {
     "en": "V-Sit Hold",
+    "de": "V-Sit Hold",
+    "de-CH": "V-Sit Hold",
+    "it": "V-Sit Hold",
+    "es": "V-Sit Hold",
+    "pt": "V-Sit Hold",
+    "ja": "V-Sitホールド",
     "ro": "V-Sit Hold",
     "th": "V-Sit Hold"
    },
@@ -15105,6 +17703,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Straddle L-Sit",
+    "de": "Straddle L-Sit",
+    "de-CH": "Straddle L-Sit",
+    "it": "Straddle L-Sit",
+    "es": "Straddle L-Sit",
+    "pt": "Straddle L-Sit",
+    "ja": "ストラドル L-Sit",
     "ro": "Straddle L-Sit",
     "th": "Straddle L-Sit"
    },
@@ -15137,6 +17741,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Open Tuck L-Sit",
+    "de": "Open Tuck L-Sit",
+    "de-CH": "Open Tuck L-Sit",
+    "it": "Open Tuck L-Sit",
+    "es": "Open Tuck L-Sit",
+    "pt": "Open Tuck L-Sit",
+    "ja": "オープンタックL-Sit",
     "ro": "Open Tuck L-Sit",
     "th": "Open Tuck L-Sit"
    },
@@ -15169,6 +17779,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Manna Progression Hold",
+    "de": "Manna Progression Hold",
+    "de-CH": "Manna Progression Hold",
+    "it": "Manna Progression Hold",
+    "es": "Manna Progression Hold",
+    "pt": "Manna Progression Hold",
+    "ja": "マンナプログレッションホールド",
     "ro": "Manna Progression Hold",
     "th": "Manna Progression Hold"
    },
@@ -15202,6 +17818,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Dragon Flag Eccentrics",
+    "de": "Dragon Flag Eccentrics",
+    "de-CH": "Dragon Flag Eccentrics",
+    "it": "Dragon Flag Eccentrics",
+    "es": "Dragon Flag Eccentrics",
+    "pt": "Dragon Flag Eccentrics",
+    "ja": "ドラゴンフラッグ偏心",
     "ro": "Dragon Flag Eccentrics",
     "th": "Dragon Flag Eccentrics"
    },
@@ -15235,6 +17857,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Dragon Flag Full",
+    "de": "Dragon Flag Full",
+    "de-CH": "Dragon Flag Full",
+    "it": "Dragon Flag Full",
+    "es": "Dragon Flag Full",
+    "pt": "Dragon Flag Full",
+    "ja": "ドラゴンフラッグフル",
     "ro": "Dragon Flag Full",
     "th": "Dragon Flag Full"
    },
@@ -15267,6 +17895,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hip Raise on Bench",
+    "de": "Hip Raise on Bench",
+    "de-CH": "Hip Raise on Bench",
+    "it": "Hip Raise on Bench",
+    "es": "Hip Raise on Bench",
+    "pt": "Hip Raise on Bench",
+    "ja": "ベンチでヒップレイズ",
     "ro": "Hip Raise on Bench",
     "th": "Hip Raise on Bench"
    },
@@ -15299,6 +17933,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Jackknife Sit-up",
+    "de": "Jackknife Sit-up",
+    "de-CH": "Jackknife Sit-up",
+    "it": "Jackknife Sit-up",
+    "es": "Jackknife Sit-up",
+    "pt": "Jackknife Sit-up",
+    "ja": "Jackknife シットアップ",
     "ro": "Jackknife Sit-up",
     "th": "Jackknife Sit-up"
    },
@@ -15331,6 +17971,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Bicycle Crunch",
+    "de": "Bicycle Crunch",
+    "de-CH": "Bicycle Crunch",
+    "it": "Bicycle Crunch",
+    "es": "Bicycle Crunch",
+    "pt": "Bicycle Crunch",
+    "ja": "自転車 クランチ",
     "ro": "Bicycle Crunch",
     "th": "Bicycle Crunch"
    },
@@ -15364,6 +18010,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Cross-Body Mountain Climber",
+    "de": "Cross-Body Mountain Climber",
+    "de-CH": "Cross-Body Mountain Climber",
+    "it": "Cross-Body Mountain Climber",
+    "es": "Cross-Body Mountain Climber",
+    "pt": "Cross-Body Mountain Climber",
+    "ja": "クロスボディマウンテンクライマー",
     "ro": "Cross-Body Mountain Climber",
     "th": "Cross-Body Mountain Climber"
    },
@@ -15397,6 +18049,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Plank with Shoulder Tap",
+    "de": "Plank with Shoulder Tap",
+    "de-CH": "Plank with Shoulder Tap",
+    "it": "Plank with Shoulder Tap",
+    "es": "Plank with Shoulder Tap",
+    "pt": "Plank with Shoulder Tap",
+    "ja": "ショルダータップ付きプランク",
     "ro": "Plank with Shoulder Tap",
     "th": "Plank with Shoulder Tap"
    },
@@ -15429,6 +18087,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Arm Single-Leg Plank",
+    "de": "Single-Arm Single-Leg Plank",
+    "de-CH": "Single-Arm Single-Leg Plank",
+    "it": "Single-Arm Single-Leg Plank",
+    "es": "Single-Arm Single-Leg Plank",
+    "pt": "Single-Arm Single-Leg Plank",
+    "ja": "シングルアームシングルラグプランク",
     "ro": "Single-Arm Single-Leg Plank",
     "th": "Single-Arm Single-Leg Plank"
    },
@@ -15462,6 +18126,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Side Plank with Leg Lift",
+    "de": "Side Plank with Leg Lift",
+    "de-CH": "Side Plank with Leg Lift",
+    "it": "Side Plank with Leg Lift",
+    "es": "Side Plank with Leg Lift",
+    "pt": "Side Plank with Leg Lift",
+    "ja": "足の上昇が付いている側面の板",
     "ro": "Side Plank with Leg Lift",
     "th": "Side Plank with Leg Lift"
    },
@@ -15495,6 +18165,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Copenhagen Side Plank - Long Lever",
+    "de": "Copenhagen Side Plank - Long Lever",
+    "de-CH": "Copenhagen Side Plank - Long Lever",
+    "it": "Copenhagen Side Plank - Long Lever",
+    "es": "Copenhagen Side Plank - Long Lever",
+    "pt": "Copenhagen Side Plank - Long Lever",
+    "ja": "コペンハーゲンサイドプランク - ロングレバー",
     "ro": "Copenhagen Side Plank - Long Lever",
     "th": "Copenhagen Side Plank - Long Lever"
    },
@@ -15531,6 +18207,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Crab Walk",
+    "de": "Crab Walk",
+    "de-CH": "Crab Walk",
+    "it": "Crab Walk",
+    "es": "Crab Walk",
+    "pt": "Crab Walk",
+    "ja": "カニウォーク",
     "ro": "Crab Walk",
     "th": "Crab Walk"
    },
@@ -15567,6 +18249,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Inchworm Walkout",
+    "de": "Inchworm Walkout",
+    "de-CH": "Inchworm Walkout",
+    "it": "Inchworm Walkout",
+    "es": "Inchworm Walkout",
+    "pt": "Inchworm Walkout",
+    "ja": "インチワームウォークアウト",
     "ro": "Inchworm Walkout",
     "th": "Inchworm Walkout"
    },
@@ -15603,6 +18291,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Walkout to Push-up",
+    "de": "Walkout to Push-up",
+    "de-CH": "Walkout to Push-up",
+    "it": "Walkout to Push-up",
+    "es": "Walkout to Push-up",
+    "pt": "Walkout to Push-up",
+    "ja": "プッシュアップウォークアウト",
     "ro": "Walkout to Push-up",
     "th": "Walkout to Push-up"
    },
@@ -15637,6 +18331,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Hollow Body Arch Rock",
+    "de": "Hollow Body Arch Rock",
+    "de-CH": "Hollow Body Arch Rock",
+    "it": "Hollow Body Arch Rock",
+    "es": "Hollow Body Arch Rock",
+    "pt": "Hollow Body Arch Rock",
+    "ja": "ホローボディアーチロック",
     "ro": "Hollow Body Arch Rock",
     "th": "Hollow Body Arch Rock"
    },
@@ -15674,6 +18374,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Rack Pull",
+    "de": "Barbell Rack Pull",
+    "de-CH": "Barbell Rack Pull",
+    "it": "Barbell Rack Pull",
+    "es": "Barbell Rack Pull",
+    "pt": "Barbell Rack Pull",
+    "ja": "バーベルラックプル",
     "ro": "Barbell Rack Pull",
     "th": "Barbell Rack Pull"
    },
@@ -15710,6 +18416,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Deficit Romanian Deadlift",
+    "de": "Deficit Romanian Deadlift",
+    "de-CH": "Deficit Romanian Deadlift",
+    "it": "Deficit Romanian Deadlift",
+    "es": "Deficit Romanian Deadlift",
+    "pt": "Deficit Romanian Deadlift",
+    "ja": "Deficit ルーマニア語デッドリフト",
     "ro": "Deficit Romanian Deadlift",
     "th": "Deficit Romanian Deadlift"
    },
@@ -15747,6 +18459,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Snatch-Grip Romanian Deadlift",
+    "de": "Snatch-Grip Romanian Deadlift",
+    "de-CH": "Snatch-Grip Romanian Deadlift",
+    "it": "Snatch-Grip Romanian Deadlift",
+    "es": "Snatch-Grip Romanian Deadlift",
+    "pt": "Snatch-Grip Romanian Deadlift",
+    "ja": "Snatch-Gripルーマニアデッドリフト",
     "ro": "Snatch-Grip Romanian Deadlift",
     "th": "Snatch-Grip Romanian Deadlift"
    },
@@ -15783,6 +18501,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Hip Thrust - Single-Leg",
+    "de": "Barbell Hip Thrust - Single-Leg",
+    "de-CH": "Barbell Hip Thrust - Single-Leg",
+    "it": "Barbell Hip Thrust - Single-Leg",
+    "es": "Barbell Hip Thrust - Single-Leg",
+    "pt": "Barbell Hip Thrust - Single-Leg",
+    "ja": "バーベルヒップスラスト - シングルラグ",
     "ro": "Barbell Hip Thrust - Single-Leg",
     "th": "Barbell Hip Thrust - Single-Leg"
    },
@@ -15819,6 +18543,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Glute Bridge",
+    "de": "Barbell Glute Bridge",
+    "de-CH": "Barbell Glute Bridge",
+    "it": "Barbell Glute Bridge",
+    "es": "Barbell Glute Bridge",
+    "pt": "Barbell Glute Bridge",
+    "ja": "バーベル・グルット・ブリッジ",
     "ro": "Barbell Glute Bridge",
     "th": "Barbell Glute Bridge"
    },
@@ -15853,6 +18583,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Step-up",
+    "de": "Barbell Step-up",
+    "de-CH": "Barbell Step-up",
+    "it": "Barbell Step-up",
+    "es": "Barbell Step-up",
+    "pt": "Barbell Step-up",
+    "ja": "バーベルステップアップ",
     "ro": "Barbell Step-up",
     "th": "Barbell Step-up"
    },
@@ -15889,6 +18625,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Walking Lunge (Front Rack)",
+    "de": "Barbell Walking Lunge (Front Rack)",
+    "de-CH": "Barbell Walking Lunge (Front Rack)",
+    "it": "Barbell Walking Lunge (Front Rack)",
+    "es": "Barbell Walking Lunge (Front Rack)",
+    "pt": "Barbell Walking Lunge (Front Rack)",
+    "ja": "バーベルウォーキングルンネ(フロントラック)",
     "ro": "Barbell Walking Lunge (Front Rack)",
     "th": "Barbell Walking Lunge (Front Rack)"
    },
@@ -15927,6 +18669,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Split Jerk",
+    "de": "Barbell Split Jerk",
+    "de-CH": "Barbell Split Jerk",
+    "it": "Barbell Split Jerk",
+    "es": "Barbell Split Jerk",
+    "pt": "Barbell Split Jerk",
+    "ja": "バーベル・スプリット・ジェク",
     "ro": "Barbell Split Jerk",
     "th": "Barbell Split Jerk"
    },
@@ -15965,6 +18713,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Push Jerk",
+    "de": "Barbell Push Jerk",
+    "de-CH": "Barbell Push Jerk",
+    "it": "Barbell Push Jerk",
+    "es": "Barbell Push Jerk",
+    "pt": "Barbell Push Jerk",
+    "ja": "Barbell 押し Jerk",
     "ro": "Barbell Push Jerk",
     "th": "Barbell Push Jerk"
    },
@@ -16003,6 +18757,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Power Jerk",
+    "de": "Barbell Power Jerk",
+    "de-CH": "Barbell Power Jerk",
+    "it": "Barbell Power Jerk",
+    "es": "Barbell Power Jerk",
+    "pt": "Barbell Power Jerk",
+    "ja": "バルベル パワー ジーク",
     "ro": "Barbell Power Jerk",
     "th": "Barbell Power Jerk"
    },
@@ -16038,6 +18798,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Barbell Floor Row",
+    "de": "Barbell Floor Row",
+    "de-CH": "Barbell Floor Row",
+    "it": "Barbell Floor Row",
+    "es": "Barbell Floor Row",
+    "pt": "Barbell Floor Row",
+    "ja": "Barbellのフロア・ロウ",
     "ro": "Barbell Floor Row",
     "th": "Barbell Floor Row"
    },
@@ -16072,6 +18838,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Reverse Lunge",
+    "de": "Landmine Reverse Lunge",
+    "de-CH": "Landmine Reverse Lunge",
+    "it": "Landmine Reverse Lunge",
+    "es": "Landmine Reverse Lunge",
+    "pt": "Landmine Reverse Lunge",
+    "ja": "ランドミニ リバース ルンネ",
     "ro": "Landmine Reverse Lunge",
     "th": "Landmine Reverse Lunge"
    },
@@ -16106,6 +18878,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Lateral Lunge",
+    "de": "Landmine Lateral Lunge",
+    "de-CH": "Landmine Lateral Lunge",
+    "it": "Landmine Lateral Lunge",
+    "es": "Landmine Lateral Lunge",
+    "pt": "Landmine Lateral Lunge",
+    "ja": "ランドマイン・リアラル・ルンネ",
     "ro": "Landmine Lateral Lunge",
     "th": "Landmine Lateral Lunge"
    },
@@ -16141,6 +18919,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Single-Arm Row",
+    "de": "Landmine Single-Arm Row",
+    "de-CH": "Landmine Single-Arm Row",
+    "it": "Landmine Single-Arm Row",
+    "es": "Landmine Single-Arm Row",
+    "pt": "Landmine Single-Arm Row",
+    "ja": "Landmineシングルアーム列",
     "ro": "Landmine Single-Arm Row",
     "th": "Landmine Single-Arm Row"
    },
@@ -16176,6 +18960,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Meadows Row",
+    "de": "Landmine Meadows Row",
+    "de-CH": "Landmine Meadows Row",
+    "it": "Landmine Meadows Row",
+    "es": "Landmine Meadows Row",
+    "pt": "Landmine Meadows Row",
+    "ja": "Landmine Meadows ロウ",
     "ro": "Landmine Meadows Row",
     "th": "Landmine Meadows Row"
    },
@@ -16211,6 +19001,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Landmine Single-Arm Press (Half-Kneeling)",
+    "de": "Landmine Single-Arm Press (Half-Kneeling)",
+    "de-CH": "Landmine Single-Arm Press (Half-Kneeling)",
+    "it": "Landmine Single-Arm Press (Half-Kneeling)",
+    "es": "Landmine Single-Arm Press (Half-Kneeling)",
+    "pt": "Landmine Single-Arm Press (Half-Kneeling)",
+    "ja": "Landmineシングルアームプレス(ハーフ・カネリング)",
     "ro": "Landmine Single-Arm Press (Half-Kneeling)",
     "th": "Landmine Single-Arm Press (Half-Kneeling)"
    },
@@ -16246,6 +19042,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Sumo Squat",
+    "de": "Dumbbell Sumo Squat",
+    "de-CH": "Dumbbell Sumo Squat",
+    "it": "Dumbbell Sumo Squat",
+    "es": "Dumbbell Sumo Squat",
+    "pt": "Dumbbell Sumo Squat",
+    "ja": "Dumbbell Sumo スクワット",
     "ro": "Dumbbell Sumo Squat",
     "th": "Dumbbell Sumo Squat"
    },
@@ -16280,6 +19082,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Step-up with Knee Drive",
+    "de": "Dumbbell Step-up with Knee Drive",
+    "de-CH": "Dumbbell Step-up with Knee Drive",
+    "it": "Dumbbell Step-up with Knee Drive",
+    "es": "Dumbbell Step-up with Knee Drive",
+    "pt": "Dumbbell Step-up with Knee Drive",
+    "ja": "KneeドライブによるDumbbellのステップアップ",
     "ro": "Dumbbell Step-up with Knee Drive",
     "th": "Dumbbell Step-up with Knee Drive"
    },
@@ -16314,6 +19122,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Curtsy Lunge",
+    "de": "Dumbbell Curtsy Lunge",
+    "de-CH": "Dumbbell Curtsy Lunge",
+    "it": "Dumbbell Curtsy Lunge",
+    "es": "Dumbbell Curtsy Lunge",
+    "pt": "Dumbbell Curtsy Lunge",
+    "ja": "ダンベル・カルシー・ルンネ",
     "ro": "Dumbbell Curtsy Lunge",
     "th": "Dumbbell Curtsy Lunge"
    },
@@ -16350,6 +19164,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell RDL to Row",
+    "de": "Dumbbell RDL to Row",
+    "de-CH": "Dumbbell RDL to Row",
+    "it": "Dumbbell RDL to Row",
+    "es": "Dumbbell RDL to Row",
+    "pt": "Dumbbell RDL to Row",
+    "ja": "Dumbbell RDL へ 行",
     "ro": "Dumbbell RDL to Row",
     "th": "Dumbbell RDL to Row"
    },
@@ -16387,6 +19207,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Renegade Row with Push-up",
+    "de": "Dumbbell Renegade Row with Push-up",
+    "de-CH": "Dumbbell Renegade Row with Push-up",
+    "it": "Dumbbell Renegade Row with Push-up",
+    "es": "Dumbbell Renegade Row with Push-up",
+    "pt": "Dumbbell Renegade Row with Push-up",
+    "ja": "Dumbbell Renegade Row with プッシュアップ",
     "ro": "Dumbbell Renegade Row with Push-up",
     "th": "Dumbbell Renegade Row with Push-up"
    },
@@ -16421,6 +19247,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Pullover to Press",
+    "de": "Dumbbell Pullover to Press",
+    "de-CH": "Dumbbell Pullover to Press",
+    "it": "Dumbbell Pullover to Press",
+    "es": "Dumbbell Pullover to Press",
+    "pt": "Dumbbell Pullover to Press",
+    "ja": "Dumbbell プルオーバー へ プレス",
     "ro": "Dumbbell Pullover to Press",
     "th": "Dumbbell Pullover to Press"
    },
@@ -16455,6 +19287,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Alternating Dumbbell Bench Press",
+    "de": "Alternating Dumbbell Bench Press",
+    "de-CH": "Alternating Dumbbell Bench Press",
+    "it": "Alternating Dumbbell Bench Press",
+    "es": "Alternating Dumbbell Bench Press",
+    "pt": "Alternating Dumbbell Bench Press",
+    "ja": "交流ダンベルベンチプレス",
     "ro": "Alternating Dumbbell Bench Press",
     "th": "Alternating Dumbbell Bench Press"
    },
@@ -16488,6 +19326,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Cross-Body Hammer Curl",
+    "de": "Dumbbell Cross-Body Hammer Curl",
+    "de-CH": "Dumbbell Cross-Body Hammer Curl",
+    "it": "Dumbbell Cross-Body Hammer Curl",
+    "es": "Dumbbell Cross-Body Hammer Curl",
+    "pt": "Dumbbell Cross-Body Hammer Curl",
+    "ja": "Dumbbell クロスボディ ハンマー カール",
     "ro": "Dumbbell Cross-Body Hammer Curl",
     "th": "Dumbbell Cross-Body Hammer Curl"
    },
@@ -16521,6 +19365,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Zottman Curl",
+    "de": "Dumbbell Zottman Curl",
+    "de-CH": "Dumbbell Zottman Curl",
+    "it": "Dumbbell Zottman Curl",
+    "es": "Dumbbell Zottman Curl",
+    "pt": "Dumbbell Zottman Curl",
+    "ja": "ダンベル・ゾットマン・カール",
     "ro": "Dumbbell Zottman Curl",
     "th": "Dumbbell Zottman Curl"
    },
@@ -16554,6 +19404,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Concentration Curl",
+    "de": "Dumbbell Concentration Curl",
+    "de-CH": "Dumbbell Concentration Curl",
+    "it": "Dumbbell Concentration Curl",
+    "es": "Dumbbell Concentration Curl",
+    "pt": "Dumbbell Concentration Curl",
+    "ja": "ダンベル集中カール",
     "ro": "Dumbbell Concentration Curl",
     "th": "Dumbbell Concentration Curl"
    },
@@ -16586,6 +19442,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Reverse Fly (Incline)",
+    "de": "Dumbbell Reverse Fly (Incline)",
+    "de-CH": "Dumbbell Reverse Fly (Incline)",
+    "it": "Dumbbell Reverse Fly (Incline)",
+    "es": "Dumbbell Reverse Fly (Incline)",
+    "pt": "Dumbbell Reverse Fly (Incline)",
+    "ja": "Dumbbell リバースフライ (株)",
     "ro": "Dumbbell Reverse Fly (Incline)",
     "th": "Dumbbell Reverse Fly (Incline)"
    },
@@ -16618,6 +19480,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Y-Raise",
+    "de": "Dumbbell Y-Raise",
+    "de-CH": "Dumbbell Y-Raise",
+    "it": "Dumbbell Y-Raise",
+    "es": "Dumbbell Y-Raise",
+    "pt": "Dumbbell Y-Raise",
+    "ja": "ダンベルYレイズ",
     "ro": "Dumbbell Y-Raise",
     "th": "Dumbbell Y-Raise"
    },
@@ -16651,6 +19519,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Cuban Press",
+    "de": "Dumbbell Cuban Press",
+    "de-CH": "Dumbbell Cuban Press",
+    "it": "Dumbbell Cuban Press",
+    "es": "Dumbbell Cuban Press",
+    "pt": "Dumbbell Cuban Press",
+    "ja": "ダンベルキューバプレス",
     "ro": "Dumbbell Cuban Press",
     "th": "Dumbbell Cuban Press"
    },
@@ -16684,6 +19558,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Tate Press",
+    "de": "Dumbbell Tate Press",
+    "de-CH": "Dumbbell Tate Press",
+    "it": "Dumbbell Tate Press",
+    "es": "Dumbbell Tate Press",
+    "pt": "Dumbbell Tate Press",
+    "ja": "Dumbbell Tateプレス",
     "ro": "Dumbbell Tate Press",
     "th": "Dumbbell Tate Press"
    },
@@ -16717,6 +19597,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Floor Fly",
+    "de": "Dumbbell Floor Fly",
+    "de-CH": "Dumbbell Floor Fly",
+    "it": "Dumbbell Floor Fly",
+    "es": "Dumbbell Floor Fly",
+    "pt": "Dumbbell Floor Fly",
+    "ja": "ダンベルフロアフライ",
     "ro": "Dumbbell Floor Fly",
     "th": "Dumbbell Floor Fly"
    },
@@ -16751,6 +19637,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Dumbbell Squeeze Press",
+    "de": "Dumbbell Squeeze Press",
+    "de-CH": "Dumbbell Squeeze Press",
+    "it": "Dumbbell Squeeze Press",
+    "es": "Dumbbell Squeeze Press",
+    "pt": "Dumbbell Squeeze Press",
+    "ja": "ダンベル・スクイーズプレス",
     "ro": "Dumbbell Squeeze Press",
     "th": "Dumbbell Squeeze Press"
    },
@@ -16788,6 +19680,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Farmer's Walk with Trap Bar",
+    "de": "Farmer's Walk with Trap Bar",
+    "de-CH": "Farmer's Walk with Trap Bar",
+    "it": "Farmer's Walk with Trap Bar",
+    "es": "Farmer's Walk with Trap Bar",
+    "pt": "Farmer's Walk with Trap Bar",
+    "ja": "トラップバー付きファーマーズウォーク",
     "ro": "Farmer's Walk with Trap Bar",
     "th": "Farmer's Walk with Trap Bar"
    },
@@ -16825,6 +19723,12 @@
    "incrementKG": 2,
    "names": {
     "en": "Suitcase Carry (Single Dumbbell)",
+    "de": "Suitcase Carry (Single Dumbbell)",
+    "de-CH": "Suitcase Carry (Single Dumbbell)",
+    "it": "Suitcase Carry (Single Dumbbell)",
+    "es": "Suitcase Carry (Single Dumbbell)",
+    "pt": "Suitcase Carry (Single Dumbbell)",
+    "ja": "スーツケースキャリー(シングルダンベル)",
     "ro": "Suitcase Carry (Single Dumbbell)",
     "th": "Suitcase Carry (Single Dumbbell)"
    },
@@ -16862,6 +19766,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Front Rack Carry (Barbell)",
+    "de": "Front Rack Carry (Barbell)",
+    "de-CH": "Front Rack Carry (Barbell)",
+    "it": "Front Rack Carry (Barbell)",
+    "es": "Front Rack Carry (Barbell)",
+    "pt": "Front Rack Carry (Barbell)",
+    "ja": "フロントラックキャリー(バーベル)",
     "ro": "Front Rack Carry (Barbell)",
     "th": "Front Rack Carry (Barbell)"
    },
@@ -16899,6 +19809,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Sandbag Bear-Hug Carry",
+    "de": "Sandbag Bear-Hug Carry",
+    "de-CH": "Sandbag Bear-Hug Carry",
+    "it": "Sandbag Bear-Hug Carry",
+    "es": "Sandbag Bear-Hug Carry",
+    "pt": "Sandbag Bear-Hug Carry",
+    "ja": "サンドバッグベア - 抱擁キャリー",
     "ro": "Sandbag Bear-Hug Carry",
     "th": "Sandbag Bear-Hug Carry"
    },
@@ -16936,6 +19852,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Sandbag Shouldering",
+    "de": "Sandbag Shouldering",
+    "de-CH": "Sandbag Shouldering",
+    "it": "Sandbag Shouldering",
+    "es": "Sandbag Shouldering",
+    "pt": "Sandbag Shouldering",
+    "ja": "サンドバッグ ショルダー",
     "ro": "Sandbag Shouldering",
     "th": "Sandbag Shouldering"
    },
@@ -16973,6 +19895,12 @@
    "incrementKG": 5,
    "names": {
     "en": "Sandbag Over-the-Shoulder Throw",
+    "de": "Sandbag Over-the-Shoulder Throw",
+    "de-CH": "Sandbag Over-the-Shoulder Throw",
+    "it": "Sandbag Over-the-Shoulder Throw",
+    "es": "Sandbag Over-the-Shoulder Throw",
+    "pt": "Sandbag Over-the-Shoulder Throw",
+    "ja": "サンドバッグオーバーザショルダースロー",
     "ro": "Sandbag Over-the-Shoulder Throw",
     "th": "Sandbag Over-the-Shoulder Throw"
    },
@@ -17010,6 +19938,12 @@
    "incrementKG": 10,
    "names": {
     "en": "Atlas Stone to Platform",
+    "de": "Atlas Stone to Platform",
+    "de-CH": "Atlas Stone to Platform",
+    "it": "Atlas Stone to Platform",
+    "es": "Atlas Stone to Platform",
+    "pt": "Atlas Stone to Platform",
+    "ja": "プラットフォームへのアトラスストーン",
     "ro": "Atlas Stone to Platform",
     "th": "Atlas Stone to Platform"
    },
@@ -17045,6 +19979,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Back Squat",
+    "de": "Smith Machine Back Squat",
+    "de-CH": "Smith Machine Back Squat",
+    "it": "Smith Machine Back Squat",
+    "es": "Smith Machine Back Squat",
+    "pt": "Smith Machine Back Squat",
+    "ja": "スミスマシンバックスクワット",
     "ro": "Smith Machine Back Squat",
     "th": "Smith Machine Back Squat"
    },
@@ -17079,6 +20019,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Bench Press",
+    "de": "Smith Machine Bench Press",
+    "de-CH": "Smith Machine Bench Press",
+    "it": "Smith Machine Bench Press",
+    "es": "Smith Machine Bench Press",
+    "pt": "Smith Machine Bench Press",
+    "ja": "スミスマシンベンチプレス",
     "ro": "Smith Machine Bench Press",
     "th": "Smith Machine Bench Press"
    },
@@ -17113,6 +20059,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Incline Bench Press",
+    "de": "Smith Machine Incline Bench Press",
+    "de-CH": "Smith Machine Incline Bench Press",
+    "it": "Smith Machine Incline Bench Press",
+    "es": "Smith Machine Incline Bench Press",
+    "pt": "Smith Machine Incline Bench Press",
+    "ja": "スミスマシン傾斜ベンチプレス",
     "ro": "Smith Machine Incline Bench Press",
     "th": "Smith Machine Incline Bench Press"
    },
@@ -17148,6 +20100,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Smith Machine Shoulder Press",
+    "de": "Smith Machine Shoulder Press",
+    "de-CH": "Smith Machine Shoulder Press",
+    "it": "Smith Machine Shoulder Press",
+    "es": "Smith Machine Shoulder Press",
+    "pt": "Smith Machine Shoulder Press",
+    "ja": "スミスマシンショルダープレス",
     "ro": "Smith Machine Shoulder Press",
     "th": "Smith Machine Shoulder Press"
    },
@@ -17183,6 +20141,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Hack Squat - Reverse",
+    "de": "Hack Squat - Reverse",
+    "de-CH": "Hack Squat - Reverse",
+    "it": "Hack Squat - Reverse",
+    "es": "Hack Squat - Reverse",
+    "pt": "Hack Squat - Reverse",
+    "ja": "ハックスクワット - 逆",
     "ro": "Hack Squat - Reverse",
     "th": "Hack Squat - Reverse"
    },
@@ -17218,6 +20182,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Pendulum Squat Machine",
+    "de": "Pendulum Squat Machine",
+    "de-CH": "Pendulum Squat Machine",
+    "it": "Pendulum Squat Machine",
+    "es": "Pendulum Squat Machine",
+    "pt": "Pendulum Squat Machine",
+    "ja": "Pendulumのスクワット機械",
     "ro": "Pendulum Squat Machine",
     "th": "Pendulum Squat Machine"
    },
@@ -17253,6 +20223,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Vertical Leg Press Machine",
+    "de": "Vertical Leg Press Machine",
+    "de-CH": "Vertical Leg Press Machine",
+    "it": "Vertical Leg Press Machine",
+    "es": "Vertical Leg Press Machine",
+    "pt": "Vertical Leg Press Machine",
+    "ja": "縦の足の出版物機械",
     "ro": "Vertical Leg Press Machine",
     "th": "Vertical Leg Press Machine"
    },
@@ -17289,6 +20265,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Reverse Hyper Machine",
+    "de": "Reverse Hyper Machine",
+    "de-CH": "Reverse Hyper Machine",
+    "it": "Reverse Hyper Machine",
+    "es": "Reverse Hyper Machine",
+    "pt": "Reverse Hyper Machine",
+    "ja": "逆のハイパー機械",
     "ro": "Reverse Hyper Machine",
     "th": "Reverse Hyper Machine"
    },
@@ -17323,6 +20305,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Cross-Over - High to Low",
+    "de": "Cable Cross-Over - High to Low",
+    "de-CH": "Cable Cross-Over - High to Low",
+    "it": "Cable Cross-Over - High to Low",
+    "es": "Cable Cross-Over - High to Low",
+    "pt": "Cable Cross-Over - High to Low",
+    "ja": "ケーブル クロスオーバー - 高〜低",
     "ro": "Cable Cross-Over - High to Low",
     "th": "Cable Cross-Over - High to Low"
    },
@@ -17357,6 +20345,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Cross-Over - Low to High",
+    "de": "Cable Cross-Over - Low to High",
+    "de-CH": "Cable Cross-Over - Low to High",
+    "it": "Cable Cross-Over - Low to High",
+    "es": "Cable Cross-Over - Low to High",
+    "pt": "Cable Cross-Over - Low to High",
+    "ja": "ケーブル クロスオーバー - 低〜高",
     "ro": "Cable Cross-Over - Low to High",
     "th": "Cable Cross-Over - Low to High"
    },
@@ -17391,6 +20385,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Single-Arm Cable Chest Press",
+    "de": "Single-Arm Cable Chest Press",
+    "de-CH": "Single-Arm Cable Chest Press",
+    "it": "Single-Arm Cable Chest Press",
+    "es": "Single-Arm Cable Chest Press",
+    "pt": "Single-Arm Cable Chest Press",
+    "ja": "シングルアームケーブルチェストプレス",
     "ro": "Single-Arm Cable Chest Press",
     "th": "Single-Arm Cable Chest Press"
    },
@@ -17425,6 +20425,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Standing Cable Fly",
+    "de": "Standing Cable Fly",
+    "de-CH": "Standing Cable Fly",
+    "it": "Standing Cable Fly",
+    "es": "Standing Cable Fly",
+    "pt": "Standing Cable Fly",
+    "ja": "スタンドケーブルフライ",
     "ro": "Standing Cable Fly",
     "th": "Standing Cable Fly"
    },
@@ -17457,6 +20463,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Single-Arm Cable Lateral Raise",
+    "de": "Single-Arm Cable Lateral Raise",
+    "de-CH": "Single-Arm Cable Lateral Raise",
+    "it": "Single-Arm Cable Lateral Raise",
+    "es": "Single-Arm Cable Lateral Raise",
+    "pt": "Single-Arm Cable Lateral Raise",
+    "ja": "シングルアームケーブル横上げ",
     "ro": "Single-Arm Cable Lateral Raise",
     "th": "Single-Arm Cable Lateral Raise"
    },
@@ -17489,6 +20501,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Rear-Delt Fly (Standing)",
+    "de": "Cable Rear-Delt Fly (Standing)",
+    "de-CH": "Cable Rear-Delt Fly (Standing)",
+    "it": "Cable Rear-Delt Fly (Standing)",
+    "es": "Cable Rear-Delt Fly (Standing)",
+    "pt": "Cable Rear-Delt Fly (Standing)",
+    "ja": "ケーブル リア フェルト フライ (スタンディング)",
     "ro": "Cable Rear-Delt Fly (Standing)",
     "th": "Cable Rear-Delt Fly (Standing)"
    },
@@ -17522,6 +20540,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Rope Overhead Triceps Extension",
+    "de": "Cable Rope Overhead Triceps Extension",
+    "de-CH": "Cable Rope Overhead Triceps Extension",
+    "it": "Cable Rope Overhead Triceps Extension",
+    "es": "Cable Rope Overhead Triceps Extension",
+    "pt": "Cable Rope Overhead Triceps Extension",
+    "ja": "ケーブル ロープの頭上式のトリムの延長",
     "ro": "Cable Rope Overhead Triceps Extension",
     "th": "Cable Rope Overhead Triceps Extension"
    },
@@ -17555,6 +20579,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Overhead Curl",
+    "de": "Cable Overhead Curl",
+    "de-CH": "Cable Overhead Curl",
+    "it": "Cable Overhead Curl",
+    "es": "Cable Overhead Curl",
+    "pt": "Cable Overhead Curl",
+    "ja": "ケーブルオーバーヘッドカール",
     "ro": "Cable Overhead Curl",
     "th": "Cable Overhead Curl"
    },
@@ -17588,6 +20618,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Rope Hammer Curl",
+    "de": "Cable Rope Hammer Curl",
+    "de-CH": "Cable Rope Hammer Curl",
+    "it": "Cable Rope Hammer Curl",
+    "es": "Cable Rope Hammer Curl",
+    "pt": "Cable Rope Hammer Curl",
+    "ja": "ケーブル ロープのハンマーのカール",
     "ro": "Cable Rope Hammer Curl",
     "th": "Cable Rope Hammer Curl"
    },
@@ -17621,6 +20657,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Hip Flexion",
+    "de": "Cable Hip Flexion",
+    "de-CH": "Cable Hip Flexion",
+    "it": "Cable Hip Flexion",
+    "es": "Cable Hip Flexion",
+    "pt": "Cable Hip Flexion",
+    "ja": "ケーブル ヒップの屈曲",
     "ro": "Cable Hip Flexion",
     "th": "Cable Hip Flexion"
    },
@@ -17653,6 +20695,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Kickback (Glutes)",
+    "de": "Cable Kickback (Glutes)",
+    "de-CH": "Cable Kickback (Glutes)",
+    "it": "Cable Kickback (Glutes)",
+    "es": "Cable Kickback (Glutes)",
+    "pt": "Cable Kickback (Glutes)",
+    "ja": "ケーブル・キックバック(ゲルト)",
     "ro": "Cable Kickback (Glutes)",
     "th": "Cable Kickback (Glutes)"
    },
@@ -17689,6 +20737,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Deadlift",
+    "de": "Cable Deadlift",
+    "de-CH": "Cable Deadlift",
+    "it": "Cable Deadlift",
+    "es": "Cable Deadlift",
+    "pt": "Cable Deadlift",
+    "ja": "ケーブルデッドリフト",
     "ro": "Cable Deadlift",
     "th": "Cable Deadlift"
    },
@@ -17726,6 +20780,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Cable Squat Row",
+    "de": "Cable Squat Row",
+    "de-CH": "Cable Squat Row",
+    "it": "Cable Squat Row",
+    "es": "Cable Squat Row",
+    "pt": "Cable Squat Row",
+    "ja": "ケーブルスクワット列",
     "ro": "Cable Squat Row",
     "th": "Cable Squat Row"
    },
@@ -17761,6 +20821,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Lat Pulldown - Single-Arm",
+    "de": "Lat Pulldown - Single-Arm",
+    "de-CH": "Lat Pulldown - Single-Arm",
+    "it": "Lat Pulldown - Single-Arm",
+    "es": "Lat Pulldown - Single-Arm",
+    "pt": "Lat Pulldown - Single-Arm",
+    "ja": "ラットプルダウン - シングルアーム",
     "ro": "Lat Pulldown - Single-Arm",
     "th": "Lat Pulldown - Single-Arm"
    },
@@ -17795,6 +20861,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Machine Chest Fly",
+    "de": "Machine Chest Fly",
+    "de-CH": "Machine Chest Fly",
+    "it": "Machine Chest Fly",
+    "es": "Machine Chest Fly",
+    "pt": "Machine Chest Fly",
+    "ja": "マシンチェストフライ",
     "ro": "Machine Chest Fly",
     "th": "Machine Chest Fly"
    },
@@ -17827,6 +20899,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Machine Reverse Fly",
+    "de": "Machine Reverse Fly",
+    "de-CH": "Machine Reverse Fly",
+    "it": "Machine Reverse Fly",
+    "es": "Machine Reverse Fly",
+    "pt": "Machine Reverse Fly",
+    "ja": "機械逆のフライ",
     "ro": "Machine Reverse Fly",
     "th": "Machine Reverse Fly"
    },
@@ -17862,6 +20940,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Hammer-Strength Row Machine",
+    "de": "Hammer-Strength Row Machine",
+    "de-CH": "Hammer-Strength Row Machine",
+    "it": "Hammer-Strength Row Machine",
+    "es": "Hammer-Strength Row Machine",
+    "pt": "Hammer-Strength Row Machine",
+    "ja": "ハンマー強さの列機械",
     "ro": "Hammer-Strength Row Machine",
     "th": "Hammer-Strength Row Machine"
    },
@@ -17896,6 +20980,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Hammer-Strength Incline Press",
+    "de": "Hammer-Strength Incline Press",
+    "de-CH": "Hammer-Strength Incline Press",
+    "it": "Hammer-Strength Incline Press",
+    "es": "Hammer-Strength Incline Press",
+    "pt": "Hammer-Strength Incline Press",
+    "ja": "ハンマー強度傾斜プレス",
     "ro": "Hammer-Strength Incline Press",
     "th": "Hammer-Strength Incline Press"
    },
@@ -17931,6 +21021,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Seated Machine Shoulder Press (Neutral)",
+    "de": "Seated Machine Shoulder Press (Neutral)",
+    "de-CH": "Seated Machine Shoulder Press (Neutral)",
+    "it": "Seated Machine Shoulder Press (Neutral)",
+    "es": "Seated Machine Shoulder Press (Neutral)",
+    "pt": "Seated Machine Shoulder Press (Neutral)",
+    "ja": "シートマシンショルダープレス(中立)",
     "ro": "Seated Machine Shoulder Press (Neutral)",
     "th": "Seated Machine Shoulder Press (Neutral)"
    },
@@ -17963,6 +21059,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Standing Hip CARs",
+    "de": "Standing Hip CARs",
+    "de-CH": "Standing Hip CARs",
+    "it": "Standing Hip CARs",
+    "es": "Standing Hip CARs",
+    "pt": "Standing Hip CARs",
+    "ja": "ヒップカースタンド",
     "ro": "Standing Hip CARs",
     "th": "Standing Hip CARs"
    },
@@ -17994,6 +21096,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Shoulder CARs",
+    "de": "Shoulder CARs",
+    "de-CH": "Shoulder CARs",
+    "it": "Shoulder CARs",
+    "es": "Shoulder CARs",
+    "pt": "Shoulder CARs",
+    "ja": "ショルダーカー",
     "ro": "Shoulder CARs",
     "th": "Shoulder CARs"
    },
@@ -18025,6 +21133,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ankle CARs",
+    "de": "Ankle CARs",
+    "de-CH": "Ankle CARs",
+    "it": "Ankle CARs",
+    "es": "Ankle CARs",
+    "pt": "Ankle CARs",
+    "ja": "アンクル車",
     "ro": "Ankle CARs",
     "th": "Ankle CARs"
    },
@@ -18057,6 +21171,12 @@
    "incrementKG": 0,
    "names": {
     "en": "90/90 Shin Box Switch",
+    "de": "90/90 Shin Box Switch",
+    "de-CH": "90/90 Shin Box Switch",
+    "it": "90/90 Shin Box Switch",
+    "es": "90/90 Shin Box Switch",
+    "pt": "90/90 Shin Box Switch",
+    "ja": "90/90 箱スイッチ",
     "ro": "90/90 Shin Box Switch",
     "th": "90/90 Shin Box Switch"
    },
@@ -18089,6 +21209,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Frog Stretch",
+    "de": "Frog Stretch",
+    "de-CH": "Frog Stretch",
+    "it": "Frog Stretch",
+    "es": "Frog Stretch",
+    "pt": "Frog Stretch",
+    "ja": "カエルストレッチ",
     "ro": "Frog Stretch",
     "th": "Frog Stretch"
    },
@@ -18121,6 +21247,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Pigeon Stretch",
+    "de": "Pigeon Stretch",
+    "de-CH": "Pigeon Stretch",
+    "it": "Pigeon Stretch",
+    "es": "Pigeon Stretch",
+    "pt": "Pigeon Stretch",
+    "ja": "ピジョンストレッチ",
     "ro": "Pigeon Stretch",
     "th": "Pigeon Stretch"
    },
@@ -18152,6 +21284,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Thread-the-Needle Stretch",
+    "de": "Thread-the-Needle Stretch",
+    "de-CH": "Thread-the-Needle Stretch",
+    "it": "Thread-the-Needle Stretch",
+    "es": "Thread-the-Needle Stretch",
+    "pt": "Thread-the-Needle Stretch",
+    "ja": "糸の針の伸張",
     "ro": "Thread-the-Needle Stretch",
     "th": "Thread-the-Needle Stretch"
    },
@@ -18183,6 +21321,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Brettzel Stretch",
+    "de": "Brettzel Stretch",
+    "de-CH": "Brettzel Stretch",
+    "it": "Brettzel Stretch",
+    "es": "Brettzel Stretch",
+    "pt": "Brettzel Stretch",
+    "ja": "Brettzelストレッチ",
     "ro": "Brettzel Stretch",
     "th": "Brettzel Stretch"
    },
@@ -18216,6 +21360,12 @@
    "incrementKG": 2.5,
    "names": {
     "en": "Jefferson Curl",
+    "de": "Jefferson Curl",
+    "de-CH": "Jefferson Curl",
+    "it": "Jefferson Curl",
+    "es": "Jefferson Curl",
+    "pt": "Jefferson Curl",
+    "ja": "ジェファーソン・カール",
     "ro": "Jefferson Curl",
     "th": "Jefferson Curl"
    },
@@ -18247,6 +21397,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Single-Leg Balance Reach",
+    "de": "Single-Leg Balance Reach",
+    "de-CH": "Single-Leg Balance Reach",
+    "it": "Single-Leg Balance Reach",
+    "es": "Single-Leg Balance Reach",
+    "pt": "Single-Leg Balance Reach",
+    "ja": "シングルラグバランスリーチ",
     "ro": "Single-Leg Balance Reach",
     "th": "Single-Leg Balance Reach"
    },
@@ -18285,6 +21441,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace 360",
+    "de": "Steel Mace 360",
+    "de-CH": "Steel Mace 360",
+    "it": "Steel Mace 360",
+    "es": "Steel Mace 360",
+    "pt": "Steel Mace 360",
+    "ja": "鋼鉄マケ360",
     "ro": "Steel Mace 360",
     "th": "Steel Mace 360"
    },
@@ -18323,6 +21485,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace 10-to-2",
+    "de": "Steel Mace 10-to-2",
+    "de-CH": "Steel Mace 10-to-2",
+    "it": "Steel Mace 10-to-2",
+    "es": "Steel Mace 10-to-2",
+    "pt": "Steel Mace 10-to-2",
+    "ja": "スチールマケ10〜2",
     "ro": "Steel Mace 10-to-2",
     "th": "Steel Mace 10-to-2"
    },
@@ -18359,6 +21527,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace Uppercut",
+    "de": "Steel Mace Uppercut",
+    "de-CH": "Steel Mace Uppercut",
+    "it": "Steel Mace Uppercut",
+    "es": "Steel Mace Uppercut",
+    "pt": "Steel Mace Uppercut",
+    "ja": "スチールメークアッパーカット",
     "ro": "Steel Mace Uppercut",
     "th": "Steel Mace Uppercut"
    },
@@ -18395,6 +21569,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace Offset Press",
+    "de": "Steel Mace Offset Press",
+    "de-CH": "Steel Mace Offset Press",
+    "it": "Steel Mace Offset Press",
+    "es": "Steel Mace Offset Press",
+    "pt": "Steel Mace Offset Press",
+    "ja": "鋼鉄Maceのオフセット出版物",
     "ro": "Steel Mace Offset Press",
     "th": "Steel Mace Offset Press"
    },
@@ -18431,6 +21611,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace Offset Squat",
+    "de": "Steel Mace Offset Squat",
+    "de-CH": "Steel Mace Offset Squat",
+    "it": "Steel Mace Offset Squat",
+    "es": "Steel Mace Offset Squat",
+    "pt": "Steel Mace Offset Squat",
+    "ja": "鋼鉄Maceのオフセットのスクワット",
     "ro": "Steel Mace Offset Squat",
     "th": "Steel Mace Offset Squat"
    },
@@ -18468,6 +21654,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace Rotational Lunge",
+    "de": "Steel Mace Rotational Lunge",
+    "de-CH": "Steel Mace Rotational Lunge",
+    "it": "Steel Mace Rotational Lunge",
+    "es": "Steel Mace Rotational Lunge",
+    "pt": "Steel Mace Rotational Lunge",
+    "ja": "鋼鉄マケの回転Lunge",
     "ro": "Steel Mace Rotational Lunge",
     "th": "Steel Mace Rotational Lunge"
    },
@@ -18504,6 +21696,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace Single-Arm Swing",
+    "de": "Steel Mace Single-Arm Swing",
+    "de-CH": "Steel Mace Single-Arm Swing",
+    "it": "Steel Mace Single-Arm Swing",
+    "es": "Steel Mace Single-Arm Swing",
+    "pt": "Steel Mace Single-Arm Swing",
+    "ja": "スチールメークシングルアームスイング",
     "ro": "Steel Mace Single-Arm Swing",
     "th": "Steel Mace Single-Arm Swing"
    },
@@ -18541,6 +21739,12 @@
    "incrementKG": 1,
    "names": {
     "en": "Steel Mace Overhead Carry",
+    "de": "Steel Mace Overhead Carry",
+    "de-CH": "Steel Mace Overhead Carry",
+    "it": "Steel Mace Overhead Carry",
+    "es": "Steel Mace Overhead Carry",
+    "pt": "Steel Mace Overhead Carry",
+    "ja": "鋼鉄マケの頭上式の運送",
     "ro": "Steel Mace Overhead Carry",
     "th": "Steel Mace Overhead Carry"
    },
@@ -18574,6 +21778,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Stationary Bike",
+    "de": "Stationary Bike",
+    "de-CH": "Stationary Bike",
+    "it": "Stationary Bike",
+    "es": "Stationary Bike",
+    "pt": "Stationary Bike",
+    "ja": "固定バイク",
     "ro": "Stationary Bike",
     "th": "Stationary Bike"
    },
@@ -18611,6 +21821,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Outdoor Cycling",
+    "de": "Outdoor Cycling",
+    "de-CH": "Outdoor Cycling",
+    "it": "Outdoor Cycling",
+    "es": "Outdoor Cycling",
+    "pt": "Outdoor Cycling",
+    "ja": "屋外サイクリング",
     "ro": "Outdoor Cycling",
     "th": "Outdoor Cycling"
    },
@@ -18646,6 +21862,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Treadmill",
+    "de": "Treadmill",
+    "de-CH": "Treadmill",
+    "it": "Treadmill",
+    "es": "Treadmill",
+    "pt": "Treadmill",
+    "ja": "トレッドミル",
     "ro": "Mers la bandă",
     "th": "เดินบนลู่วิ่ง"
    },
@@ -18695,6 +21917,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Outdoor Running",
+    "de": "Outdoor Running",
+    "de-CH": "Outdoor Running",
+    "it": "Outdoor Running",
+    "es": "Outdoor Running",
+    "pt": "Outdoor Running",
+    "ja": "屋外のランニング",
     "ro": "Outdoor Running",
     "th": "Outdoor Running"
    },
@@ -18734,6 +21962,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Walking",
+    "de": "Walking",
+    "de-CH": "Walking",
+    "it": "Walking",
+    "es": "Walking",
+    "pt": "Walking",
+    "ja": "ウォーキング",
     "ro": "Walking",
     "th": "Walking"
    },
@@ -18771,6 +22005,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Incline Treadmill Walk",
+    "de": "Incline Treadmill Walk",
+    "de-CH": "Incline Treadmill Walk",
+    "it": "Incline Treadmill Walk",
+    "es": "Incline Treadmill Walk",
+    "pt": "Incline Treadmill Walk",
+    "ja": "インライントレッドミルウォーク",
     "ro": "Incline Treadmill Walk",
     "th": "Incline Treadmill Walk"
    },
@@ -18808,6 +22048,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Rowing Machine",
+    "de": "Rowing Machine",
+    "de-CH": "Rowing Machine",
+    "it": "Rowing Machine",
+    "es": "Rowing Machine",
+    "pt": "Rowing Machine",
+    "ja": "ロウイングマシン",
     "ro": "Ergometru de vâslit",
     "th": "เครื่องกรรเชียงบก"
    },
@@ -18845,6 +22091,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Ski Erg",
+    "de": "Ski Erg",
+    "de-CH": "Ski Erg",
+    "it": "Ski Erg",
+    "es": "Ski Erg",
+    "pt": "Ski Erg",
+    "ja": "スキーアーグ",
     "ro": "Intervale la SkiErg",
     "th": "สกีเอิร์กอินเทอร์วัล"
    },
@@ -18884,6 +22136,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Air Bike",
+    "de": "Air Bike",
+    "de-CH": "Air Bike",
+    "it": "Air Bike",
+    "es": "Air Bike",
+    "pt": "Air Bike",
+    "ja": "エアバイク",
     "ro": "Sprint la bicicleta Assault",
     "th": "สปรินต์แอร์ไบค์"
    },
@@ -18920,6 +22178,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Elliptical",
+    "de": "Elliptical",
+    "de-CH": "Elliptical",
+    "it": "Elliptical",
+    "es": "Elliptical",
+    "pt": "Elliptical",
+    "ja": "エリプティカル",
     "ro": "Elliptical",
     "th": "Elliptical"
    },
@@ -18953,6 +22217,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Stair Climber",
+    "de": "Stair Climber",
+    "de-CH": "Stair Climber",
+    "it": "Stair Climber",
+    "es": "Stair Climber",
+    "pt": "Stair Climber",
+    "ja": "階段クライマー",
     "ro": "Stair Climber",
     "th": "Stair Climber"
    },
@@ -18986,6 +22256,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Swimming",
+    "de": "Swimming",
+    "de-CH": "Swimming",
+    "it": "Swimming",
+    "es": "Swimming",
+    "pt": "Swimming",
+    "ja": "水泳",
     "ro": "Swimming",
     "th": "Swimming"
    },
@@ -19019,6 +22295,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Jump Rope",
+    "de": "Jump Rope",
+    "de-CH": "Jump Rope",
+    "it": "Jump Rope",
+    "es": "Jump Rope",
+    "pt": "Jump Rope",
+    "ja": "ジャンプロープ",
     "ro": "Jump Rope",
     "th": "Jump Rope"
    },
@@ -19052,6 +22334,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Sled Push or Drag",
+    "de": "Sled Push or Drag",
+    "de-CH": "Sled Push or Drag",
+    "it": "Sled Push or Drag",
+    "es": "Sled Push or Drag",
+    "pt": "Sled Push or Drag",
+    "ja": "Sledプッシュまたはドラッグ",
     "ro": "Sled Push or Drag",
     "th": "Sled Push or Drag"
    },
@@ -19085,6 +22373,12 @@
    "incrementKG": 0,
    "names": {
     "en": "Shadow Boxing",
+    "de": "Shadow Boxing",
+    "de-CH": "Shadow Boxing",
+    "it": "Shadow Boxing",
+    "es": "Shadow Boxing",
+    "pt": "Shadow Boxing",
+    "ja": "シャドーボクシング",
     "ro": "Shadow Boxing",
     "th": "Shadow Boxing"
    },

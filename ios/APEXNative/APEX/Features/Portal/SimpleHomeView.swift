@@ -790,17 +790,19 @@ private struct SimpleMetric: View {
             }
             Text(value)
                 .font(APEXFont.mono(9))
-                .lineLimit(1)
-                .minimumScaleFactor(0.7)
-            Text(language.text(label).uppercased(with: language.language.locale))
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(language.shortText(label).uppercased(with: language.language.locale))
                 .font(APEXFont.mono(7))
                 .tracking(0.4)
                 .foregroundStyle(APEXColor.secondaryInk)
-                .lineLimit(1)
-                .minimumScaleFactor(0.6)
+                .lineLimit(2)
+                .multilineTextAlignment(.center)
+                .fixedSize(horizontal: false, vertical: true)
         }
         .frame(maxWidth: .infinity)
-        .frame(height: 84)
+        .frame(minHeight: 84)
         .background(.ultraThinMaterial.opacity(0.84), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(done ? APEXColor.green.opacity(0.26) : .white.opacity(0.82)))
         }
@@ -1171,7 +1173,7 @@ private struct WaterQuickAddSheet: View {
                         } label: {
                             VStack(spacing: 3) {
                                 Image(systemName: "gearshape.fill")
-                                Text(language.text("Settings"))
+                                Text(language.shortText("Settings"))
                                     .font(APEXFont.body(10, weight: .bold))
                             }
                             .frame(maxWidth: .infinity, minHeight: 50)

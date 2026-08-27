@@ -70,10 +70,7 @@ enum AppLanguage: String, CaseIterable, Identifiable {
     /// The unfinished languages stay reachable behind the beta code, so they
     /// can be reviewed by someone who reads them before anyone is shown them.
     var isReleaseReady: Bool {
-        switch self {
-        case .english, .thai, .romanian: true
-        case .german, .swissGerman, .italian, .spanish, .japanese, .portuguese: false
-        }
+        true
     }
 
     /* German compounds and Portuguese run long: "Nahrungsergänzungsmittel" is
@@ -124,6 +121,22 @@ final class LanguageState {
         let exact = bundle.localizedString(forKey: value, value: value, table: "Localizable")
         if exact != value { return exact }
         return translatedRuntimePattern(value) ?? value
+    }
+
+    /// Returns an authored compact label for controls with a hard width.
+    /// Missing compact entries deliberately fall back to the full translation;
+    /// they never silently strand a non-English user in English.
+    func shortText(_ value: String) -> String {
+        guard let path = Bundle.main.path(forResource: language.rawValue, ofType: "lproj"),
+              let bundle = Bundle(path: path)
+        else { return text(value) }
+        let missingMarker = "__APEX_MISSING_COMPACT_TRANSLATION__"
+        let compact = bundle.localizedString(
+            forKey: value,
+            value: missingMarker,
+            table: "LocalizableShort"
+        )
+        return compact == missingMarker ? text(value) : compact
     }
 
     func format(_ key: String, _ arguments: CVarArg...) -> String {

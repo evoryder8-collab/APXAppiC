@@ -108,8 +108,8 @@ struct SettingsView: View {
                             .foregroundStyle(APEXColor.secondaryInk)
                         Text(profile?.displayName ?? "APEX")
                             .font(APEXFont.display(26))
-                            .lineLimit(1)
-                            .minimumScaleFactor(0.7)
+                            .lineLimit(2)
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer(minLength: 4)
                     Text((profile?.persona.displayName ?? "APEX").uppercased(with: language.language.locale))

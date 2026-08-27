@@ -941,7 +941,10 @@ private struct StrengthHistoryCard: View {
     private func historyMetric(_ title: String, _ value: String) -> some View {
         VStack(alignment: .leading, spacing: 5) {
             Text(language.text(title)).font(APEXFont.body(8, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
-            Text(value).font(APEXFont.mono(11)).lineLimit(1).minimumScaleFactor(0.72)
+            Text(value)
+                .font(APEXFont.mono(11))
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
         }.padding(11).frame(maxWidth: .infinity, alignment: .leading)
             .background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
     }
@@ -969,8 +972,8 @@ private struct AvatarHero: View {
                        second one look like a different number. */
                     Text(profile?.displayName ?? "APEX")
                         .font(APEXFont.display(24))
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.7)
+                        .lineLimit(2)
+                        .fixedSize(horizontal: false, vertical: true)
                     Spacer(); Image(systemName: "waveform.path.ecg").font(.system(size: 27, weight: .semibold))
                 }.foregroundStyle(.white).padding(20).background(.black.opacity(0.26))
             }

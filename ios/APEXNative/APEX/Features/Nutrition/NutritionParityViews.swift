@@ -96,12 +96,8 @@ struct NutritionGlanceCard: View {
                                        is large: a clipped heading tells the
                                        reader less than a two-line one. */
                                     .lineLimit(dynamicTypeSize.isAccessibilitySize ? 2 : 1)
-                                    /* Romanian and Thai run longer than the
-                                       English this was sized for. Shrinking a
-                                       little is better than wrapping, and far
-                                       better than hyphenating a title. */
-                                    .lineLimit(1)
-                                    .minimumScaleFactor(0.72)
+                                    .lineLimit(2)
+                                    .fixedSize(horizontal: false, vertical: true)
                                 Image(systemName: "arrow.up.right")
                                     .font(.system(size: 16, weight: .bold))
                                     .foregroundStyle(APEXColor.amberDeep)
@@ -138,7 +134,7 @@ struct NutritionGlanceCard: View {
                         Text("\(Int(totals.kcal.rounded()))")
                             .font(APEXFont.display(32))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.5)
+                            .fixedSize(horizontal: true, vertical: false)
                             .contentTransition(.numericText())
                         Text(language.text("Eaten").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(8))
@@ -173,7 +169,7 @@ struct NutritionGlanceCard: View {
                                 Text("\(calorieBalance.amount)")
                                     .font(APEXFont.display(34))
                                     .lineLimit(1)
-                                    .minimumScaleFactor(0.5)
+                                    .fixedSize(horizontal: true, vertical: false)
                                     .foregroundStyle(calorieBalance.isOverTarget ? Color.red : APEXColor.ink)
                                     .contentTransition(.numericText())
                                 Text(language.format("of %d kcal", targets.targetCalories))
@@ -190,9 +186,9 @@ struct NutritionGlanceCard: View {
                         Text("\(resolvedBurnedCalories)")
                             .font(APEXFont.display(29))
                             .lineLimit(1)
-                            .minimumScaleFactor(0.5)
+                            .fixedSize(horizontal: true, vertical: false)
                             .contentTransition(.numericText())
-                        Text(language.text("Burned").uppercased(with: language.language.locale))
+                        Text(language.shortText("Burned").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -234,7 +230,7 @@ private struct CompletionRing: View {
             Text("\(value)%")
                 .font(APEXFont.mono(12))
                 .lineLimit(1)
-                .minimumScaleFactor(0.4)
+                .fixedSize(horizontal: true, vertical: false)
         }
         .frame(width: 63, height: 63)
         .accessibilityLabel("Daily completion")
@@ -256,8 +252,8 @@ private struct GlanceMacroCard: View {
             Text(language.format("%.0f/%.0f g", value, target))
                 .font(APEXFont.mono(9))
                 .foregroundStyle(APEXColor.secondaryInk)
-                .minimumScaleFactor(0.75)
                 .lineLimit(1)
+                .fixedSize(horizontal: true, vertical: false)
             GeometryReader { proxy in
                 ZStack(alignment: .leading) {
                     Capsule().fill(APEXColor.ink.opacity(0.07))
@@ -295,12 +291,10 @@ struct APEXDateNavigator: View {
                 VStack(spacing: 2) {
                     Text(date.formatted(.dateTime.weekday(.wide).day().month(.wide).locale(language.language.locale)).uppercased(with: language.language.locale))
                         .font(APEXFont.mono(10))
-                        /* The date is the whole point of this control, so it
-                           shrinks rather than becoming "FRIDAY 21 AUGU…". */
-                        .minimumScaleFactor(0.5)
                         .tracking(1.25)
-                        .lineLimit(1)
-                        .minimumScaleFactor(0.75)
+                        .lineLimit(2)
+                        .multilineTextAlignment(.center)
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(Calendar.current.isDateInToday(date) ? language.text("TODAY") : language.text("OPEN CALENDAR"))
                         .font(APEXFont.mono(8))
                         .foregroundStyle(APEXColor.violet)
@@ -592,10 +586,11 @@ private struct TargetChoiceStyle: ButtonStyle {
         configuration.label
             .font(APEXFont.body(12, weight: .bold))
             .foregroundStyle(selected ? .white : APEXColor.ink)
-            .lineLimit(1)
-            .minimumScaleFactor(0.72)
+            .lineLimit(2)
+            .multilineTextAlignment(.center)
+            .fixedSize(horizontal: false, vertical: true)
             .frame(maxWidth: .infinity)
-            .frame(height: 44)
+            .frame(minHeight: 44)
             .background(selected ? color.gradient : Color.white.opacity(0.56).gradient, in: RoundedRectangle(cornerRadius: 17))
             .opacity(configuration.isPressed ? 0.76 : 1)
     }
@@ -1001,8 +996,8 @@ struct APEXDaylineView: View {
                 }
                 .font(APEXFont.mono(7))
                 .foregroundStyle(.white.opacity(0.72))
-                .lineLimit(1)
-                .minimumScaleFactor(0.65)
+                .lineLimit(2)
+                .fixedSize(horizontal: false, vertical: true)
                 .padding(.horizontal, 11)
                 .padding(.vertical, 8)
                 .background(.white.opacity(0.055), in: Capsule())

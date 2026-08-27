@@ -17,13 +17,11 @@ final class LocalisationCoverageTests: XCTestCase {
     /// Languages held to full parity with each other. A key present in one and
     /// absent in another is the shape of a half-finished pass, so these fail
     /// the moment they diverge.
-    private let completeLanguages = ["ro", "th"]
+    private let completeLanguages = ["de", "de-CH", "it", "es", "pt", "ja", "ro", "th"]
 
-    /// Languages still being filled in. They must have a table and must not
-    /// contain a key nobody else has, but they are allowed to be short, because
-    /// a missing key falls back to English rather than breaking anything. They
-    /// graduate to the list above when their coverage reaches parity.
-    private let inProgressLanguages = ["de", "de-CH", "it", "es", "ja", "pt"]
+    /// Kept explicit so a newly introduced locale starts behind the parity gate
+    /// until its full and compact tables are complete.
+    private let inProgressLanguages: [String] = []
 
     private var languages: [String] { completeLanguages + inProgressLanguages }
 
@@ -261,14 +259,68 @@ final class LocalisationCoverageTests: XCTestCase {
     func testNothingIsTranslatedToItsOwnEnglish() {
         // A key whose value equals the key is an untranslated placeholder that
         // passes every other check while showing English on screen.
+        // Exercise names are deliberately classified separately for every
+        // market. An `english` classification is a sourced terminology choice,
+        // not untranslated interface copy, so the stranded-copy guard must use
+        // the committed exercise policy as its allowlist.
+        let exerciseNames = Set(ExerciseCatalog.all.map(\.name))
         for language in languages {
             guard let table = table(language) else { continue }
             let untouched = table.filter { key, value in
-                key == value && key.count > 12 && key.contains(" ")
+                key == value
+                    && key.count > 12
+                    && key.contains(" ")
+                    && !exerciseNames.contains(key)
             }
             XCTAssertLessThan(untouched.count, 40,
                               "\(language) has \(untouched.count) values identical to their English")
         }
+    }
+
+    func testEveryOfferedLanguageHasTheAuthoredCompactTable() throws {
+        let languages = ["en", "de", "de-CH", "it", "es", "pt", "ja", "ro", "th"]
+        var expectedKeys: Set<String>?
+
+        for language in languages {
+            guard let url = Bundle.main.url(
+                forResource: "LocalizableShort",
+                withExtension: "strings",
+                subdirectory: nil,
+                localization: language
+            ) else {
+                XCTFail("Missing compact table for \(language)")
+                continue
+            }
+            let data = try Data(contentsOf: url)
+            let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+            XCTAssertEqual(table?.count, 25, "Unexpected compact-label count for \(language)")
+            XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
+            let keys = Set(table?.keys.map { $0 } ?? [])
+            if let expectedKeys {
+                XCTAssertEqual(keys, expectedKeys, "Compact keys drifted for \(language)")
+            } else {
+                expectedKeys = keys
+            }
+            if language == "de-CH" {
+                XCTAssertFalse(table?.values.contains(where: { $0.contains("ß") }) ?? true)
+            }
+        }
+    }
+
+    @MainActor
+    func testCompactLookupUsesTheSelectedLanguageAndFallsBackSafely() {
+        let state = LanguageState.shared
+        let original = state.language
+        defer { state.language = original }
+
+        state.language = .german
+        XCTAssertEqual(state.shortText("Settings"), "Optionen")
+        state.language = .japanese
+        XCTAssertEqual(state.shortText("Exercises"), "種目")
+        state.language = .thai
+        XCTAssertEqual(state.shortText("History"), "ประวัติ")
+        XCTAssertEqual(state.shortText("A label without a compact form"),
+                       state.text("A label without a compact form"))
     }
 
     func testTranslationsAvoidProseEmDashes() {
