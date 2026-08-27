@@ -14,6 +14,7 @@ import {
   isQuietClock,
   layoutDaylineLabels,
   mealDaylineHeight,
+  mergeMealComfortBands,
   minuteToClock,
   normalizeMealDaylineDensity,
   normalizeMealTimelineSnap,
@@ -21,6 +22,7 @@ import {
   snapDaylineMinute,
   timedMeal,
   timedWorkout,
+  toDaylineMinute,
   zonedClock,
   type MealDaylineDensity,
   type MealComfortWindow,
@@ -547,10 +549,22 @@ export function MealDayline({
   ], height, compact), [compact, displayItems, height, workouts])
   const nowY = daylineRatio(currentClock.minute) * height
   const recordedEvents = displayItems.filter((item) => item.meal && item.recorded && Date.parse(item.meal.logged_at) <= now.getTime())
-  const latest = isLiveDate
-    ? recordedEvents.slice().sort((left, right) => Date.parse(left.meal!.logged_at) - Date.parse(right.meal!.logged_at)).at(-1) ?? null
-    : null
-  const elapsed = latest ? Math.max(0, (now.getTime() - Date.parse(latest.meal!.logged_at)) / 60_000) : null
+  const comfortBands = mergeMealComfortBands(recordedEvents.flatMap((item) => item.window ? [{
+    startMinute: item.lineMinute,
+    window: item.window,
+  }] : []))
+  const nowLineMinute = toDaylineMinute(currentClock.minute)
+  const activeComfortEvents = isLiveDate ? recordedEvents.filter((item) => (
+    item.window
+    && item.lineMinute <= nowLineMinute
+    && nowLineMinute < item.lineMinute + item.window.readyAfterMinutes
+  )) : []
+  const latest = activeComfortEvents.slice().sort((left, right) => {
+    const leftReady = left.lineMinute + (left.window?.readyAfterMinutes ?? 0)
+    const rightReady = right.lineMinute + (right.window?.readyAfterMinutes ?? 0)
+    return leftReady - rightReady || left.lineMinute - right.lineMinute
+  }).at(-1) ?? null
+  const elapsed = latest ? Math.max(0, nowLineMinute - latest.lineMinute) : null
   const currentZone = latest?.window && elapsed != null ? comfortZone(elapsed, latest.window) : null
   const readyIn = latest?.window && elapsed != null ? Math.max(0, latest.window.readyAfterMinutes - elapsed) : null
   const transitionIn = latest?.window && elapsed != null ? Math.max(0, latest.window.transitionAfterMinutes - elapsed) : null
@@ -711,44 +725,37 @@ export function MealDayline({
             </div>
           ))}
 
-          {latest?.window && (() => {
-            const start = daylineRatio(latest.comfortMinute) * height
-            const transition = daylineRatio(latest.comfortMinute + latest.window.transitionAfterMinutes) * height
-            const ready = daylineRatio(latest.comfortMinute + latest.window.readyAfterMinutes) * height
-            const boundedStart = Math.max(0, Math.min(height, start))
-            const boundedTransition = Math.max(boundedStart, Math.min(height, transition))
-            const boundedReady = Math.max(boundedTransition, Math.min(height, ready))
+          {comfortBands.map((band) => {
+            const start = Math.max(0, Math.min(height, (band.startMinute - DAYLINE_START_MINUTE) / DAYLINE_DURATION_MINUTES * height))
+            const end = Math.max(start, Math.min(height, (band.endMinute - DAYLINE_START_MINUTE) / DAYLINE_DURATION_MINUTES * height))
+            const settling = band.zone === 'settling'
             return (
-              <>
+              <div key={`${band.zone}:${band.startMinute}:${band.endMinute}`}>
                 <motion.div
                   initial={{ opacity: 0, scaleY: 0 }}
                   animate={{ opacity: 1, scaleY: 1 }}
-                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-rose-200/30"
+                  className={`pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y ${settling ? 'border-rose-200/30' : 'border-amber-200/28'}`}
                   style={{
                     left: railX - 8,
-                    top: boundedStart,
-                    height: Math.max(10, boundedTransition - boundedStart),
-                    background: 'linear-gradient(90deg,rgba(251,113,133,.62),rgba(245,158,11,.31) 58%,rgba(245,158,11,.07))',
-                    boxShadow: 'inset 16px 0 28px rgba(251,113,133,.32),0 0 24px rgba(251,113,133,.13)',
+                    top: start,
+                    height: Math.max(10, end - start),
+                    background: settling
+                      ? 'linear-gradient(90deg,rgba(251,113,133,.62),rgba(245,158,11,.31) 58%,rgba(245,158,11,.07))'
+                      : 'linear-gradient(90deg,rgba(245,158,11,.56),rgba(16,185,129,.31) 62%,rgba(16,185,129,.065))',
+                    boxShadow: settling
+                      ? 'inset 16px 0 28px rgba(251,113,133,.32),0 0 24px rgba(251,113,133,.13)'
+                      : 'inset 16px 0 28px rgba(245,158,11,.27),0 0 24px rgba(245,158,11,.11)',
                   }}
                 />
                 <motion.div
-                  initial={{ opacity: 0, scaleY: 0 }}
-                  animate={{ opacity: 1, scaleY: 1 }}
-                  className="pointer-events-none absolute right-1 z-[7] origin-top rounded-r-2xl border-y border-amber-200/28"
-                  style={{
-                    left: railX - 8,
-                    top: boundedTransition,
-                    height: Math.max(10, boundedReady - boundedTransition),
-                    background: 'linear-gradient(90deg,rgba(245,158,11,.56),rgba(16,185,129,.31) 62%,rgba(16,185,129,.065))',
-                    boxShadow: 'inset 16px 0 28px rgba(245,158,11,.27),0 0 24px rgba(245,158,11,.11)',
-                  }}
+                  initial={{ scaleY: 0 }}
+                  animate={{ scaleY: 1 }}
+                  className={`absolute z-10 w-[15px] origin-top -translate-x-1/2 rounded-full border ${settling ? 'border-rose-100/50 bg-gradient-to-b from-rose-400 to-amber-400' : 'border-amber-100/40 bg-gradient-to-b from-amber-400 to-emerald-400'}`}
+                  style={{ left: railX, top: start, height: Math.max(10, end - start), boxShadow: settling ? '0 0 26px rgba(251,113,133,.9)' : '0 0 26px rgba(245,158,11,.72)' }}
                 />
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[15px] origin-top -translate-x-1/2 rounded-full border border-rose-100/50 bg-gradient-to-b from-rose-400 to-amber-400" style={{ left: railX, top: boundedStart, height: Math.max(10, boundedTransition - boundedStart), boxShadow: '0 0 26px rgba(251,113,133,.9)' }} />
-                <motion.div initial={{ scaleY: 0 }} animate={{ scaleY: 1 }} className="absolute z-10 w-[15px] origin-top -translate-x-1/2 rounded-full border border-amber-100/40 bg-gradient-to-b from-amber-400 to-emerald-400" style={{ left: railX, top: boundedTransition, height: Math.max(10, boundedReady - boundedTransition), boxShadow: '0 0 26px rgba(245,158,11,.72)' }} />
-              </>
+              </div>
             )
-          })()}
+          })}
 
           {workouts.map((workout) => {
             const start = daylineRatio(workout.completedMinute) * height

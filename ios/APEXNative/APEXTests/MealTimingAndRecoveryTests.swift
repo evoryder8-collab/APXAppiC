@@ -59,6 +59,34 @@ final class MealTimingEngineTests: XCTestCase {
         XCTAssertEqual(MealTimingEngine.zone(minutesSinceMeal: 200, window: window), .ready)
     }
 
+    func testALaterLightSnackCannotEraseAnActiveLongerLunchComfortWindow() {
+        let lunch = MealTimingEngine.ComfortAnchor(
+            startMinute: 12 * 60,
+            window: MealTimingEngine.comfortWindow(kcal: 700, fatG: 26, fibreG: 10)
+        )
+        let snack = MealTimingEngine.ComfortAnchor(
+            startMinute: 12 * 60 + 5,
+            window: MealTimingEngine.comfortWindow(kcal: 180, fatG: 4, fibreG: 3)
+        )
+
+        XCTAssertEqual(MealTimingEngine.mergedComfortBands([lunch, snack]), [
+            MealTimingEngine.ComfortBand(zone: .settling, startMinute: 12 * 60, endMinute: 13 * 60 + 30),
+            MealTimingEngine.ComfortBand(zone: .transition, startMinute: 13 * 60 + 30, endMinute: 15 * 60),
+        ])
+    }
+
+    func testNativeDaylineRendersMergedBandsInsteadOfOnlyTheLatestMeal() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let dayline = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Nutrition/NutritionParityViews.swift")
+        )
+
+        XCTAssertTrue(dayline.contains("MealTimingEngine.mergedComfortBands(comfortContexts.map(\\.anchor))"))
+        XCTAssertFalse(dayline.contains("private var latestLoggedMeal"))
+    }
+
     func testAWorkoutIsMeasuredAgainstTheLastMealBeforeIt() {
         let lunch = meal(at: "2026-01-05T12:00:00Z", kcal: 700, fat: 25)
         let analysis = MealTimingEngine.analyze(

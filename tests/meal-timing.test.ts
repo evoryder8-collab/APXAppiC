@@ -12,6 +12,7 @@ import {
   layoutDaylineLabels,
   mealDaylineHeight,
   mealComfortWindow,
+  mergeMealComfortBands,
   normalizeMealDaylineDensity,
   normalizeMealStartTimes,
   normalizeMealTimelineSnap,
@@ -147,6 +148,23 @@ test('meal comfort bands expand with actual energy, fat and fibre load', () => {
   assert.equal(comfortZone(20, standard), 'settling')
   assert.equal(comfortZone(70, standard), 'transition')
   assert.equal(comfortZone(130, standard), 'ready')
+})
+
+test('a later light snack cannot erase an active longer lunch comfort window', () => {
+  const lunch = mealComfortWindow({ total_kcal: 700, total_fat_g: 26 }, 10)
+  const snack = mealComfortWindow({ total_kcal: 180, total_fat_g: 4 }, 3)
+
+  assert.deepEqual(mergeMealComfortBands([
+    { startMinute: 12 * 60, window: lunch },
+    { startMinute: 12 * 60 + 5, window: snack },
+  ]), [
+    { zone: 'settling', startMinute: 12 * 60, endMinute: 13 * 60 + 30 },
+    { zone: 'transition', startMinute: 13 * 60 + 30, endMinute: 15 * 60 },
+  ])
+
+  const dayline = readFileSync(new URL('../src/components/food/MealDayline.tsx', import.meta.url), 'utf8')
+  assert.match(dayline, /const comfortBands = mergeMealComfortBands\(recordedEvents/)
+  assert.doesNotMatch(dayline, /\{latest\?\.window && \(\(\) =>/)
 })
 
 test('meal timestamps are recorded only when they belong to the selected nutrition date', () => {

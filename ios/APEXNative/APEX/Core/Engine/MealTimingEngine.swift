@@ -26,6 +26,17 @@ enum MealTimingEngine {
         let fibreG: Double
     }
 
+    struct ComfortAnchor: Equatable, Sendable {
+        let startMinute: Int
+        let window: ComfortWindow
+    }
+
+    struct ComfortBand: Equatable, Sendable {
+        let zone: ComfortZone
+        let startMinute: Int
+        var endMinute: Int
+    }
+
     static func comfortWindow(kcal: Double, fatG: Double, fibreG: Double = 0) -> ComfortWindow {
         if kcal >= 900 || fatG >= 35 || fibreG >= 18 {
             return ComfortWindow(load: "large", transitionAfterMinutes: 120, readyAfterMinutes: 240, fibreG: fibreG)
@@ -43,6 +54,49 @@ enum MealTimingEngine {
         if minutesSinceMeal < window.transitionAfterMinutes { return .settling }
         if minutesSinceMeal < window.readyAfterMinutes { return .transition }
         return .ready
+    }
+
+    /// Resolves overlapping windows by load rather than by whichever meal was
+    /// logged last. A snack may extend a larger meal's context, never shorten it.
+    static func mergedComfortBands(_ anchors: [ComfortAnchor]) -> [ComfortBand] {
+        let valid = anchors.filter {
+            $0.window.transitionAfterMinutes > 0
+                && $0.window.readyAfterMinutes > $0.window.transitionAfterMinutes
+        }
+        let boundaries = Set(valid.flatMap { anchor in
+            [
+                anchor.startMinute,
+                anchor.startMinute + anchor.window.transitionAfterMinutes,
+                anchor.startMinute + anchor.window.readyAfterMinutes,
+            ]
+        }).sorted()
+        var bands: [ComfortBand] = []
+
+        for (startMinute, endMinute) in zip(boundaries, boundaries.dropFirst()) {
+            let zones = valid.compactMap { anchor -> ComfortZone? in
+                let elapsed = startMinute - anchor.startMinute
+                guard elapsed >= 0, elapsed < anchor.window.readyAfterMinutes else { return nil }
+                return elapsed < anchor.window.transitionAfterMinutes ? .settling : .transition
+            }
+            let resolved: ComfortZone?
+            if zones.contains(.settling) {
+                resolved = .settling
+            } else if zones.contains(.transition) {
+                resolved = .transition
+            } else {
+                resolved = nil
+            }
+            guard let resolved else { continue }
+
+            if let last = bands.indices.last,
+               bands[last].zone == resolved,
+               bands[last].endMinute == startMinute {
+                bands[last].endMinute = endMinute
+            } else {
+                bands.append(ComfortBand(zone: resolved, startMinute: startMinute, endMinute: endMinute))
+            }
+        }
+        return bands
     }
 
     static func fibre(forMeal mealID: UUID, entries: [LoggedFoodEntry]) -> Double {

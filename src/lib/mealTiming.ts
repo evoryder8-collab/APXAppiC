@@ -17,6 +17,17 @@ export interface MealComfortWindow {
   fibreG: number
 }
 
+export interface MealComfortAnchor {
+  startMinute: number
+  window: MealComfortWindow
+}
+
+export interface MealComfortBand {
+  zone: Exclude<MealComfortZone, 'ready'>
+  startMinute: number
+  endMinute: number
+}
+
 export interface ZonedClock {
   date: string
   time: string
@@ -656,6 +667,47 @@ export function comfortZone(minutesSinceMeal: number, window: MealComfortWindow)
   if (minutesSinceMeal < window.transitionAfterMinutes) return 'settling'
   if (minutesSinceMeal < window.readyAfterMinutes) return 'transition'
   return 'ready'
+}
+
+/**
+ * Resolves overlapping meal windows by physiological load instead of recency.
+ * A later snack can extend an active window, but it cannot shorten or erase the
+ * remaining context from a larger meal. Settling outranks transition wherever
+ * two windows overlap, then adjacent equal bands are coalesced for rendering.
+ */
+export function mergeMealComfortBands(anchors: readonly MealComfortAnchor[]): MealComfortBand[] {
+  const valid = anchors.filter(({ startMinute, window }) => (
+    Number.isFinite(startMinute)
+    && window.transitionAfterMinutes > 0
+    && window.readyAfterMinutes > window.transitionAfterMinutes
+  ))
+  const boundaries = [...new Set(valid.flatMap(({ startMinute, window }) => [
+    startMinute,
+    startMinute + window.transitionAfterMinutes,
+    startMinute + window.readyAfterMinutes,
+  ]))].sort((left, right) => left - right)
+  const bands: MealComfortBand[] = []
+
+  for (let index = 0; index + 1 < boundaries.length; index += 1) {
+    const startMinute = boundaries[index]
+    const endMinute = boundaries[index + 1]
+    const zones = valid.flatMap(({ startMinute: anchorStart, window }) => {
+      const elapsed = startMinute - anchorStart
+      if (elapsed < 0 || elapsed >= window.readyAfterMinutes) return []
+      return [elapsed < window.transitionAfterMinutes ? 'settling' as const : 'transition' as const]
+    })
+    const zone = zones.includes('settling') ? 'settling' : zones.includes('transition') ? 'transition' : null
+    if (!zone) continue
+
+    const previous = bands.at(-1)
+    if (previous?.zone === zone && previous.endMinute === startMinute) {
+      previous.endMinute = endMinute
+    } else {
+      bands.push({ zone, startMinute, endMinute })
+    }
+  }
+
+  return bands
 }
 
 export function timedMeal(

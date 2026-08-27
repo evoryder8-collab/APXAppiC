@@ -768,30 +768,50 @@ struct APEXDaylineView: View {
         }
     }
 
-    private var latestLoggedMeal: LoggedMeal? {
-        guard daylineCalendar.isDate(date, inSameDayAs: .now) else { return nil }
-        return session.data.loggedMeals
+    private var comfortContexts: [DaylineComfortContext] {
+        session.data.loggedMeals
             .filter { $0.localDate == date.apexDateKey }
-            .max { parsedTimestamp($0.loggedAt) < parsedTimestamp($1.loggedAt) }
+            .map { meal in
+                let window = MealTimingEngine.comfortWindow(for: meal, entries: session.data.loggedFoodEntries)
+                return DaylineComfortContext(
+                    meal: meal,
+                    anchor: MealTimingEngine.ComfortAnchor(
+                        startMinute: lineMinute(minute(of: meal.loggedAt)),
+                        window: window
+                    )
+                )
+            }
+            .sorted { $0.anchor.startMinute < $1.anchor.startMinute }
     }
 
-    private var comfortWindow: MealComfortWindow? {
-        guard let meal = latestLoggedMeal else { return nil }
-        let fibre = session.data.loggedFoodEntries
-            .filter { $0.mealID == meal.id }
-            .reduce(0.0) { sum, entry in
-                sum + (entry.fibreG ?? entry.snapshotFibre100.map { $0 * entry.equivalentAmount / 100 } ?? 0)
-            }
-        if meal.totalKcal >= 900 || meal.totalFatG >= 35 || fibre >= 18 {
-            return MealComfortWindow(label: "Large meal", transitionMinutes: 120, readyMinutes: 240)
+    private var comfortBands: [MealTimingEngine.ComfortBand] {
+        MealTimingEngine.mergedComfortBands(comfortContexts.map(\.anchor))
+    }
+
+    private var activeComfortContexts: [DaylineComfortContext] {
+        guard daylineCalendar.isDate(date, inSameDayAs: .now) else { return [] }
+        return comfortContexts.filter { context in
+            context.anchor.startMinute <= currentLineMinute
+                && currentLineMinute < context.anchor.startMinute + context.anchor.window.readyAfterMinutes
         }
-        if meal.totalKcal >= 600 || meal.totalFatG >= 24 || fibre >= 13 {
-            return MealComfortWindow(label: "Substantial meal", transitionMinutes: 90, readyMinutes: 180)
+    }
+
+    private var activeComfortContext: DaylineComfortContext? {
+        activeComfortContexts.max { left, right in
+            let leftReady = left.anchor.startMinute + left.anchor.window.readyAfterMinutes
+            let rightReady = right.anchor.startMinute + right.anchor.window.readyAfterMinutes
+            if leftReady == rightReady { return left.anchor.startMinute < right.anchor.startMinute }
+            return leftReady < rightReady
         }
-        if meal.totalKcal >= 250 || meal.totalFatG >= 10 || fibre >= 7 {
-            return MealComfortWindow(label: "Standard meal", transitionMinutes: 45, readyMinutes: 120)
+    }
+
+    private func comfortLabel(_ load: String) -> String {
+        switch load {
+        case "large": return language.text("Large meal")
+        case "substantial": return language.text("Substantial meal")
+        case "standard": return language.text("Standard meal")
+        default: return language.text("Light meal")
         }
-        return MealComfortWindow(label: "Light meal", transitionMinutes: 25, readyMinutes: 60)
     }
 
     var body: some View {
@@ -823,14 +843,16 @@ struct APEXDaylineView: View {
                 }
             }
 
-            if let meal = latestLoggedMeal, let window = comfortWindow {
+            if let context = activeComfortContext {
+                let window = context.anchor.window
+                let label = comfortLabel(window.load)
                 HStack(spacing: 7) {
                     Circle().fill(Color.red.opacity(0.9)).frame(width: 7, height: 7)
-                    Text(language.format("%@ settling", language.text(window.label)))
+                    Text(language.format("%@ settling", label))
                     Image(systemName: "arrow.right")
-                    Text(language.format("trade-off at %@", clockText(parsedTimestamp(meal.loggedAt).addingTimeInterval(Double(window.transitionMinutes * 60)))))
+                    Text(language.format("trade-off at %@", clock(lineClockMinute(context.anchor.startMinute + window.transitionAfterMinutes))))
                     Image(systemName: "arrow.right")
-                    Text(language.format("ready at %@", clockText(parsedTimestamp(meal.loggedAt).addingTimeInterval(Double(window.readyMinutes * 60)))))
+                    Text(language.format("ready at %@", clock(lineClockMinute(context.anchor.startMinute + window.readyAfterMinutes))))
                 }
                 .font(APEXFont.mono(7))
                 .foregroundStyle(.white.opacity(0.72))
@@ -979,21 +1001,14 @@ struct APEXDaylineView: View {
 
     @ViewBuilder
     private func readinessBands(railX: CGFloat, height: CGFloat) -> some View {
-        if let meal = latestLoggedMeal, let window = comfortWindow {
-            let start = lineMinute(minute(of: meal.loggedAt))
-            let transition = min(start + window.transitionMinutes, 1_620)
-            let ready = min(start + window.readyMinutes, 1_620)
+        ForEach(Array(comfortBands.enumerated()), id: \.offset) { indexed in
+            let band = indexed.element
             readinessBand(
-                from: start,
-                to: transition,
-                colors: [Color.red, Color.orange],
-                railX: railX,
-                height: height
-            )
-            readinessBand(
-                from: transition,
-                to: ready,
-                colors: [Color.orange, Color.yellow, APEXColor.green],
+                from: band.startMinute,
+                to: band.endMinute,
+                colors: band.zone == .settling
+                    ? [Color.red, Color.orange]
+                    : [Color.orange, Color.yellow, APEXColor.green],
                 railX: railX,
                 height: height
             )
@@ -1140,10 +1155,9 @@ struct APEXDaylineView: View {
     }
 }
 
-private struct MealComfortWindow {
-    let label: String
-    let transitionMinutes: Int
-    let readyMinutes: Int
+private struct DaylineComfortContext {
+    let meal: LoggedMeal
+    let anchor: MealTimingEngine.ComfortAnchor
 }
 
 private struct DaylineEntryRow: View {
