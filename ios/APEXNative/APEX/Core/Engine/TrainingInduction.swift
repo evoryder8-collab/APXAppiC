@@ -12,10 +12,43 @@ enum TrainingInduction {
     // MARK: - Answers
 
     static let skippedMarkerKey = "training_induction_skipped"
+    static let baselineMarkerKey = "training_induction_baseline"
+    static let legalAcceptanceKey = "legal_acceptance"
     static let archivedMarkerKey = "training_induction_archived_day_ids"
     static let pendingMarkerKey = "training_induction_pending_day_ids"
     static let generationRevisionKey = "training_induction_generation_revision"
+    static let currentTermsVersion = "2026-08-27"
+    static let currentPrivacyVersion = "2026-08-27"
     static let supportedPlanWeeks = [4, 8, 12, 26]
+
+    struct BodyBaseline: Equatable, Sendable {
+        let sex: String
+        let weightKG: Double
+        let heightCM: Double
+        let birthdate: String
+
+        var isValid: Bool {
+            guard ["female", "male"].contains(sex),
+                  (30...300).contains(weightKG),
+                  (120...230).contains(heightCM),
+                  let date = ISO8601DateFormatter.apexDateOnly.date(from: birthdate)
+            else { return false }
+            let age = Calendar.current.dateComponents([.year], from: date, to: .now).year ?? 0
+            return (13...100).contains(age)
+        }
+    }
+
+    struct DataConsent: Equatable, Sendable {
+        let termsVersion: String
+        let privacyVersion: String
+        let acceptedAt: String
+
+        var isCurrent: Bool {
+            termsVersion == TrainingInduction.currentTermsVersion &&
+                privacyVersion == TrainingInduction.currentPrivacyVersion &&
+                ISO8601DateFormatter().date(from: acceptedAt) != nil
+        }
+    }
 
     struct Input: Equatable, Sendable {
         var startDate: String
@@ -28,6 +61,8 @@ enum TrainingInduction {
         var sessionsPerWeek = 3
         var planWeeks = 12
         var goal: String = "general"
+        var bodyBaseline: BodyBaseline?
+        var dataConsent: DataConsent?
 
         var hasHealthConcerns: Bool {
             recentOperation || chronicLowerBackPain || !painAreas.isEmpty
@@ -38,6 +73,19 @@ enum TrainingInduction {
             chronicLowerBackPain = false
             painAreas.removeAll()
         }
+
+        var hasMandatoryFacts: Bool {
+            bodyBaseline?.isValid == true &&
+                dataConsent?.isCurrent == true &&
+                ["general", "muscle", "fat_loss", "strength", "endurance"].contains(goal)
+        }
+    }
+
+    /// Consent, measured body facts and the selected goal occupy steps 0...2.
+    /// A first-run account cannot bypass them, but may leave the workout-only
+    /// questions unanswered from step 3 onwards.
+    static func canSkipRemaining(step: Int, input: Input) -> Bool {
+        step >= 3 && input.hasMandatoryFacts
     }
 
     static func input(
@@ -90,16 +138,33 @@ enum TrainingInduction {
 
     enum Submission: Equatable, Sendable {
         case answered(Input)
+        case baselineOnly(Input)
         case skipped
 
         var requiresProfile: Bool {
-            if case .answered = self { return true }
-            return false
+            switch self {
+            case .answered(_), .baselineOnly(_): true
+            case .skipped: false
+            }
         }
 
         var profileGoal: String? {
             switch self {
-            case .answered(let input): goalColumn(for: input.goal)
+            case .answered(let input), .baselineOnly(let input): goalColumn(for: input.goal)
+            case .skipped: nil
+            }
+        }
+
+        var profileBaseline: BodyBaseline? {
+            switch self {
+            case .answered(let input), .baselineOnly(let input): input.bodyBaseline
+            case .skipped: nil
+            }
+        }
+
+        private var dataConsent: DataConsent? {
+            switch self {
+            case .answered(let input), .baselineOnly(let input): input.dataConsent
             case .skipped: nil
             }
         }
@@ -117,7 +182,7 @@ enum TrainingInduction {
                     existingPrograms: existingPrograms,
                     generationRevision: generationRevision
                 )
-            case .skipped:
+            case .baselineOnly(_), .skipped:
                 nil
             }
         }
@@ -132,12 +197,13 @@ enum TrainingInduction {
             case .answered:
                 guard let plan else { return settings }
                 updated.addons.removeValue(forKey: TrainingInduction.skippedMarkerKey)
+                updated.addons.removeValue(forKey: TrainingInduction.baselineMarkerKey)
                 updated.addons.removeValue(forKey: TrainingInduction.pendingMarkerKey)
                 updated.addons["newbie_mode"] = .bool(true)
                 updated.addons["training_induction"] = .object(plan.induction)
                 updated.addons[TrainingInduction.generationRevisionKey] =
                     plan.induction["generation_revision"] ?? .number(0)
-            case .skipped:
+            case .baselineOnly(let input):
                 var generatedDayIDs = TrainingInduction.pendingDayIDs(settings)
                 if let existingData {
                     generatedDayIDs.formUnion(
@@ -154,6 +220,35 @@ enum TrainingInduction {
                 updated.addons.removeValue(forKey: TrainingInduction.pendingMarkerKey)
                 updated.addons["newbie_mode"] = .bool(false)
                 updated.addons[TrainingInduction.skippedMarkerKey] = .bool(true)
+                updated.addons[TrainingInduction.baselineMarkerKey] = .object([
+                    "goal": .string(input.goal),
+                    "plan_weeks": .number(Double(input.planWeeks)),
+                ])
+            case .skipped:
+                var generatedDayIDs = TrainingInduction.pendingDayIDs(settings)
+                if let existingData {
+                    generatedDayIDs.formUnion(
+                        TrainingInduction.legacyGeneratedDayIDs(
+                            in: existingData,
+                            userID: settings.userID
+                        )
+                    )
+                }
+                updated = TrainingInduction.invalidatingPlanMetadata(
+                    settings,
+                    additionalDayIDs: generatedDayIDs
+                )
+                updated.addons.removeValue(forKey: TrainingInduction.pendingMarkerKey)
+                updated.addons.removeValue(forKey: TrainingInduction.baselineMarkerKey)
+                updated.addons["newbie_mode"] = .bool(false)
+                updated.addons[TrainingInduction.skippedMarkerKey] = .bool(true)
+            }
+            if let dataConsent {
+                updated.addons[TrainingInduction.legalAcceptanceKey] = .object([
+                    "terms_version": .string(dataConsent.termsVersion),
+                    "privacy_version": .string(dataConsent.privacyVersion),
+                    "accepted_at": .string(dataConsent.acceptedAt),
+                ])
             }
             return updated
         }
@@ -165,6 +260,12 @@ enum TrainingInduction {
     static func shouldEnterPortal(profile: Profile?, settings: UserSettings?) -> Bool {
         guard profile == nil else { return true }
         guard let addons = settings?.addons else { return false }
+        /* A modern baseline-only submission promises a profile with measured
+           nutrition inputs. If its insert was interrupted, return to induction
+           instead of opening the exact blank portal this flow is designed to
+           prevent. Legacy settings-only skips have no baseline marker and keep
+           their existing recovery path. */
+        if addons[baselineMarkerKey]?.objectValue != nil { return false }
         return addons[skippedMarkerKey]?.boolValue == true ||
             addons["training_induction"]?.objectValue != nil ||
             addons["newbie_mode"]?.boolValue == true ||

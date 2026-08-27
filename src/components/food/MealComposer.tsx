@@ -230,9 +230,9 @@ export function MealComposer({
   )
   const dailyTargets = useMemo(
     () => data.profile
-      ? computeTargets(data.profile, nutritionPlanContext(data.settings?.addons.training_induction))
+      ? computeTargets(data.profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
       : null,
-    [data.profile, data.settings?.addons.training_induction],
+    [data.profile, data.settings?.addons.training_induction, data.settings?.addons.training_induction_baseline],
   )
   const postWorkoutDinnerActive = mealBlockId === 'post_workout'
     && (data.settings?.addons.adaptive_post_workout_dinner ?? true)

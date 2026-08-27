@@ -3,6 +3,7 @@ import test from 'node:test'
 import {
   computeTargets,
   goalPresetsForPlan,
+  nutritionPlanContext,
   recommendedGoalForTrainingGoal,
   type NutritionPlanContext,
 } from '../src/lib/nutrition.ts'
@@ -52,4 +53,15 @@ test('the selected plan preset drives calories while retaining the recovery floo
   assert.equal(recommendedGoalForTrainingGoal('fat_loss'), 'maintain')
   assert.equal(recommendedGoalForTrainingGoal('muscle'), 'bulk')
   assert.equal(recommendedGoalForTrainingGoal('strength'), 'maintain')
+})
+
+test('a baseline-only first run keeps its mandatory goal usable without inventing a workout plan', () => {
+  const context = nutritionPlanContext({ goal: 'fat_loss', plan_weeks: 12 })
+  assert.deepEqual(context, { trainingGoal: 'fat_loss', planWeeks: 12 })
+
+  const targets = computeTargets({ ...profile, goal: 'maintain' }, context)
+  assert.ok(targets.kcal > 0)
+  assert.ok(targets.protein_g > 0)
+  assert.ok(targets.fat_g > 0)
+  assert.ok(targets.carbs_g > 0)
 })

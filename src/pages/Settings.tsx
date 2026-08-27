@@ -73,7 +73,7 @@ export function Settings() {
   }, [profile?.custom_bmr])
   useEffect(() => setTimeZoneDraft(resolvedTimeZone), [resolvedTimeZone])
   if (!profile || !settings) return null
-  const targets = computeTargets(profile, nutritionPlanContext(settings.addons.training_induction))
+  const targets = computeTargets(profile, nutritionPlanContext(settings.addons.training_induction ?? settings.addons.training_induction_baseline))
   const mealBlockSettings = normalizeMealBlockSettings(settings.addons.meal_blocks)
   const timeZoneOptions = searchTimeZoneOptions(
     timeZoneDraft === resolvedTimeZone ? '' : timeZoneDraft,

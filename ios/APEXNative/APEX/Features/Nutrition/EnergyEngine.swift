@@ -33,7 +33,9 @@ struct NutritionGoalPreset: Equatable, Sendable {
 
 enum NutritionGoalPolicy {
     static func context(from settings: UserSettings?) -> NutritionPlanContext? {
-        guard let induction = settings?.addons["training_induction"]?.objectValue,
+        guard let addons = settings?.addons,
+              let induction = addons["training_induction"]?.objectValue
+                ?? addons[TrainingInduction.baselineMarkerKey]?.objectValue,
               let trainingGoal = induction["goal"]?.stringValue else { return nil }
         return NutritionPlanContext(
             trainingGoal: trainingGoal,

@@ -116,8 +116,8 @@ export function Nutrition() {
     [catalog, selectedActivityLogs],
   )
   const planNutritionContext = useMemo(
-    () => nutritionPlanContext(data.settings?.addons.training_induction),
-    [data.settings?.addons.training_induction],
+    () => nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline),
+    [data.settings?.addons.training_induction, data.settings?.addons.training_induction_baseline],
   )
   const nutritionGoalPresets = useMemo(
     () => goalPresetsForPlan(planNutritionContext),

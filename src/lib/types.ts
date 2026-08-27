@@ -344,6 +344,15 @@ export interface Settings {
        training. Constantine and June retain their bespoke programmes. */
     newbie_mode?: boolean
     training_induction?: TrainingInductionProfile | null
+    training_induction_baseline?: {
+      goal: TrainingGoal
+      plan_weeks?: TrainingPlanWeeks
+    } | null
+    legal_acceptance?: {
+      terms_version: string
+      privacy_version: string
+      accepted_at: string
+    }
     training_induction_skipped?: boolean
     training_induction_archived_day_ids?: string[]
     training_induction_pending_day_ids?: string[]

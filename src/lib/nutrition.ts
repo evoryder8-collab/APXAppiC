@@ -55,7 +55,7 @@ export interface NutritionGoalPreset {
 }
 
 export function nutritionPlanContext(
-  induction: TrainingInductionProfile | null | undefined,
+  induction: Pick<TrainingInductionProfile, 'goal' | 'plan_weeks'> | null | undefined,
 ): NutritionPlanContext | undefined {
   if (!induction) return undefined
   return {

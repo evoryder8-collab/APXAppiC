@@ -347,6 +347,16 @@ final class AppSession {
         await submitInduction(.answered(input))
     }
 
+    /// Keep the facts required for honest nutrition, but leave every optional
+    /// workout answer unclaimed when the person skips the remaining pages.
+    func skipRemainingInduction(_ input: TrainingInduction.Input) async {
+        guard TrainingInduction.canSkipRemaining(step: 3, input: input) else {
+            alertMessage = "Complete consent, body details and your goal first."
+            return
+        }
+        await submitInduction(.baselineOnly(input))
+    }
+
     /// Continue without turning questionnaire defaults into claimed facts.
     /// Only an account-scoped settings marker is stored; there is deliberately
     /// no profile, generated programme or derived fitness snapshot.
@@ -405,7 +415,8 @@ final class AppSession {
             if submission.requiresProfile {
                 let profile = try await service.createProfileIfNeeded(
                     userID: userID,
-                    goal: submission.profileGoal
+                    goal: submission.profileGoal,
+                    baseline: submission.profileBaseline
                 )
                 guard accountGeneration.accepts(accountToken) else { return }
                 data.profile = profile
@@ -443,11 +454,19 @@ final class AppSession {
         if let goal = submission.profileGoal.flatMap(Goal.init(rawValue:)) {
             data.profile?.goal = goal
         }
+        if let baseline = submission.profileBaseline {
+            data.profile?.sex = baseline.sex
+            data.profile?.weightKG = baseline.weightKG
+            data.profile?.heightCM = baseline.heightCM
+            data.profile?.birthdate = baseline.birthdate
+        }
         data.settings = settings
         data.programs = plan?.programs ?? []
         data.programDays = plan?.programDays ?? []
         data.exercises = plan?.exercises ?? []
         data.snapshots = []
+        EntitlementStore.shared.prepareForAccount(userID)
+        EntitlementStore.shared.resolve(profile: data.profile)
         route = .consent
     }
     #endif

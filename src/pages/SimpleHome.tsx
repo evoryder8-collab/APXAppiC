@@ -169,8 +169,8 @@ export function SimpleHome() {
     [selectedActivityLogs, selectedWearableActivity?.active_calories],
   )
   const planNutritionContext = useMemo(
-    () => nutritionPlanContext(settings?.addons.training_induction),
-    [settings?.addons.training_induction],
+    () => nutritionPlanContext(settings?.addons.training_induction ?? settings?.addons.training_induction_baseline),
+    [settings?.addons.training_induction, settings?.addons.training_induction_baseline],
   )
   const nutritionGoalPresets = useMemo(
     () => goalPresetsForPlan(planNutritionContext),

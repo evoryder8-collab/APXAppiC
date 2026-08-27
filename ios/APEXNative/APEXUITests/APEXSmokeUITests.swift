@@ -6,7 +6,7 @@ final class APEXSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
-    func testInductionOffersSkipAndNoPlanAccountCanReturnToTheBuilder() {
+    func testInductionRequiresConsentBodyAndGoalBeforeSkipAndNoPlanAccountCanReturnToTheBuilder() {
         let app = XCUIApplication()
         app.launchArguments = [
             "-apex-preview", "induction", "-apex-ui-test-first-run", "-AppleLanguages", "(en)",
@@ -15,12 +15,36 @@ final class APEXSmokeUITests: XCTestCase {
         app.launch()
 
         let skip = app.buttons["induction-skip"]
-        XCTAssertTrue(skip.waitForExistence(timeout: 4))
+        XCTAssertFalse(skip.waitForExistence(timeout: 1), "consent cannot be skipped")
+        app.buttons["induction-terms-consent"].tap()
+        app.buttons["induction-privacy-consent"].tap()
+        app.buttons["induction-next"].tap()
+
+        XCTAssertFalse(skip.exists, "body measurements cannot be skipped")
+        app.buttons["induction-baseline-sex-female"].tap()
+        app.textFields["induction-baseline-weight"].tap()
+        app.textFields["induction-baseline-weight"].typeText("64.5")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-height"].typeText("169")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-birthDay"].typeText("18")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-birthMonth"].typeText("3")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-birthYear"].typeText("1994")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.buttons["induction-next"].tap()
+
+        XCTAssertFalse(skip.exists, "goal selection cannot be skipped")
+        app.buttons["induction-choice-fat_loss"].tap()
+        app.buttons["induction-next"].tap()
+
+        XCTAssertTrue(skip.waitForExistence(timeout: 3), "optional workout questions may be skipped after the baseline")
         XCTAssertTrue(skip.isHittable)
         skip.tap()
 
         let finishConsent = app.buttons["consent-finish"]
-        XCTAssertTrue(finishConsent.waitForExistence(timeout: 4), "skip must advance to consent")
+        XCTAssertTrue(finishConsent.waitForExistence(timeout: 4), "baseline-only setup must advance to optional permissions")
         finishConsent.tap()
 
         let transition = app.buttons["portal.transition"]

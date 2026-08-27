@@ -6,22 +6,38 @@ struct ProfileCreationRequest: Encodable, Sendable {
     let id: UUID
     let userID: UUID
     let goal: String?
+    let sex: String?
+    let weightKG: Double?
+    let heightCM: Double?
+    let birthdate: String?
     let displayName = "APEX Athlete"
     let seedVersion = SeedVersion.current
 
-    init(userID: UUID, goal: String?) {
+    init(
+        userID: UUID,
+        goal: String?,
+        baseline: TrainingInduction.BodyBaseline? = nil
+    ) {
         /* One account owns one profile. Reusing the authenticated UUID makes
            retries deterministic and satisfies the schema's non-null primary
            key without inventing a second account identity. */
         id = userID
         self.userID = userID
         self.goal = goal
+        sex = baseline?.sex
+        weightKG = baseline?.weightKG
+        heightCM = baseline?.heightCM
+        birthdate = baseline?.birthdate
     }
 
     enum CodingKeys: String, CodingKey {
         case id
         case userID = "user_id"
         case goal
+        case sex
+        case weightKG = "weight_kg"
+        case heightCM = "height_cm"
+        case birthdate
         case displayName = "display_name"
         case seedVersion = "seed_version"
     }
@@ -149,9 +165,14 @@ actor SupabaseService {
     /// Create the profile row for a brand-new account, or return the one that
     /// is already there.
     ///
-    /// Only an answered goal is written. Skipping omits it as well; height,
-    /// weight and every workout answer stay out of the request entirely.
-    func createProfileIfNeeded(userID: UUID, goal: String?) async throws -> Profile {
+    /// First-run body facts are supplied only after the person explicitly
+    /// enters them. Legacy recovery calls may omit the baseline and retain the
+    /// database defaults rather than guessing new facts client side.
+    func createProfileIfNeeded(
+        userID: UUID,
+        goal: String?,
+        baseline: TrainingInduction.BodyBaseline? = nil
+    ) async throws -> Profile {
         guard let client else { throw APEXServiceError.configurationMissing }
         let existing: [Profile] = try await client.from("profile")
             .select().eq("user_id", value: userID).limit(1).execute().value
@@ -160,7 +181,8 @@ actor SupabaseService {
         let inserted: [Profile] = try await client.from("profile")
             .insert(ProfileCreationRequest(
                 userID: userID,
-                goal: goal
+                goal: goal,
+                baseline: baseline
             ))
             .select()
             .execute().value

@@ -2,7 +2,7 @@ import SwiftUI
 
 /// What a new account is asked before anything is generated for it.
 ///
-/// Seven questions, one per screen, because a single long form is where people
+/// Nine short steps, one per screen, because a single long form is where people
 /// give up. Only what changes the plan is asked: nothing here is collected
 /// because it would be nice to have.
 struct InductionView: View {
@@ -10,13 +10,28 @@ struct InductionView: View {
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
     @State private var step = 0
-    @State private var input = TrainingInduction.Input(startDate: Date().apexDateKey)
+    @State private var input: TrainingInduction.Input = {
+        var value = TrainingInduction.Input(startDate: Date().apexDateKey)
+        value.goal = ""
+        return value
+    }()
+    @State private var termsAccepted = false
+    @State private var privacyAccepted = false
+    @State private var baselineSex = ""
+    @State private var weightText = ""
+    @State private var heightText = ""
+    @State private var birthDayText = ""
+    @State private var birthMonthText = ""
+    @State private var birthYearText = ""
+    @State private var legalDocument: OnboardingLegalDocument?
+    @State private var showDeclineExplanation = false
+    @FocusState private var baselineField: BaselineField?
     @State private var pendingHighFrequencyDays: Int?
     /* Drives the per-question entrance. Keyed on the step so each question
        assembles itself rather than the whole screen blinking. */
     @State private var shown = false
 
-    private let stepCount = 7
+    private let stepCount = 9
 
     var body: some View {
         ZStack {
@@ -46,6 +61,7 @@ struct InductionView: View {
                     .padding(22)
                 }
                 .scrollBounceBehavior(.basedOnSize)
+                .scrollDismissesKeyboard(.interactively)
                 footer
             }
         }
@@ -55,6 +71,21 @@ struct InductionView: View {
                staggered entrance the first one did. */
             shown = false
             withAnimation(.smooth(duration: 0.5)) { shown = true }
+        }
+        .sheet(item: $legalDocument) { document in
+            OnboardingLegalDocumentView(document: document)
+        }
+        .toolbar {
+            ToolbarItemGroup(placement: .keyboard) {
+                Button(language.text("Previous")) { moveBaselineFocus(by: -1) }
+                    .disabled(baselineField == .weight)
+                    .accessibilityIdentifier("induction-baseline-keyboard-previous")
+                Spacer()
+                Button(language.text(baselineField == .birthYear ? "Done" : "Next")) {
+                    moveBaselineFocus(by: 1)
+                }
+                .accessibilityIdentifier("induction-baseline-keyboard-next")
+            }
         }
         .alert(
             language.text(
@@ -113,7 +144,18 @@ struct InductionView: View {
                 }
                 Spacer()
                 Button {
-                    if step == stepCount - 1 {
+                    if step == 0 {
+                        input.dataConsent = TrainingInduction.DataConsent(
+                            termsVersion: TrainingInduction.currentTermsVersion,
+                            privacyVersion: TrainingInduction.currentPrivacyVersion,
+                            acceptedAt: Date().ISO8601Format()
+                        )
+                        withAnimation(.snappy) { step += 1 }
+                    } else if step == 1, let bodyBaseline {
+                        input.bodyBaseline = bodyBaseline
+                        baselineField = nil
+                        withAnimation(.snappy) { step += 1 }
+                    } else if step == stepCount - 1 {
                         Task { await session.completeInduction(input) }
                     } else {
                         withAnimation(.snappy) { step += 1 }
@@ -126,43 +168,59 @@ struct InductionView: View {
                 }
                 .buttonStyle(APEXPrimaryButtonStyle())
                 .frame(maxWidth: 220)
-                .disabled(session.isBusy)
+                .disabled(session.isBusy || !canContinue)
+                .accessibilityIdentifier("induction-next")
             }
 
-            Button(language.text("Skip Questionnaire"), action: skip)
-                .font(APEXFont.body(14, weight: .semibold))
-                .frame(minWidth: 88, minHeight: 44)
-                .buttonStyle(.plain)
-                .disabled(session.isBusy)
-                .accessibilityIdentifier("induction-skip")
+            if TrainingInduction.canSkipRemaining(step: step, input: input) {
+                Button(language.text("Skip Questionnaire"), action: skip)
+                    .font(APEXFont.body(14, weight: .semibold))
+                    .frame(minWidth: 88, minHeight: 44)
+                    .buttonStyle(.plain)
+                    .disabled(session.isBusy)
+                    .accessibilityIdentifier("induction-skip")
+            }
         }
         .padding(22)
     }
 
     private func skip() {
-        Task { await session.skipInduction() }
+        Task { await session.skipRemainingInduction(input) }
+    }
+
+    private var canContinue: Bool {
+        switch step {
+        case 0: termsAccepted && privacyAccepted
+        case 1: bodyBaseline?.isValid == true
+        case 2: ["general", "muscle", "fat_loss", "strength", "endurance"].contains(input.goal)
+        default: true
+        }
     }
 
     // MARK: - Questions
 
     private var title: String {
         switch step {
-        case 0: language.text("What are you training for?")
-        case 1: language.text("When did you last train regularly?")
-        case 2: language.text("Where will you train?")
-        case 3: language.text("What do you have to train with?")
-        case 4: language.text("How many days a week?")
-        case 5: language.text("How long should your plan be?")
+        case 0: language.text("Your data. Your decision.")
+        case 1: language.text("Build your starting point")
+        case 2: language.text("What are you training for?")
+        case 3: language.text("When did you last train regularly?")
+        case 4: language.text("Where will you train?")
+        case 5: language.text("What do you have to train with?")
+        case 6: language.text("How many days a week?")
+        case 7: language.text("How long should your plan be?")
         default: language.text("Anything we should work around?")
         }
     }
 
     private var subtitle: String? {
         switch step {
-        case 1: language.text("A long gap is not a problem. It only changes where we start.")
-        case 4: language.text("Pick what you will actually do on a busy week, not your best one.")
-        case 5: language.text("Choose a realistic horizon. APEX gives the plan a real end date instead of repeating it forever.")
-        case 6: language.text("This decides what gets left out. Nothing here is shared with anyone.")
+        case 0: language.text("APEX needs clear permission before it processes body, nutrition or training data.")
+        case 1: language.text("These measured facts calculate your starting calories and macros. You can change them later.")
+        case 3: language.text("A long gap is not a problem. It only changes where we start.")
+        case 6: language.text("Pick what you will actually do on a busy week, not your best one.")
+        case 7: language.text("Choose a realistic horizon. APEX gives the plan a real end date instead of repeating it forever.")
+        case 8: language.text("This decides what gets left out. Nothing here is shared with anyone.")
         default: nil
         }
     }
@@ -171,13 +229,17 @@ struct InductionView: View {
     private var content: some View {
         switch step {
         case 0:
+            dataConsent
+        case 1:
+            bodyDetails
+        case 2:
             choices(
                 [("general", "General fitness"), ("muscle", "Build muscle"),
                  ("fat_loss", "Lose fat"), ("strength", "Get stronger"),
                  ("endurance", "Build endurance")],
                 selection: $input.goal
             )
-        case 1:
+        case 3:
             choices(
                 [("under_three_months", "I train now, or stopped recently"),
                  ("three_to_six_months", "Three to six months ago"),
@@ -185,16 +247,16 @@ struct InductionView: View {
                  ("over_one_year", "Over a year ago")],
                 selection: $input.inactivity
             )
-        case 2:
+        case 4:
             choices(
                 [("gym", "A gym"), ("home", "At home"), ("outdoors", "Outdoors")],
                 selection: $input.venue
             )
-        case 3:
-            equipment
-        case 4:
-            sessions
         case 5:
+            equipment
+        case 6:
+            sessions
+        case 7:
             duration
         default:
             health
@@ -214,8 +276,246 @@ struct InductionView: View {
                 ) {
                     selection.wrappedValue = option.0
                 }
+                .accessibilityIdentifier("induction-choice-\(option.0)")
             }
         }
+    }
+
+    private var dataConsent: some View {
+        VStack(spacing: 12) {
+            GlassCard(radius: 24, padding: 18) {
+                VStack(alignment: .leading, spacing: 14) {
+                    Label(language.text("Swiss-first privacy"), systemImage: "lock.shield.fill")
+                        .font(APEXFont.body(17, weight: .bold))
+                        .foregroundStyle(APEXColor.violet)
+                    Text(language.text("APEX uses the account, body, nutrition and training data you provide to calculate, save and sync your experience. Health data is treated as sensitive data. APEX does not sell it."))
+                        .font(APEXFont.body(13))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+
+                    consentRow(
+                        title: language.text("I accept the Terms of Use"),
+                        isAccepted: $termsAccepted,
+                        identifier: "induction-terms-consent"
+                    )
+                    consentRow(
+                        title: language.text("I explicitly consent to the processing of my health and fitness data described in the Privacy Policy"),
+                        isAccepted: $privacyAccepted,
+                        identifier: "induction-privacy-consent"
+                    )
+
+                    HStack(spacing: 18) {
+                        Button(language.text("Read Terms")) { legalDocument = .terms }
+                        Button(language.text("Read Privacy Policy")) { legalDocument = .privacy }
+                    }
+                    .font(APEXFont.body(13, weight: .bold))
+                    .foregroundStyle(APEXColor.violet)
+                }
+            }
+
+            Text(language.text("Without both permissions APEX cannot create a personalised fitness profile. Optional Apple Health and notification access are requested separately later."))
+                .font(APEXFont.body(12))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+
+            Button(language.text("I don't accept")) { showDeclineExplanation = true }
+                .font(APEXFont.body(13, weight: .semibold))
+                .frame(minHeight: 44)
+                .buttonStyle(.plain)
+                .alert(language.text("APEX cannot personalise without permission"), isPresented: $showDeclineExplanation) {
+                    Button(language.text("Review consent"), role: .cancel) {}
+                } message: {
+                    Text(language.text("You can leave setup without sharing these details. A personalised plan, calories and macros require the measurements and goal you choose to provide."))
+                }
+        }
+    }
+
+    private func consentRow(
+        title: String,
+        isAccepted: Binding<Bool>,
+        identifier: String
+    ) -> some View {
+        Button {
+            isAccepted.wrappedValue.toggle()
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: isAccepted.wrappedValue ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 21, weight: .semibold))
+                    .foregroundStyle(isAccepted.wrappedValue ? APEXColor.green : APEXColor.secondaryInk)
+                Text(title)
+                    .font(APEXFont.body(14, weight: .semibold))
+                    .foregroundStyle(APEXColor.ink)
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .padding(14)
+            .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 17))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier(identifier)
+    }
+
+    private var bodyDetails: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Text(language.text("Metabolic equation"))
+                .font(APEXFont.body(13, weight: .bold))
+                .foregroundStyle(APEXColor.secondaryInk)
+            HStack(spacing: 10) {
+                baselineSexChoice(value: "female", label: language.text("Female"))
+                baselineSexChoice(value: "male", label: language.text("Male"))
+            }
+
+            baselineInput(
+                label: language.text("Current weight"),
+                placeholder: "70.0",
+                unit: "kg",
+                text: $weightText,
+                field: .weight,
+                keyboard: .decimalPad
+            )
+            baselineInput(
+                label: language.text("Height"),
+                placeholder: "175",
+                unit: "cm",
+                text: $heightText,
+                field: .height,
+                keyboard: .decimalPad
+            )
+
+            VStack(alignment: .leading, spacing: 8) {
+                Text(language.text("Date of birth"))
+                    .font(APEXFont.body(13, weight: .bold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                HStack(spacing: 9) {
+                    datePartField(language.text("DD"), text: $birthDayText, field: .birthDay, width: 70)
+                    datePartField(language.text("MM"), text: $birthMonthText, field: .birthMonth, width: 70)
+                    datePartField(language.text("YYYY"), text: $birthYearText, field: .birthYear, width: 104)
+                    Spacer(minLength: 0)
+                }
+            }
+            .padding(15)
+            .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 18))
+
+            if hasStartedBodyEntry && bodyBaseline == nil {
+                Label(language.text("Enter a valid weight, height and date of birth."), systemImage: "info.circle")
+                    .font(APEXFont.body(12, weight: .semibold))
+                    .foregroundStyle(APEXColor.amberDeep)
+            }
+
+            Text(language.text("APEX derives age from your birthdate so it stays accurate. These facts initialise nutrition; they never become public profile text."))
+                .font(APEXFont.body(12))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func baselineSexChoice(value: String, label: String) -> some View {
+        Button {
+            baselineSex = value
+        } label: {
+            HStack {
+                Text(label).font(APEXFont.body(15, weight: .bold))
+                Spacer()
+                Image(systemName: baselineSex == value ? "checkmark.circle.fill" : "circle")
+            }
+            .foregroundStyle(baselineSex == value ? APEXColor.violet : APEXColor.ink)
+            .padding(15)
+            .frame(maxWidth: .infinity)
+            .background(.white.opacity(0.64), in: RoundedRectangle(cornerRadius: 18))
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("induction-baseline-sex-\(value)")
+    }
+
+    private func baselineInput(
+        label: String,
+        placeholder: String,
+        unit: String,
+        text: Binding<String>,
+        field: BaselineField,
+        keyboard: UIKeyboardType
+    ) -> some View {
+        HStack(spacing: 12) {
+            Text(label)
+                .font(APEXFont.body(14, weight: .bold))
+            Spacer(minLength: 8)
+            TextField(placeholder, text: text)
+                .keyboardType(keyboard)
+                .multilineTextAlignment(.trailing)
+                .font(APEXFont.mono(17, weight: .bold))
+                .frame(width: 84)
+                .focused($baselineField, equals: field)
+                .accessibilityIdentifier("induction-baseline-\(field.rawValue)")
+            Text(unit)
+                .font(APEXFont.mono(13, weight: .bold))
+                .foregroundStyle(APEXColor.secondaryInk)
+        }
+        .padding(15)
+        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 18))
+    }
+
+    private func datePartField(
+        _ placeholder: String,
+        text: Binding<String>,
+        field: BaselineField,
+        width: CGFloat
+    ) -> some View {
+        TextField(placeholder, text: text)
+            .keyboardType(.numberPad)
+            .multilineTextAlignment(.center)
+            .font(APEXFont.mono(16, weight: .bold))
+            .padding(.vertical, 11)
+            .frame(width: width)
+            .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 13))
+            .focused($baselineField, equals: field)
+            .accessibilityIdentifier("induction-baseline-\(field.rawValue)")
+    }
+
+    private var hasStartedBodyEntry: Bool {
+        !baselineSex.isEmpty || !weightText.isEmpty || !heightText.isEmpty ||
+            !birthDayText.isEmpty || !birthMonthText.isEmpty || !birthYearText.isEmpty
+    }
+
+    private func moveBaselineFocus(by offset: Int) {
+        guard let current = baselineField,
+              let index = BaselineField.allCases.firstIndex(of: current)
+        else {
+            baselineField = nil
+            return
+        }
+        let destination = index + offset
+        guard BaselineField.allCases.indices.contains(destination) else {
+            baselineField = nil
+            return
+        }
+        baselineField = BaselineField.allCases[destination]
+    }
+
+    private var bodyBaseline: TrainingInduction.BodyBaseline? {
+        guard let weight = Double(weightText.replacingOccurrences(of: ",", with: ".")),
+              let height = Double(heightText.replacingOccurrences(of: ",", with: ".")),
+              let day = Int(birthDayText),
+              let month = Int(birthMonthText),
+              let year = Int(birthYearText)
+        else { return nil }
+
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let components = DateComponents(calendar: calendar, year: year, month: month, day: day)
+        guard let date = calendar.date(from: components),
+              calendar.component(.year, from: date) == year,
+              calendar.component(.month, from: date) == month,
+              calendar.component(.day, from: date) == day
+        else { return nil }
+
+        let baseline = TrainingInduction.BodyBaseline(
+            sex: baselineSex,
+            weightKG: weight,
+            heightCM: height,
+            birthdate: String(format: "%04d-%02d-%02d", year, month, day)
+        )
+        return baseline.isValid ? baseline : nil
     }
 
     private var equipment: some View {
@@ -372,6 +672,90 @@ struct InductionView: View {
     }
 }
 
+private enum BaselineField: String, Hashable, CaseIterable {
+    case weight, height, birthDay, birthMonth, birthYear
+}
+
+private enum OnboardingLegalDocument: String, Identifiable {
+    case terms, privacy
+    var id: String { rawValue }
+}
+
+private struct OnboardingLegalDocumentView: View {
+    let document: OnboardingLegalDocument
+    @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
+
+    var body: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 18) {
+                    Label(
+                        language.text(document == .terms ? "Terms of Use" : "Privacy Policy"),
+                        systemImage: document == .terms ? "doc.text.fill" : "lock.shield.fill"
+                    )
+                    .font(APEXFont.display(27))
+                    .foregroundStyle(APEXColor.ink)
+
+                    Text(language.text("Effective 27 August 2026 · Beta edition"))
+                        .font(APEXFont.mono(11))
+                        .foregroundStyle(APEXColor.secondaryInk)
+
+                    ForEach(Array(sections.enumerated()), id: \.offset) { _, section in
+                        GlassCard(radius: 22, padding: 17) {
+                            VStack(alignment: .leading, spacing: 8) {
+                                Text(language.text(section.title))
+                                    .font(APEXFont.body(16, weight: .bold))
+                                Text(language.text(section.body))
+                                    .font(APEXFont.body(13))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    .fixedSize(horizontal: false, vertical: true)
+                            }
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                        }
+                    }
+
+                    if document == .privacy,
+                       let url = URL(string: "https://www.edoeb.admin.ch/en/duty-to-provide-information") {
+                        Link(destination: url) {
+                            Label(language.text("Swiss FDPIC transparency guidance"), systemImage: "arrow.up.right.square")
+                                .font(APEXFont.body(13, weight: .bold))
+                        }
+                    }
+                }
+                .padding(22)
+            }
+            .background(AuroraField(animated: false).ignoresSafeArea())
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button(language.text("Done")) { dismiss() }
+                        .font(APEXFont.body(15, weight: .bold))
+                }
+            }
+        }
+    }
+
+    private var sections: [(title: String, body: String)] {
+        switch document {
+        case .terms:
+            [
+                ("What APEX is", "APEX is a fitness and nutrition planning tool. It is not medical diagnosis or emergency care, and it does not replace advice from a qualified clinician."),
+                ("Safe use", "Use honest inputs, follow exercise setup and stop rules, and stop immediately for sharp, escalating or unusual symptoms. Contact emergency services when symptoms may be urgent."),
+                ("Your account", "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve."),
+                ("Availability and law", "APEX aims to preserve and sync your records but cannot promise uninterrupted beta availability. Swiss law applies, without limiting mandatory consumer rights where you live."),
+            ]
+        case .privacy:
+            [
+                ("What is collected", "Account identifiers plus the body, nutrition, hydration, activity and training facts you choose to enter. Apple Health is accessed only after its separate system permission."),
+                ("Why it is used", "To calculate your targets, generate and adapt plans, show progress, sync your account and protect the service. Data is not sold or used for third-party advertising."),
+                ("Who helps operate APEX", "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards."),
+                ("Your control", "You can correct entries, revoke Apple Health access, export records and request account deletion. Withdrawing consent stops future optional processing but cannot undo processing already required to deliver your request."),
+                ("Privacy by default", "Only data needed for the feature is requested. Optional permissions remain off until you choose them, and health or fitness data is never made a public profile by default."),
+            ]
+        }
+    }
+}
+
 /// A native vector illustration keeps every question immediately legible,
 /// scales cleanly for Dynamic Type, and avoids the synthetic-photo look that
 /// does not belong in the product's editorial language.
@@ -380,22 +764,24 @@ private struct InductionIllustration: View {
 
     private var symbols: (primary: String, secondary: String) {
         switch step {
-        case 0: ("scope", "figure.run")
-        case 1: ("clock.arrow.circlepath", "figure.walk")
-        case 2: ("house.fill", "location.fill")
-        case 3: ("dumbbell.fill", "checkmark.seal.fill")
-        case 4: ("calendar", "figure.strengthtraining.traditional")
-        case 5: ("calendar.badge.clock", "flag.checkered")
+        case 0: ("lock.shield.fill", "hand.raised.fill")
+        case 1: ("figure.stand", "heart.text.square.fill")
+        case 2: ("scope", "figure.run")
+        case 3: ("clock.arrow.circlepath", "figure.walk")
+        case 4: ("house.fill", "location.fill")
+        case 5: ("dumbbell.fill", "checkmark.seal.fill")
+        case 6: ("calendar", "figure.strengthtraining.traditional")
+        case 7: ("calendar.badge.clock", "flag.checkered")
         default: ("figure.arms.open", "cross.case.fill")
         }
     }
 
     private var accent: Color {
         switch step {
-        case 0, 5: APEXColor.violet
-        case 1, 4: APEXColor.cyan
-        case 2: APEXColor.green
-        case 3: APEXColor.amberDeep
+        case 0, 2, 7: APEXColor.violet
+        case 1, 3, 6: APEXColor.cyan
+        case 4: APEXColor.green
+        case 5: APEXColor.amberDeep
         default: .red
         }
     }
@@ -428,7 +814,7 @@ private struct InductionIllustration: View {
                         .symbolRenderingMode(.hierarchical)
                         .foregroundStyle(accent)
 
-                    if step == 6 {
+                    if step == 8 {
                         Circle()
                             .fill(Color.red)
                             .frame(width: 9, height: 9)

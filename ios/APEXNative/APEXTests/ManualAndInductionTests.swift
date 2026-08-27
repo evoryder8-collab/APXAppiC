@@ -484,6 +484,81 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(Set(settingsObject.keys), ["user_id"])
     }
 
+    func testSkippingOnlyAfterMandatoryBaselineCreatesNutritionFactsWithoutAWorkoutPlan() throws {
+        let baseline = TrainingInduction.BodyBaseline(
+            sex: "female",
+            weightKG: 64.5,
+            heightCM: 169,
+            birthdate: "1994-03-18"
+        )
+        let consent = TrainingInduction.DataConsent(
+            termsVersion: TrainingInduction.currentTermsVersion,
+            privacyVersion: TrainingInduction.currentPrivacyVersion,
+            acceptedAt: "2026-08-27T00:00:00Z"
+        )
+        let answers = input {
+            $0.goal = "fat_loss"
+            $0.bodyBaseline = baseline
+            $0.dataConsent = consent
+        }
+
+        XCTAssertFalse(TrainingInduction.canSkipRemaining(step: 0, input: answers))
+        XCTAssertFalse(TrainingInduction.canSkipRemaining(step: 1, input: answers))
+        XCTAssertFalse(TrainingInduction.canSkipRemaining(step: 2, input: answers))
+        XCTAssertTrue(TrainingInduction.canSkipRemaining(step: 3, input: answers))
+
+        let submission = TrainingInduction.Submission.baselineOnly(answers)
+        XCTAssertTrue(submission.requiresProfile)
+        XCTAssertEqual(submission.profileGoal, "maintain")
+        XCTAssertEqual(submission.profileBaseline, baseline)
+        XCTAssertNil(submission.generatedPlan(userID: user, existingPrograms: []))
+
+        let request = ProfileCreationRequest(
+            userID: user,
+            goal: submission.profileGoal,
+            baseline: try XCTUnwrap(submission.profileBaseline)
+        )
+        let json = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: JSONEncoder().encode(request)) as? [String: Any]
+        )
+        XCTAssertEqual(json["sex"] as? String, "female")
+        XCTAssertEqual(json["weight_kg"] as? Double, 64.5)
+        XCTAssertEqual(json["height_cm"] as? Double, 169)
+        XCTAssertEqual(json["birthdate"] as? String, "1994-03-18")
+
+        let settings = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
+        let stored = submission.applyingAccountMetadata(to: settings, plan: nil)
+        XCTAssertEqual(
+            stored.addons[TrainingInduction.baselineMarkerKey]?.objectValue?["goal"],
+            .string("fat_loss")
+        )
+        XCTAssertEqual(
+            stored.addons[TrainingInduction.legalAcceptanceKey]?.objectValue?["terms_version"],
+            .string(TrainingInduction.currentTermsVersion)
+        )
+        XCTAssertFalse(
+            TrainingInduction.shouldEnterPortal(profile: nil, settings: stored),
+            "an interrupted profile insert must return to the mandatory baseline instead of a blank portal"
+        )
+
+        var profile = try XCTUnwrap(APEXDebugFixture.dashboard(userID: user).profile)
+        profile.sex = baseline.sex
+        profile.weightKG = baseline.weightKG
+        profile.heightCM = baseline.heightCM
+        profile.birthdate = baseline.birthdate
+        profile.goal = .maintain
+        let targets = EnergyEngine.targets(
+            profile: profile,
+            logs: [],
+            catalog: [],
+            planContext: NutritionGoalPolicy.context(from: stored)
+        )
+        XCTAssertGreaterThan(targets.targetCalories, 0)
+        XCTAssertGreaterThan(targets.proteinG, 0)
+        XCTAssertGreaterThan(targets.fatG, 0)
+        XCTAssertGreaterThan(targets.carbsG, 0)
+    }
+
     func testSkippedAccountRoundTripKeepsProfileAndDerivedFactsAbsent() throws {
         let base = try XCTUnwrap(APEXDebugFixture.dashboard().settings?.rebound(to: user))
         let stored = TrainingInduction.Submission.skipped
@@ -897,8 +972,12 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertTrue(appSession.contains("guard !isBusy else { return }\n        isBusy = true"))
         XCTAssertGreaterThanOrEqual(
             inductionView.components(separatedBy: ".disabled(session.isBusy)").count - 1,
-            3,
-            "Back, Build/Continue, and Skip must all stop accepting a second choice during submission"
+            2,
+            "Back and the conditionally visible Skip action must stop accepting a second choice during submission"
+        )
+        XCTAssertTrue(
+            inductionView.contains(".disabled(session.isBusy || !canContinue)"),
+            "Build/Continue must stop accepting a second choice while preserving its form-validation guard"
         )
     }
 

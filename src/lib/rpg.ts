@@ -176,7 +176,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   if (total < 0) return { snapshots: [], synergies: [] }
 
   const dayTypeById = new Map(data.program_days.map((d) => [d.id, d.day_type]))
-  const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction))
+  const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
 
   /* Pre-index activity by date */
   const activity = new Map<string, DayActivity>()
@@ -831,7 +831,7 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
     strengths.push(`${recentSessions.length} planned session${recentSessions.length === 1 ? '' : 's'} completed in the last 14 days.`)
   }
 
-  const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction))
+  const targets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
   const loggedProteinDays = recentLogs.filter((log) => log.protein_g != null)
   const proteinHitRate = loggedProteinDays.length === 0
     ? null
