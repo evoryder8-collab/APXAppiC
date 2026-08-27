@@ -1398,3 +1398,30 @@ GitHub publication evidence:
 - Production web build: `tsc --noEmit && vite build` succeeded.
 - All 17 full and compact `.strings` files passed `plutil -lint`; `git diff --check` passed before release preparation.
 - The canonical Apple build number advanced from the already-installed 365 to **366**. Release provenance, physical-iPhone installation, push, and Pages deployment are reported with the final task SHA in the completion handoff.
+
+## 2026-08-27 — Runtime localisation and Food Memory focus handoff
+
+### Outcome
+
+- iPhone hydration presets now translate their canonical default names through the selected in-app language while preserving user-authored custom names verbatim.
+- Glass, bottle, coffee, tea, juice, and protein-shake terminology was corrected across all eight non-English locales, including `Pahar`, `Sticlă`, `Cafea`, `Ceai`, `Suc`, and `Shake proteic` in Romanian.
+- The Simple Mode supplement popup now localises both `Supplement stack` and its taken-count subtitle instead of passing dynamic English directly into the popup header.
+- The complete Romanian session-briefing corpus was rewritten as natural fitness Romanian. The visible headings now use `Zone vizate azi`, `Alți mușchi implicați`, and `De ce este structurată așa`; the mobility rationale and breathing cue are concise, grammatical, and actionable.
+- Opening a food amount configurator now explicitly resigns the Food Memory search field before the popup appears. Tapping and typing in quantity therefore edits the amount instead of continuing to type behind the popup.
+- The canonical Apple build number advanced to **367**.
+
+### Regression coverage
+
+- `LocalizationTests` pins natural hydration vocabulary in every offered language, preserves custom preset names, and pins the revised Romanian briefing language.
+- `APEXSmokeUITests.testFoodAmountDecimalPadHasDoneAndCanAddFood` first types into Food Memory search, opens a result, then proves keyboard input transfers to quantity while the original query remains unchanged.
+- `tests/native-localisation-runtime.test.ts` prevents default preset names or the supplement popup header from bypassing runtime localisation and requires explicit focus handoff.
+
+### Verification
+
+- Runtime translation audit: **4,543/4,543 (100.0%)** in every offered language.
+- Native localisation suite: **18 passed, 0 failed**.
+- Full native unit suite: **519 passed, 0 failed**.
+- Behavioural Food Memory UI regression: **1 passed, 0 failed**.
+- Web/repository regression suite: **592 passed, 0 failed**.
+- All eight edited `.strings` tables passed `plutil -lint`.
+- Release provenance, physical-device installation, push, and Pages deployment are reported with the final task SHA in the completion handoff.

@@ -630,8 +630,11 @@ final class APEXSmokeUITests: XCTestCase {
         let picker = app.buttons["meal-food-picker-open"]
         XCTAssertTrue(scrollUntilVisible(picker, in: app))
         picker.tap()
-        XCTAssertTrue(app.textFields["food-memory-search"].waitForExistence(timeout: 3))
+        let search = app.textFields["food-memory-search"]
+        XCTAssertTrue(search.waitForExistence(timeout: 3))
         XCTAssertFalse(app.navigationBars["Food Memory"].buttons["Search"].exists)
+        search.tap()
+        search.typeText("protein")
         let food = app.buttons.matching(
             NSPredicate(format: "identifier BEGINSWITH %@", "food-row-")
         ).firstMatch
@@ -641,6 +644,12 @@ final class APEXSmokeUITests: XCTestCase {
         let quantity = app.textFields["food-amount-quantity"]
         XCTAssertTrue(quantity.waitForExistence(timeout: 2))
         quantity.tap()
+        quantity.typeText("7")
+        XCTAssertEqual(search.value as? String, "protein", "typing an amount must not remain bound to Food Memory search")
+        XCTAssertTrue(
+            String(describing: quantity.value).contains("7"),
+            "the amount field must own keyboard input after the configurator opens"
+        )
         XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["food-amount-keyboard-done"].waitForExistence(timeout: 2))
         capture("food-amount-keyboard-done")

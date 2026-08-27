@@ -1974,7 +1974,7 @@
 "Best default; use measured trends instead of cutting harder too soon." = "Melhor padrão; use tendências medidas em vez de cortar mais rápido demais.";
 "Body baseline   mL" = "Nível basal do organismo   mL";
 "Bodyweight and only the equipment you select" = "Peso corporal e apenas o equipamento selecionado";
-"Bottle" = "Frasco";
+"Bottle" = "Garrafa";
 "Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "Segure as costelas para baixo, dirija através dos pés e terminar com os glúteos. Pare quando os quadris são totalmente estendidos sem arquear a parte inferior das costas.";
 "Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "Segure o tronco, leve com os cotovelos e puxe para as costelas inferiores. Deixe as omoplatas moverem-se naturalmente sem encolhimento.";
 "Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "Expire no final de cada posição. Segurar a respiração mantém a tensão que veio libertar.";
@@ -2153,7 +2153,7 @@
 "Give %@ two focused exposures this week, separated by enough recovery." = "Dar %@ duas exposições focadas esta semana, separadas por recuperação suficiente.";
 "Give aerobic capacity a clear place in the week" = "Dar a capacidade aeróbica um lugar claro na semana";
 "Give the plan an honest starting point" = "Dê ao plano um ponto de partida honesto";
-"Glass" = "Vidro";
+"Glass" = "Copo";
 "Greek yoghurt, plain" = "Iogurte grego, planície";
 "Ground flaxseed" = "Sementes de linho moídas";
 "Grouped rounds will arrive with supersets. This sequence cannot be logged as an ordinary set." = "As rondas agrupadas chegarão com supersets. Esta sequência não pode ser registada como um conjunto normal.";
@@ -2498,7 +2498,7 @@
 "Sets completed in this unfinished session have not been saved." = "Os conjuntos concluídos nesta sessão não foram guardados.";
 "Settle into controlled quality. Do not race the opening minutes." = "Ajustar-se em qualidade controlada. Não corra os minutos de abertura.";
 "Seven days needs one low-load day" = "Sete dias precisa de um dia de baixa carga";
-"Shake" = "Agitar";
+"Shake" = "Batido";
 "Show preset names" = "Mostrar os nomes predefinidos";
 "Sign in again to build your plan." = "Assine novamente para construir seu plano.";
 "Sign in again to continue." = "Assine novamente para continuar.";
@@ -2560,6 +2560,8 @@
 "Taper:  % fewer sets,     to  " = "Fita:% menos conjuntos, para";
 "Target mode" = "Modo alvo";
 "Tea" = "Chá";
+"%d of %d taken" = "%d de %d tomados";
+"Add %d millilitres of %@" = "Adicionar %d mililitros de %@";
 "Terms of Use" = "Termos de Utilização";
 "The Orbit food adjustment was not applied.  " = "O ajuste alimentar da órbita não foi aplicado.";
 "The Pyramid" = "A Pirâmide";

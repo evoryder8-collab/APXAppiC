@@ -4342,7 +4342,7 @@
 "Gentle reminders" = "แจ้งเตือนอย่างอ่อนโยน";
 "Give aerobic capacity a clear place in the week" = "ให้ความจุแก่แอโรบิคในสัปดาห์ที่ชัดเจน";
 "Give the plan an honest starting point" = "จง ให้ แผนการ เริ่ม ต้น อย่าง ซื่อ สัตย์";
-"Glass" = "กระจก";
+"Glass" = "แก้ว";
 "Greek yoghurt, plain" = "อักษรกรีก, ธรรมดา";
 "Ground flaxseed" = "เมล็ด ป่าน";
 
@@ -4375,7 +4375,7 @@
 "Install my plan" = "ติดตั้งแผนของฉัน";
 "International" = "สากล";
 "Its receipt and recorded sets will be removed from your history and progression." = "ใบเสร็จและชุดที่ถูกบันทึก จะถูกลบออกจากประวัติและความคืบหน้าของคุณ";
-"Juice" = "จูส";
+"Juice" = "น้ำผลไม้";
 "Keep load progression prominent and measurable" = "จง แบก ภาระ ต่อ ๆ ไป อย่าง ที่ เห็น ได้ ชัด และ ใช้ ได้ ผล";
 "Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "เดินต่อไปทีละก้าว คุณจะสามารถรักษาไว้จนถึงที่สุด ไม่ใช่คนนึงที่ต้องการความช่วยเหลือ";
 "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve." = "เก็บรายละเอียดไว้ คุณมีส่วนรับผิดชอบในรายการ และแก้ไขผ่านบัญชีของคุณ ลักษณะ เด่น ของ เบตา อาจ เปลี่ยน ไป เมื่อ ความ ไว้ วางใจ และ ความ ปลอด ภัย ดี ขึ้น.";
@@ -4578,7 +4578,7 @@
 "Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "ตั้งท่าเท้าที่เสถียร ค้ํายันก่อนที่จะลง และติดตามหัวเข่าด้วยนิ้วเท้า ใช้ช่วงความเจ็บปวดที่ลึกที่สุด ที่คุณสามารถควบคุมได้";
 "Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "ตั้ง เท้า หลัง อย่าง สบาย ทํา ให้ เท้า หน้า ของ คุณ ติด สนิท และ อยู่ ใต้ การ ควบคุม. ขับผ่านเท้าด้านหน้าทั้งหมด โดยไม่ให้เข่ายุบ";
 "Seven days needs one low-load day" = "อีก 7 วันต้องจํากัดวัน";
-"Shake" = "เขย่า";
+"Shake" = "โปรตีนเชค";
 "Show preset names" = "แสดงชื่อชุดสําเร็จ";
 "Sign in again to build your plan." = "ลงชื่ออีกครั้ง เพื่อสร้างแผนของคุณ";
 "Sign in again to open your plan." = "ลงชื่ออีกครั้ง เพื่อเปิดแผนของคุณ";
@@ -4626,6 +4626,8 @@
 "Taper swap: keeps the mid-back fresh without loading" = "สลับตัวพิมพ์เล็ก:";
 "Taper:  % fewer sets,     to  " = "Taper: เซตน้อยลง %, ไปยัง";
 "Tea" = "ชา";
+"%d of %d taken" = "รับประทานแล้ว %d จาก %d";
+"Add %d millilitres of %@" = "เพิ่ม %d มิลลิลิตร: %@";
 "Terms of Use" = "วาระ สําหรับ การ ใช้";
 "The Orbit food adjustment was not applied.  " = "ไม่ มี การ นํา อาหาร มา ปรับ ปรุง.";
 "The Pyramid" = "พีระมิด";

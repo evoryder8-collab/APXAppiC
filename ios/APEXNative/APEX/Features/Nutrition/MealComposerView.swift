@@ -1199,6 +1199,7 @@ private struct MealFoodPicker: View {
     @State private var isSearching = false
     @State private var showScanner = false
     @State private var message: String?
+    @FocusState private var searchFocused: Bool
     /* Food whose amount is being configured, and per-food burst counters
        that drive the quick-add confirmation animation. */
     @State private var configuring: Food?
@@ -1303,7 +1304,10 @@ private struct MealFoodPicker: View {
                         HStack(spacing: 12) {
                             /* Tapping the food opens the amount configurator,
                                matching the web composer. Only + quick-adds. */
-                            Button { configuring = food } label: {
+                            Button {
+                                searchFocused = false
+                                configuring = food
+                            } label: {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(food.name)
                                         .font(APEXFont.body(15, weight: .bold))
@@ -1346,6 +1350,7 @@ private struct MealFoodPicker: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 FoodMemorySearchBar(
                     query: $query,
+                    isFocused: $searchFocused,
                     placeholder: language.text("Search foods, aliases or brands"),
                     onSearch: { Task { await search() } }
                 )

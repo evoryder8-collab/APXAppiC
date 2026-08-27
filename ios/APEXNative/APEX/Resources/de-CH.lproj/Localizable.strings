@@ -2498,7 +2498,7 @@
 "Sets completed in this unfinished session have not been saved." = "Sets, die in dieser unvollendeten Sitzung abgeschlossen wurden, wurden nicht gespeichert.";
 "Settle into controlled quality. Do not race the opening minutes." = "Setzen Sie sich in kontrollierte Qualität. Rennen Sie nicht die Öffnungsminuten.";
 "Seven days needs one low-load day" = "Sieben Tage brauchen einen Tag mit niedriger Last";
-"Shake" = "Schütteln";
+"Shake" = "Proteinshake";
 "Show preset names" = "Voreingestellte Namen anzeigen";
 "Sign in again to build your plan." = "Melden Sie sich erneut an, um Ihren Plan zu erstellen.";
 "Sign in again to continue." = "Melden Sie sich erneut an, um fortzufahren.";
@@ -2560,6 +2560,8 @@
 "Taper:  % fewer sets,     to  " = "Taper: % weniger Sätze, bis";
 "Target mode" = "Zielmodus";
 "Tea" = "Tee";
+"%d of %d taken" = "%d von %d eingenommen";
+"Add %d millilitres of %@" = "%d Milliliter %@ hinzufügen";
 "Terms of Use" = "Nutzungsbedingungen";
 "The Orbit food adjustment was not applied.  " = "Die Orbit-Nahrungsmittelanpassung wurde nicht angewendet.";
 "The Pyramid" = "Die Pyramide";

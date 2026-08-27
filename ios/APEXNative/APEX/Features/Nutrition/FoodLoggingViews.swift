@@ -2,6 +2,7 @@ import SwiftUI
 
 struct FoodMemorySearchBar: View {
     @Binding var query: String
+    @FocusState.Binding var isFocused: Bool
     let placeholder: String
     let onSearch: () -> Void
 
@@ -11,6 +12,7 @@ struct FoodMemorySearchBar: View {
                 .font(.system(size: 17, weight: .semibold))
                 .foregroundStyle(APEXColor.amberDeep)
             TextField(placeholder, text: $query)
+                .focused($isFocused)
                 .font(APEXFont.body(15, weight: .semibold))
                 .textInputAutocapitalization(.never)
                 .autocorrectionDisabled(false)
@@ -49,6 +51,7 @@ struct FoodSearchSheet: View {
     @State private var selectedFood: Food?
     @State private var isSearching = false
     @State private var message: String?
+    @FocusState private var searchFocused: Bool
 
     private var displayedFoods: [Food] {
         if remoteResults.isEmpty == false { return ranked(remoteResults) }
@@ -88,7 +91,10 @@ struct FoodSearchSheet: View {
                     }
 
                     ForEach(displayedFoods) { food in
-                        Button { selectedFood = food } label: {
+                        Button {
+                            searchFocused = false
+                            selectedFood = food
+                        } label: {
                             HStack(spacing: 13) {
                                 Image(systemName: "leaf.fill")
                                     .foregroundStyle(APEXColor.green)
@@ -132,6 +138,7 @@ struct FoodSearchSheet: View {
             .safeAreaInset(edge: .bottom, spacing: 0) {
                 FoodMemorySearchBar(
                     query: $query,
+                    isFocused: $searchFocused,
                     placeholder: language.text("Search foods and brands"),
                     onSearch: { Task { await search() } }
                 )

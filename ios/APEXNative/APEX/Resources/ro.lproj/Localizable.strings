@@ -3733,7 +3733,7 @@
 "AUTO + MANUAL" = "AUTO + MANUAL";
 "Active kcal" = "Kcal active";
 "Activity" = "Activitate";
-"Also involved" = "Implicați și";
+"Also involved" = "Alți mușchi implicați";
 "Apple Health sleep" = "Somn din Apple Health";
 "Arms" = "Brațe";
 "BACK" = "SPATE";
@@ -3858,8 +3858,8 @@
 "Weekly" = "Săptămânal";
 "What matters most today" = "Ce contează cel mai mult azi";
 "What this session trains" = "Ce antrenează această sesiune";
-"Why this shape" = "De ce arată așa";
-"Worked today" = "Lucrați azi";
+"Why this shape" = "De ce este structurată așa";
+"Worked today" = "Zone vizate azi";
 "X-RAY" = "RADIOGRAFIE";
 "Your 12-week foundation" = "Fundația ta de 12 săptămâni";
 "Your own sessions." = "Sesiunile tale.";
@@ -3920,7 +3920,7 @@
 "Traps" = "Trapez";
 "Neck" = "Ceafă";
 "Conditioning" = "Condiție fizică";
-"Range of motion" = "Amplitudine de mișcare";
+"Range of motion" = "Mobilitate articulară";
 "Restoration" = "Refacere";
 "Muscle growth" = "Creștere musculară";
 "Pre-workout" = "Înainte de antrenament";
@@ -4221,10 +4221,10 @@
 "Best default; use measured trends instead of cutting harder too soon." = "Cel mai bun implicit; utilizați tendințele măsurate în loc de tăiere prea repede.";
 "Body baseline   mL" = "Valoarea iniţială a   mL";
 "Bodyweight and only the equipment you select" = "Greutatea corporală și numai echipamentul pe care îl selectați";
-"Bottle" = "Flacon";
+"Bottle" = "Sticlă";
 "Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "Ţineţi coastele jos, conduceţi prin picioare şi terminaţi cu fesele. Opriţi-vă atunci când şoldurile sunt complet extinse fără a arcui partea inferioară a spatelui.";
 "Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "Strângeţi trunchiul, conduceţi cu coatele şi trageţi spre coastele inferioare. Lasă omoplatul să se mişte natural fără să se zbată.";
-"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "Expiră la capătul fiecărei poziţii. Ţinând respiraţia ţine tensiunea pe care ai venit să o eliberezi.";
+"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "Expiră lent la capătul fiecărei mișcări și păstrează respirația relaxată. Dacă trebuie să-ți ții respirația, redu amplitudinea.";
 "Brown rice, cooked" = "Orez brun, gătit";
 "Build a balanced, repeatable training rhythm" = "Construieşte un ritm de antrenament echilibrat şi repetabil";
 "Build a plan before APEX labels any day as training or recovery." = "Construieşte un plan înainte APEX etichetează orice zi ca pregătire sau recuperare.";
@@ -4233,7 +4233,7 @@
 "Build your plan above before APEX labels any day as training or rest." = "Construieste-ti planul inainte APEX etichetează orice zi ca pregătire sau odihnă.";
 "Build your starting point" = "Construieşte punctul de plecare";
 "Build your training week" = "Construiește-ți săptămâna de formare";
-"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "Construit din mișcările pe care le-ați ales, astfel încât mușchii afișate sunt cele proprii exerciții de fapt sarcina.";
+"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "Sesiunea este construită din mișcările alese de tine, iar harta arată grupele musculare solicitate efectiv de exercițiile tale.";
 
 /* Translation coverage closure 211-245 · 2026-08-27 */
 "Bulgur, cooked" = "Bulgur, gătit";
@@ -4246,7 +4246,7 @@
 "Carry target" = "Ţineţi ţintă";
 "Cat-Cow" = "Vacă-pisică";
 "Chest · Back · Arms" = "Piept · Înapoi · Brațe";
-"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "Pieptul, umerii și tricepșii împărtășesc fiecare mișcare presantă, astfel încât ei sunt instruiți împreună mai degrabă decât în trei zile separate concurente pentru aceeași recuperare.";
+"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "Pieptul, umerii și tricepșii participă împreună la mișcările de împins, așa că sunt antrenați în aceeași sesiune și își împart mai eficient perioada de recuperare.";
 "Chicken breast, cooked" = "Piept de pui, gătit";
 "Choose Balanced fitness if hunger or recovery disrupts consistency." = "Alegeți fitness echilibrat în cazul în care foamea sau recuperarea perturba coerența.";
 "Choose Maintain if training performance or recovery declines." = "Alegeți Menținerea dacă performanța de formare sau recuperarea scade.";
@@ -4274,7 +4274,7 @@
 
 /* Translation coverage closure 246-280 · 2026-08-27 */
 "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards." = "Furnizorii de infrastructură contractați pot prelucra numai datele necesare pentru autentificare, stocare, sincronizare și achiziții. Prelucrarea în afara Elveției trebuie să utilizeze garanții aplicabile.";
-"Control the lowering. That is the half of the rep that does most of the building." = "Controlează coborârea. Aceasta este jumătatea reprezentantului care face cea mai mare parte a clădirii.";
+"Control the lowering. That is the half of the rep that does most of the building." = "Controlează coborârea. Faza excentrică a repetării contribuie semnificativ la stimulul pentru creștere musculară.";
 "Core evidence" = "Dovezi fundamentale";
 "Couscous, cooked" = "Cușcuș, gătit";
 "Creatine monohydrate supports repeated high-intensity and strength work." = "Creatina monohidrat susţine activitatea repetată de mare intensitate şi rezistenţă.";
@@ -4336,13 +4336,13 @@
 "Foundation week   of 12: restore movement quality" = "Foundation Week of 12: Restaurarea calității mișcării";
 "Fuel progress" = "Progresul combustibilului";
 "Full ends after strength. Speed 1.0 is not an immediate finisher" = "Se termină complet după putere. Viteza 1.0 nu este un finisaj imediat";
-"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "Gama completă în partea de jos. Adâncime de tăiere pentru a adăuga comerțul cu greutate departe cea mai mare parte a creșterii.";
+"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "Folosește amplitudinea completă, mai ales în partea de jos a mișcării. Nu sacrifica adâncimea doar ca să adaugi greutate.";
 "Full selected: complete prescribed sets. Choose Light for the opening-week ramp" = "Selectat complet: seturi complete prescrise. Alege lumina pentru rampa de deschidere-săptămână";
 "Gentle cut" = "Tăiere uşoară";
 "Gentle reminders" = "Amintiri blânde";
 "Give aerobic capacity a clear place in the week" = "Oferi capacitatea aerobică un loc clar în săptămâna";
 "Give the plan an honest starting point" = "Dă planul un punct de plecare cinstit";
-"Glass" = "Sticlă";
+"Glass" = "Pahar";
 "Greek yoghurt, plain" = "Iaurt grecesc, simplu";
 "Ground flaxseed" = "Semințe de in măcinat";
 
@@ -4356,7 +4356,7 @@
 "HYDRATION" = "HIDRARE";
 "Hide keyboard" = "Ascunde tastatura";
 "High-volume fuel" = "Combustibil de mare volum";
-"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "Hinging și ghemuit în aceeași zi acoperă întregul picior: balamaua încarcă hamstings și glute la lungimi musculare lungi, care construiește mai mult decât de lucru le scurt nu.";
+"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "Îndreptările și genuflexiunile în aceeași sesiune acoperă întreaga musculatură a picioarelor. Mișcările de tip hip hinge solicită bicepșii femurali și fesierii în poziție alungită, oferind un stimul eficient pentru creștere musculară.";
 "History" = "Istoric";
 "Hold and drag to correct the finish time" = "Țineți și trageți pentru a corecta timpul de sosire";
 "Hold body weight while progressive training drives recomposition." = "Menţineţi greutatea corporală în timp ce formarea progresivă conduce recompunerea.";
@@ -4377,11 +4377,11 @@
 "Its receipt and recorded sets will be removed from your history and progression." = "Chitanţa şi seturile sale înregistrate vor fi eliminate din istoria şi progresul dumneavoastră.";
 "Juice" = "Suc";
 "Keep load progression prominent and measurable" = "Păstrați progresia sarcinii proeminente și măsurabile";
-"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "Continuă să mergi într-un ritm pe care îl poţi ţine până la capăt, nu unul care are nevoie de o salvare la jumătatea drumului.";
+"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "Păstrează un ritm pe care îl poți susține până la final, nu unul care te obligă să te oprești la jumătatea sesiunii.";
 "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve." = "Păstraţi detaliile de sign-in sigure. Sunteți responsabil pentru intrările și editarea efectuate prin contul dumneavoastră. Caracteristicile beta se pot schimba pe măsură ce fiabilitatea și siguranța se ameliorează.";
 "Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "Menţineţi corpul legat, mai jos printr-o gamă fără durere şi apăsaţi în timp ce ţineţi umerii departe de urechi. Menţineţi echilibrul încheieturii mâinii şi cotului.";
 "Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "Menţineţi şoldurile ancorate, ondulate şi presate scurt fără a ridica pelvisul. Întoarce-te încet.";
-"Keep the rest honest. Short rest here costs you the later sets." = "Păstrează restul cinstit. Odihna scurta te costa mai tarziu.";
+"Keep the rest honest. Short rest here costs you the later sets." = "Respectă pauzele planificate. Dacă le scurtezi prea mult, calitatea seturilor următoare va scădea.";
 
 /* Translation coverage closure 351-385 · 2026-08-27 */
 "Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "Păstrați coastele liniștite și trageți cu partea superioară a spatelui. Termină cu mâinile depărtate şi umerii în jos în loc să forţezi raza de acţiune suplimentară.";
@@ -4392,7 +4392,7 @@
 "Know when to stop" = "Să ştii când să te opreşti.";
 "LOAD KG (+/−)" = "GREUTATE KG (+/−)";
 "LOG" = "LOG";
-"Lead with the elbow, not the hand, so the back works instead of the arms." = "Condu cu cotul, nu cu mâna, aşa că spatele funcţionează în loc de braţe.";
+"Lead with the elbow, not the hand, so the back works instead of the arms." = "Inițiază mișcarea din cot, nu din mână, ca să lucreze spatele și nu doar brațele.";
 "Light balance" = "Echilibrul luminii";
 "Light fuel" = "Combustibil ușor";
 "Light pairs reduced leg work with controlled Speed 1.0" = "Perechi de lumină redusă lucru picior cu viteză controlată 1.0";
@@ -4404,13 +4404,13 @@
 "Loaded work waits for clinician clearance" = "Munca încărcată aşteaptă autorizaţia clinică.";
 "Log completed work; APEX adapts from measured training." = "Log completat lucrare; APEX se adaptează la formarea măsurată.";
 "Log each set" = "Autentifică fiecare set";
-"Log the weight you used. Next week's session is built from it." = "Log greutatea ai folosit. Sesiunea de săptămâna viitoare este construită din ea.";
+"Log the weight you used. Next week's session is built from it." = "Înregistrează greutatea folosită. Sesiunea de săptămâna viitoare se ajustează pe baza ei.";
 "Long, hot, or very sweaty training may warrant a formulated electrolyte drink." = "Antrenamentul lung, fierbinte sau foarte transpirat poate necesita o băutură electrolitică formulată.";
 "Long-run rehearsal:   g carbohydrate across familiar pre-run, during-run and recovery foods, plus   g recovery protein. Nothing changes until you apply it." = "Repetiţie pe termen lung:   g carbohidrați pe termen pre-run familiar, în timpul alergării și alimente de recuperare, plus   g proteine de recuperare. Nimic nu se schimbă până nu-l aplicaţi.";
 "Loss is intentionally slower and depends on consistent weeks." = "Pierderea este în mod intenționat mai lentă și depinde de săptămâni constante.";
 "Lower Focus" = "Focalizare inferioară";
-"Lower body, heavy base" = "Corpul inferior, baza grea";
-"Lower body, single leg" = "Corpul inferior, un singur picior";
+"Lower body, heavy base" = "Partea inferioară, exerciții de bază";
+"Lower body, single leg" = "Partea inferioară, exerciții unilaterale";
 "MISS" = "MISS";
 "Machines, cables and free weights available" = "Mașini, cabluri și greutăți libere disponibile";
 "Maintenance energy for repeatable heavy practice and recovery." = "Energie de intretinere pentru practica si recuperare repetata.";
@@ -4424,7 +4424,7 @@
 "Mark set skipped" = "Mark set omis";
 "Match daily expenditure for consistent endurance work." = "Meciul de cheltuieli zilnice pentru munca perseverenta consistenta.";
 "Match estimated daily expenditure without targeting weight change." = "Se potrivește cheltuielile zilnice estimate fără a viza modificarea greutății.";
-"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "Se potriveşte cu partea slabă. Piciorul mai puternic face reps cel mai slab poate ține forma pentru.";
+"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "Ia partea mai slabă drept reper. Cu piciorul mai puternic faci doar câte repetări poți executa corect și cu partea mai slabă.";
 "Matched last time" = "Potrivit ultima dată";
 "Meal finishes recorded:  . " = "Finisaje de masă înregistrate: .";
 "Meal schedule completed with a  /100 rhythm signal. Health consistency gained context" = "Program de masă completat cu un semnal de ritm /100. Context dobândit în materie de coerență în materie de sănătate";
@@ -4436,7 +4436,7 @@
 "Missed" = "Ratat.";
 "MixedCardio" = "Cardio mixt";
 "Mobility and conversational-pace capacity replace a seventh hard session." = "Mobilitatea și capacitatea de conversație-pace înlocuiesc o a șaptea sesiune grea.";
-"Mobility and reset" = "Mobilitate și resetare";
+"Mobility and reset" = "Mobilitate și detensionare";
 "Motion" = "Moţiune";
 "Move down" = "Dă-te jos.";
 "Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Mutați numai prin gama puteți controla în timp ce respirați normal. Păstrați portbagajul liniștit și opriți dacă mișcarea provoacă durere ascuțită.";
@@ -4450,7 +4450,7 @@
 "Next tip" = "Următorul sfat";
 "No equipment is required. Select only what is genuinely available." = "Nu este nevoie de echipament. Selectați numai ceea ce este cu adevărat disponibil.";
 "No hydration facts for this day." = "Nu există fapte de hidratare pentru această zi.";
-"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "Niciun grup muscular nu este prescris astăzi. Recuperarea este locul unde munca pe care deja aţi terminat-o devine adaptare.";
+"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "Astăzi nu este programată nicio grupă musculară. În timpul recuperării, efortul depus în sesiunile anterioare se transformă în adaptare.";
 "No plan" = "Niciun plan.";
 "No prescription" = "Fără reţetă.";
 "No programme exists yet. Build your plan below." = "Încă nu există niciun program. Construieşte-ţi planul mai jos.";
@@ -4463,7 +4463,7 @@
 "Not the default. Stop and reassess if recovery, sleep, or performance falls." = "Nu implicit. Opriți și reevaluați în cazul în care recuperarea, somnul sau performanța scade.";
 "Notes:  " = "Note:";
 "OWN" = "Proprietate";
-"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "Un picior la un moment dat expune partea care a fost în liniște face mai puțin, și cere șoldului să se stabilizeze mai degrabă decât doar extinde. Ambele părți obține aceeași lucrare, indiferent de care este mai puternic.";
+"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "Lucrul pe câte un picior evidențiază diferențele dintre părți și cere șoldului să stabilizeze mișcarea, nu doar să o extindă. Ambele părți primesc același volum, indiferent care este mai puternică.";
 "One-Arm" = "One-Arm";
 "Only data needed for the feature is requested. Optional permissions remain off until you choose them, and health or fitness data is never made a public profile by default." = "Se solicită numai datele necesare pentru caracteristică. Permisiunile opţionale rămân oprite până când le alegi, iar datele de sănătate sau de fitness nu sunt niciodată făcute un profil public implicit.";
 "Open my plan" = "Deschide planul meu";
@@ -4495,7 +4495,7 @@
 "Post-workout meal finishes recorded:  ." = "Finisaje post-workout de masă înregistrate: .";
 
 /* Translation coverage closure 456-490 · 2026-08-27 */
-"Postural work" = "Lucrări posturale";
+"Postural work" = "Control postural";
 "Power surplus" = "excedent de energie";
 "Presentation" = "Prezentare";
 "Preset buttons" = "Butoni presetați";
@@ -4512,11 +4512,11 @@
 "Protein powder can help when meals miss your protein target." = "Pulberea proteică poate ajuta atunci când mesele pierd obiectivul proteinei.";
 "Protein shake" = "Agitaţie proteică";
 "Pull-up ladder 1-2-3-4-5-4-3-2-1, 10s between rungs" = "Scara de tragere 1-2-3-4-5-4-3-2-1, 10s între trepte";
-"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "Tragerea echilibrează presiunile pe care le face deja, în viață la fel de mult ca în formare. Partea de sus a spatelui este ceea ce ține postura împreună atunci când orice altceva te trage înainte.";
-"Pulling day" = "Ziua de tragere";
-"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "Împingeți și trageți într-o singură sesiune, astfel încât întregul corp superior devine antrenat de două ori pe săptămână, fără a avea nevoie de patru zile separate pentru a face acest lucru.";
+"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "Exercițiile de tras echilibrează mișcările de împins, atât în antrenament, cât și în viața de zi cu zi. Musculatura spatelui superior ajută la menținerea unei poziții stabile când corpul este tras înainte.";
+"Pulling day" = "Zi de tras";
+"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "Mișcările de împins și de tras sunt combinate în aceeași sesiune, astfel încât partea superioară poate fi antrenată de două ori pe săptămână fără patru zile separate.";
 "Push-up benchmark week  : one fresh strict max set" = "Push-up săptămâna de referință: o nouă strictă max set";
-"Pushing day" = "Ziua de împingere";
+"Pushing day" = "Zi de împins";
 "QUICK LOG COMPLETE" = "LEGĂTURA REPEDE";
 "QUICK PICKS" = "ALEGERI RAPIDE";
 "Quiet hours and the three-per-day ceiling stay synchronized with the Watch." = "Ore liniștite și trei-pe-zi plafon stați sincronizat cu Watch.";
@@ -4535,7 +4535,7 @@
 "RPE 7" = "RPE 7";
 "RPE 7 cap" = "RPE 7 capac";
 "RPE 7–8" = "RPE 7";
-"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "Distanţa pe care o poţi controla este distanţa pe care o păstrezi. Acest lucru funcționează șoldurile și partea superioară a spatelui prin poziții care stau ia departe, ținându-le suficient de mult timp pentru sistemul nervos să le accepte.";
+"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "Controlul contează mai mult decât amplitudinea. Sesiunea mobilizează șoldurile și partea superioară a spatelui în poziții pe care statul prelungit pe scaun le limitează, fără să forțeze capătul mișcării.";
 "Range:   to  . Generated  ." = "Distanţa: către. Generat.";
 "Rating:   / 5" = "Evaluare: / 5";
 "Read Privacy Policy" = "Citește Politica de confidențialitate";
@@ -4554,7 +4554,7 @@
 "Remove %@" = "Elimină %@";
 "Repeat last load and chase the top of the rep range" = "Repetaţi ultima încărcătură şi urmăriţi partea superioară a intervalului rep";
 "Rest · Restore · Adapt" = "Restaurare · Adaptare";
-"Rest, hydrate and let the next hard session stay productive." = "Odihneşte-te, hidratează-te şi lasă următoarea sesiune să rămână productivă.";
+"Rest, hydrate and let the next hard session stay productive." = "Odihnește-te, hidratează-te și pregătește-te să intri refăcut în următoarea sesiune solicitantă.";
 "Return from layoff: deload week. Minus 1 set, 3-4 RIR, lighter loads" = "Întoarce-te de la concediere: săptămâna de încărcare. Minus 1 set, 3-4 RIR, sarcini mai ușoare";
 "Review body-weight trend after two weeks and adjust deliberately." = "Se analizează tendința de greutate corporală după două săptămâni și se ajustează în mod deliberat.";
 "Review body-weight trend after two weeks; more is not automatically better." = "Se analizează tendința de greutate corporală după două săptămâni; mai mult nu este automat mai bine.";
@@ -4578,14 +4578,14 @@
 "Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "Setați o poziție stabilă picior, bretele înainte de coborâre și să păstreze genunchii de urmărire cu degetele de la picioare. Foloseşte cea mai profundă gamă fără durere pe care o poţi controla.";
 "Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "Setați piciorul din spate confortabil, păstrați piciorul din față complet plantat și inferior sub control. Condu prin tot piciorul din faţă fără să laşi genunchiul să se prăbuşească în interior.";
 "Seven days needs one low-load day" = "Șapte zile are nevoie de o zi low-load";
-"Shake" = "Agitaţi";
+"Shake" = "Shake proteic";
 "Show preset names" = "Arată nume presetate";
 "Sign in again to build your plan." = "Semnează din nou pentru a-ţi construi planul.";
 "Sign in again to open your plan." = "Semnează din nou pentru a-ţi deschide planul.";
 "Six days needs distributed load" = "Şase zile necesită încărcătură distribuită.";
 "Slide %d of %d" = "Diapozitiv %d din %d";
-"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "Încet şi exact bate greu. Dacă o simţiţi în locul nepotrivit, daţi jos greutatea.";
-"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "Muschii mici care tin pozitia in loc sa miste greutatea. Raspund frecventei si controlului, nu incarcarii, motiv pentru care greutatile arata usor.";
+"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "Alege mișcări lente și precise, nu greutăți mari. Dacă simți efortul în altă zonă decât cea vizată, redu încărcarea.";
+"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "Mușchii care mențin poziția răspund mai bine la execuție controlată și repetare frecventă decât la greutăți mari. De aceea încărcările din această sesiune sunt mai mici.";
 "Speed 1.0" = "Viteza 1.0";
 "Speed 2.0" = "Viteza 2.0";
 "Speed 3.0" = "Viteza 3.0";
@@ -4626,6 +4626,8 @@
 "Taper swap: keeps the mid-back fresh without loading" = "Schimbător tapet: păstrează mijlocul spate proaspăt fără încărcare";
 "Taper:  % fewer sets,     to  " = "Taper: % mai puține seturi, la";
 "Tea" = "Ceai";
+"%d of %d taken" = "%d din %d administrate";
+"Add %d millilitres of %@" = "Adaugă %d ml: %@";
 "Terms of Use" = "Termeni de utilizare";
 "The Orbit food adjustment was not applied.  " = "Ajustarea Orbit alimente nu a fost aplicată.";
 "The Pyramid" = "Piramida";
@@ -4669,7 +4671,7 @@
 "United States" = "Statele Unite";
 "Units" = "Unități";
 "Upper and lower loading alternate so the same muscle group is not trained hard on consecutive days." = "Încărcare superioară și inferioară alternativă, astfel încât același grup muscular nu este antrenat greu în zile consecutive.";
-"Upper body" = "Partea superioară a corpului";
+"Upper body" = "Partea superioară";
 "Use  " = "Utilizare";
 "Use %d training days" = "Utilizare %d zile de formare";
 "Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "Utilizaţi o gamă controlată, fără durere, cu aliniere stabilă. Urmați tempo prescris, opriți pe durere ascuțită și lăsați repetițiile planificate în rezervă.";
@@ -4710,7 +4712,7 @@
 "What should this plan move toward?" = "Spre ce ar trebui să se îndrepte acest plan?";
 "Where will the work happen?" = "Unde va avea loc munca?";
 "Who helps operate APEX" = "Care ajută la operare APEX";
-"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "Tot corpul, condus de trunchi, într-un ritm care menţine ritmul cardiac. Asta antrenează cât de mult poţi lucra decât cât poţi ridica.";
+"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "Întregul corp lucrează într-un ritm care menține pulsul ridicat, cu trunchiul stabilizând mișcările. Scopul este să susții efortul mai mult timp, nu să ridici cât mai greu.";
 "Whole egg, hard-boiled" = "Ou întreg, fiert tare";
 "Whole-wheat pasta, cooked" = "Paste întregi, fierte";
 "Why it is used" = "De ce se utilizează";

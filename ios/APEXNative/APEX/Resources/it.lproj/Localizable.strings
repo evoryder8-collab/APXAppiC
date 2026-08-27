@@ -2153,7 +2153,7 @@
 "Give %@ two focused exposures this week, separated by enough recovery." = "# %@ due esposizioni focalizzate questa settimana, separate da abbastanza recupero.";
 "Give aerobic capacity a clear place in the week" = "Dare capacità aerobica un posto chiaro nella settimana";
 "Give the plan an honest starting point" = "Dare al piano un punto di partenza onesto";
-"Glass" = "Vetro";
+"Glass" = "Bicchiere";
 "Greek yoghurt, plain" = "Yoghurt greco, pianura";
 "Ground flaxseed" = "Fiocco di terra";
 "Grouped rounds will arrive with supersets. This sequence cannot be logged as an ordinary set." = "I giri raggruppati arriveranno con i superset. Questa sequenza non può essere registrata come set ordinario.";
@@ -2498,7 +2498,7 @@
 "Sets completed in this unfinished session have not been saved." = "I set completati in questa sessione non sono stati salvati.";
 "Settle into controlled quality. Do not race the opening minutes." = "Sistemare in qualità controllata. Non correre i minuti di apertura.";
 "Seven days needs one low-load day" = "Sette giorni hanno bisogno di un giorno basso";
-"Shake" = "Shake";
+"Shake" = "Frullato";
 "Show preset names" = "Mostra i nomi preimpostati";
 "Sign in again to build your plan." = "Accedi ancora per costruire il tuo piano.";
 "Sign in again to continue." = "Accedi ancora per continuare.";
@@ -2559,7 +2559,9 @@
 "Taper swap: keeps the mid-back fresh without loading" = "Scambio Taper: mantiene il midback fresco senza caricare";
 "Taper:  % fewer sets,     to  " = "Taper: % meno set, a";
 "Target mode" = "Modalità di destinazione";
-"Tea" = "Tea";
+"Tea" = "Tè";
+"%d of %d taken" = "%d su %d assunti";
+"Add %d millilitres of %@" = "Aggiungi %d millilitri di %@";
 "Terms of Use" = "Condizioni d'uso";
 "The Orbit food adjustment was not applied.  " = "La regolazione del cibo Orbit non è stata applicata.";
 "The Pyramid" = "La piramide";

@@ -2153,7 +2153,7 @@
 "Give %@ two focused exposures this week, separated by enough recovery." = "Dale. %@ dos exposiciones enfocadas esta semana, separadas por suficiente recuperación.";
 "Give aerobic capacity a clear place in the week" = "Dar capacidad aeróbica un lugar claro en la semana";
 "Give the plan an honest starting point" = "Dar el plan un punto de partida honesto";
-"Glass" = "Cristal";
+"Glass" = "Vaso";
 "Greek yoghurt, plain" = "Yogur griego, llano";
 "Ground flaxseed" = "Mosca terrestre";
 "Grouped rounds will arrive with supersets. This sequence cannot be logged as an ordinary set." = "Las rondas agrupadas llegarán con supersets. Esta secuencia no puede ser registrada como un conjunto ordinario.";
@@ -2197,7 +2197,7 @@
 "Iodized salt" = "Sal yodada";
 "It stops appearing in your plan. Everything you have already logged is kept." = "Deja de aparecer en tu plan. Todo lo que ya has registrado se mantiene.";
 "Its receipt and recorded sets will be removed from your history and progression." = "Su recibo y conjuntos registrados serán eliminados de su historia y progresión.";
-"Juice" = "Jugo";
+"Juice" = "Zumo";
 "Keep load progression prominent and measurable" = "Mantener la progresión de carga prominente y mensurable";
 "Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "Sigan moviéndose a un ritmo que podrían mantener al final, no uno que necesita un rescate a mitad de camino.";
 "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve." = "Mantenga los detalles de registro seguros. Usted es responsable de las entradas y ediciones realizadas a través de su cuenta. Las características de beta pueden cambiar a medida que la fiabilidad y la seguridad mejoran.";
@@ -2498,7 +2498,7 @@
 "Sets completed in this unfinished session have not been saved." = "Los conjuntos completados en esta sesión inacabada no se han salvado.";
 "Settle into controlled quality. Do not race the opening minutes." = "Fijate en la calidad controlada. No corras los primeros minutos.";
 "Seven days needs one low-load day" = "Siete días necesita un día de baja carga";
-"Shake" = "Shake";
+"Shake" = "Batido";
 "Show preset names" = "Mostrar nombres predefinidos";
 "Sign in again to build your plan." = "Inicie sesión de nuevo para construir su plan.";
 "Sign in again to continue." = "Inicie sesión de nuevo para continuar.";
@@ -2559,7 +2559,9 @@
 "Taper swap: keeps the mid-back fresh without loading" = "Cierre de tapa: mantiene la parte trasera fresca sin cargar";
 "Taper:  % fewer sets,     to  " = "Taper: % menos juegos, a";
 "Target mode" = "Modo de destino";
-"Tea" = "Tea";
+"Tea" = "Té";
+"%d of %d taken" = "%d de %d tomados";
+"Add %d millilitres of %@" = "Añadir %d mililitros de %@";
 "Terms of Use" = "Términos de uso";
 "The Orbit food adjustment was not applied.  " = "No se aplicó el ajuste alimentario de Orbit.";
 "The Pyramid" = "La pirámide";

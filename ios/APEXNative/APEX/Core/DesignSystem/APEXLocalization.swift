@@ -151,6 +151,14 @@ final class LanguageState {
         text(value).lowercased(with: language.locale)
     }
 
+    /// Default hydration presets are persisted as canonical English so they
+    /// remain portable when the user changes language. Only those canonical
+    /// names are translated; a name the user authored is displayed verbatim.
+    func hydrationPresetName(_ value: String) -> String {
+        let defaultNames = Set(HydrationLedger.defaultPresetTemplates.map(\.name))
+        return defaultNames.contains(value) ? text(value) : value
+    }
+
     func dateKey(_ value: String) -> String {
         guard let date = ISO8601DateFormatter.apexDateOnly.date(from: value) else { return value }
         return date.formatted(.dateTime.day().month(.abbreviated).year().locale(language.locale))

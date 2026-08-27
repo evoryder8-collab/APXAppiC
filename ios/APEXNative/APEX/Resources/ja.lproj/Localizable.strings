@@ -2153,7 +2153,7 @@
 "Give %@ two focused exposures this week, separated by enough recovery." = "お問い合わせ %@ 今週の2つの集中暴露、十分な回復によって分離。";
 "Give aerobic capacity a clear place in the week" = "有酸素容量を週に明確な場所を与えます";
 "Give the plan an honest starting point" = "計画に正直な出発点を与える";
-"Glass" = "ガラス";
+"Glass" = "コップ";
 "Greek yoghurt, plain" = "ギリシャヨーグルト、平野";
 "Ground flaxseed" = "粉砕された";
 "Grouped rounds will arrive with supersets. This sequence cannot be logged as an ordinary set." = "グループラウンドはスーパーセットで到着します。 通常のセットでは、このシーケンスは記録できません。";
@@ -2498,7 +2498,7 @@
 "Sets completed in this unfinished session have not been saved." = "この未完成セッションで完了したセットは保存されていません。";
 "Settle into controlled quality. Do not race the opening minutes." = "制御された質に置きます。 開口部を競い合わない。";
 "Seven days needs one low-load day" = "7日は1日未満の日を必要とします";
-"Shake" = "シェーク";
+"Shake" = "プロテインシェイク";
 "Show preset names" = "プリセット名を表示";
 "Sign in again to build your plan." = "プランを作成するためにもう一度サインインしてください。";
 "Sign in again to continue." = "続行するには、もう一度サインインしてください。";
@@ -2559,7 +2559,9 @@
 "Taper swap: keeps the mid-back fresh without loading" = "テーパースワップ: ミッドバックをロードせずに新鮮に保ちます";
 "Taper:  % fewer sets,     to  " = "テーパー: % 少ないセット、";
 "Target mode" = "ターゲットモード";
-"Tea" = "コーヒー";
+"Tea" = "お茶";
+"%d of %d taken" = "摂取済み：%d/%d件";
+"Add %d millilitres of %@" = "%dミリリットル追加：%@";
 "Terms of Use" = "利用規約";
 "The Orbit food adjustment was not applied.  " = "Orbit食品の調整は適用されません。";
 "The Pyramid" = "ピラミッド";

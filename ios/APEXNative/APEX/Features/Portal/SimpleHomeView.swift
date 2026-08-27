@@ -1241,12 +1241,13 @@ private struct WaterQuickAddSheet: View {
 
     private func presetButton(_ preset: HydrationPreset) -> some View {
         let tint = hydrationColor(preset.paletteToken)
+        let displayName = language.hydrationPresetName(preset.name)
         return Button {
             commit(preset)
         } label: {
             VStack(spacing: 3) {
                 Image(systemName: preset.iconToken)
-                Text(preset.name).lineLimit(1)
+                Text(displayName).lineLimit(1)
                 Text("\(preset.amountML) mL")
                     .font(APEXFont.mono(9, weight: .medium))
             }
@@ -1257,7 +1258,9 @@ private struct WaterQuickAddSheet: View {
             .background(tint.opacity(0.10), in: RoundedRectangle(cornerRadius: 15))
         }
         .buttonStyle(.plain)
-        .accessibilityLabel("Add \(preset.amountML) milliliters of \(preset.name)")
+        .accessibilityLabel(
+            language.format("Add %d millilitres of %@", preset.amountML, displayName)
+        )
     }
 
     private func quickButton(_ title: String, tint: Color, action: @escaping () -> Void) -> some View {
@@ -1294,6 +1297,7 @@ private struct WaterQuickAddSheet: View {
 private struct HydrationManagementSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
     let date: Date
     @State private var draft = WatchHydrationPreferences.default
     @State private var loaded = false
@@ -1392,8 +1396,13 @@ private struct HydrationManagementSheet: View {
                                     .foregroundStyle(hydrationColor(preset.paletteToken))
                                     .frame(width: 28)
                                 VStack(alignment: .leading) {
-                                    Text(preset.name).font(APEXFont.body(14, weight: .bold))
-                                    Text("\(preset.amountML) mL · \(preset.kind.rawValue.capitalized)")
+                                    Text(language.hydrationPresetName(preset.name))
+                                        .font(APEXFont.body(14, weight: .bold))
+                                    HStack(spacing: 0) {
+                                        Text("\(preset.amountML) mL")
+                                        Text(" · ")
+                                        Text(language.text(preset.kind.rawValue.capitalized))
+                                    }
                                         .font(APEXFont.mono(10))
                                         .foregroundStyle(APEXColor.secondaryInk)
                                 }
@@ -1430,7 +1439,11 @@ private struct HydrationManagementSheet: View {
                             Image(systemName: event.iconToken)
                                 .foregroundStyle(hydrationColor(event.paletteToken))
                             VStack(alignment: .leading, spacing: 2) {
-                                Text("\(event.amountML) mL · \(event.kind.rawValue.capitalized)")
+                                HStack(spacing: 0) {
+                                    Text("\(event.amountML) mL")
+                                    Text(" · ")
+                                    Text(language.text(event.kind.rawValue.capitalized))
+                                }
                                     .font(APEXFont.body(13, weight: .bold))
                                 Text(event.source.rawValue.replacingOccurrences(of: "_", with: " ").capitalized)
                                     .font(APEXFont.mono(9))
@@ -1504,6 +1517,7 @@ private struct HydrationManagementSheet: View {
 private struct HydrationPresetEditor: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @State private var language = LanguageState.shared
     let preset: HydrationPreset?
     @State private var name: String
     @State private var amountML: Int
@@ -1534,7 +1548,7 @@ private struct HydrationPresetEditor: View {
                 Stepper("\(amountML) mL", value: $amountML, in: 10...5_000, step: 10)
                 Picker("Drink type", selection: $kind) {
                     ForEach(kinds, id: \.self) { value in
-                        Text(value.rawValue.capitalized).tag(value)
+                        Text(language.text(value.rawValue.capitalized)).tag(value)
                     }
                 }
                 Section("Colour") {
@@ -1750,8 +1764,12 @@ struct SupplementStackEditor: View {
         VStack(alignment: .leading, spacing: 14) {
             if showsHeader {
                 APEXPopoverHeader(
-                    title: "Supplement stack",
-                    subtitle: "\(taken) of \(session.activeSupplements.count) taken",
+                    title: language.text("Supplement stack"),
+                    subtitle: language.format(
+                        "%d of %d taken",
+                        taken,
+                        session.activeSupplements.count
+                    ),
                     onClose: onClose
                 )
             }
@@ -1774,7 +1792,7 @@ struct SupplementStackEditor: View {
                                 Text(supplement.name)
                                     .font(APEXFont.body(14, weight: .bold))
                                     .fixedSize(horizontal: false, vertical: true)
-                                Text("\(supplement.dose) · \(supplement.groupLabel)")
+                                Text("\(supplement.dose) · \(language.text(supplement.groupLabel))")
                                     .font(APEXFont.body(10))
                                     .foregroundStyle(APEXColor.secondaryInk)
                                     .fixedSize(horizontal: false, vertical: true)
