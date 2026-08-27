@@ -7,6 +7,7 @@ import { nativeTrainingRows } from './native-training-translations.mjs'
 import { nativeRuntimeGeneralRows } from './native-runtime-general-translations.mjs'
 import { nativeRuntimeOrbitRows } from './native-runtime-orbit-translations.mjs'
 import { nativeRuntimeMarathonRows } from './native-runtime-marathon-translations.mjs'
+import { authoredVoiceRows } from './native-voice-copy.mjs'
 
 const toolsDirectory = path.dirname(fileURLToPath(import.meta.url))
 const repository = path.resolve(toolsDirectory, '../../..')
@@ -408,6 +409,7 @@ for (const [english, romanian, thai] of nativeTrainingRows) translations.set(eng
 for (const [english, romanian, thai] of nativeRuntimeGeneralRows) translations.set(english, { ro: romanian, th: thai })
 for (const [english, romanian, thai] of nativeRuntimeOrbitRows) translations.set(english, { ro: romanian, th: thai })
 for (const [english, romanian, thai] of nativeRuntimeMarathonRows) translations.set(english, { ro: romanian, th: thai })
+for (const row of authoredVoiceRows) translations.set(row.key, { ro: row.copy.ro, th: row.copy.th })
 
 function escapeStrings(value) {
   return value.replaceAll('\\', '\\\\').replaceAll('"', '\\"').replaceAll('\n', '\\n').replaceAll('\r', '\\r')

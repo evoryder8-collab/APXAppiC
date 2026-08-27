@@ -482,6 +482,13 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["meal-food-picker-open"].waitForExistence(timeout: 3))
         let composerName = app.textFields["meal-composer-name"]
         XCTAssertTrue(composerName.exists)
+        XCTAssertTrue(app.descendants(matching: .any)["meal-total-water"].waitForExistence(timeout: 2))
+        let compactItemWater = app.descendants(matching: .any).matching(
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "meal-item-card-", "millilitres water"
+            )
+        ).firstMatch
         /* Overlapping Dayline cards used to hand the tap to a neighbouring
            meal, which then failed further down for the wrong reason. */
         XCTAssertEqual(composerName.value as? String, "Breakfast", "tapped breakfast, opened something else")
@@ -489,19 +496,19 @@ final class APEXSmokeUITests: XCTestCase {
            built until the sheet is scrolled to it. */
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["FAST STARTS"], in: app))
         XCTAssertTrue(app.buttons["Select"].firstMatch.waitForExistence(timeout: 3))
-        XCTAssertTrue(app.descendants(matching: .any)["meal-total-water"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.descendants(matching: .any).matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-water-")
-        ).firstMatch.exists)
 
         /* The sticky save bar overlaps the lower edge of a merely "hittable"
            card in XCTest. Move the row into clear space before proving X. */
         app.swipeUp()
         let compactDelete = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-delete-")
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
+                "meal-item-card-", "Remove "
+            )
         ).firstMatch
         XCTAssertTrue(scrollUntilVisible(compactDelete, in: app))
         XCTAssertTrue(compactDelete.isHittable)
+        XCTAssertTrue(compactItemWater.exists)
         compactDelete.tap()
         let compactUndo = app.descendants(matching: .any)["meal-item-undo"]
         XCTAssertTrue(compactUndo.waitForExistence(timeout: 2))
@@ -517,11 +524,17 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.switches["Adaptive"].waitForExistence(timeout: 2))
         XCTAssertTrue(app.switches["Lock"].exists)
         XCTAssertTrue(app.descendants(matching: .any).matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-water-")
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label CONTAINS %@",
+                "meal-item-card-", "millilitres water"
+            )
         ).firstMatch.exists)
         app.swipeUp()
         let expandedDelete = app.buttons.matching(
-            NSPredicate(format: "identifier BEGINSWITH %@", "meal-item-delete-")
+            NSPredicate(
+                format: "identifier BEGINSWITH %@ AND label BEGINSWITH %@",
+                "meal-item-card-", "Remove "
+            )
         ).firstMatch
         XCTAssertTrue(scrollUntilVisible(expandedDelete, in: app))
         XCTAssertTrue(expandedDelete.isHittable)
@@ -532,7 +545,14 @@ final class APEXSmokeUITests: XCTestCase {
         capture("meal-composer-expanded")
 
         app.buttons["Select"].tap()
-        let firstFood = app.buttons["meal-item-select-Swiss rolled oats"]
+        let firstFoodName = app.staticTexts["Swiss rolled oats"]
+        XCTAssertTrue(firstFoodName.waitForExistence(timeout: 2))
+        let firstFood = app.buttons.matching(
+            NSPredicate(
+                format: "identifier == %@ AND label == %@",
+                firstFoodName.identifier, "circle"
+            )
+        ).firstMatch
         XCTAssertTrue(firstFood.waitForExistence(timeout: 2))
         firstFood.tap()
         XCTAssertTrue(app.buttons["Create preset"].isEnabled)

@@ -102,16 +102,16 @@
 "Before bed" = "就寝前";
 "With a meal" = "食事と一緒に";
 "What this session trains" = "このセッションで鍛える部位";
-"Worked today" = "今日鍛える部位";
-"Also involved" = "補助的に働く部位";
-"Why this shape" = "この構成の理由";
-"What matters most today" = "今日いちばん大事なこと";
+"Worked today" = "今日のメイン部位";
+"Also involved" = "補助で使う部位";
+"Why this shape" = "このメニューの狙い";
+"What matters most today" = "今日いちばん意識すること";
 "Muscle growth" = "筋肥大";
-"Strength" = "筋力";
-"Endurance" = "持久力";
+"Strength" = "筋力アップ";
+"Endurance" = "筋持久力";
 "Range of motion" = "可動域";
 "Conditioning" = "コンディショニング";
-"Restoration" = "回復";
+"Restoration" = "リカバリー";
 "Glutes" = "臀筋";
 "Hamstrings" = "ハムストリング";
 "Quads" = "大腿四頭筋";
@@ -144,10 +144,10 @@
 "Code" = "コード";
 "Redeem" = "適用";
 "That code was not recognised." = "このコードは認識できません。";
-"Protein is short today" = "今日はタンパク質が不足しています";
-"Creatine not logged" = "クレアチン未記録";
-"It works by staying topped up. Today still counts." = "継続することで効果が出ます。今日もまだ間に合います。";
-"Nothing to flag today." = "今日は特にありません。";
+"Protein is short today" = "今日はタンパク質が目標未満です";
+"Creatine not logged" = "今日はクレアチンの記録がありません";
+"It works by staying topped up. Today still counts." = "クレアチンは筋肉内の量を保つことで働きます。今日の分もまだ間に合います。";
+"Nothing to flag today." = "今日は特に気をつけることはありません。";
 "Today only" = "今日のみ";
 "Every session, meal and night of sleep quietly rewrites what tomorrow asks of you." = "すべてのトレーニング、食事、そして睡眠が、明日あなたに求められるものを静かに書き換えます。";
 "Waiting" = "待機中";
@@ -677,7 +677,7 @@
 "I’m a newbie" = "初心者です";
 "Got it, open camera" = "了解、カメラを開く";
 "Go to this part of the session" = "セッションのこの部分へ移動";
-"Feet on the guide line" = "足をガイド線に合わせる";
+"Feet on the guide line" = "ガイド線に両足を合わせる";
 "Hold the barcode inside the frame" = "バーコードを枠内に収めてください";
 
 /* Chrome: sessions, logging, phases, marathon intake */
@@ -889,7 +889,7 @@
 "Not enough comparable pace data yet." = "比較できるペースのデータがまだ足りません。";
 "Not every runner receives a twelve-week plan." = "すべてのランナーが12週間のプランになるわけではありません。";
 "Name the workout and add at least one movement." = "ワークアウトに名前を付け、種目を1つ以上追加してください。";
-"Neutral stance, no forced flex" = "自然な姿勢で、力を入れすぎない";
+"Neutral stance, no forced flex" = "自然に立ち、無理に力まない";
 "Occasionally noticeable but does not change movement" = "時々感じるが、動きは変わらない";
 "Only add activity beyond the normal daily floor." = "普段の生活を超えた活動だけを追加してください。";
 "Orbit is comparing genuinely different route shapes." = "Orbitは本当に形の違うルートを比較しています。";
@@ -996,13 +996,13 @@
 "Clear precise activities and switch" = "詳細な活動を消して切り替える";
 "Conversational effort, RPE 2 to 3" = "会話できる強度、RPE 2〜3";
 "Conversational effort, RPE 2 to 4" = "会話できる強度、RPE 2〜4";
-"Desk day plus one short home workout." = "デスクワークに、自宅での短いワークアウトを1回。";
-"Desk day plus a full 45–60 minute session." = "デスクワークに、45〜60分のフルセッションを1回。";
-"Editing day, car everywhere, no workout." = "編集作業の日。移動は車、運動なし。";
-"Full shoot day or four to six massages." = "撮影まる1日、またはマッサージ4〜6件。";
-"Championship filming marathon or double-session day." = "長時間の撮影、または1日2セッション。";
-"Four hours gimbal + rig carry + travel" = "ジンバル4時間、機材運搬、移動";
-"Desk floor + gym session + incidental steps" = "デスクワーク、ジム、日常の歩数";
+"Desk day plus one short home workout." = "デスクワーク＋短時間の自宅トレーニング1回";
+"Desk day plus a full 45–60 minute session." = "デスクワーク＋45〜60分のしっかりしたトレーニング";
+"Editing day, car everywhere, no workout." = "デスクで編集作業。移動はすべて車で、運動なし。";
+"Full shoot day or four to six massages." = "終日の撮影、またはマッサージ施術4〜6件";
+"Championship filming marathon or double-session day." = "大会を終日撮影、または1日2回のトレーニング";
+"Four hours gimbal + rig carry + travel" = "ジンバル操作4時間＋機材運搬＋移動";
+"Desk floor + gym session + incidental steps" = "デスクワーク＋ジム＋未記録の日常歩数";
 
 /* Chrome: routes, recovery, campaign, restore */
 "Run" = "ラン";
@@ -1103,7 +1103,7 @@
 "Camera & comparison" = "カメラと比較";
 "Cadence ticks" = "ケイデンスの刻み";
 "Calm, rehearsed, decisive." = "落ち着いて、練習どおりに、迷わず。";
-"Same room and similar light" = "同じ部屋、近い明るさで";
+"Same room and similar light" = "前回と同じ部屋、近い明るさ";
 "Runs long enough to require rehearsal" = "補給の練習が必要になる長さのラン";
 "Search Food Memory, scan a barcode, or apply a saved preset." = "Food Memoryを検索、バーコードを読み取り、または保存済みのプリセットを使います。";
 "STEPS NOT ALREADY COVERED BY THE BLOCKS ABOVE." = "上のブロックに含まれていない歩数。";
@@ -1214,12 +1214,12 @@
 "The precise start and finish are hidden by default." = "正確なスタートとゴールは、既定で隠されます。";
 "The follow-along player, with pacing and rest built in" = "ペースと休憩を組み込んだ、ついていくだけのプレイヤー";
 "Build the credible path to 42.195 km." = "42.195 kmまでの現実的な道筋をつくります。";
-"Build a repeatable image" = "毎回そろう構図をつくる";
+"Build a repeatable image" = "比較しやすい一枚を残そう";
 "Foundation to First Marathon" = "土台から初マラソンへ";
 "First Marathon: Finish Strong" = "初マラソン：最後まで力を残す";
 "First Marathon: Performance" = "初マラソン：記録を狙う";
 "Hybrid Athlete Marathon" = "ハイブリッド アスリートのマラソン";
-"Quick Mode's brain" = "クイックモードの頭脳";
+"Quick Mode's brain" = "クイックモードの仕組み";
 
 /* Chrome: weekdays, ranges, run debrief, disclaimers */
 "Tu" = "火";
@@ -1263,8 +1263,8 @@
 "The run does not require a strength-programme change." = "このランに合わせて筋力プログラムを変える必要はありません。";
 "Training and Avatar remain coordinated" = "トレーニングとアバターは連動したままです";
 "Try the exact product name or scan its barcode." = "正確な商品名で検索するか、バーコードを読み取ってください。";
-"Three 60-minute sessions + normal errands" = "60分のセッション3回に、普段の用事";
-"Under 5k steps · under 2h on feet" = "5000歩未満・立ち時間2時間未満";
+"Three 60-minute sessions + normal errands" = "60分のマッサージ施術3件＋普段の用事";
+"Under 5k steps · under 2h on feet" = "5,000歩未満・立つ／歩く時間2時間未満";
 "Best realistic performance" = "現実的なベストの成績";
 "Before, after and the stats behind the change" = "ビフォー、アフター、そしてその裏づけ";
 "Broad endurance evidence and coaching consensus" = "持久系の幅広い知見と指導現場の一致";
@@ -1584,10 +1584,10 @@
 "15 to 21 km" = "15〜21 km";
 "20 to 35 km" = "20〜35 km";
 "35 to 50 km" = "35〜50 km";
-"5–7.5k steps or 2–3h on feet" = "5000〜7500歩、または立ち時間2〜3時間";
-"7.5–10k steps or 3–5h on feet" = "7500〜10000歩、または立ち時間3〜5時間";
-"10–14k steps or 5–8h on feet" = "10000〜14000歩、または立ち時間5〜8時間";
-"14k+ steps and 8h+ physical work" = "14000歩超、かつ肉体労働8時間超";
+"5–7.5k steps or 2–3h on feet" = "5,000〜7,500歩 または 立つ／歩く時間2〜3時間";
+"7.5–10k steps or 3–5h on feet" = "7,500〜10,000歩 または 立つ／歩く時間3〜5時間";
+"10–14k steps or 5–8h on feet" = "10,000〜14,000歩 または 立つ／歩く時間5〜8時間";
+"14k+ steps and 8h+ physical work" = "14,000歩超＋体を使う仕事8時間超";
 "CoreTraining" = "体幹トレーニング";
 "CrossTraining" = "クロストレーニング";
 "FunctionalStrengthTraining" = "ファンクショナル筋力トレーニング";
@@ -1811,7 +1811,7 @@
 "%@ target · tap Done when completed" = "%@ ターゲット・タップ 完了時";
 "%@ · SET %d" = "%@ ・セット %d";
 "%d days / week" = "%d 日 / 週";
-"%d g to go. %d g tonight is enough." = "%d g お問い合わせ %d g 夜は十分です。";
+"%d g to go. %d g tonight is enough." = "あと%d gです。今夜は%d g取れば十分です。";
 "%d min left in the high-value window" = "%d 値の高いウィンドウに残った分";
 "%d min · meal finished after training" = "%d トレーニング終了後のお食事";
 "%d ml" = "%d ml";
@@ -1975,9 +1975,9 @@
 "Body baseline   mL" = "ボディベースライン   mL";
 "Bodyweight and only the equipment you select" = "体重と選択した機器だけ";
 "Bottle" = "ボトル";
-"Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "肋骨を下ろし、足を通って運転し、そして皮で終わります。 腰が下を覆うことなく十分に拡張されると停止します。";
-"Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "胴体をブレースし、肘をリードし、下肢に向かって引きます。 肩の刃を削らずに自然に動かそう。";
-"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "各ポジションの末尾に息づく。 息を保ち、解放に来た緊張を保ちましょう。";
+"Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "肋骨が開かないよう体幹を固め、足で床を押してお尻で持ち上げます。股関節が伸び切ったら止め、腰は反らさないように。";
+"Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "体幹を固め、肘から動かして下側の肋骨へ引きます。肩をすくめず、肩甲骨は自然に動かしましょう。";
+"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "各ポジションの終わりで、ゆっくり息を吐きます。息を止めないと保てないなら、無理に粘らず可動域を少し狭めましょう。";
 "Brown rice, cooked" = "玄米、調理済み";
 "Build a balanced, repeatable training rhythm" = "バランスの取れた反復可能なトレーニングのリズムを構築する";
 "Build a plan before APEX labels any day as training or recovery." = "計画を立てる前に APEX 訓練または回復として毎日ラベルを付けて下さい。";
@@ -1987,7 +1987,7 @@
 "Build your starting point" = "スタートポイントの構築";
 "Build your training week" = "トレーニング週間をビルドする";
 "Built from the loads and reps you recorded, one line per exercise." = "記録した負荷と担当者から構築され、演習ごとに1行。";
-"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "選択した動きから構築されたので、示されている筋肉は、実際にロードする自分の演習です。";
+"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "表示される筋肉は、あなたが選んだ種目で実際に負荷がかかる部位です。";
 "Bulgur, cooked" = "ブルグル, 調理";
 
 /* Translation coverage closure 246-280 · 2026-08-27 */
@@ -1997,14 +1997,14 @@
 "CARBOHYDRATES" = "炭水化物";
 "CONTACTS" = "お問い合わせ";
 "Cache-Control" = "キャッシュ・コントロール";
-"Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "確認後、カメラアクセスが始まります。 レビューと保存まではアップロードされません。";
+"Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "下で確認するまでカメラへのアクセスは始まりません。写真は、内容を確認して保存するまでアップロードされません。";
 "Capacity & Core" = "容量及び中心";
 "Carry target" = "キャリーターゲット";
 "Cat-Cow" = "猫ちゃん";
 "Championship rule: no leg training in the final 7 days" = "チャンピオンシップルール:最終7日間のレッグトレーニングなし";
 "Cherry tomatoes" = "チェリートマト";
 "Chest · Back · Arms" = "胸・背中・腕";
-"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "チェスト、肩、トリプは、すべてのプレスの動きを共有しているので、彼らは同じ回復のために競争する3日ではなく一緒に訓練されています。";
+"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "プレス種目では胸・肩・上腕三頭筋が一緒に働きます。同じ日にまとめれば、別々の日に疲労を重ねず、回復の時間も確保できます。";
 "Chicken breast, cooked" = "鶏のbreast、調理される";
 "Choose Balanced fitness if hunger or recovery disrupts consistency." = "飢餓または回復が一貫性を混乱させる場合は、バランスの取れたフィットネスを選択します。";
 "Choose Maintain if training performance or recovery declines." = "トレーニングのパフォーマンスや回復が低下している場合は、維持してください。";
@@ -2048,11 +2048,11 @@
 "Content-Type" = "コンテンツタイプ";
 "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards." = "受託インフラストラクチャプロバイダは、認証、ストレージ、同期、購入に必要なデータのみを処理する場合があります。 スイス外での処理は、該当する保護具を使用する必要があります。";
 "Control the clock, spacing and Food Memory shared with the web app." = "Webアプリで共有される時計、間隔、フードメモリをコントロールします。";
-"Control the lowering. That is the half of the rep that does most of the building." = "低下を制御する。 建物の大部分を占める担当者の半分です。";
+"Control the lowering. That is the half of the rep that does most of the building." = "下ろす動作を丁寧に。筋肉への刺激を左右する大切な局面です。";
 "Controls the live clock, meal positions and pre-workout timing analysis." = "ライブクロック、食事の位置、プレワークアウトタイミングの分析を制御します。";
 "Core evidence" = "コア証拠";
 "Couscous, cooked" = "Couscous, 調理";
-"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "クレアチンは週に筋肉で蓄積し、それを取っている間そこにとどまります、従って一貫性は単一の線量より多くをします。";
+"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "クレアチンは数週間かけて筋肉に蓄えられ、続けて取ることでその量が保たれます。1回の量より、毎日の継続が大切です。";
 "Creatine monohydrate supports repeated high-intensity and strength work." = "クレアチンモノハイドレートは、繰り返し高強度と強度の作業をサポートしています。";
 "Current concerning symptoms or an existing restriction lead to professional review before strenuous assignment. Old resolved history does not automatically block training." = "症状または既存の制限に関する電流は、激しい割り当ての前に専門家のレビューにつながります。 古い解決された歴史は訓練を妨げません。";
 "Current joint discomfort" = "現在の共同不快感";
@@ -2129,7 +2129,7 @@
 "Focus T25 ·  " = "焦点 T25 ·";
 "Focused foundation" = "重点基盤";
 "Follow along" = "フォローする";
-"Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session." = "画面上のエピソードに従ってください。 フォームまたは呼吸が中断し始めるとき、修飾子を選択します。 完了した修飾子バージョンは、完了したセッションとしてカウントされます。";
+"Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session." = "画面の動画に沿って進めてください。フォームや呼吸が崩れ始めたら、すぐに軽いバージョンへ切り替えましょう。軽いバージョンでも最後までやれば、セッション完了としてカウントされます。";
 "Follow the plan and keep the prescribed repetitions in reserve." = "プランをフォローし、所定の繰り返しを留保します。";
 "Follow the planned session normally." = "計画されたセッションを正常にフォローしてください。";
 "Food" = "フード";
@@ -2146,7 +2146,7 @@
 "Fresh strict maximum. Stop when clean form ends, then rest three full minutes." = "新鮮な厳密な最高。 きれいなフォームが終了すると停止し、その後3分おきます。";
 "Fuel progress" = "燃料の進行状況";
 "Full ends after strength. Speed 1.0 is not an immediate finisher" = "強さの後で完全な端。 速度1.0は即時のフィニッシャーではないです";
-"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "底のフル レンジ。 成長のほとんどを離れて重量の貿易を加えるために深さを切って下さい。";
+"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "重量のためにボトムを浅くしないこと。無理のない範囲でしっかり下ろすほうが、狙った刺激を得られます。";
 "Full selected: complete prescribed sets. Choose Light for the opening-week ramp" = "完全な選択:完全な所定のセット。 開通週間ランプのライトを選ぶ";
 "Gentle cut" = "ジャンルカット";
 "Gentle reminders" = "ジャンルのリマインダー";
@@ -2166,7 +2166,7 @@
 "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX." = "HealthKit 測定された睡眠の持続時間と段階を露出しますが、Appleのスリープスコアをサードパーティのアプリに表示しません。 スリープアプリで表示されているスコアを入力すると、 APEXお問い合わせ";
 "Hide keyboard" = "キーボードを非表示";
 "High-volume fuel" = "大容量燃料";
-"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "同じ日にヒンジとスクワッティングは、脚全体をカバーしています。ヒンジは、長い筋肉の長さでハムストリングとフルートをロードし、それらが短い作業よりも多く構築します。";
+"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "スクワットとヒンジを同じ日に行うことで、脚全体をしっかり鍛えられます。ヒンジ種目はハムストリングスとお尻が伸びた位置で負荷をかけられるため、短い位置だけで鍛えるより大きな刺激になります。";
 "History" = "プロフィール";
 "Hold and drag to correct the finish time" = "終了時間を修正するために保持し、ドラッグ";
 "Hold body weight while progressive training drives recomposition." = "プログレッシブトレーニングドライブの交換中に体重を保持します。";
@@ -2199,15 +2199,15 @@
 "Its receipt and recorded sets will be removed from your history and progression." = "そのレシートと記録されたセットは、履歴と進行から削除されます。";
 "Juice" = "ジュース";
 "Keep load progression prominent and measurable" = "負荷の進行を目立たせ、測定可能保ちます";
-"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "救助の途中を必要とするものではなく、最後に保持できるペースで移動し続ける。";
+"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "最後まで続けられるペースで入りましょう。前半で飛ばしすぎないこと。";
 "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve." = "サインイン情報を安全に保ちます。 あなたのアカウントを通じて行われたエントリと編集を担当しています。 ベータ機能は信頼性および安全改善として変わるかもしれません。";
-"Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "痛みのない範囲でボディブレースを保ち、肩を耳から離れたまま押します。 安定した手首および肘の直線を維持して下さい。";
-"Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "腰を固定し、カールを滑らかにし、骨盤を持ち上げることなく簡単に絞ってください。 ゆっくり戻ります。";
+"Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "全身を固め、痛みのない範囲で下ろします。肩を耳から遠ざけたまま押し、手首と肘の向きを安定させましょう。";
+"Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "骨盤を浮かせず、腰を安定させたまま滑らかに曲げます。収縮した位置で一度締め、ゆっくり戻しましょう。";
 "Keep the priority strength work, reduce optional volume and prefer Stretch over optional conditioning." = "優先的な強さの仕事を保ち、任意容積を減らし、任意調節上の伸張を好むして下さい。";
-"Keep the rest honest. Short rest here costs you the later sets." = "休息を正直に保ちます。 ショートレストは、後日セットを要します。";
-"Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "肋骨を静かに保ち、上部の背部と引っ張って下さい。 余分な範囲を強制するのではなく、手と肩で仕上げます。";
-"Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range." = "上腕を安定した状態に保ちます。 快適な肘の範囲を通した制御の下で下げて下さい。";
-"Keep the weight close, soften the knees and push the hips back until the hamstrings are loaded. Keep the spine long and finish by standing tall, not by leaning back." = "体重を閉じて、膝を柔らかくし、ハムストがロードされるまでヒップを後ろに押し続けます。 背中を傾けることではなく、背が高く立って背を長く仕上げてください。";
+"Keep the rest honest. Short rest here costs you the later sets." = "休憩は設定どおりに取りましょう。急ぐと後半のセットで力が落ちます。";
+"Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "肋骨が開かないように保ち、上背部で引きます。肩を下げたまま両手を外へ開き、無理に可動域を広げないこと。";
+"Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range." = "上腕を固定し、反動を使わずカールします。肘に無理のない範囲で、ゆっくり下ろしましょう。";
+"Keep the weight close, soften the knees and push the hips back until the hamstrings are loaded. Keep the spine long and finish by standing tall, not by leaning back." = "重りを身体の近くに保ち、膝を軽く緩めて、お尻を後ろへ引きます。ハムストリングスの張りを感じる位置までで、背中はまっすぐに。最後は反らずに直立します。";
 "Keep this genuinely easy. Faster is not better for today’s mission." = "これを本物的に簡単に保ちます。 今日のミッションでは、より高速化が進んでいます。";
 "Keep this restorative. No loaded work and no effort target." = "この回復力を保つ。 負荷なしの作業と努力の目標はありません。";
 "Keep this session deliberately easy. Finish feeling better than you started." = "このセッションを意図的に簡単にしてください。 終わりは始めるよりよく感じます。";
@@ -2218,7 +2218,7 @@
 "Know when to stop" = "停止するときを知る";
 "LOAD KG (+/−)" = "負荷 KG (+/−)";
 "LOG" = "ニュース";
-"Lead with the elbow, not the hand, so the back works instead of the arms." = "肘、手ではなく、腕の代わりにバックワークをリードします。";
+"Lead with the elbow, not the hand, so the back works instead of the arms." = "手ではなく肘から引く意識で。腕だけに頼らず、背中を使えます。";
 "Light balance" = "ライトバランス";
 "Light fuel" = "光燃料";
 "Light pairs reduced leg work with controlled Speed 1.0" = "軽い組は制御された速度1.0の足の仕事を減らしました";
@@ -2237,7 +2237,7 @@
 "Log at least five of the next seven days. You currently have meal evidence on %d." = "次の7日間の少なくとも5つをログに記録します。 現在、お食事の証拠があります %dお問い合わせ";
 "Log completed work; APEX adapts from measured training." = "ログ完了作業; APEX 測定された訓練から適応します。";
 "Log each set" = "各セットのログ";
-"Log the weight you used. Next week's session is built from it." = "使用した重量を記録します。 翌週のセッションはそれから作成されます。";
+"Log the weight you used. Next week's session is built from it." = "使った重量を記録しましょう。来週のメニュー設定に使われます。";
 "Log what you actually did. Every saved workout becomes a reusable smart preset." = "実際に何をしたかを記録します。 保存されたワークアウトはすべて再使用可能なスマートプリセットになります。";
 "Logging on more days raises it. Eating at wildly different times lowers it. Change your timezone in Settings if the hours look wrong." = "より多くの日にログを上げます。 野生の異なる時間で食べることはそれを下げます。 時間が間違っている場合は、設定でタイムゾーンを変更します。";
 "Long runs progressively practise familiar pre-run and during-run nutrition before race week." = "長期的には、よく熟知しているプリランとレースウィーク前の栄養中を練習します。";
@@ -2246,8 +2246,8 @@
 "Long-run rehearsal:   g carbohydrate across familiar pre-run, during-run and recovery foods, plus   g recovery protein. Nothing changes until you apply it." = "長期リハーサル:   g 身近なプレラン、実行中および回復食糧を渡る炭水化物、プラス   g 回復蛋白質。 応募までの変更はありません。";
 "Loss is intentionally slower and depends on consistent weeks." = "損失は意図的に遅く、一貫した週に依存します。";
 "Lower Focus" = "低い焦点";
-"Lower body, heavy base" = "より低いボディ、重い基盤";
-"Lower body, single leg" = "ボディ、単一の足を下げて下さい";
+"Lower body, heavy base" = "下半身・高重量の基本種目";
+"Lower body, single leg" = "下半身・片脚トレーニング";
 
 /* Translation coverage closure 491-525 · 2026-08-27 */
 "MISS" = "マイス";
@@ -2264,7 +2264,7 @@
 "Mark set skipped" = "マークセット スキップ";
 "Match daily expenditure for consistent endurance work." = "一貫した持久力の仕事のための毎日の支出に一致して下さい。";
 "Match estimated daily expenditure without targeting weight change." = "マッチは重量の変更を目標としないで推定された毎日の支出を推定しました。";
-"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "より弱い側面にマッチします。 より強い脚は、より弱い人はフォームを保持することができます担当者をします。";
+"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "回数は弱い側に合わせます。強い脚も、弱い脚が正しいフォームでできる回数まで。";
 "Matched last time" = "最後の時間と一致";
 "Meal finishes recorded:  . " = "食事の終わりは記録しました:。";
 "Meal schedule completed with a  /100 rhythm signal. Health consistency gained context" = "食事のスケジュールは/100のリズム信号と完了しました。 健康の一貫性はコンテキストを得ました";
@@ -2277,10 +2277,10 @@
 "Minimal shows only APEX, Before/After, and each photo’s date and time." = "最小限のショーのみ APEX、前後、各写真の日付と時刻。";
 "Minimum gap" = "最小ギャップ";
 "Missed" = "ミス";
-"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "1日が少しずつ変化する。 ほとんどの日を逃すことは、まったく服用しないのと同じです。 明日を2倍増させる必要はありません。通常の量をとり、持ち運びます。";
+"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "1日抜けても影響はほとんどありません。ただし抜ける日が続けば、取っていないのと同じです。明日に倍量を取る必要はありません。いつもの量から再開しましょう。";
 "MixedCardio" = "ミックスカーディオ";
 "Mobility and conversational-pace capacity replace a seventh hard session." = "モビリティと会話ペースの容量は、第7回ハードセッションを交換します。";
-"Mobility and reset" = "モビリティとリセット";
+"Mobility and reset" = "モビリティ＆リセット";
 "Mobility within 48 h of a leg day. Joint synergy bonus +25%" = "脚日の48時間以内の移動性。 ジョイントシナジーボーナス +25%";
 "Moderately active" = "適度に活動的な";
 "Morning check, %.1f hours sleep" = "モーニングチェック %.1f 時間 睡眠";
@@ -2289,7 +2289,7 @@
 /* Translation coverage closure 526-560 · 2026-08-27 */
 "Motion" = "アクション";
 "Move down" = "移動する";
-"Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "通常呼吸しながらコントロールできる範囲でのみ移動します。 動きが急激な痛みを引き起こした場合、トランクを静かに保ちます。";
+"Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "普段どおり呼吸でき、コントロールできる範囲だけ動きます。体幹は安定させ、鋭い痛みが出たら中止してください。";
 "Move to Strength base if load or recovery trends down." = "負荷または回復傾向がダウンした場合、強度ベースに移動します。";
 "Move up" = "移動する";
 "NONE" = "なし";
@@ -2302,7 +2302,7 @@
 "No demanding session is waiting. Orbit preserves a gradual return before another campaign." = "要求の厳しいセッションは待っていません。 Orbitは、別のキャンペーンの前に段階的なリターンを保存します。";
 "No equipment is required. Select only what is genuinely available." = "設備不要 本当に利用可能なものだけを選択します。";
 "No hydration facts for this day." = "この日の水分補給事実はありません。";
-"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "今日は筋肉グループが処方されていません。 すでに完了した作業が適応される場所にある。";
+"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "今日は特定の部位を鍛える予定はありません。これまでのトレーニングが成果に変わるのは、身体を回復させている間です。";
 "No mysterious score. Every conclusion keeps its reason visible." = "神秘的なスコアはありません。 すべての結論は、その理由が見えるままです。";
 "No plan" = "プランなし";
 "No prescription" = "処方なし";
@@ -2325,8 +2325,8 @@
 
 /* Translation coverage closure 561-595 · 2026-08-27 */
 "Off route by about %d m. Return to the violet line when practical." = "オフルートについて %d m. 実用的にバイオレットラインに戻る。";
-"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "静かに少ないことをやっている側を暴露する時に1足ずつ足を踏み入れ、ただ伸びるのではなく、腰を安定させるように依頼する。 どちらの側面も、そのどれも強くても同じ仕事になります。";
-"One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "毎日1つのポイント APEX あなたの完全な写真を記録しました。 行は、このページの一番上に表示されている全インデックスと同じ数字で、移動しているか、今日のところだけに表示されるかを確認できます。";
+"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "片脚ずつ行うと左右差が見えやすくなり、股関節を支える力も鍛えられます。強い側に任せず、両脚に同じだけ仕事をさせましょう。";
+"One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "各点は、APEXがあなたの状態を一通り記録できた1日分です。線はページ上部と同じ総合指数の推移を表し、今の値だけでなく変化の方向も確認できます。";
 "One quiet reminder in the evening, only on days you are short on protein or have not taken your creatine. Without it, the same reminders wait for you inside the app." = "夕方に1つの静かなリマインダー、あなたがタンパク質に不足しているか、あなたのクレアチンを服用していない日だけ。 それなしで、同じリマインダーはアプリ内であなたを待っています。";
 "One set removed from each exercise. Keep 3 to 4 reps in reserve and use lighter loads." = "各演習から削除された1セット。 予備の3〜4個の担当者を保ち、より軽い負荷を使用します。";
 "One-Arm" = "ワンアーム";
@@ -2374,7 +2374,7 @@
 "Partial workout" = "部分的なワークアウト";
 "Partially completed" = "部分的に完了";
 "Partner-sync order: shared strength first, profile-specific finishers last" = "パートナーの同期注文:最初に共有された強さ、プロフィール固有のフィニッシャーは持続します";
-"Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis." = "あなたから生成されたパフォーマンスガイダンス APEX ログとトレンド。 医療診断ではありません。";
+"Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis." = "このパフォーマンス向けアドバイスは、APEXの記録と推移をもとに作成されています。医療上の診断ではありません。";
 "Performance · Vision · Evolution" = "パフォーマンス・ビジョン・進化";
 "Permanently delete all Orbit routes, runs, campaign answers and shoe records for this profile?" = "このプロファイルのすべての軌道ルート、実行、キャンペーン回答、靴レコードを永久に削除しますか?";
 "Persistent or worsening symptoms need medical assessment before your next session." = "持続的または悪化する症状は、次のセッションの前に医学的評価を必要とします。";
@@ -2389,7 +2389,7 @@
 "Plan · %@ %@" = "プラン・プラン %@ %@";
 "Population rules cannot perfectly predict individual tolerance." = "人口規則は、個々の許容を完全に予測することはできません。";
 "Post-workout meal finishes recorded:  ." = "ポストワークアウトの食事は記録された終わります:。";
-"Postural work" = "田舎作業";
+"Postural work" = "姿勢を整えるトレーニング";
 "Power surplus" = "パワー剰余金";
 "Predominantly controlled running, progressive exposure, purposeful quality, long-run development, recovery, strength coordination, fueling rehearsal and tapering. The rules are versioned and their limitations remain visible." = "予備管理されたランニング、進歩的な露出、目的の質の、長期開発、回復、強さの調整、燃料補給のrehearsalおよび先を細くすること。 ルールはバージョンアップされ、その制限は表示されません。";
 "Preferred and avoided sections inform future route comparison. They are not safety guarantees." = "優先され、回避されたセクションは将来のルート比較を通知します。 安全保証はありません。";
@@ -2410,17 +2410,17 @@
 "Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "疲労をコントロールし、正直に保ちながら、毎週下半身の露出を守ります。";
 "Protect the priority work" = "優先業務の保護";
 "Protein is currently the clearest nutrition gap. Aim toward %d g to protect recovery and lean mass." = "タンパク質は現在最も明確な栄養ギャップです。 目指す %d g 回復および細い固まりを保護するため。";
-"Protein is the one target worth closing even on a busy day." = "たんぱく質は、忙しい一日でも閉じる価値のある1つのターゲットです。";
+"Protein is the one target worth closing even on a busy day." = "忙しい日でも、優先して満たしたい栄養目標はタンパク質です。";
 "Protein opportunity is open" = "タンパク質を補給する好機です";
 "Protein powder can help when meals miss your protein target." = "タンパク質粉末は、食事があなたのタンパク質ターゲットを逃したときに役立ちます。";
 "Protein shake" = "蛋白質の振動";
 "Protein target hit on a strength day. Strength XP +15%" = "タンパク質のターゲットは強度の日に当たる。 強さ XP +15%";
 "Pull-up ladder 1-2-3-4-5-4-3-2-1, 10s between rungs" = "プルアップ梯子 1-2-3-4-5-4-3-2-1、ラング間の10s";
-"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "あなたがすでに行っているプレスのバランスをとります。 トップバックは、他のすべての人が転送を引っ張るときにポーズを保持しているものです。";
-"Pulling day" = "一日を引っ張る";
-"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "1回のセッションでプッシュしてプルするので、上半身は週に2回訓練され、4つの別々の日を必要としません。";
+"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "引く動きは、トレーニングでも日常でも押す動きとのバランスを整えます。上背部を鍛えることで、前に丸まりやすい姿勢も支えやすくなります。";
+"Pulling day" = "プルデー";
+"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "押す種目と引く種目を1日にまとめることで、週4日を使わなくても上半身を週2回鍛えられます。";
 "Push-up benchmark week  : one fresh strict max set" = "プッシュアップベンチマーク週 : 1つの新鮮な厳格な max セット";
-"Pushing day" = "プッシュ・デイ";
+"Pushing day" = "プッシュデー";
 "QUICK LOG COMPLETE" = "お問い合わせ";
 "QUICK PICKS" = "クイック選択";
 "Quiet hours and the three-per-day ceiling stay synchronized with the Watch." = "静かな時間と3日間の天井が時計と同期します。";
@@ -2440,9 +2440,9 @@
 "RPE 7" = "RPE 7の";
 "RPE 7 cap" = "RPE 7の帽子";
 "RPE 7–8" = "RPE 7〜8";
-"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "制御できる範囲は、保持する範囲です。 これは、座っている位置を介してヒップと上部バックを動作します, それらを受け入れるために神経系のために十分な長さを保持.";
+"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "自分でコントロールできる可動域こそ、実際に使える可動域です。座り続けると動きにくくなる股関節と上背部を無理なく動かし、ゆっくり保って身体をその位置に慣らします。";
 "Range:   to  . Generated  ." = "範囲: . 生成 .";
-"Rate fatigue or discomfort, not normal muscle soreness. This is training guidance, not a diagnosis." = "疲労または不快感、正常な筋肉痛を率いて下さい。 これは、診断ではなく、トレーニングガイダンスです。";
+"Rate fatigue or discomfort, not normal muscle soreness. This is training guidance, not a diagnosis." = "普段の筋肉痛ではなく、疲労感や違和感を評価してください。これはトレーニングの目安であり、診断ではありません。";
 "Rating:   / 5" = "評価: / 5";
 "Raw spring onion" = "未加工ばねのオニオン";
 "Read Privacy Policy" = "プライバシーポリシー";
@@ -2465,7 +2465,7 @@
 "Remove %@" = "削除 %@";
 "Repeat last load and chase the top of the rep range" = "最後の負荷を繰り返し、rep範囲の上部を追跡します";
 "Rest · Restore · Adapt" = "残り・復元・適応";
-"Rest, hydrate and let the next hard session stay productive." = "残り、水和し、次のハードセッションが生産性を維持できるようにします。";
+"Rest, hydrate and let the next hard session stay productive." = "しっかり休み、水分を取り、次の高強度セッションに備えましょう。";
 "Return from layoff: deload week. Minus 1 set, 3-4 RIR, lighter loads" = "レイオフから戻ります:週を解読します。 Minus 1セット、3-4 RIR、より軽い負荷";
 "Review body-weight trend after two weeks and adjust deliberately." = "2週間後に体重減少傾向を確認し、意図的に調整します。";
 "Review body-weight trend after two weeks; more is not automatically better." = "2週間後に体重減少傾向を見直します。 多くは自動的に改善されません。";
@@ -2493,8 +2493,8 @@
 "Select every relevant constraint. APEX calendar events are also considered automatically." = "関連するすべての制約を選択します。 APEX カレンダーイベントも自動的に考慮されます。";
 "Serving type %@" = "サービングタイプ %@";
 "Session style" = "セッションスタイル";
-"Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "馬小屋の足の位置、足を降ろし、膝の追跡をつま先で保ちます。 あなたが制御することができる最も深い痛みのない範囲を使用してください。";
-"Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "後部フィートを快適に置き、制御の下で十分に植えられ、より低い前部フィートを保って下さい。 膝を倒さないで、正面の足を動かします。";
+"Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "足元を安定させ、下ろす前に体幹を固めます。膝はつま先と同じ方向へ。痛みがなくコントロールできる範囲で、できるだけ深くしゃがみましょう。";
+"Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "後ろ足は無理のない位置に置き、前足裏全体を床につけます。膝をつま先と同じ方向に保ちながらゆっくり下ろし、前足全体で押し返しましょう。";
 "Sets completed in this unfinished session have not been saved." = "この未完成セッションで完了したセットは保存されていません。";
 "Settle into controlled quality. Do not race the opening minutes." = "制御された質に置きます。 開口部を競い合わない。";
 "Seven days needs one low-load day" = "7日は1日未満の日を必要とします";
@@ -2506,10 +2506,10 @@
 "Six days needs distributed load" = "6日は分散負荷を必要とします";
 "Skipped" = "ツイート";
 "Slide %d of %d" = "スライド %d インフォメーション %d";
-"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "スローと正確なビートの重大. 間違った場所で感じることができたら、重量を取って下さい。";
+"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "重さより、ゆっくり正確に。狙いと違う場所に効くなら、重量を下げましょう。";
 
 /* Translation coverage closure 736-770 · 2026-08-27 */
-"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "体重を動かすのではなく、位置を保持する小さな筋肉。 体重が軽く見える理由は、周波数と制御に反応します。";
+"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "姿勢を保つ小さな筋肉は、重さよりも頻度と丁寧なコントロールで育ちます。軽い重量にも、きちんと狙いがあります。";
 "Some required context is still missing. Review the earlier answers." = "必須のコンテキストはまだ欠落しています。 以前の回答を確認してください。";
 "Speed 1.0" = "速度 1.0";
 "Speed 2.0" = "速度 2.0";
@@ -2517,12 +2517,12 @@
 "Spring onion" = "スプリングオニオン";
 "StairClimbing" = "階段クライミング";
 "Start conservatively and keep ranges pain-free" = "保守的に開始し、痛みのない範囲を維持";
-"Start from a controlled shoulder position, keep the ribs stacked and pull without swinging. Stop before grip or shoulder position becomes unsafe." = "制御された肩の位置から始めて下さい、振動なしで肋骨を積み重ね、引っ張って下さい。 グリップや肩の位置が安全になる前に止まります。";
+"Start from a controlled shoulder position, keep the ribs stacked and pull without swinging. Stop before grip or shoulder position becomes unsafe." = "肩を安定させた状態から始め、体幹を崩さず反動なしで引きます。握力や肩の位置を安全に保てなくなる前に止めましょう。";
 "Start with what works" = "どんな作品でも始める";
 "Starter mode shows a generated beginner block instead of your current programme. Your programme is kept and returns when you switch this off." = "Starterモードは、現在のプログラムの代わりに生成された初心者ブロックを表示します。 このプログラムをオフにすると、プログラムが保存され、戻ります。";
 "Steady cut" = "ステーキカット";
 "Step %d of 5" = "ステップステップ %d の 5";
-"Step to a stable stance, lower with control and keep the working knee tracking over the toes. Push the floor away to return." = "安定したスタンスにステップします。, 制御で下げ、トースの上に追跡作業膝を保つ. 床を離れて戻すために押します。";
+"Step to a stable stance, lower with control and keep the working knee tracking over the toes. Push the floor away to return." = "安定する幅に足を踏み出し、膝をつま先と同じ方向に保ってゆっくり下ろします。床を強く押して戻りましょう。";
 "Stop immediately for sharp or escalating pain." = "鋭い痛みや強くなる痛みがある場合は、直ちに中止してください。";
 "Stop with pain, instability or unusual symptoms." = "痛み、不安定性、または異常な症状で止まります。";
 "Strength base" = "強度ベース";
@@ -2570,7 +2570,7 @@
 "The closed day recorded  % of configured meals. A later correction will replay this verdict" = "休館日は、設定された食事の%を記録しました。 その後の修正は、この評決を再再生します";
 "The day closed with no configured meal recorded. This can still be corrected from the calendar" = "定食無しで休館日。 これは、カレンダーからまだ修正することができます";
 "The day closed with no configured meal recorded. This can still be corrected from the calendar." = "定食無しで休館日。 カレンダーから修正できます。";
-"The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day." = "ラベルは毎週の平均値です。 あなたが速い選択を必要とするときあなたの足のステップそして時間を使用して下さい、または計算された日のための実質のブロックを記録して下さい。";
+"The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day." = "各ラベルは、普段の1週間の平均を表します。すぐ選びたいときは歩数と立っていた時間を目安にし、その日の実績を正確に出すなら活動ごとに記録してください。";
 "The largest bounded deficit for this plan horizon." = "この計画の地平線の最大の境界線。";
 "The light prescription keeps the primary movements so a short day still counts." = "光の処方は、主な動きを保ちますので、短い日はまだカウントします。";
 "The meal-finished time snaps to this step and syncs to your account." = "食事完了時間は、このステップにスナップし、アカウントに同期します。";
@@ -2629,10 +2629,10 @@
 "United States" = "アメリカ合衆国";
 "Units" = "ユニット";
 "Upper and lower loading alternate so the same muscle group is not trained hard on consecutive days." = "上部と下部のローディングが交互になるので、同じ筋肉グループが連続して硬く訓練されていない。";
-"Upper body" = "アッパーボディ";
+"Upper body" = "上半身トレーニング";
 "Use  " = "使用条件";
 "Use %d training days" = "使用条件 %d トレーニング日";
-"Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "安定した直線の制御された、痛みのない範囲を使用して下さい。 所定のテンポに従って、鋭い痛みを止めて、計画された繰り返しを留保します。";
+"Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "姿勢を安定させ、痛みのない範囲を丁寧に動かします。指定のテンポを守り、鋭い痛みが出たら中止。予定された回数分の余力を残しましょう。";
 "Use a familiar saved breakfast. Do not introduce a new race-day product." = "身近な保存した朝食を使用してください。 新しいレースデー商品を紹介しないでください。";
 "Use a small surplus to support muscle gain and harder sessions." = "筋肉の利益およびより堅いセッションを支えるために小さい余剰を使用して下さい。";
 "Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula." = "DEXAまたは間接的なcalorimetryからの厳密な価値を使用して下さい。 計算式に戻すためにそれをクリアします。";
@@ -2642,7 +2642,7 @@
 "Use only products and timing already tolerated in long-run rehearsals." = "長期リハーサルで既に許容される製品やタイミングだけを使用してください。";
 "Use reduced volume, Stretch or rest. Avoid adding extra training." = "減らされた容積、伸張または残りを使用して下さい。 追加のトレーニングを追加しないでください。";
 "Use the clearest uninterrupted section for the quality block." = "質のブロックのための最も明確な中断されていないセクションを使用して下さい。";
-"Use the full comfortable ankle range. Pause briefly at the top and lower slowly without bouncing." = "完全で快適な足首の範囲を使用して下さい。 跳ね上がりなしで上下に簡単にポーズ。";
+"Use the full comfortable ankle range. Pause briefly at the top and lower slowly without bouncing." = "足首を無理なく動かせる範囲いっぱいに使います。上で一度止まり、反動を使わずゆっくり下ろしましょう。";
 "Use the modifier this week. Strength first and separate sessions by at least four hours when possible." = "今週の修飾子を使用してください。 可能な限り少なくとも4時間で強度を第一に別々のセッション。";
 "Use the same pose, distance and lighting for the clearest comparison." = "最も明確な比較のための同じポーズ、間隔および照明を使用して下さい。";
 "Use the weekly load-tolerance check and keep demanding sessions pain-free. APEX uses the trend for load guidance, not diagnosis." = "週単位の負荷許容チェックを使用し、要求の厳しいセッションを痛みなく保ちます。 APEX 負荷指導のための傾向を使用して下さい、診断ではないです。";
@@ -2687,9 +2687,9 @@
 "What is collected" = "収集するもの";
 "What should this plan move toward?" = "この計画が進むべきことは何ですか?";
 "Where will the work happen?" = "作業はどこで行われますか?";
-"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "あなたが体重を減らす一方で、タンパク質は筋肉ではなく脂肪から来る損失を維持するものです。";
+"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "減量中にタンパク質を十分取ると、筋肉を守りながら体脂肪を落としやすくなります。";
 "Who helps operate APEX" = "誰が動作するのか APEX";
-"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "体全体で、トランクによって導かれ、心拍数を上げるペースで。 リフトできる時間ではなく、どのくらいの時間を働かせることができるかを訓練します。";
+"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "体幹から全身を動かし、心拍数が上がるペースを保ちます。重さの限界ではなく、動き続けられる力を鍛えるメニューです。";
 "Whole egg, hard-boiled" = "全卵、硬ボイド";
 "Whole-wheat pasta, cooked" = "全小麦粉パスタ, 調理";
 "Why it is used" = "なぜそれが使用されるのか";
@@ -2706,7 +2706,7 @@
 "YYYY" = "お問い合わせ";
 "Yesterday included demanding lower-body work, so Orbit protects adaptation with a short, controlled run." = "昨日は、下半身の仕事を要求していたため、Orbitは短時間で制御された実行で適応を保護します。";
 "Yoga" = "ヨガ";
-"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "お問い合わせ %d g お問い合わせ 一度にすべてを返済しようとしないでください: シングル座りは、約使用することができます %d g 筋肉のために、そして残りはエネルギーのために代りに焼かれます。 お問い合わせ %d g 今、後方ではなく、ターゲットで明日から始めます。";
+"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "目標まであと%d gです。一度に全部埋め合わせる必要はありません。1食で筋肉づくりに活かせる目安は約%d gで、それを超えた分の多くはエネルギーとして使われます。今は%d gほど取り、明日は最初から目標どおりに進めましょう。";
 "You can correct entries, revoke Apple Health access, export records and request account deletion. Withdrawing consent stops future optional processing but cannot undo processing already required to deliver your request." = "正しいエントリ、レボケ Apple Health アクセス、輸出記録および要求のアカウント削除。 同意を撤回すると、将来のオプション処理が停止しますが、要求を配信するために既に処理を行わなかったりします。";
 "You can leave setup without sharing these details. A personalised plan, calories and macros require the measurements and goal you choose to provide." = "これらの詳細を共有することなく、セットアップを残すことができます。 パーソナライズされた計画、カロリー、マクロは、あなたが提供することを選択する測定と目標を必要とします。";
 "You can say no to either and everything still works. You can change both later in Settings." = "どちらでも、すべてがまだ機能しないと言うことができます。 後で設定を変更できます。";
@@ -2735,7 +2735,7 @@
 /* Translation coverage closure 946-980 · 2026-08-27 */
 "Your records remain private under Supabase row-level security and are shared only between your authenticated APEX clients." = "あなたのレコードは、Supabaseの行レベルのセキュリティの下でプライベートを維持し、認証された間のみ共有されます APEX クライアント。";
 "Your searchable exercise studio, saved privately." = "検索可能な演習スタジオは、個人的に保存されます。";
-"Your session" = "セッション";
+"Your session" = "あなたのワークアウト";
 "Your starting target:  " = "あなたの開始ターゲット:";
 "^no loaded warm-up" = "^ウォームアップをロードしません";
 "adaptation: : " = "適応::";

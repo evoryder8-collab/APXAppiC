@@ -71,13 +71,13 @@
 "10 minutes easy plus dynamic movement and 3 short relaxed strides." = "เบา 10 นาที ตามด้วยการเคลื่อนไหวแบบไดนามิกและสไตรด์สบายสั้น ๆ 3 ครั้ง";
 "10 to 15 km" = "10 ถึง 15 กม.";
 "10 to 20 km" = "10 ถึง 20 กม.";
-"10–14k steps or 5–8h on feet" = "10,000-14,000 ก้าว หรือยืนและเดิน 5-8 ชม.";
+"10–14k steps or 5–8h on feet" = "10,000–14,000 ก้าว หรือยืน/เดิน 5–8 ชม.";
 "10–15 g collagen before tendon-focused work" = "คอลลาเจน 10–15 กรัม ก่อนการฝึกที่เน้นเอ็น";
 "10–15 g collagen plus a small vitamin C source before tendon-focused work" = "คอลลาเจน 10-15 กรัม พร้อมวิตามินซีปริมาณเล็กน้อยก่อนฝึกที่เน้นเอ็น";
 "12-Week Gym Foundation" = "พื้นฐานในยิม 12 สัปดาห์";
 "12-Week Home Foundation" = "พื้นฐานที่บ้าน 12 สัปดาห์";
 "14-day change" = "การเปลี่ยนแปลง 14 วัน";
-"14k+ steps and 8h+ physical work" = "มากกว่า 14,000 ก้าว และทำงานใช้แรงเกิน 8 ชม.";
+"14k+ steps and 8h+ physical work" = "มากกว่า 14,000 ก้าว และทำงานใช้แรงมากกว่า 8 ชม.";
 "15 band pull-aparts and 2 sets of 8 scapular push-ups" = "ดึงยางออก 15 ครั้ง และวิดพื้นสะบัก 2 เซต เซตละ 8 ครั้ง";
 "15 band pull-aparts, 2 sets of 8 scapular push-ups and one easy set of 8 push-ups" = "ดึงยางออก 15 ครั้ง วิดพื้นสะบัก 2 เซต เซตละ 8 ครั้ง และวิดพื้นเบา 8 ครั้ง";
 "15 band pull-aparts, 8 scapular push-ups and two progressive push-up sets" = "ดึงยางออก 15 ครั้ง วิดพื้นสะบัก 8 ครั้ง และวิดพื้นไล่ระดับ 2 เซต";
@@ -127,7 +127,7 @@
 "5 km run" = "วิ่ง 5 กม.";
 "5 minutes: joint circles, squat-to-stand and scapular pull-ups" = "5 นาที: หมุนข้อต่อ สควอตยืน และดึงสะบัก";
 "5 to 10 km" = "5 ถึง 10 กม.";
-"5–7.5k steps or 2–3h on feet" = "5,000-7,500 ก้าว หรือยืนและเดิน 2-3 ชม.";
+"5–7.5k steps or 2–3h on feet" = "5,000–7,500 ก้าว หรือยืน/เดิน 2–3 ชม.";
 "5000 IU · 100 mcg" = "5000 IU · 100 ไมโครกรัม";
 "5000 IU · confirm clinically" = "5000 IU · ยืนยันกับผู้เชี่ยวชาญ";
 "5s hold" = "ค้าง 5 วินาที";
@@ -136,7 +136,7 @@
 "60 min" = "60 นาที";
 "60m strength" = "ฝึกแรง 60 นาที";
 "6k steps" = "6,000 ก้าว";
-"7.5–10k steps or 3–5h on feet" = "7,500-10,000 ก้าว หรือยืนและเดิน 3-5 ชม.";
+"7.5–10k steps or 3–5h on feet" = "7,500–10,000 ก้าว หรือยืน/เดิน 3–5 ชม.";
 "8 bodyweight glute bridges, 6 reverse lunges per side and 10 slow hinges" = "กลูตบริดจ์น้ำหนักตัว 8 ครั้ง ลันจ์ถอยหลังข้างละ 6 ครั้ง และฮินจ์ช้า 10 ครั้ง";
 "8 bodyweight glute bridges, 6 reverse lunges per side and 8 hamstring walkouts" = "กลูตบริดจ์น้ำหนักตัว 8 ครั้ง ลันจ์ถอยหลังข้างละ 6 ครั้ง และแฮมสตริงวอล์กเอาต์ 8 ครั้ง";
 "8 bodyweight split squats per side, 10 slow hinges and 10 ankle rocks per side" = "สปลิตสควอตน้ำหนักตัวข้างละ 8 ครั้ง ฮินจ์ช้า 10 ครั้ง และโยกข้อเท้าข้างละ 10 ครั้ง";
@@ -417,7 +417,7 @@
 "Broad endurance evidence and coaching consensus" = "หลักฐานด้านความทนทานและแนวทางร่วมของโค้ช";
 "BRouter and OpenStreetMap" = "BRouter และ OpenStreetMap";
 "Browser notifications while APEX is open" = "แจ้งเตือนในเบราว์เซอร์ขณะเปิด APEX";
-"Build a repeatable image" = "จัดภาพให้ถ่ายซ้ำได้";
+"Build a repeatable image" = "ถ่ายให้เทียบกันได้ทุกครั้ง";
 "Build a route" = "สร้างเส้นทาง";
 "Build a route around the mission, not only the distance." = "สร้างเส้นทางตามเป้าหมาย ไม่ใช่แค่ระยะทาง";
 "Build a workout" = "สร้างชุดการฝึก";
@@ -473,10 +473,10 @@
 "Calves" = "น่อง";
 "Camera" = "กล้อง";
 "Camera & comparison" = "กล้องและการเปรียบเทียบ";
-"Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "กล้องจะเปิดหลังจากคุณยืนยันด้านล่าง จะยังไม่อัปโหลดจนกว่าคุณจะตรวจและบันทึก";
+"Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "แอปจะเข้าถึงกล้องหลังจากคุณยืนยันด้านล่างเท่านั้น รูปจะยังไม่ถูกอัปโหลดจนกว่าคุณจะตรวจดูและกดบันทึก";
 "Camera access is blocked. Allow camera access in Safari settings, or enter the barcode below." = "การเข้าถึงกล้องถูกบล็อก โปรดอนุญาตกล้องในการตั้งค่า Safari หรือป้อนบาร์โค้ดด้านล่าง";
 "Camera access is off" = "ปิดสิทธิ์การใช้กล้องอยู่";
-"Camera around waist height" = "กล้องสูงประมาณระดับเอว";
+"Camera around waist height" = "ตั้งกล้องไว้ระดับเอว";
 "Camera work" = "งานกล้อง";
 "Campaign" = "แผนฝึก";
 "Campaign adjusted" = "ปรับแผนแล้ว";
@@ -511,7 +511,7 @@
 "Casein shake" = "เชคเคซีน";
 "Casual walk" = "เดินสบาย ๆ";
 "Cement Block" = "มื้อเย็นซีเมนต์บล็อก";
-"Championship filming marathon or double-session day." = "วันถ่ายการแข่งขันยาวทั้งวันหรือฝึกสองเซสชัน";
+"Championship filming marathon or double-session day." = "ถ่ายการแข่งขันทั้งวัน หรือฝึกสองเซสชันในวันเดียว";
 "Change" = "เปลี่ยน";
 "Change calorie goal and activity level" = "เปลี่ยนเป้าหมายแคลอรีและระดับกิจกรรม";
 "Change grip from Wednesday and prepare elbows gradually" = "เปลี่ยนกริปจากวันพุธและค่อย ๆ เตรียมข้อศอก";
@@ -753,9 +753,9 @@
 "Deselect" = "ยกเลิกการเลือก";
 "Desired distance in kilometres" = "ระยะทางที่ต้องการเป็นกิโลเมตร";
 "Desired duration in minutes" = "ระยะเวลาที่ต้องการเป็นนาที";
-"Desk day plus a full 45–60 minute session." = "วันทำงานโต๊ะและฝึกเต็ม 45-60 นาที";
-"Desk day plus one short home workout." = "วันทำงานโต๊ะและฝึกสั้น ๆ ที่บ้านหนึ่งครั้ง";
-"Desk floor + gym session + incidental steps" = "งานโต๊ะ + ฝึกยิม + ก้าวทั่วไปที่ยังไม่ได้นับ";
+"Desk day plus a full 45–60 minute session." = "นั่งทำงานที่โต๊ะ และฝึกเต็มเซสชัน 45–60 นาที";
+"Desk day plus one short home workout." = "นั่งทำงานที่โต๊ะ และออกกำลังกายสั้น ๆ ที่บ้านหนึ่งครั้ง";
+"Desk floor + gym session + incidental steps" = "นั่งทำงานที่โต๊ะ + เข้ายิม + จำนวนก้าวจากกิจวัตรที่ยังไม่ได้บันทึก";
 "Desk or editing work" = "งานโต๊ะหรือตัดต่อ";
 "Desk work" = "งานโต๊ะ";
 "Destination" = "จุดหมาย";
@@ -845,7 +845,7 @@
 "Edit workout finish time" = "แก้ไขเวลาที่ฝึกเสร็จ";
 "Edit, personalise or export" = "แก้ไข ปรับแต่ง หรือส่งออก";
 "Editable here or from the workout calendar." = "แก้ไขได้ที่นี่หรือจากปฏิทินการฝึก";
-"Editing day, car everywhere, no workout." = "วันตัดต่อ เดินทางด้วยรถ และไม่ได้ออกกำลังกาย";
+"Editing day, car everywhere, no workout." = "นั่งโต๊ะตัดต่องาน เดินทางด้วยรถทุกที่ และไม่ได้ออกกำลังกาย";
 "Elapsed" = "เวลาทั้งหมด";
 "ELAPSED" = "เวลารวม";
 "Electrolytes" = "เกลือแร่";
@@ -863,7 +863,7 @@
 "End distance in km" = "ระยะสิ้นสุดเป็นกม.";
 "End set at" = "จบเซตที่";
 "ENDUR" = "อดทน";
-"Endurance" = "ความอดทน";
+"Endurance" = "เพิ่มความทนทาน";
 "Endurance · Clarity · Mastery" = "ความอึด · ความชัดเจน · ความเชี่ยวชาญ";
 "Endurance & VO₂ max" = "ความทนทานและ VO₂ max";
 "Endurance & VO2max" = "ความอดทนและ VO2max";
@@ -960,7 +960,7 @@
 "FAVOURITE" = "รายการโปรด";
 "Favourite segment" = "ช่วงโปรด";
 "Feet on the floor line" = "วางเท้าบนเส้นพื้น";
-"Feet on the guide line" = "วางเท้าบนเส้นไกด์";
+"Feet on the guide line" = "วางเท้าทั้งสองบนเส้นไกด์";
 "Feet-Elevated Push-Up" = "วิดพื้นยกเท้าสูง";
 "Feet-Elevated Push-Ups" = "วิดพื้นยกเท้า";
 "Feet-Elevated Weighted Pushups" = "วิดพื้นถ่วงน้ำหนักยกเท้า";
@@ -1055,7 +1055,7 @@
 "Foundation under construction" = "กำลังสร้างพื้นฐาน";
 "Four calm checks make every future comparison more meaningful." = "ตรวจง่ายๆ 4 ข้อเพื่อให้การเปรียบเทียบในอนาคตมีความหมายมากขึ้น";
 "Four days" = "สี่วัน";
-"Four hours gimbal + rig carry + travel" = "ถ่ายกิมบอล 4 ชม. + ขนอุปกรณ์ + เดินทาง";
+"Four hours gimbal + rig carry + travel" = "ใช้กิมบอล 4 ชั่วโมง + แบกอุปกรณ์ + เดินทาง";
 "Four times per week" = "สัปดาห์ละสี่ครั้ง";
 "Fr" = "ศ.";
 "Free" = "อิสระ";
@@ -1086,7 +1086,7 @@
 "Full Rest" = "พักเต็มวัน";
 "Full session" = "การฝึกเต็มรูปแบบ";
 "FULL SESSION" = "ฝึกเต็มรูปแบบ";
-"Full shoot day or four to six massages." = "วันถ่ายเต็มวันหรือให้บริการนวด 4-6 ครั้ง";
+"Full shoot day or four to six massages." = "ถ่ายงานเต็มวัน หรือให้บริการนวด 4–6 เคส";
 "Full strength ends here. Speed 1.0 is not included." = "แผนเต็มจบหลังการฝึกแรงและไม่รวม Speed 1.0";
 "Full training programme" = "โปรแกรมฝึกเต็ม";
 "Full week" = "แผนทั้งสัปดาห์";
@@ -1630,7 +1630,7 @@
 "negative" = "ครึ่งหลังเร็วขึ้น";
 "NET ACTIVITY KCAL" = "แคลอรีสุทธิจากกิจกรรม";
 "NET KCAL" = "กิโลแคลอรีสุทธิ";
-"Neutral stance, no forced flex" = "ยืนตามธรรมชาติ ไม่เกร็งฝืน";
+"Neutral stance, no forced flex" = "ยืนสบาย ๆ ไม่เกร็งกล้ามเนื้อ";
 "Neutral-Grip Lat Pulldown" = "แลตพูลดาวน์กริปกลาง";
 "Never" = "ไม่เคย";
 "Never followed one" = "ไม่เคยใช้แผน";
@@ -2083,7 +2083,7 @@
 "Quick mode" = "โหมดด่วน";
 "QUICK MODE" = "โหมดด่วน";
 "Quick Mode guide" = "คู่มือโหมดด่วน";
-"Quick Mode's brain" = "คู่มือของโหมดด่วน";
+"Quick Mode's brain" = "โหมดด่วนเลือกอย่างไร";
 "Quick supplements" = "อาหารเสริมด่วน";
 "Race date" = "วันที่แข่งขัน";
 "Race Week" = "สัปดาห์แข่งขัน";
@@ -2264,7 +2264,7 @@
 "Runs long enough to require rehearsal" = "การวิ่งยาวพอที่จะต้องซ้อมเติมพลัง";
 "Sa" = "ส.";
 "Salt" = "เกลือ";
-"Same room and similar light" = "ห้องเดิมและแสงใกล้เคียงกัน";
+"Same room and similar light" = "ห้องเดิม แสงใกล้เคียงเดิม";
 "Same weekday rhythm" = "ตรงกับรูปแบบวันเดิม";
 "SAT SHORT" = "ส";
 "Satellite map" = "แผนที่ดาวเทียม";
@@ -2497,7 +2497,7 @@
 "Streak" = "ต่อเนื่อง";
 "street" = "สตรีท";
 "Street workout" = "สตรีทเวิร์กเอาต์";
-"Strength" = "การฝึกแรง";
+"Strength" = "เพิ่มความแข็งแรง";
 "STRENGTH" = "ความแข็งแรง";
 "Strength · Grace · Growth" = "แข็งแรง · สง่างาม · เติบโต";
 "Strength context" = "สถานะการฝึกแรง";
@@ -2619,7 +2619,7 @@
 "The final weeks reduce volume, preserve familiar controlled running and avoid compensatory catch-up sessions." = "ช่วงสัปดาห์สุดท้ายจะลดปริมาณ รักษาการวิ่งแบบควบคุมที่คุ้นเคย และไม่ยัดการฝึกชดเชยสิ่งที่พลาด";
 "The GPX file did not contain a usable route." = "ไฟล์ GPX ไม่มีเส้นทางที่ใช้งานได้";
 "The GPX route could not be saved." = "บันทึกเส้นทาง GPX ไม่สำเร็จ";
-"The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day." = "ป้ายระดับเป็นค่าเฉลี่ยรายสัปดาห์ ใช้จำนวนก้าวและชั่วโมงที่ยืนเมื่อต้องการเลือกเร็ว หรือบันทึกกิจกรรมจริงเพื่อคำนวณวันนี้";
+"The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day." = "แต่ละระดับอิงค่าเฉลี่ยทั้งสัปดาห์ ถ้าต้องการเลือกเร็ว ให้ดูจำนวนก้าวและชั่วโมงที่ยืนหรือเดิน แต่ถ้าต้องการคำนวณของวันนี้ ให้บันทึกกิจกรรมแต่ละช่วงตามจริง";
 "The measured BMR overrides the formula for live TDEE and targets. Katch-McArdle remains visible only as a reference." = "BMR ที่วัดได้จะแทนสูตรสำหรับ TDEE และเป้าหมายปัจจุบัน ส่วน Katch-McArdle แสดงไว้เพื่ออ้างอิงเท่านั้น";
 "The native Supabase configuration is missing." = "ไม่พบการตั้งค่า Supabase สำหรับแอปเนทีฟ";
 "THE NATURAL" = "พลังธรรมชาติ";
@@ -2683,7 +2683,7 @@
 "This workout could not be reopened." = "ไม่สามารถเปิดการฝึกนี้อีกครั้งได้";
 "Thoracic decompression" = "คลายแรงกดช่วงอก";
 "Thoracic Extension over chair edge" = "เหยียดอกพาดขอบเก้าอี้";
-"Three 60-minute sessions + normal errands" = "นวด 60 นาที 3 ครั้ง + ทำธุระตามปกติ";
+"Three 60-minute sessions + normal errands" = "นวด 3 เคส เคสละ 60 นาที + ทำธุระตามปกติ";
 "Three completely different days" = "ตัวอย่าง 3 วันที่แตกต่างกัน";
 "Three days" = "สามวัน";
 "Three times per week" = "สัปดาห์ละสามครั้ง";
@@ -2779,7 +2779,7 @@
 "Ubiquinol" = "ยูบิควินอล";
 "Under 10 km" = "น้อยกว่า 10 กม.";
 "Under 5 km" = "น้อยกว่า 5 กม.";
-"Under 5k steps · under 2h on feet" = "ต่ำกว่า 5,000 ก้าว · ยืนหรือเดินไม่ถึง 2 ชม.";
+"Under 5k steps · under 2h on feet" = "ต่ำกว่า 5,000 ก้าว · ยืนหรือเดินน้อยกว่า 2 ชม.";
 "Undo" = "ย้อนกลับ";
 "%@ removed" = "ลบ %@ แล้ว";
 "1 food" = "อาหาร 1 รายการ";
@@ -3079,11 +3079,11 @@
 "Nutrition, water, weight, VO₂ max, resting heart rate and workouts feed the engine." = "โภชนาการ น้ำ น้ำหนัก VO₂ max ชีพจรขณะพัก และการฝึก เป็นข้อมูลให้ระบบวิเคราะห์";
 "Open Settings" = "เปิดการตั้งค่า";
 "PROGRESS TO NEXT UNLOCK" = "ความคืบหน้าสู่ระดับถัดไป";
-"Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis." = "คำแนะนำสมรรถนะสร้างจากบันทึกและแนวโน้มใน APEX ไม่ใช่การวินิจฉัยทางการแพทย์";
+"Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis." = "คำแนะนำด้านสมรรถนะนี้สร้างจากบันทึกและแนวโน้มของคุณใน APEX ไม่ใช่การวินิจฉัยทางการแพทย์";
 "Progress you can actually see" = "ความก้าวหน้าที่เห็นได้จริง";
 "REST" = "พัก";
 "RHYTHM SCORE" = "คะแนนจังหวะ";
-"Rate fatigue or discomfort, not normal muscle soreness. This is training guidance, not a diagnosis." = "ให้คะแนนความล้าหรือความไม่สบาย ไม่ใช่อาการปวดกล้ามเนื้อปกติ นี่คือคำแนะนำการฝึก ไม่ใช่การวินิจฉัย";
+"Rate fatigue or discomfort, not normal muscle soreness. This is training guidance, not a diagnosis." = "ให้ประเมินความล้าหรืออาการไม่สบาย ไม่ใช่อาการปวดกล้ามเนื้อตามปกติหลังฝึก ข้อมูลนี้ใช้แนะนำการฝึก ไม่ใช่การวินิจฉัย";
 "Resting HR %.0f bpm" = "ชีพจรขณะพัก %.0f bpm";
 "Rhythm combines day coverage with timing consistency. Open Settings to change the Dayline timezone." = "คะแนนจังหวะรวมจำนวนวันที่มีข้อมูลกับความสม่ำเสมอของเวลา เปิดการตั้งค่าเพื่อเปลี่ยนเขตเวลาของไทม์ไลน์";
 "SET %d OF %d" = "เซต %d จาก %d";
@@ -3641,17 +3641,17 @@
 "W" = "น";
 
 /* Evening reminders */
-"Protein is short today" = "วันนี้โปรตีนยังขาด";
-"%d g to go. %d g tonight is enough." = "เหลืออีก %d ก. คืนนี้ %d ก. ก็พอ";
-"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "ระหว่างที่กำลังลดน้ำหนัก โปรตีนคือสิ่งที่ทำให้น้ำหนักที่หายไปมาจากไขมัน ไม่ใช่กล้ามเนื้อ";
-"Protein is the one target worth closing even on a busy day." = "โปรตีนคือเป้าหมายเดียวที่ควรทำให้ครบ แม้ในวันที่ยุ่ง";
-"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "คุณขาดอยู่ %d ก. อย่าพยายามชดเชยทั้งหมดในคราวเดียว มื้อเดียวใช้ได้ราว %d ก. เพื่อสร้างกล้ามเนื้อ ส่วนที่เหลือถูกเผาเป็นพลังงานเสียมากกว่า กินราว %d ก. ตอนนี้ แล้วพรุ่งนี้เริ่มต้นตรงเป้า ไม่ใช่ตามหลัง";
-"Creatine not logged" = "ยังไม่ได้บันทึกครีเอทีน";
-"It works by staying topped up. Today still counts." = "มันได้ผลเพราะความต่อเนื่อง วันนี้ยังทันอยู่";
-"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "ครีเอทีนสะสมในกล้ามเนื้อภายในไม่กี่สัปดาห์ และคงอยู่ตราบที่คุณกินต่อเนื่อง ความสม่ำเสมอจึงสำคัญกว่าปริมาณในครั้งเดียว";
-"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "ขาดหนึ่งวันแทบไม่เปลี่ยนอะไร แต่ถ้าขาดเกือบทุกวัน ก็เท่ากับไม่ได้กินเลย ไม่ต้องกินเพิ่มเป็นสองเท่าในวันพรุ่งนี้ กินปริมาณปกติแล้วทำต่อไป";
+"Protein is short today" = "วันนี้โปรตีนยังไม่ถึงเป้า";
+"%d g to go. %d g tonight is enough." = "ยังขาดอีก %d g คืนนี้กิน %d g ก็เพียงพอ";
+"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "ระหว่างลดน้ำหนัก โปรตีนที่เพียงพอช่วยรักษากล้ามเนื้อ เพื่อให้น้ำหนักที่ลดมาจากไขมันมากขึ้น";
+"Protein is the one target worth closing even on a busy day." = "แม้วันจะยุ่ง โปรตีนก็เป็นเป้าโภชนาการที่ควรทำให้ถึง";
+"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "วันนี้ยังขาด %d g ไม่ต้องพยายามชดเชยทั้งหมดในมื้อเดียว โดยทั่วไปกล้ามเนื้อนำโปรตีนไปใช้ได้ราว %d g ต่อมื้อ ส่วนที่เกินส่วนใหญ่จะถูกใช้เป็นพลังงาน ตอนนี้กินประมาณ %d g แล้วพรุ่งนี้เริ่มให้ถึงเป้าตามปกติ";
+"Creatine not logged" = "วันนี้ยังไม่ได้บันทึกครีเอทีน";
+"It works by staying topped up. Today still counts." = "ครีเอทีนได้ผลเมื่อรักษาระดับในกล้ามเนื้อให้สม่ำเสมอ วันนี้ยังทัน";
+"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "ครีเอทีนจะค่อย ๆ สะสมในกล้ามเนื้อตลอดหลายสัปดาห์ และคงระดับได้เมื่อกินต่อเนื่อง ความสม่ำเสมอจึงสำคัญกว่าการกินเพียงครั้งเดียว";
+"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "ขาดไปหนึ่งวันแทบไม่กระทบ แต่ถ้าขาดเกือบทุกวันก็ไม่ต่างจากไม่ได้กิน พรุ่งนี้ไม่ต้องเพิ่มเป็นสองเท่า แค่กลับมากินปริมาณปกติแล้วทำต่อ";
 "Today only" = "เฉพาะวันนี้";
-"Nothing to flag today." = "วันนี้ไม่มีอะไรต้องแจ้ง";
+"Nothing to flag today." = "วันนี้ไม่มีอะไรต้องเตือน";
 
 /* Membership and tiers */
 "For one person" = "สำหรับคนเดียว";
@@ -3751,7 +3751,7 @@
 "AUTO + MANUAL" = "อัตโนมัติ + ด้วยตนเอง";
 "Active kcal" = "แคลอรีที่เผาผลาญ";
 "Activity" = "กิจกรรม";
-"Also involved" = "มีส่วนร่วมด้วย";
+"Also involved" = "กล้ามเนื้อที่ช่วยทำงาน";
 "Apple Health sleep" = "การนอนจาก Apple Health";
 "Arms" = "แขน";
 "BACK" = "หลัง";
@@ -3874,10 +3874,10 @@
 "Wed" = "พ.";
 "Wednesday" = "วันพุธ";
 "Weekly" = "รายสัปดาห์";
-"What matters most today" = "สิ่งที่สำคัญที่สุดวันนี้";
+"What matters most today" = "จุดสำคัญที่สุดวันนี้";
 "What this session trains" = "เซสชันนี้ฝึกอะไร";
-"Why this shape" = "ทำไมจึงเป็นแบบนี้";
-"Worked today" = "ทำงานวันนี้";
+"Why this shape" = "เหตุผลที่จัดเซสชันแบบนี้";
+"Worked today" = "กล้ามเนื้อหลักวันนี้";
 "X-RAY" = "เอกซเรย์";
 "Your 12-week foundation" = "รากฐาน 12 สัปดาห์ของคุณ";
 "Your own sessions." = "เซสชันของคุณเอง";
@@ -3937,10 +3937,10 @@
 "Shoulders" = "ไหล่";
 "Traps" = "กล้ามเนื้อทราพีเซียส";
 "Neck" = "คอ";
-"Conditioning" = "ความฟิต";
-"Range of motion" = "ช่วงการเคลื่อนไหว";
-"Restoration" = "การฟื้นฟู";
-"Muscle growth" = "การสร้างกล้ามเนื้อ";
+"Conditioning" = "ฝึกความฟิต";
+"Range of motion" = "เพิ่มช่วงการเคลื่อนไหว";
+"Restoration" = "ฟื้นฟูร่างกาย";
+"Muscle growth" = "เพิ่มมวลกล้ามเนื้อ";
 "Pre-workout" = "ก่อนออกกำลังกาย";
 "Before bed" = "ก่อนนอน";
 "With a meal" = "พร้อมมื้ออาหาร";
@@ -3954,7 +3954,7 @@
 /* Interface sweep, continued */
 "Your index over time" = "ดัชนีของคุณตามช่วงเวลา";
 "What this chart shows" = "กราฟนี้แสดงอะไร";
-"One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "หนึ่งจุดต่อหนึ่งวันที่ APEX บันทึกภาพรวมของคุณได้ครบ เส้นนี้คือดัชนีรวมของคุณ ตัวเลขเดียวกับที่แสดงด้านบนของหน้านี้ เพื่อให้เห็นว่ามันขยับหรือไม่ ไม่ใช่แค่ค่าวันนี้";
+"One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "แต่ละจุดคือหนึ่งวันที่ APEX บันทึกข้อมูลของคุณได้ครบ เส้นนี้แสดงดัชนีรวมตัวเดียวกับตัวเลขด้านบนของหน้า จึงดูได้ทั้งค่าปัจจุบันและแนวโน้มการเปลี่ยนแปลง";
 "COMPLETED" = "เสร็จสิ้น";
 "BETWEEN" = "ระหว่าง";
 "WORKOUTS" = "การฝึก";
@@ -4240,9 +4240,9 @@
 "Body baseline   mL" = "เส้นฐานส่วนตัว   mL";
 "Bodyweight and only the equipment you select" = "น้ําหนักร่างกายและอุปกรณ์ที่คุณเลือกเท่านั้น";
 "Bottle" = "ขวด";
-"Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "ยึดกระดูกซี่โครงลง ขับผ่านเท้าและจบด้วยรอยย่น หยุดเมื่อสะโพกเต็ม ไม่โค้งหลังล่าง";
-"Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "ยึดลําตัว นําไปสู่ข้อศอก และดึงไปที่ซี่โครงล่าง ให้ใบมีดที่ไหล่เคลื่อนที่ตามธรรมชาติโดยไม่สั่น";
-"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "หายใจออกในตอนท้ายของแต่ละ ตําแหน่ง การกลั้นหายใจ ทําให้ความเครียดที่คุณออกมา";
+"Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "เก็บซี่โครง ดันผ่านเท้าและบีบก้น หยุดเมื่อสะโพกเหยียดสุดโดยไม่แอ่นหลังส่วนล่าง";
+"Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "ตรึงลำตัว นำด้วยศอก ดึงเข้าหาซี่โครงล่าง ให้สะบักเคลื่อนไหวตามธรรมชาติโดยไม่ยกไหล่";
+"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "ผ่อนลมหายใจออกเมื่อสุดแต่ละท่า ถ้าต้องกลั้นหายใจเพื่อค้างไว้ ให้ลดระยะลงแทนการฝืน";
 "Brown rice, cooked" = "ข้าวสีน้ําตาล, ปรุง";
 "Build a balanced, repeatable training rhythm" = "สร้าง จังหวะ การ ฝึก ที่ สมดุล และ ทํา ซ้ํา ได้";
 "Build a plan before APEX labels any day as training or recovery." = "วางแผนก่อน APEX ระบุวันใด ๆ เป็นการฝึกอบรมหรือฟื้นฟู";
@@ -4251,7 +4251,7 @@
 "Build your plan above before APEX labels any day as training or rest." = "สร้างแผนของคุณก่อน APEX ระบุวันใด ๆ เป็นการฝึกอบรมหรือส่วนที่เหลือ";
 "Build your starting point" = "สร้างจุดเริ่มต้นของคุณ";
 "Build your training week" = "สร้างสัปดาห์ฝึก";
-"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "ที่สร้างจากการเคลื่อนไหวที่คุณเลือก ดังนั้นกล้ามเนื้อที่แสดงออกมาก็คือ แบบฝึกหัดของคุณเอง";
+"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "เซสชันนี้สร้างจากท่าที่คุณเลือก กล้ามเนื้อที่แสดงจึงเป็นส่วนที่ท่าเหล่านั้นลงแรงจริง";
 
 /* Translation coverage closure 211-245 · 2026-08-27 */
 "Bulgur, cooked" = "บุลกูร์, สุก";
@@ -4264,7 +4264,7 @@
 "Carry target" = "ลากเป้าหมาย";
 "Cat-Cow" = "แมว";
 "Chest · Back · Arms" = "2555. สืบค้นเมื่อ 27 พฤษภาคม พ.ศ.";
-"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "หน้าอก,ไหล่,และปืนสามขา ร่วมกันทุกการเคลื่อนไหวที่กด ดังนั้นพวกเขาจึงได้รับการฝึกฝนร่วมกัน";
+"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "ท่าดันทุกท่าใช้หน้าอก หัวไหล่ และไตรเซปส์ร่วมกัน จึงควรฝึกในวันเดียว แทนการแยกสามวันให้กล้ามเนื้อกลุ่มเดิมต้องฟื้นตัวซ้ำ ๆ";
 "Chicken breast, cooked" = "หน้าอกไก่สุก";
 "Choose Balanced fitness if hunger or recovery disrupts consistency." = "เลือก การ ออก กําลัง กาย ที่ สมดุล หาก ความ หิว โหย หรือ การ ฟื้น ตัว ขัด ขวาง ความ เสมอ ต้น เสมอ ปลาย.";
 "Choose Maintain if training performance or recovery declines." = "เลือก รักษา ไว้ ถ้า การ ฝึก อบรม หรือ การ ฟื้น ตัว ลด ลง.";
@@ -4292,7 +4292,7 @@
 
 /* Translation coverage closure 246-280 · 2026-08-27 */
 "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards." = "ผู้จัดทําโครงสร้างพื้นฐานที่ได้รับมอบหมาย อาจประมวลผลเฉพาะข้อมูลที่จําเป็นสําหรับการตรวจสอบสิทธิ์, เก็บ, เทียบข้อมูลและซื้อ ประมวลผลนอกสวิตเซอร์แลนด์จะต้องใช้การป้องกันที่ใช้งานได้";
-"Control the lowering. That is the half of the rep that does most of the building." = "ควบคุมการลดระดับ นั่นคือครึ่งของตัวแทนที่ทําหน้าที่ส่วนใหญ่ของอาคาร";
+"Control the lowering. That is the half of the rep that does most of the building." = "คุมจังหวะขาลงให้ดี เพราะช่วงลดน้ำหนักเป็นส่วนสำคัญของแรงกระตุ้นเพื่อสร้างกล้ามเนื้อ";
 "Core evidence" = "หลักฐานหลัก";
 "Couscous, cooked" = "Couscous, ปรุง";
 "Creatine monohydrate supports repeated high-intensity and strength work." = "นวัตกรรมโมโนไฮเดรต รองรับความเข้มข้นและความแข็งแรง";
@@ -4343,7 +4343,7 @@
 "Focus T25 confirmation |   min |   |  " = "โฟกัสยืนยัน T25 | Min | |";
 "Focus T25 ·  " = "โฟกัส T25";
 "Follow along" = "ตามไป";
-"Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session." = "ตาม ตอน ที่ อยู่ ใน จอ. เมื่อ ไร ก็ ตาม ที่ ร่าง กาย หรือ การ หายใจ เริ่ม ทรุด โทรม. รุ่นที่เสร็จสมบูรณ์แล้วยังคงนับเป็นวาระการใช้งานที่เสร็จสมบูรณ์";
+"Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session." = "ทำตามตอนบนหน้าจอ เลือกท่าปรับง่ายเมื่อฟอร์มหรือการหายใจเริ่มเสีย การทำจนจบด้วยท่าปรับง่ายยังนับว่าเสร็จสมบูรณ์";
 "Food" = "อาหาร";
 "Food does the foundational work. Supplements are optional tools for specific gaps." = "อาหารได้ผลเป็นรากฐาน การตกแต่งเป็นเครื่องมือสําหรับช่องว่าง";
 "Food-derived water" = "น้ําที่ย่อยสลายอาหาร";
@@ -4354,7 +4354,7 @@
 "Foundation week   of 12: restore movement quality" = "สัปดาห์ของมูลนิธิ 12:";
 "Fuel progress" = "ความคืบหน้าของเชื้อเพลิง";
 "Full ends after strength. Speed 1.0 is not an immediate finisher" = "จบลงด้วยความแข็งแกร่ง ความเร็ว 1.0 ไม่ใช่ตัวจบทันที";
-"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "ตรงช่วงล่างสุด การ ตัด ความ ลึก เพื่อ เพิ่ม การ ค้า น้ํา หนัก ให้ กับ การ เจริญ เติบโต ส่วน ใหญ่.";
+"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "ลงให้สุดช่วงการเคลื่อนไหวที่ยังสบาย อย่าตัดระยะเพื่อเพิ่มน้ำหนัก เพราะจะเสียแรงกระตุ้นที่ต้องการไปมาก";
 "Full selected: complete prescribed sets. Choose Light for the opening-week ramp" = "เลือกเต็ม: เซตที่สั่งไว้เสร็จสมบูรณ์ เลือกช่องเปิด";
 "Gentle cut" = "ตัดอ่อนโยน";
 "Gentle reminders" = "แจ้งเตือนอย่างอ่อนโยน";
@@ -4374,7 +4374,7 @@
 "HYDRATION" = "ภาพเคลื่อนไหว";
 "Hide keyboard" = "ซ่อนแป้นพิมพ์";
 "High-volume fuel" = "น้ํามันเชื้อเพลิงสูง";
-"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "ขา ทั้ง สอง ข้าง ของ มัน มี กล้าม เนื้อ ยาว และ มี กล้าม เนื้อ ยาว.";
+"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "การฝึกสควอตและฮิปฮินจ์ในวันเดียวช่วยเก็บงานขาได้ครบ ท่าฮินจ์ทำให้แฮมสตริงและก้นรับแรงในช่วงที่กล้ามเนื้อถูกยืด จึงได้แรงกระตุ้นมากกว่าการฝึกเฉพาะช่วงหดสั้น";
 "History" = "ประวัติ";
 "Hold and drag to correct the finish time" = "จับและลากแก้ไขเวลาเสร็จสิ้น";
 "Hold body weight while progressive training drives recomposition." = "น้ําหนักตัว ในขณะที่การฝึกก้าวหน้า ขับเคลื่อนการปรับโครงสร้าง";
@@ -4395,22 +4395,22 @@
 "Its receipt and recorded sets will be removed from your history and progression." = "ใบเสร็จและชุดที่ถูกบันทึก จะถูกลบออกจากประวัติและความคืบหน้าของคุณ";
 "Juice" = "น้ำผลไม้";
 "Keep load progression prominent and measurable" = "จง แบก ภาระ ต่อ ๆ ไป อย่าง ที่ เห็น ได้ ชัด และ ใช้ ได้ ผล";
-"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "เดินต่อไปทีละก้าว คุณจะสามารถรักษาไว้จนถึงที่สุด ไม่ใช่คนนึงที่ต้องการความช่วยเหลือ";
+"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "เริ่มด้วยจังหวะที่รักษาได้จนจบ อย่าเร่งจนหมดแรงกลางทาง";
 "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve." = "เก็บรายละเอียดไว้ คุณมีส่วนรับผิดชอบในรายการ และแก้ไขผ่านบัญชีของคุณ ลักษณะ เด่น ของ เบตา อาจ เปลี่ยน ไป เมื่อ ความ ไว้ วางใจ และ ความ ปลอด ภัย ดี ขึ้น.";
-"Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "ให้ร่างกายค้ํายัน, ต่ํากว่าผ่านช่วงความเจ็บปวดและกด ในขณะที่เก็บไหล่ออกจากหู รักษา ข้อ มือ ให้ คงที่ และ ตรง ข้อ ศอก.";
-"Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "ให้ ยึด สะโพก ขด อย่าง นุ่ม นวล และ บีบ ให้ สั้น ลง โดย ไม่ ยก ขา กรรไกร. ค่อย ๆ กลับ";
-"Keep the rest honest. Short rest here costs you the later sets." = "ให้ส่วนที่เหลือซื่อสัตย์ พักที่นี่สั้น ค่าใช้จ่ายคุณชุดหลัง";
+"Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "เกร็งลำตัว ลดตัวในช่วงที่ไม่เจ็บ และดันโดยไม่ยกไหล่เข้าหาหู รักษาข้อมือกับศอกให้มั่นคง";
+"Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "ตรึงสะโพก งอขาอย่างนุ่มนวล บีบสั้น ๆ โดยไม่ยกเชิงกราน แล้วกลับช้า ๆ";
+"Keep the rest honest. Short rest here costs you the later sets." = "พักให้ครบตามกำหนด ถ้าพักสั้นเกินไป เซตหลัง ๆ จะทำได้ไม่เต็มที่";
 
 /* Translation coverage closure 351-385 · 2026-08-27 */
-"Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "เก็บซี่โครงให้เงียบและดึงด้วยบนหลัง เสร็จสิ้นด้วยมือออกจากกันและไหล่ลงแทนการบังคับให้ระยะพิเศษ";
-"Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range." = "รักษา แขน ชั้น บน ให้ คงตัว และ ขด ไว้ โดย ไม่ ต้อง ใช้ แรง กระตุ้น. ลดการควบคุมผ่านช่วงข้อศอกที่สะดวกสบาย";
-"Keep the weight close, soften the knees and push the hips back until the hamstrings are loaded. Keep the spine long and finish by standing tall, not by leaning back." = "เก็บ น้ํา หนัก ไว้ ใกล้ เข่า ให้ อ่อน ลง และ ดัน สะโพก กลับ ไป จน กว่า จะ บรรจุ กล้าม เนื้อ. ให้ กระดูก สัน หลัง ยาว และ จบ ด้วย การ ยืน ตัว สูง ไม่ ใช่ โดย เอน หลัง.";
+"Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "ตรึงซี่โครง ดึงด้วยหลังส่วนบน จบด้วยมือแยกออกและไหล่ต่ำ โดยไม่ฝืนช่วงการเคลื่อนไหว";
+"Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range." = "ตรึงต้นแขน งอศอกโดยไม่เหวี่ยง และลดน้ำหนักอย่างควบคุมในช่วงที่ข้อศอกสบาย";
+"Keep the weight close, soften the knees and push the hips back until the hamstrings are loaded. Keep the spine long and finish by standing tall, not by leaning back." = "ให้น้ำหนักอยู่ใกล้ตัว งอเข่าเล็กน้อย ดันสะโพกไปด้านหลังจนรู้สึกตึงเอ็นหลังเข่า รักษาหลังเป็นกลางและยืนตรงโดยไม่แอ่นหลัง";
 "Keep this session deliberately easy. Finish feeling better than you started." = "ทําใจให้สงบ รู้สึกดีมากกว่าที่เธอเริ่ม";
 "Keep wake time steady and seek daylight early." = "ให้เวลาตื่นคงที่และแสวงหาแสงแดดต้น";
 "Know when to stop" = "รู้ว่าจะหยุดเมื่อไหร่";
 "LOAD KG (+/−)" = "น้ำหนัก KG (+/−)";
 "LOG" = "บริการ";
-"Lead with the elbow, not the hand, so the back works instead of the arms." = "ตะกั่วกับข้อศอกไม่ได้มือเพื่อให้หลังทํางานแทนแขน";
+"Lead with the elbow, not the hand, so the back works instead of the arms." = "นำด้วยศอก ไม่ใช่มือ เพื่อให้หลังเป็นตัวออกแรงแทนแขน";
 "Light balance" = "สมดุลแสง";
 "Light fuel" = "เชื้อเพลิงแสง";
 "Light pairs reduced leg work with controlled Speed 1.0" = "คู่ ของ แสง ลด การ ทํา งาน ของ ขา ด้วย ความเร็ว 1.";
@@ -4422,13 +4422,13 @@
 "Loaded work waits for clinician clearance" = "การ ทํา งาน ที่ เต็ม ไป ด้วย ภาระ รอ การ ทํา ความ สะอาด คลินิก";
 "Log completed work; APEX adapts from measured training." = "ปูมบันทึกงานเสร็จสมบูรณ์แล้ว APEX ปรับจากการฝึกวัด";
 "Log each set" = "ปูมบันทึกแต่ละเซต";
-"Log the weight you used. Next week's session is built from it." = "บันทึกน้ําหนักที่คุณใช้ อาทิตย์หน้ามีการสร้าง";
+"Log the weight you used. Next week's session is built from it." = "บันทึกน้ำหนักที่ใช้ไว้ ตัวเลขนี้จะใช้จัดเซสชันสัปดาห์หน้า";
 "Long, hot, or very sweaty training may warrant a formulated electrolyte drink." = "การ ฝึก ที่ ยาว, ร้อน, หรือ มี เหงื่อ ออก อาจ ทํา ให้ มี เครื่อง ดื่ม ที่ ทํา ด้วย อิ เล็ก ทรอ นิก.";
 "Long-run rehearsal:   g carbohydrate across familiar pre-run, during-run and recovery foods, plus   g recovery protein. Nothing changes until you apply it." = "การซ้อมระยะยาว:   g คาร์โบไฮเดรตที่คุ้นเคยก่อนวิ่ง ระหว่างการวิ่งและการฟื้นฟูอาหาร   g ฟื้นโปรตีน ไม่มีอะไรเปลี่ยนแปลง จนกว่าคุณจะใช้มัน";
 "Loss is intentionally slower and depends on consistent weeks." = "การสูญเสียจะช้าลง และขึ้นอยู่กับสัปดาห์ที่ต่อเนื่อง";
 "Lower Focus" = "ลดโฟกัส";
-"Lower body, heavy base" = "ตัวล่าง เบสหนัก";
-"Lower body, single leg" = "ร่างกายล่าง ขาเดี่ยว";
+"Lower body, heavy base" = "ขาส่วนล่าง เน้นท่าหลักหนัก";
+"Lower body, single leg" = "ขาส่วนล่าง แยกฝึกทีละข้าง";
 "MISS" = "คุณ";
 "Machines, cables and free weights available" = "เครื่องจักร, สายเคเบิล และน้ําหนักฟรีใช้ได้";
 "Maintenance energy for repeatable heavy practice and recovery." = "พลังงานบํารุงรักษา สําหรับการฝึกและฟื้นฟู";
@@ -4442,7 +4442,7 @@
 "Mark set skipped" = "ตั้งสถานะเป็นข้าม";
 "Match daily expenditure for consistent endurance work." = "ตรง กับ ค่า ใช้ จ่าย ใน แต่ ละ วัน สําหรับ การ อด ทน อย่าง สม่ําเสมอ.";
 "Match estimated daily expenditure without targeting weight change." = "ตรงกับค่าจ้างประจําวัน โดยไม่ต้องกําหนดน้ําหนัก";
-"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "ตรงกับด้านที่อ่อนแอกว่า ขาที่แข็งแรงกว่าไม่ตัวแทน คนที่อ่อนแอกว่าสามารถถือฟอร์มสําหรับ";
+"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "ให้ข้างที่อ่อนกว่ากำหนดจำนวนครั้ง ข้างที่แข็งแรงกว่าทำเท่าที่อีกข้างยังรักษาฟอร์มได้";
 "Matched last time" = "ตรงกับครั้งก่อนแล้ว";
 "Meal finishes recorded:  . " = "อาหารเสร็จบันทึก:";
 "Meal schedule completed with a  /100 rhythm signal. Health consistency gained context" = "ตารางการรับประทานอาหารเสร็จสิ้นด้วยสัญญาณจังหวะ 1/100 ความ เสมอ ต้น เสมอ ปลาย ของ สุขภาพ";
@@ -4454,10 +4454,10 @@
 "Missed" = "พลาด";
 "MixedCardio" = "มิกซ์คาดิโอ";
 "Mobility and conversational-pace capacity replace a seventh hard session." = "ความสามารถในการใช้แรงงานและการพูด แทนการทํางานหนักครั้งที่ 7";
-"Mobility and reset" = "การเคลื่อนไหวและการรีเซ็ต";
+"Mobility and reset" = "คลายตึง คืนความคล่องตัว";
 "Motion" = "การเคลื่อนไหว";
 "Move down" = "ย้ายลง";
-"Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "ขยับผ่านระยะที่คุณควบคุมได้ ในขณะที่หายใจปกติ เก็บ ลํา ต้น ให้ เงียบ และ หยุด ไว้ ถ้า การ เคลื่อน ไหว ทํา ให้ เจ็บ ปวด อย่าง รุนแรง.";
+"Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "เคลื่อนไหวเฉพาะช่วงที่ควบคุมได้พร้อมหายใจตามปกติ รักษาลำตัวให้นิ่งและหยุดหากมีอาการเจ็บแปลบ";
 "Move to Strength base if load or recovery trends down." = "ย้าย ไป ที่ ฐาน กําลัง ถ้า บรรจุ หรือ ฟื้น แนว โน้ม.";
 "Move up" = "เลื่อนขึ้น";
 "NONE" = "ไม่มี";
@@ -4468,7 +4468,7 @@
 "Next tip" = "เคล็ดลับถัดไป";
 "No equipment is required. Select only what is genuinely available." = "ไม่ จําเป็น ต้อง ใช้ อุปกรณ์ ใด ๆ. เลือกเฉพาะสิ่งที่ใช้ได้จริงเท่านั้น";
 "No hydration facts for this day." = "ไม่มีข้อเท็จจริงใดๆ สําหรับวันนี้";
-"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "วันนี้ไม่มีกลุ่มกล้ามเนื้อ การฟื้นฟูคือจุดที่งานที่คุณทําเสร็จแล้ว กลายเป็นการปรับตัว";
+"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "วันนี้ไม่มีโปรแกรมฝึกกล้ามเนื้อส่วนใดโดยเฉพาะ ช่วงพักฟื้นคือเวลาที่ร่างกายนำผลจากการฝึกไปซ่อมแซมและพัฒนา";
 "No plan" = "ไม่มีแผน";
 "No prescription" = "ไม่มีใบสั่งยา";
 "No programme exists yet. Build your plan below." = "ยังไม่มีโปรแกรม สร้างแผนของคุณด้านล่าง";
@@ -4481,7 +4481,7 @@
 "Not the default. Stop and reassess if recovery, sleep, or performance falls." = "ไม่ใช่ค่าปริยาย หยุด และ คิด ใหม่ ถ้า การ หาย ป่วย, การ นอน หลับ, หรือ การ แสดง ตก ต่ํา.";
 "Notes:  " = "บันทึกย่อ:";
 "OWN" = "ส่วนตัว";
-"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "ขา ข้าง หนึ่ง ใน แต่ ละ ครั้ง เผย ให้ เห็น ด้าน ที่ ได้ ทํา น้อย ลง อย่าง เงียบ ๆ และ ขอ ให้ ขา กรรไกร งอ แทน ที่ จะ แค่ ยืด ให้ ยาว ออก ไป. ทั้ง สอง ฝ่าย ได้ งาน อย่าง เดียว กัน ไม่ ว่า จะ เป็น งาน แบบ ไหน ก็ ตาม.";
+"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "ฝึกทีละข้างแล้วจะเห็นว่าข้างไหนทำงานน้อยกว่า พร้อมฝึกให้สะโพกทรงตัว ไม่ได้มีแค่การเหยียดสะโพก ทั้งสองข้างจึงได้งานเท่ากัน ไม่ว่าข้างไหนจะแข็งแรงกว่า";
 "One-Arm" = "หนึ่ง- อาร์ม";
 "Only data needed for the feature is requested. Optional permissions remain off until you choose them, and health or fitness data is never made a public profile by default." = "ต้องการเฉพาะข้อมูลที่จําเป็นสําหรับคุณสมบัตินี้เท่านั้น สิทธิ์เลือกที่ยังไม่ได้เลือก จนกว่าคุณจะเลือกมัน และข้อมูลสุขภาพหรือความฟิตเนส จะไม่เคยทําโปรไฟล์สาธารณะ โดยปริยาย";
 "Open my plan" = "เปิดแผนของฉัน";
@@ -4513,7 +4513,7 @@
 "Post-workout meal finishes recorded:  ." = "อาหารหลังออกกําลังกายเสร็จบันทึก:";
 
 /* Translation coverage closure 456-490 · 2026-08-27 */
-"Postural work" = "การฝึกท่าทาง";
+"Postural work" = "ฝึกควบคุมท่าทาง";
 "Power surplus" = "ผลรวมพลังงาน";
 "Presentation" = "การนําเสนอ";
 "Preset buttons" = "ปุ่มชุดสําเร็จ";
@@ -4530,11 +4530,11 @@
 "Protein powder can help when meals miss your protein target." = "แป้งโปรตินช่วยได้ ถ้าอาหารขาดโปรตีน";
 "Protein shake" = "หมุน & 90";
 "Pull-up ladder 1-2-3-4-5-4-3-2-1, 10s between rungs" = "ดึงบันได 1-2-3-4-4-4-4-31-2-1, 10s ระหว่างรันก์";
-"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "การดึงความสมดุลที่คุณอยู่แล้วทําในชีวิต มากที่สุดเท่าที่ในการฝึกอบรม ด้านหลังบนคือสิ่งที่ยึดท่าร่วมกัน เมื่อสิ่งอื่นดึงคุณไปข้างหน้า";
-"Pulling day" = "วันดึง";
-"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "ทั้ง ร่าง กาย ส่วน บน จึง ได้ รับ การ ฝึก สัปดาห์ ละ สอง ครั้ง โดย ไม่ ต้อง แยก อยู่ ต่าง หาก สี่ วัน.";
+"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "ท่าดึงช่วยสร้างสมดุลให้ท่าดัน ทั้งในยิมและในชีวิตประจำวัน หลังส่วนบนที่แข็งแรงช่วยพยุงท่าทางในวันที่ต้องนั่งหรือก้มไปข้างหน้านาน ๆ";
+"Pulling day" = "วันฝึกท่าดึง";
+"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "รวมท่าดันและท่าดึงไว้ในเซสชันเดียว คุณจึงฝึกช่วงบนได้สัปดาห์ละสองครั้งโดยไม่ต้องแยกเป็นสี่วัน";
 "Push-up benchmark week  : one fresh strict max set" = "สัปดาห์ที่มีม้านั่งดันขึ้น : หนึ่งที่เข้มงวดใหม่ max ตั้งค่า";
-"Pushing day" = "วันผลักดัน";
+"Pushing day" = "วันฝึกท่าดัน";
 "QUICK LOG COMPLETE" = "เครื่อง มือ";
 "QUICK PICKS" = "ตัวเลือกด่วน";
 "Quiet hours and the three-per-day ceiling stay synchronized with the Watch." = "ชั่วโมงเงียบและเพดานสามวันยังคงประสานกับนาฬิกา";
@@ -4553,7 +4553,7 @@
 "RPE 7" = "RPE 7";
 "RPE 7 cap" = "หมวก RPE 7";
 "RPE 7–8" = "RPE 7–8";
-"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "ช่วงที่คุณควบคุมได้ เป็นช่วงที่คุณรักษาไว้ การ ทํา เช่น นี้ ทํา ให้ สะโพก และ หลัง ส่วน บน ผ่าน เข้า ไป ใน ตําแหน่ง ที่ นั่ง ใช้ เวลา นาน พอ ที่ ระบบ ประสาท จะ ยอม รับ มัน.";
+"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "ช่วงที่คุณควบคุมได้คือช่วงการเคลื่อนไหวที่ใช้งานได้จริง เซสชันนี้ฝึกสะโพกและหลังส่วนบนในช่วงที่มักติดขัดจากการนั่งนาน ๆ แล้วค้างอย่างผ่อนคลายให้ร่างกายคุ้นกับช่วงนั้น";
 "Range:   to  . Generated  ." = "ช่วง: ถึง . สร้างขึ้น";
 "Rating:   / 5" = "คะแนนนิยม: / 5";
 "Read Privacy Policy" = "กําลังอ่านข้อกําหนดการใช้ข้อกําหนด";
@@ -4572,7 +4572,7 @@
 "Remove %@" = "ลบ %@";
 "Repeat last load and chase the top of the rep range" = "ทําซ้ําการโหลดล่าสุดและไล่ด้านบนของชื่อเพลงในช่วง";
 "Rest · Restore · Adapt" = "เรียกคืนสถานะเดิม";
-"Rest, hydrate and let the next hard session stay productive." = "จง พัก ให้ เพียง พอ และ ให้ ช่วง เวลา ที่ ยาก ลําบาก ต่อ ไป บังเกิด ผล.";
+"Rest, hydrate and let the next hard session stay productive." = "พักให้พอ ดื่มน้ำให้เพียงพอ เพื่อให้เซสชันหนักครั้งหน้าฝึกได้เต็มที่";
 "Return from layoff: deload week. Minus 1 set, 3-4 RIR, lighter loads" = "กลับมาจากการปลดประจําการ ลบ 1 เซต, 3-4 RIRของที่เบากว่า";
 "Review body-weight trend after two weeks and adjust deliberately." = "ทบทวนแนวโน้มของน้ําหนักร่างกาย หลังจากสองสัปดาห์และปรับตัวอย่างจงใจ";
 "Review body-weight trend after two weeks; more is not automatically better." = "ทบทวนแนวโน้มการถ่วงน้ําหนักของร่างกายหลังจากสองสัปดาห์เพิ่มเติมไม่ได้โดยอัตโนมัติ";
@@ -4593,8 +4593,8 @@
 "Scheduled times without a recorded finish:  ." = "เวลา ที่ กําหนด ไว้ โดย ไม่ มี การ บันทึก ไว้ เสร็จ:";
 "Serving type %@" = "ประเภท การ รับ ใช้ %@";
 "Session style" = "รูปแบบวาระการใช้งาน";
-"Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "ตั้งท่าเท้าที่เสถียร ค้ํายันก่อนที่จะลง และติดตามหัวเข่าด้วยนิ้วเท้า ใช้ช่วงความเจ็บปวดที่ลึกที่สุด ที่คุณสามารถควบคุมได้";
-"Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "ตั้ง เท้า หลัง อย่าง สบาย ทํา ให้ เท้า หน้า ของ คุณ ติด สนิท และ อยู่ ใต้ การ ควบคุม. ขับผ่านเท้าด้านหน้าทั้งหมด โดยไม่ให้เข่ายุบ";
+"Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "วางเท้าให้มั่นคง เกร็งลำตัวก่อนลง ให้เข่าไปทิศเดียวกับปลายเท้า และใช้ช่วงลึกที่สุดที่ควบคุมได้โดยไม่เจ็บ";
+"Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "วางเท้าหลังให้สบาย เท้าหน้าวางเต็มพื้น ลดตัวอย่างควบคุม แล้วดันผ่านเท้าหน้าทั้งฝ่าเท้าโดยไม่ให้เข่ายุบเข้าด้านใน";
 "Seven days needs one low-load day" = "อีก 7 วันต้องจํากัดวัน";
 "Shake" = "โปรตีนเชค";
 "Show preset names" = "แสดงชื่อชุดสําเร็จ";
@@ -4602,17 +4602,17 @@
 "Sign in again to open your plan." = "ลงชื่ออีกครั้ง เพื่อเปิดแผนของคุณ";
 "Six days needs distributed load" = "หกวันที่ต้องโหลด";
 "Slide %d of %d" = "ภาพนิ่ง %d ของ %d";
-"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "ช้าและตรงจังหวะหนัก ถ้าคุณรู้สึกได้ผิดที่ ลองลดน้ําหนัก";
-"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "กล้าม เนื้อ เล็ก ๆ ที่ ยึด ตําแหน่ง แทน การ ขยับ น้ํา หนัก. มันตอบสนองต่อความถี่และการควบคุม ไม่ใช่ภาระ ซึ่งเป็นเหตุผลว่าทําไมน้ําหนักดูเบา";
+"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "ช้าและแม่นดีกว่าหนัก ถ้ารู้สึกไปลงผิดจุด ให้ลดน้ำหนัก";
+"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "กล้ามเนื้อมัดเล็กเหล่านี้มีหน้าที่พยุงท่าทางมากกว่ายกน้ำหนัก จึงพัฒนาด้วยการฝึกบ่อยและควบคุมให้แม่น น้ำหนักเบาในวันนี้เป็นสิ่งที่ตั้งใจไว้";
 "Speed 1.0" = "ความเร็ว 1. 0";
 "Speed 2.0" = "ความเร็ว 2. 0";
 "Speed 3.0" = "ความเร็ว 3.0";
 "StairClimbing" = "การไล่ระดับสี";
 "Start conservatively and keep ranges pain-free" = "เริ่มอนุรักษ์นิยมและรักษาระยะความเจ็บปวด";
-"Start from a controlled shoulder position, keep the ribs stacked and pull without swinging. Stop before grip or shoulder position becomes unsafe." = "เริ่มจากตําแหน่งไหล่ที่ควบคุมได้ ให้ซี่โครงเรียงตัวและดึง หยุดก่อนที่จะจับหรือตําแหน่งไหล่ กลายเป็นความไม่ปลอดภัย";
+"Start from a controlled shoulder position, keep the ribs stacked and pull without swinging. Stop before grip or shoulder position becomes unsafe." = "เริ่มด้วยหัวไหล่ที่ควบคุม เก็บลำตัวตรงและดึงโดยไม่เหวี่ยง หยุดก่อนที่แรงจับหรือหัวไหล่จะเสียตำแหน่ง";
 "Start with what works" = "เริ่มจากสิ่งที่ใช้ได้";
 "Steady cut" = "หมุน & 90";
-"Step to a stable stance, lower with control and keep the working knee tracking over the toes. Push the floor away to return." = "ก้าวไปที่ท่าม้า ต่ํากว่าด้วยการควบคุม และให้หัวเข่าทํางานติดตามเท้า ดันพื้นออกไปเพื่อกลับ";
+"Step to a stable stance, lower with control and keep the working knee tracking over the toes. Push the floor away to return." = "ก้าวให้มั่นคง ลดตัวอย่างควบคุม ให้เข่าไปทิศเดียวกับปลายเท้า แล้วดันพื้นเพื่อกลับขึ้น";
 "Stop immediately for sharp or escalating pain." = "หยุดทันทีหากมีอาการปวดแปลบหรือปวดมากขึ้น";
 "Stop with pain, instability or unusual symptoms." = "หยุดด้วยความเจ็บปวด ความไม่มั่นคง หรืออาการผิดปกติ";
 "Strength base" = "ฐานความแข็งแกร่ง";
@@ -4689,15 +4689,15 @@
 "United States" = "สหรัฐ";
 "Units" = "หน่วย";
 "Upper and lower loading alternate so the same muscle group is not trained hard on consecutive days." = "การโหลดที่ด้านบนและล่างสลับกัน ดังนั้นกลุ่มกล้ามเนื้อเดียวกันไม่ได้ถูกฝึกอย่างหนักในวันที่ติดต่อกัน";
-"Upper body" = "ตัวพิมพ์ใหญ่";
+"Upper body" = "วันฝึกร่างกายส่วนบน";
 "Use  " = "ใช้";
 "Use %d training days" = "ใช้ %d วันฝึก";
-"Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "ใช้ช่วงที่ควบคุมได้ ไม่มีความเจ็บปวด โดยมีการจัดตําแหน่งที่เสถียร จง ทํา ตาม จังหวะ ที่ กําหนด ไว้ จง หยุด การ เจ็บ ปวด อย่าง รุนแรง และ วาง แผน ล่วง หน้า ไว้ ใน เขต สงวน.";
+"Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "ใช้ช่วงการเคลื่อนไหวที่ควบคุมได้และไม่เจ็บ รักษาแนวร่างกาย ทำตามจังหวะ หยุดเมื่อเจ็บแปลบ และเหลือจำนวนครั้งตามแผน";
 "Use a small surplus to support muscle gain and harder sessions." = "ใช้ ส่วน ที่ เหลือ เล็ก น้อย เพื่อ สนับสนุน กล้าม เนื้อ ที่ มี กล้าม เนื้อ เพิ่ม ขึ้น และ ทํา ให้ กล้าม เนื้อ แข็ง แรง ขึ้น.";
 "Use for real workload, then return to Balanced fuel as volume falls." = "ใช้ สําหรับ งาน จริง ๆ แล้ว แล้ว ก็ กลับ ไป ใช้ เชื้อ เพลิง สมดุล เมื่อ ปริมาณ ลด ลง.";
 "Use honest inputs, follow exercise setup and stop rules, and stop immediately for sharp, escalating or unusual symptoms. Contact emergency services when symptoms may be urgent." = "กรอกข้อมูลตามจริง ทำตามคำแนะนำการจัดท่าและเกณฑ์หยุด และหยุดทันทีเมื่อมีอาการปวดแปลบ อาการที่รุนแรงขึ้น หรืออาการผิดปกติ ติดต่อบริการฉุกเฉินหากอาการอาจเร่งด่วน";
 "Use reduced volume, Stretch or rest. Avoid adding extra training." = "ใช้ปริมาตรที่ลดลง, ยืดหรือพักผ่อน หลีก เลี่ยง การ เพิ่ม การ ฝึก เป็น พิเศษ.";
-"Use the full comfortable ankle range. Pause briefly at the top and lower slowly without bouncing." = "ใช้ข้อเท้าที่สบายที่สุด หยุดชั่วคราวที่ด้านบนและลดลงอย่างช้าๆโดยไม่เด้ง";
+"Use the full comfortable ankle range. Pause briefly at the top and lower slowly without bouncing." = "ใช้ช่วงการเคลื่อนไหวข้อเท้าที่สบาย หยุดสั้น ๆ ด้านบนและลดลงช้า ๆ โดยไม่เด้ง";
 
 /* Translation coverage closure 631-665 · 2026-08-27 */
 "Use your personal hydration target. More water is not always better." = "ใช้เป้าหมายส่วนตัวของคุณ น้ํามากขึ้นไม่ได้ดีเสมอไป";
@@ -4730,7 +4730,7 @@
 "What should this plan move toward?" = "แผนการ นี้ ควร มุ่ง ไป สู่ อะไร?";
 "Where will the work happen?" = "งาน นี้ จะ เกิด ขึ้น ที่ ไหน?";
 "Who helps operate APEX" = "คนที่ช่วยงาน APEX";
-"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "ทั้ง ร่าง กาย ซึ่ง นํา โดย ลํา ต้น ด้วย อัตรา ความ เร็ว ที่ ทํา ให้ หัวใจ เต้น เร็ว ขึ้น. รถไฟ ขบวน นี้ จะ ทํา งาน ได้ นาน แค่ ไหน แทน ที่ จะ ใช้ แรง ยก.";
+"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "ใช้แกนกลางนำการเคลื่อนไหวทั่วร่างกาย แล้วรักษาจังหวะให้หัวใจเต้นสูงขึ้น เป้าหมายคือทำงานได้นานขึ้น ไม่ใช่ยกได้หนักที่สุด";
 "Whole egg, hard-boiled" = "ไข่ทั้งฟอง";
 "Whole-wheat pasta, cooked" = "พาสต้ารวมสายพันธุ์, ปรุงเสร็จ";
 "Why it is used" = "ทําไมมันถูกใช้";
@@ -4760,7 +4760,7 @@
 "Your gym floor is assumed. Select personal tools you reliably have so the plan can prefer them." = "ชั้นยิมของคุณถูกสันนิษฐาน เลือกเครื่องมือส่วนตัวที่มีเพื่อให้แผนสามารถเลือกได้";
 "Your plan is not fully synced yet. Please try again." = "แผนของคุณยังไม่ตรงกันทั้งหมด กรุณาลองอีกครั้ง";
 "Your programme and meal definitions are from an earlier release. Open APEX on the web once to bring them up to date; your logged history is untouched." = "โปรแกรมและคําจํากัดความอาหารของคุณมาจาก การปล่อยก่อนหน้านี้ เปิด APEX บนเว็บอีกครั้งที่จะนําพวกเขาขึ้นมาวันที่ ประวัติการบันทึกไว้ของคุณไม่มีใครแตะต้อง";
-"Your session" = "วาระการใช้งานของคุณ";
+"Your session" = "เซสชันของคุณ";
 "Your starting target:  " = "เป้าหมายเริ่มต้นของคุณ:";
 "^no loaded warm-up" = "^ติดตั้งเครื่องอุ่นเครื่อง";
 "adaptation: : " = "ปรับ:";

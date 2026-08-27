@@ -102,16 +102,16 @@
 "Before bed" = "Prima di dormire";
 "With a meal" = "Con un pasto";
 "What this session trains" = "Cosa allena questa sessione";
-"Worked today" = "Lavorati oggi";
-"Also involved" = "Coinvolti anche";
-"Why this shape" = "Perché questa struttura";
-"What matters most today" = "Cosa conta di più oggi";
-"Muscle growth" = "Crescita muscolare";
+"Worked today" = "Muscoli allenati oggi";
+"Also involved" = "Muscoli di supporto";
+"Why this shape" = "Perché è strutturata così";
+"What matters most today" = "La priorità di oggi";
+"Muscle growth" = "Ipertrofia";
 "Strength" = "Forza";
 "Endurance" = "Resistenza";
-"Range of motion" = "Mobilità";
+"Range of motion" = "Escursione articolare";
 "Conditioning" = "Condizionamento";
-"Restoration" = "Ripristino";
+"Restoration" = "Recupero attivo";
 "Glutes" = "Glutei";
 "Hamstrings" = "Femorali";
 "Quads" = "Quadricipiti";
@@ -144,10 +144,10 @@
 "Code" = "Codice";
 "Redeem" = "Riscatta";
 "That code was not recognised." = "Codice non riconosciuto.";
-"Protein is short today" = "Oggi manca proteina";
+"Protein is short today" = "Oggi sei sotto con le proteine";
 "Creatine not logged" = "Creatina non registrata";
-"It works by staying topped up. Today still counts." = "Funziona con la costanza. Oggi conta ancora.";
-"Nothing to flag today." = "Niente da segnalare oggi.";
+"It works by staying topped up. Today still counts." = "La creatina funziona quando le scorte muscolari restano piene. Se la prendi oggi, conta ancora.";
+"Nothing to flag today." = "Oggi non c’è nulla da segnalare.";
 "Today only" = "Solo oggi";
 "Every session, meal and night of sleep quietly rewrites what tomorrow asks of you." = "Ogni sessione, ogni pasto e ogni notte di sonno riscrive in silenzio ciò che domani ti chiederà.";
 "Waiting" = "In attesa";
@@ -675,7 +675,7 @@
 "I have not trained consistently" = "Non mi sono allenato con costanza";
 "I train now, or stopped recently" = "Mi alleno ora, o ho smesso da poco";
 "I’m a newbie" = "Sono alle prime armi";
-"Got it, open camera" = "Ho capito, apri la fotocamera";
+"Got it, open camera" = "Tutto chiaro, apri la fotocamera";
 "Go to this part of the session" = "Vai a questa parte della sessione";
 "Feet on the guide line" = "Piedi sulla linea guida";
 "Hold the barcode inside the frame" = "Tieni il codice dentro il riquadro";
@@ -889,7 +889,7 @@
 "Not enough comparable pace data yet." = "Non ci sono ancora abbastanza dati di passo confrontabili.";
 "Not every runner receives a twelve-week plan." = "Non tutti ricevono un piano di dodici settimane.";
 "Name the workout and add at least one movement." = "Dai un nome all'allenamento e aggiungi almeno un esercizio.";
-"Neutral stance, no forced flex" = "Posizione neutra, senza contrarre";
+"Neutral stance, no forced flex" = "Posizione naturale, senza contrarre i muscoli";
 "Occasionally noticeable but does not change movement" = "A volte percepibile ma non altera il movimento";
 "Only add activity beyond the normal daily floor." = "Aggiungi solo l'attività oltre la normale giornata.";
 "Orbit is comparing genuinely different route shapes." = "Orbit sta confrontando percorsi davvero diversi.";
@@ -996,13 +996,13 @@
 "Clear precise activities and switch" = "Cancella le attività precise e cambia";
 "Conversational effort, RPE 2 to 3" = "Sforzo conversazionale, RPE 2-3";
 "Conversational effort, RPE 2 to 4" = "Sforzo conversazionale, RPE 2-4";
-"Desk day plus one short home workout." = "Giornata alla scrivania più un breve allenamento a casa.";
-"Desk day plus a full 45–60 minute session." = "Giornata alla scrivania più una sessione piena di 45-60 minuti.";
-"Editing day, car everywhere, no workout." = "Giornata di montaggio, sempre in auto, nessun allenamento.";
-"Full shoot day or four to six massages." = "Giornata piena di riprese o da quattro a sei massaggi.";
-"Championship filming marathon or double-session day." = "Maratona di riprese o giornata con due sessioni.";
-"Four hours gimbal + rig carry + travel" = "Quattro ore di gimbal, trasporto rig e viaggio";
-"Desk floor + gym session + incidental steps" = "Giornata in ufficio, palestra e passi quotidiani";
+"Desk day plus one short home workout." = "Giornata alla scrivania e breve allenamento a casa.";
+"Desk day plus a full 45–60 minute session." = "Giornata alla scrivania e sessione completa da 45–60 minuti.";
+"Editing day, car everywhere, no workout." = "Giornata al montaggio, sempre in auto, nessun allenamento.";
+"Full shoot day or four to six massages." = "Intera giornata di riprese oppure da quattro a sei massaggi.";
+"Championship filming marathon or double-session day." = "Maratona di riprese a un campionato oppure giornata con doppia sessione.";
+"Four hours gimbal + rig carry + travel" = "4 ore con gimbal + trasporto dell’attrezzatura + spostamenti";
+"Desk floor + gym session + incidental steps" = "Lavoro alla scrivania + palestra + passi quotidiani extra";
 
 /* Chrome: routes, recovery, campaign, restore */
 "Run" = "Corsa";
@@ -1054,7 +1054,7 @@
 "Campaign adjusted" = "Campagna modificata";
 "Campaign run" = "Corsa della campagna";
 "Carbohydrate first" = "Prima i carboidrati";
-"Camera around waist height" = "Fotocamera all'altezza della vita";
+"Camera around waist height" = "Fotocamera all’altezza della vita";
 "Cardio & recovery evidence" = "Dati su cardio e recupero";
 "Choose the vertical space between hours." = "Scegli lo spazio verticale tra le ore.";
 
@@ -1103,7 +1103,7 @@
 "Camera & comparison" = "Fotocamera e confronto";
 "Cadence ticks" = "Tick della cadenza";
 "Calm, rehearsed, decisive." = "Calmo, provato, deciso.";
-"Same room and similar light" = "Stessa stanza e luce simile";
+"Same room and similar light" = "Stessa stanza, luce simile";
 "Runs long enough to require rehearsal" = "Corse abbastanza lunghe da richiedere una prova";
 "Search Food Memory, scan a barcode, or apply a saved preset." = "Cerca in Food Memory, scansiona un codice o usa un preset.";
 "STEPS NOT ALREADY COVERED BY THE BLOCKS ABOVE." = "PASSI NON GIÀ COPERTI DAI BLOCCHI SOPRA.";
@@ -1214,12 +1214,12 @@
 "The precise start and finish are hidden by default." = "Partenza e arrivo esatti sono nascosti per impostazione predefinita.";
 "The follow-along player, with pacing and rest built in" = "Il player guidato, con ritmo e recuperi inclusi";
 "Build the credible path to 42.195 km." = "Costruisci il percorso credibile fino ai 42,195 km.";
-"Build a repeatable image" = "Costruisci un'immagine ripetibile";
+"Build a repeatable image" = "Crea una foto che puoi ripetere";
 "Foundation to First Marathon" = "Dalla base alla prima maratona";
 "First Marathon: Finish Strong" = "Prima maratona: finire forte";
 "First Marathon: Performance" = "Prima maratona: prestazione";
 "Hybrid Athlete Marathon" = "Maratona per atleti ibridi";
-"Quick Mode's brain" = "Il cervello della modalità rapida";
+"Quick Mode's brain" = "Come ragiona la modalità rapida";
 
 /* Chrome: weekdays, ranges, run debrief, disclaimers */
 "Tu" = "Ma";
@@ -1263,8 +1263,8 @@
 "The run does not require a strength-programme change." = "La corsa non richiede modifiche al programma di forza.";
 "Training and Avatar remain coordinated" = "Allenamento e Avatar restano coordinati";
 "Try the exact product name or scan its barcode." = "Prova il nome esatto del prodotto o scansiona il codice.";
-"Three 60-minute sessions + normal errands" = "Tre sessioni da 60 minuti più le commissioni abituali";
-"Under 5k steps · under 2h on feet" = "Meno di 5000 passi · meno di 2 h in piedi";
+"Three 60-minute sessions + normal errands" = "3 sessioni da 60 minuti + commissioni quotidiane";
+"Under 5k steps · under 2h on feet" = "Meno di 5.000 passi · meno di 2 h in piedi";
 "Best realistic performance" = "Migliore prestazione realistica";
 "Before, after and the stats behind the change" = "Prima, dopo e i dati dietro il cambiamento";
 "Broad endurance evidence and coaching consensus" = "Ampie evidenze sull'endurance e consenso degli allenatori";
@@ -1584,10 +1584,10 @@
 "15 to 21 km" = "Da 15 a 21 km";
 "20 to 35 km" = "Da 20 a 35 km";
 "35 to 50 km" = "Da 35 a 50 km";
-"5–7.5k steps or 2–3h on feet" = "5000-7500 passi o 2-3 h in piedi";
-"7.5–10k steps or 3–5h on feet" = "7500-10000 passi o 3-5 h in piedi";
-"10–14k steps or 5–8h on feet" = "10000-14000 passi o 5-8 h in piedi";
-"14k+ steps and 8h+ physical work" = "Oltre 14000 passi e più di 8 h di lavoro fisico";
+"5–7.5k steps or 2–3h on feet" = "5.000–7.500 passi o 2–3 h in piedi";
+"7.5–10k steps or 3–5h on feet" = "7.500–10.000 passi o 3–5 h in piedi";
+"10–14k steps or 5–8h on feet" = "10.000–14.000 passi o 5–8 h in piedi";
+"14k+ steps and 8h+ physical work" = "Oltre 14.000 passi e oltre 8 h di lavoro fisico";
 "CoreTraining" = "Allenamento del core";
 "CrossTraining" = "Cross training";
 "FunctionalStrengthTraining" = "Forza funzionale";
@@ -1811,7 +1811,7 @@
 "%@ target · tap Done when completed" = "%@ bersaglio · toccare Fatto quando completato";
 "%@ · SET %d" = "%@ · SET %d";
 "%d days / week" = "%d giorni / settimana";
-"%d g to go. %d g tonight is enough." = "%d g per andare. %d g Stasera basta.";
+"%d g to go. %d g tonight is enough." = "Mancano %d g. %d g stasera bastano.";
 "%d min left in the high-value window" = "%d min sinistra nella finestra di alto valore";
 "%d min · meal finished after training" = "%d min · pasto finito dopo l'allenamento";
 "%d ml" = "%d ml";
@@ -1975,9 +1975,9 @@
 "Body baseline   mL" = "Base del corpo   mL";
 "Bodyweight and only the equipment you select" = "Bodyweight e solo l'attrezzatura selezionata";
 "Bottle" = "Bottiglia";
-"Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "Montare le costole giù, guidare attraverso i piedi e finire con i glutei. Fermare quando i fianchi sono completamente estesi senza inarcare la parte inferiore posteriore.";
-"Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "Preparare il torso, guidare con i gomiti e tirare verso le costole inferiori. Lasciate che le spalline si muovano naturalmente senza arbustire.";
-"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "Respira alla fine di ogni posizione. Tenere il respiro mantiene la tensione che sei venuto a rilasciare.";
+"Brace the ribs down, drive through the feet and finish with the glutes. Stop when the hips are fully extended without arching the lower back." = "Tieni raccolte le costole, spingi con i piedi e contrai i glutei per chiudere. Fermati quando le anche sono estese, prima che la zona lombare si inarchi.";
+"Brace the torso, lead with the elbows and pull toward the lower ribs. Let the shoulder blades move naturally without shrugging." = "Stabilizza il busto, guida con i gomiti e tira verso la parte bassa delle costole. Lascia muovere naturalmente le scapole, senza alzare le spalle.";
+"Breathe out at the end of each position. Holding your breath keeps the tension you came to release." = "Espira quando arrivi a fine corsa. Se devi trattenere il fiato, riduci l’ampiezza: sei qui per lasciare andare la tensione.";
 "Brown rice, cooked" = "Riso marrone, cotto";
 "Build a balanced, repeatable training rhythm" = "Costruisci un ritmo di allenamento equilibrato e ripetibile";
 "Build a plan before APEX labels any day as training or recovery." = "Costruire un piano prima APEX etichetta ogni giorno come formazione o recupero.";
@@ -1987,7 +1987,7 @@
 "Build your starting point" = "Costruire il punto di partenza";
 "Build your training week" = "Costruisci la tua settimana di allenamento";
 "Built from the loads and reps you recorded, one line per exercise." = "Costruito dai carichi e dai ripetitori registrati, una riga per esercizio.";
-"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "Costruito dai movimenti che hai scelto, quindi i muscoli mostrati sono quelli che i tuoi esercizi effettivamente caricare.";
+"Built from the movements you chose, so the muscles shown are the ones your own exercises actually load." = "La sessione nasce dagli esercizi che hai scelto: i muscoli evidenziati sono quelli che quei movimenti caricano davvero.";
 "Bulgur, cooked" = "Bulgur, cotto";
 
 /* Translation coverage closure 246-280 · 2026-08-27 */
@@ -1997,14 +1997,14 @@
 "CARBOHYDRATES" = "CARBOHYDRATES";
 "CONTACTS" = "CONTATTI";
 "Cache-Control" = "Cache-Control";
-"Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "L'accesso alla fotocamera inizia solo dopo aver confermato di seguito. Nulla viene caricato fino a quando non si rivede e salvare.";
+"Camera access begins only after you confirm below. Nothing is uploaded until you review and save." = "L’accesso alla fotocamera inizia solo dopo la conferma qui sotto. Nessuna foto viene caricata finché non la controlli e la salvi.";
 "Capacity & Core" = "Capacità e core";
 "Carry target" = "Obiettivo di trasporto";
 "Cat-Cow" = "Cat-Cow";
 "Championship rule: no leg training in the final 7 days" = "Regola del campionato: nessun allenamento della gamba in finale 7 giorni";
 "Cherry tomatoes" = "Pomodori di ciliegia";
 "Chest · Back · Arms" = "petto · indietro · braccia";
-"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "Il petto, le spalle e i tricipiti condividono ogni movimento di pressatura, quindi sono formati insieme piuttosto che in tre giorni separati che competono per lo stesso recupero.";
+"Chest, shoulders and triceps share every pressing movement, so they are trained together rather than on three separate days competing for the same recovery." = "Petto, spalle e tricipiti lavorano insieme in ogni spinta. Allenali nello stesso giorno, così recuperano insieme invece di accumulare fatica in tre sessioni diverse.";
 "Chicken breast, cooked" = "Petto di pollo, cotto";
 "Choose Balanced fitness if hunger or recovery disrupts consistency." = "Scegliere fitness bilanciato se la fame o il recupero interrompe la consistenza.";
 "Choose Maintain if training performance or recovery declines." = "Scegliere Mantenere se le prestazioni di formazione o il recupero declina.";
@@ -2048,11 +2048,11 @@
 "Content-Type" = "Contenuto";
 "Contracted infrastructure providers may process only the data needed for authentication, storage, sync and purchases. Processing outside Switzerland must use applicable safeguards." = "I fornitori di infrastrutture contrattuali possono elaborare solo i dati necessari per l'autenticazione, lo storage, la sincronizzazione e gli acquisti. I trattamenti al di fuori della Svizzera devono utilizzare le garanzie applicabili.";
 "Control the clock, spacing and Food Memory shared with the web app." = "Controllare l'orologio, la spaziatura e la memoria alimentare condivisa con l'app web.";
-"Control the lowering. That is the half of the rep that does most of the building." = "Controllare l'abbassamento. Questa è la metà del rappresentante che fa la maggior parte dell'edificio.";
+"Control the lowering. That is the half of the rep that does most of the building." = "Controlla la discesa: gran parte dello stimolo arriva proprio da quella fase.";
 "Controls the live clock, meal positions and pre-workout timing analysis." = "Controlla l'orologio dal vivo, le posizioni dei pasti e l'analisi dei tempi pre-allenamento.";
 "Core evidence" = "Prove principali";
 "Couscous, cooked" = "Couscous, cotto";
-"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "La creatina si accumula nel muscolo durante le settimane e rimane lì mentre si continua a prenderlo, quindi la consistenza fa più di qualsiasi singola dose.";
+"Creatine builds up in muscle over weeks and stays there while you keep taking it, so consistency does more than any single dose." = "La creatina si accumula nei muscoli nel corso delle settimane e resta disponibile finché la assumi con regolarità. Conta più la costanza della singola dose.";
 "Creatine monohydrate supports repeated high-intensity and strength work." = "La creatina monoidrato supporta il lavoro ripetuto ad alta intensità e resistenza.";
 "Current concerning symptoms or an existing restriction lead to professional review before strenuous assignment. Old resolved history does not automatically block training." = "La corrente relativa ai sintomi o una restrizione esistente portano alla revisione professionale prima di assegnare strenuamente. La storia vecchia risolta non blocca automaticamente l'allenamento.";
 "Current joint discomfort" = "Disturbo congiunto attuale";
@@ -2129,7 +2129,7 @@
 "Focus T25 ·  " = "Focus T25 ·";
 "Focused foundation" = "Fondazione focalizzata";
 "Follow along" = "Seguici";
-"Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session." = "Segui l'episodio sullo schermo. Scegliere il modificatore ogni volta che la forma o la respirazione inizia a rompersi. Una versione completa del modificatore conta ancora come sessione completata.";
+"Follow the episode on screen. Choose the modifier whenever form or breathing starts to break down. A completed modifier version still counts as a completed session." = "Segui l’episodio sullo schermo. Passa alla variante semplificata appena la tecnica o il respiro iniziano a cedere: completarla vale comunque come sessione conclusa.";
 "Follow the plan and keep the prescribed repetitions in reserve." = "Seguire il piano e mantenere le ripetizioni prescritte in riserva.";
 "Follow the planned session normally." = "Seguire normalmente la sessione prevista.";
 "Food" = "Cibo";
@@ -2146,7 +2146,7 @@
 "Fresh strict maximum. Stop when clean form ends, then rest three full minutes." = "Fresco massimo stretto. Basta quando la forma pulita finisce, poi riposa tre minuti completi.";
 "Fuel progress" = "Progressi del carburante";
 "Full ends after strength. Speed 1.0 is not an immediate finisher" = "Fini completamente dopo la forza. Velocità 1.0 non è un finisher immediato";
-"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "Gamma completa in basso. Tagliare la profondità per aggiungere i traffici di peso lontano la maggior parte della crescita.";
+"Full range at the bottom. Cutting depth to add weight trades away most of the growth." = "Scendi per tutta l’escursione che controlli. Accorciare il movimento per caricare di più sacrifica gran parte dello stimolo.";
 "Full selected: complete prescribed sets. Choose Light for the opening-week ramp" = "Pieno selezionato: completo set prescritti. Scegli Luce per la rampa di apertura-settimana";
 "Gentle cut" = "Taglio delicato";
 "Gentle reminders" = "Promemoria geniale";
@@ -2166,7 +2166,7 @@
 "HealthKit exposes measured sleep duration and stages, but not Apple's Sleep Score to third-party apps. Enter the score shown in the Sleep app to use it in APEX." = "HealthKit espone la durata e le fasi del sonno misurati, ma non il Punteggio del sonno di Apple alle applicazioni di terze parti. Inserisci il punteggio mostrato nell'app Sleep per usarlo in APEX.";
 "Hide keyboard" = "Nascondi la tastiera";
 "High-volume fuel" = "Carburante ad alto volume";
-"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "La cerniera carica le corde e i glutei a lunghe lunghezze muscolari, che si costruisce più che lavorare breve fa.";
+"Hinging and squatting on the same day covers the whole leg: the hinge loads the hamstrings and glutes at long muscle lengths, which builds more than working them short does." = "Mettere squat e hip hinge nella stessa seduta completa il lavoro delle gambe. L’hip hinge carica femorali e glutei in allungamento, dove lo stimolo è maggiore rispetto al lavoro in accorciamento.";
 "History" = "Storia";
 "Hold and drag to correct the finish time" = "Tenere e trascinare per correggere il tempo di finitura";
 "Hold body weight while progressive training drives recomposition." = "Tenere il peso corporeo durante l'allenamento progressivo guida la ricomposizione.";
@@ -2199,15 +2199,15 @@
 "Its receipt and recorded sets will be removed from your history and progression." = "La sua ricevuta e i set registrati saranno rimossi dalla tua storia e progressione.";
 "Juice" = "Succo";
 "Keep load progression prominent and measurable" = "Mantenere la progressione del carico prominente e misurabile";
-"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "Continuare a muoversi a un ritmo si potrebbe tenere fino alla fine, non uno che ha bisogno di un salvataggio a metà strada.";
+"Keep moving at a pace you could hold to the end, not one that needs a rescue halfway." = "Muoviti a un ritmo che puoi tenere fino alla fine, non a uno che ti svuota a metà.";
 "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve." = "Tenere i dettagli firmati al sicuro. Sei responsabile delle voci e delle modifiche effettuate tramite il tuo account. Le caratteristiche Beta possono cambiare in quanto l'affidabilità e la sicurezza migliorano.";
-"Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "Tenere il corpo teso, abbassare attraverso una gamma senza dolore e premere mantenendo le spalle lontano dalle orecchie. Mantenere l'allineamento costante del polso e del gomito.";
-"Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "Tenere i fianchi ancorati, curl senza intoppi e premere brevemente senza sollevare il bacino. Ritorna lentamente.";
+"Keep the body braced, lower through a pain-free range and press while keeping the shoulders away from the ears. Maintain steady wrist and elbow alignment." = "Mantieni il corpo compatto, scendi nell’escursione che non dà dolore e spingi tenendo le spalle lontane dalle orecchie. Polsi e gomiti restano allineati.";
+"Keep the hips anchored, curl smoothly and squeeze briefly without lifting the pelvis. Return slowly." = "Mantieni il bacino fermo, fletti le ginocchia con fluidità e contrai brevemente i femorali senza sollevare il bacino. Torna lentamente.";
 "Keep the priority strength work, reduce optional volume and prefer Stretch over optional conditioning." = "Mantenere il lavoro di forza prioritaria, ridurre il volume opzionale e preferire Stretch oltre il condizionamento opzionale.";
-"Keep the rest honest. Short rest here costs you the later sets." = "Tieni il resto onesto. Il breve riposo qui costa i set successivi.";
-"Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "Tenere le costole tranquille e tirare con la parte superiore posteriore. Finire con le mani separate e le spalle verso il basso piuttosto che forzare la gamma extra.";
-"Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range." = "Mantenere il braccio superiore stabile e curl senza usare slancio. Abbassare sotto controllo attraverso la comoda gamma di gomiti.";
-"Keep the weight close, soften the knees and push the hips back until the hamstrings are loaded. Keep the spine long and finish by standing tall, not by leaning back." = "Tenere il peso vicino, ammorbidire le ginocchia e spingere i fianchi indietro fino a quando i coulisse sono caricati. Tenere la spina dorsale lunga e finire in piedi alto, non appoggiandosi indietro.";
+"Keep the rest honest. Short rest here costs you the later sets." = "Rispetta i recuperi. Accorciarli ora ti farà calare nelle serie finali.";
+"Keep the ribs quiet and pull with the upper back. Finish with the hands apart and shoulders down rather than forcing extra range." = "Mantieni stabile il torace e tira con la parte alta della schiena. Chiudi separando le mani e tenendo basse le spalle, senza cercare più escursione del necessario.";
+"Keep the upper arm stable and curl without using momentum. Lower under control through the comfortable elbow range." = "Tieni fermo il braccio e fletti il gomito senza slancio. Scendi sotto controllo nell’escursione comoda per il gomito.";
+"Keep the weight close, soften the knees and push the hips back until the hamstrings are loaded. Keep the spine long and finish by standing tall, not by leaning back." = "Tieni il carico vicino al corpo, sblocca le ginocchia e porta indietro il bacino finché senti caricare i femorali. Mantieni la colonna neutra e chiudi in posizione eretta, senza inclinarti all’indietro.";
 "Keep this genuinely easy. Faster is not better for today’s mission." = "Mantenere questo veramente facile. Più veloce non è migliore per la missione di oggi.";
 "Keep this restorative. No loaded work and no effort target." = "Tieni questo ristoratore. Nessun lavoro carico e nessun obiettivo di sforzo.";
 "Keep this session deliberately easy. Finish feeling better than you started." = "Tenere questa sessione deliberatamente facile. Finisci di sentire meglio di te.";
@@ -2218,7 +2218,7 @@
 "Know when to stop" = "Sapere quando fermarsi";
 "LOAD KG (+/−)" = "CARICO KG (+/−)";
 "LOG" = "LOG";
-"Lead with the elbow, not the hand, so the back works instead of the arms." = "Piombo con il gomito, non la mano, quindi la schiena funziona invece delle braccia.";
+"Lead with the elbow, not the hand, so the back works instead of the arms." = "Parti con il gomito, non con la mano: così tiri con la schiena, non solo con le braccia.";
 "Light balance" = "Bilancia leggera";
 "Light fuel" = "Carburante leggero";
 "Light pairs reduced leg work with controlled Speed 1.0" = "Coppie leggere ridotto lavoro gamba con velocità controllata 1.0";
@@ -2237,7 +2237,7 @@
 "Log at least five of the next seven days. You currently have meal evidence on %d." = "Accedi almeno cinque dei prossimi sette giorni. Attualmente avete prove di pasto su %d.";
 "Log completed work; APEX adapts from measured training." = "Log lavoro completato; APEX si adatta alla formazione misurata.";
 "Log each set" = "Log ogni set";
-"Log the weight you used. Next week's session is built from it." = "Accedi al peso che hai usato. La sessione della settimana prossima è costruita da esso.";
+"Log the weight you used. Next week's session is built from it." = "Registra il carico che hai usato: servirà a costruire la sessione della prossima settimana.";
 "Log what you actually did. Every saved workout becomes a reusable smart preset." = "Accendi quello che hai fatto. Ogni allenamento salvato diventa una preimpostazione intelligente riutilizzabile.";
 "Logging on more days raises it. Eating at wildly different times lowers it. Change your timezone in Settings if the hours look wrong." = "Logging in più giorni lo solleva. Mangiare in tempi selvaggiamente diversi lo abbassa. Cambia il tuo fuso orario in Impostazioni se le ore sembrano sbagliate.";
 "Long runs progressively practise familiar pre-run and during-run nutrition before race week." = "Le lunghe corse progressivamente praticano la pre-corsa familiare e la nutrizione durante la corsa prima della settimana di gara.";
@@ -2246,8 +2246,8 @@
 "Long-run rehearsal:   g carbohydrate across familiar pre-run, during-run and recovery foods, plus   g recovery protein. Nothing changes until you apply it." = "Prove a lungo termine:   g carboidrato attraverso gli alimenti pre-run familiari, durante-run e recupero, più   g proteine di recupero. Niente cambia finché non lo applichi.";
 "Loss is intentionally slower and depends on consistent weeks." = "La perdita è intenzionalmente più lenta e dipende da settimane coerenti.";
 "Lower Focus" = "Focus inferiore";
-"Lower body, heavy base" = "Corpo inferiore, base pesante";
-"Lower body, single leg" = "Corpo inferiore, gamba singola";
+"Lower body, heavy base" = "Gambe: fondamentali pesanti";
+"Lower body, single leg" = "Gambe: lavoro unilaterale";
 
 /* Translation coverage closure 491-525 · 2026-08-27 */
 "MISS" = "MISS";
@@ -2264,7 +2264,7 @@
 "Mark set skipped" = "Set di marca saltato";
 "Match daily expenditure for consistent endurance work." = "Abbina le spese giornaliere per un lavoro di resistenza costante.";
 "Match estimated daily expenditure without targeting weight change." = "Corrispondenza stimata spesa giornaliera senza targeting cambio di peso.";
-"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "Abbina il lato più debole. La gamba più forte fa i reps che il più debole può tenere forma per.";
+"Match the weaker side. The stronger leg does the reps the weaker one can hold form for." = "Lascia decidere al lato più debole: la gamba forte fa solo le ripetizioni che l’altra riesce a eseguire bene.";
 "Matched last time" = "Abbinato l'ultima volta";
 "Meal finishes recorded:  . " = "Finiture metalliche registrate: .";
 "Meal schedule completed with a  /100 rhythm signal. Health consistency gained context" = "Calendario dei pasti completato con un segnale ritmico /100. Conformità della salute";
@@ -2277,10 +2277,10 @@
 "Minimal shows only APEX, Before/After, and each photo’s date and time." = "Solo mini spettacoli APEX, Prima/Dopo, e ogni foto data e ora.";
 "Minimum gap" = "Spazio minimo";
 "Missed" = "Mancato";
-"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "Manca un giorno cambia molto poco. Mancare la maggior parte dei giorni è lo stesso di non prenderlo affatto. Non c'è bisogno di raddoppiare domani: prendere la solita quantità e continuare.";
+"Missing one day changes very little. Missing most days is the same as not taking it at all. There is no need to double up tomorrow: take the usual amount and carry on." = "Saltare un giorno cambia pochissimo; saltarne la maggior parte equivale a non prenderla. Domani non raddoppiare: prendi la dose abituale e continua.";
 "MixedCardio" = "Cardio misto";
 "Mobility and conversational-pace capacity replace a seventh hard session." = "Mobilità e capacità di conversazione sostituiscono una settima sessione difficile.";
-"Mobility and reset" = "Mobilità e ripristino";
+"Mobility and reset" = "Mobilità e recupero";
 "Mobility within 48 h of a leg day. Joint synergy bonus +25%" = "Mobilità entro 48 ore di un giorno di gamba. Bonus sinergico pari al +25%";
 "Moderately active" = "Moderatamente attivo";
 "Morning check, %.1f hours sleep" = "Controllo del mattino, %.1f ore di sonno";
@@ -2289,7 +2289,7 @@
 /* Translation coverage closure 526-560 · 2026-08-27 */
 "Motion" = "Moto";
 "Move down" = "Muoversi!";
-"Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Spostare solo attraverso l'intervallo è possibile controllare durante la respirazione normalmente. Tenere il tronco tranquillo e fermare se il movimento provoca dolore acuto.";
+"Move only through the range you can control while breathing normally. Keep the trunk quiet and stop if the movement causes sharp pain." = "Muoviti solo nell’escursione che controlli respirando normalmente. Tieni fermo il busto e interrompi se compare un dolore acuto.";
 "Move to Strength base if load or recovery trends down." = "Spostare la base di forza se il carico o le tendenze di recupero giù.";
 "Move up" = "Muovetevi";
 "NONE" = "NESSUNO";
@@ -2302,7 +2302,7 @@
 "No demanding session is waiting. Orbit preserves a gradual return before another campaign." = "Nessuna sessione impegnativa sta aspettando. Orbit conserva un ritorno graduale prima di un'altra campagna.";
 "No equipment is required. Select only what is genuinely available." = "Non è richiesta alcuna attrezzatura. Seleziona solo ciò che è veramente disponibile.";
 "No hydration facts for this day." = "Nessun fatto di idratazione per questo giorno.";
-"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "Nessun gruppo muscolare è prescritto oggi. Il recupero è dove il lavoro già completato diventa adattamento.";
+"No muscle group is prescribed today. Recovery is where the work you already completed becomes adaptation." = "Oggi non è previsto lavoro per nessun gruppo muscolare. È durante il recupero che l’allenamento già fatto diventa adattamento.";
 "No mysterious score. Every conclusion keeps its reason visible." = "Nessun punteggio misterioso. Ogni conclusione mantiene la sua ragione visibile.";
 "No plan" = "Nessun piano";
 "No prescription" = "Prescrizione";
@@ -2325,8 +2325,8 @@
 
 /* Translation coverage closure 561-595 · 2026-08-27 */
 "Off route by about %d m. Return to the violet line when practical." = "Via libera per circa %d m. Ritorna alla linea viola quando pratica.";
-"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "Una gamba alla volta espone il lato che è stato tranquillamente facendo meno, e chiede all'anca di stabilizzarsi piuttosto che estendersi. Entrambi i lati ottengono lo stesso lavoro indipendentemente dal quale è più forte.";
-"One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "Un punto per ogni giorno APEX ha registrato una tua foto completa. La linea è il vostro indice generale, lo stesso numero mostrato in cima a questa pagina, in modo da poter vedere se si sta muovendo e non solo dove si trova oggi.";
+"One leg at a time exposes the side that has been quietly doing less, and asks the hip to stabilise rather than just extend. Both sides get the same work regardless of which is stronger." = "Lavorare una gamba alla volta fa emergere il lato che contribuiva meno e costringe l’anca a stabilizzare, non solo a estendersi. Entrambi i lati ricevono lo stesso lavoro, qualunque sia il più forte.";
+"One point for every day APEX recorded a full picture of you. The line is your overall index, the same number shown at the top of this page, so you can see whether it is moving and not only where it stands today." = "Ogni punto rappresenta un giorno in cui APEX aveva tutti i dati necessari. La linea segue il tuo indice generale, lo stesso valore mostrato in cima alla pagina, così vedi come sta cambiando e non solo il risultato di oggi.";
 "One quiet reminder in the evening, only on days you are short on protein or have not taken your creatine. Without it, the same reminders wait for you inside the app." = "Un tranquillo promemoria la sera, solo nei giorni si è a corto di proteine o non hanno preso la vostra creatina. Senza di essa, gli stessi promemoria ti aspettano all'interno dell'app.";
 "One set removed from each exercise. Keep 3 to 4 reps in reserve and use lighter loads." = "Un set rimosso da ogni esercizio. Tenere 3 a 4 reps in riserva e utilizzare carichi più leggeri.";
 "One-Arm" = "One-Arm";
@@ -2374,7 +2374,7 @@
 "Partial workout" = "Allenamento parziale";
 "Partially completed" = "Completo parziale";
 "Partner-sync order: shared strength first, profile-specific finishers last" = "Ordine Partner-Sincronizzazione: prima forza condivisa, ultima";
-"Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis." = "Guida alle prestazioni generata dal tuo APEX log e tendenze. Non è una diagnosi medica.";
+"Performance guidance generated from your APEX logs and trends. It is not a medical diagnosis." = "Indicazioni sulla prestazione basate sui tuoi dati e sull’andamento registrato in APEX. Non sono una diagnosi medica.";
 "Performance · Vision · Evolution" = "Performance · Vision · Evoluzione";
 "Permanently delete all Orbit routes, runs, campaign answers and shoe records for this profile?" = "Eliminare permanentemente tutte le rotte Orbit, le corse, le risposte della campagna e i record di scarpe per questo profilo?";
 "Persistent or worsening symptoms need medical assessment before your next session." = "I sintomi persistenti o peggioranti hanno bisogno di una valutazione medica prima della prossima sessione.";
@@ -2389,7 +2389,7 @@
 "Plan · %@ %@" = "Piano %@ %@";
 "Population rules cannot perfectly predict individual tolerance." = "Le regole della popolazione non possono perfettamente prevedere la tolleranza individuale.";
 "Post-workout meal finishes recorded:  ." = "Finiture pasto post-allenamento registrate: .";
-"Postural work" = "Lavoro posturale";
+"Postural work" = "Controllo posturale";
 "Power surplus" = "Potenza eccedenza";
 "Predominantly controlled running, progressive exposure, purposeful quality, long-run development, recovery, strength coordination, fueling rehearsal and tapering. The rules are versioned and their limitations remain visible." = "Predominantemente controllato in esecuzione, esposizione progressiva, qualità mirata, sviluppo a lungo termine, recupero, coordinamento della forza, rifornimento prove e tapering. Le regole sono versioni e le loro limitazioni rimangono visibili.";
 "Preferred and avoided sections inform future route comparison. They are not safety guarantees." = "Le sezioni preferite ed evitate informano il futuro confronto dei percorsi. Non sono garanzie di sicurezza.";
@@ -2410,17 +2410,17 @@
 "Protect both weekly lower-body exposures while keeping fatigue controlled and technique honest." = "Proteggere entrambe le esposizioni settimanali a corpo inferiore mantenendo la stanchezza controllata e la tecnica onesta.";
 "Protect the priority work" = "Proteggere il lavoro prioritario";
 "Protein is currently the clearest nutrition gap. Aim toward %d g to protect recovery and lean mass." = "La proteina è attualmente il più chiaro divario nutrizionale. Mirare verso %d g per proteggere il recupero e la massa magra.";
-"Protein is the one target worth closing even on a busy day." = "Proteine è l'unico obiettivo che vale la pena chiudere anche in una giornata intensa.";
+"Protein is the one target worth closing even on a busy day." = "Anche nelle giornate piene, le proteine sono l’obiettivo che vale la pena raggiungere.";
 "Protein opportunity is open" = "È il momento giusto per le proteine";
 "Protein powder can help when meals miss your protein target." = "La polvere proteica può aiutare quando i pasti perdono il vostro obiettivo proteico.";
 "Protein shake" = "frullato di proteine";
 "Protein target hit on a strength day. Strength XP +15%" = "L'obiettivo proteico ha colpito in un giorno di forza. Potenza XP +15%";
 "Pull-up ladder 1-2-3-4-5-4-3-2-1, 10s between rungs" = "Scala di sollevamento 1-2-3-4-5-4-3-2-1, 10s tra gradini";
-"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "Tirare bilancia la pressatura che già fate, nella vita tanto quanto nell'allenamento. La parte superiore posteriore è ciò che tiene la postura insieme quando tutto il resto ti spinge in avanti.";
-"Pulling day" = "Giorno di estrazione";
-"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "Spingere e tirare in una sessione, quindi l'intero corpo superiore viene addestrato due volte alla settimana senza bisogno di quattro giorni separati per farlo.";
+"Pulling balances the pressing you already do, in life as much as in training. The upper back is what holds posture together when everything else pulls you forward." = "Il lavoro di tirata bilancia tutte le spinte, in allenamento e nella vita quotidiana. È la parte alta della schiena a sostenere la postura quando tutto il resto ti porta in avanti.";
+"Pulling day" = "Sessione pull";
+"Push and pull in one session, so the whole upper body gets trained twice a week without needing four separate days to do it." = "Spinte e tirate nella stessa sessione permettono di allenare tutta la parte superiore due volte a settimana senza occupare quattro giorni diversi.";
 "Push-up benchmark week  : one fresh strict max set" = "Settimana di riferimento push-up: una nuova rigida max set";
-"Pushing day" = "Giorno di spinta";
+"Pushing day" = "Sessione push";
 "QUICK LOG COMPLETE" = "QUICK LOG COMPLETA";
 "QUICK PICKS" = "SCELTE RAPIDE";
 "Quiet hours and the three-per-day ceiling stay synchronized with the Watch." = "Ore tranquille e il soffitto di tre giorni soggiorno sincronizzato con l'orologio.";
@@ -2440,9 +2440,9 @@
 "RPE 7" = "RPE 7";
 "RPE 7 cap" = "RPE 7 tappo";
 "RPE 7–8" = "RPE 7-8";
-"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "L'intervallo che puoi controllare è l'intervallo che tieni. Questo funziona i fianchi e la parte superiore posteriore attraverso posizioni che sedendosi prende via, tenendoli abbastanza a lungo per il sistema nervoso di accettarli.";
+"Range you can control is the range you keep. This works the hips and the upper back through positions that sitting takes away, holding them long enough for the nervous system to accept them." = "La mobilità utile è quella che riesci a controllare. Qui le anche e la parte alta della schiena ritrovano le posizioni perse stando tanto seduti, mantenendole abbastanza a lungo da renderle di nuovo naturali.";
 "Range:   to  . Generated  ." = "Gamma: a . Generato.";
-"Rate fatigue or discomfort, not normal muscle soreness. This is training guidance, not a diagnosis." = "Tasso di stanchezza o disagio, non normale dolore muscolare. Questa è una guida di formazione, non una diagnosi.";
+"Rate fatigue or discomfort, not normal muscle soreness. This is training guidance, not a diagnosis." = "Valuta affaticamento o fastidio, non il normale indolenzimento muscolare. Sono indicazioni per l’allenamento, non una diagnosi.";
 "Rating:   / 5" = "Valutazione: / 5";
 "Raw spring onion" = "Cipolla primaverile";
 "Read Privacy Policy" = "Informativa sulla privacy";
@@ -2465,7 +2465,7 @@
 "Remove %@" = "Rimuovi %@";
 "Repeat last load and chase the top of the rep range" = "Ripetere l'ultimo carico e inseguire la parte superiore della gamma del ripetitore";
 "Rest · Restore · Adapt" = "Riposo · Ripristino · Adapt";
-"Rest, hydrate and let the next hard session stay productive." = "Riposare, idratare e lasciare che la prossima sessione dura rimanga produttiva.";
+"Rest, hydrate and let the next hard session stay productive." = "Riposa, idratati e conserva energie per rendere produttiva la prossima sessione intensa.";
 "Return from layoff: deload week. Minus 1 set, 3-4 RIR, lighter loads" = "Ritorno da licenziamento: settimana di scarico. Minus 1 set, 3-4 RIR, carichi leggeri";
 "Review body-weight trend after two weeks and adjust deliberately." = "Rivedere la tendenza corpo-peso dopo due settimane e regolare deliberatamente.";
 "Review body-weight trend after two weeks; more is not automatically better." = "Review body-weight trend dopo due settimane; più non è automaticamente migliore.";
@@ -2493,8 +2493,8 @@
 "Select every relevant constraint. APEX calendar events are also considered automatically." = "Selezionare ogni vincolo rilevante. APEX gli eventi del calendario sono anche considerati automaticamente.";
 "Serving type %@" = "Tipo di servizio %@";
 "Session style" = "Stile di sessione";
-"Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "Impostare una posizione stabile del piede, frenare prima di scendere e mantenere le ginocchia inseguimento con le dita. Utilizzare la gamma più profonda senza dolore è possibile controllare.";
-"Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "Impostare il piede posteriore comodamente, mantenere il piede anteriore completamente piantato e inferiore sotto controllo. Guidare attraverso tutto il piede anteriore senza lasciare che il ginocchio collassi verso l'interno.";
+"Set a stable foot position, brace before descending and keep the knees tracking with the toes. Use the deepest pain-free range you can control." = "Trova un appoggio stabile, attiva il tronco prima di scendere e mantieni le ginocchia in linea con le dita dei piedi. Usa la massima profondità che controlli senza dolore.";
+"Set the rear foot comfortably, keep the front foot fully planted and lower under control. Drive through the whole front foot without letting the knee collapse inward." = "Sistema il piede posteriore in una posizione comoda, tieni tutta la pianta del piede anteriore a terra e scendi sotto controllo. Spingi con tutto il piede davanti senza lasciare che il ginocchio ceda verso l’interno.";
 "Sets completed in this unfinished session have not been saved." = "I set completati in questa sessione non sono stati salvati.";
 "Settle into controlled quality. Do not race the opening minutes." = "Sistemare in qualità controllata. Non correre i minuti di apertura.";
 "Seven days needs one low-load day" = "Sette giorni hanno bisogno di un giorno basso";
@@ -2506,10 +2506,10 @@
 "Six days needs distributed load" = "Sei giorni ha bisogno di carico distribuito";
 "Skipped" = "Scivolo";
 "Slide %d of %d" = "Scivolo %d di %d";
-"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "Lenta ed esatta batte pesante. Se si può sentire nel posto sbagliato, prendere peso fuori.";
+"Slow and exact beats heavy. If you can feel it in the wrong place, take weight off." = "Prima controllo e precisione, poi il carico. Se lo senti nel punto sbagliato, alleggerisci.";
 
 /* Translation coverage closure 736-770 · 2026-08-27 */
-"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "Piccoli muscoli che tengono la posizione piuttosto che spostare il peso. Rispondono alla frequenza e al controllo, non al carico, motivo per cui i pesi sembrano leggeri.";
+"Small muscles that hold position rather than move weight. They respond to frequency and control, not load, which is why the weights look light." = "Qui lavorano i piccoli muscoli che mantengono la posizione, non quelli che spostano grandi carichi. Migliorano con frequenza e controllo, per questo i pesi sono volutamente leggeri.";
 "Some required context is still missing. Review the earlier answers." = "Qualche contesto richiesto è ancora mancante. Rivedere le risposte precedenti.";
 "Speed 1.0" = "Velocità 1.0";
 "Speed 2.0" = "Velocità 2.0";
@@ -2517,12 +2517,12 @@
 "Spring onion" = "Cipolla di primavera";
 "StairClimbing" = "StairClimbing";
 "Start conservatively and keep ranges pain-free" = "Iniziare conservativamente e mantenere le gamme senza dolore";
-"Start from a controlled shoulder position, keep the ribs stacked and pull without swinging. Stop before grip or shoulder position becomes unsafe." = "Iniziare da una posizione di spalla controllata, mantenere le costole impilate e tirare senza oscillazione. Fermare prima della presa o la posizione della spalla diventa pericolosa.";
+"Start from a controlled shoulder position, keep the ribs stacked and pull without swinging. Stop before grip or shoulder position becomes unsafe." = "Parti con le spalle sotto controllo, tieni costole e bacino allineati e tira senza slanci. Fermati prima che la presa o la posizione delle spalle diventino insicure.";
 "Start with what works" = "Iniziare con ciò che funziona";
 "Starter mode shows a generated beginner block instead of your current programme. Your programme is kept and returns when you switch this off." = "La modalità Starter mostra un blocco principiante generato invece del vostro programma corrente. Il vostro programma è tenuto e ritorna quando si spegne questo.";
 "Steady cut" = "Taglio fisso";
 "Step %d of 5" = "Passo %d di 5";
-"Step to a stable stance, lower with control and keep the working knee tracking over the toes. Push the floor away to return." = "Passo a una posizione stabile, più basso con il controllo e mantenere il monitoraggio del ginocchio funzionante sui piedi. Spingi via il pavimento per tornare.";
+"Step to a stable stance, lower with control and keep the working knee tracking over the toes. Push the floor away to return." = "Fai un passo stabile, scendi sotto controllo e mantieni il ginocchio della gamba che lavora allineato alle dita del piede. Fai pressione su tutto il piede per risalire.";
 "Stop immediately for sharp or escalating pain." = "Interrompi immediatamente in caso di dolore acuto o in aumento.";
 "Stop with pain, instability or unusual symptoms." = "Smettere con dolore, instabilità o sintomi insoliti.";
 "Strength base" = "Base di carico";
@@ -2570,7 +2570,7 @@
 "The closed day recorded  % of configured meals. A later correction will replay this verdict" = "Il giorno chiuso ha registrato % dei pasti configurati. Una correzione successiva riproponerà questo verdetto";
 "The day closed with no configured meal recorded. This can still be corrected from the calendar" = "Il giorno chiuso senza pasto configurato registrato. Questo può ancora essere corretto dal calendario";
 "The day closed with no configured meal recorded. This can still be corrected from the calendar." = "Il giorno chiuso senza pasto configurato registrato. Questo può ancora essere corretto dal calendario.";
-"The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day." = "Le etichette sono medie settimanali. Usa i passaggi e le ore sui piedi quando hai bisogno di una scelta rapida, o registra blocchi reali per un giorno calcolato.";
+"The labels are weekly averages. Use steps and hours on your feet when you need a fast choice, or log real blocks for a computed day." = "Queste categorie descrivono la tua media settimanale. Per una scelta rapida usa passi e ore in piedi; se registri le attività reali, APEX calcola questa giornata.";
 "The largest bounded deficit for this plan horizon." = "Il più grande deficit legato per questo orizzonte di piano.";
 "The light prescription keeps the primary movements so a short day still counts." = "La leggera prescrizione mantiene i movimenti primari in modo che una breve giornata contenga ancora.";
 "The meal-finished time snaps to this step and syncs to your account." = "Il tempo di pranzo-finito scatta a questo passo e si sincronizza al tuo account.";
@@ -2629,10 +2629,10 @@
 "United States" = "Stati Uniti";
 "Units" = "Unità";
 "Upper and lower loading alternate so the same muscle group is not trained hard on consecutive days." = "Carico superiore e inferiore alternano così lo stesso gruppo muscolare non è addestrato duro nei giorni consecutivi.";
-"Upper body" = "Corpo superiore";
+"Upper body" = "Parte superiore";
 "Use  " = "Uso";
 "Use %d training days" = "Uso %d giorni di allenamento";
-"Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "Utilizzare una gamma controllata e senza dolore con allineamento stabile. Seguire il tempo prescritto, fermare il dolore affilato e lasciare le ripetizioni previste in riserva.";
+"Use a controlled, pain-free range with stable alignment. Follow the prescribed tempo, stop on sharp pain and leave the planned repetitions in reserve." = "Usa un’escursione controllata e senza dolore, mantenendo un buon allineamento. Segui il tempo indicato, fermati in caso di dolore acuto e mantieni il margine di ripetizioni previsto.";
 "Use a familiar saved breakfast. Do not introduce a new race-day product." = "Utilizzare una colazione salvata familiare. Non introdurre un nuovo prodotto di gara-day.";
 "Use a small surplus to support muscle gain and harder sessions." = "Utilizzare un piccolo surplus per sostenere il guadagno muscolare e sessioni più difficili.";
 "Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula." = "Utilizzare un valore esatto da DEXA o calorimetria indiretta. Cancellare per tornare alla formula calcolata.";
@@ -2642,7 +2642,7 @@
 "Use only products and timing already tolerated in long-run rehearsals." = "Utilizzare solo prodotti e tempi già tollerati nelle prove a lungo termine.";
 "Use reduced volume, Stretch or rest. Avoid adding extra training." = "Utilizzare volume ridotto, Stretch o riposo. Evitare di aggiungere allenamento extra.";
 "Use the clearest uninterrupted section for the quality block." = "Utilizzare la sezione più chiara ininterrotta per il blocco di qualità.";
-"Use the full comfortable ankle range. Pause briefly at the top and lower slowly without bouncing." = "Utilizzare la gamma completa di caviglia confortevole. Pausa brevemente in cima e abbassare lentamente senza rimbalzare.";
+"Use the full comfortable ankle range. Pause briefly at the top and lower slowly without bouncing." = "Usa tutta l’escursione comoda della caviglia. Fermati un attimo in alto e scendi lentamente, senza rimbalzi.";
 "Use the modifier this week. Strength first and separate sessions by at least four hours when possible." = "Usa il modificatore questa settimana. Forza prima e sessioni separate di almeno quattro ore quando possibile.";
 "Use the same pose, distance and lighting for the clearest comparison." = "Utilizzare la stessa posa, distanza e illuminazione per il confronto più chiaro.";
 "Use the weekly load-tolerance check and keep demanding sessions pain-free. APEX uses the trend for load guidance, not diagnosis." = "Utilizzare il controllo settimanale di tolleranza al carico e mantenere le sessioni difficili senza dolore. APEX utilizza la tendenza per la guida del carico, non la diagnosi.";
@@ -2687,9 +2687,9 @@
 "What is collected" = "Che cosa è raccolto";
 "What should this plan move toward?" = "Cosa dovrebbe andare avanti questo piano?";
 "Where will the work happen?" = "Dove accadrà il lavoro?";
-"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "Mentre stai perdendo peso, la proteina è ciò che mantiene la perdita proveniente dal grasso piuttosto che dal muscolo.";
+"While you are losing weight, protein is what keeps the loss coming from fat rather than muscle." = "Quando perdi peso, una quota proteica adeguata aiuta a preservare i muscoli e a perdere soprattutto grasso.";
 "Who helps operate APEX" = "Chi aiuta a operare APEX";
-"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "Tutto il corpo, guidato dal tronco, ad un ritmo che mantiene la frequenza cardiaca. Questo treno quanto tempo è possibile lavorare piuttosto che quanto è possibile sollevare.";
+"Whole body, led by the trunk, at a pace that keeps the heart rate up. This trains how long you can work rather than how much you can lift." = "Tutto il corpo lavora a partire dal tronco, a un ritmo che tiene alta la frequenza cardiaca. Qui alleni la tenuta, non la forza massima.";
 "Whole egg, hard-boiled" = "Uovo intero, indurito";
 "Whole-wheat pasta, cooked" = "Pasta integrale, cotta";
 "Why it is used" = "Perché è usato";
@@ -2706,7 +2706,7 @@
 "YYYY" = "AAAA";
 "Yesterday included demanding lower-body work, so Orbit protects adaptation with a short, controlled run." = "Ieri incluso impegnativo lavoro a corpo inferiore, quindi Orbit protegge l'adattamento con una corsa breve e controllata.";
 "Yoga" = "Yoga";
-"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "Tu sei %d g sotto. Non cercare di ripagare tutto in un colpo solo: una sola seduta può usare circa %d g per muscolo, e il resto è per lo più bruciato per energia invece. Condividi su Twitter %d g ora e iniziare domani sul bersaglio piuttosto che dietro.";
+"You are %d g under. Do not try to repay all of it in one go: a single sitting can use about %d g for muscle, and the rest is mostly burned for energy instead. Have around %d g now and start tomorrow on target rather than behind." = "Ti mancano %d g. Non provare a recuperarli tutti in una volta: in un solo pasto, circa %d g sono utili alla sintesi muscolare; il resto viene usato soprattutto come energia. Assumine circa %d g ora e domani torna al tuo obiettivo abituale, senza compensare.";
 "You can correct entries, revoke Apple Health access, export records and request account deletion. Withdrawing consent stops future optional processing but cannot undo processing already required to deliver your request." = "È possibile correggere le voci, revocare Apple Health accesso, registro delle esportazioni e cancellazione dell'account richiesta. La revoca del consenso interrompe il futuro trattamento facoltativo ma non può annullare l'elaborazione già richiesta per fornire la vostra richiesta.";
 "You can leave setup without sharing these details. A personalised plan, calories and macros require the measurements and goal you choose to provide." = "È possibile lasciare la configurazione senza condividere questi dettagli. Un piano personalizzato, calorie e macro richiedono le misure e l'obiettivo che si sceglie di fornire.";
 "You can say no to either and everything still works. You can change both later in Settings." = "Si può dire no a entrambi e tutto funziona ancora. È possibile modificare entrambi in seguito in Impostazioni.";
