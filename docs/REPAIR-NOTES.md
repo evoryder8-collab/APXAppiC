@@ -1176,3 +1176,22 @@ GitHub publication evidence:
 - Release build: APEX 1.0.0 (358), built from exact implementation SHA `db06034d99fd7a52e8a4c2b60ffa2880873282e8`; strict deep code-sign verification passed for both the iPhone app and embedded Watch app.
 - Installed and launched on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5904`.
 - Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1256`.
+
+## 2026-08-27 — First-run consent and honest nutrition baseline
+
+- Implementation commit: `fe85132f9cef6324569e2d890c5f8763586fd34d` (`fix: require honest first-run nutrition baseline`).
+- Rebuilt first-run setup around three mandatory facts before any Skip action exists: explicit current Terms/Privacy and sensitive-health-data consent, a validated body baseline (sex used by the metabolic equation, weight, height, exact birth date), and the user's goal. The remaining training questions can then be skipped without inventing a workout programme.
+- A baseline-only completion now creates the server profile with the captured body facts, persists versioned legal acceptance and goal metadata, derives calorie/macro targets in both native and web clients, and leaves a clear plan-builder route instead of a blank portal or fabricated plan. Interrupted profile creation returns to setup rather than stranding the account.
+- Added an accessible nine-step native setup with Swiss-oriented privacy copy, local Terms/Privacy explanations, keyboard Previous/Next/Done controls, native vector illustrations, and stable accessibility identifiers. Existing web sessions consume the same server-shaped baseline marker for cross-client parity.
+- Tests added or strengthened:
+  - `TrainingInductionTests.testSkippingOnlyAfterMandatoryBaselineCreatesNutritionFactsWithoutAWorkoutPlan`
+  - baseline-only profile recovery and portal-routing assertions
+  - `nutrition-plan-presets.test.ts` baseline-only target parity assertion
+  - `APEXSmokeUITests.testInductionRequiresConsentBodyAndGoalBeforeSkipAndNoPlanAccountCanReturnToTheBuilder`
+  - single-flight submission guard now independently protects Back, Continue, and the conditionally visible Skip action.
+- Red proof: the focused native test failed to compile before implementation because `BodyBaseline`, `DataConsent`, and `baselineOnly` did not exist (`build/onboarding-baseline-red/Logs/Test/Test-APEX-2026.08.27_01-33-07-+0200.xcresult`, exit 65).
+- Green proof: focused native 1/1 passed (`build/onboarding-baseline-red/Logs/Test/Test-APEX-2026.08.27_01-42-54-+0200.xcresult`); end-to-end first-run UI flow 1/1 passed in 56.842 seconds (`build/onboarding-baseline-ui/Logs/Test/Test-APEX-2026.08.27_02-00-01-+0200.xcresult`).
+- Full verification: native 499/499 passed with 0 failures (`build/onboarding-baseline-full/Logs/Test/Test-APEX-2026.08.27_02-17-53-+0200.xcresult`); web 576/576 passed with 0 failures; `npm run build` passed; `git diff --check` passed.
+- Release build: APEX 1.0.0 (359), built and codesigned from exact implementation SHA `fe85132f9cef6324569e2d890c5f8763586fd34d`.
+- Installed and launched on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, database sequence `5912`.
+- Installed and launched on physical Apple Watch Ultra 3 `F6BE2986-A704-5C82-BC2B-6D02E09CBD04`, database sequence `1264`.
