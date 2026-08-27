@@ -17,3 +17,8 @@ ios/APEXNative/Config/Secrets.xcconfig
 
 # Supabase CLI project-link and version cache
 supabase/.temp/
+
+# Local browser automation and build/test scratch output
+.playwright-mcp/
+build/
+tmp/

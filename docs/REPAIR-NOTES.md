@@ -1425,3 +1425,30 @@ GitHub publication evidence:
 - Web/repository regression suite: **592 passed, 0 failed**.
 - All eight edited `.strings` tables passed `plutil -lint`.
 - Release provenance, physical-device installation, push, and Pages deployment are reported with the final task SHA in the completion handoff.
+
+## 2026-08-27 — Romanian runtime localisation closure and clean-chat handoff
+
+### Completed change
+
+- Implementation commit: `5caa41f7f0a594b0996ce7232e7dc9b3c229cb4d` (`fix: localize hydration and hand off food focus`).
+- Canonical hydration preset names now resolve through the selected runtime language on quick-add, settings, history and the preset editor. User-authored preset names remain verbatim.
+- The Simple Mode supplement popup title, taken count and supplement group labels now resolve through runtime localisation instead of rendering dynamic English.
+- Romanian Session Briefing headings, mobility rationale, breathing cue and the surrounding coaching corpus were rewritten in natural Romanian fitness language rather than preserving English syntax or wordplay.
+- Food Memory explicitly resigns its search field before opening the amount configurator. The amount field therefore receives keyboard focus and edits while the previous search query remains unchanged.
+- Apple Release build 367 was built from the exact implementation SHA above, installed on physical iPhone `A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`, and launched successfully as PID 1972. The signed iPhone bundle contains the current embedded Watch companion.
+
+### Verification
+
+- Runtime localisation source contracts: 2 passed, 0 failed.
+- Runtime translation structural audit: 4,543/4,543 in every offered language, with no missing keys. This is structural evidence only and is explicitly not a prose-quality claim.
+- Focused native `LocalizationTests`: 5 passed, 0 failed after the final hydration-history/editor changes.
+- Earlier verification on the same implementation change: full native unit suite 519/519, Food Memory behavioural UI regression 1/1, web/repository regression suite 592/592, and production web build succeeded.
+- All eight edited non-English `.strings` files passed `plutil -lint`; `git diff --check` passed.
+
+### Repository state handed to the next chat
+
+- Canonical worktree: `/Users/jaxoncorrey/APXAppiC-codex-main-repair`; branch: `codex/main-critical-repair`.
+- The generated `.playwright-mcp/`, `build/` and `tmp/` directories are ignored. No tracked implementation is half-finished.
+- User-declared completed roadmap work that must not be redone: 1.1 through 1.9; 2.1; 2.3; 2.4; 2.7; the authentication refresh/replay implementation in 2.8; and the existing ten-file portion of 2.6.
+- Most recently completed numbered roadmap item: 2.7. Next unclosed numbered item under the required phase order: 1.10. Phase 2.5 remains untouched as a deliverable.
+- Before resuming numbered roadmap work, the next chat must first diagnose the on-device `20 needs attention` sync state as a 2.8 follow-up, then perform the native-author prose-quality follow-up for every offered language as a 2.7 follow-up.
