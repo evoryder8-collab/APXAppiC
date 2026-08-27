@@ -28,6 +28,399 @@ struct WatchHydrationFillState: Equatable, Sendable {
     }
 }
 
+enum HydrationComplicationReadingSource: Equatable, Sendable {
+    case sharedState
+    case healthKit
+    case empty
+}
+
+enum HydrationComplicationRefreshPolicy {
+    static func readingSource(
+        hasSharedState: Bool,
+        hasHealthData: Bool
+    ) -> HydrationComplicationReadingSource {
+        guard hasSharedState else { return hasHealthData ? .healthKit : .empty }
+        return .sharedState
+    }
+
+    static func shouldAcceptSnapshot(
+        currentRevision: String?,
+        incomingRevision: String
+    ) -> Bool {
+        guard let currentRevision else { return true }
+
+        if let currentDate = revisionDate(currentRevision),
+           let incomingDate = revisionDate(incomingRevision) {
+            return incomingDate >= currentDate
+        }
+        return incomingRevision >= currentRevision
+    }
+
+    static func shouldAcceptCompanionRevision(
+        acceptedCompanionRevision: String?,
+        localWidgetRevision _: String?,
+        incomingRevision: String
+    ) -> Bool {
+        shouldAcceptSnapshot(
+            currentRevision: acceptedCompanionRevision,
+            incomingRevision: incomingRevision
+        )
+    }
+
+    static func revision(at date: Date = Date()) -> String {
+        let formatter = ISO8601DateFormatter()
+        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return formatter.string(from: date)
+    }
+
+    static func shouldRequestImmediateTransfer(
+        complicationEnabled: Bool,
+        remainingTransfers: Int,
+        previousVisibleSignature: String?,
+        newVisibleSignature: String
+    ) -> Bool {
+        complicationEnabled
+            && remainingTransfers > 0
+            && previousVisibleSignature != newVisibleSignature
+    }
+
+    static func visibleSignature(
+        ownerID: UUID,
+        localDate: String,
+        totalML: Int,
+        targetML: Int,
+        composition: [HydrationCompositionBand]
+    ) -> String {
+        let bands = composition
+            .filter { $0.milliliters > 0 }
+            .map {
+                "\($0.kind.rawValue):\($0.paletteToken):\($0.iconToken):\($0.milliliters)"
+            }
+            .sorted()
+            .joined(separator: ",")
+        return [
+            ownerID.uuidString.lowercased(),
+            localDate,
+            String(max(0, totalML)),
+            String(max(250, targetML)),
+            bands,
+        ].joined(separator: "|")
+    }
+
+    private static func revisionDate(_ value: String) -> Date? {
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        if let date = fractional.date(from: value) { return date }
+        return ISO8601DateFormatter().date(from: value)
+    }
+}
+
+struct HydrationHealthSampleAnchor: Codable, Equatable, Hashable, Sendable {
+    let id: UUID
+    let milliliters: Int
+    let kind: HydrationKind
+    let paletteToken: String
+    let iconToken: String
+
+    init(
+        id: UUID,
+        milliliters: Int,
+        kind: HydrationKind,
+        paletteToken: String,
+        iconToken: String
+    ) {
+        self.id = id
+        self.milliliters = max(0, milliliters)
+        self.kind = kind
+        self.paletteToken = paletteToken
+        self.iconToken = iconToken
+    }
+}
+
+enum HydrationPendingMutationAction: String, Codable, Sendable {
+    case upsert
+    case delete
+}
+
+struct HydrationPendingMutation: Codable, Equatable, Sendable {
+    let ownerID: UUID
+    let localDate: String
+    let action: HydrationPendingMutationAction
+    let sample: HydrationHealthSampleAnchor
+}
+
+struct HydrationDeferredDelete: Codable, Equatable, Sendable {
+    let ownerID: UUID
+    let eventID: UUID
+    let localDate: String
+}
+
+struct HydrationDeferredDeleteReconciliation: Equatable, Sendable {
+    let remaining: [HydrationDeferredDelete]
+    let toReplay: [HydrationDeferredDelete]
+}
+
+enum HydrationDeferredDeleteReconciler {
+    static func reconcile(
+        _ queued: [HydrationDeferredDelete],
+        snapshotOwnerID: UUID,
+        snapshotLocalDate: String,
+        snapshotEventIDs: Set<UUID>,
+        acknowledgedDeleteIDs: Set<UUID>
+    ) -> HydrationDeferredDeleteReconciliation {
+        var remaining: [HydrationDeferredDelete] = []
+        var toReplay: [HydrationDeferredDelete] = []
+        for deletion in queued {
+            guard deletion.ownerID == snapshotOwnerID else {
+                remaining.append(deletion)
+                continue
+            }
+            if acknowledgedDeleteIDs.contains(deletion.eventID) {
+                continue
+            }
+            if deletion.localDate == snapshotLocalDate,
+               !snapshotEventIDs.contains(deletion.eventID) {
+                continue
+            }
+            remaining.append(deletion)
+            toReplay.append(deletion)
+        }
+        return HydrationDeferredDeleteReconciliation(
+            remaining: remaining,
+            toReplay: toReplay
+        )
+    }
+}
+
+struct HydrationReconciledState: Equatable, Sendable {
+    let totalML: Int
+    let composition: [HydrationCompositionBand]
+}
+
+struct HydrationHealthOverlayUpdate: Equatable, Sendable {
+    let mutations: [HydrationPendingMutation]
+    let nextAnchor: [HydrationHealthSampleAnchor]
+}
+
+struct HydrationWatchOperationScope: Equatable, Sendable {
+    let ownerID: UUID
+    let localDate: String
+    let generation: Int
+
+    func matches(ownerID: UUID?, localDate: String, generation: Int) -> Bool {
+        self.ownerID == ownerID
+            && self.localDate == localDate
+            && self.generation == generation
+    }
+}
+
+enum HydrationWatchScopePolicy {
+    static func shouldRebase(storedLocalDate: String?, currentLocalDate: String) -> Bool {
+        guard let storedLocalDate else { return false }
+        return storedLocalDate != currentLocalDate
+    }
+
+    static func persistenceLocalDate(
+        storedLocalDate: String?,
+        currentLocalDate: String
+    ) -> String {
+        storedLocalDate ?? currentLocalDate
+    }
+}
+
+enum HydrationHealthReconciler {
+    private struct BandKey: Hashable {
+        let kind: HydrationKind
+        let paletteToken: String
+        let iconToken: String
+    }
+
+    static func applying(
+        _ pending: [HydrationPendingMutation],
+        toTotalML totalML: Int,
+        composition: [HydrationCompositionBand]
+    ) -> HydrationReconciledState {
+        applyingAdjustments(
+            pending.map {
+                ($0.sample, $0.action == .upsert ? $0.sample.milliliters : -$0.sample.milliliters)
+            },
+            toTotalML: totalML,
+            composition: composition
+        )
+    }
+
+    static func unacknowledged(
+        _ pending: [HydrationPendingMutation],
+        snapshotOwnerID: UUID,
+        snapshotLocalDate: String,
+        snapshotEventIDs: Set<UUID>
+    ) -> [HydrationPendingMutation] {
+        pending.filter {
+            $0.ownerID == snapshotOwnerID && $0.localDate == snapshotLocalDate
+        }.filter { mutation in
+            switch mutation.action {
+            case .upsert:
+                return !snapshotEventIDs.contains(mutation.sample.id)
+            case .delete:
+                return snapshotEventIDs.contains(mutation.sample.id)
+            }
+        }
+    }
+
+    static func updatedHealthOverlay(
+        _ existing: [HydrationPendingMutation],
+        ownerID: UUID,
+        localDate: String,
+        canonicalSampleIDs: Set<UUID>,
+        anchor: [HydrationHealthSampleAnchor]?,
+        current: [HydrationHealthSampleAnchor],
+        deletedSampleIDs: Set<UUID> = []
+    ) -> HydrationHealthOverlayUpdate {
+        let acknowledged = unacknowledged(
+            existing,
+            snapshotOwnerID: ownerID,
+            snapshotLocalDate: localDate,
+            snapshotEventIDs: canonicalSampleIDs
+        )
+        guard let anchor else {
+            return HydrationHealthOverlayUpdate(
+                mutations: acknowledged,
+                nextAnchor: current
+                    .filter { !deletedSampleIDs.contains($0.id) }
+                    .sorted { $0.id.uuidString < $1.id.uuidString }
+            )
+        }
+
+        var mutationsByID = Dictionary(
+            uniqueKeysWithValues: acknowledged.map { ($0.sample.id, $0) }
+        )
+        let anchorByID = Dictionary(uniqueKeysWithValues: anchor.map { ($0.id, $0) })
+        var nextAnchorByID = anchorByID
+        for sample in current {
+            nextAnchorByID[sample.id] = sample
+        }
+        for deletedSampleID in deletedSampleIDs {
+            nextAnchorByID.removeValue(forKey: deletedSampleID)
+        }
+
+        func merge(_ action: HydrationPendingMutationAction, sample: HydrationHealthSampleAnchor) {
+            if let existing = mutationsByID[sample.id], existing.action != action {
+                mutationsByID.removeValue(forKey: sample.id)
+            } else {
+                mutationsByID[sample.id] = HydrationPendingMutation(
+                    ownerID: ownerID,
+                    localDate: localDate,
+                    action: action,
+                    sample: sample
+                )
+            }
+        }
+
+        for sample in current where anchorByID[sample.id] == nil {
+            if canonicalSampleIDs.contains(sample.id) {
+                if mutationsByID[sample.id]?.action == .delete {
+                    mutationsByID.removeValue(forKey: sample.id)
+                }
+            } else {
+                merge(.upsert, sample: sample)
+            }
+        }
+        for deletedSampleID in deletedSampleIDs {
+            guard let sample = anchorByID[deletedSampleID]
+                ?? mutationsByID[deletedSampleID]?.sample
+            else { continue }
+
+            if canonicalSampleIDs.contains(deletedSampleID) {
+                merge(.delete, sample: sample)
+            } else if mutationsByID[deletedSampleID]?.action == .upsert {
+                mutationsByID.removeValue(forKey: deletedSampleID)
+            }
+        }
+
+        return HydrationHealthOverlayUpdate(
+            mutations: mutationsByID.values.sorted {
+                $0.sample.id.uuidString < $1.sample.id.uuidString
+            },
+            nextAnchor: nextAnchorByID.values.sorted {
+                $0.id.uuidString < $1.id.uuidString
+            }
+        )
+    }
+
+    static func replacingOverlay(
+        _ previous: [HydrationPendingMutation],
+        with updated: [HydrationPendingMutation],
+        inTotalML totalML: Int,
+        composition: [HydrationCompositionBand]
+    ) -> HydrationReconciledState {
+        let reversed = previous.map {
+            HydrationPendingMutation(
+                ownerID: $0.ownerID,
+                localDate: $0.localDate,
+                action: $0.action == .upsert ? .delete : .upsert,
+                sample: $0.sample
+            )
+        }
+        let withoutPrevious = applying(
+            reversed,
+            toTotalML: totalML,
+            composition: composition
+        )
+        return applying(
+            updated,
+            toTotalML: withoutPrevious.totalML,
+            composition: withoutPrevious.composition
+        )
+    }
+
+    private static func applyingAdjustments(
+        _ adjustments: [(sample: HydrationHealthSampleAnchor, deltaML: Int)],
+        toTotalML totalML: Int,
+        composition: [HydrationCompositionBand]
+    ) -> HydrationReconciledState {
+        var bandTotals: [BandKey: Int] = [:]
+        for band in composition where band.milliliters > 0 {
+            let key = BandKey(
+                kind: band.kind,
+                paletteToken: band.paletteToken,
+                iconToken: band.iconToken
+            )
+            bandTotals[key, default: 0] += band.milliliters
+        }
+        for adjustment in adjustments where adjustment.deltaML != 0 {
+            let key = BandKey(
+                kind: adjustment.sample.kind,
+                paletteToken: adjustment.sample.paletteToken,
+                iconToken: adjustment.sample.iconToken
+            )
+            bandTotals[key, default: 0] += adjustment.deltaML
+        }
+
+        let order: [HydrationKind: Int] = [
+            .water: 0, .coffee: 1, .tea: 2, .juice: 3, .shake: 4,
+            .other: 5, .external: 6, .food: 7, .legacy: 8,
+        ]
+        let resolvedComposition: [HydrationCompositionBand] = bandTotals.compactMap { element in
+            let (key, amount) = element
+            guard amount > 0 else { return nil }
+            return HydrationCompositionBand(
+                kind: key.kind,
+                paletteToken: key.paletteToken,
+                iconToken: key.iconToken,
+                milliliters: amount
+            )
+        }.sorted {
+            let lhs = (order[$0.kind] ?? 99, $0.paletteToken, $0.iconToken)
+            let rhs = (order[$1.kind] ?? 99, $1.paletteToken, $1.iconToken)
+            return lhs < rhs
+        }
+        return HydrationReconciledState(
+            totalML: max(0, totalML + adjustments.reduce(0) { $0 + $1.deltaML }),
+            composition: resolvedComposition
+        )
+    }
+}
+
 struct HydrationCompositionStop: Equatable, Sendable {
     let paletteToken: String
     let location: Double

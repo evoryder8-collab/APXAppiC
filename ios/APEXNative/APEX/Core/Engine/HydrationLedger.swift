@@ -104,6 +104,7 @@ enum HydrationCompanionKeys {
     static let snapshot = "apex_hydration_snapshot_v1"
     static let mutation = "apex_hydration_mutation_v1"
     static let disconnected = "apex_hydration_disconnected_v1"
+    static let disconnectedRevision = "apex_hydration_disconnected_revision_v1"
     static let workoutCommand = "apex_watch_workout_command_v1"
 }
 
@@ -176,6 +177,7 @@ struct WatchWorkoutCommand: Codable, Equatable, Sendable {
 enum HydrationWidgetStorage {
     static let suiteName = "group.ch.apexperformance.APEX"
     static let stateKey = "apex_hydration_widget_state_v1"
+    static let healthStateKey = "apex_hydration_widget_health_state_v1"
 }
 
 enum HydrationMetadata {
@@ -356,6 +358,7 @@ struct HydrationCompanionSnapshot: Codable, Equatable, Sendable {
     let preferences: WatchHydrationPreferences
     let composition: [HydrationCompositionBand]
     let revision: String
+    let acknowledgedDeleteIDs: [UUID]?
 
     static func make(
         ownerID: UUID,
@@ -364,7 +367,8 @@ struct HydrationCompanionSnapshot: Codable, Equatable, Sendable {
         presets: [HydrationPreset],
         preferences: WatchHydrationPreferences,
         legacyDrinkLiters: Double,
-        revision: String
+        revision: String,
+        acknowledgedDeleteIDs: [UUID] = []
     ) -> HydrationCompanionSnapshot {
         let ownedEvents = events.filter { $0.userID == ownerID && $0.localDate == date }
         let ownedPresets = presets.filter { $0.userID == ownerID && $0.enabled }
@@ -384,7 +388,8 @@ struct HydrationCompanionSnapshot: Codable, Equatable, Sendable {
             presets: ownedPresets,
             preferences: preferences,
             composition: resolved.composition,
-            revision: revision
+            revision: revision,
+            acknowledgedDeleteIDs: acknowledgedDeleteIDs
         )
     }
 
@@ -402,6 +407,10 @@ struct HydrationWidgetState: Codable, Equatable, Sendable {
     let targetML: Int
     let composition: [HydrationCompositionBand]
     let revision: String
+    let healthAnchor: [HydrationHealthSampleAnchor]?
+    let healthQueryAnchorData: Data?
+    let canonicalSampleIDs: [UUID]?
+    let healthOverlay: [HydrationPendingMutation]?
 
     init(snapshot: HydrationCompanionSnapshot) {
         ownerID = snapshot.ownerID
@@ -410,6 +419,15 @@ struct HydrationWidgetState: Codable, Equatable, Sendable {
         targetML = snapshot.targetML
         composition = snapshot.composition
         revision = snapshot.revision
+        healthAnchor = nil
+        healthQueryAnchorData = nil
+        canonicalSampleIDs = Array(snapshot.events.reduce(into: Set<UUID>()) { result, event in
+            result.insert(event.id)
+            if let healthKitSampleID = event.healthKitSampleID {
+                result.insert(healthKitSampleID)
+            }
+        }).sorted { $0.uuidString < $1.uuidString }
+        healthOverlay = []
     }
 
     init(
@@ -418,7 +436,11 @@ struct HydrationWidgetState: Codable, Equatable, Sendable {
         totalML: Int,
         targetML: Int,
         composition: [HydrationCompositionBand],
-        revision: String
+        revision: String,
+        healthAnchor: [HydrationHealthSampleAnchor]? = nil,
+        healthQueryAnchorData: Data? = nil,
+        canonicalSampleIDs: [UUID]? = nil,
+        healthOverlay: [HydrationPendingMutation]? = nil
     ) {
         self.ownerID = ownerID
         self.localDate = localDate
@@ -426,12 +448,91 @@ struct HydrationWidgetState: Codable, Equatable, Sendable {
         self.targetML = max(250, targetML)
         self.composition = composition
         self.revision = revision
+        self.healthAnchor = healthAnchor
+        self.healthQueryAnchorData = healthQueryAnchorData
+        self.canonicalSampleIDs = canonicalSampleIDs
+        self.healthOverlay = healthOverlay
     }
 
     func encoded() throws -> Data { try JSONEncoder().encode(self) }
 
     static func decode(_ data: Data) throws -> HydrationWidgetState {
         try JSONDecoder().decode(HydrationWidgetState.self, from: data)
+    }
+}
+
+struct HydrationWidgetHealthState: Codable, Equatable, Sendable {
+    let ownerID: UUID
+    let localDate: String
+    let baseRevision: String
+    let totalML: Int
+    let composition: [HydrationCompositionBand]
+    let healthAnchor: [HydrationHealthSampleAnchor]
+    let healthQueryAnchorData: Data?
+    let healthOverlay: [HydrationPendingMutation]
+
+    init(
+        ownerID: UUID,
+        localDate: String,
+        baseRevision: String,
+        totalML: Int,
+        composition: [HydrationCompositionBand],
+        healthAnchor: [HydrationHealthSampleAnchor],
+        healthQueryAnchorData: Data?,
+        healthOverlay: [HydrationPendingMutation]
+    ) {
+        self.ownerID = ownerID
+        self.localDate = localDate
+        self.baseRevision = baseRevision
+        self.totalML = max(0, totalML)
+        self.composition = composition
+        self.healthAnchor = healthAnchor
+        self.healthQueryAnchorData = healthQueryAnchorData
+        self.healthOverlay = healthOverlay
+    }
+
+    func matches(_ state: HydrationWidgetState) -> Bool {
+        ownerID == state.ownerID
+            && localDate == state.localDate
+            && baseRevision == state.revision
+    }
+
+    func encoded() throws -> Data { try JSONEncoder().encode(self) }
+
+    static func decode(_ data: Data) throws -> HydrationWidgetHealthState {
+        try JSONDecoder().decode(HydrationWidgetHealthState.self, from: data)
+    }
+}
+
+struct HydrationWidgetResolvedState: Equatable, Sendable {
+    let totalML: Int
+    let composition: [HydrationCompositionBand]
+    let healthAnchor: [HydrationHealthSampleAnchor]?
+    let healthQueryAnchorData: Data?
+    let healthOverlay: [HydrationPendingMutation]
+}
+
+enum HydrationWidgetStateResolver {
+    static func resolve(
+        canonical: HydrationWidgetState,
+        healthState: HydrationWidgetHealthState?
+    ) -> HydrationWidgetResolvedState {
+        guard let healthState, healthState.matches(canonical) else {
+            return HydrationWidgetResolvedState(
+                totalML: canonical.totalML,
+                composition: canonical.composition,
+                healthAnchor: canonical.healthAnchor,
+                healthQueryAnchorData: canonical.healthQueryAnchorData,
+                healthOverlay: canonical.healthOverlay ?? []
+            )
+        }
+        return HydrationWidgetResolvedState(
+            totalML: healthState.totalML,
+            composition: healthState.composition,
+            healthAnchor: healthState.healthAnchor,
+            healthQueryAnchorData: healthState.healthQueryAnchorData,
+            healthOverlay: healthState.healthOverlay
+        )
     }
 }
 

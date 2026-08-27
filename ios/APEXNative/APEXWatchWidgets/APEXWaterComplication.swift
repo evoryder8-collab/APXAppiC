@@ -9,6 +9,7 @@
  * callback to an async HealthKit query without a data race.
  */
 import AppIntents
+import Foundation
 import HealthKit
 import SwiftUI
 import WidgetKit
@@ -109,9 +110,64 @@ struct WaterProvider: AppIntentTimelineProvider {
 
     private static func entry(for configuration: WaterConfigurationIntent) async -> WaterEntry {
         let shared = sharedState()
-        let health = await todayHydration(ownerID: shared?.ownerID)
-        let totalML = health?.totalML ?? shared?.totalML ?? 0
-        let composition = health?.composition ?? shared?.composition ?? []
+        let widgetHealthState = shared.flatMap(sharedHealthState)
+        let resolvedShared = shared.map {
+            HydrationWidgetStateResolver.resolve(
+                canonical: $0,
+                healthState: widgetHealthState
+            )
+        }
+        let health = await todayHydration(
+            ownerID: shared?.ownerID,
+            queryAnchorData: resolvedShared?.healthQueryAnchorData
+        )
+        let source = HydrationComplicationRefreshPolicy.readingSource(
+            hasSharedState: shared != nil,
+            hasHealthData: health != nil
+        )
+        let totalML: Int
+        let composition: [HydrationCompositionBand]
+        switch source {
+        case .sharedState:
+            let reconciled: HydrationReconciledState
+            if let shared, let health {
+                let previousOverlay = resolvedShared?.healthOverlay ?? []
+                let update = HydrationHealthReconciler.updatedHealthOverlay(
+                    previousOverlay,
+                    ownerID: shared.ownerID,
+                    localDate: shared.localDate,
+                    canonicalSampleIDs: Set(shared.canonicalSampleIDs ?? []),
+                    anchor: resolvedShared?.healthAnchor,
+                    current: health.samples,
+                    deletedSampleIDs: health.deletedSampleIDs
+                )
+                reconciled = HydrationHealthReconciler.replacingOverlay(
+                    previousOverlay,
+                    with: update.mutations,
+                    inTotalML: resolvedShared?.totalML ?? shared.totalML,
+                    composition: resolvedShared?.composition ?? shared.composition
+                )
+                persistReconciledHealthState(
+                    shared: shared,
+                    health: health,
+                    update: update,
+                    reconciled: reconciled
+                )
+            } else {
+                reconciled = HydrationReconciledState(
+                    totalML: resolvedShared?.totalML ?? shared?.totalML ?? 0,
+                    composition: resolvedShared?.composition ?? shared?.composition ?? []
+                )
+            }
+            totalML = reconciled.totalML
+            composition = reconciled.composition
+        case .healthKit:
+            totalML = health?.totalML ?? 0
+            composition = health?.composition ?? []
+        case .empty:
+            totalML = 0
+            composition = []
+        }
         return WaterEntry(
             date: Date(),
             liters: Double(totalML) / 1_000,
@@ -130,72 +186,195 @@ struct WaterProvider: AppIntentTimelineProvider {
         return state
     }
 
+    private static func sharedHealthState(
+        matching state: HydrationWidgetState
+    ) -> HydrationWidgetHealthState? {
+        guard let data = UserDefaults(suiteName: HydrationWidgetStorage.suiteName)?
+            .data(forKey: HydrationWidgetStorage.healthStateKey),
+              let healthState = try? HydrationWidgetHealthState.decode(data),
+              healthState.matches(state)
+        else { return nil }
+        return healthState
+    }
+
     private struct HealthHydration {
         let totalML: Int
         let composition: [HydrationCompositionBand]
+        let samples: [HydrationHealthSampleAnchor]
+        let deletedSampleIDs: Set<UUID>
+        let queryAnchorData: Data?
     }
 
-    private static func todayHydration(ownerID: UUID?) async -> HealthHydration? {
+    private struct AnchoredHealthChanges: Sendable {
+        let deletedSampleIDs: Set<UUID>
+        let queryAnchorData: Data?
+    }
+
+    private static func persistReconciledHealthState(
+        shared: HydrationWidgetState,
+        health: HealthHydration,
+        update: HydrationHealthOverlayUpdate,
+        reconciled: HydrationReconciledState
+    ) {
+        guard let defaults = UserDefaults(suiteName: HydrationWidgetStorage.suiteName),
+              let latestData = defaults.data(forKey: HydrationWidgetStorage.stateKey),
+              let latest = try? HydrationWidgetState.decode(latestData),
+              latest.ownerID == shared.ownerID,
+              latest.localDate == shared.localDate,
+              latest.revision == shared.revision
+        else { return }
+
+        let updated = HydrationWidgetHealthState(
+            ownerID: latest.ownerID,
+            localDate: latest.localDate,
+            baseRevision: latest.revision,
+            totalML: reconciled.totalML,
+            composition: reconciled.composition,
+            healthAnchor: update.nextAnchor,
+            healthQueryAnchorData: health.queryAnchorData ?? latest.healthQueryAnchorData,
+            healthOverlay: update.mutations
+        )
+        if let data = try? updated.encoded() {
+            defaults.set(data, forKey: HydrationWidgetStorage.healthStateKey)
+        }
+    }
+
+    private static func todayHydration(
+        ownerID: UUID?,
+        queryAnchorData: Data?
+    ) async -> HealthHydration? {
         guard HKHealthStore.isHealthDataAvailable(),
               let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)
         else { return nil }
         let store = HKHealthStore()
         let start = Calendar.current.startOfDay(for: Date())
         let predicate = HKQuery.predicateForSamples(withStart: start, end: Date(), options: .strictStartDate)
-        return await withCheckedContinuation { (continuation: CheckedContinuation<HealthHydration?, Never>) in
+        do {
+            let rawSamples = try await healthSamples(
+                store: store,
+                waterType: waterType,
+                predicate: predicate
+            )
+            let healthChanges = try await anchoredHealthChanges(
+                store: store,
+                waterType: waterType,
+                predicate: predicate,
+                anchorData: queryAnchorData
+            )
+
+            struct Key: Hashable {
+                let kind: HydrationKind
+                let palette: String
+                let icon: String
+            }
+            var totals: [Key: Int] = [:]
+            var sampleAnchors: [HydrationHealthSampleAnchor] = []
+            for sample in rawSamples {
+                if let rawOwner = sample.metadata?[HydrationMetadata.ownerID] as? String,
+                   let sampleOwner = UUID(uuidString: rawOwner),
+                   let ownerID,
+                   sampleOwner != ownerID {
+                    continue
+                }
+                let milliliters = Int(max(0, sample.quantity.doubleValue(
+                    for: .literUnit(with: .milli)
+                )).rounded())
+                guard milliliters > 0 else { continue }
+                let kind = (sample.metadata?[HydrationMetadata.kind] as? String)
+                    .flatMap(HydrationKind.init(rawValue:)) ?? .external
+                let palette = sample.metadata?[HydrationMetadata.palette] as? String
+                    ?? (kind == .external ? "external" : "aqua")
+                let icon = sample.metadata?[HydrationMetadata.icon] as? String
+                    ?? (kind == .external ? "heart.fill" : "drop.fill")
+                totals[Key(kind: kind, palette: palette, icon: icon), default: 0] += milliliters
+                sampleAnchors.append(HydrationHealthSampleAnchor(
+                    id: sample.uuid,
+                    milliliters: milliliters,
+                    kind: kind,
+                    paletteToken: palette,
+                    iconToken: icon
+                ))
+            }
+            let order: [HydrationKind] = [
+                .water, .coffee, .tea, .juice, .shake, .other, .external, .legacy, .food,
+            ]
+            let composition = totals.map { key, amount in
+                HydrationCompositionBand(
+                    kind: key.kind,
+                    paletteToken: key.palette,
+                    iconToken: key.icon,
+                    milliliters: amount
+                )
+            }.sorted {
+                let lhs = order.firstIndex(of: $0.kind) ?? order.count
+                let rhs = order.firstIndex(of: $1.kind) ?? order.count
+                return (lhs, $0.paletteToken) < (rhs, $1.paletteToken)
+            }
+            return HealthHydration(
+                totalML: composition.reduce(0) { $0 + $1.milliliters },
+                composition: composition,
+                samples: sampleAnchors,
+                deletedSampleIDs: healthChanges.deletedSampleIDs,
+                queryAnchorData: healthChanges.queryAnchorData
+            )
+        } catch {
+            return nil
+        }
+    }
+
+    private static func healthSamples(
+        store: HKHealthStore,
+        waterType: HKQuantityType,
+        predicate: NSPredicate
+    ) async throws -> [HKQuantitySample] {
+        try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<[HKQuantitySample], Error>) in
             let query = HKSampleQuery(
                 sampleType: waterType,
                 predicate: predicate,
                 limit: HKObjectQueryNoLimit,
                 sortDescriptors: nil
             ) { _, rawSamples, error in
-                guard error == nil else {
-                    continuation.resume(returning: nil)
+                if let error {
+                    continuation.resume(throwing: error)
                     return
                 }
-                struct Key: Hashable {
-                    let kind: HydrationKind
-                    let palette: String
-                    let icon: String
+                continuation.resume(returning: rawSamples as? [HKQuantitySample] ?? [])
+            }
+            store.execute(query)
+        }
+    }
+
+    private static func anchoredHealthChanges(
+        store: HKHealthStore,
+        waterType: HKQuantityType,
+        predicate: NSPredicate,
+        anchorData: Data?
+    ) async throws -> AnchoredHealthChanges {
+        let anchor = anchorData.flatMap {
+            try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: $0)
+        }
+        return try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<AnchoredHealthChanges, Error>) in
+            let query = HKAnchoredObjectQuery(
+                type: waterType,
+                predicate: predicate,
+                anchor: anchor,
+                limit: HKObjectQueryNoLimit
+            ) { _, _, deletedObjects, newAnchor, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
                 }
-                var totals: [Key: Int] = [:]
-                for sample in rawSamples as? [HKQuantitySample] ?? [] {
-                    if let rawOwner = sample.metadata?[HydrationMetadata.ownerID] as? String,
-                       let sampleOwner = UUID(uuidString: rawOwner),
-                       let ownerID,
-                       sampleOwner != ownerID {
-                        continue
-                    }
-                    let milliliters = Int(max(0, sample.quantity.doubleValue(
-                        for: .literUnit(with: .milli)
-                    )).rounded())
-                    guard milliliters > 0 else { continue }
-                    let kind = (sample.metadata?[HydrationMetadata.kind] as? String)
-                        .flatMap(HydrationKind.init(rawValue:)) ?? .external
-                    let palette = sample.metadata?[HydrationMetadata.palette] as? String
-                        ?? (kind == .external ? "external" : "aqua")
-                    let icon = sample.metadata?[HydrationMetadata.icon] as? String
-                        ?? (kind == .external ? "heart.fill" : "drop.fill")
-                    totals[Key(kind: kind, palette: palette, icon: icon), default: 0] += milliliters
-                }
-                let order: [HydrationKind] = [
-                    .water, .coffee, .tea, .juice, .shake, .other, .external, .legacy, .food,
-                ]
-                let composition = totals.map { key, amount in
-                    HydrationCompositionBand(
-                        kind: key.kind,
-                        paletteToken: key.palette,
-                        iconToken: key.icon,
-                        milliliters: amount
+                let encodedAnchor = newAnchor.flatMap {
+                    try? NSKeyedArchiver.archivedData(
+                        withRootObject: $0,
+                        requiringSecureCoding: true
                     )
-                }.sorted {
-                    let lhs = order.firstIndex(of: $0.kind) ?? order.count
-                    let rhs = order.firstIndex(of: $1.kind) ?? order.count
-                    return (lhs, $0.paletteToken) < (rhs, $1.paletteToken)
                 }
-                continuation.resume(returning: HealthHydration(
-                    totalML: composition.reduce(0) { $0 + $1.milliliters },
-                    composition: composition
+                continuation.resume(returning: AnchoredHealthChanges(
+                    deletedSampleIDs: Set((deletedObjects ?? []).map(\.uuid)),
+                    queryAnchorData: encodedAnchor
                 ))
             }
             store.execute(query)

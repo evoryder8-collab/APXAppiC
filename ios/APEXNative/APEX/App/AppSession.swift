@@ -1787,7 +1787,8 @@ final class AppSession {
             presets: data.hydrationPresets ?? [],
             preferences: preferences,
             legacyDrinkLiters: legacy,
-            revision: Date().ISO8601Format()
+            revision: HydrationComplicationRefreshPolicy.revision(),
+            acknowledgedDeleteIDs: acknowledgedHydrationDeleteIDs(ownerID: ownerID)
         )
         hydrationConnectivity.publish(snapshot)
     }
@@ -1811,6 +1812,24 @@ final class AppSession {
         guard !processed.contains(mutationID) else { return }
         processed.append(mutationID)
         defaults.set(Array(processed.suffix(512)), forKey: key)
+    }
+
+    private func acknowledgedHydrationDeleteIDs(ownerID: UUID) -> [UUID] {
+        (defaults.stringArray(forKey: hydrationDeleteAcknowledgementKey(ownerID: ownerID)) ?? [])
+            .compactMap(UUID.init(uuidString:))
+    }
+
+    private func recordHydrationDeleteAcknowledgement(eventID: UUID, ownerID: UUID) {
+        let key = hydrationDeleteAcknowledgementKey(ownerID: ownerID)
+        var acknowledged = defaults.stringArray(forKey: key) ?? []
+        let value = eventID.uuidString.lowercased()
+        guard !acknowledged.contains(value) else { return }
+        acknowledged.append(value)
+        defaults.set(Array(acknowledged.suffix(512)), forKey: key)
+    }
+
+    private func hydrationDeleteAcknowledgementKey(ownerID: UUID) -> String {
+        "apex.watch.hydration.acknowledged-deletes.\(ownerID.uuidString.lowercased())"
     }
 
     private func hydrationTombstoneRevision(eventID: UUID, ownerID: UUID) -> String? {
@@ -1863,20 +1882,21 @@ final class AppSession {
         case .deleteEvent:
             guard let eventID = mutation.eventID else { return }
             recordHydrationTombstone(eventID: eventID, ownerID: ownerID, revision: mutation.createdAt)
-            guard let event = (data.hydrationEvents ?? []).first(where: {
+            if let event = (data.hydrationEvents ?? []).first(where: {
                 $0.userID == ownerID && ($0.id == eventID || $0.healthKitSampleID == eventID)
-            }) else { return }
-            guard !HydrationMutationOrdering.accepts(
+            }), !HydrationMutationOrdering.accepts(
                 event: event,
                 afterTombstoneRevision: mutation.createdAt
-            ) else { return }
-            data.hydrationEvents?.removeAll { $0.userID == ownerID && $0.id == event.id }
-            await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
-            if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
-                await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+            ) {
+                data.hydrationEvents?.removeAll { $0.userID == ownerID && $0.id == event.id }
+                await persistDelete(table: "hydration_events", id: event.id, ownerID: ownerID)
                 guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                if let date = ISO8601DateFormatter.apexDateOnly.date(from: event.localDate) {
+                    await mirrorHydrationAggregate(ownerID: ownerID, on: date)
+                    guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+                }
             }
+            recordHydrationDeleteAcknowledgement(eventID: eventID, ownerID: ownerID)
         case .updatePreferences:
             guard let preferences = mutation.preferences,
                   HydrationMutationOrdering.acceptsPreference(

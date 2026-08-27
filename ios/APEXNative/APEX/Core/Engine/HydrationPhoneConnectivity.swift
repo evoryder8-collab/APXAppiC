@@ -5,6 +5,9 @@ import Foundation
 final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
     var mutationHandler: ((HydrationCompanionMutation) async -> Void)?
     private let session: WCSession?
+    private let defaults = UserDefaults.standard
+    private static let visibleSignatureKey =
+        "ch.apexperformance.APEX.watch.complication.visible-signature.v1"
 
     override init() {
         if WCSession.isSupported() {
@@ -19,17 +22,40 @@ final class HydrationPhoneConnectivity: NSObject, WCSessionDelegate {
 
     func publish(_ snapshot: HydrationCompanionSnapshot) {
         guard let session, let data = try? snapshot.encoded() else { return }
+        let payload = [HydrationCompanionKeys.snapshot: data]
         do {
-            try session.updateApplicationContext([HydrationCompanionKeys.snapshot: data])
+            try session.updateApplicationContext(payload)
         } catch {
             // The next real hydration change or app activation sends the latest
             // snapshot again. There is intentionally no retry timer or polling.
         }
+#if os(iOS)
+        let visibleSignature = HydrationComplicationRefreshPolicy.visibleSignature(
+            ownerID: snapshot.ownerID,
+            localDate: snapshot.localDate,
+            totalML: snapshot.totalML,
+            targetML: snapshot.targetML,
+            composition: snapshot.composition
+        )
+        if HydrationComplicationRefreshPolicy.shouldRequestImmediateTransfer(
+            complicationEnabled: session.isComplicationEnabled,
+            remainingTransfers: session.remainingComplicationUserInfoTransfers,
+            previousVisibleSignature: defaults.string(forKey: Self.visibleSignatureKey),
+            newVisibleSignature: visibleSignature
+        ) {
+            session.transferCurrentComplicationUserInfo(payload)
+            defaults.set(visibleSignature, forKey: Self.visibleSignatureKey)
+        }
+#endif
     }
 
     func publishDisconnected() {
         guard let session else { return }
-        try? session.updateApplicationContext([HydrationCompanionKeys.disconnected: true])
+        try? session.updateApplicationContext([
+            HydrationCompanionKeys.disconnected: true,
+            HydrationCompanionKeys.disconnectedRevision:
+                HydrationComplicationRefreshPolicy.revision(),
+        ])
     }
 
     func send(_ command: WatchWorkoutCommand) {

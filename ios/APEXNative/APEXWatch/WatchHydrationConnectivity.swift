@@ -4,7 +4,7 @@ import Foundation
 @MainActor
 final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
     var snapshotHandler: ((HydrationCompanionSnapshot) -> Void)?
-    var disconnectHandler: (() -> Void)?
+    var disconnectHandler: ((String) -> Void)?
     var workoutCommandHandler: ((WatchWorkoutCommand) -> Void)?
     private let session: WCSession?
 
@@ -54,7 +54,9 @@ final class WatchHydrationConnectivity: NSObject, WCSessionDelegate {
 
     nonisolated private func receive(_ payload: [String: Any]) {
         if payload[HydrationCompanionKeys.disconnected] as? Bool == true {
-            Task { @MainActor [weak self] in self?.disconnectHandler?() }
+            let revision = payload[HydrationCompanionKeys.disconnectedRevision] as? String
+                ?? HydrationComplicationRefreshPolicy.revision()
+            Task { @MainActor [weak self] in self?.disconnectHandler?(revision) }
             return
         }
         if let data = payload[HydrationCompanionKeys.workoutCommand] as? Data,

@@ -92,6 +92,22 @@ final class HydrationGaugeTests: XCTestCase {
 }
 
 final class WatchHydrationFillStateTests: XCTestCase {
+    private func healthSample(
+        _ id: String,
+        milliliters: Int,
+        kind: HydrationKind = .water,
+        palette: String = "aqua",
+        icon: String = "drop.fill"
+    ) -> HydrationHealthSampleAnchor {
+        HydrationHealthSampleAnchor(
+            id: UUID(uuidString: id)!,
+            milliliters: milliliters,
+            kind: kind,
+            paletteToken: palette,
+            iconToken: icon
+        )
+    }
+
     func testProgressAndWaterlineClampAtEmptyAndTarget() {
         let empty = WatchHydrationFillState(liters: -0.5, targetLiters: 2.75)
         let full = WatchHydrationFillState(liters: 4.0, targetLiters: 2.75)
@@ -146,6 +162,612 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual(WatchHydrationDisplayMode.percent.shortValue(for: state), "50%")
         XCTAssertEqual(WatchHydrationDisplayMode.liters.shortValue(for: state), "1.38L")
         XCTAssertEqual(WatchHydrationDisplayMode.gallons.shortValue(for: state), "0.36gal")
+    }
+
+    func testComplicationKeepsNewerCompanionSnapshotWhenLocalHealthKitIsBehind() {
+        XCTAssertEqual(
+            HydrationComplicationRefreshPolicy.readingSource(
+                hasSharedState: true,
+                hasHealthData: true
+            ),
+            .sharedState
+        )
+    }
+
+    func testComplicationNeverReplacesCompleteSharedStateWithAPartialHealthKitAggregate() {
+        XCTAssertEqual(
+            HydrationComplicationRefreshPolicy.readingSource(
+                hasSharedState: true,
+                hasHealthData: true
+            ),
+            .sharedState
+        )
+    }
+
+    func testComplicationUsesHealthKitWhenNoSharedStateExists() {
+        XCTAssertEqual(
+            HydrationComplicationRefreshPolicy.readingSource(
+                hasSharedState: false,
+                hasHealthData: true
+            ),
+            .healthKit
+        )
+    }
+
+    func testComplicationRejectsAnOlderSnapshotDeliveredOnASecondConnectivityChannel() {
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldAcceptSnapshot(
+                currentRevision: "2026-08-27T20:10:00Z",
+                incomingRevision: "2026-08-27T20:09:00Z"
+            )
+        )
+        XCTAssertTrue(
+            HydrationComplicationRefreshPolicy.shouldAcceptSnapshot(
+                currentRevision: "2026-08-27T20:10:00Z",
+                incomingRevision: "2026-08-27T20:11:00Z"
+            )
+        )
+    }
+
+    func testComplicationRevisionsDistinguishRapidConsecutivePublishes() {
+        let first = HydrationComplicationRefreshPolicy.revision(
+            at: Date(timeIntervalSince1970: 2_000.001)
+        )
+        let second = HydrationComplicationRefreshPolicy.revision(
+            at: Date(timeIntervalSince1970: 2_000.002)
+        )
+
+        XCTAssertNotEqual(first, second)
+        XCTAssertTrue(
+            HydrationComplicationRefreshPolicy.shouldAcceptSnapshot(
+                currentRevision: first,
+                incomingRevision: second
+            )
+        )
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldAcceptSnapshot(
+                currentRevision: second,
+                incomingRevision: first
+            )
+        )
+    }
+
+    func testDisconnectedRevisionRejectsADelayedAccountSnapshot() {
+        let tombstone = HydrationComplicationRefreshPolicy.revision(
+            at: Date(timeIntervalSince1970: 2_000)
+        )
+        let delayedAccountSnapshot = HydrationComplicationRefreshPolicy.revision(
+            at: Date(timeIntervalSince1970: 1_999)
+        )
+
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldAcceptSnapshot(
+                currentRevision: tombstone,
+                incomingRevision: delayedAccountSnapshot
+            )
+        )
+    }
+
+    func testLocalWidgetRevisionCannotRejectANewerPhoneDisconnect() {
+        XCTAssertTrue(
+            HydrationComplicationRefreshPolicy.shouldAcceptCompanionRevision(
+                acceptedCompanionRevision: "2026-08-27T20:00:00.000Z",
+                localWidgetRevision: "2026-08-27T20:10:00.000Z",
+                incomingRevision: "2026-08-27T20:05:00.000Z"
+            )
+        )
+    }
+
+    func testAnchoredHealthKitDeltaPreservesCompleteSharedTotalAndTracksExternalChanges() throws {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000000")!
+        let existing = healthSample(
+            "00000000-0000-0000-0000-000000000001",
+            milliliters: 330
+        )
+        let externalCoffee = healthSample(
+            "00000000-0000-0000-0000-000000000002",
+            milliliters: 100,
+            kind: .coffee,
+            palette: "espresso",
+            icon: "cup.and.saucer.fill"
+        )
+        let baseComposition = [
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 770
+            ),
+        ]
+
+        let unchangedUpdate = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [],
+            anchor: [existing],
+            current: [existing]
+        )
+        let unchanged = HydrationHealthReconciler.replacingOverlay(
+            [],
+            with: unchangedUpdate.mutations,
+            inTotalML: 770,
+            composition: baseComposition
+        )
+        XCTAssertEqual(unchanged.totalML, 770)
+
+        let addedUpdate = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [],
+            anchor: [existing],
+            current: [existing, externalCoffee]
+        )
+        let added = HydrationHealthReconciler.replacingOverlay(
+            [],
+            with: addedUpdate.mutations,
+            inTotalML: 770,
+            composition: baseComposition
+        )
+        XCTAssertEqual(added.totalML, 870)
+        XCTAssertEqual(
+            try XCTUnwrap(added.composition.first { $0.kind == .coffee }).milliliters,
+            100
+        )
+
+        let unanchoredUpdate = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [],
+            anchor: nil,
+            current: [existing, externalCoffee]
+        )
+        let unanchored = HydrationHealthReconciler.replacingOverlay(
+            [],
+            with: unanchoredUpdate.mutations,
+            inTotalML: 770,
+            composition: baseComposition
+        )
+        XCTAssertEqual(unanchored.totalML, 770)
+        XCTAssertEqual(unanchored.composition, baseComposition)
+    }
+
+    func testPendingWatchMutationsOverlaySnapshotsUntilTheirEventIsAcknowledged() {
+        let added = healthSample(
+            "00000000-0000-0000-0000-000000000010",
+            milliliters: 70
+        )
+        let deleted = healthSample(
+            "00000000-0000-0000-0000-000000000011",
+            milliliters: 100,
+            kind: .coffee,
+            palette: "espresso",
+            icon: "cup.and.saucer.fill"
+        )
+        let pending = [
+            HydrationPendingMutation(
+                ownerID: UUID(uuidString: "00000000-0000-0000-0000-000000000030")!,
+                localDate: "2026-08-27",
+                action: .upsert,
+                sample: added
+            ),
+            HydrationPendingMutation(
+                ownerID: UUID(uuidString: "00000000-0000-0000-0000-000000000030")!,
+                localDate: "2026-08-27",
+                action: .delete,
+                sample: deleted
+            ),
+        ]
+        let staleSnapshotEvents: Set<UUID> = [deleted.id]
+        let stillPending = HydrationHealthReconciler.unacknowledged(
+            pending,
+            snapshotOwnerID: UUID(uuidString: "00000000-0000-0000-0000-000000000030")!,
+            snapshotLocalDate: "2026-08-27",
+            snapshotEventIDs: staleSnapshotEvents
+        )
+
+        XCTAssertEqual(stillPending, pending)
+        let overlaid = HydrationHealthReconciler.applying(
+            stillPending,
+            toTotalML: 800,
+            composition: [
+                HydrationCompositionBand(
+                    kind: .water,
+                    paletteToken: "aqua",
+                    iconToken: "drop.fill",
+                    milliliters: 700
+                ),
+                HydrationCompositionBand(
+                    kind: .coffee,
+                    paletteToken: "espresso",
+                    iconToken: "cup.and.saucer.fill",
+                    milliliters: 100
+                ),
+            ]
+        )
+        XCTAssertEqual(overlaid.totalML, 770)
+
+        let acknowledged = HydrationHealthReconciler.unacknowledged(
+            pending,
+            snapshotOwnerID: UUID(uuidString: "00000000-0000-0000-0000-000000000030")!,
+            snapshotLocalDate: "2026-08-27",
+            snapshotEventIDs: [added.id]
+        )
+        XCTAssertTrue(acknowledged.isEmpty)
+
+        let expiredAtMidnight = HydrationHealthReconciler.unacknowledged(
+            pending,
+            snapshotOwnerID: UUID(uuidString: "00000000-0000-0000-0000-000000000030")!,
+            snapshotLocalDate: "2026-08-28",
+            snapshotEventIDs: []
+        )
+        XCTAssertTrue(expiredAtMidnight.isEmpty)
+    }
+
+    func testDelayedCanonicalHealthSampleIsNotCountedTwice() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000040")!
+        let existing = healthSample(
+            "00000000-0000-0000-0000-000000000041",
+            milliliters: 330
+        )
+        let delayedCanonical = healthSample(
+            "00000000-0000-0000-0000-000000000042",
+            milliliters: 440
+        )
+
+        let update = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [delayedCanonical.id],
+            anchor: [existing],
+            current: [existing, delayedCanonical]
+        )
+
+        XCTAssertTrue(update.mutations.isEmpty)
+        XCTAssertEqual(update.nextAnchor, [existing, delayedCanonical])
+    }
+
+    func testPhoneDeletionBeforeHealthKitDeletionDoesNotSubtractTheSampleTwice() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000043")!
+        let removed = healthSample(
+            "00000000-0000-0000-0000-000000000044",
+            milliliters: 330
+        )
+
+        let update = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [],
+            anchor: [removed],
+            current: [],
+            deletedSampleIDs: [removed.id]
+        )
+        let visible = HydrationHealthReconciler.replacingOverlay(
+            [],
+            with: update.mutations,
+            inTotalML: 440,
+            composition: []
+        )
+
+        XCTAssertTrue(update.mutations.isEmpty)
+        XCTAssertTrue(update.nextAnchor.isEmpty)
+        XCTAssertEqual(visible.totalML, 440)
+    }
+
+    func testExternalHealthOverlaySurvivesAnIncompletePhoneSnapshot() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000050")!
+        let external = healthSample(
+            "00000000-0000-0000-0000-000000000051",
+            milliliters: 100,
+            kind: .coffee,
+            palette: "espresso",
+            icon: "cup.and.saucer.fill"
+        )
+        let overlay = [HydrationPendingMutation(
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            action: .upsert,
+            sample: external
+        )]
+
+        let remaining = HydrationHealthReconciler.unacknowledged(
+            overlay,
+            snapshotOwnerID: ownerID,
+            snapshotLocalDate: "2026-08-27",
+            snapshotEventIDs: []
+        )
+        let visible = HydrationHealthReconciler.applying(
+            remaining,
+            toTotalML: 770,
+            composition: []
+        )
+
+        XCTAssertEqual(remaining, overlay)
+        XCTAssertEqual(visible.totalML, 870)
+    }
+
+    func testEmptyHealthKitReadCannotMasqueradeAsDeletingEveryAnchoredSample() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000060")!
+        let existing = healthSample(
+            "00000000-0000-0000-0000-000000000061",
+            milliliters: 330
+        )
+
+        let update = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [existing.id],
+            anchor: [existing],
+            current: [],
+            deletedSampleIDs: []
+        )
+
+        XCTAssertTrue(update.mutations.isEmpty)
+        XCTAssertEqual(update.nextAnchor, [existing])
+    }
+
+    func testConfirmedDeletionOfFinalExternalSampleClearsItsOverlay() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000062")!
+        let external = healthSample(
+            "00000000-0000-0000-0000-000000000063",
+            milliliters: 100,
+            kind: .coffee,
+            palette: "espresso",
+            icon: "cup.and.saucer.fill"
+        )
+        let overlay = [HydrationPendingMutation(
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            action: .upsert,
+            sample: external
+        )]
+
+        let update = HydrationHealthReconciler.updatedHealthOverlay(
+            overlay,
+            ownerID: ownerID,
+            localDate: "2026-08-27",
+            canonicalSampleIDs: [],
+            anchor: [external],
+            current: [],
+            deletedSampleIDs: [external.id]
+        )
+
+        XCTAssertTrue(update.mutations.isEmpty)
+        XCTAssertTrue(update.nextAnchor.isEmpty)
+    }
+
+    func testSuspendedWatchOperationMustStillMatchOwnerDayAndGeneration() {
+        let ownerA = UUID(uuidString: "00000000-0000-0000-0000-000000000064")!
+        let ownerB = UUID(uuidString: "00000000-0000-0000-0000-000000000065")!
+        let scope = HydrationWatchOperationScope(
+            ownerID: ownerA,
+            localDate: "2026-08-27",
+            generation: 7
+        )
+
+        XCTAssertTrue(scope.matches(ownerID: ownerA, localDate: "2026-08-27", generation: 7))
+        XCTAssertFalse(scope.matches(ownerID: ownerB, localDate: "2026-08-27", generation: 7))
+        XCTAssertFalse(scope.matches(ownerID: ownerA, localDate: "2026-08-28", generation: 7))
+        XCTAssertFalse(scope.matches(ownerID: ownerA, localDate: "2026-08-27", generation: 8))
+    }
+
+    func testWatchStoreRebasesAtMidnightBeforeReconcilingHealthKit() {
+        XCTAssertFalse(
+            HydrationWatchScopePolicy.shouldRebase(
+                storedLocalDate: "2026-08-27",
+                currentLocalDate: "2026-08-27"
+            )
+        )
+        XCTAssertTrue(
+            HydrationWatchScopePolicy.shouldRebase(
+                storedLocalDate: "2026-08-27",
+                currentLocalDate: "2026-08-28"
+            )
+        )
+        XCTAssertEqual(
+            HydrationWatchScopePolicy.persistenceLocalDate(
+                storedLocalDate: "2026-08-27",
+                currentLocalDate: "2026-08-28"
+            ),
+            "2026-08-27"
+        )
+    }
+
+    func testFirstHealthKitSampleAfterMidnightIsAppliedToTheRebasedZeroTotal() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000066")!
+        let firstSample = healthSample(
+            "00000000-0000-0000-0000-000000000067",
+            milliliters: 250
+        )
+
+        let update = HydrationHealthReconciler.updatedHealthOverlay(
+            [],
+            ownerID: ownerID,
+            localDate: "2026-08-28",
+            canonicalSampleIDs: [],
+            anchor: [],
+            current: [firstSample]
+        )
+        let visible = HydrationHealthReconciler.replacingOverlay(
+            [],
+            with: update.mutations,
+            inTotalML: 0,
+            composition: []
+        )
+
+        XCTAssertEqual(update.mutations.map(\.action), [.upsert])
+        XCTAssertEqual(update.nextAnchor, [firstSample])
+        XCTAssertEqual(visible.totalML, 250)
+    }
+
+    func testWidgetStateHealthAnchorRoundTripsAndOlderCacheStillDecodes() throws {
+        let sample = healthSample(
+            "00000000-0000-0000-0000-000000000020",
+            milliliters: 330
+        )
+        let state = HydrationWidgetState(
+            ownerID: UUID(uuidString: "00000000-0000-0000-0000-000000000021")!,
+            localDate: "2026-08-27",
+            totalML: 770,
+            targetML: 1_000,
+            composition: [],
+            revision: "2026-08-27T21:00:00.001Z",
+            healthAnchor: [sample],
+            healthQueryAnchorData: Data([1, 2, 3])
+        )
+        let encoded = try state.encoded()
+        XCTAssertEqual(try HydrationWidgetState.decode(encoded).healthAnchor, [sample])
+        XCTAssertEqual(try HydrationWidgetState.decode(encoded).healthQueryAnchorData, Data([1, 2, 3]))
+
+        var legacyObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+        legacyObject.removeValue(forKey: "healthAnchor")
+        legacyObject.removeValue(forKey: "healthQueryAnchorData")
+        let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
+        XCTAssertNil(try HydrationWidgetState.decode(legacyData).healthAnchor)
+        XCTAssertNil(try HydrationWidgetState.decode(legacyData).healthQueryAnchorData)
+    }
+
+    func testWidgetHealthStateIsScopedToOneCanonicalRevision() throws {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000068")!
+        let canonical = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-08-28",
+            totalML: 770,
+            targetML: 1_000,
+            composition: [],
+            revision: "2026-08-28T00:01:00.000Z"
+        )
+        let healthState = HydrationWidgetHealthState(
+            ownerID: ownerID,
+            localDate: "2026-08-28",
+            baseRevision: canonical.revision,
+            totalML: 870,
+            composition: [],
+            healthAnchor: [],
+            healthQueryAnchorData: Data([4, 5, 6]),
+            healthOverlay: []
+        )
+        let newerCanonical = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-08-28",
+            totalML: 900,
+            targetML: 1_000,
+            composition: [],
+            revision: "2026-08-28T00:02:00.000Z"
+        )
+
+        XCTAssertTrue(healthState.matches(canonical))
+        XCTAssertFalse(healthState.matches(newerCanonical))
+        XCTAssertEqual(
+            HydrationWidgetStateResolver.resolve(
+                canonical: canonical,
+                healthState: healthState
+            ).totalML,
+            870
+        )
+        XCTAssertEqual(
+            HydrationWidgetStateResolver.resolve(
+                canonical: newerCanonical,
+                healthState: healthState
+            ).totalML,
+            900
+        )
+        XCTAssertNotEqual(HydrationWidgetStorage.stateKey, HydrationWidgetStorage.healthStateKey)
+        XCTAssertEqual(
+            try HydrationWidgetHealthState.decode(healthState.encoded()),
+            healthState
+        )
+    }
+
+    func testDeferredDeleteSurvivesOtherAccountAndReplaysUntilItsOwnerAcknowledges() {
+        let ownerA = UUID(uuidString: "00000000-0000-0000-0000-000000000069")!
+        let ownerB = UUID(uuidString: "00000000-0000-0000-0000-000000000070")!
+        let eventID = UUID(uuidString: "00000000-0000-0000-0000-000000000071")!
+        let queued = [HydrationDeferredDelete(
+            ownerID: ownerA,
+            eventID: eventID,
+            localDate: "2026-08-27"
+        )]
+
+        let whileBIsActive = HydrationDeferredDeleteReconciler.reconcile(
+            queued,
+            snapshotOwnerID: ownerB,
+            snapshotLocalDate: "2026-08-28",
+            snapshotEventIDs: [],
+            acknowledgedDeleteIDs: []
+        )
+        XCTAssertEqual(whileBIsActive.remaining, queued)
+        XCTAssertTrue(whileBIsActive.toReplay.isEmpty)
+
+        let staleASnapshot = HydrationDeferredDeleteReconciler.reconcile(
+            whileBIsActive.remaining,
+            snapshotOwnerID: ownerA,
+            snapshotLocalDate: "2026-08-28",
+            snapshotEventIDs: [],
+            acknowledgedDeleteIDs: []
+        )
+        XCTAssertEqual(staleASnapshot.remaining, queued)
+        XCTAssertEqual(staleASnapshot.toReplay, queued)
+
+        let acknowledgedASnapshot = HydrationDeferredDeleteReconciler.reconcile(
+            staleASnapshot.remaining,
+            snapshotOwnerID: ownerA,
+            snapshotLocalDate: "2026-08-28",
+            snapshotEventIDs: [],
+            acknowledgedDeleteIDs: [eventID]
+        )
+        XCTAssertTrue(acknowledgedASnapshot.remaining.isEmpty)
+        XCTAssertTrue(acknowledgedASnapshot.toReplay.isEmpty)
+    }
+
+    func testComplicationSnapshotPushDeduplicatesVisibleStateAndProtectsScarceQuota() {
+        XCTAssertTrue(
+            HydrationComplicationRefreshPolicy.shouldRequestImmediateTransfer(
+                complicationEnabled: true,
+                remainingTransfers: 1,
+                previousVisibleSignature: nil,
+                newVisibleSignature: "owner|day|770|1000|water"
+            )
+        )
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldRequestImmediateTransfer(
+                complicationEnabled: false,
+                remainingTransfers: 1,
+                previousVisibleSignature: nil,
+                newVisibleSignature: "owner|day|770|1000|water"
+            )
+        )
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldRequestImmediateTransfer(
+                complicationEnabled: true,
+                remainingTransfers: 0,
+                previousVisibleSignature: nil,
+                newVisibleSignature: "owner|day|770|1000|water"
+            )
+        )
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldRequestImmediateTransfer(
+                complicationEnabled: true,
+                remainingTransfers: 1,
+                previousVisibleSignature: "owner|day|770|1000|water",
+                newVisibleSignature: "owner|day|770|1000|water"
+            )
+        )
+        XCTAssertTrue(
+            HydrationComplicationRefreshPolicy.shouldRequestImmediateTransfer(
+                complicationEnabled: true,
+                remainingTransfers: 1,
+                previousVisibleSignature: "owner|day|330|1000|water",
+                newVisibleSignature: "owner|day|770|1000|water"
+            )
+        )
     }
 
     func testPrimaryWatchAmountKeepsTheUnitBesideTheValueWithoutARedundantDayLabel() {

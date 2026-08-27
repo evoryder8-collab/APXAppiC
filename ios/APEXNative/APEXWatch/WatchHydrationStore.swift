@@ -17,6 +17,11 @@ struct WatchHydrationEntry: Identifiable {
     var date: Date { sample.startDate }
 }
 
+private struct WatchHydrationHealthChanges: Sendable {
+    let deletedSampleIDs: Set<UUID>
+    let queryAnchorData: Data?
+}
+
 @MainActor
 final class WatchHydrationStore: ObservableObject {
     @Published private(set) var liters = 0.0
@@ -34,7 +39,24 @@ final class WatchHydrationStore: ObservableObject {
     private let widgetDefaults = UserDefaults(suiteName: HydrationWidgetStorage.suiteName)
     private let connectivity: WatchHydrationConnectivity
     private var observerQuery: HKObserverQuery?
+    private var latestWidgetLocalDate: String?
+    private var latestWidgetRevision: String?
+    private var acceptedCompanionRevision: String?
+    private var healthAnchor: [HydrationHealthSampleAnchor]?
+    private var healthQueryAnchorData: Data?
+    private var pendingMutations: [HydrationPendingMutation] = []
+    private var deferredDeletes: [HydrationDeferredDelete] = []
+    private var healthMutationsInFlight: Set<UUID> = []
+    private var canonicalSampleIDs: Set<UUID> = []
+    private var healthOverlay: [HydrationPendingMutation] = []
+    private var stateGeneration = 0
     private static let preferencesKey = "ch.apexperformance.APEX.watch.hydration.preferences.v1"
+    private static let pendingMutationsKey =
+        "ch.apexperformance.APEX.watch.hydration.pending-mutations.v1"
+    private static let deferredDeletesKey =
+        "ch.apexperformance.APEX.watch.hydration.deferred-deletes.v1"
+    private static let acceptedCompanionRevisionKey =
+        "ch.apexperformance.APEX.watch.hydration.accepted-companion-revision.v1"
     private static let reminderIdentifierPrefix = "ch.apexperformance.APEX.hydration.reminder."
     private static let reminderCountDayKey = "ch.apexperformance.APEX.watch.hydration.reminder.day"
     private static let reminderCountKey = "ch.apexperformance.APEX.watch.hydration.reminder.count"
@@ -42,6 +64,15 @@ final class WatchHydrationStore: ObservableObject {
     init(defaults: UserDefaults = .standard) {
         self.defaults = defaults
         connectivity = WatchHydrationConnectivity()
+        acceptedCompanionRevision = defaults.string(forKey: Self.acceptedCompanionRevisionKey)
+        if let data = defaults.data(forKey: Self.pendingMutationsKey),
+           let restored = try? JSONDecoder().decode([HydrationPendingMutation].self, from: data) {
+            pendingMutations = restored
+        }
+        if let data = defaults.data(forKey: Self.deferredDeletesKey),
+           let restored = try? JSONDecoder().decode([HydrationDeferredDelete].self, from: data) {
+            deferredDeletes = restored
+        }
         if let data = defaults.data(forKey: Self.preferencesKey),
            let restored = try? JSONDecoder().decode(WatchHydrationPreferences.self, from: data) {
             preferences = restored
@@ -51,16 +82,27 @@ final class WatchHydrationStore: ObservableObject {
         if let data = widgetDefaults?.data(forKey: HydrationWidgetStorage.stateKey),
            let state = try? HydrationWidgetState.decode(data),
            state.localDate == Date().apexDateKey {
+            let widgetHealthState = widgetDefaults?
+                .data(forKey: HydrationWidgetStorage.healthStateKey)
+                .flatMap { try? HydrationWidgetHealthState.decode($0) }
+                .flatMap { $0.matches(state) ? $0 : nil }
             activeOwnerID = state.ownerID
-            liters = Double(state.totalML) / 1_000
-            composition = state.composition
+            liters = Double(widgetHealthState?.totalML ?? state.totalML) / 1_000
+            composition = widgetHealthState?.composition ?? state.composition
             preferences.targetLiters = Double(state.targetML) / 1_000
+            latestWidgetLocalDate = state.localDate
+            latestWidgetRevision = state.revision
+            healthAnchor = widgetHealthState?.healthAnchor ?? state.healthAnchor
+            healthQueryAnchorData = widgetHealthState?.healthQueryAnchorData
+                ?? state.healthQueryAnchorData
+            canonicalSampleIDs = Set(state.canonicalSampleIDs ?? [])
+            healthOverlay = widgetHealthState?.healthOverlay ?? state.healthOverlay ?? []
         }
         connectivity.snapshotHandler = { [weak self] snapshot in
             self?.apply(snapshot)
         }
-        connectivity.disconnectHandler = { [weak self] in
-            self?.disconnectAccount()
+        connectivity.disconnectHandler = { [weak self] revision in
+            self?.disconnectAccount(revision: revision)
         }
         connectivity.workoutCommandHandler = { [weak self] command in
             guard self?.activeOwnerID == command.ownerID, command.action == .stop else { return }
@@ -75,6 +117,16 @@ final class WatchHydrationStore: ObservableObject {
     }
 
     func updatePreferences(_ value: WatchHydrationPreferences) async throws {
+        let localDate = Date().apexDateKey
+        ensureCurrentDay(localDate)
+        absorbWidgetHealthStateIfCurrent()
+        let operationScope = activeOwnerID.map {
+            HydrationWatchOperationScope(
+                ownerID: $0,
+                localDate: localDate,
+                generation: stateGeneration
+            )
+        }
         let remindersWereEnabled = preferences.remindersEnabled
         var validated = value
         if value.effectiveTargetMode == .custom {
@@ -100,9 +152,19 @@ final class WatchHydrationStore: ObservableObject {
                 message = "Watch notifications are off. Enable APEX in Notification settings."
             }
         }
+        guard operationScope?.matches(
+            ownerID: activeOwnerID,
+            localDate: Date().apexDateKey,
+            generation: stateGeneration
+        ) ?? (activeOwnerID == nil) else { return }
         await synchronizeReminderSchedule()
-        if let activeOwnerID {
-            connectivity.send(.updating(validated, ownerID: activeOwnerID))
+        guard operationScope?.matches(
+            ownerID: activeOwnerID,
+            localDate: Date().apexDateKey,
+            generation: stateGeneration
+        ) ?? (activeOwnerID == nil) else { return }
+        if let operationScope {
+            connectivity.send(.updating(validated, ownerID: operationScope.ownerID))
         }
     }
 
@@ -143,6 +205,14 @@ final class WatchHydrationStore: ObservableObject {
             message = "Open APEX on iPhone once to connect this Watch."
             return
         }
+        let localDate = Date().apexDateKey
+        ensureCurrentDay(localDate)
+        absorbWidgetHealthStateIfCurrent()
+        let operationScope = HydrationWatchOperationScope(
+            ownerID: activeOwnerID,
+            localDate: localDate,
+            generation: stateGeneration
+        )
 
         refreshAuthorizationStatus(waterType)
         if !isAuthorized {
@@ -174,15 +244,25 @@ final class WatchHydrationStore: ObservableObject {
                 HydrationMetadata.icon: iconToken,
             ]
         )
+        healthMutationsInFlight.insert(sample.uuid)
 
         do {
             try await healthStore.save(sample)
+            guard operationScope.matches(
+                ownerID: self.activeOwnerID,
+                localDate: Date().apexDateKey,
+                generation: stateGeneration
+            ) else {
+                healthMutationsInFlight.remove(sample.uuid)
+                try? await healthStore.delete(sample)
+                return
+            }
             let now = Date().ISO8601Format()
             let event = HydrationEvent(
                 id: sample.uuid,
                 userID: activeOwnerID,
                 clientIdempotencyKey: "healthkit:\(sample.uuid.uuidString.lowercased())",
-                localDate: Date().apexDateKey,
+                localDate: localDate,
                 occurredAt: sample.startDate.ISO8601Format(),
                 amountML: Int(milliliters.rounded()),
                 kind: kind,
@@ -194,6 +274,25 @@ final class WatchHydrationStore: ObservableObject {
                 updatedAt: now
             )
             connectivity.send(.upserting(event))
+            healthMutationsInFlight.remove(sample.uuid)
+            recordPendingMutation(HydrationPendingMutation(
+                ownerID: activeOwnerID,
+                localDate: localDate,
+                action: .upsert,
+                sample: HydrationHealthSampleAnchor(
+                    id: sample.uuid,
+                    milliliters: Int(milliliters.rounded()),
+                    kind: kind,
+                    paletteToken: paletteToken,
+                    iconToken: iconToken
+                )
+            ))
+            applyLocalHydrationDelta(
+                Int(milliliters.rounded()),
+                kind: kind,
+                paletteToken: paletteToken,
+                iconToken: iconToken
+            )
             await refresh()
             if preferences.confirmationHaptics {
                 WKInterfaceDevice.current().play(.success)
@@ -202,6 +301,7 @@ final class WatchHydrationStore: ObservableObject {
             try? await Task.sleep(for: .seconds(1.2))
             message = nil
         } catch {
+            healthMutationsInFlight.remove(sample.uuid)
             refreshAuthorizationStatus(waterType)
             message = isAuthorized ? error.localizedDescription : permissionMessage
         }
@@ -212,30 +312,84 @@ final class WatchHydrationStore: ObservableObject {
             message = "Only water added by APEX on this Watch can be removed here."
             return
         }
+        guard let activeOwnerID else {
+            message = "Open APEX on iPhone once to connect this Watch."
+            return
+        }
+        let localDate = Date().apexDateKey
+        ensureCurrentDay(localDate)
+        absorbWidgetHealthStateIfCurrent()
+        let operationScope = HydrationWatchOperationScope(
+            ownerID: activeOwnerID,
+            localDate: localDate,
+            generation: stateGeneration
+        )
+        healthMutationsInFlight.insert(entry.id)
         do {
             try await healthStore.delete(entry.sample)
-            if let activeOwnerID {
+            healthMutationsInFlight.remove(entry.id)
+            recordDeferredDelete(HydrationDeferredDelete(
+                ownerID: activeOwnerID,
+                eventID: entry.id,
+                localDate: localDate
+            ))
+            guard operationScope.matches(
+                ownerID: self.activeOwnerID,
+                localDate: Date().apexDateKey,
+                generation: stateGeneration
+            ) else {
+                /* The delete already committed under the captured owner. Keep
+                   its companion ledger consistent without touching new state. */
                 connectivity.send(.deleting(eventID: entry.id, ownerID: activeOwnerID))
+                return
             }
+            connectivity.send(.deleting(eventID: entry.id, ownerID: activeOwnerID))
+            recordPendingMutation(HydrationPendingMutation(
+                ownerID: activeOwnerID,
+                localDate: localDate,
+                action: .delete,
+                sample: HydrationHealthSampleAnchor(
+                    id: entry.id,
+                    milliliters: Int(entry.milliliters.rounded()),
+                    kind: entry.kind,
+                    paletteToken: entry.paletteToken,
+                    iconToken: entry.iconToken
+                )
+            ))
+            applyLocalHydrationDelta(
+                -Int(entry.milliliters.rounded()),
+                kind: entry.kind,
+                paletteToken: entry.paletteToken,
+                iconToken: entry.iconToken
+            )
             await refresh()
             if preferences.confirmationHaptics {
                 WKInterfaceDevice.current().play(.click)
             }
             message = "Entry removed"
         } catch {
+            healthMutationsInFlight.remove(entry.id)
             message = error.localizedDescription
         }
     }
 
     func refresh() async {
         guard let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater) else { return }
-        guard activeOwnerID != nil else {
+        guard let activeOwnerID else {
             liters = 0
             entries = []
             composition = []
             message = "Open APEX on iPhone once to connect this Watch."
             return
         }
+        let localDate = Date().apexDateKey
+        ensureCurrentDay(localDate)
+        absorbWidgetHealthStateIfCurrent()
+        let operationScope = HydrationWatchOperationScope(
+            ownerID: activeOwnerID,
+            localDate: localDate,
+            generation: stateGeneration
+        )
         let start = Calendar.current.startOfDay(for: Date())
         let predicate = HKQuery.predicateForSamples(withStart: start, end: Date(), options: .strictStartDate)
 
@@ -256,10 +410,25 @@ final class WatchHydrationStore: ObservableObject {
                 }
                 healthStore.execute(query)
             }
+            guard operationScope.matches(
+                ownerID: self.activeOwnerID,
+                localDate: Date().apexDateKey,
+                generation: stateGeneration
+            ) else { return }
+            let previousHealthQueryAnchorData = healthQueryAnchorData
+            let healthChanges = try await anchoredHealthChanges(
+                waterType: waterType,
+                predicate: predicate,
+                anchorData: previousHealthQueryAnchorData
+            )
+            guard operationScope.matches(
+                ownerID: self.activeOwnerID,
+                localDate: Date().apexDateKey,
+                generation: stateGeneration
+            ) else { return }
+            healthQueryAnchorData = healthChanges.queryAnchorData
+                ?? previousHealthQueryAnchorData
             let accountSamples = samples.filter(watchSampleBelongsToActiveOwner)
-            liters = accountSamples.reduce(0) {
-                $0 + max(0, $1.quantity.doubleValue(for: .liter()))
-            }
             entries = accountSamples.map { sample in
                 let bundle = sample.sourceRevision.source.bundleIdentifier
                 let syncIdentifier = sample.metadata?[HKMetadataKeySyncIdentifier] as? String
@@ -292,11 +461,60 @@ final class WatchHydrationStore: ObservableObject {
                         ?? (canDelete ? "drop.fill" : "heart.fill")
                 )
             }
-            composition = Self.compositionBands(from: entries)
-            persistWidgetState()
-            /* Keep the watch face ring honest the moment the total moves,
-               instead of waiting for the next scheduled timeline refresh. */
-            WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+            let currentHealthAnchor = entries.map {
+                HydrationHealthSampleAnchor(
+                    id: $0.id,
+                    milliliters: Int($0.milliliters.rounded()),
+                    kind: $0.kind,
+                    paletteToken: $0.paletteToken,
+                    iconToken: $0.iconToken
+                )
+            }
+            let previousHealthAnchor = healthAnchor
+            let comparisonAnchor = previousHealthAnchor?.filter {
+                !healthMutationsInFlight.contains($0.id)
+            }
+            let comparisonCurrent = currentHealthAnchor.filter {
+                !healthMutationsInFlight.contains($0.id)
+            }
+            let previousTotalML = Int((liters * 1_000).rounded())
+            let previousComposition = composition
+            let previousHealthOverlay = healthOverlay
+            let overlayUpdate = HydrationHealthReconciler.updatedHealthOverlay(
+                previousHealthOverlay,
+                ownerID: activeOwnerID,
+                localDate: localDate,
+                canonicalSampleIDs: canonicalSampleIDs,
+                anchor: comparisonAnchor,
+                current: comparisonCurrent,
+                deletedSampleIDs: healthChanges.deletedSampleIDs
+            )
+            let reconciled = HydrationHealthReconciler.replacingOverlay(
+                previousHealthOverlay,
+                with: overlayUpdate.mutations,
+                inTotalML: previousTotalML,
+                composition: previousComposition
+            )
+            healthOverlay = overlayUpdate.mutations
+            let protectedAnchor = previousHealthAnchor?.filter {
+                healthMutationsInFlight.contains($0.id)
+            } ?? []
+            healthAnchor = overlayUpdate.nextAnchor + protectedAnchor
+            liters = Double(reconciled.totalML) / 1_000
+            composition = reconciled.composition
+            let visibleStateChanged = reconciled.totalML != previousTotalML
+                || reconciled.composition != previousComposition
+            if visibleStateChanged {
+                persistWidgetState(absorbSidecar: false)
+                WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+            } else if healthAnchor != previousHealthAnchor
+                || healthOverlay != previousHealthOverlay
+                || healthQueryAnchorData != previousHealthQueryAnchorData {
+                persistWidgetState(
+                    revision: latestWidgetRevision,
+                    absorbSidecar: false
+                )
+            }
             await synchronizeReminderSchedule()
         } catch {
             if !(error is CancellationError) {
@@ -317,34 +535,151 @@ final class WatchHydrationStore: ObservableObject {
         healthStore.execute(query)
     }
 
+    private func anchoredHealthChanges(
+        waterType: HKQuantityType,
+        predicate: NSPredicate,
+        anchorData: Data?
+    ) async throws -> WatchHydrationHealthChanges {
+        let anchor = anchorData.flatMap {
+            try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: $0)
+        }
+        return try await withCheckedThrowingContinuation {
+            (continuation: CheckedContinuation<WatchHydrationHealthChanges, Error>) in
+            let query = HKAnchoredObjectQuery(
+                type: waterType,
+                predicate: predicate,
+                anchor: anchor,
+                limit: HKObjectQueryNoLimit
+            ) { _, _, deletedObjects, newAnchor, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let encodedAnchor = newAnchor.flatMap {
+                    try? NSKeyedArchiver.archivedData(
+                        withRootObject: $0,
+                        requiringSecureCoding: true
+                    )
+                }
+                continuation.resume(returning: WatchHydrationHealthChanges(
+                    deletedSampleIDs: Set((deletedObjects ?? []).map(\.uuid)),
+                    queryAnchorData: encodedAnchor
+                ))
+            }
+            healthStore.execute(query)
+        }
+    }
+
     private func apply(_ snapshot: HydrationCompanionSnapshot) {
         guard snapshot.localDate == Date().apexDateKey else { return }
+        guard HydrationComplicationRefreshPolicy.shouldAcceptCompanionRevision(
+            acceptedCompanionRevision: acceptedCompanionRevision,
+            localWidgetRevision: latestWidgetRevision,
+            incomingRevision: snapshot.revision
+        ) else { return }
+        absorbWidgetHealthStateIfCurrent()
+        if activeOwnerID != snapshot.ownerID || latestWidgetLocalDate != snapshot.localDate {
+            stateGeneration &+= 1
+            healthAnchor = nil
+            healthQueryAnchorData = nil
+            healthOverlay = []
+        }
+        let snapshotEventIDs = snapshot.events.reduce(into: Set<UUID>()) { result, event in
+            result.insert(event.id)
+            if let healthKitSampleID = event.healthKitSampleID {
+                result.insert(healthKitSampleID)
+            }
+        }
+        let deferredDeleteUpdate = HydrationDeferredDeleteReconciler.reconcile(
+            deferredDeletes,
+            snapshotOwnerID: snapshot.ownerID,
+            snapshotLocalDate: snapshot.localDate,
+            snapshotEventIDs: snapshotEventIDs,
+            acknowledgedDeleteIDs: Set(snapshot.acknowledgedDeleteIDs ?? [])
+        )
+        deferredDeletes = deferredDeleteUpdate.remaining
+        persistDeferredDeletes()
+        for deletion in deferredDeleteUpdate.toReplay {
+            connectivity.send(.deleting(
+                eventID: deletion.eventID,
+                ownerID: deletion.ownerID
+            ))
+        }
+        let acknowledgedDeleteIDs = Set(snapshot.acknowledgedDeleteIDs ?? [])
+        pendingMutations.removeAll {
+            $0.action == .delete && acknowledgedDeleteIDs.contains($0.sample.id)
+        }
+        pendingMutations = HydrationHealthReconciler.unacknowledged(
+            pendingMutations,
+            snapshotOwnerID: snapshot.ownerID,
+            snapshotLocalDate: snapshot.localDate,
+            snapshotEventIDs: snapshotEventIDs
+        )
+        persistPendingMutations()
+        canonicalSampleIDs = snapshotEventIDs
+        healthOverlay = HydrationHealthReconciler.unacknowledged(
+            healthOverlay,
+            snapshotOwnerID: snapshot.ownerID,
+            snapshotLocalDate: snapshot.localDate,
+            snapshotEventIDs: snapshotEventIDs
+        )
+        let healthOverlaid = HydrationHealthReconciler.applying(
+            healthOverlay,
+            toTotalML: snapshot.totalML,
+            composition: snapshot.composition
+        )
+        let overlaid = HydrationHealthReconciler.applying(
+            pendingMutations,
+            toTotalML: healthOverlaid.totalML,
+            composition: healthOverlaid.composition
+        )
         activeOwnerID = snapshot.ownerID
         presets = snapshot.presets
-        composition = snapshot.composition
-        liters = Double(snapshot.totalML) / 1_000
+        composition = overlaid.composition
+        liters = Double(overlaid.totalML) / 1_000
         preferences = snapshot.preferences
         if let data = try? JSONEncoder().encode(snapshot.preferences) {
             defaults.set(data, forKey: Self.preferencesKey)
         }
-        if let data = try? HydrationWidgetState(snapshot: snapshot).encoded() {
-            widgetDefaults?.set(data, forKey: HydrationWidgetStorage.stateKey)
-        }
+        latestWidgetLocalDate = snapshot.localDate
+        latestWidgetRevision = snapshot.revision
+        acceptedCompanionRevision = snapshot.revision
+        defaults.set(snapshot.revision, forKey: Self.acceptedCompanionRevisionKey)
+        persistWidgetState(revision: snapshot.revision, absorbSidecar: false)
         WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
-        Task { @MainActor [weak self] in
-            await self?.synchronizeReminderSchedule()
+        if isAuthorized {
+            Task { @MainActor [weak self] in
+                await self?.refresh()
+            }
         }
     }
 
-    private func disconnectAccount() {
+    private func disconnectAccount(revision: String) {
+        guard HydrationComplicationRefreshPolicy.shouldAcceptCompanionRevision(
+            acceptedCompanionRevision: acceptedCompanionRevision,
+            localWidgetRevision: latestWidgetRevision,
+            incomingRevision: revision
+        ) else { return }
+        stateGeneration &+= 1
         activeOwnerID = nil
         liters = 0
         entries = []
         presets = []
         composition = []
         preferences = .default
+        healthAnchor = nil
+        healthQueryAnchorData = nil
+        canonicalSampleIDs = []
+        healthOverlay = []
+        pendingMutations = []
+        persistPendingMutations()
+        latestWidgetLocalDate = Date().apexDateKey
+        latestWidgetRevision = revision
+        acceptedCompanionRevision = revision
+        defaults.set(revision, forKey: Self.acceptedCompanionRevisionKey)
         defaults.removeObject(forKey: Self.preferencesKey)
         widgetDefaults?.removeObject(forKey: HydrationWidgetStorage.stateKey)
+        widgetDefaults?.removeObject(forKey: HydrationWidgetStorage.healthStateKey)
         WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
         Task { @MainActor [weak self] in
             await self?.removeHydrationReminders()
@@ -366,19 +701,156 @@ final class WatchHydrationStore: ObservableObject {
         return true
     }
 
-    private func persistWidgetState() {
+    private func persistWidgetState(
+        revision explicitRevision: String? = nil,
+        absorbSidecar: Bool = true
+    ) {
+        if absorbSidecar {
+            absorbWidgetHealthStateIfCurrent()
+        }
         guard let activeOwnerID else { return }
+        let revision = explicitRevision ?? HydrationComplicationRefreshPolicy.revision()
         let state = HydrationWidgetState(
             ownerID: activeOwnerID,
-            localDate: Date().apexDateKey,
+            localDate: HydrationWatchScopePolicy.persistenceLocalDate(
+                storedLocalDate: latestWidgetLocalDate,
+                currentLocalDate: Date().apexDateKey
+            ),
             totalML: Int((liters * 1_000).rounded()),
             targetML: Int((preferences.targetLiters * 1_000).rounded()),
             composition: composition,
-            revision: Date().ISO8601Format()
+            revision: revision,
+            healthAnchor: healthAnchor,
+            healthQueryAnchorData: healthQueryAnchorData,
+            canonicalSampleIDs: canonicalSampleIDs.sorted { $0.uuidString < $1.uuidString },
+            healthOverlay: healthOverlay
         )
         if let data = try? state.encoded() {
             widgetDefaults?.set(data, forKey: HydrationWidgetStorage.stateKey)
         }
+        latestWidgetLocalDate = state.localDate
+        latestWidgetRevision = state.revision
+    }
+
+    private func rebaseForNewDay(_ localDate: String) {
+        stateGeneration &+= 1
+        liters = 0
+        entries = []
+        composition = []
+        healthAnchor = []
+        healthQueryAnchorData = nil
+        canonicalSampleIDs = []
+        healthOverlay = []
+        pendingMutations = []
+        persistPendingMutations()
+        latestWidgetLocalDate = localDate
+        persistWidgetState(absorbSidecar: false)
+        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+    }
+
+    private func ensureCurrentDay(_ localDate: String) {
+        guard activeOwnerID != nil,
+              HydrationWatchScopePolicy.shouldRebase(
+                  storedLocalDate: latestWidgetLocalDate,
+                  currentLocalDate: localDate
+              )
+        else { return }
+        rebaseForNewDay(localDate)
+    }
+
+    private func absorbWidgetHealthStateIfCurrent() {
+        guard let activeOwnerID,
+              let canonicalData = widgetDefaults?.data(forKey: HydrationWidgetStorage.stateKey),
+              let canonical = try? HydrationWidgetState.decode(canonicalData),
+              canonical.ownerID == activeOwnerID,
+              canonical.localDate == latestWidgetLocalDate,
+              canonical.revision == latestWidgetRevision,
+              let healthData = widgetDefaults?.data(forKey: HydrationWidgetStorage.healthStateKey),
+              let healthState = try? HydrationWidgetHealthState.decode(healthData),
+              healthState.matches(canonical)
+        else { return }
+
+        let resolved = HydrationWidgetStateResolver.resolve(
+            canonical: canonical,
+            healthState: healthState
+        )
+        liters = Double(resolved.totalML) / 1_000
+        composition = resolved.composition
+        healthAnchor = resolved.healthAnchor
+        healthQueryAnchorData = resolved.healthQueryAnchorData
+        healthOverlay = resolved.healthOverlay
+    }
+
+    private func recordPendingMutation(_ mutation: HydrationPendingMutation) {
+        pendingMutations.removeAll { $0.sample.id == mutation.sample.id }
+        pendingMutations.append(mutation)
+        if var anchor = healthAnchor {
+            anchor.removeAll { $0.id == mutation.sample.id }
+            if mutation.action == .upsert {
+                anchor.append(mutation.sample)
+            }
+            healthAnchor = anchor
+        }
+        persistPendingMutations()
+    }
+
+    private func persistPendingMutations() {
+        if pendingMutations.isEmpty {
+            defaults.removeObject(forKey: Self.pendingMutationsKey)
+        } else if let data = try? JSONEncoder().encode(pendingMutations) {
+            defaults.set(data, forKey: Self.pendingMutationsKey)
+        }
+    }
+
+    private func recordDeferredDelete(_ deletion: HydrationDeferredDelete) {
+        deferredDeletes.removeAll {
+            $0.ownerID == deletion.ownerID && $0.eventID == deletion.eventID
+        }
+        deferredDeletes.append(deletion)
+        persistDeferredDeletes()
+    }
+
+    private func persistDeferredDeletes() {
+        if deferredDeletes.isEmpty {
+            defaults.removeObject(forKey: Self.deferredDeletesKey)
+        } else if let data = try? JSONEncoder().encode(deferredDeletes) {
+            defaults.set(data, forKey: Self.deferredDeletesKey)
+        }
+    }
+
+    private func applyLocalHydrationDelta(
+        _ deltaML: Int,
+        kind: HydrationKind,
+        paletteToken: String,
+        iconToken: String
+    ) {
+        guard deltaML != 0 else { return }
+        liters = max(0, liters + (Double(deltaML) / 1_000))
+
+        let matchingAmount = composition
+            .filter {
+                $0.kind == kind
+                    && $0.paletteToken == paletteToken
+                    && $0.iconToken == iconToken
+            }
+            .reduce(0) { $0 + $1.milliliters }
+        var adjusted = composition.filter {
+            $0.kind != kind
+                || $0.paletteToken != paletteToken
+                || $0.iconToken != iconToken
+        }
+        let updatedAmount = max(0, matchingAmount + deltaML)
+        if updatedAmount > 0 {
+            adjusted.append(HydrationCompositionBand(
+                kind: kind,
+                paletteToken: paletteToken,
+                iconToken: iconToken,
+                milliliters: updatedAmount
+            ))
+        }
+        composition = Self.sortedComposition(adjusted)
+        persistWidgetState(absorbSidecar: false)
+        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
     }
 
     private static func compositionBands(from entries: [WatchHydrationEntry]) -> [HydrationCompositionBand] {
@@ -392,18 +864,28 @@ final class WatchHydrationStore: ObservableObject {
             let key = Key(kind: entry.kind, palette: entry.paletteToken, icon: entry.iconToken)
             totals[key, default: 0] += Int(entry.milliliters.rounded())
         }
-        let order: [HydrationKind: Int] = [
-            .water: 0, .coffee: 1, .tea: 2, .juice: 3, .shake: 4,
-            .other: 5, .external: 6, .food: 7, .legacy: 8,
-        ]
-        return totals.map {
+        return sortedComposition(totals.map {
             HydrationCompositionBand(
                 kind: $0.key.kind,
                 paletteToken: $0.key.palette,
                 iconToken: $0.key.icon,
                 milliliters: $0.value
             )
-        }.sorted { (order[$0.kind] ?? 99) < (order[$1.kind] ?? 99) }
+        })
+    }
+
+    private static func sortedComposition(
+        _ bands: [HydrationCompositionBand]
+    ) -> [HydrationCompositionBand] {
+        let order: [HydrationKind: Int] = [
+            .water: 0, .coffee: 1, .tea: 2, .juice: 3, .shake: 4,
+            .other: 5, .external: 6, .food: 7, .legacy: 8,
+        ]
+        return bands.sorted {
+            let lhs = (order[$0.kind] ?? 99, $0.paletteToken, $0.iconToken)
+            let rhs = (order[$1.kind] ?? 99, $1.paletteToken, $1.iconToken)
+            return lhs < rhs
+        }
     }
 
     private func synchronizeReminderSchedule(now: Date = Date()) async {
