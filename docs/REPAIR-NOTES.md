@@ -1504,3 +1504,12 @@ GitHub publication evidence:
 - Added 11 deterministic knowledge-engine tests and one behavioral UI regression that opens the real briefing and verifies movement teaching plus session context.
 - Verification: 11/11 focused engine tests; 1/1 focused briefing UI test; 3/3 authored-copy contract tests; 5/5 focused native localization tests; 569/569 full native unit tests; 599/599 repository/web tests; all eight edited string tables passed `plutil`; localization audit remained at the established 10 static and 54 interpolated diagnostics; production web build succeeded; `git diff --check` passed.
 - Device release: build 373 compiled and installed on the connected physical iPhone. Deep/strict signature verification passed and the artifact reports bundle `ch.apexperformance.APEX`, build `373`. Launch was denied by iOS only because the device was locked.
+- Implementation and deployment commit: `75d2c1327525571feaceea617da71adf7f5a0e09`. GitHub Pages run `33132135063` succeeded and the live endpoint returned HTTP 200.
+
+## 2026-08-28 — Roadmap 2.2: imported activity UUID claim verified and closed
+
+- Queried the authenticated production Supabase project over the maximum log window available on its Free plan (24 hours), loaded all 607 Postgres rows, and searched them for SQLSTATE `22P02`, UUID errors, and `orbit-` identifiers. No matching failure exists in that window.
+- Confirmed this was a historical defect already repaired by implementation commit `e4d34f3abab54a5e350c64d3d825f1e83d8984df`, which is an ancestor of the current branch. Web Orbit producers now use deterministic account-scoped UUIDs for both `activity_logs.id` and `imported_activities.id`; queued legacy prefixed IDs are normalized before replay; native imported activities are UUID-typed.
+- The source namespace remains in the text inputs used to derive the UUID and in the activity/source fields rather than being written into a UUID column. No duplicate implementation was added.
+- Verification: 28/28 focused sync and Orbit integration tests passed, including fresh deterministic UUID generation and repair of a legacy `orbit-d4c3a069-...` queued row.
+- Separate production evidence found fresh APEX/372 authentication/RLS failures for settings and workout history. That is not a UUID failure and will be audited against the physical-device outbox immediately after this numbered task, before Phase 2 parity work continues.
