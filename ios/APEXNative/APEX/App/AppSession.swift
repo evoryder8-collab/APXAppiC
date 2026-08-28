@@ -1302,7 +1302,7 @@ final class AppSession {
         guard preset.userID == verifiedPersistenceOwnerID() else { return }
         await logHydration(
             amountML: preset.amountML,
-            kind: preset.kind,
+            kind: preset.kind.eventKind,
             paletteToken: preset.paletteToken,
             iconToken: preset.iconToken,
             on: date

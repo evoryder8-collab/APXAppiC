@@ -1,9 +1,14 @@
-export const HYDRATION_KINDS = [
-  'water', 'coffee', 'tea', 'juice', 'shake', 'other', 'food', 'external', 'legacy',
-] as const
+import { SUPABASE_ENUMS } from './supabaseEnums.ts'
+
+export const HYDRATION_KINDS = SUPABASE_ENUMS.hydration_kind
+export const HYDRATION_SOURCES = SUPABASE_ENUMS.hydration_source
 
 export type HydrationKind = typeof HYDRATION_KINDS[number]
-export type HydrationSource = 'iphone' | 'watch' | 'web' | 'food' | 'healthkit_external' | 'legacy'
+export type HydrationPresetKind = (typeof SUPABASE_ENUMS.hydration_preset_kind)[number]
+export type HydrationSource = typeof HYDRATION_SOURCES[number]
+export type HydrationTargetMode = (typeof SUPABASE_ENUMS.hydration_target_mode)[number]
+export type HydrationDisplayUnit = (typeof SUPABASE_ENUMS.hydration_display_unit)[number]
+export type HydrationMotionIntensity = (typeof SUPABASE_ENUMS.hydration_motion_intensity)[number]
 
 export interface HydrationEvent {
   id: string
@@ -25,7 +30,7 @@ export interface HydrationPresetTemplate {
   id: string
   name: string
   amount_ml: number
-  kind: Exclude<HydrationKind, 'food' | 'external' | 'legacy'>
+  kind: HydrationPresetKind
   palette_token: string
   icon_token: string
   sort_order: number
@@ -41,15 +46,15 @@ export interface HydrationPreset extends HydrationPresetTemplate {
 export interface HydrationPreferences {
   user_id: string
   target_ml: number
-  target_mode?: 'automatic' | 'custom' | null
-  display_unit: 'liters' | 'gallons'
+  target_mode?: HydrationTargetMode | null
+  display_unit: HydrationDisplayUnit
   reminders_enabled: boolean
   reminder_interval_minutes: 60 | 90 | 120
   quiet_hours_start_minutes: number
   quiet_hours_end_minutes: number
   shows_preset_names: boolean
   confirmation_haptics: boolean
-  motion_intensity: 'off' | 'subtle' | 'full'
+  motion_intensity: HydrationMotionIntensity
   created_at: string
   updated_at: string
 }

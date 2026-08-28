@@ -16,7 +16,7 @@
  * show its reasoning in plain language.
  */
 import { differenceInCalendarDays } from 'date-fns'
-import type { AppData, DayType, Profile, RpgSnapshot } from './types'
+import type { AppData, DayType, Profile, RecoveryDataSource, RpgSnapshot } from './types'
 import { computeTargets, nutritionPlanContext } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
 import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
@@ -154,7 +154,7 @@ interface DayActivity {
   importMobilityMin: number
   vo2: number | null
   recoveryScore: number | null
-  recoverySource: 'apple' | 'other' | null
+  recoverySource: RecoveryDataSource | null
   mealRhythmScore: number | null
   mealCompletionScore: number | null
   mealRhythmVerdict: MealRhythmVerdict | null

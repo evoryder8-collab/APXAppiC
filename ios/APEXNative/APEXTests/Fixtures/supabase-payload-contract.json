@@ -1,0 +1,110 @@
+{
+  "version": 1,
+  "enums": {
+    "persona": ["june", "matthew", "iulian", "constantine"],
+    "activity_level": ["sedentary", "light", "moderate", "very", "extra"],
+    "goal": ["recomp", "maintain", "bulk"],
+    "supplement_timing": ["clock", "training"],
+    "program_slug": ["transition", "main", "custom"],
+    "day_type": ["legs_a", "legs_b", "push", "pull", "upper", "mobility", "fix", "t25", "custom"],
+    "session_mode": ["guided", "tracked"],
+    "rep_unit": ["reps", "seconds", "minutes", "metres", "steps", "rounds", "max", "check"],
+    "activity_input_style": ["count", "duration", "distance", "steps", "watch_kcal"],
+    "daily_activity_mode": ["quick", "precise"],
+    "activity_log_source": ["manual", "workout_module", "event_prefill", "orbit"],
+    "event_type": ["filming_championship", "travel", "other"],
+    "recovery_data_source": ["apple", "other"],
+    "imported_activity_kind": ["strength", "endurance", "mobility"],
+    "meal_slot": ["breakfast", "lunch", "dinner", "snack"],
+    "food_unit": ["g", "ml", "serving", "piece"],
+    "nutrition_basis": ["per_100g", "per_100ml"],
+    "preparation_state": ["dry", "cooked", "prepared", "drained", "as_sold", "unknown"],
+    "food_source": ["open_food_facts", "private", "apex_cache"],
+    "logged_as": ["planned", "changed", "custom"],
+    "adjustment_role": ["carb", "protein", "energy", "none"],
+    "progress_pose": ["front", "side", "back"],
+    "hydration_kind": ["water", "coffee", "tea", "juice", "shake", "other", "food", "external", "legacy"],
+    "hydration_preset_kind": ["water", "coffee", "tea", "juice", "shake", "other"],
+    "hydration_source": ["iphone", "watch", "web", "food", "healthkit_external", "legacy"],
+    "hydration_target_mode": ["automatic", "custom"],
+    "hydration_display_unit": ["liters", "gallons"],
+    "hydration_motion_intensity": ["off", "subtle", "full"],
+    "orbit_route_shape": ["loop", "out_back", "point_to_point"],
+    "orbit_route_terrain": ["flat", "rolling", "hilly"],
+    "orbit_route_surface": ["road", "path", "trail", "mixed"],
+    "orbit_navigation_complexity": ["low", "moderate", "high"],
+    "orbit_induction_outcome": ["ready", "foundation", "more_information", "professional_review"],
+    "orbit_campaign_family": ["foundation_first", "first_finish", "first_performance", "personal_best", "hybrid"],
+    "orbit_campaign_phase": ["foundation", "aerobic_build", "durability", "marathon_specific", "peak", "taper", "race_week", "post_marathon"],
+    "orbit_campaign_status": ["active", "paused", "completed", "review_required"],
+    "orbit_session_status": ["planned", "completed", "missed", "skipped"],
+    "orbit_run_status": ["completed", "discarded"],
+    "orbit_run_mission": ["recovery", "easy", "aerobic_base", "long_run", "run_walk", "progression", "tempo", "threshold", "intervals", "hills", "marathon_pace", "exploration", "performance_test", "free_run"],
+    "orbit_poster_style": ["map", "constellation", "elevation", "minimal"]
+  },
+  "structured_meal": {
+    "p_meal": {
+      "id": "11111111-1111-4111-8111-111111111111",
+      "local_date": "2026-08-28",
+      "meal_slot": "lunch",
+      "display_name": "Rice and salmon",
+      "source_preset_id": "22222222-2222-4222-8222-222222222222",
+      "source_planned_meal_id": "33333333-3333-4333-8333-333333333333",
+      "logged_at": "2026-08-28T12:34:56Z",
+      "client_idempotency_key": "meal-contract-2026-08-28-lunch",
+      "logged_as": "changed",
+      "replace_meal_id": "44444444-4444-4444-8444-444444444444"
+    },
+    "p_entries": [
+      {
+        "id": "55555555-5555-4555-8555-555555555555",
+        "food_id": "66666666-6666-4666-8666-666666666666",
+        "sort_order": 0,
+        "snapshot_name": "Cooked jasmine rice",
+        "snapshot_brand": "APEX fixture",
+        "snapshot_preparation_state": "cooked",
+        "snapshot_nutrition_basis": "per_100g",
+        "snapshot_kcal_100": 130,
+        "snapshot_protein_100": 2.7,
+        "snapshot_carbs_100": 28.2,
+        "snapshot_fat_100": 0.3,
+        "snapshot_fibre_100": 0.4,
+        "snapshot_sugar_100": 0.1,
+        "snapshot_saturated_fat_100": 0.1,
+        "snapshot_salt_100": 0.01,
+        "snapshot_water_ml_100": 68.4,
+        "snapshot_water_basis": "analytical",
+        "snapshot_water_source_id": "fixture:rice-water",
+        "quantity": 175,
+        "unit": "g",
+        "equivalent_amount": 175
+      }
+    ]
+  },
+  "meal_preset": {
+    "p_preset": {
+      "id": "77777777-7777-4777-8777-777777777777",
+      "name": "Training lunch",
+      "meal_slot": "lunch",
+      "source_planned_meal_id": "33333333-3333-4333-8333-333333333333",
+      "archived": false
+    },
+    "p_items": [
+      {
+        "id": "88888888-8888-4888-8888-888888888888",
+        "food_id": "66666666-6666-4666-8666-666666666666",
+        "sort_order": 0,
+        "quantity": 1,
+        "unit": "serving",
+        "optional": false,
+        "locked": false,
+        "adjustable": true,
+        "minimum_amount": 0.5,
+        "maximum_amount": 2,
+        "step_amount": 0.5,
+        "adjustment_role": "protein"
+      }
+    ],
+    "p_expected_version": 7
+  }
+}

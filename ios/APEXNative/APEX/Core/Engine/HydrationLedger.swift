@@ -14,7 +14,7 @@ extension Date {
     var apexDateKey: String { ISO8601DateFormatter.apexDateOnly.string(from: self) }
 }
 
-enum HydrationTargetMode: String, Codable, Equatable, Sendable {
+enum HydrationTargetMode: String, Codable, CaseIterable, Equatable, Sendable {
     case automatic
     case custom
 }
@@ -192,7 +192,13 @@ enum HydrationKind: String, Codable, CaseIterable, Hashable, Sendable {
     case water, coffee, tea, juice, shake, other, food, external, legacy
 }
 
-enum HydrationSource: String, Codable, Hashable, Sendable {
+enum HydrationPresetKind: String, Codable, CaseIterable, Hashable, Sendable {
+    case water, coffee, tea, juice, shake, other
+
+    var eventKind: HydrationKind { HydrationKind(rawValue: rawValue) ?? .other }
+}
+
+enum HydrationSource: String, Codable, CaseIterable, Hashable, Sendable {
     case iPhone = "iphone"
     case watch
     case web
@@ -235,7 +241,7 @@ struct HydrationPresetTemplate: Identifiable, Hashable, Sendable {
     let id: UUID
     let name: String
     let amountML: Int
-    let kind: HydrationKind
+    let kind: HydrationPresetKind
     let paletteToken: String
     let iconToken: String
     let sortOrder: Int
@@ -247,7 +253,7 @@ struct HydrationPreset: Codable, Identifiable, Hashable, Sendable {
     let userID: UUID
     var name: String
     var amountML: Int
-    var kind: HydrationKind
+    var kind: HydrationPresetKind
     var paletteToken: String
     var iconToken: String
     var sortOrder: Int

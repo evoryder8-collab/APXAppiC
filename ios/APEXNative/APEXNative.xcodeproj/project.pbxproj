@@ -128,6 +128,8 @@
 		758DF39D3A364778E5F3BE76 /* ExerciseFactFieldsView.swift in Sources */ = {isa = PBXBuildFile; fileRef = 0126856DBD402CDA511F39DA /* ExerciseFactFieldsView.swift */; };
 		7631520A295EB29752C35053 /* head_dif.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 1C59AEFABD65B2A6F186CE0F /* head_dif.jpg */; };
 		76C3F2FEE9DED4CD82BF8A01 /* MealMacroGuidanceParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = CDC9B41B4934D3F2405AA4C3 /* MealMacroGuidanceParityTests.swift */; };
+		AA25C0DE0000000000000001 /* SupabasePayloadContractTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = AA25C0DE0000000000000002 /* SupabasePayloadContractTests.swift */; };
+		AA25C0DE0000000000000003 /* supabase-payload-contract.json in Resources */ = {isa = PBXBuildFile; fileRef = AA25C0DE0000000000000004 /* supabase-payload-contract.json */; };
 		7844717B06A0968147BE2154 /* APEXApp.swift in Sources */ = {isa = PBXBuildFile; fileRef = D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */; };
 		7B839CED35AC899C4670311A /* JewelBackdrop.swift in Sources */ = {isa = PBXBuildFile; fileRef = 92640F4E6CC6ACF928E89B7A /* JewelBackdrop.swift */; };
 		7FE25997D68A85FA565DDDD4 /* ProgressComparison.swift in Sources */ = {isa = PBXBuildFile; fileRef = 9ED7764E8EA64DAD55DEF65F /* ProgressComparison.swift */; };
@@ -386,6 +388,8 @@
 		5190A21466A8A95661FAA6BA /* StrengthProgress.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = StrengthProgress.swift; sourceTree = "<group>"; };
 		51A13108863A51E2AF4564DA /* ActivityGuideSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ActivityGuideSheet.swift; sourceTree = "<group>"; };
 		5223D35F36742B2C02829F7B /* macro-guidance-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "macro-guidance-parity.json"; sourceTree = "<group>"; };
+		AA25C0DE0000000000000002 /* SupabasePayloadContractTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = SupabasePayloadContractTests.swift; sourceTree = "<group>"; };
+		AA25C0DE0000000000000004 /* supabase-payload-contract.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "supabase-payload-contract.json"; sourceTree = "<group>"; };
 		528FC76CC102C422F2ADD630 /* it */ = {isa = PBXFileReference; lastKnownFileType = text.plist.strings; name = it; path = it.lproj/LocalizableShort.strings; sourceTree = "<group>"; };
 		530C9841C32436703E1AC31A /* health-import-parity.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "health-import-parity.json"; sourceTree = "<group>"; };
 		53A12AB559BCB32B420CC5D9 /* MarathonCampaignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonCampaignView.swift; sourceTree = "<group>"; };
@@ -733,6 +737,7 @@
 				4D65A340828BC773255E99E7 /* engine-parity.json */,
 				530C9841C32436703E1AC31A /* health-import-parity.json */,
 				5223D35F36742B2C02829F7B /* macro-guidance-parity.json */,
+				AA25C0DE0000000000000004 /* supabase-payload-contract.json */,
 				AEA7213F1AC11A72D5A5743F /* meal-memory-parity.json */,
 				018FB46EA0E562A118018CC0 /* plan-parity.json */,
 				1B14F6053F580589E4CA2CE7 /* progress-parity.json */,
@@ -795,6 +800,7 @@
 				20D9ABA6AE517DC03269E042 /* SimpleHomeLogicTests.swift */,
 				7F212F03DC5D6145E4F50236 /* StrengthProgressParityTests.swift */,
 				9A9708E377D642AF828B1A7D /* SupplementCatalogueTests.swift */,
+				AA25C0DE0000000000000002 /* SupabasePayloadContractTests.swift */,
 				08E9E5DC16B951C102E971DA /* SyncRepairTests.swift */,
 				A11000000000000000000003 /* SessionBriefingKnowledgeTests.swift */,
 				3512C30BD201A945F5BD6E98 /* TrainingAdjustmentEngineTests.swift */,
@@ -1260,6 +1266,7 @@
 				CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */,
 				97CA260C4CEF8966A48F7E55 /* health-import-parity.json in Resources */,
 				3EB52D1B430B30EE8B05CBBC /* macro-guidance-parity.json in Resources */,
+				AA25C0DE0000000000000003 /* supabase-payload-contract.json in Resources */,
 				54C057DC8588F6B62D0E81E5 /* meal-memory-parity.json in Resources */,
 				1AE709AFC44574DA123B88FC /* plan-parity.json in Resources */,
 				82BBDBE227779625CC926024 /* progress-parity.json in Resources */,
@@ -1480,6 +1487,7 @@
 				376BEAEBCF7B7C3D48642471 /* SimpleHomeLogicTests.swift in Sources */,
 				9CE07DE926FB1F4D3357AD92 /* StrengthProgressParityTests.swift in Sources */,
 				9CCF8511C8FDFDC743B74FCE /* SupplementCatalogueTests.swift in Sources */,
+				AA25C0DE0000000000000001 /* SupabasePayloadContractTests.swift in Sources */,
 				1EDD5879AA2D530AA5356283 /* SyncRepairTests.swift in Sources */,
 				A11000000000000000000004 /* SessionBriefingKnowledgeTests.swift in Sources */,
 				EBF350EC7ADE89A83BCF504D /* TrainingAdjustmentEngineTests.swift in Sources */,
@@ -1735,7 +1743,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 375;
+				CURRENT_PROJECT_VERSION = 376;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1799,7 +1807,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 375;
+				CURRENT_PROJECT_VERSION = 376;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

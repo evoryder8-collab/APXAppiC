@@ -1,8 +1,10 @@
 import type { ActivityLevel, ActivityLog, Goal, Profile } from './types'
 import { computeMacroTargets } from './nutrition.ts'
 
-export type ActivityInputStyle = 'count' | 'duration' | 'distance' | 'steps' | 'watch_kcal'
-export type ActivitySource = 'manual' | 'workout_module' | 'event_prefill' | 'orbit'
+import type { SUPABASE_ENUMS } from './supabaseEnums'
+
+export type ActivityInputStyle = (typeof SUPABASE_ENUMS.activity_input_style)[number]
+export type ActivitySource = (typeof SUPABASE_ENUMS.activity_log_source)[number]
 export type ActivityCategory = 'therapy' | 'camera' | 'work' | 'life' | 'training' | 'device'
 
 export interface ActivityType {

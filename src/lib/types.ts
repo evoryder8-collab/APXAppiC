@@ -4,9 +4,10 @@ import type { PersonaSlug } from './persona'
 import type { ActivityType } from './activity'
 import type { MealBlockSettings } from './mealBlocks'
 import type { HydrationEvent, HydrationPreferences, HydrationPreset } from './hydrationLedger'
+import type { SUPABASE_ENUMS } from './supabaseEnums'
 
-export type ActivityLevel = 'sedentary' | 'light' | 'moderate' | 'very' | 'extra'
-export type Goal = 'recomp' | 'maintain' | 'bulk'
+export type ActivityLevel = (typeof SUPABASE_ENUMS.activity_level)[number]
+export type Goal = (typeof SUPABASE_ENUMS.goal)[number]
 
 export interface CalibrationHistoryEntry {
   applied_at: string
@@ -68,7 +69,7 @@ export interface MealLog {
   checked_at: string
 }
 
-export type SupplementTiming = 'clock' | 'training'
+export type SupplementTiming = (typeof SUPABASE_ENUMS.supplement_timing)[number]
 
 export interface Supplement {
   id: string
@@ -92,7 +93,7 @@ export interface SupplementLog {
   checked_at: string
 }
 
-export type ProgramSlug = 'transition' | 'main' | 'custom'
+export type ProgramSlug = (typeof SUPABASE_ENUMS.program_slug)[number]
 
 export interface Program {
   id: string
@@ -102,18 +103,9 @@ export interface Program {
   description: string
 }
 
-export type DayType =
-  | 'legs_a'
-  | 'legs_b'
-  | 'push'
-  | 'pull'
-  | 'upper'
-  | 'mobility'
-  | 'fix'
-  | 't25'
-  | 'custom'
+export type DayType = (typeof SUPABASE_ENUMS.day_type)[number]
 
-export type SessionMode = 'guided' | 'tracked'
+export type SessionMode = (typeof SUPABASE_ENUMS.session_mode)[number]
 
 export interface ProgramDay {
   id: string
@@ -132,7 +124,7 @@ export interface ProgramDay {
   session_mode?: SessionMode | null
 }
 
-export type RepUnit = 'reps' | 'seconds' | 'minutes' | 'metres' | 'steps' | 'rounds' | 'max' | 'check'
+export type RepUnit = (typeof SUPABASE_ENUMS.rep_unit)[number]
 
 export interface Exercise {
   id: string
@@ -205,6 +197,8 @@ export interface WorkoutLog {
   created_at: string
 }
 
+export type DailyActivityMode = (typeof SUPABASE_ENUMS.daily_activity_mode)[number]
+
 export interface DailyLog {
   id: string
   user_id: string
@@ -216,7 +210,7 @@ export interface DailyLog {
   water_l: number
   estimated_tdee: number | null
   computed_pal: number | null
-  activity_mode: 'quick' | 'precise'
+  activity_mode: DailyActivityMode
   weight_kg: number | null
   nutrition_source?: 'manual' | 'structured'
   manual_kcal?: number | null
@@ -224,6 +218,8 @@ export interface DailyLog {
   manual_fat_g?: number | null
   manual_carbs_g?: number | null
 }
+
+export type ActivityLogSource = (typeof SUPABASE_ENUMS.activity_log_source)[number]
 
 export interface ActivityLog {
   id: string
@@ -235,13 +231,13 @@ export interface ActivityLog {
   distance_km: number | null
   watch_kcal: number | null
   computed_kcal: number
-  source: 'manual' | 'workout_module' | 'event_prefill' | 'orbit'
+  source: ActivityLogSource
   reconciled: boolean
   created_at: string
   updated_at: string
 }
 
-export type EventType = 'filming_championship' | 'travel' | 'other'
+export type EventType = (typeof SUPABASE_ENUMS.event_type)[number]
 
 export interface CalendarEvent {
   id: string
@@ -284,7 +280,7 @@ export interface HealthMetric {
   resting_hr: number | null
 }
 
-export type RecoveryDataSource = 'apple' | 'other'
+export type RecoveryDataSource = (typeof SUPABASE_ENUMS.recovery_data_source)[number]
 
 /* Source-tagged values are retained when the recovery source changes, so
    trends never reinterpret an old Apple Sleep Score as Recovery score. */
@@ -310,7 +306,7 @@ export interface WatchActivityCheckin {
   updated_at: string
 }
 
-export type ImportedActivityKind = 'strength' | 'endurance' | 'mobility'
+export type ImportedActivityKind = (typeof SUPABASE_ENUMS.imported_activity_kind)[number]
 
 export interface ImportedActivity {
   id: string

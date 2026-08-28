@@ -30,6 +30,8 @@ import {
 } from '../lib/food'
 import type { IntroLanguage } from '../lib/introLanguage'
 import {
+  canonicalMealPresetRPCPayload,
+  canonicalStructuredMealRPCPayload,
   detachedLoggedMealPayload,
   foodSyncFailureCanYield,
   foodMutationBelongsToActiveUser,
@@ -39,6 +41,7 @@ import {
   replayFoodOutbox,
   foodSessionBelongsToExpectedUser,
   type LoggedMealSyncPayload,
+  type MealPresetRPCPayload,
 } from '../lib/foodSync'
 import { mergePendingSyncOperations } from '../lib/sync'
 import {
@@ -511,24 +514,24 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
 
   const sendOutbox = useCallback(async (client: SupabaseClient, op: PrivateOutboxOp): Promise<FoodOutboxSendResult> => {
     if (op.operation === 'log_meal') {
-      const payload = op.payload as LoggedMealSyncPayload
+      const payload = canonicalStructuredMealRPCPayload(op.payload as LoggedMealSyncPayload)
       let sent = payload
-      let result = await client.rpc('log_structured_meal', { p_meal: sent.meal, p_entries: sent.entries })
+      let result = await client.rpc('log_structured_meal', sent)
       if (result.error && isMealReferenceError(result.error)) {
         sent = detachedLoggedMealPayload(payload)
-        result = await client.rpc('log_structured_meal', { p_meal: sent.meal, p_entries: sent.entries })
+        result = await client.rpc('log_structured_meal', sent)
       }
       if (result.error) throw result.error
 
       /* Do not acknowledge a meal merely because the RPC returned. Confirm
          the immutable header and every snapshot reached the server first. */
       const [mealCheck, entryCheck] = await Promise.all([
-        client.from('logged_meals').select('id').eq('id', payload.meal.id).maybeSingle(),
-        client.from('logged_food_entries').select('id', { count: 'exact', head: true }).eq('meal_id', payload.meal.id),
+        client.from('logged_meals').select('id').eq('id', payload.p_meal.id).maybeSingle(),
+        client.from('logged_food_entries').select('id', { count: 'exact', head: true }).eq('meal_id', payload.p_meal.id),
       ])
       if (mealCheck.error) throw mealCheck.error
       if (entryCheck.error) throw entryCheck.error
-      if (!mealCheck.data || entryCheck.count !== payload.entries.length) {
+      if (!mealCheck.data || entryCheck.count !== payload.p_entries.length) {
         throw new Error('Meal sync verification failed; the complete snapshot remains queued.')
       }
       return 'sent'
@@ -551,12 +554,8 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       return 'sent'
     }
     if (op.operation === 'save_preset') {
-      const payload = op.payload as { preset: MealPreset; items: MealPresetItem[]; expectedVersion: number }
-      const { error } = await client.rpc('save_meal_preset', {
-        p_preset: payload.preset,
-        p_items: payload.items,
-        p_expected_version: payload.expectedVersion,
-      })
+      const payload = canonicalMealPresetRPCPayload(op.payload as MealPresetRPCPayload)
+      const { error } = await client.rpc('save_meal_preset', payload)
       if (error) throw error
       return 'sent'
     }
@@ -777,7 +776,12 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
     const preferenceOperations = isLocalMode
       ? []
       : preferenceUpdates.map((preference) => outbox(userId, 'save_usage_preference', preference.id, preference))
-    const operation = outbox(userId, 'log_meal', id, { meal: payloadMeal, entries: snapshots })
+    const operation = outbox(
+      userId,
+      'log_meal',
+      id,
+      canonicalStructuredMealRPCPayload({ meal: payloadMeal, entries: snapshots }),
+    )
     await saveMealAtomically(
       meal,
       snapshots,
@@ -896,7 +900,16 @@ export function FoodStoreProvider({ children }: { children: ReactNode }) {
       minimum_amount: item.minimum_amount, maximum_amount: item.maximum_amount,
       step_amount: item.step_amount, adjustment_role: item.adjustment_role,
     }))
-    const operation = outbox(userId, 'save_preset', preset.id, { preset, items, expectedVersion: input.expectedVersion ?? existing?.version ?? 0 })
+    const operation = outbox(
+      userId,
+      'save_preset',
+      preset.id,
+      canonicalMealPresetRPCPayload({
+        preset,
+        items,
+        expectedVersion: input.expectedVersion ?? existing?.version ?? 0,
+      }),
+    )
     await savePresetAtomically(preset, items, isLocalMode ? null : operation)
     if (!foodMutationBelongsToActiveUser(userId, userIdRef.current)) return preset
     if (!isLocalMode) setQueued(true)

@@ -4,6 +4,7 @@ import { useLanguage } from '../../lib/i18n'
 import { normalizeRecoveryHistory } from '../../lib/personalProtocol'
 import { ACCENTS } from '../../lib/theme'
 import { useStore } from '../../store/AppStore'
+import type { RecoveryDataSource } from '../../lib/types'
 import { GlassCard } from '../ui'
 
 const COPY = {
@@ -39,7 +40,7 @@ const COPY = {
   },
 } as const
 
-type Point = { date: string; value: number; supporting: number | null; source: 'apple' | 'other' }
+type Point = { date: string; value: number; supporting: number | null; source: RecoveryDataSource }
 
 function pointsPath(points: Point[], valueOf: (point: Point) => number | null): string {
   if (!points.length) return ''

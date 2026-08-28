@@ -1525,11 +1525,11 @@ private struct HydrationPresetEditor: View {
     let preset: HydrationPreset?
     @State private var name: String
     @State private var amountML: Int
-    @State private var kind: HydrationKind
+    @State private var kind: HydrationPresetKind
     @State private var paletteToken: String
     @State private var iconToken: String
 
-    private let kinds: [HydrationKind] = [.water, .coffee, .tea, .juice, .shake, .other]
+    private let kinds = HydrationPresetKind.allCases
     private let palettes = ["aqua", "blue", "espresso", "tea", "citrus", "cocoa", "violet"]
     private let icons = [
         "drop.fill", "waterbottle.fill", "cup.and.saucer.fill", "mug.fill",

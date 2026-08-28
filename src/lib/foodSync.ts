@@ -6,6 +6,7 @@ import type {
   MealPreset,
   MealPresetItem,
 } from './food'
+import { SUPABASE_ENUMS } from './supabaseEnums.ts'
 
 export interface FoodPendingOperation {
   operation: string
@@ -23,9 +24,178 @@ export interface FoodSyncSnapshot {
   entries: LoggedFoodEntry[]
 }
 
+export type LoggedMealKind = (typeof SUPABASE_ENUMS.logged_as)[number]
+
+export interface StructuredMealRequest {
+  id: string
+  local_date: string
+  meal_slot: string
+  display_name: string
+  source_preset_id?: string
+  source_planned_meal_id?: string
+  logged_at: string
+  client_idempotency_key: string
+  logged_as: LoggedMealKind
+  replace_meal_id?: string
+}
+
+export interface StructuredFoodEntryRequest {
+  id: string
+  food_id?: string
+  sort_order: number
+  snapshot_name: string
+  snapshot_brand?: string
+  snapshot_preparation_state: string
+  snapshot_nutrition_basis: string
+  snapshot_kcal_100: number
+  snapshot_protein_100: number
+  snapshot_carbs_100: number
+  snapshot_fat_100: number
+  snapshot_fibre_100?: number
+  snapshot_sugar_100?: number
+  snapshot_saturated_fat_100?: number
+  snapshot_salt_100?: number
+  snapshot_water_ml_100?: number
+  snapshot_water_basis?: string
+  snapshot_water_source_id?: string
+  quantity: number
+  unit: string
+  equivalent_amount: number
+}
+
 export interface LoggedMealSyncPayload {
+  p_meal: StructuredMealRequest
+  p_entries: StructuredFoodEntryRequest[]
+}
+
+export interface MealPresetRequest {
+  id: string
+  name: string
+  meal_slot: string
+  source_planned_meal_id?: string
+  archived: boolean
+}
+
+export interface MealPresetItemRequest {
+  id: string
+  food_id: string
+  sort_order: number
+  quantity: number
+  unit: string
+  optional: boolean
+  locked: boolean
+  adjustable: boolean
+  minimum_amount?: number
+  maximum_amount?: number
+  step_amount?: number
+  adjustment_role: string
+}
+
+export interface MealPresetRPCPayload {
+  p_preset: MealPresetRequest
+  p_items: MealPresetItemRequest[]
+  p_expected_version: number
+}
+
+interface LegacyLoggedMealSyncPayload {
   meal: LoggedMeal & { replace_meal_id?: string | null }
   entries: LoggedFoodEntry[]
+}
+
+interface LegacyMealPresetSyncPayload {
+  preset: MealPreset
+  items: MealPresetItem[]
+  expectedVersion: number
+}
+
+function present<T>(value: T | null | undefined): value is T {
+  return value !== null && value !== undefined
+}
+
+export function canonicalMealLogKind(value: unknown): LoggedMealKind {
+  return SUPABASE_ENUMS.logged_as.includes(value as LoggedMealKind)
+    ? value as LoggedMealKind
+    : 'custom'
+}
+
+/** Strip local/server-owned row fields before the JSON reaches the shared RPC. */
+export function canonicalStructuredMealRPCPayload(
+  payload: LoggedMealSyncPayload | LegacyLoggedMealSyncPayload,
+): LoggedMealSyncPayload {
+  const sourceMeal = 'p_meal' in payload ? payload.p_meal : payload.meal
+  const sourceEntries = 'p_entries' in payload ? payload.p_entries : payload.entries
+  const meal: StructuredMealRequest = {
+    id: sourceMeal.id,
+    local_date: sourceMeal.local_date,
+    meal_slot: sourceMeal.meal_slot,
+    display_name: sourceMeal.display_name,
+    ...(present(sourceMeal.source_preset_id) ? { source_preset_id: sourceMeal.source_preset_id } : {}),
+    ...(present(sourceMeal.source_planned_meal_id) ? { source_planned_meal_id: sourceMeal.source_planned_meal_id } : {}),
+    logged_at: sourceMeal.logged_at,
+    client_idempotency_key: sourceMeal.client_idempotency_key,
+    logged_as: canonicalMealLogKind(sourceMeal.logged_as),
+    ...(present(sourceMeal.replace_meal_id) ? { replace_meal_id: sourceMeal.replace_meal_id } : {}),
+  }
+  const entries = sourceEntries.map((source): StructuredFoodEntryRequest => ({
+    id: source.id,
+    ...(present(source.food_id) ? { food_id: source.food_id } : {}),
+    sort_order: source.sort_order,
+    snapshot_name: source.snapshot_name,
+    ...(present(source.snapshot_brand) ? { snapshot_brand: source.snapshot_brand } : {}),
+    snapshot_preparation_state: source.snapshot_preparation_state,
+    snapshot_nutrition_basis: source.snapshot_nutrition_basis,
+    snapshot_kcal_100: source.snapshot_kcal_100,
+    snapshot_protein_100: source.snapshot_protein_100,
+    snapshot_carbs_100: source.snapshot_carbs_100,
+    snapshot_fat_100: source.snapshot_fat_100,
+    ...(present(source.snapshot_fibre_100) ? { snapshot_fibre_100: source.snapshot_fibre_100 } : {}),
+    ...(present(source.snapshot_sugar_100) ? { snapshot_sugar_100: source.snapshot_sugar_100 } : {}),
+    ...(present(source.snapshot_saturated_fat_100) ? { snapshot_saturated_fat_100: source.snapshot_saturated_fat_100 } : {}),
+    ...(present(source.snapshot_salt_100) ? { snapshot_salt_100: source.snapshot_salt_100 } : {}),
+    ...(present(source.snapshot_water_ml_100) ? { snapshot_water_ml_100: source.snapshot_water_ml_100 } : {}),
+    ...(present(source.snapshot_water_basis) ? { snapshot_water_basis: source.snapshot_water_basis } : {}),
+    ...(present(source.snapshot_water_source_id) ? { snapshot_water_source_id: source.snapshot_water_source_id } : {}),
+    quantity: source.quantity,
+    unit: source.unit,
+    equivalent_amount: source.equivalent_amount,
+  }))
+  return { p_meal: meal, p_entries: entries }
+}
+
+export function canonicalMealPresetRPCPayload(
+  payload: MealPresetRPCPayload | LegacyMealPresetSyncPayload,
+): MealPresetRPCPayload {
+  const sourcePreset = 'p_preset' in payload ? payload.p_preset : payload.preset
+  const sourceItems = 'p_items' in payload ? payload.p_items : payload.items
+  const expectedVersion = 'p_expected_version' in payload
+    ? payload.p_expected_version
+    : payload.expectedVersion
+  return {
+    p_preset: {
+      id: sourcePreset.id,
+      name: sourcePreset.name,
+      meal_slot: sourcePreset.meal_slot,
+      ...(present(sourcePreset.source_planned_meal_id)
+        ? { source_planned_meal_id: sourcePreset.source_planned_meal_id }
+        : {}),
+      archived: sourcePreset.archived,
+    },
+    p_items: sourceItems.map((source): MealPresetItemRequest => ({
+      id: source.id,
+      food_id: source.food_id,
+      sort_order: source.sort_order,
+      quantity: source.quantity,
+      unit: source.unit,
+      optional: source.optional,
+      locked: source.locked,
+      adjustable: source.adjustable,
+      ...(present(source.minimum_amount) ? { minimum_amount: source.minimum_amount } : {}),
+      ...(present(source.maximum_amount) ? { maximum_amount: source.maximum_amount } : {}),
+      ...(present(source.step_amount) ? { step_amount: source.step_amount } : {}),
+      adjustment_role: source.adjustment_role,
+    })),
+    p_expected_version: expectedVersion,
+  }
 }
 
 /**
@@ -34,15 +204,18 @@ export interface LoggedMealSyncPayload {
  * the meal itself impossible to persist when an older database has not yet
  * received a newer client catalogue row.
  */
-export function detachedLoggedMealPayload(payload: LoggedMealSyncPayload): LoggedMealSyncPayload {
-  return {
-    meal: {
-      ...payload.meal,
-      source_preset_id: null,
-      source_planned_meal_id: null,
+export function detachedLoggedMealPayload(
+  payload: LoggedMealSyncPayload | LegacyLoggedMealSyncPayload,
+): LoggedMealSyncPayload {
+  const canonical = canonicalStructuredMealRPCPayload(payload)
+  return canonicalStructuredMealRPCPayload({
+    p_meal: {
+      ...canonical.p_meal,
+      source_preset_id: undefined,
+      source_planned_meal_id: undefined,
     },
-    entries: payload.entries.map((entry) => ({ ...entry, food_id: null })),
-  }
+    p_entries: canonical.p_entries.map((entry) => ({ ...entry, food_id: undefined })),
+  })
 }
 
 /** Postgres codes used when an optional client-side catalogue reference is

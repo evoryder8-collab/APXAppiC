@@ -310,7 +310,7 @@ private struct WatchQuickPreset: Identifiable {
         id = preset.id
         name = preset.name
         amountML = preset.amountML
-        kind = preset.kind
+        kind = preset.kind.eventKind
         paletteToken = preset.paletteToken
         iconToken = preset.iconToken
     }
@@ -319,7 +319,7 @@ private struct WatchQuickPreset: Identifiable {
         id = preset.id
         name = preset.name
         amountML = preset.amountML
-        kind = preset.kind
+        kind = preset.kind.eventKind
         paletteToken = preset.paletteToken
         iconToken = preset.iconToken
     }

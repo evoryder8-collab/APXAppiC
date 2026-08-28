@@ -1,7 +1,9 @@
 import type { RpgSnapshot } from './types'
 import type { IntroLanguage } from './introLanguage'
 
-export type ProgressPose = 'front' | 'side' | 'back'
+import type { SUPABASE_ENUMS } from './supabaseEnums'
+
+export type ProgressPose = (typeof SUPABASE_ENUMS.progress_pose)[number]
 export type ProgressFramingMode = 'full' | 'torso' | 'free'
 export type PhotoSyncStatus = 'local' | 'queued' | 'syncing' | 'synced' | 'failed'
 

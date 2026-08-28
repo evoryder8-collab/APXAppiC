@@ -3,7 +3,9 @@ import junePortrait from '../../june.webp'
 import matthewPortrait from '../../matthew.webp'
 import iulianPortrait from '../../andrei iulian transparent.webp'
 
-export type PersonaSlug = 'june' | 'matthew' | 'iulian' | 'constantine'
+import type { SUPABASE_ENUMS } from './supabaseEnums'
+
+export type PersonaSlug = (typeof SUPABASE_ENUMS.persona)[number]
 
 export interface PersonaDefinition {
   slug: PersonaSlug

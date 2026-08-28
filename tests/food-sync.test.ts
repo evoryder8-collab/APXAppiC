@@ -21,11 +21,11 @@ test('meal snapshots can detach optional catalogue links without changing nutrit
     entries: [{ id: 'entry-1', food_id: 'client-food', kcal: 321, quantity: 175, unit: 'g' }],
   }
   const detached = detachedLoggedMealPayload(payload as never)
-  assert.equal(detached.meal.source_preset_id, null)
-  assert.equal(detached.meal.source_planned_meal_id, null)
-  assert.equal(detached.entries[0].food_id, null)
-  assert.equal(detached.entries[0].kcal, 321)
-  assert.equal(detached.entries[0].quantity, 175)
+  assert.equal(detached.p_meal.source_preset_id, undefined)
+  assert.equal(detached.p_meal.source_planned_meal_id, undefined)
+  assert.equal(detached.p_entries[0].food_id, undefined)
+  assert.equal('kcal' in detached.p_entries[0], false)
+  assert.equal(detached.p_entries[0].quantity, 175)
   assert.equal(payload.entries[0].food_id, 'client-food', 'the durable queued payload remains immutable')
 })
 

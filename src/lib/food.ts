@@ -1,12 +1,15 @@
 import { portionWater } from './hydration.ts'
 import type { WaterBasis } from './hydration.ts'
 import type { IntroLanguage } from './introLanguage'
+import type { SUPABASE_ENUMS } from './supabaseEnums'
 
-export type MealSlot = 'breakfast' | 'lunch' | 'dinner' | 'snack'
-export type FoodUnit = 'g' | 'ml' | 'serving' | 'piece'
-export type NutritionBasis = 'per_100g' | 'per_100ml'
-export type PreparationState = 'dry' | 'cooked' | 'prepared' | 'drained' | 'as_sold' | 'unknown'
-export type FoodSource = 'open_food_facts' | 'private' | 'apex_cache'
+export type MealSlot = (typeof SUPABASE_ENUMS.meal_slot)[number]
+export type FoodUnit = (typeof SUPABASE_ENUMS.food_unit)[number]
+export type NutritionBasis = (typeof SUPABASE_ENUMS.nutrition_basis)[number]
+export type PreparationState = (typeof SUPABASE_ENUMS.preparation_state)[number]
+export type FoodSource = (typeof SUPABASE_ENUMS.food_source)[number]
+export type LoggedMealKind = (typeof SUPABASE_ENUMS.logged_as)[number]
+export type MealPresetAdjustmentRole = (typeof SUPABASE_ENUMS.adjustment_role)[number]
 export type NutritionConfidence = 'complete' | 'partial' | 'user_entered' | 'provider_verified'
 
 export interface FoodRecord {
@@ -85,7 +88,7 @@ export interface ComposerFoodItem {
   minimum_amount: number | null
   maximum_amount: number | null
   step_amount: number | null
-  adjustment_role: 'carb' | 'protein' | 'energy' | 'none'
+  adjustment_role: MealPresetAdjustmentRole
 }
 
 export function foodPreferenceUsageUpdates(
@@ -214,7 +217,7 @@ export interface LoggedMeal {
   source_planned_meal_id: string | null
   logged_at: string
   client_idempotency_key: string
-  logged_as: 'planned' | 'changed' | 'custom'
+  logged_as: LoggedMealKind
   total_kcal: number
   total_protein_g: number
   total_carbs_g: number
@@ -359,7 +362,7 @@ export interface MealPresetItem {
   minimum_amount: number | null
   maximum_amount: number | null
   step_amount: number | null
-  adjustment_role: 'carb' | 'protein' | 'energy' | 'none'
+  adjustment_role: MealPresetAdjustmentRole
 }
 
 export interface MealTotals {

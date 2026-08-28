@@ -1,13 +1,15 @@
-export const RUN_MISSIONS = [
-  'recovery', 'easy', 'aerobic_base', 'long_run', 'run_walk', 'progression',
-  'tempo', 'threshold', 'intervals', 'hills', 'marathon_pace', 'exploration',
-  'performance_test', 'free_run',
-] as const
+import { SUPABASE_ENUMS } from '../../lib/supabaseEnums.ts'
+
+export const RUN_MISSIONS = SUPABASE_ENUMS.orbit_run_mission
 
 export type RunMission = (typeof RUN_MISSIONS)[number]
-export type RouteShape = 'loop' | 'out_back' | 'point_to_point'
-export type RouteTerrain = 'flat' | 'rolling' | 'hilly'
-export type RouteSurface = 'road' | 'path' | 'trail' | 'mixed'
+export type RouteShape = (typeof SUPABASE_ENUMS.orbit_route_shape)[number]
+export type RouteTerrain = (typeof SUPABASE_ENUMS.orbit_route_terrain)[number]
+export type RouteSurface = (typeof SUPABASE_ENUMS.orbit_route_surface)[number]
+export type RouteNavigationComplexity = (typeof SUPABASE_ENUMS.orbit_navigation_complexity)[number]
+export type OrbitRunStatus = (typeof SUPABASE_ENUMS.orbit_run_status)[number]
+export type CampaignStatus = (typeof SUPABASE_ENUMS.orbit_campaign_status)[number]
+export type CampaignSessionStatus = (typeof SUPABASE_ENUMS.orbit_session_status)[number]
 export type RouteFamiliarity = 'familiar' | 'balanced' | 'exploratory'
 export type SyncState = 'local' | 'queued' | 'synced' | 'failed'
 
@@ -77,7 +79,7 @@ export interface OrbitRun {
   metrics: RunMetrics
   check_in: RunCheckIn
   nutrition_adjustment_applied_at?: string | null
-  status: 'completed' | 'discarded'
+  status: OrbitRunStatus
   sync_state: SyncState
   created_at: string
   updated_at: string
@@ -112,7 +114,7 @@ export interface OrbitRoute {
   surface: RouteSurface
   terrain: RouteTerrain
   shape: RouteShape
-  navigation_complexity: 'low' | 'moderate' | 'high'
+  navigation_complexity: RouteNavigationComplexity
   familiarity_pct: number | null
   favourite: boolean
   rating: number | null
@@ -183,7 +185,7 @@ export interface RunningShoe {
   sync_state: SyncState
 }
 
-export type PosterStyle = 'map' | 'constellation' | 'elevation' | 'minimal'
+export type PosterStyle = (typeof SUPABASE_ENUMS.orbit_poster_style)[number]
 
 export interface RoutePoster {
   id: string
@@ -197,28 +199,11 @@ export interface RoutePoster {
   sync_state: SyncState
 }
 
-export type InductionOutcome =
-  | 'ready'
-  | 'foundation'
-  | 'more_information'
-  | 'professional_review'
+export type InductionOutcome = (typeof SUPABASE_ENUMS.orbit_induction_outcome)[number]
 
-export type CampaignFamily =
-  | 'foundation_first'
-  | 'first_finish'
-  | 'first_performance'
-  | 'personal_best'
-  | 'hybrid'
+export type CampaignFamily = (typeof SUPABASE_ENUMS.orbit_campaign_family)[number]
 
-export type CampaignPhase =
-  | 'foundation'
-  | 'aerobic_build'
-  | 'durability'
-  | 'marathon_specific'
-  | 'peak'
-  | 'taper'
-  | 'race_week'
-  | 'post_marathon'
+export type CampaignPhase = (typeof SUPABASE_ENUMS.orbit_campaign_phase)[number]
 
 export interface MarathonInductionAnswers {
   race_name: string
@@ -292,7 +277,7 @@ export interface CampaignSession {
   phase: CampaignPhase
   original: SessionPrescription
   adapted: SessionPrescription
-  status: 'planned' | 'completed' | 'missed' | 'skipped'
+  status: CampaignSessionStatus
   completion_run_id: string | null
   adaptation_reason: string
   user_override: boolean
@@ -326,7 +311,7 @@ export interface MarathonCampaign {
   family: CampaignFamily
   phase: CampaignPhase
   outcome: InductionOutcome
-  status: 'active' | 'paused' | 'completed' | 'review_required'
+  status: CampaignStatus
   race_name: string
   race_date: string
   race_goal: MarathonInductionAnswers['race_goal']

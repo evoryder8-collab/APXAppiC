@@ -1534,3 +1534,13 @@ GitHub publication evidence:
 - The representative native parity journeys pass for meal composer/Food Memory, morning check, nutrition dayline/recovery, Simple training, training calendar, and hydration. The calendar test initially failed because the 3D muscle renderer consumed its scroll gesture; a test-scoped drag through static content now exercises the real calendar without weakening the shared helper.
 - Full verification: native unit suite 571/571; web/repository suite 600/600; parity matrix gate 1/1; production web build succeeded; `git diff --check` passed.
 - Apple Release 375 built successfully, is signature-valid, and was installed on the connected physical iPhone. Its launch request was denied only because the device was locked.
+
+## 2026-08-28 — Roadmap 2.6 cross-platform payload contracts
+
+- Preserved the ten existing parity test files and added one shared `supabase-payload-contract.json` fixture instead of recreating their algorithm coverage.
+- Added a 40-concept enum ledger shared by the production TypeScript domain types and the native contract. It covers identity, training, activity, food, hydration, progress and Orbit values, including the narrower six-value hydration-preset kind accepted by PostgreSQL.
+- Added web and native contract tests proving that the same structured-meal and meal-preset RPC fixtures decode and re-encode to the same minimal `p_*` JSON. The deliberate web red run failed on the missing ledger; the deliberate Swift red run failed its Swift 6 non-Sendable static-object guard before the fixture loader was corrected.
+- Web meal and preset outboxes now persist and replay the canonical RPC payload itself, stripping local owner IDs, computed totals, timestamps and other server-owned row fields. Old full-row outboxes are canonicalized during replay, and the legacy rejected meal kind `actual` is repaired to `custom` before transmission.
+- Native hydration presets now use a constrained `HydrationPresetKind`; Watch and iPhone logging convert it explicitly to the broader event kind. Event-only values such as `food`, `external` and `legacy` can no longer be encoded into the preset table.
+- Verification: payload contract web 3/3; payload contract native 3/3; focused sync/persistence web 30/30; full web/repository suite 603/603; full native suite 574/574; production web build succeeded; client contract audit passed; `git diff --check` passed.
+- Apple Release 376 built successfully, passed deep/strict signature validation, reported bundle build `376`, and installed on the connected physical iPhone. Launch was denied only because the handset remained locked.
