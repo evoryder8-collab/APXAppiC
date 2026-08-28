@@ -215,7 +215,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           accent={accent}
         />
 
-        <CompletedWorkoutHistoryCards date={undefined} limit={5} accent={accent} includeQuickLogs={false} />
+        <CompletedWorkoutHistoryCards date={undefined} accent={accent} includeQuickLogs={false} />
 
         {/* Calendar */}
         <GlassCard accent={accent} className="p-4 sm:p-5">

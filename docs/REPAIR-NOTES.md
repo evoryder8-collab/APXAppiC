@@ -1570,3 +1570,11 @@ GitHub publication evidence:
   - full native unit suite: 581 passed, 0 failed;
   - all nine edited `LocalizableShort.strings` tables: `plutil -lint` passed;
   - both available iOS simulators launched the unit-test host successfully. The focused XCUITest runner itself stalled before launching the app with Xcode's `DebuggerVersionStore` error on both simulators; it produced no assertion failure and was terminated after the repeated infrastructure failure.
+
+## 2026-08-28 — Finished-workout history visibility hotfix
+
+- Root cause: Simple Mode and the training phase pages explicitly passed a five-session limit to the otherwise unbounded finished-workout history resolver. Older completed sessions remained persisted and owner-scoped, but the interface hid them until newer receipts were deleted.
+- Removed that caller-side limit from native and web Simple Mode and from native and web training phase pages. The list now renders every completed workout in newest-first order; the date-owned Nutrition list remains intentionally scoped to its selected day.
+- Preserved the existing inline receipt, correction, swipe-to-reveal deletion, confirmation, and owner-scoped deletion behavior unchanged.
+- Added native and web regressions with ten completed workouts plus source contracts that reject a reintroduced Simple/phase visibility cap.
+- Verification: focused web history tests 8/8; full web/repository suite 609/609; production web build succeeded; full native unit suite 582/582 with zero failures and zero skips.

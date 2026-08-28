@@ -100,13 +100,45 @@ test('recent history crosses calendar dates while remaining owner-scoped and bou
   )
 })
 
-test('completed workout history is rendered directly below Simple Mode metrics and in phase pages', () => {
+test('unbounded recent history returns every owned completed workout instead of hiding older receipts', () => {
+  const workouts = Array.from({ length: 10 }, (_, index) => session({
+    id: `workout-${index + 1}`,
+    date: `2026-08-${String(index + 1).padStart(2, '0')}`,
+    program_day_id: 'day',
+    completed_at: `2026-08-${String(index + 1).padStart(2, '0')}T19:00:00.000Z`,
+  }))
+  const data: AppData = {
+    ...EMPTY_DATA,
+    settings: {
+      user_id: 'owner',
+      theme: 'dark',
+      language: 'en',
+      addons: { endurance1: false, endurance2: false, endurance3: false },
+    },
+    workout_sessions: workouts,
+  }
+
+  const history = completedWorkoutHistoryForDate(data)
+
+  assert.equal(history.length, 10)
+  assert.deepEqual(history.map((item) => item.session.id), workouts.toReversed().map((item) => item.id))
+})
+
+test('completed workout history is rendered without a visibility cap below Simple Mode metrics and in phase pages', () => {
   const simple = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
   const phase = readFileSync(new URL('../src/pages/WorkoutSection.tsx', import.meta.url), 'utf8')
+  const nativeSimple = readFileSync(new URL('../ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift', import.meta.url), 'utf8')
+  const nativePhase = readFileSync(new URL('../ios/APEXNative/APEX/Features/Training/TrainingProgramView.swift', import.meta.url), 'utf8')
   assert.match(simple, /simple-summary-actions[\s\S]*CompletedWorkoutHistoryCards/)
   assert.match(phase, /CompletedWorkoutHistoryCards/)
-  assert.match(simple, /CompletedWorkoutHistoryCards date=\{undefined\} limit=\{5\}/)
-  assert.match(phase, /CompletedWorkoutHistoryCards date=\{undefined\} limit=\{5\}/)
+  assert.match(simple, /CompletedWorkoutHistoryCards date=\{undefined\} accent=\{ACCENTS\.teal\}/)
+  assert.match(phase, /CompletedWorkoutHistoryCards date=\{undefined\} accent=\{accent\} includeQuickLogs=\{false\}/)
+  assert.doesNotMatch(simple, /CompletedWorkoutHistoryCards date=\{undefined\} limit=/)
+  assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{undefined\} limit=/)
+  assert.match(nativeSimple, /CompletedWorkoutHistoryCards\(date: nil, accent: APEXColor\.teal\)/)
+  assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: nil, accent: accent\)/)
+  assert.doesNotMatch(nativeSimple, /CompletedWorkoutHistoryCards\(date: nil,[^\n]*limit:/)
+  assert.doesNotMatch(nativePhase, /CompletedWorkoutHistoryCards\(date: nil,[^\n]*limit:/)
 })
 
 test("Nutrition Today's Activities reuses the same date-owned finished workout receipts", () => {

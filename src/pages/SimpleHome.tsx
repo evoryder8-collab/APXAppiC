@@ -1145,7 +1145,7 @@ export function SimpleHome() {
                   />
                   <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
                 </div>
-                <CompletedWorkoutHistoryCards date={undefined} limit={5} accent={ACCENTS.teal} />
+                <CompletedWorkoutHistoryCards date={undefined} accent={ACCENTS.teal} />
               </div>
             ) : blockId === 'activity' ? (
               <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>

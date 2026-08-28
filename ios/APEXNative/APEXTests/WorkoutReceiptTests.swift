@@ -172,6 +172,26 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(history.map(\.session.id), [newer.id])
     }
 
+    func testUnboundedRecentHistoryReturnsEveryOwnedCompletedWorkout() {
+        let owner = UUID()
+        let dayID = UUID()
+        let workouts = (1...10).map { day in
+            workout(
+                userID: owner,
+                date: String(format: "2026-08-%02d", day),
+                dayID: dayID,
+                completedAt: String(format: "2026-08-%02dT19:00:00.000Z", day)
+            )
+        }
+
+        let history = WorkoutReceipt.history(
+            sessions: workouts, days: [], date: nil, ownerID: owner
+        )
+
+        XCTAssertEqual(history.count, 10)
+        XCTAssertEqual(history.map(\.session.id), workouts.reversed().map(\.id))
+    }
+
     func testDeletionPlanIncludesOnlyTheOwnedSessionAndItsOwnedSetRows() {
         let owner = UUID()
         let sessionID = UUID()

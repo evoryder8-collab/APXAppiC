@@ -300,7 +300,7 @@ struct TrainingProgramView: View {
 
                 if slug != "custom" { todayHero }
 
-                CompletedWorkoutHistoryCards(date: nil, accent: accent, limit: 5)
+                CompletedWorkoutHistoryCards(date: nil, accent: accent)
 
                 if slug == "custom" || hasUsablePrescription {
                     MuscleMapCard(
