@@ -23,3 +23,8 @@
 "Fat" = "脂質";
 "Workout" = "ワークアウト";
 "Exercises" = "種目";
+"Sedentary" = "低活動";
+"Lightly active" = "軽め";
+"Moderately active" = "中程度";
+"Very active" = "高活動";
+"Extra active" = "超高活動";

@@ -25,6 +25,110 @@ final class SimpleHomeLogicTests: XCTestCase {
         XCTAssertEqual(SimpleHomeLogic.completion(completed: -1, total: 10), 0)
     }
 
+    func testDailyProgressCombinesUsefulPillarsAndWeightsLeanRecompActivity() {
+        XCTAssertEqual(
+            SimpleHomeLogic.dailyProgress(
+                completedMeals: 1,
+                totalMeals: 2,
+                consumedKcal: 1_000,
+                targetKcal: 2_000,
+                consumedProteinG: 75,
+                targetProteinG: 150,
+                consumedCarbsG: 100,
+                targetCarbsG: 200,
+                consumedFatG: 30,
+                targetFatG: 60,
+                waterL: 1.35,
+                waterTargetL: 3,
+                workoutScheduled: true,
+                workoutCompleted: true,
+                activityProgress: 0.5,
+                supplements: [
+                    ("Creatine monohydrate", true),
+                    ("Whey isolate", false),
+                    ("Magnesium glycinate", false),
+                ],
+                goal: .recomp
+            ),
+            57
+        )
+    }
+
+    func testSecondarySupplementsNeverLowerDailyProgress() {
+        XCTAssertEqual(
+            SimpleHomeLogic.dailyProgress(
+                completedMeals: 1,
+                totalMeals: 1,
+                consumedKcal: 2_000,
+                targetKcal: 2_000,
+                consumedProteinG: 150,
+                targetProteinG: 150,
+                consumedCarbsG: 200,
+                targetCarbsG: 200,
+                consumedFatG: 60,
+                targetFatG: 60,
+                waterL: 2.7,
+                waterTargetL: 3,
+                workoutScheduled: false,
+                workoutCompleted: false,
+                activityProgress: 1,
+                supplements: [("Magnesium glycinate", false)],
+                goal: .maintain
+            ),
+            100
+        )
+        XCTAssertTrue(SimpleHomeLogic.isPrimaryDailySupplement("Creatine monohydrate"))
+        XCTAssertTrue(SimpleHomeLogic.isPrimaryDailySupplement("Micellar casein"))
+        XCTAssertFalse(SimpleHomeLogic.isPrimaryDailySupplement("Magnesium glycinate"))
+    }
+
+    func testActivityProgressUsesPersonaAndGoalThresholds() {
+        XCTAssertEqual(
+            SimpleHomeLogic.activityProgress(
+                persona: .constantine, goal: .recomp,
+                steps: 0, activeCalories: 250, exerciseMinutes: 0
+            ),
+            0.5,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            SimpleHomeLogic.activityProgress(
+                persona: .constantine, goal: .recomp,
+                steps: 0, activeCalories: 0, exerciseMinutes: 25
+            ),
+            1,
+            accuracy: 0.001
+        )
+        XCTAssertEqual(
+            SimpleHomeLogic.activityProgress(
+                persona: .june, goal: .recomp,
+                steps: 0, activeCalories: 175, exerciseMinutes: 0
+            ),
+            0.5,
+            accuracy: 0.001
+        )
+    }
+
+    func testResolvedDailyActivityUsesWearableBurnAndExerciseForItsLevel() {
+        let wearable = WearableActivityRecord(
+            date: "2026-08-28",
+            steps: 0,
+            activeCalories: 90,
+            exerciseMinutes: 25,
+            source: "apple_health",
+            updatedAt: "2026-08-28T08:00:00Z"
+        )
+
+        let resolved = WearableActivityEngine.resolve(
+            persona: .constantine,
+            wearable: wearable,
+            logs: []
+        )
+
+        XCTAssertEqual(resolved.activeCalories, 90)
+        XCTAssertEqual(resolved.level, .moderate)
+    }
+
     func testNextActionPrefersLatestDueThenEarliestUpcoming() {
         XCTAssertEqual(SimpleHomeLogic.nextCandidateIndex(times: [420, 720, 1_140], nowMinutes: 800), 1)
         XCTAssertEqual(SimpleHomeLogic.nextCandidateIndex(times: [420, 720, 1_140], nowMinutes: 300), 0)

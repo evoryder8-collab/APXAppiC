@@ -23,3 +23,8 @@
 "Fat" = "ไขมัน";
 "Workout" = "การออกกำลัง";
 "Exercises" = "ท่า";
+"Sedentary" = "น้อย";
+"Lightly active" = "เบา";
+"Moderately active" = "ปานกลาง";
+"Very active" = "มาก";
+"Extra active" = "มากเป็นพิเศษ";

@@ -120,6 +120,10 @@ test('Watch activity thresholds recommend a whole-day mode and never auto-apply 
     recommendActivityMode('june', { steps: 3000, activeCalories: 150, exerciseMinutes: 0 }, { massageAppointments: 3 }).level,
     'moderate',
   )
+  assert.equal(
+    recommendActivityMode('constantine', { steps: 0, activeCalories: 0, exerciseMinutes: 25 }).level,
+    'moderate',
+  )
 })
 
 test('source-tagged recovery history remains valid across source changes', () => {

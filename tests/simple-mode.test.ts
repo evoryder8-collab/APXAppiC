@@ -1,6 +1,6 @@
 import assert from 'node:assert/strict'
 import test from 'node:test'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, parseWaterAmountToLitres, planBriefingExit, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleCompletion, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, floatingActiveDateVisible, isPrimaryDailySupplement, parseWaterAmountToLitres, planBriefingExit, rankSimpleMacroContributors, selectNextSimpleAction, settingsForUiMode, simpleActivityProgress, simpleCompletion, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, toggleSimpleWaterTarget, uiModeFromSettings, weightFromKg, weightToKg, weightUnitFromSettings } from '../src/lib/simpleMode.ts'
 import type { Settings } from '../src/lib/types.ts'
 import { seedSettings } from '../src/data/seed.ts'
 
@@ -54,6 +54,52 @@ test('Simple Mode completion is bounded and handles an empty routine', () => {
   assert.equal(simpleCompletion(3, 4), 75)
   assert.equal(simpleCompletion(0, 0), 100)
   assert.equal(simpleCompletion(8, 4), 100)
+})
+
+test('daily progress combines the useful pillars and gives lean recomp activity extra weight', () => {
+  assert.equal(simpleDailyProgress({
+    completedMeals: 1,
+    totalMeals: 2,
+    consumed: { kcal: 1_000, protein_g: 75, carbs_g: 100, fat_g: 30 },
+    target: { kcal: 2_000, protein_g: 150, carbs_g: 200, fat_g: 60 },
+    waterLitres: 1.35,
+    waterTargetLitres: 3,
+    workoutScheduled: true,
+    workoutCompleted: true,
+    activityProgress: 0.5,
+    supplements: [
+      { name: 'Creatine monohydrate', taken: true },
+      { name: 'Whey isolate', taken: false },
+      { name: 'Magnesium glycinate', taken: false },
+    ],
+    goal: 'recomp',
+  }), 57)
+})
+
+test('secondary supplements never lower daily progress', () => {
+  assert.equal(simpleDailyProgress({
+    completedMeals: 1,
+    totalMeals: 1,
+    consumed: { kcal: 2_000, protein_g: 150, carbs_g: 200, fat_g: 60 },
+    target: { kcal: 2_000, protein_g: 150, carbs_g: 200, fat_g: 60 },
+    waterLitres: 2.7,
+    waterTargetLitres: 3,
+    workoutScheduled: false,
+    workoutCompleted: false,
+    activityProgress: 1,
+    supplements: [{ name: 'Magnesium glycinate', taken: false }],
+    goal: 'maintain',
+  }), 100)
+  assert.equal(isPrimaryDailySupplement('Creatine monohydrate'), true)
+  assert.equal(isPrimaryDailySupplement('Micellar casein'), true)
+  assert.equal(isPrimaryDailySupplement('Magnesium glycinate'), false)
+})
+
+test('activity progress uses the same persona-aware facts as the live level', () => {
+  assert.equal(simpleActivityProgress('constantine', 'recomp', 0, 250, 0), 0.5)
+  assert.equal(simpleActivityProgress('constantine', 'recomp', 0, 0, 25), 1)
+  assert.equal(simpleActivityProgress('constantine', 'maintain', 4_000, 0, 0), 1)
+  assert.equal(simpleActivityProgress('june', 'recomp', 0, 175, 0), 0.5)
 })
 
 test('Simple Mode water checklist toggles the target instead of adding it twice', () => {

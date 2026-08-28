@@ -48,7 +48,7 @@ import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, simpleDaySwipeOffset, simpleGuidedProgramSlug } from '../lib/simpleMode'
 import { mealBlockIdempotencyKey, mealSlotForBlock, normalizeMealBlockSettings, resolveMealBlockStatuses, type MealBlockIdentity, type MealBlockKind } from '../lib/mealBlocks'
 import { loggedMealEditorState } from '../lib/mealExperience'
-import { personalTargetFor } from '../lib/personalProtocol'
+import { personalTargetFor, recommendActivityMode } from '../lib/personalProtocol'
 import { clockToMinute, timeZoneFromSettings, zonedClock, zonedDateTimeToIso } from '../lib/mealTiming'
 import { loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { planForDate } from '../lib/plan'
@@ -111,6 +111,14 @@ export function Nutrition() {
     () => resolveDailyBurnedEnergy(selectedWearableActivity?.active_calories, selectedActivityLogs),
     [selectedActivityLogs, selectedWearableActivity?.active_calories],
   )
+  const activityLevel = recommendActivityMode(profile?.persona ?? 'constantine', {
+    steps: selectedWearableActivity?.steps ?? 0,
+    activeCalories: burnedKcal,
+    exerciseMinutes: Math.max(
+      selectedWearableActivity?.exercise_minutes ?? 0,
+      selectedActivityLogs.reduce((sum, log) => sum + Math.max(0, log.duration_min ?? 0), 0),
+    ),
+  }).level
   const activityBlocks = useMemo(
     () => selectedActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
     [catalog, selectedActivityLogs],
@@ -877,6 +885,7 @@ export function Nutrition() {
           target={{ kcal: targets.kcal, protein_g: targets.protein_g, carbs_g: targets.carbs_g, fat_g: targets.fat_g }}
           consumed={consumed}
           burnedKcal={burnedKcal}
+          activityLevel={activityLevel}
           plannedRows={plannedRows}
           onEditPlanned={editAndLog}
           onEditLogged={editLoggedMeal}

@@ -61,19 +61,21 @@ struct NutritionGlanceCard: View {
         )
     }
 
-    private var wearableActiveCalories: Int? {
+    private var wearableActivity: WearableActivityRecord? {
         WearableActivityRecord
             .history(from: session.data.settings?.addons["watch_activity_history"])
-            .last { $0.date == date.apexDateKey }?
-            .activeCalories
+            .last { $0.date == date.apexDateKey }
     }
 
-    private var resolvedBurnedCalories: Int {
-        EnergyEngine.resolvedActiveCalories(
-            wearableActiveCalories: wearableActiveCalories,
+    private var resolvedActivity: WearableActivityEngine.Resolution {
+        WearableActivityEngine.resolve(
+            persona: session.profile?.persona ?? .constantine,
+            wearable: wearableActivity,
             logs: session.data.activityLogs.filter { $0.date == date.apexDateKey }
         )
     }
+
+    private var resolvedBurnedCalories: Int { resolvedActivity.activeCalories }
 
     private var calorieProgress: Double {
         min(max(totals.kcal / Double(max(targets.targetCalories, 1)), 0), 1)
@@ -191,6 +193,10 @@ struct NutritionGlanceCard: View {
                         Text(language.shortText("Burned").uppercased(with: language.language.locale))
                             .font(APEXFont.mono(8))
                             .foregroundStyle(APEXColor.secondaryInk)
+                        Text(language.shortText(resolvedActivity.level.title).uppercased(with: language.language.locale))
+                            .font(APEXFont.mono(7, weight: .bold))
+                            .foregroundStyle(APEXColor.amberDeep)
+                            .lineLimit(1)
                     }
                     .frame(maxWidth: .infinity)
                 }

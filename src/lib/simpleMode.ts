@@ -1,5 +1,5 @@
 import type { PersonaSlug } from './persona.ts'
-import type { ProgramSlug, Settings } from './types.ts'
+import type { Goal, ProgramSlug, Settings } from './types.ts'
 
 export type UiMode = 'simple' | 'advanced'
 export type WeightUnit = 'kg' | 'lb'
@@ -15,6 +15,20 @@ export interface SimpleMacroEntry {
 export interface SimpleMacroContributor {
   name: string
   amount: number
+}
+
+export interface SimpleDailyProgressInput {
+  completedMeals: number
+  totalMeals: number
+  consumed: { kcal: number; protein_g: number; carbs_g: number; fat_g: number }
+  target: { kcal: number; protein_g: number; carbs_g: number; fat_g: number }
+  waterLitres: number
+  waterTargetLitres: number
+  workoutScheduled: boolean
+  workoutCompleted: boolean
+  activityProgress: number
+  supplements: Array<{ name: string; taken: boolean }>
+  goal: Goal
 }
 
 export function uiModeFromSettings(settings: Settings | null): UiMode {
@@ -147,6 +161,81 @@ export function selectNextSimpleAction<T extends TimedSimpleAction>(candidates: 
 export function simpleCompletion(completed: number, total: number): number {
   if (total <= 0) return 100
   return Math.max(0, Math.min(100, Math.round((completed / total) * 100)))
+}
+
+function boundedRatio(value: number, target: number): number | null {
+  if (!Number.isFinite(target) || target <= 0) return null
+  const resolved = Number.isFinite(value) ? value : 0
+  return Math.max(0, Math.min(1, resolved / target))
+}
+
+export function isPrimaryDailySupplement(name: string): boolean {
+  const normalized = name.normalize('NFKD').replace(/\p{Diacritic}/gu, '').toLocaleLowerCase('en')
+  return [
+    'creatin', 'kreatin', 'protein', 'whey', 'casein', 'cazein', 'eiweiss',
+    'โปรตีน', 'ครีเอทีน', 'プロテイン', 'クレアチン',
+  ].some((token) => normalized.includes(token))
+}
+
+export function simpleActivityProgress(
+  persona: PersonaSlug,
+  goal: Goal,
+  steps: number,
+  activeCalories: number,
+  exerciseMinutes: number,
+): number {
+  const isJune = persona === 'june'
+  const moderateTarget = goal === 'recomp'
+  const stepTarget = moderateTarget ? (isJune ? 7_000 : 7_500) : 4_000
+  const calorieTarget = moderateTarget ? (isJune ? 350 : 500) : (isJune ? 180 : 250)
+  const exerciseTarget = moderateTarget ? 25 : 10
+  return Math.max(
+    boundedRatio(steps, stepTarget) ?? 0,
+    boundedRatio(activeCalories, calorieTarget) ?? 0,
+    boundedRatio(exerciseMinutes, exerciseTarget) ?? 0,
+  )
+}
+
+export function simpleDailyProgress(input: SimpleDailyProgressInput): number {
+  const pillars: Array<{ progress: number; weight: number }> = []
+  const meals = boundedRatio(input.completedMeals, input.totalMeals)
+  if (meals != null) pillars.push({ progress: meals, weight: 1 })
+
+  const nutritionParts = [
+    boundedRatio(input.consumed.kcal, input.target.kcal),
+    boundedRatio(input.consumed.protein_g, input.target.protein_g),
+    boundedRatio(input.consumed.carbs_g, input.target.carbs_g),
+    boundedRatio(input.consumed.fat_g, input.target.fat_g),
+  ].filter((part): part is number => part != null)
+  if (nutritionParts.length > 0) {
+    pillars.push({
+      progress: nutritionParts.reduce((sum, part) => sum + part, 0) / nutritionParts.length,
+      weight: 1,
+    })
+  }
+
+  const water = boundedRatio(input.waterLitres, input.waterTargetLitres * 0.9)
+  if (water != null) pillars.push({ progress: water, weight: 1 })
+  if (input.workoutScheduled) {
+    pillars.push({ progress: input.workoutCompleted ? 1 : 0, weight: 1 })
+  }
+  pillars.push({
+    progress: Math.max(0, Math.min(1, input.activityProgress)),
+    weight: input.goal === 'recomp' ? 2 : 1,
+  })
+
+  const primarySupplements = input.supplements.filter((supplement) => isPrimaryDailySupplement(supplement.name))
+  if (primarySupplements.length > 0) {
+    pillars.push({
+      progress: primarySupplements.filter((supplement) => supplement.taken).length / primarySupplements.length,
+      weight: 1,
+    })
+  }
+
+  const totalWeight = pillars.reduce((sum, pillar) => sum + pillar.weight, 0)
+  if (totalWeight <= 0) return 0
+  const weightedProgress = pillars.reduce((sum, pillar) => sum + pillar.progress * pillar.weight, 0) / totalWeight
+  return Math.max(0, Math.min(100, Math.round(weightedProgress * 100)))
 }
 
 export function simpleWaterTargetComplete(waterLitres: number, targetLitres: number): boolean {

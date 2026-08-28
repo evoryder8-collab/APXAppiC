@@ -162,9 +162,6 @@ struct SimpleHomeView: View {
     }
 
     private var completedMealCount: Int { meals.filter(mealDone).count }
-    /* Groups, for the day's completion ring: a group is a block of the day,
-       like everything taken at breakfast. */
-    private var completedSupplementCount: Int { supplementGroups.filter(groupDone).count }
 
     /* Individual supplements, for the tile. The tile opens a list of
        supplements with ticks against them, so it has to count the same things
@@ -177,13 +174,70 @@ struct SimpleHomeView: View {
             }
         }.count
     }
-    private var totalTasks: Int {
-        meals.count + supplementGroups.count + 1 + (todayProgramDay == nil ? 0 : 1)
+
+    private var consumedNutrition: (kcal: Double, protein: Double, carbs: Double, fat: Double) {
+        session.data.loggedMeals
+            .filter { $0.localDate == today }
+            .reduce(into: (0, 0, 0, 0)) { totals, meal in
+                totals.0 += meal.totalKcal
+                totals.1 += meal.totalProteinG
+                totals.2 += meal.totalCarbsG
+                totals.3 += meal.totalFatG
+            }
     }
-    private var completedTasks: Int {
-        completedMealCount + completedSupplementCount + (waterDone ? 1 : 0) + (todayProgramDay == nil ? 0 : workoutDone ? 1 : 0)
+
+    private var wearableActivity: WearableActivityRecord? {
+        WearableActivityRecord
+            .history(from: session.data.settings?.addons["watch_activity_history"])
+            .last { $0.date == today }
     }
-    private var completion: Int { SimpleHomeLogic.completion(completed: completedTasks, total: totalTasks) }
+
+    private var resolvedActivity: WearableActivityEngine.Resolution {
+        WearableActivityEngine.resolve(
+            persona: profile?.persona ?? .constantine,
+            wearable: wearableActivity,
+            logs: activities
+        )
+    }
+
+    private var completion: Int {
+        guard let profile, let targets else { return 0 }
+        let consumed = consumedNutrition
+        let activityProgress = SimpleHomeLogic.activityProgress(
+            persona: profile.persona,
+            goal: profile.goal,
+            steps: resolvedActivity.steps,
+            activeCalories: resolvedActivity.activeCalories,
+            exerciseMinutes: resolvedActivity.exerciseMinutes
+        )
+        let supplements = session.activeSupplements.map { supplement in
+            (
+                name: supplement.name,
+                taken: session.data.supplementLogs.contains {
+                    $0.date == today && $0.supplementID == supplement.id
+                }
+            )
+        }
+        return SimpleHomeLogic.dailyProgress(
+            completedMeals: completedMealCount,
+            totalMeals: meals.count,
+            consumedKcal: consumed.kcal,
+            targetKcal: Double(targets.targetCalories),
+            consumedProteinG: consumed.protein,
+            targetProteinG: Double(targets.proteinG),
+            consumedCarbsG: consumed.carbs,
+            targetCarbsG: Double(targets.carbsG),
+            consumedFatG: consumed.fat,
+            targetFatG: Double(targets.fatG),
+            waterL: waterL,
+            waterTargetL: waterTargetL,
+            workoutScheduled: todayProgramDay != nil,
+            workoutCompleted: workoutDone,
+            activityProgress: activityProgress,
+            supplements: supplements,
+            goal: profile.goal
+        )
+    }
 
     /* Simple-mode surface preferences, mirroring the web's defaults exactly */
     private var addons: [String: JSONValue] { session.data.settings?.addons ?? [:] }
@@ -930,6 +984,38 @@ struct WearableActivityRecord: Hashable, Sendable {
 }
 
 enum WearableActivityEngine {
+    struct Resolution: Equatable, Sendable {
+        let steps: Int
+        let activeCalories: Int
+        let exerciseMinutes: Int
+        let level: ActivityLevel
+    }
+
+    static func resolve(
+        persona: Persona,
+        wearable: WearableActivityRecord?,
+        logs: [ActivityLog]
+    ) -> Resolution {
+        let activeCalories = EnergyEngine.resolvedActiveCalories(
+            wearableActiveCalories: wearable?.activeCalories,
+            logs: logs
+        )
+        let loggedMinutes = logs.reduce(0) { $0 + max(0, $1.durationMinutes ?? 0) }
+        let exerciseMinutes = max(wearable?.exerciseMinutes ?? 0, loggedMinutes)
+        let steps = max(0, wearable?.steps ?? 0)
+        return Resolution(
+            steps: steps,
+            activeCalories: activeCalories,
+            exerciseMinutes: exerciseMinutes,
+            level: suggestedLevel(
+                persona: persona,
+                steps: steps,
+                activeCalories: activeCalories,
+                exerciseMinutes: exerciseMinutes
+            )
+        )
+    }
+
     static func suggestedLevel(persona: Persona, steps: Int, activeCalories: Int, exerciseMinutes: Int) -> ActivityLevel {
         let stepCuts = persona == .june ? [4_000, 7_000, 11_500, 16_000] : [4_000, 7_500, 12_000, 18_000]
         let calorieCuts = persona == .june ? [180, 350, 550, 800] : [250, 500, 750, 1_100]

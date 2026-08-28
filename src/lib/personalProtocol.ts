@@ -124,6 +124,7 @@ export function recommendActivityMode(
   let level = highestLevel(
     levelFromThresholds(steps, isJune ? [4000, 7000, 11500, 16000] : [4000, 7500, 12000, 18000]),
     levelFromThresholds(activeCalories, isJune ? [180, 350, 550, 800] : [250, 500, 750, 1100]),
+    levelFromThresholds(exerciseMinutes, [10, 25, 50, 80]),
   )
 
   if (steps > 0) reasons.push(`${steps.toLocaleString('en')} steps`)

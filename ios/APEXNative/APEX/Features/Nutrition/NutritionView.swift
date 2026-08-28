@@ -209,6 +209,17 @@ private struct TodaysActivitiesPanel: View {
     let onAdd: () -> Void
     let onGuide: () -> Void
 
+    private var resolvedActivity: WearableActivityEngine.Resolution {
+        let wearable = WearableActivityRecord
+            .history(from: session.data.settings?.addons["watch_activity_history"])
+            .last { $0.date == date.apexDateKey }
+        return WearableActivityEngine.resolve(
+            persona: session.profile?.persona ?? .constantine,
+            wearable: wearable,
+            logs: logs
+        )
+    }
+
     private var catalog: [String: ActivityType] {
         Dictionary(uniqueKeysWithValues: session.data.activityTypes.map { ($0.id, $0) })
     }
@@ -235,7 +246,7 @@ private struct TodaysActivitiesPanel: View {
                 if let targets {
                     HStack(alignment: .firstTextBaseline) {
                         VStack(alignment: .leading, spacing: 2) {
-                            Text("\(logs.reduce(0) { $0 + Int($1.computedKcal.rounded()) })")
+                            Text("\(resolvedActivity.activeCalories)")
                                 .font(APEXFont.display(44))
                                 .contentTransition(.numericText())
                             Text(language.text("NET ACTIVITY KCAL"))

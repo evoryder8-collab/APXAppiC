@@ -23,3 +23,8 @@
 "Fat" = "Grasa";
 "Workout" = "Entreno";
 "Exercises" = "Ejercicios";
+"Sedentary" = "Sedentario";
+"Lightly active" = "Ligera";
+"Moderately active" = "Moderada";
+"Very active" = "Muy activo";
+"Extra active" = "Máxima";

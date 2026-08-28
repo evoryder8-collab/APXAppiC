@@ -10,6 +10,10 @@ const nativeGlance = readFileSync(
   new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionParityViews.swift', import.meta.url),
   'utf8',
 ).split('struct GlanceMacroCard')[0]
+const nativeNutrition = readFileSync(
+  new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionView.swift', import.meta.url),
+  'utf8',
+)
 const webSimple = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
 const webGlance = readFileSync(
   new URL('../src/components/food/NutritionGlance.tsx', import.meta.url),
@@ -31,11 +35,14 @@ test('daily completion lives inside the Simple Mode nutrition card', () => {
 
 test('nutrition glance reports resolved burned energy instead of meal count', () => {
   assert.doesNotMatch(nativeGlance, /configuredMealCount|language\.text\("Meals"\)/)
-  assert.match(nativeGlance, /resolvedActiveCalories/)
+  assert.match(nativeGlance, /WearableActivityEngine\.resolve/)
   assert.match(nativeGlance, /language\.shortText\("Burned"\)/)
+  assert.match(nativeGlance, /language\.shortText\(resolvedActivity\.level\.title\)/)
+  assert.match(nativeNutrition, /Text\("\\\(resolvedActivity\.activeCalories\)"\)/)
   assert.doesNotMatch(webGlance, /mealsDone|mealsTotal|t\('Meals'\)/)
   assert.match(webGlance, /burnedKcal/)
   assert.match(webGlance, /t\('Burned'\)/)
+  assert.match(webGlance, /shortActivityLevel\[language\]\[activityLevel\]/)
 })
 
 test('collapsed native wearable activity exposes every detected fact', () => {

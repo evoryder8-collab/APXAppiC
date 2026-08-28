@@ -5,6 +5,7 @@ import { useFoodStore } from '../../store/FoodStore'
 import { GlassCard } from '../ui'
 import { MealComposer } from './MealComposer'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import type { ActivityLevel } from '../../lib/types'
 import { NutritionGlance } from './NutritionGlance'
 import {
   mealBlockLabel,
@@ -48,6 +49,7 @@ export function ActualFoodTracker({
   target,
   consumed,
   burnedKcal,
+  activityLevel,
   plannedRows,
   onEditPlanned,
   onEditLogged,
@@ -59,6 +61,7 @@ export function ActualFoodTracker({
   target: MealTotals
   consumed: MealTotals
   burnedKcal: number
+  activityLevel: ActivityLevel
   plannedRows: PlannedMealTrackerRow[]
   onEditPlanned: (row: PlannedMealTrackerRow) => Promise<void>
   onEditLogged: (meal: LoggedMeal, blockId: MealBlockKind | null, targetTime: string | null) => Promise<void>
@@ -202,7 +205,7 @@ export function ActualFoodTracker({
   return (
     <>
       <GlassCard accent={amber} className="overflow-hidden p-0">
-        <NutritionGlance key={date} eyebrow={dateLabel} target={target} consumed={consumed} burnedKcal={burnedKcal} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
+        <NutritionGlance key={date} eyebrow={dateLabel} target={target} consumed={consumed} burnedKcal={burnedKcal} activityLevel={activityLevel} status={store.syncing ? 'SYNCING' : store.queued ? 'QUEUED OFFLINE' : store.ready ? 'PRIVATE' : 'LOADING'} />
 
         <div className="border-t border-ink/6 bg-white/24 p-2.5 sm:p-4">
           <MealDayline

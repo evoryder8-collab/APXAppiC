@@ -26,7 +26,7 @@ import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type C
 import { GlassCard, GradientButton } from '../components/ui'
 import { AvatarIcon, DropletIcon, DumbbellIcon, OrbitIcon } from '../components/Icons'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
-import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleCompletion, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
+import { canFinishDaySwipe, canPasteSimpleDay, canStartDaySwipe, dayMealCopyIdempotencyKey, daySwipeHasSingleTrackedTouch, isDaySwipeInteractiveTarget, parseWaterAmountToLitres, rankSimpleMacroContributors, selectNextSimpleAction, simpleActivityProgress, simpleDailyProgress, simpleDaySwipeOffset, simpleGuidedProgramSlug, simpleWaterTargetComplete, weightFromKg, weightToKg, weightUnitFromSettings, type SimpleMacroKey } from '../lib/simpleMode'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { useOrbitStore } from '../orbit/store/OrbitStore'
 import { missionLabel } from '../orbit/domain/analysis'
@@ -49,6 +49,7 @@ import { isFocusT25Name } from '../lib/focusT25'
 import { calendarDayState, loadActiveDate, rememberActiveDate } from '../lib/activeDate'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { resolveDailyBurnedEnergy } from '../lib/activity'
+import { recommendActivityMode } from '../lib/personalProtocol'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
@@ -168,6 +169,15 @@ export function SimpleHome() {
     () => resolveDailyBurnedEnergy(selectedWearableActivity?.active_calories, selectedActivityLogs),
     [selectedActivityLogs, selectedWearableActivity?.active_calories],
   )
+  const resolvedExerciseMinutes = Math.max(
+    selectedWearableActivity?.exercise_minutes ?? 0,
+    selectedActivityLogs.reduce((sum, log) => sum + Math.max(0, log.duration_min ?? 0), 0),
+  )
+  const activityLevel = recommendActivityMode(profile?.persona ?? 'constantine', {
+    steps: selectedWearableActivity?.steps ?? 0,
+    activeCalories: burnedKcal,
+    exerciseMinutes: resolvedExerciseMinutes,
+  }).level
   const planNutritionContext = useMemo(
     () => nutritionPlanContext(settings?.addons.training_induction ?? settings?.addons.training_induction_baseline),
     [settings?.addons.training_induction, settings?.addons.training_induction_baseline],
@@ -411,7 +421,6 @@ export function SimpleHome() {
   const completedCustomMealBlocks = enabledCustomMealBlocks.filter((block) => dateFoodMeals.some((meal) => mealMomentIdFromIdempotencyKey(meal.client_idempotency_key) === block.id)).length
   const completedMeals = mealBlockStatuses.filter((status) => status.completed).length + completedCustomMealBlocks
   const totalMealBlocks = mealBlockStatuses.length + enabledCustomMealBlocks.length
-  const completedGroups = supplementGroups.filter(groupIsDone).length
   const hasWorkout = plan.exercises.length > 0
   const fullWorkoutMinutes = plan.programDay?.est_minutes ?? Math.max(15, plan.exercises.length * 8)
   const lightWorkoutMinutes = Math.max(8, estimatedTimelineMinutes(lightPlan))
@@ -447,9 +456,28 @@ export function SimpleHome() {
     setEditingCompletedWorkoutId(null)
     toast(t('Workout finish time saved'), 'ok')
   }
-  const totalTasks = totalMealBlocks + supplementGroups.length + 1 + Number(hasWorkout)
-  const completedTasks = completedMeals + completedGroups + Number(waterDone) + Number(hasWorkout && workoutDone)
-  const completion = simpleCompletion(completedTasks, totalTasks)
+  const activityProgress = simpleActivityProgress(
+    profile.persona,
+    profile.goal,
+    selectedWearableActivity?.steps ?? 0,
+    burnedKcal,
+    resolvedExerciseMinutes,
+  )
+  const completion = simpleDailyProgress({
+    completedMeals,
+    totalMeals: totalMealBlocks,
+    consumed,
+    target: targets,
+    waterLitres: hydration.totalL,
+    waterTargetLitres: waterTargetL,
+    workoutScheduled: hasWorkout,
+    workoutCompleted: workoutDone,
+    activityProgress,
+    supplements: data.supplements
+      .filter((supplement) => !supplement.archived)
+      .map((supplement) => ({ name: supplement.name, taken: supplementDoneIds.has(supplement.id) })),
+    goal: profile.goal,
+  })
 
   const plannedFoodItem = async (meal: TargetMeal): Promise<ComposerFoodItem> => {
     const providerId = `apex-plan:${meal.id}:${meal.kcal}:${meal.protein_g}:${meal.carbs_g}:${meal.fat_g}`
@@ -1045,6 +1073,7 @@ export function SimpleHome() {
                   target={targets}
                   consumed={consumed}
                   burnedKcal={burnedKcal}
+                  activityLevel={activityLevel}
                   completion={completion}
                   status={foodStore.syncing ? 'SYNCING' : foodStore.queued ? 'QUEUED OFFLINE' : foodStore.ready ? 'PRIVATE' : 'LOADING'}
                   onOpen={() => openNutritionSection('meals')}

@@ -1555,3 +1555,18 @@ GitHub publication evidence:
 - Verification: focused native incident regressions 3/3; native induction/receipt suites 76/76; full native suite 577/577; focused web induction/history suites 29/29; full repository/web suite 605/605; complete iPhone UI suite 20/20; production web build succeeded; and the signed Release bundle passed deep/strict signature validation.
 - Device release: Apple Release `378` (`ch.apexperformance.APEX`) installed and launched successfully on `iConstantine Main`. A fresh post-launch Application Support export proves protocol `83` is intact, the exact Friday row remains owned by Constantine and is no longer archived, the protected original-day manifest is persisted, and Constantine's outbox and failed-outbox both contain `0` operations.
 - The already-started Phase 3 presentation refinements remain in this release and passed the complete UI suite, but Phase 3 is not declared complete. Roadmap execution is paused here at the owner's request.
+
+## 2026-08-28 — Daily activity source and Simple completion hotfix
+
+- Root cause: the Advanced Nutrition activity card summed only manual `activity_logs`, while Nutrition at a glance already preferred the selected date's Apple Health active-energy record. A day with 90 wearable kcal and no manual block therefore rendered both `90 burned` and `0 net activity kcal`.
+- Native and web now resolve one date-owned activity snapshot. Wearable active energy remains authoritative when positive, manual activity is the fallback, and exercise minutes use the greater of the wearable value and logged duration so the same steps, active kcal, and exercise-minute thresholds drive the live activity tier.
+- Nutrition at a glance now places the live activity tier under Burned. The width-constrained native label has authored compact forms in all nine offered languages.
+- The Simple completion ring now represents daily progress instead of a binary count of every visible checklist group. Its included pillars are meal-plan completion, calorie-and-macro progress, hydration, scheduled training, daily activity, and active primary protein/creatine supplements. Secondary supplements do not lower the ring. Lean recomp gives the activity pillar double weight and uses the existing persona-aware moderate-activity thresholds; maintain and lean bulk use the existing light-activity thresholds.
+- Regression verification:
+  - focused web activity/progress/source contracts: 47 passed;
+  - full web/repository suite: 608 passed, 0 failed;
+  - production web build: succeeded;
+  - focused native `SimpleHomeLogicTests`: 12 passed, 0 failed;
+  - full native unit suite: 581 passed, 0 failed;
+  - all nine edited `LocalizableShort.strings` tables: `plutil -lint` passed;
+  - both available iOS simulators launched the unit-test host successfully. The focused XCUITest runner itself stalled before launching the app with Xcode's `DebuggerVersionStore` error on both simulators; it produced no assertion failure and was terminated after the repeated infrastructure failure.

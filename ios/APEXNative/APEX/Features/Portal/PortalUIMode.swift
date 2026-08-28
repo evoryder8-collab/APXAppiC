@@ -31,6 +31,95 @@ enum SimpleHomeLogic {
         return min(100, max(0, Int((Double(completed) / Double(total) * 100).rounded())))
     }
 
+    static func isPrimaryDailySupplement(_ name: String) -> Bool {
+        let normalized = name.folding(options: [.caseInsensitive, .diacriticInsensitive], locale: Locale(identifier: "en_US_POSIX"))
+            .lowercased()
+        return [
+            "creatin", "kreatin", "protein", "whey", "casein", "cazein", "eiweiss",
+            "โปรตีน", "ครีเอทีน", "プロテイン", "クレアチン",
+        ].contains { normalized.contains($0) }
+    }
+
+    static func activityProgress(
+        persona: Persona,
+        goal: Goal,
+        steps: Int,
+        activeCalories: Int,
+        exerciseMinutes: Int
+    ) -> Double {
+        let june = persona == .june
+        let moderateTarget = goal == .recomp
+        let stepTarget = moderateTarget ? (june ? 7_000 : 7_500) : 4_000
+        let calorieTarget = moderateTarget ? (june ? 350 : 500) : (june ? 180 : 250)
+        let exerciseTarget = moderateTarget ? 25 : 10
+        return max(
+            boundedRatio(Double(steps), Double(stepTarget)) ?? 0,
+            max(
+                boundedRatio(Double(activeCalories), Double(calorieTarget)) ?? 0,
+                boundedRatio(Double(exerciseMinutes), Double(exerciseTarget)) ?? 0
+            )
+        )
+    }
+
+    static func dailyProgress(
+        completedMeals: Int,
+        totalMeals: Int,
+        consumedKcal: Double,
+        targetKcal: Double,
+        consumedProteinG: Double,
+        targetProteinG: Double,
+        consumedCarbsG: Double,
+        targetCarbsG: Double,
+        consumedFatG: Double,
+        targetFatG: Double,
+        waterL: Double,
+        waterTargetL: Double,
+        workoutScheduled: Bool,
+        workoutCompleted: Bool,
+        activityProgress: Double,
+        supplements: [(name: String, taken: Bool)],
+        goal: Goal
+    ) -> Int {
+        var pillars: [(progress: Double, weight: Double)] = []
+        if let meals = boundedRatio(Double(completedMeals), Double(totalMeals)) {
+            pillars.append((meals, 1))
+        }
+
+        let nutrition = [
+            boundedRatio(consumedKcal, targetKcal),
+            boundedRatio(consumedProteinG, targetProteinG),
+            boundedRatio(consumedCarbsG, targetCarbsG),
+            boundedRatio(consumedFatG, targetFatG),
+        ].compactMap { $0 }
+        if !nutrition.isEmpty {
+            pillars.append((nutrition.reduce(0, +) / Double(nutrition.count), 1))
+        }
+
+        if let water = boundedRatio(waterL, waterTargetL * 0.9) {
+            pillars.append((water, 1))
+        }
+        if workoutScheduled {
+            pillars.append((workoutCompleted ? 1 : 0, 1))
+        }
+        pillars.append((min(max(activityProgress, 0), 1), goal == .recomp ? 2 : 1))
+
+        let primarySupplements = supplements.filter { isPrimaryDailySupplement($0.name) }
+        if !primarySupplements.isEmpty {
+            let taken = primarySupplements.reduce(0) { $0 + ($1.taken ? 1 : 0) }
+            pillars.append((Double(taken) / Double(primarySupplements.count), 1))
+        }
+
+        let totalWeight = pillars.reduce(0) { $0 + $1.weight }
+        guard totalWeight > 0 else { return 0 }
+        let progress = pillars.reduce(0) { $0 + $1.progress * $1.weight } / totalWeight
+        return min(100, max(0, Int((progress * 100).rounded())))
+    }
+
+    private static func boundedRatio(_ value: Double, _ target: Double) -> Double? {
+        guard target.isFinite, target > 0 else { return nil }
+        return min(max(value.isFinite ? value / target : 0, 0), 1)
+    }
+
     static func nextCandidateIndex(times: [Int], nowMinutes: Int) -> Int? {
         let ordered = times.enumerated().sorted { left, right in
             if left.element == right.element { return left.offset < right.offset }

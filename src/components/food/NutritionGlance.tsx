@@ -3,6 +3,7 @@ import type { ReactNode } from 'react'
 import { ACCENTS } from '../../lib/theme'
 import type { MealTotals } from '../../lib/food'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import type { ActivityLevel } from '../../lib/types'
 import { resolveNutritionCalorieBalance } from '../../lib/nutritionBalance'
 import { AccentChip } from '../ui'
 
@@ -12,6 +13,7 @@ export function NutritionGlance({
   target,
   consumed,
   burnedKcal,
+  activityLevel,
   completion,
   status,
   eyebrow = 'Today',
@@ -23,6 +25,7 @@ export function NutritionGlance({
   target: MealTotals
   consumed: MealTotals
   burnedKcal: number
+  activityLevel: ActivityLevel
   completion?: number
   status: string
   eyebrow?: string | null
@@ -34,6 +37,11 @@ export function NutritionGlance({
   const { language } = useLanguage()
   const reduceMotion = useReducedMotion()
   const t = (value: string): string => translateInterfaceText(value, language)
+  const shortActivityLevel: Record<typeof language, Record<ActivityLevel, string>> = {
+    en: { sedentary: 'Sedentary', light: 'Light', moderate: 'Moderate', very: 'Very active', extra: 'Extra active' },
+    ro: { sedentary: 'Sedentar', light: 'Ușor activ', moderate: 'Moderat', very: 'Foarte activ', extra: 'Extrem' },
+    th: { sedentary: 'น้อย', light: 'เบา', moderate: 'ปานกลาง', very: 'มาก', extra: 'มากเป็นพิเศษ' },
+  }
   const balance = resolveNutritionCalorieBalance(target.kcal, consumed.kcal)
   const calorieProgress = target.kcal > 0 ? Math.min(1, consumed.kcal / target.kcal) : 0
   const metrics = [
@@ -110,7 +118,7 @@ export function NutritionGlance({
           </div>
           {onRingClick && <span className="pointer-events-none absolute right-0 bottom-0 grid h-6 w-6 place-items-center rounded-full border border-white bg-white/90 text-[10px] font-black text-amber-700 shadow-sm" aria-hidden>✦</span>}
         </motion.button>
-        <div className="min-w-0"><p className="whitespace-nowrap font-mono text-[clamp(1rem,4.8vw,1.125rem)] leading-none font-bold text-ink tabular-nums">{Math.round(burnedKcal)}</p><p className="mt-1 text-[9px] font-bold tracking-wide text-ink-faint uppercase sm:text-[10px]">{t('Burned')}</p></div>
+        <div className="min-w-0"><p className="whitespace-nowrap font-mono text-[clamp(1rem,4.8vw,1.125rem)] leading-none font-bold text-ink tabular-nums">{Math.round(burnedKcal)}</p><p className="mt-1 text-[9px] font-bold tracking-wide text-ink-faint uppercase sm:text-[10px]">{t('Burned')}</p><p className="mt-1 truncate font-mono text-[8px] font-bold tracking-tight text-amber-700 uppercase">{shortActivityLevel[language][activityLevel]}</p></div>
       </div>
 
       <div className="relative mt-5 grid grid-cols-3 gap-2">
