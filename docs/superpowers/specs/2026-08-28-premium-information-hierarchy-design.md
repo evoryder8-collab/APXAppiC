@@ -17,8 +17,8 @@ The result must be implemented on native iOS and web wherever the equivalent sur
 
 The identity card keeps `ACTIVE IDENTITY`, the profile portrait, the display name, the profile note, and nutrition metrics. The display name is the single primary identity inside the card.
 
-- Native uses one line with tightening and a bounded scale factor so a long name becomes slightly smaller instead of breaking through the middle of a word.
-- Web uses a no-hyphen, single-line responsive treatment with the same intent.
+- Native gives the name a dedicated flexible row with no competing trailing badge, then keeps it to one tightened line with tail truncation only for a pathological length. It does not use `minimumScaleFactor`, preserving the repository's Dynamic Type layout contract.
+- Web uses a dedicated flexible row and a no-hyphen, single-line responsive treatment with the same intent.
 - A persona chip is omitted when its normalized text is the same as the display name.
 - If the persona and display name genuinely differ, the persona remains available as secondary metadata below the name rather than occupying the trailing edge of the row.
 - The top-bar account chip remains unchanged because it identifies the active account globally; it is not part of the identity-card content hierarchy.
@@ -94,7 +94,7 @@ The English source copy is:
 
 Every new visible or accessibility string is authored in each offered language in the same implementation commit. Native coverage is English, Romanian, Thai, Japanese, German, Swiss German, Spanish, Portuguese, and Italian. Web coverage follows every language offered by its selector.
 
-Copy is written from the situation and gym register of each language, not translated sentence-by-sentence from English. `Fitness Plan` and every new width-constrained phase string receive authored compact forms in each native `LocalizableShort.strings` table. Existing localized Transition and Main names are reused wherever possible.
+Copy is written from the situation and gym register of each language, not translated sentence-by-sentence from English. `Fitness Plan`, `Transition Phase`, `Main Phase`, and every new width-constrained phase string receive authored compact forms in each native `LocalizableShort.strings` table. Existing full localized Transition and Main names are reused wherever possible.
 
 ## State and failure behavior
 
