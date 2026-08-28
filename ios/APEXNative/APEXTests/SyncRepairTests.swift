@@ -16,6 +16,25 @@ private struct WorkoutLogFailureFixture: Codable, Sendable {
 }
 
 final class SyncRepairTests: XCTestCase {
+    func testUITestFixturesCannotUseRemotePersistence() {
+        XCTAssertTrue(
+            APEXRuntimeEnvironment.usesLocalUITestFixture(
+                arguments: ["APEX", "-apex-ui-test"]
+            )
+        )
+        XCTAssertTrue(
+            APEXRuntimeEnvironment.usesLocalUITestFixture(
+                arguments: ["APEX", "-apex-preview", "induction", "-apex-ui-test-first-run"]
+            )
+        )
+        XCTAssertFalse(
+            APEXRuntimeEnvironment.usesLocalUITestFixture(
+                arguments: ["APEX", "-apex-preview", "induction"]
+            )
+        )
+        XCTAssertFalse(APEXRuntimeEnvironment.usesLocalUITestFixture(arguments: ["APEX"]))
+    }
+
     func testReplayRefreshPlanReloadsAfterDrainAndPreservesCacheWhilePaused() {
         let repairedID = UUID()
         XCTAssertEqual(
@@ -145,6 +164,27 @@ final class SyncRepairTests: XCTestCase {
         XCTAssertEqual(
             SyncFailurePolicy.classify(JWTIssuedAtFutureError()),
             .authenticationRequired
+        )
+    }
+
+    func testAnonymousRLSFailureRequiresRefreshWithoutReclassifyingRealPermissionDenial() {
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(
+                statusCode: nil,
+                databaseCode: "42501",
+                databaseMessage: "new row violates row-level security policy for table workout_logs",
+                isNetworkFailure: false
+            ),
+            .authenticationRequired
+        )
+        XCTAssertEqual(
+            SyncFailurePolicy.classify(
+                statusCode: nil,
+                databaseCode: "42501",
+                databaseMessage: "permission denied for table workout_logs",
+                isNetworkFailure: false
+            ),
+            .permanent
         )
     }
 

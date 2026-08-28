@@ -22,6 +22,7 @@ enum SyncFailurePolicy {
     static func classify(
         statusCode: Int?,
         databaseCode: String?,
+        databaseMessage: String? = nil,
         isNetworkFailure: Bool
     ) -> SyncFailureDisposition {
         if isNetworkFailure { return .transient }
@@ -36,6 +37,15 @@ enum SyncFailurePolicy {
 
         if let databaseCode = databaseCode?.uppercased() {
             if ["PGRST301", "PGRST302", "PGRST303"].contains(databaseCode) {
+                return .authenticationRequired
+            }
+            /* PostgREST returns SQLSTATE 42501 both when a real authenticated
+               account lacks permission and when an expired session falls back
+               to the anonymous role. The latter is exposed as HTTP 401, but
+               supabase-swift decodes PostgrestError without retaining the HTTP
+               status. Its RLS-specific body is the remaining distinction. */
+            if databaseCode == "42501",
+               databaseMessage?.localizedCaseInsensitiveContains("row-level security") == true {
                 return .authenticationRequired
             }
             if databaseCode.hasPrefix("08")
@@ -59,7 +69,12 @@ enum SyncFailurePolicy {
     static func classify(_ error: Error) -> SyncFailureDisposition {
         if error is URLError { return .transient }
         if let postgrest = error as? PostgrestError {
-            return classify(statusCode: nil, databaseCode: postgrest.code, isNetworkFailure: false)
+            return classify(
+                statusCode: nil,
+                databaseCode: postgrest.code,
+                databaseMessage: postgrest.message,
+                isNetworkFailure: false
+            )
         }
         if let serviceError = error as? APEXServiceError {
             switch serviceError {

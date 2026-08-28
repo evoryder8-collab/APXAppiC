@@ -2,6 +2,19 @@ import Foundation
 import AuthenticationServices
 import Supabase
 
+enum APEXRuntimeEnvironment {
+    static func usesLocalUITestFixture(
+        arguments: [String] = ProcessInfo.processInfo.arguments
+    ) -> Bool {
+        #if DEBUG
+        arguments.contains("-apex-ui-test")
+            || arguments.contains("-apex-ui-test-first-run")
+        #else
+        false
+        #endif
+    }
+}
+
 struct ProfileCreationRequest: Encodable, Sendable {
     let id: UUID
     let userID: UUID
@@ -53,6 +66,15 @@ struct SettingsCreationRequest: Encodable, Sendable {
 
 actor SupabaseService {
     static let shared = SupabaseService()
+
+    private func assertRemoteMutationAllowed(_ function: StaticString = #function) {
+        #if DEBUG
+        precondition(
+            APEXRuntimeEnvironment.usesLocalUITestFixture() == false,
+            "Local UI-test fixture attempted a remote Supabase mutation in \(function)."
+        )
+        #endif
+    }
 
     struct RealtimeSubscription: Equatable, Sendable {
         let table: String
@@ -178,6 +200,7 @@ actor SupabaseService {
         goal: String?,
         baseline: TrainingInduction.BodyBaseline? = nil
     ) async throws -> Profile {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let existing: [Profile] = try await client.from("profile")
             .select().eq("user_id", value: userID).limit(1).execute().value
@@ -198,6 +221,7 @@ actor SupabaseService {
     /// A skipped questionnaire still needs writable account settings so the
     /// plan builder it leaves behind can install a programme later.
     func createSettingsIfNeeded(userID: UUID) async throws -> UserSettings {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let existing: [UserSettings] = try await client.from("settings")
             .select().eq("user_id", value: userID).limit(1).execute().value
@@ -213,6 +237,7 @@ actor SupabaseService {
 
     /// Write the generated first twelve weeks.
     func saveInductionPlan(_ plan: TrainingInduction.GeneratedPlan) async throws {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         /* Ordered deliberately: days reference programmes and exercises
            reference days, so a partial failure never leaves an orphan row. */
@@ -228,6 +253,7 @@ actor SupabaseService {
     /// code they can type in. The claim itself is one statement server side,
     /// so two devices racing the same code cannot both win.
     func redeemBetaCode(hash: String) async throws -> String {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         struct Params: Encodable { let p_code_hash: String }
         return try await client
@@ -325,6 +351,7 @@ actor SupabaseService {
     }
 
     func upsert<T: Encodable & Sendable>(_ value: T, table: String, onConflict: String? = nil) async throws {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         if let onConflict {
             try await client.from(table).upsert(value, onConflict: onConflict).execute()
@@ -334,11 +361,13 @@ actor SupabaseService {
     }
 
     func delete(table: String, id: UUID) async throws {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         try await client.from(table).delete().eq("id", value: id.uuidString).execute()
     }
 
     func replay(_ operation: OfflineOperation) async throws {
+        assertRemoteMutationAllowed()
         switch operation.kind {
         case .upsert:
             guard let payload = operation.payload else { throw APEXServiceError.invalidOfflineOperation }
@@ -375,12 +404,14 @@ actor SupabaseService {
         meal: StructuredMealRequest,
         entries: [StructuredFoodEntryRequest]
     ) async throws -> UUID {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let params = StructuredMealRPCPayload(pMeal: meal, pEntries: entries)
         return try await client.rpc("log_structured_meal", params: params).execute().value
     }
 
     func deleteStructuredMeal(_ id: UUID) async throws {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let _: Bool = try await client
             .rpc("delete_structured_meal", params: ["p_meal_id": id.uuidString])
@@ -393,6 +424,7 @@ actor SupabaseService {
         items: [MealPresetItemRequest],
         expectedVersion: Int
     ) async throws -> UUID {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let params = MealPresetRPCPayload(
             pPreset: preset,
@@ -403,6 +435,7 @@ actor SupabaseService {
     }
 
     func deleteMealPreset(_ id: UUID) async throws {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let _: Bool = try await client
             .rpc("delete_meal_preset", params: ["p_preset_id": id.uuidString])
@@ -451,6 +484,7 @@ actor SupabaseService {
         original: Data,
         thumbnail: Data
     ) async throws {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let bucket = client.storage.from("apex-progress")
         do {
@@ -477,6 +511,7 @@ actor SupabaseService {
     /// profile picture has exactly one current value, and old ones are not
     /// history anybody wants kept.
     func uploadAvatar(userID: UUID, data: Data) async throws -> String {
+        assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         let path = "\(userID.uuidString.lowercased())/avatar.jpg"
         try await client.storage.from("apex-progress").upload(

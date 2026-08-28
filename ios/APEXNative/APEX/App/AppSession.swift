@@ -950,6 +950,11 @@ final class AppSession {
         await recalculateLocalStructuredDay(day, userID: profile.userID)
         await persistUpsert(check, table: "meal_logs", onConflict: "user_id,date,meal_id")
 
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return
+        }
+
         do {
             _ = try await service.logStructuredMeal(meal: request, entries: [entry])
             try await refreshDashboard()
@@ -2349,6 +2354,11 @@ final class AppSession {
         await recalculateLocalStructuredDay(draft.localDate, userID: profile.userID)
         await saveLocalSnapshot()
 
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return
+        }
+
         do {
             _ = try await service.logStructuredMeal(meal: request, entries: entryRequests)
             lastSyncAt = .now
@@ -2649,6 +2659,11 @@ final class AppSession {
         }
         await saveLocalSnapshot()
 
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return presetID
+        }
+
         do {
             let savedID = try await service.saveMealPreset(
                 preset: preset,
@@ -2677,6 +2692,10 @@ final class AppSession {
         data.mealPresets.removeAll { $0.id == preset.id }
         data.mealPresetItems.removeAll { $0.presetID == preset.id }
         await saveLocalSnapshot()
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return
+        }
         do {
             try await service.deleteMealPreset(preset.id)
             try await refreshDashboard()
@@ -2840,6 +2859,11 @@ final class AppSession {
         await recalculateLocalStructuredDay(date.apexDateKey, userID: profile.userID)
         await saveLocalSnapshot()
 
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return
+        }
+
         do {
             _ = try await service.logStructuredMeal(meal: mealRequest, entries: [entryRequest])
             try await refreshDashboard()
@@ -2874,6 +2898,10 @@ final class AppSession {
         data.loggedFoodEntries.removeAll { $0.mealID == meal.id }
         await recalculateLocalStructuredDay(meal.localDate, userID: profile.userID)
         await saveLocalSnapshot()
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return
+        }
         do {
             try await service.deleteStructuredMeal(meal.id)
             try await refreshDashboard()
@@ -2927,7 +2955,9 @@ final class AppSession {
             note: note.trimmingCharacters(in: .whitespacesAndNewlines),
             clientIdempotencyKey: "ios-progress-\(stem)"
         )
-        try await service.uploadProgressPhoto(row: row, original: original, thumbnail: thumbnail)
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() == false {
+            try await service.uploadProgressPhoto(row: row, original: original, thumbnail: thumbnail)
+        }
         data.progressPhotos.insert(row, at: 0)
         await saveLocalSnapshot()
     }
@@ -3026,6 +3056,10 @@ final class AppSession {
            first, durably enqueue its dependency bundle, then let the normal
            offline-aware sync path drain in the background. */
         await saveLocalSnapshot()
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            lastSyncAt = .now
+            return workout.id
+        }
         do {
             guard accountGeneration.accepts(accountToken),
                   verifiedPersistenceOwnerID(ownerID) == ownerID,
@@ -4057,7 +4091,7 @@ final class AppSession {
            Health-derived defaults; allowing those calls to reach Supabase
            both violates the fixture boundary and covers the recovered screen
            with an irrelevant network alert. */
-        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
             lastSyncAt = .now
             return
         }
@@ -4100,7 +4134,7 @@ final class AppSession {
 
     private func persistDelete(table: String, id: UUID, ownerID: UUID? = nil) async {
         #if DEBUG
-        if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run") {
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
             lastSyncAt = .now
             return
         }
