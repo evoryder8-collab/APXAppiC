@@ -410,6 +410,14 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(scrollUntilVisible(main, in: app))
         main.tap()
 
+        /* The muscle renderer owns drags across the large centre card. Start
+           above it so this journey scrolls the enclosing programme view. */
+        app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.24))
+            .press(
+                forDuration: 0.05,
+                thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.5, dy: 0.08))
+            )
+
         let today = calendarKey(offset: 0)
         let weekday = Calendar.current.component(.weekday, from: Date())
         let emptyDay = calendarKey(offset: weekday == 1 ? -1 : 1)

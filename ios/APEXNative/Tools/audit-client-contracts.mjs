@@ -30,7 +30,13 @@ function assert(condition, message) {
   if (!condition) throw new Error(message)
 }
 
-const nativeSource = source(path.join(nativeRoot, 'APEX'), ['.swift'])
+const nativeSourceRoot = path.join(nativeRoot, 'APEX')
+const nativeSwiftFiles = files(nativeSourceRoot, ['.swift']).map((file) => ({
+  file,
+  relative: path.relative(nativeRoot, file),
+  body: fs.readFileSync(file, 'utf8'),
+}))
+const nativeSource = nativeSwiftFiles.map(({ body }) => body).join('\n')
 const webSource = source(path.join(repository, 'src'), ['.ts', '.tsx'])
 const migrationFiles = files(path.join(repository, 'supabase/migrations'), ['.sql'])
 const migrations = migrationFiles.map((file) => ({ file, body: fs.readFileSync(file, 'utf8') }))
@@ -44,7 +50,9 @@ const webTables = matches(webSource, [
   /\|\s*['"]([a-z0-9_]+)['"]/g,
   /:\s*['"]([a-z][a-z0-9_]+)['"]/g,
 ])
-const createdTables = matches(migrationSource, [/create\s+table\s+if\s+not\s+exists\s+([a-z0-9_]+)/gi])
+const createdTables = matches(migrationSource, [
+  /create\s+table\s+if\s+not\s+exists\s+(?:public\.)?([a-z0-9_]+)/gi,
+])
 
 for (const table of nativeTables) {
   assert(createdTables.has(table), `Native client references ${table}, but no idempotent CREATE TABLE migration exists.`)
@@ -76,7 +84,43 @@ assert(
   `Native mutations are not represented in the browser client: ${missingWebAwareness.join(', ')}`
 )
 
-assert(!nativeSource.includes('WKWebView'), 'Native APEX must remain a true SwiftUI client, not a web wrapper.')
+/* The native app has four deliberately bounded WebKit files. They render only
+   bundled hydration and muscle-map assets; widening this fence is a reviewed
+   architecture decision, never evidence that the app may become a web shell. */
+const allowedWebKitFiles = new Set([
+  'APEX/Features/Portal/HydrationFigureWebView.swift',
+  'APEX/Features/Training/MuscleMapAssetHandler.swift',
+  'APEX/Features/Training/MuscleMapCard.swift',
+  'APEX/Features/Training/MuscleMapView.swift',
+])
+const actualWebKitFiles = new Set(
+  nativeSwiftFiles
+    .filter(({ body }) => body.split(/\r?\n/).some((line) => line.trim() === 'import WebKit'))
+    .map(({ relative }) => relative)
+)
+assert(
+  actualWebKitFiles.size === allowedWebKitFiles.size
+    && [...actualWebKitFiles].every((file) => allowedWebKitFiles.has(file)),
+  `Native WebKit boundary changed. Expected ${[...allowedWebKitFiles].sort().join(', ')}; found ${[...actualWebKitFiles].sort().join(', ')}.`
+)
+const remoteWebKitNavigation = nativeSwiftFiles
+  .filter(({ relative }) => allowedWebKitFiles.has(relative))
+  .filter(({ body }) => /URL\s*\(\s*string:\s*"https?:\/\//.test(body))
+  .map(({ relative }) => relative)
+assert(
+  remoteWebKitNavigation.length === 0,
+  `Native WebKit renderers must not navigate to remote web apps: ${remoteWebKitNavigation.join(', ')}`
+)
+const hydrationRenderer = nativeSwiftFiles.find(({ relative }) => relative.endsWith('HydrationFigureWebView.swift'))?.body ?? ''
+assert(
+  hydrationRenderer.includes('Bundle.main.url') && hydrationRenderer.includes('loadFileURL'),
+  'Hydration WebKit must remain a bundled-file renderer.'
+)
+const muscleRenderer = nativeSwiftFiles.find(({ relative }) => relative.endsWith('MuscleMapAssetHandler.swift'))?.body ?? ''
+assert(
+  muscleRenderer.includes('static let scheme = "apexasset"') && muscleRenderer.includes('Bundle.main.url'),
+  'Muscle-map WebKit must remain on the bundled apexasset scheme.'
+)
 assert(!nativeSource.includes('service_role'), 'A service-role credential must never ship in the iOS client.')
 
 console.log(`Native Supabase tables: ${nativeTables.size}`)

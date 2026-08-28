@@ -1523,3 +1523,14 @@ GitHub publication evidence:
 - Authenticated Supabase logs show **0** API Gateway, Postgres, PostgREST, Auth, Storage, Realtime, or other events throughout the complete 03:44–03:59 local UI-test window. The fixed workout run created no simulator outbox file; the two ten-operation simulator outboxes are timestamped to the deliberately failing pre-fix runs.
 - Verification: 17/17 focused sync tests passed; the Food Memory/preset UI regression passed 1/1; the workout player/set regression passed 1/1; the formerly crashing workout receipt regression passed 1/1 after the fix; the full native unit suite passed 571/571; the repository/web suite passed 599/599; the production web build succeeded; and `git diff --check` passed.
 - Device release: signed Release 374 passed deep/strict signature validation, reports bundle `ch.apexperformance.APEX` and build `374`, and installed successfully on the connected physical iPhone. Launch was denied by iOS only because the handset was locked.
+
+## 2026-08-28 — Roadmap 2.5 web / Apple parity matrix
+
+- Added `docs/PARITY-MATRIX.json` as the machine-readable parity source of truth for all 13 required behavior areas and all nine comparison dimensions: behavior, calculations, database reads, database writes, ownership/RLS, offline behavior, errors, localization, and date/timezone handling.
+- Added `docs/PARITY-MATRIX.md` as the human decision index. It records intentional browser/native presentation and operating-system boundaries without treating screenshots as behavioral evidence.
+- Added `tests/client-behaviour-matrix.test.ts`. The deliberate red run rejected the missing matrix; the green gate now rejects missing areas or dimensions, unresolved verdicts, missing production/test evidence, and screenshot-only claims.
+- Strengthened `audit-client-contracts.mjs`: schema-qualified `public.` migrations are audited, and bundled WebKit renderers are limited to an exact four-file allowlist with local-file/custom-scheme assertions and remote URL rejection.
+- The client-contract audit passes with 37 native Supabase tables, 30 mirrored native mutation tables, 30 idempotent migrations, owner-scoped RLS, read-only shared activity catalog, and compatible web/native data contracts.
+- The representative native parity journeys pass for meal composer/Food Memory, morning check, nutrition dayline/recovery, Simple training, training calendar, and hydration. The calendar test initially failed because the 3D muscle renderer consumed its scroll gesture; a test-scoped drag through static content now exercises the real calendar without weakening the shared helper.
+- Full verification: native unit suite 571/571; web/repository suite 600/600; parity matrix gate 1/1; production web build succeeded; `git diff --check` passed.
+- Apple Release 375 built successfully, is signature-valid, and was installed on the connected physical iPhone. Its launch request was denied only because the device was locked.

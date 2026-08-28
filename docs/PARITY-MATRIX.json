@@ -1,0 +1,427 @@
+{
+  "schema_version": 1,
+  "roadmap_item": "2.5",
+  "scope": "Real web and native behaviour, calculations, persistence, ownership, offline and error handling, localisation, and date handling",
+  "comparison_dimensions": [
+    "behaviour",
+    "calculations",
+    "database_reads",
+    "database_writes",
+    "ownership",
+    "offline",
+    "errors",
+    "localisation",
+    "date_handling"
+  ],
+  "execution": {
+    "web_suite": "npm test",
+    "native_suite": "xcodebuildmcp simulator test --project-path ios/APEXNative/APEXNative.xcodeproj --scheme APEX --extra-args=-only-testing:APEXTests",
+    "database_contract": "node ios/APEXNative/Tools/audit-client-contracts.mjs",
+    "rule": "Evidence must be executable behaviour or production source. Screenshots are not parity evidence."
+  },
+  "areas": [
+    {
+      "id": "auth_identity",
+      "label": "Authentication and identity",
+      "status": "matched",
+      "observations": [
+        "Both clients keep the entry surface neutral until authentication resolves the account persona.",
+        "Private hydration and mutation work is bound to the captured authenticated owner rather than mutable global session state.",
+        "Expired or anonymous-session failures preserve queued data while bounded authentication recovery runs."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Neutral entry, authenticated persona reveal, and account-bound session tests exist on both clients." },
+        "calculations": { "verdict": "not_applicable", "evidence": "Identity selection has no cross-client numeric calculation." },
+        "database_reads": { "verdict": "shared", "evidence": "Profile, settings, and dashboard reads resolve under the authenticated account on both clients." },
+        "database_writes": { "verdict": "shared", "evidence": "Mutations use authenticated Supabase clients and captured owner IDs." },
+        "ownership": { "verdict": "shared", "evidence": "Account switches invalidate stale callbacks, hydration, acknowledgements, and outbox work." },
+        "offline": { "verdict": "shared", "evidence": "IndexedDB on web and account-scoped JSON on native differ mechanically but preserve the same owner-bound queue semantics." },
+        "errors": { "verdict": "shared", "evidence": "Authentication failures pause and refresh instead of silently quarantining user data." },
+        "localisation": { "verdict": "shared", "evidence": "Entry and authentication copy is covered by the offered-language contracts." },
+        "date_handling": { "verdict": "not_applicable", "evidence": "Identity resolution is not calendar dependent." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/entry-flow.test.ts", "tests/persistence.test.ts", "tests/sync.test.ts"],
+          "sources": ["src/pages/Login.tsx", "src/store/AppStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/MealComposerTests.swift", "ios/APEXNative/APEXTests/SyncRepairTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Auth/LoginView.swift", "ios/APEXNative/APEX/App/AppSession.swift"]
+        }
+      }
+    },
+    {
+      "id": "languages",
+      "label": "Offered languages",
+      "status": "matched",
+      "observations": [
+        "Both clients offer the same nine languages: English, German, Swiss German, Italian, Spanish, Portuguese, Japanese, Romanian, and Thai.",
+        "Runtime selection, format arguments, scripts, short forms, and stranded-English guards are executable contracts rather than key-count claims.",
+        "Language resources ship locally and do not depend on network availability."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Both selectors expose the same language set and persist the selected language." },
+        "calculations": { "verdict": "not_applicable", "evidence": "Language selection does not alter domain calculations." },
+        "database_reads": { "verdict": "not_applicable", "evidence": "Bundled interface copy is not read from Supabase." },
+        "database_writes": { "verdict": "shared", "evidence": "The selected language is encoded through the existing account settings contract where it is synchronized." },
+        "ownership": { "verdict": "shared", "evidence": "Language follows the active account/settings boundary rather than leaking another profile's preference." },
+        "offline": { "verdict": "shared", "evidence": "All offered interface resources are bundled with each client." },
+        "errors": { "verdict": "shared", "evidence": "Fallback and format-token checks prevent missing or malformed runtime copy." },
+        "localisation": { "verdict": "shared", "evidence": "Structural, runtime, script, format, and short-form policies cover all nine offered languages." },
+        "date_handling": { "verdict": "shared", "evidence": "Localized dates use the selected language while domain date keys remain canonical." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/i18n.test.ts", "tests/localisation-coverage-policy.test.ts", "tests/localisation-layout-policy.test.ts"],
+          "sources": ["src/lib/i18n.tsx", "src/components/PortalLanguageMenu.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/LocalizationTests.swift", "ios/APEXNative/APEXTests/LocalisationCoverageTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Core/DesignSystem/APEXLocalization.swift", "ios/APEXNative/APEX/Resources/ro.lproj/Localizable.strings"]
+        }
+      }
+    },
+    {
+      "id": "simple_advanced_modes",
+      "label": "Simple and Advanced modes",
+      "status": "matched",
+      "observations": [
+        "Simple is the default for new profiles while an explicit Advanced choice remains respected.",
+        "Both modes operate on the same account dashboard and calendar records rather than maintaining parallel data models.",
+        "Workout-owned gestures do not become day navigation, and Simple completion stays bounded on empty routines."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Mode defaulting, persistence, navigation, and shared schedule behavior are covered on both clients." },
+        "calculations": { "verdict": "shared", "evidence": "Mode changes presentation, not target or workout calculation engines." },
+        "database_reads": { "verdict": "shared", "evidence": "Both modes consume the same profile, settings, plan, nutrition, and history rows." },
+        "database_writes": { "verdict": "shared", "evidence": "Mode selection persists through the canonical settings row." },
+        "ownership": { "verdict": "shared", "evidence": "Mode and dashboard state are rebound at the account boundary." },
+        "offline": { "verdict": "shared", "evidence": "Local snapshots preserve mode and dashboard behavior until synchronization resumes." },
+        "errors": { "verdict": "shared", "evidence": "Missing or incomplete plans remain non-runnable and route back to a valid builder path." },
+        "localisation": { "verdict": "shared", "evidence": "Mode labels and their core surfaces use the common offered-language policy." },
+        "date_handling": { "verdict": "shared", "evidence": "Simple and Advanced resolve the same active profile date and calendar day." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/simple-mode.test.ts", "tests/active-date.test.ts", "tests/settings-functional.test.ts"],
+          "sources": ["src/pages/SimpleHome.tsx", "src/store/AppStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/SimpleHomeLogicTests.swift", "ios/APEXNative/APEXUITests/APEXSmokeUITests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift", "ios/APEXNative/APEX/Features/Portal/PortalShellView.swift"]
+        }
+      }
+    },
+    {
+      "id": "date_calendar",
+      "label": "Date navigation and calendar",
+      "status": "matched",
+      "observations": [
+        "Simple, Nutrition, and training use one active per-profile date context while retaining an honest real-today marker.",
+        "Copy, clear, and paste operate on valid target days, copied rows receive fresh identities, and repeated intent remains idempotent.",
+        "Configured meal timezone owns day rollover instead of the device's incidental current zone."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Navigation, deliberate swipe, prescription, empty-day, and copy/clear/paste behavior are executable on both clients." },
+        "calculations": { "verdict": "shared", "evidence": "Day selection is a canonical date-key calculation with the same timezone boundary." },
+        "database_reads": { "verdict": "shared", "evidence": "Both clients scope dashboard and calendar reads to the selected date or an explicit bounded range." },
+        "database_writes": { "verdict": "shared", "evidence": "Copied records use new UUIDs while idempotency keys prevent duplicate copy intent." },
+        "ownership": { "verdict": "shared", "evidence": "Saved active dates and copied calendar rows are profile scoped." },
+        "offline": { "verdict": "shared", "evidence": "Calendar edits remain visible from local snapshots and replay through owner-bound queues." },
+        "errors": { "verdict": "shared", "evidence": "Invalid paste targets and incomplete prescriptions are rejected rather than silently creating bad days." },
+        "localisation": { "verdict": "shared", "evidence": "Calendar actions and date presentation are covered in offered-language resources." },
+        "date_handling": { "verdict": "shared", "evidence": "Explicit route date, saved profile date, today marker, timezone rollover, and Gregorian HealthKit boundaries are tested." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/active-date.test.ts", "tests/simple-mode.test.ts", "tests/settings-functional.test.ts"],
+          "sources": ["src/lib/activeDate.ts", "src/components/Calendar.tsx", "src/components/NutritionLogCalendar.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/TrainingCalendarDayTests.swift", "ios/APEXNative/APEXTests/SimpleHomeLogicTests.swift", "ios/APEXNative/APEXTests/HealthImportParityTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Core/Engine/TrainingCalendarDay.swift", "ios/APEXNative/APEX/Features/Training/TrainingCalendarView.swift"]
+        }
+      }
+    },
+    {
+      "id": "nutrition_targets",
+      "label": "Nutrition at a Glance and target modal",
+      "status": "matched",
+      "observations": [
+        "Both clients expose the same calories and macro targets from the shared activity, goal, and calibration facts.",
+        "Target changes recalculate calories, protein, fat, and carbohydrate together rather than editing one display number.",
+        "The glance surface remains a summary and the target editor owns explicit goal changes."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Glance, target editing, preset selection, and macro-detail behavior are covered by production tests." },
+        "calculations": { "verdict": "shared", "evidence": "Golden engine fixtures and target tests compare calories, macros, activity, and calibration values." },
+        "database_reads": { "verdict": "shared", "evidence": "Profile, settings, daily log, activity, and food totals hydrate the same target model." },
+        "database_writes": { "verdict": "shared", "evidence": "Goal, nutrition mode, and target preferences persist through canonical settings/daily contracts." },
+        "ownership": { "verdict": "shared", "evidence": "Targets are calculated from the active profile and never another account's body or activity facts." },
+        "offline": { "verdict": "shared", "evidence": "The latest local settings and daily facts remain authoritative while writes are pending." },
+        "errors": { "verdict": "shared", "evidence": "Missing measured BMR and incomplete activity facts use bounded documented fallbacks." },
+        "localisation": { "verdict": "shared", "evidence": "Glance, target, goal, and macro copy is part of the nine-language runtime contract." },
+        "date_handling": { "verdict": "shared", "evidence": "Daily targets and consumed totals resolve against the shared active date." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/activity.test.ts", "tests/nutrition-balance.test.ts", "tests/nutrition-experience.test.ts"],
+          "sources": ["src/components/food/NutritionGlance.tsx", "src/components/nutrition/NutritionGoalPresetPicker.tsx", "src/store/AppStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/EnergyEngineTests.swift", "ios/APEXNative/APEXTests/AdaptiveMealPlanEngineTests.swift", "ios/APEXNative/APEXTests/FitnessBrainParityTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Nutrition/NutritionParityViews.swift", "ios/APEXNative/APEX/Features/Nutrition/AdaptiveMealPlanEngine.swift"]
+        }
+      }
+    },
+    {
+      "id": "activity_estimator",
+      "label": "Daily Activity Estimator",
+      "status": "matched",
+      "observations": [
+        "Quick mode applies one explicit PAL multiplier; Precise mode sums attributable activity above the sedentary floor.",
+        "Whole-day wearable burn supersedes overlapping estimates, while run distance and discounted watch calories deduplicate with max instead of sum.",
+        "Measured BMR is authoritative and safety floors remain bounded across both clients."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Quick and Precise modes remain distinct choices and present their own inputs." },
+        "calculations": { "verdict": "shared", "evidence": "The fitness-brain golden fixture and activity tests pin PAL, MET, BMR, wearable, goal, and macro outputs." },
+        "database_reads": { "verdict": "shared", "evidence": "Activity catalogue, profile body facts, health metrics, and daily logs feed the same calculation contract." },
+        "database_writes": { "verdict": "shared", "evidence": "Selected estimator mode and activity facts use canonical settings/activity rows." },
+        "ownership": { "verdict": "shared", "evidence": "Shared catalogue METs are applied to the active profile's weight and owner-scoped activity only." },
+        "offline": { "verdict": "shared", "evidence": "Local estimator inputs and queued activity edits calculate without a server round trip." },
+        "errors": { "verdict": "shared", "evidence": "Missing, absurd, or overlapping inputs fall back or deduplicate instead of inflating expenditure." },
+        "localisation": { "verdict": "shared", "evidence": "Mode, activity, PAL, and guidance copy is localized through the common policy." },
+        "date_handling": { "verdict": "shared", "evidence": "Precise activity is day-owned and late wearable facts reconcile into that same date." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/activity.test.ts", "tests/activity-schema.test.ts", "tests/externalSessions.test.ts"],
+          "sources": ["src/pages/Nutrition.tsx", "src/store/AppStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/EnergyEngineTests.swift", "ios/APEXNative/APEXTests/FitnessBrainParityTests.swift", "ios/APEXNative/APEXTests/HealthImportParityTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Nutrition/EnergyEngine.swift", "ios/APEXNative/APEX/Features/Nutrition/ActivityGuideSheet.swift"]
+        }
+      }
+    },
+    {
+      "id": "meal_composer_memory",
+      "label": "Meal composer and Food Memory",
+      "status": "matched",
+      "observations": [
+        "Both clients preserve immutable meal snapshots, exact amounts, presets, history ranking, and fresh row identities when a preset is applied.",
+        "Food Memory ranks real prior entries by meal block, weekday, time, frequency, and recency without surfacing synthetic prescriptions.",
+        "Meal replacement, remembered amounts, and outbox intents are atomic and account scoped."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Compose, configure, quick add, barcode, history, preset, edit, delete, and undo behavior is covered." },
+        "calculations": { "verdict": "shared", "evidence": "Golden Food Memory, macro guidance, portion, hydration, and draft-total tests compare actual outputs." },
+        "database_reads": { "verdict": "shared", "evidence": "Foods, meals, entries, preferences, and presets paginate and hydrate without catalogue-reference loss." },
+        "database_writes": { "verdict": "shared", "evidence": "Atomic meal RPCs and canonical preset payloads preserve immutable snapshots and idempotency." },
+        "ownership": { "verdict": "shared", "evidence": "Async commits, hydration, preferences, and outboxes are bound to the account that started them." },
+        "offline": { "verdict": "shared", "evidence": "Queued replacement tombstones and local snapshots stay authoritative during reconnect." },
+        "errors": { "verdict": "shared", "evidence": "Only safe missing optional references detach; permanent failures remain visible and valid later operations continue." },
+        "localisation": { "verdict": "shared", "evidence": "Composer, units, presets, history, scanner, and error copy are included in runtime localization tests." },
+        "date_handling": { "verdict": "shared", "evidence": "Meal local date, finished-at time, configured timezone, daily memory, and same-weekday memory are explicit." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/nutrition-experience.test.ts", "tests/food-sync.test.ts", "tests/persistence.test.ts", "tests/food.test.ts"],
+          "sources": ["src/components/food/MealComposer.tsx", "src/store/FoodStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/MealComposerTests.swift", "ios/APEXNative/APEXTests/MealMemoryParityTests.swift", "ios/APEXNative/APEXTests/FoodPortionParityTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Nutrition/MealComposerView.swift", "ios/APEXNative/APEX/Core/Engine/MealMemory.swift"]
+        }
+      }
+    },
+    {
+      "id": "hydration",
+      "label": "Hydration",
+      "status": "matched",
+      "observations": [
+        "Both clients keep one attributable ledger for drinks, food water, and external facts while exact custom targets override automatic drift.",
+        "Automatic targets use body size and bounded exercise; late wearable values only corroborate within caps.",
+        "Account, day, idempotency key, and revision prevent duplicate or foreign hydration from entering the visible total."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Quick add, custom amount, presets, history, deletion, target modes, and visible composition are covered." },
+        "calculations": { "verdict": "shared", "evidence": "Food-water derivation, target bounds, portion scaling, ledger totals, and composition proportions are pinned." },
+        "database_reads": { "verdict": "shared", "evidence": "Hydration events, preferences, food water, activity, and health facts hydrate under the same owner/day contract." },
+        "database_writes": { "verdict": "shared", "evidence": "Stable per-account/day sync IDs and revisioned event writes are canonical across clients." },
+        "ownership": { "verdict": "shared", "evidence": "Foreign accounts, delayed watch mutations, and account changes cannot cross the active hydration boundary." },
+        "offline": { "verdict": "shared", "evidence": "Local ledger mutations overlay remote snapshots and replay without resurrecting deletes." },
+        "errors": { "verdict": "shared", "evidence": "Empty or partial wearable reads never erase persisted hydration; invalid targets are rejected." },
+        "localisation": { "verdict": "shared", "evidence": "Units, presets, history, editor, and target copy are included in the offered-language runtime contract." },
+        "date_handling": { "verdict": "shared", "evidence": "Ledger rows and automatic targets are owner/day scoped and rebase at midnight." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/hydration.test.ts", "tests/hydration-ledger.test.ts"],
+          "sources": ["src/pages/SimpleHome.tsx", "src/store/AppStore.tsx", "src/components/food/ActualFoodTracker.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/FoodHydrationTests.swift", "ios/APEXNative/APEXTests/HydrationGaugeTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Core/Engine/HydrationLedger.swift", "ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift"]
+        }
+      }
+    },
+    {
+      "id": "supplements",
+      "label": "Supplements",
+      "status": "matched",
+      "observations": [
+        "Simple and Nutrition use one supplement-stack model on both clients.",
+        "Browse order leads with protein and creatine, then remains alphabetical.",
+        "Retiring a supplement removes it from the active stack without deleting historical logs."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "shared", "evidence": "Browse, add, edit, log, and retire behavior uses one stack model across surfaces." },
+        "calculations": { "verdict": "shared", "evidence": "Dose and display derivations use the same canonical catalogue fields; no client invents an independent nutrition calculation." },
+        "database_reads": { "verdict": "shared", "evidence": "Stack items, catalogue metadata, and historical logs hydrate through canonical rows." },
+        "database_writes": { "verdict": "shared", "evidence": "Composite supplement log keys and deduplicated batches match the production contract." },
+        "ownership": { "verdict": "shared", "evidence": "Stacks and logs are account scoped while catalogue facts are shared." },
+        "offline": { "verdict": "shared", "evidence": "Local stack edits and logs remain visible while their owner-bound writes are pending." },
+        "errors": { "verdict": "shared", "evidence": "Duplicate batches are normalized before write and retiring never destroys history." },
+        "localisation": { "verdict": "shared", "evidence": "Names, groups, guidance, editor, and popup labels are covered in every offered language." },
+        "date_handling": { "verdict": "shared", "evidence": "Supplement logs retain their account date and historical ordering." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/supplement-stack-parity.test.ts", "tests/sync.test.ts"],
+          "sources": ["src/components/supplements/SupplementStackEditor.tsx", "src/store/AppStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/SupplementCatalogueTests.swift", "ios/APEXNative/APEXTests/LocalizationTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Core/Engine/SupplementCatalogue.swift", "ios/APEXNative/APEX/Features/Nutrition/NutritionParityViews.swift"]
+        }
+      }
+    },
+    {
+      "id": "recovery_wearables",
+      "label": "Recovery and wearables",
+      "status": "intentional_platform_difference",
+      "observations": [
+        "Recovery, external-session credit, wearable deduplication, and nutrition timing consume the same recorded facts and bounded rules.",
+        "Native reads HealthKit and Apple Fitness directly; web accepts synchronized/manual wearable facts because browsers cannot access HealthKit.",
+        "Partial or denied native health queries preserve readable facts and cancellation never publishes a partial snapshot."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "platform_specific", "evidence": "Recovery output is shared, but direct HealthKit permission and query behavior exists only on Apple platforms." },
+        "calculations": { "verdict": "shared", "evidence": "Session contribution, fatigue, recovery, meal timing, and wearable deduplication rules are pinned across clients." },
+        "database_reads": { "verdict": "shared", "evidence": "Both clients read the same synchronized health metrics, activities, daily logs, and recovery facts." },
+        "database_writes": { "verdict": "shared", "evidence": "Imported activities and health metrics use canonical UUID, source, owner, and date fields." },
+        "ownership": { "verdict": "shared", "evidence": "Health and recovery facts are filtered to the active owner; manual entries remain authoritative." },
+        "offline": { "verdict": "shared", "evidence": "Last readable facts survive offline/partial refresh and imported writes replay through owner-bound queues." },
+        "errors": { "verdict": "platform_specific", "evidence": "Native distinguishes denied, empty, partial, failed, and cancelled HealthKit reads; web has no HealthKit permission state." },
+        "localisation": { "verdict": "shared", "evidence": "Recovery, wearable, and external-session guidance is localized on both clients." },
+        "date_handling": { "verdict": "shared", "evidence": "Health summaries, sleep, workouts, recovery, and meal timing resolve by canonical local day." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/externalSessions.test.ts", "tests/activity.test.ts", "tests/meal-timing.test.ts"],
+          "sources": ["src/components/RecoveryCheckinCard.tsx", "src/components/WatchActivityCheckin.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/HealthImportParityTests.swift", "ios/APEXNative/APEXTests/MealTimingAndRecoveryTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Core/Engine/HealthImport.swift", "ios/APEXNative/APEX/Features/Health/HealthKitManager.swift", "ios/APEXNative/APEX/Core/Engine/RecoveryAssessment.swift"]
+        }
+      }
+    },
+    {
+      "id": "avatar",
+      "label": "Avatar and visual progress",
+      "status": "intentional_platform_difference",
+      "observations": [
+        "Both clients share pose-aware selection, crop geometry, comparison timing, storage paths, snapshot timing, strength comparison, and export content.",
+        "Browser and native camera lifecycles differ by platform; native additionally supports depth placement and hardware shutter controls.",
+        "Private uploads are owner scoped, retry safely, and surface recoverable storage errors."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "platform_specific", "evidence": "Capture, gallery, compare, and export are shared; depth and hardware volume shutter behavior are native-only capabilities." },
+        "calculations": { "verdict": "shared", "evidence": "Golden progress fixtures compare crop, pose, elapsed days, snapshot selection, poster content, and strength calculations." },
+        "database_reads": { "verdict": "shared", "evidence": "Photo metadata, body snapshots, training history, and private storage hydrate under one owner contract." },
+        "database_writes": { "verdict": "shared", "evidence": "Deterministic private paths, photo metadata, and delete tombstones use the same production model." },
+        "ownership": { "verdict": "shared", "evidence": "Unsafe owner paths are rejected and account switches hide stale private media." },
+        "offline": { "verdict": "shared", "evidence": "Upload queues deduplicate retries and hydrate pending edits/deletes over stale remote rows." },
+        "errors": { "verdict": "platform_specific", "evidence": "Both surface recoverable storage errors; camera/depth failure modes follow their platform APIs." },
+        "localisation": { "verdict": "shared", "evidence": "Capture, framing, comparison, assessment, trend, and recommendation copy is covered by offered-language tests." },
+        "date_handling": { "verdict": "shared", "evidence": "Capture timestamps and on-or-before body snapshots prevent future data from entering a comparison." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/progress-photo.test.ts", "tests/hologram-muscles.test.ts"],
+          "sources": ["src/pages/AvatarPage.tsx", "src/store/ProgressPhotoStore.tsx", "src/components/progress/ProgressCamera.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/ProgressParityTests.swift", "ios/APEXNative/APEXTests/ProgressDepthTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Avatar/AvatarView.swift", "ios/APEXNative/APEX/Core/Engine/ProgressPhotoEngine.swift", "ios/APEXNative/APEX/Features/Avatar/ProgressCameraView.swift"]
+        }
+      }
+    },
+    {
+      "id": "orbit",
+      "label": "Orbit",
+      "status": "intentional_platform_difference",
+      "observations": [
+        "Campaign generation, route facts, stable imported-activity UUIDs, cross-domain proposals, reconciliation, and privacy exports share canonical contracts.",
+        "Native uses CoreLocation and native route presentation; web uses browser geolocation and its own map renderer.",
+        "Server pagination and pending edits/deletes reconcile without losing local Orbit changes."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "platform_specific", "evidence": "Mission, campaign, library, run, and proposal behavior is shared; map and location acquisition use platform-native APIs." },
+        "calculations": { "verdict": "shared", "evidence": "Stable IDs, route scoring, run metrics, campaign phasing, Avatar contribution, and fueling proposals are pinned." },
+        "database_reads": { "verdict": "shared", "evidence": "Orbit hydration paginates all ordered rows and consumes canonical run, route, campaign, and activity data." },
+        "database_writes": { "verdict": "shared", "evidence": "Database-safe deterministic UUIDs and canonical imported activity/source fields are used by both clients." },
+        "ownership": { "verdict": "shared", "evidence": "Pending checks, hydration, reconciliation, and privacy archives are owner scoped." },
+        "offline": { "verdict": "shared", "evidence": "Queued edits and deletes overlay remote snapshots and acknowledgements preserve newer local work." },
+        "errors": { "verdict": "platform_specific", "evidence": "Both reject invalid geometry and stale data; location permission errors follow CoreLocation or browser geolocation." },
+        "localisation": { "verdict": "shared", "evidence": "Orbit presentation and guidance use each client's offered-language runtime." },
+        "date_handling": { "verdict": "shared", "evidence": "Runs, campaigns, imported activities, and cross-domain proposals retain explicit timestamps and local dates." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/orbit-integration.test.ts", "tests/orbit-sync.test.ts", "tests/orbit-presentation.test.ts", "tests/orbit-campaign.test.ts"],
+          "sources": ["src/orbit/store/OrbitStore.tsx", "src/orbit/pages/OrbitHome.tsx", "src/orbit/components/OrbitMap.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/OrbitIntegrationsTests.swift", "ios/APEXNative/APEXTests/OrbitCampaignEngineTests.swift", "ios/APEXNative/APEXTests/OrbitRunMetricsTests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Orbit/OrbitIntegrations.swift", "ios/APEXNative/APEX/Features/Orbit/OrbitCampaignEngine.swift", "ios/APEXNative/APEX/Features/Orbit/OrbitLocationManager.swift"]
+        }
+      }
+    },
+    {
+      "id": "settings",
+      "label": "Settings",
+      "status": "intentional_platform_difference",
+      "observations": [
+        "Mode, language, timezone, weight unit, meal-memory cadence, hydration, and account preferences use the canonical settings row.",
+        "Weight-unit changes alter display only and never rewrite stored kilograms.",
+        "Native additionally owns Apple permission and device-integration settings that have no browser equivalent."
+      ],
+      "dimensions": {
+        "behaviour": { "verdict": "platform_specific", "evidence": "Shared account preferences behave alike; HealthKit, notifications, Watch, and other Apple integrations are native-only settings." },
+        "calculations": { "verdict": "shared", "evidence": "Unit conversion and settings-derived mode/target behavior preserve canonical stored values." },
+        "database_reads": { "verdict": "shared", "evidence": "Both clients hydrate one owner-scoped settings row and safely default newly additive fields." },
+        "database_writes": { "verdict": "shared", "evidence": "Settings updates use canonical snake_case fields and singleton conflict behavior." },
+        "ownership": { "verdict": "shared", "evidence": "Settings rebind to the authenticated profile and queued singleton settings cannot leak across accounts." },
+        "offline": { "verdict": "shared", "evidence": "Pending singleton settings remain authoritative during reconnect hydration." },
+        "errors": { "verdict": "platform_specific", "evidence": "Shared validation is aligned; Apple permission failures exist only in the native client." },
+        "localisation": { "verdict": "shared", "evidence": "Shared settings labels, choices, actions, and errors follow the nine-language contract." },
+        "date_handling": { "verdict": "shared", "evidence": "Timezone selection explicitly controls meal/day rollover while absolute persisted timestamps remain unchanged." }
+      },
+      "evidence": {
+        "web": {
+          "tests": ["tests/settings-functional.test.ts", "tests/persistence.test.ts", "tests/simple-mode.test.ts"],
+          "sources": ["src/pages/Settings.tsx", "src/store/AppStore.tsx"]
+        },
+        "native": {
+          "tests": ["ios/APEXNative/APEXTests/WeightUnitTests.swift", "ios/APEXNative/APEXTests/MealComposerTests.swift", "ios/APEXNative/APEXUITests/APEXSmokeUITests.swift"],
+          "sources": ["ios/APEXNative/APEX/Features/Settings/SettingsView.swift", "ios/APEXNative/APEX/App/AppSession.swift"]
+        }
+      }
+    }
+  ]
+}
