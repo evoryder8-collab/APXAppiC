@@ -2,6 +2,51 @@ import XCTest
 @testable import APEX
 
 final class SimpleHomeLogicTests: XCTestCase {
+    func testFitnessPlanIntroductionPersistsOnlyAfterBothPhaseSubtitlesAppear() {
+        var state = FitnessPlanDisclosureState()
+
+        state.toggle(introductionSeen: false)
+
+        XCTAssertTrue(state.expanded)
+        XCTAssertTrue(state.showsIntroduction)
+        XCTAssertEqual(state.presentedIntroductionPhases, [])
+        XCTAssertNil(state.activeInfo)
+        XCTAssertFalse(state.recordIntroductionPresented(for: .transition))
+        XCTAssertEqual(state.presentedIntroductionPhases, [.transition])
+        XCTAssertTrue(state.recordIntroductionPresented(for: .main))
+        XCTAssertEqual(state.presentedIntroductionPhases, [.transition, .main])
+        XCTAssertFalse(state.recordIntroductionPresented(for: .main))
+    }
+
+    func testFitnessPlanRecurringDisclosureShowsOneInfoTooltipAndCollapsesCleanly() {
+        var state = FitnessPlanDisclosureState()
+
+        state.toggle(introductionSeen: true)
+
+        XCTAssertTrue(state.expanded)
+        XCTAssertFalse(state.showsIntroduction)
+        XCTAssertEqual(state.presentedIntroductionPhases, [])
+        state.selectInfo(.transition)
+        XCTAssertEqual(state.activeInfo, .transition)
+        state.selectInfo(.main)
+        XCTAssertEqual(state.activeInfo, .main)
+        state.selectInfo(.main)
+        XCTAssertNil(state.activeInfo)
+
+        state.toggle(introductionSeen: true)
+        XCTAssertEqual(state, FitnessPlanDisclosureState())
+    }
+
+    func testFitnessPlanIntroductionNeverShowsInfoControlsAtTheSameTime() {
+        var state = FitnessPlanDisclosureState()
+
+        state.toggle(introductionSeen: false)
+        state.selectInfo(.transition)
+
+        XCTAssertTrue(state.showsIntroduction)
+        XCTAssertNil(state.activeInfo)
+    }
+
     func testInterfaceModeReadsSharedWebSettingsContract() {
         let userID = UUID()
         var settings = UserSettings(

@@ -329,6 +329,7 @@ export interface Settings {
     endurance2: boolean
     endurance3: boolean
     uiMode?: 'simple' | 'advanced'
+    fitness_plan_intro_seen?: boolean
     /* Stored inside the existing JSON settings record so measured BMR works
        immediately on every deployed database without a blocking schema step. */
     custom_bmr?: number | null

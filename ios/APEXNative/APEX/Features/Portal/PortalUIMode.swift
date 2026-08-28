@@ -13,6 +13,52 @@ enum PortalUIMode: String, CaseIterable, Identifiable, Sendable {
     }
 }
 
+enum FitnessPlanPhase: String, CaseIterable, Equatable, Sendable {
+    case transition
+    case main
+}
+
+struct FitnessPlanDisclosureState: Equatable, Sendable {
+    var expanded = false
+    var showsIntroduction = false
+    var presentedIntroductionPhases: [FitnessPlanPhase] = []
+    var activeInfo: FitnessPlanPhase?
+
+    mutating func toggle(introductionSeen: Bool) {
+        guard !expanded else {
+            self = FitnessPlanDisclosureState()
+            return
+        }
+
+        expanded = true
+        showsIntroduction = !introductionSeen
+        presentedIntroductionPhases = []
+        activeInfo = nil
+    }
+
+    mutating func recordIntroductionPresented(for phase: FitnessPlanPhase) -> Bool {
+        guard expanded, showsIntroduction,
+              !presentedIntroductionPhases.contains(phase) else { return false }
+
+        let wasComplete = FitnessPlanPhase.allCases.allSatisfy(
+            presentedIntroductionPhases.contains
+        )
+        presentedIntroductionPhases.append(phase)
+        let isComplete = FitnessPlanPhase.allCases.allSatisfy(
+            presentedIntroductionPhases.contains
+        )
+        return !wasComplete && isComplete
+    }
+
+    mutating func selectInfo(_ phase: FitnessPlanPhase?) {
+        guard expanded, !showsIntroduction else {
+            activeInfo = nil
+            return
+        }
+        activeInfo = activeInfo == phase ? nil : phase
+    }
+}
+
 enum SimpleHomeLogic {
     static func guidedProgramSlug(
         persona: Persona?,
