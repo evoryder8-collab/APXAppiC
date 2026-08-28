@@ -2085,6 +2085,100 @@ final class TrainingInductionTests: XCTestCase {
         XCTAssertEqual(Set(TrainingInduction.activeProgramDays(in: restored).map(\.id)), originalDayIDs)
     }
 
+    func testPlanPreservationRepairUnarchivesAuthoredDaysWithoutRevivingGeneratedOrForeignRows() throws {
+        let original = APEXDebugFixture.dashboard()
+        let owner = try XCTUnwrap(original.profile?.userID)
+        let main = try XCTUnwrap(original.programs.first { $0.slug == "main" })
+        let authored = try XCTUnwrap(original.programDays.first { $0.programID == main.id })
+        let first = TrainingInduction.generate(
+            userID: owner,
+            input: input(),
+            existingPrograms: original.programs,
+            generationRevision: 0
+        )
+        let second = TrainingInduction.generate(
+            userID: owner,
+            input: input(),
+            existingPrograms: original.programs,
+            generationRevision: 1
+        )
+        let foreign = ProgramDay(
+            id: UUID(), userID: UUID(), programID: main.id, weekday: authored.weekday,
+            name: "Another account", dayType: authored.dayType,
+            estimatedMinutes: 10, warmupNote: "", sortOrder: 0
+        )
+
+        var corrupted = original
+        corrupted.programDays.append(contentsOf: first.programDays + second.programDays + [foreign])
+        var settings = try XCTUnwrap(corrupted.settings)
+        settings.addons[TrainingInduction.generationRevisionKey] = .number(2)
+        let generatedIDs = Set((first.programDays + second.programDays).map(\.id))
+        let archived = generatedIDs.union([authored.id, foreign.id])
+        settings.addons[TrainingInduction.archivedMarkerKey] = .array(
+            archived.map { .string($0.uuidString.lowercased()) }
+        )
+        corrupted.settings = settings
+
+        let repaired = try XCTUnwrap(
+            TrainingInduction.repairingProtectedOriginalProgramme(in: corrupted)
+        )
+        let repairedSettings = try XCTUnwrap(repaired.settings)
+        XCTAssertTrue(TrainingInduction.activeProgramDays(in: repaired).contains { $0.id == authored.id })
+        XCTAssertEqual(
+            TrainingInduction.archivedDayIDs(repairedSettings),
+            generatedIDs.union([foreign.id])
+        )
+        XCTAssertTrue(
+            TrainingInduction.protectedOriginalDayIDs(repairedSettings).contains(authored.id)
+        )
+        XCTAssertFalse(
+            TrainingInduction.protectedOriginalDayIDs(repairedSettings).contains(foreign.id)
+        )
+    }
+
+    func testConstantineV83FridaySurvivesItsHistoricalInductionIDCollision() throws {
+        let owner = try XCTUnwrap(UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574"))
+        let fridayID = try XCTUnwrap(UUID(uuidString: "52429d97-dea9-49af-b4bc-f678ad447417"))
+        var data = APEXDebugFixture.dashboard(userID: owner)
+        let main = try XCTUnwrap(data.programs.first { $0.slug == "main" })
+        let friday = ProgramDay(
+            id: fridayID, userID: owner, programID: main.id, weekday: 5,
+            name: "Legs B · lunge day + Focus T25", dayType: "legs_b",
+            estimatedMinutes: 60, warmupNote: "Pain-free warm-up", sortOrder: 4
+        )
+        data.programDays.removeAll { $0.programID == main.id && $0.weekday == 5 }
+        data.programDays.append(friday)
+        var settings = try XCTUnwrap(data.settings)
+        settings.addons[TrainingInduction.generationRevisionKey] = .number(5)
+        settings.addons[TrainingInduction.archivedMarkerKey] = .array([
+            .string(fridayID.uuidString.lowercased()),
+        ])
+        settings.addons["training_protocol"] = .object([
+            "version": .number(83), "start_date": .string("2026-07-25"),
+        ])
+        data.settings = settings
+
+        let collisionExists = (0...5).contains { revision in
+            TrainingInduction.generate(
+                userID: owner,
+                input: input(),
+                existingPrograms: data.programs,
+                generationRevision: revision
+            ).programDays.contains { $0.id == fridayID }
+        }
+        XCTAssertTrue(collisionExists, "the production repair must cover the historical ID collision")
+
+        let repaired = try XCTUnwrap(
+            TrainingInduction.repairingProtectedOriginalProgramme(in: data)
+        )
+        XCTAssertEqual(
+            TrainingPlanEngine.plan(repaired, slug: "main", date: "2026-08-28", lite: false)
+                .programDay?.id,
+            fridayID
+        )
+        XCTAssertTrue(TrainingInduction.canRestoreOriginalProgramme(in: repaired))
+    }
+
     func testCautionSlowsTheTempoAndSaysWhy() {
         let plan = TrainingInduction.generate(userID: user, input: input { $0.chronicLowerBackPain = true })
         XCTAssertTrue(plan.programDays.allSatisfy { $0.warmupNote.contains("pain-free") })

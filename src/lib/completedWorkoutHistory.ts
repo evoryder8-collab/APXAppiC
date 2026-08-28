@@ -54,15 +54,16 @@ export function completedWorkoutDeletionPlan(
  */
 export function completedWorkoutHistoryForDate(
   data: Pick<AppData, 'profile' | 'settings' | 'program_days' | 'workout_sessions'>,
-  date: string,
+  date?: string,
+  limit?: number,
 ): CompletedWorkoutHistoryItem[] {
   const ownerId = data.profile?.user_id ?? data.settings?.user_id ?? null
   const days = new Map(data.program_days.map((day) => [day.id, day]))
 
-  return data.workout_sessions
+  const history = data.workout_sessions
     .filter((session) => (
       session.completed
-      && session.date === date
+      && (date == null || session.date === date)
       && (!ownerId || session.user_id === ownerId)
     ))
     .sort((left, right) => {
@@ -78,4 +79,5 @@ export function completedWorkoutHistoryForDate(
         isQuickLog: quickTitle != null,
       }
     })
+  return limit == null ? history : history.slice(0, Math.max(0, limit))
 }

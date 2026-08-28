@@ -16,7 +16,7 @@ final class MuscleMapController {
     private weak var webView: WKWebView?
     private var facing: Double = 0
 
-    var spinning = true
+    var spinning = !APEXRuntimeEnvironment.usesLocalUITestFixture()
     var xray = true
 
     func attach(_ view: WKWebView) {
@@ -71,6 +71,10 @@ struct MuscleMapCard: View {
     @State private var language = LanguageState.shared
     @State private var showBriefing = false
 
+    private var decorativeMotionEnabled: Bool {
+        !reduceMotion && !APEXRuntimeEnvironment.usesLocalUITestFixture()
+    }
+
     /// A drag only turns the figure once it is clearly sideways, so a scroll
     /// that happens to start on the figure still scrolls.
     private var turnGesture: some Gesture {
@@ -98,11 +102,12 @@ struct MuscleMapCard: View {
             xray: controller.xray,
             controller: controller
         )
+        .accessibilityIdentifier("training-muscle-signal")
         .frame(height: height)
         /* Behind the figure, never in front of it: the model has to stay the
            brightest thing in the card. */
         .background(alignment: .center) {
-            ModelAura(accent: accent, animated: !reduceMotion)
+            ModelAura(accent: accent, animated: decorativeMotionEnabled)
         }
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
@@ -147,7 +152,7 @@ struct MuscleMapCard: View {
                             .blur(radius: 9)
                     }
                     .overlay {
-                        TooltipGleam(active: !reduceMotion)
+                        TooltipGleam(active: decorativeMotionEnabled)
                             .mask(
                                 Image(systemName: "info.circle.fill")
                                     .font(.system(size: 22))
@@ -157,6 +162,7 @@ struct MuscleMapCard: View {
             }
             .buttonStyle(.plain)
             .accessibilityLabel(language.text("What this session trains"))
+            .accessibilityIdentifier("session-briefing-open")
         }
         .sheet(isPresented: $showBriefing) {
             SessionBriefingSheet(

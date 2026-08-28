@@ -625,7 +625,24 @@ final class AppSession {
                 }
             }
         }
+        let repairedPlanSettings: UserSettings?
+        if let repaired = TrainingInduction.repairingProtectedOriginalProgramme(in: next) {
+            next = repaired
+            repairedPlanSettings = repaired.settings
+        } else {
+            repairedPlanSettings = nil
+        }
         data = next
+        if let repairedPlanSettings {
+            await persistUpsert(
+                repairedPlanSettings,
+                table: "settings",
+                onConflict: "user_id",
+                ownerID: repairedPlanSettings.userID,
+                surfacePermanentFailure: false
+            )
+            guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+        }
         if let authenticatedUserID {
             await ensureHydrationDefaults(ownerID: authenticatedUserID)
             publishHydrationState()
@@ -3886,6 +3903,7 @@ final class AppSession {
         #if DEBUG
         if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-first-run"),
            var settings = data.settings {
+            settings = TrainingInduction.protectingOriginalProgramme(settings, in: data)
             if TrainingInduction.hasRestorableOverlay(in: data) {
                 settings = TrainingInduction.invalidatingPlanMetadata(
                     settings,
@@ -3920,6 +3938,7 @@ final class AppSession {
             var settings = try await service.createSettingsIfNeeded(userID: userID)
                 .rebound(to: userID)
             guard accountGeneration.accepts(accountToken) else { return }
+            settings = TrainingInduction.protectingOriginalProgramme(settings, in: data)
 
             /* Archive the current overlay before saving its replacement. The
                revision is persisted first, so a failed retry reuses the same

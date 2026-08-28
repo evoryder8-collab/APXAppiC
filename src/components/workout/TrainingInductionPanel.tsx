@@ -12,6 +12,7 @@ import {
   generateTrainingPlan,
   invalidateTrainingPlanAddons,
   markPendingTrainingPlanAddons,
+  protectOriginalTrainingProgrammeAddons,
   searchEquipment,
   TRAINING_PLAN_WEEK_OPTIONS,
   trainingInputFromProfile,
@@ -434,7 +435,7 @@ export function TrainingInductionPanel({ slug }: { slug: ProgramSlug }) {
     if (replacingExistingPlan && !window.confirm(
       'This installs a generated beginner plan and shows it instead of your current programme. Your existing programme is kept and returns from Settings, Restore my original programme. Continue?',
     )) return
-    let addons = settings.addons
+    let addons = protectOriginalTrainingProgrammeAddons(data) ?? settings.addons
     if (settings.addons.training_induction) {
       addons = invalidateTrainingPlanAddons(addons)
     }

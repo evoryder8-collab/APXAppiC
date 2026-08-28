@@ -153,7 +153,7 @@ final class MealTimingEngineTests: XCTestCase {
         )
 
         XCTAssertTrue(dayline.contains("plannedMeal: planned"))
-        XCTAssertTrue(dayline.contains("TimelineView(.periodic(from: .now, by: 30))"))
+        XCTAssertTrue(dayline.contains("TimelineView(.periodic(from: Date(timeIntervalSinceReferenceDate: 0), by: 30))"))
         XCTAssertTrue(dayline.contains("session.data.workoutSessions"))
         XCTAssertTrue(dayline.contains("updateMealBlockTime"))
         XCTAssertTrue(dayline.contains("updateWorkoutCompletedAt"))

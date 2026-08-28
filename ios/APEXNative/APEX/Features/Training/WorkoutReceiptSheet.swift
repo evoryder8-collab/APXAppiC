@@ -256,8 +256,9 @@ struct CompletedWorkoutHistoryCards: View {
     @State private var swipingSessionID: UUID?
     @State private var liveRevealOffset: CGFloat = 0
 
-    let date: String
+    let date: String?
     var accent: Color = APEXColor.teal
+    var limit: Int? = nil
     private let revealWidth: CGFloat = 82
 
     private var history: [WorkoutReceipt.HistoryItem] {
@@ -265,7 +266,8 @@ struct CompletedWorkoutHistoryCards: View {
             sessions: session.data.workoutSessions,
             days: session.data.programDays,
             date: date,
-            ownerID: session.profile?.userID
+            ownerID: session.profile?.userID,
+            limit: limit
         )
     }
 
@@ -396,7 +398,7 @@ struct CompletedWorkoutHistoryCards: View {
                             .font(APEXFont.display(17))
                             .foregroundStyle(APEXColor.ink)
                             .lineLimit(2)
-                        Text([time, language.format("%d working sets", summary.workingSets), language.format("%d movements", summary.movements)].compactMap { $0 }.joined(separator: " · "))
+                        Text([item.session.date, time, language.format("%d working sets", summary.workingSets), language.format("%d movements", summary.movements)].compactMap { $0 }.joined(separator: " · "))
                             .font(APEXFont.mono(8, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -411,7 +413,10 @@ struct CompletedWorkoutHistoryCards: View {
                 .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
-            .accessibilityIdentifier("completed-workout-\(item.id.uuidString.lowercased())")
+            .accessibilityIdentifier(
+                "completed-workout-\(isExpanded ? "expanded-" : "")\(item.id.uuidString.lowercased())"
+            )
+            .accessibilityValue(language.text(isExpanded ? "Expanded" : "Collapsed"))
 
             if isExpanded {
                 Divider().overlay(.white.opacity(0.9))
@@ -436,6 +441,7 @@ struct CompletedWorkoutHistoryCards: View {
                     }
                     .buttonStyle(.plain)
                     .accessibilityLabel(language.text("Delete workout"))
+                    .accessibilityIdentifier("completed-workout-expanded-delete-\(item.id.uuidString.lowercased())")
                 }
                 .padding(.horizontal, 15)
                 .padding(.top, 12)

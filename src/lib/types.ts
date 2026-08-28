@@ -351,6 +351,7 @@ export interface Settings {
     }
     training_induction_skipped?: boolean
     training_induction_archived_day_ids?: string[]
+    training_induction_protected_original_day_ids?: string[]
     training_induction_pending_day_ids?: string[]
     training_induction_generation_revision?: number
     /* Start of the current bespoke 12-week prescription. It is independent

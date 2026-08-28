@@ -303,11 +303,10 @@ enum MealTimingEngine {
 
     private static func instant(_ value: String?) -> Date? {
         guard let value else { return nil }
-        let formatter = ISO8601DateFormatter()
-        formatter.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = formatter.date(from: value) { return date }
-        formatter.formatOptions = [.withInternetDateTime]
-        return formatter.date(from: value)
+        if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(value) {
+            return date
+        }
+        return try? Date.ISO8601FormatStyle().parse(value)
     }
 
     /// Minutes past midnight in the person's own zone.

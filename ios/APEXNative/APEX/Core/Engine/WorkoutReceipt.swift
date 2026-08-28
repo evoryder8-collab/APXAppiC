@@ -89,14 +89,15 @@ enum WorkoutReceipt {
     static func history(
         sessions: [WorkoutSession],
         days: [ProgramDay],
-        date: String,
-        ownerID: UUID?
+        date: String?,
+        ownerID: UUID?,
+        limit: Int? = nil
     ) -> [HistoryItem] {
         let dayNames = Dictionary(uniqueKeysWithValues: days.map { ($0.id, $0.name) })
-        return sessions
+        let history = sessions
             .filter { item in
                 item.completed
-                    && item.date == date
+                    && (date == nil || item.date == date)
                     && (ownerID == nil || item.userID == ownerID)
             }
             .sorted { left, right in
@@ -113,6 +114,8 @@ enum WorkoutReceipt {
                     isQuickLog: quickTitle != nil
                 )
             }
+        guard let limit else { return history }
+        return Array(history.prefix(max(0, limit)))
     }
 
     static func editInput(_ log: WorkoutLog) -> WorkoutSetInput {

@@ -8,7 +8,7 @@ import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
-import { isTrainingInductionEligible, restoreTrainingPlanAddons } from '../lib/trainingInduction'
+import { canRestoreOriginalTrainingProgramme, isTrainingInductionEligible, restoreTrainingPlanAddons } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
 import { MEAL_DAYLINE_DENSITY_OPTIONS, MEAL_TIMELINE_SNAP_OPTIONS, detectedTimeZone, normalizeMealDaylineDensity, normalizeMealTimelineSnap, searchTimeZoneOptions, timeZoneFromSettings, validTimeZone, zonedClock } from '../lib/mealTiming'
 
@@ -618,7 +618,7 @@ export function Settings() {
                   }}
                 />
               </div>
-              {restorableStarterAddons && (
+              {canRestoreOriginalTrainingProgramme(data) && restorableStarterAddons && (
                 <button
                   type="button"
                   onClick={() => {

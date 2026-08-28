@@ -121,6 +121,7 @@ struct MealRowGestures: UIViewRepresentable {
         var onHoldEnded: (CGFloat) -> Void
         weak var hold: UILongPressGestureRecognizer?
         private var holding = false
+        private var holdStartY: CGFloat?
 
         init(
             onTap: @escaping () -> Void,
@@ -159,22 +160,25 @@ struct MealRowGestures: UIViewRepresentable {
 
         @objc func handleHold(_ recognizer: UILongPressGestureRecognizer) {
             /*
-             * Window coordinates, converted by the timeline against its own
-             * frame. Reporting against the recogniser's superview measured the
-             * finger inside the row, which is not where the timeline thinks it
-             * is, so the meal leapt hours away the instant the hold began.
-             * Absolute also means the row cannot chase itself as it moves.
+             * Report displacement from the touch-down point. The timeline
+             * combines it with the row's stable local position, avoiding a
+             * dependency on the scrolling view's global frame.
              */
             let y = recognizer.location(in: nil).y
             switch recognizer.state {
             case .began:
                 holding = true
-                onHoldChanged(y)
+                holdStartY = y
+                onHoldChanged(0)
             case .changed:
-                onHoldChanged(y)
+                guard let holdStartY else { return }
+                onHoldChanged(y - holdStartY)
             case .ended, .cancelled, .failed:
-                if holding { onHoldEnded(y) }
+                if holding {
+                    onHoldEnded(y - (holdStartY ?? y))
+                }
                 holding = false
+                holdStartY = nil
             default:
                 break
             }

@@ -26,6 +26,14 @@ it compacted again. Almost no work landed between compactions. Avoid that as fol
    a width-constrained container gets its short forms in the same commit. Coverage regressed sixteen
    points once because this rule did not exist. See 2.7.
 
+### Product-retention guardrail
+
+Every task starts from the product that is already shipped, not from the subset named by the task. A roadmap item may extend or repair an existing surface; it may not silently remove, replace, hide, or reset an installed programme, account-owned data, workflow, interaction, modality, or recovery control unless the owner explicitly directs that exact removal.
+
+Before generating or installing a training plan, persist the signed-in account's original programme identity and authored day IDs. Generated plans are reversible overlays. Restoration must be owner-scoped, must never borrow another account's programme, and must remain available after regeneration or relaunch. Constantine's V8.3 and June's independently owned programme are separate protected assets.
+
+Before every release, compare the changed product with the last accepted implementation and run a retention matrix covering at minimum: installed plan selection and weekday resolution; original-plan recovery; finished-workout visibility in Simple, Main, and Transition; swipe-to-delete; receipt editing; and account isolation. A task is not complete if any previously shipped modality disappears, even when the new task's focused tests pass. Any intentional removal requires an explicit owner directive recorded in this roadmap and in `REPAIR-NOTES.md`.
+
 ## 0.1 Workspace and git safety
 
 Use only: `/Users/jaxoncorrey/APXAppiC-codex-main-repair`, branch `codex/main-critical-repair`,

@@ -223,7 +223,13 @@ struct SimpleHomeView: View {
             .padding(.horizontal, 18)
 
             ScrollView {
-                LazyVStack(spacing: 15) {
+                /* The Dayline is taller than the viewport and owns a fixed-height
+                   geometry canvas. Keeping that canvas in a lazy stack can make
+                   SwiftUI repeatedly evict and remeasure it while a fast scroll
+                   crosses the viewport boundary, pinning the main thread in an
+                   AttributeGraph layout cycle. This screen has only a handful
+                   of cards, so eager layout is both bounded and stable. */
+                VStack(spacing: 15) {
                     RecoveryMorningCard(date: selectedDate)
 
                     if let targets {
@@ -255,7 +261,7 @@ struct SimpleHomeView: View {
                     }
 
                     metrics
-                    CompletedWorkoutHistoryCards(date: today, accent: APEXColor.teal)
+                    CompletedWorkoutHistoryCards(date: nil, accent: APEXColor.teal, limit: 5)
                     WearableActivityCard(date: selectedDate)
 
                     if showGuidedPlan, let todayProgramDay, !workoutDone {

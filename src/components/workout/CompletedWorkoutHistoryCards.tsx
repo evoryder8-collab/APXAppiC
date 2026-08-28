@@ -14,10 +14,12 @@ import { WorkoutStatsSheet } from './WorkoutStatsSheet'
 
 export function CompletedWorkoutHistoryCards({
   date,
+  limit,
   accent = ACCENTS.teal,
   includeQuickLogs = true,
 }: {
-  date: string
+  date?: string
+  limit?: number
   accent?: Accent
   includeQuickLogs?: boolean
 }) {
@@ -32,8 +34,8 @@ export function CompletedWorkoutHistoryCards({
   const pointerStart = useRef<{ id: string; x: number; y: number; base: number; offset: number } | null>(null)
   const swipeConsumedClick = useRef(false)
   const history = useMemo(
-    () => completedWorkoutHistoryForDate(data, date).filter((item) => includeQuickLogs || !item.isQuickLog),
-    [data, date, includeQuickLogs],
+    () => completedWorkoutHistoryForDate(data, date, limit).filter((item) => includeQuickLogs || !item.isQuickLog),
+    [data, date, includeQuickLogs, limit],
   )
 
   if (history.length === 0) return null
@@ -148,7 +150,7 @@ export function CompletedWorkoutHistoryCards({
                 <span className="min-w-0 flex-1">
                   <span className="block font-mono text-[8px] font-black tracking-[.14em] text-emerald-800 uppercase">{t(isQuickLog ? 'Quick Log complete' : 'Tracked workout complete')}</span>
                   <span className="mt-1 block break-words font-display text-base font-black leading-tight text-ink">{t(title)}</span>
-                  <span className="mt-1 block font-mono text-[9px] font-bold text-ink-faint">{[time, `${working.length} ${t('working sets')}`, `${movements} ${t(movements === 1 ? 'movement' : 'movements')}`].filter(Boolean).join(' · ')}</span>
+                  <span className="mt-1 block font-mono text-[9px] font-bold text-ink-faint">{[session.date, time, `${working.length} ${t('working sets')}`, `${movements} ${t(movements === 1 ? 'movement' : 'movements')}`].filter(Boolean).join(' · ')}</span>
                 </span>
                 <span aria-hidden className={`mt-1 text-lg font-black text-emerald-800 transition ${open ? 'rotate-180' : ''}`}>⌄</span>
               </button>

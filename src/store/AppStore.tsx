@@ -42,7 +42,7 @@ import {
   normalizeActivityType,
 } from '../lib/activity'
 import { computeTargets, nutritionPlanContext, recommendedGoalForTrainingGoal } from '../lib/nutrition'
-import { missingProfileTrainingGoal } from '../lib/trainingInduction'
+import { missingProfileTrainingGoal, repairProtectedOriginalTrainingProgrammeAddons } from '../lib/trainingInduction'
 import {
   dedupeUpsertRows,
   enqueuePendingSyncOperation,
@@ -730,6 +730,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         next.profile = recovered.data as AppData['profile']
       }
 
+      const protectedProgrammeRepair = repairProtectedOriginalTrainingProgrammeAddons(next)
+      if (protectedProgrammeRepair && next.settings) {
+        next.settings = { ...next.settings, addons: protectedProgrammeRepair }
+      }
       const needsSeedRepair = shouldRepairSeedDefinitions(next)
       if (needsSeedRepair) {
         const { buildSeedData } = await import('../data/seed')
@@ -748,7 +752,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         if (repair.needsRepair) {
           /* Definition rows go first and the profile version marker goes last.
              A second device can therefore resume an interrupted repair safely. */
-          if (repair.settingsChanged && repair.data.settings) {
+          if ((repair.settingsChanged || protectedProgrammeRepair) && repair.data.settings) {
             enqueue({ table: 'settings', type: 'upsert', payload: repair.data.settings })
           }
           for (const id of repair.removed.meals) {
@@ -772,6 +776,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         }
       } else {
         persist(normalizeAppData(next))
+        if (protectedProgrammeRepair && next.settings) {
+          enqueue({ table: 'settings', type: 'upsert', payload: next.settings })
+        }
       }
     } catch {
       toast('Could not reach Supabase, running from local cache')

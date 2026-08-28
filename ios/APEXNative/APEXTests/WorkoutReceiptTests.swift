@@ -148,6 +148,30 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(history.map(\.isQuickLog), [true, false])
     }
 
+    func testRecentHistoryCrossesCalendarDatesButRemainsOwnerScopedAndBounded() {
+        let owner = UUID()
+        let dayID = UUID()
+        let older = workout(
+            userID: owner, date: "2026-08-25", dayID: dayID,
+            completedAt: "2026-08-25T09:00:00.000Z"
+        )
+        let newer = workout(
+            userID: owner, date: "2026-08-26", dayID: dayID,
+            completedAt: "2026-08-26T09:00:00.000Z"
+        )
+        let foreign = workout(
+            userID: UUID(), date: "2026-08-27", dayID: dayID,
+            completedAt: "2026-08-27T09:00:00.000Z"
+        )
+
+        let history = WorkoutReceipt.history(
+            sessions: [older, newer, foreign],
+            days: [], date: nil, ownerID: owner, limit: 1
+        )
+
+        XCTAssertEqual(history.map(\.session.id), [newer.id])
+    }
+
     func testDeletionPlanIncludesOnlyTheOwnedSessionAndItsOwnedSetRows() {
         let owner = UUID()
         let sessionID = UUID()

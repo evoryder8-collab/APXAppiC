@@ -951,7 +951,11 @@ struct APEXDaylineView: View {
     }
 
     var body: some View {
-        TimelineView(.periodic(from: .now, by: 30)) { context in
+        // A moving `.now` anchor changes schedule identity on every view
+        // rebuild. While the surrounding lazy stack scrolls, that can feed an
+        // unbounded AttributeGraph update cycle. A fixed epoch still emits the
+        // same 30-second cadence without invalidating its own schedule.
+        TimelineView(.periodic(from: Date(timeIntervalSinceReferenceDate: 0), by: 30)) { context in
             daylineBody(now: context.date)
         }
     }
@@ -1091,7 +1095,7 @@ struct APEXDaylineView: View {
                                    neighbour, but it still states its own time. */
                                 displayedMinute: dragPreview[entry.id] ?? entry.minute,
                                 isDragging: dragPreview[entry.id] != nil,
-                                timelineOriginY: proxy.frame(in: .global).minY,
+                                timelineCenterY: y,
                                 revealOffset: revealOffset(for: entry),
                                 action: { open(entry) },
                                 /* Absolute Y inside the timeline, so the meal
@@ -1126,7 +1130,7 @@ struct APEXDaylineView: View {
                             DaylineWorkoutRow(
                                 minute: shownMinute,
                                 isDragging: workoutDragPreview[workout.id] != nil,
-                                timelineOriginY: proxy.frame(in: .global).minY,
+                                timelineCenterY: y,
                                 onDragChanged: { locationY in
                                     let snapped = snap(minuteAt(y: locationY, height: timelineHeight))
                                     workoutDragPreview[workout.id] = lineClockMinute(snapped)
@@ -1324,10 +1328,10 @@ struct APEXDaylineView: View {
     }
 
     private func parsedTimestamp(_ value: String) -> Date {
-        let fractional = ISO8601DateFormatter()
-        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
-        if let date = fractional.date(from: value) { return date }
-        return ISO8601DateFormatter().date(from: value) ?? .distantPast
+        if let date = try? Date.ISO8601FormatStyle(includingFractionalSeconds: true).parse(value) {
+            return date
+        }
+        return (try? Date.ISO8601FormatStyle().parse(value)) ?? .distantPast
     }
 
     private func minute(ofClock value: String) -> Int {
@@ -1344,10 +1348,11 @@ private struct DaylineComfortContext {
 
 private struct DaylineWorkoutRow: View {
     @State private var language = LanguageState.shared
+    @State private var holdStartCenterY: CGFloat?
 
     let minute: Int
     let isDragging: Bool
-    let timelineOriginY: CGFloat
+    let timelineCenterY: CGFloat
     let onDragChanged: (CGFloat) -> Void
     let onDragEnded: (CGFloat) -> Void
 
@@ -1399,11 +1404,15 @@ private struct DaylineWorkoutRow: View {
                 onTap: {},
                 onSwipeChanged: { _ in },
                 onSwipeEnded: { _, _ in },
-                onHoldChanged: { y in
-                    onDragChanged(y - timelineOriginY)
+                onHoldChanged: { translation in
+                    let start = holdStartCenterY ?? timelineCenterY
+                    holdStartCenterY = start
+                    onDragChanged(start + translation)
                 },
-                onHoldEnded: { y in
-                    onDragEnded(y - timelineOriginY)
+                onHoldEnded: { translation in
+                    let start = holdStartCenterY ?? timelineCenterY
+                    onDragEnded(start + translation)
+                    holdStartCenterY = nil
                 }
             )
         )
@@ -1421,6 +1430,7 @@ private struct DaylineWorkoutRow: View {
 
 private struct DaylineEntryRow: View {
     @State private var language = LanguageState.shared
+    @State private var holdStartCenterY: CGFloat?
     /* A completed hold-and-drag must not also open the composer on release */
     @State private var dragConsumedTap = false
     /* A finished sideways swipe must not also deliver a tap. The card is a
@@ -1434,9 +1444,8 @@ private struct DaylineEntryRow: View {
     let entry: DaylineEntry
     let displayedMinute: Int
     let isDragging: Bool
-    /// Where the timeline starts on screen, so a hold reported in window
-    /// coordinates can be read as a position along the rail.
-    let timelineOriginY: CGFloat
+    /// The row's stable position in the timeline when a hold begins.
+    let timelineCenterY: CGFloat
     /* Owned by the parent so a data refresh cannot discard it mid-swipe */
     let revealOffset: CGFloat
     let action: () -> Void
@@ -1571,12 +1580,16 @@ private struct DaylineEntryRow: View {
                         swipeConsumedTap = false
                     }
                 },
-                onHoldChanged: { y in
+                onHoldChanged: { translation in
                     dragConsumedTap = true
-                    onDragChanged(y - timelineOriginY)
+                    let start = holdStartCenterY ?? timelineCenterY
+                    holdStartCenterY = start
+                    onDragChanged(start + translation)
                 },
-                onHoldEnded: { y in
-                    onDragEnded(y - timelineOriginY)
+                onHoldEnded: { translation in
+                    let start = holdStartCenterY ?? timelineCenterY
+                    onDragEnded(start + translation)
+                    holdStartCenterY = nil
                     Task { @MainActor in
                         try? await Task.sleep(for: .milliseconds(280))
                         dragConsumedTap = false

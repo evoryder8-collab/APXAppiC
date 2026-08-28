@@ -300,7 +300,7 @@ struct TrainingProgramView: View {
 
                 if slug != "custom" { todayHero }
 
-                CompletedWorkoutHistoryCards(date: Date().apexDateKey, accent: accent)
+                CompletedWorkoutHistoryCards(date: nil, accent: accent, limit: 5)
 
                 if slug == "custom" || hasUsablePrescription {
                     MuscleMapCard(
@@ -312,7 +312,6 @@ struct TrainingProgramView: View {
                         eyebrow: language.text("TODAY'S SIGNAL"),
                         focus: language.text(muscleFocus)
                     )
-                    .accessibilityIdentifier("training-muscle-signal")
                 }
 
                 if slug != "custom" && hasUsablePrescription {

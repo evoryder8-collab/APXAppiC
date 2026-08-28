@@ -295,7 +295,7 @@ struct SettingsView: View {
                 }
                 .disabled(session.isBusy)
 
-                if addonBool("newbie_mode", default: false) || hasInduction {
+                if canRestoreOriginalProgramme {
                     Button {
                         confirmRestorePlan = true
                     } label: {
@@ -327,8 +327,8 @@ struct SettingsView: View {
         }
     }
 
-    private var hasInduction: Bool {
-        TrainingInduction.hasRestorableOverlay(in: session.data)
+    private var canRestoreOriginalProgramme: Bool {
+        TrainingInduction.canRestoreOriginalProgramme(in: session.data)
     }
 
     private var bodyProfileCard: some View {

@@ -78,11 +78,35 @@ test('history returns every completed quick and tracked workout on the date, ind
   assert.equal(history[1]?.isQuickLog, false)
 })
 
+test('recent history crosses calendar dates while remaining owner-scoped and bounded', () => {
+  const data: AppData = {
+    ...EMPTY_DATA,
+    settings: {
+      user_id: 'owner',
+      theme: 'dark',
+      language: 'en',
+      addons: { endurance1: false, endurance2: false, endurance3: false },
+    },
+    workout_sessions: [
+      session({ id: 'newest', date: '2026-08-27', program_day_id: 'day', completed_at: '2026-08-27T19:00:00.000Z' }),
+      session({ id: 'older', date: '2026-08-25', program_day_id: 'day', completed_at: '2026-08-25T19:00:00.000Z' }),
+      session({ id: 'foreign', user_id: 'someone-else', date: '2026-08-28', program_day_id: 'day' }),
+    ],
+  }
+
+  assert.deepEqual(
+    completedWorkoutHistoryForDate(data, undefined, 1).map((item) => item.session.id),
+    ['newest'],
+  )
+})
+
 test('completed workout history is rendered directly below Simple Mode metrics and in phase pages', () => {
   const simple = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
   const phase = readFileSync(new URL('../src/pages/WorkoutSection.tsx', import.meta.url), 'utf8')
   assert.match(simple, /simple-summary-actions[\s\S]*CompletedWorkoutHistoryCards/)
   assert.match(phase, /CompletedWorkoutHistoryCards/)
+  assert.match(simple, /CompletedWorkoutHistoryCards date=\{undefined\} limit=\{5\}/)
+  assert.match(phase, /CompletedWorkoutHistoryCards date=\{undefined\} limit=\{5\}/)
 })
 
 test("Nutrition Today's Activities reuses the same date-owned finished workout receipts", () => {

@@ -17,6 +17,7 @@ enum TrainingInduction {
     static let archivedMarkerKey = "training_induction_archived_day_ids"
     static let pendingMarkerKey = "training_induction_pending_day_ids"
     static let generationRevisionKey = "training_induction_generation_revision"
+    static let protectedOriginalDayIDsKey = "training_induction_protected_original_day_ids"
     static let currentTermsVersion = "2026-08-27"
     static let currentPrivacyVersion = "2026-08-27"
     static let supportedPlanWeeks = [4, 8, 12, 26]
@@ -378,9 +379,146 @@ enum TrainingInduction {
         max(0, settings.addons[generationRevisionKey]?.numberValue.map(Int.init) ?? 0)
     }
 
+    static func protectedOriginalDayIDs(_ settings: UserSettings) -> Set<UUID> {
+        Set(
+            settings.addons[protectedOriginalDayIDsKey]?.arrayValue?
+                .compactMap(\.stringValue)
+                .compactMap(UUID.init(uuidString:)) ?? []
+        )
+    }
+
+    private static func generatedDayIDCandidates(
+        userID: UUID,
+        throughGenerationRevision revision: Int
+    ) -> Set<UUID> {
+        Set((0...max(0, revision)).flatMap { generation in
+            let suffix = generation > 0 ? ":generation:\(generation)" : ""
+            return ["transition", "main"].flatMap { slug in
+                (1...7).map { weekday in
+                    APEXStableID.inductionUUID(
+                        userID: userID,
+                        label: "\(slug):day:\(weekday)\(suffix)"
+                    )
+                }
+            }
+        })
+    }
+
+    private static func inferredOriginalDayIDs(
+        in data: DashboardData,
+        userID: UUID,
+        settings: UserSettings
+    ) -> Set<UUID> {
+        let activeRevision = settings.addons["training_induction"]?
+            .objectValue?["generation_revision"]?.numberValue.map(Int.init) ?? 0
+        let generated = generatedDayIDCandidates(
+            userID: userID,
+            throughGenerationRevision: max(generationRevision(settings), activeRevision)
+        )
+        let authoredProgramIDs = Set(data.programs.lazy.filter {
+            $0.userID == userID && ($0.slug == "transition" || $0.slug == "main")
+        }.map(\.id))
+        let ownedRows = data.programDays.lazy.filter {
+            $0.userID == userID
+                && authoredProgramIDs.contains($0.programID)
+        }
+        let inferred = Set(ownedRows.filter { !generated.contains($0.id) }.map(\.id))
+        /* The guarded 2026-08-24 maintenance repair deliberately preserved
+           historical day IDs for Constantine V8.3 and June V8. One of those
+           IDs began life as an induction ID, so generator-shape inference is
+           insufficient. Keep this manifest byte-aligned with that transaction. */
+        let declared = ownerSuppliedOriginalDayIDs(userID: userID)
+        let installedDeclared = Set(ownedRows.filter { declared.contains($0.id) }.map(\.id))
+        return inferred.union(installedDeclared)
+    }
+
+    private static func ownerSuppliedOriginalDayIDs(userID: UUID) -> Set<UUID> {
+        let identifiers: [String]
+        switch userID.uuidString.lowercased() {
+        case "9a0fffbc-bb02-40ac-834a-d4e339b32574":
+            identifiers = [
+                "11111111-0000-4000-8000-000000000052",
+                "11111111-0000-4000-8000-000000000062",
+                "11111111-0000-4000-8000-000000000069",
+                "11111111-0000-4000-8000-000000000077",
+                "52429d97-dea9-49af-b4bc-f678ad447417",
+                "11111111-0000-4000-8000-000000000095",
+                "11111111-0000-4000-8000-000000000102",
+            ]
+        case "f1cc8158-0480-47c9-a2f1-bd03890182f9":
+            identifiers = [
+                "7e4651e2-59cf-4ef4-b89b-7a451a8c220b",
+                "411f4f19-12bf-41ec-aec1-229fe8712603",
+                "1cb7f1d2-ce9d-4c51-b33b-43a6be21e3a0",
+                "c0612b35-da03-4b4d-8410-16e570bc71c9",
+                "59a496e3-3cda-4d73-806a-b940eace1878",
+                "808d17fa-4b8f-4550-8e9c-1379e0fc677d",
+                "fa9ea127-023a-4e10-b48d-5eed854deacc",
+            ]
+        default:
+            identifiers = []
+        }
+        return Set(identifiers.compactMap(UUID.init(uuidString:)))
+    }
+
+    /// Capture the rows that existed before a questionnaire overlay is saved.
+    /// The marker is account-scoped and immutable across rebuilds, so generated
+    /// rows can never become the next "original" programme by accident.
+    static func protectingOriginalProgramme(
+        _ settings: UserSettings,
+        in data: DashboardData
+    ) -> UserSettings {
+        guard protectedOriginalDayIDs(settings).isEmpty else { return settings }
+        let ids = inferredOriginalDayIDs(in: data, userID: settings.userID, settings: settings)
+        guard !ids.isEmpty else { return settings }
+        var updated = settings
+        writeProtectedOriginalDayIDs(ids, to: &updated)
+        return updated
+    }
+
+    /// Repairs the legacy failure where generated-plan cleanup accidentally
+    /// put an authored day ID in the archive marker. Deterministic induction
+    /// IDs stay archived; another account's rows are never considered.
+    static func repairingProtectedOriginalProgramme(in data: DashboardData) -> DashboardData? {
+        guard var settings = data.settings,
+              let userID = data.profile?.userID ?? data.settings?.userID,
+              settings.userID == userID else { return nil }
+        let existingProtection = protectedOriginalDayIDs(settings)
+        let protected = existingProtection.isEmpty
+            ? inferredOriginalDayIDs(in: data, userID: userID, settings: settings)
+            : existingProtection
+        let archived = archivedDayIDs(settings)
+        guard !protected.isEmpty,
+              !archived.intersection(protected).isEmpty else { return nil }
+
+        writeProtectedOriginalDayIDs(protected, to: &settings)
+        writeArchivedDayIDs(archived.subtracting(protected), to: &settings)
+        var repaired = data
+        repaired.settings = settings
+        return repaired
+    }
+
     private static func writeArchivedDayIDs(_ ids: Set<UUID>, to settings: inout UserSettings) {
-        guard !ids.isEmpty else { return }
+        guard !ids.isEmpty else {
+            settings.addons.removeValue(forKey: archivedMarkerKey)
+            return
+        }
         settings.addons[archivedMarkerKey] = .array(
+            ids.map { $0.uuidString.lowercased() }
+                .sorted()
+                .map(JSONValue.string)
+        )
+    }
+
+    private static func writeProtectedOriginalDayIDs(
+        _ ids: Set<UUID>,
+        to settings: inout UserSettings
+    ) {
+        guard !ids.isEmpty else {
+            settings.addons.removeValue(forKey: protectedOriginalDayIDsKey)
+            return
+        }
+        settings.addons[protectedOriginalDayIDsKey] = .array(
             ids.map { $0.uuidString.lowercased() }
                 .sorted()
                 .map(JSONValue.string)
@@ -410,7 +548,9 @@ enum TrainingInduction {
     /// Recover only IDs that match that generator exactly; arbitrary authored
     /// rows are never inferred from a programme slug or weekday.
     static func legacyGeneratedDayIDs(in data: DashboardData, userID: UUID) -> Set<UUID> {
-        let archived = data.settings.map(archivedDayIDs) ?? []
+        let archived = data.settings.map {
+            archivedDayIDs($0).subtracting(protectedOriginalDayIDs($0))
+        } ?? []
         let candidates = Set(["transition", "main"].flatMap { slug in
             (1...7).map {
                 APEXStableID.inductionUUID(userID: userID, label: "\(slug):day:\($0)")
@@ -426,7 +566,9 @@ enum TrainingInduction {
             return []
         }
         if let settings = data.settings, settings.userID != userID { return [] }
-        let archived = data.settings.map(archivedDayIDs) ?? []
+        let archived = data.settings.map {
+            archivedDayIDs($0).subtracting(protectedOriginalDayIDs($0))
+        } ?? []
         let pending = data.settings.map(pendingDayIDs) ?? []
         return data.programDays.filter {
             $0.userID == userID
@@ -502,7 +644,9 @@ enum TrainingInduction {
     /// Remove only the rows claimed by the generated overlay. Authored rows
     /// and programme metadata remain byte-for-byte intact.
     static func restoration(in data: DashboardData, userID: UUID) -> Restoration? {
-        guard var settings = data.settings,
+        let planRepair = repairingProtectedOriginalProgramme(in: data)
+        let source = planRepair ?? data
+        guard var settings = source.settings,
               settings.userID == userID else {
             return nil
         }
@@ -517,18 +661,25 @@ enum TrainingInduction {
             generatedDayIDs.formUnion(claimedDayIDs(in: induction, slug: "transition"))
             generatedDayIDs.formUnion(claimedDayIDs(in: induction, slug: "main"))
         }
-        generatedDayIDs.formUnion(legacyGeneratedDayIDs(in: data, userID: userID))
-        guard !generatedDayIDs.isEmpty || hasInductionMarker || hasNewbieMode else { return nil }
-        let archivedProgramDays = data.programDays.filter {
+        generatedDayIDs.formUnion(legacyGeneratedDayIDs(in: source, userID: userID))
+        let protected = protectedOriginalDayIDs(settings)
+        guard !generatedDayIDs.isEmpty
+                || hasInductionMarker
+                || hasNewbieMode
+                || planRepair != nil
+                || !protected.isEmpty
+        else { return nil }
+        let archivedProgramDays = source.programDays.filter {
             $0.userID == userID && generatedDayIDs.contains($0.id)
         }
-        let preservedExercises = data.exercises.filter {
+        let preservedExercises = source.exercises.filter {
             $0.userID == userID && generatedDayIDs.contains($0.programDayID)
         }
 
-        var restored = data
+        var restored = source
         var archivedIDs = archivedDayIDs(settings)
         archivedIDs.formUnion(generatedDayIDs)
+        archivedIDs.subtract(protected)
         writeArchivedDayIDs(archivedIDs, to: &settings)
         if hasInductionMarker || !generatedDayIDs.isEmpty {
             let activeInduction = settings.addons["training_induction"]?.objectValue
@@ -550,8 +701,24 @@ enum TrainingInduction {
     }
 
     static func hasRestorableOverlay(in data: DashboardData) -> Bool {
-        guard let userID = data.profile?.userID ?? data.settings?.userID else { return false }
-        return restoration(in: data, userID: userID) != nil
+        guard let settings = data.settings,
+              let userID = data.profile?.userID ?? data.settings?.userID,
+              settings.userID == userID else { return false }
+        let hasInductionMarker: Bool = {
+            guard let value = settings.addons["training_induction"] else { return false }
+            if case .null = value { return false }
+            return true
+        }()
+        return hasInductionMarker
+            || settings.addons["newbie_mode"]?.boolValue == true
+            || !pendingDayIDs(settings).isEmpty
+            || !legacyGeneratedDayIDs(in: data, userID: userID).isEmpty
+    }
+
+    static func canRestoreOriginalProgramme(in data: DashboardData) -> Bool {
+        hasRestorableOverlay(in: data)
+            || data.settings.map { !protectedOriginalDayIDs($0).isEmpty } == true
+            || repairingProtectedOriginalProgramme(in: data) != nil
     }
 
     static func applyingGeneratedPlan(

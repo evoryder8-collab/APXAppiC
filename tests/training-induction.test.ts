@@ -11,6 +11,7 @@ import {
   activeTrainingProgramDays,
   archivedTrainingDayIds,
   assessTrainingInput,
+  canRestoreOriginalTrainingProgramme,
   commitTrainingPlanAddons,
   generateTrainingPlan,
   invalidateTrainingPlanAddons,
@@ -305,6 +306,44 @@ test('native and web rebuild metadata archives history and activates only the co
     [...first.program_days, ...second.program_days].some((day) => day.id === restoredPlan.programDay?.id),
     false,
   )
+})
+
+test('Constantine V8.3 Friday remains active despite its historical generated-ID collision', () => {
+  const constantineId = '9a0fffbc-bb02-40ac-834a-d4e339b32574'
+  const fridayId = '52429d97-dea9-49af-b4bc-f678ad447417'
+  const seeded = buildSeedData(constantineId, 'constantine')
+  const main = seeded.programs.find((program) => program.slug === 'main')!
+  const friday = {
+    id: fridayId,
+    user_id: constantineId,
+    program_id: main.id,
+    weekday: 5,
+    name: 'Legs B · lunge day + Focus T25',
+    day_type: 'legs_b',
+    est_minutes: 60,
+    warmup_note: 'Authored V8.3 Friday',
+    sort_order: 4,
+  }
+  const data = {
+    ...seeded,
+    program_days: [
+      ...seeded.program_days.filter((day) => day.program_id !== main.id || day.weekday !== 5),
+      friday,
+    ],
+    settings: {
+      ...seeded.settings!,
+      addons: {
+        ...seeded.settings!.addons,
+        training_induction: null,
+        training_induction_archived_day_ids: [fridayId],
+        training_induction_generation_revision: 5,
+      },
+    },
+  }
+
+  assert.equal(activeTrainingProgramDays(data).some((day) => day.id === fridayId), true)
+  assert.equal(planForDate(data, 'main', '2026-08-28', false).programDay?.id, fridayId)
+  assert.equal(canRestoreOriginalTrainingProgramme(data), true)
 })
 
 test('native-shaped induction metadata is canonical before the web form or generator uses it', () => {

@@ -500,6 +500,7 @@ export interface GeneratedTrainingPlan {
 type TrainingAddons = Settings['addons']
 
 const ARCHIVED_DAY_IDS_KEY = 'training_induction_archived_day_ids' as const
+const PROTECTED_ORIGINAL_DAY_IDS_KEY = 'training_induction_protected_original_day_ids' as const
 const PENDING_DAY_IDS_KEY = 'training_induction_pending_day_ids' as const
 const GENERATION_REVISION_KEY = 'training_induction_generation_revision' as const
 
@@ -520,6 +521,122 @@ export function pendingTrainingDayIds(addons: TrainingAddons | null | undefined)
   return new Set(stringArray(addons?.[PENDING_DAY_IDS_KEY]))
 }
 
+function storedProtectedOriginalDayIds(addons: TrainingAddons | null | undefined): Set<string> {
+  return new Set(stringArray(addons?.[PROTECTED_ORIGINAL_DAY_IDS_KEY]))
+}
+
+function ownerSuppliedOriginalDayIds(userId: string): Set<string> {
+  const ids: Record<string, string[]> = {
+    '9a0fffbc-bb02-40ac-834a-d4e339b32574': [
+      '11111111-0000-4000-8000-000000000052',
+      '11111111-0000-4000-8000-000000000062',
+      '11111111-0000-4000-8000-000000000069',
+      '11111111-0000-4000-8000-000000000077',
+      '52429d97-dea9-49af-b4bc-f678ad447417',
+      '11111111-0000-4000-8000-000000000095',
+      '11111111-0000-4000-8000-000000000102',
+    ],
+    'f1cc8158-0480-47c9-a2f1-bd03890182f9': [
+      '7e4651e2-59cf-4ef4-b89b-7a451a8c220b',
+      '411f4f19-12bf-41ec-aec1-229fe8712603',
+      '1cb7f1d2-ce9d-4c51-b33b-43a6be21e3a0',
+      'c0612b35-da03-4b4d-8410-16e570bc71c9',
+      '59a496e3-3cda-4d73-806a-b940eace1878',
+      '808d17fa-4b8f-4550-8e9c-1379e0fc677d',
+      'fa9ea127-023a-4e10-b48d-5eed854deacc',
+    ],
+  }
+  return new Set(ids[userId] ?? [])
+}
+
+function generatedDayIdCandidates(userId: string, throughRevision: number): Set<string> {
+  const candidates = new Set<string>()
+  for (let revision = 0; revision <= throughRevision; revision += 1) {
+    const suffix = revision > 0 ? `:generation:${revision}` : ''
+    for (const slug of ['transition', 'main'] as const) {
+      for (let weekday = 1; weekday <= 7; weekday += 1) {
+        candidates.add(stableUuid(userId, `${slug}:day:${weekday}${suffix}`))
+      }
+    }
+  }
+  return candidates
+}
+
+function protectedOriginalDayIds(data: AppData, userId: string): Set<string> {
+  const presentOwnedIds = new Set(data.program_days
+    .filter((day) => day.user_id === userId)
+    .map((day) => day.id))
+  const protectedIds = new Set([...storedProtectedOriginalDayIds(data.settings?.addons)]
+    .filter((id) => presentOwnedIds.has(id)))
+  for (const id of ownerSuppliedOriginalDayIds(userId)) {
+    if (presentOwnedIds.has(id)) protectedIds.add(id)
+  }
+  return protectedIds
+}
+
+function inferredOriginalDayIds(data: AppData, userId: string): Set<string> {
+  const addons = data.settings?.addons
+  const explicit = ownerSuppliedOriginalDayIds(userId)
+  const pending = pendingTrainingDayIds(addons)
+  const throughRevision = Math.max(
+    trainingGenerationRevision(addons),
+    profileGenerationRevision(addons?.training_induction),
+  ) + 1
+  const generated = generatedDayIdCandidates(userId, throughRevision)
+  return new Set(data.program_days
+    .filter((day) => (
+      day.user_id === userId
+      && !pending.has(day.id)
+      && (!generated.has(day.id) || explicit.has(day.id))
+    ))
+    .map((day) => day.id))
+}
+
+export function protectOriginalTrainingProgrammeAddons(data: AppData): TrainingAddons | null {
+  const settings = data.settings
+  const userId = data.profile?.user_id ?? settings?.user_id
+  if (!settings || !userId) return null
+  const protectedIds = sortedIds([
+    ...protectedOriginalDayIds(data, userId),
+    ...inferredOriginalDayIds(data, userId),
+  ])
+  if (protectedIds.length === 0) return settings.addons
+  return { ...settings.addons, [PROTECTED_ORIGINAL_DAY_IDS_KEY]: protectedIds }
+}
+
+export function repairProtectedOriginalTrainingProgrammeAddons(data: AppData): TrainingAddons | null {
+  const settings = data.settings
+  const userId = data.profile?.user_id ?? settings?.user_id
+  if (!settings || !userId) return null
+  const protectedAddons = protectOriginalTrainingProgrammeAddons(data) ?? settings.addons
+  const protectedIds = protectedOriginalDayIds(
+    { ...data, settings: { ...settings, addons: protectedAddons } },
+    userId,
+  )
+  const repairedArchive = sortedIds([...archivedTrainingDayIds(protectedAddons)]
+    .filter((id) => !protectedIds.has(id)))
+  const currentArchive = sortedIds(archivedTrainingDayIds(settings.addons))
+  const currentProtected = sortedIds(storedProtectedOriginalDayIds(settings.addons))
+  const nextProtected = sortedIds(storedProtectedOriginalDayIds(protectedAddons))
+  if (
+    JSON.stringify(currentArchive) === JSON.stringify(repairedArchive)
+    && JSON.stringify(currentProtected) === JSON.stringify(nextProtected)
+  ) return null
+  const repaired = { ...protectedAddons }
+  if (repairedArchive.length > 0) repaired[ARCHIVED_DAY_IDS_KEY] = repairedArchive
+  else delete repaired[ARCHIVED_DAY_IDS_KEY]
+  return repaired
+}
+
+export function canRestoreOriginalTrainingProgramme(data: AppData): boolean {
+  const settings = data.settings
+  const userId = data.profile?.user_id ?? settings?.user_id
+  if (!settings || !userId) return false
+  return protectedOriginalDayIds(data, userId).size > 0
+    || claimedDayIds(settings.addons.training_induction).length > 0
+    || pendingTrainingDayIds(settings.addons).size > 0
+}
+
 export function trainingGenerationRevision(addons: TrainingAddons | null | undefined): number {
   const value = addons?.[GENERATION_REVISION_KEY]
   return typeof value === 'number' && Number.isFinite(value) ? Math.max(0, Math.trunc(value)) : 0
@@ -536,6 +653,7 @@ export function invalidateTrainingPlanAddons(
   const revision = hasMarker || additional.length > 0
     ? Math.max(trainingGenerationRevision(addons), activeRevision) + 1
     : trainingGenerationRevision(addons)
+  const protectedIds = storedProtectedOriginalDayIds(addons)
   return {
     ...addons,
     newbie_mode: false,
@@ -544,7 +662,7 @@ export function invalidateTrainingPlanAddons(
       ...archivedTrainingDayIds(addons),
       ...active,
       ...additional,
-    ]),
+    ].filter((id) => !protectedIds.has(id))),
     [GENERATION_REVISION_KEY]: revision,
   }
 }
@@ -587,21 +705,27 @@ function legacyGeneratedDayIds(data: AppData, userId: string): string[] {
     }
   }
   const archived = archivedTrainingDayIds(data.settings?.addons)
+  const protectedIds = protectedOriginalDayIds(data, userId)
   return data.program_days
-    .filter((day) => day.user_id === userId && candidates.has(day.id) && !archived.has(day.id))
+    .filter((day) => day.user_id === userId && candidates.has(day.id) && !archived.has(day.id) && !protectedIds.has(day.id))
     .map((day) => day.id)
 }
 
 export function restoreTrainingPlanAddons(data: AppData): TrainingAddons | null {
   const settings = data.settings
   if (!settings) return null
-  const addons = settings.addons
+  const addons = protectOriginalTrainingProgrammeAddons(data) ?? settings.addons
   const userId = data.profile?.user_id ?? settings.user_id
+  const protectedIds = protectedOriginalDayIds(
+    { ...data, settings: { ...settings, addons } },
+    userId,
+  )
   const active = claimedDayIds(addons.training_induction)
   const pending = [...pendingTrainingDayIds(addons)]
   const legacy = legacyGeneratedDayIds(data, userId)
   const hasObjectMarker = jsonRecord(addons.training_induction) != null
-  if (!addons.newbie_mode && !hasObjectMarker && active.length === 0 && pending.length === 0 && legacy.length === 0) return null
+  const removesGeneratedPlan = Boolean(addons.newbie_mode || hasObjectMarker || active.length || pending.length || legacy.length)
+  if (!removesGeneratedPlan && protectedIds.size === 0) return null
 
   const restored = { ...addons }
   delete restored[PENDING_DAY_IDS_KEY]
@@ -614,11 +738,11 @@ export function restoreTrainingPlanAddons(data: AppData): TrainingAddons | null 
       ...active,
       ...pending,
       ...legacy,
-    ]),
+    ].filter((id) => !protectedIds.has(id))),
     [GENERATION_REVISION_KEY]: Math.max(
       trainingGenerationRevision(addons),
       profileGenerationRevision(addons.training_induction),
-    ) + 1,
+    ) + (removesGeneratedPlan ? 1 : 0),
   }
 }
 
@@ -627,8 +751,9 @@ export function activeTrainingProgramDays(data: AppData): ProgramDay[] {
   if (!userId) return []
   const archived = archivedTrainingDayIds(data.settings?.addons)
   const pending = pendingTrainingDayIds(data.settings?.addons)
+  const protectedIds = protectedOriginalDayIds(data, userId)
   return data.program_days.filter((day) =>
-    day.user_id === userId && !archived.has(day.id) && !pending.has(day.id))
+    day.user_id === userId && (!archived.has(day.id) || protectedIds.has(day.id)) && !pending.has(day.id))
 }
 
 export function generateTrainingPlan(
