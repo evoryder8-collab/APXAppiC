@@ -305,6 +305,7 @@ struct TrainingProgramView: View {
                 if slug == "custom" || hasUsablePrescription {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,
+                        sessionDate: Date().apexDateKey,
                         exerciseNames: todayExerciseNames,
                         height: 442,
                         accent: accent,
@@ -1178,6 +1179,7 @@ struct WorkoutDayView: View {
             VStack(spacing: 17) {
                 MuscleMapCard(
                     dayType: day.dayType,
+                    sessionDate: date,
                     exerciseNames: exercises.map(\.name),
                     height: 270,
                     accent: accent

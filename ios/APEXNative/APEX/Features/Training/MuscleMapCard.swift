@@ -51,7 +51,10 @@ final class MuscleMapController {
 }
 
 struct MuscleMapCard: View {
+    @Environment(AppSession.self) private var session
+
     let dayType: String
+    var sessionDate: String? = nil
     var exerciseNames: [String] = []
     /* 30% taller than it was. The session title sat across the figure's neck,
        because the label and the model were competing for the same band of the
@@ -158,6 +161,12 @@ struct MuscleMapCard: View {
         .sheet(isPresented: $showBriefing) {
             SessionBriefingSheet(
                 briefing: SessionBriefing.briefing(dayType: dayType, exercises: exerciseNames),
+                knowledge: SessionBriefing.knowledge(context: SessionBriefing.knowledgeContext(
+                    dayType: dayType,
+                    exerciseNames: exerciseNames,
+                    date: sessionDate,
+                    data: session.data
+                )),
                 accent: accent
             ) { showBriefing = false }
             .apexTransientSheet(.fraction(0.66))

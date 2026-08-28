@@ -3,6 +3,7 @@ import SwiftUI
 /// What the "i" on the figure opens: today's session, explained.
 struct SessionBriefingSheet: View {
     let briefing: SessionBriefing.Briefing
+    var knowledge: SessionBriefing.Knowledge = .empty
     var accent: Color = APEXColor.violet
     var onClose: () -> Void
 
@@ -35,6 +36,34 @@ struct SessionBriefingSheet: View {
                     label: language.text("Why this shape"),
                     body: language.text(briefing.rationale)
                 )
+
+                if !knowledge.lessonKeys.isEmpty {
+                    section(
+                        label: language.text("What this session trains"),
+                        body: knowledge.lessonKeys
+                            .map(language.text)
+                            .joined(separator: "\n\n")
+                    )
+                    .accessibilityIdentifier("session-briefing-knowledge")
+                }
+
+                if let contextNoteKey = knowledge.contextNoteKey {
+                    section(
+                        label: language.text("For this session"),
+                        body: language.text(contextNoteKey)
+                    )
+                    .accessibilityIdentifier("session-briefing-context")
+                }
+
+                if !knowledge.cautionKeys.isEmpty {
+                    section(
+                        label: language.text("Worth knowing"),
+                        body: knowledge.cautionKeys
+                            .map(language.text)
+                            .joined(separator: "\n\n")
+                    )
+                    .accessibilityIdentifier("session-briefing-cautions")
+                }
 
                 section(
                     label: language.text("What matters most today"),

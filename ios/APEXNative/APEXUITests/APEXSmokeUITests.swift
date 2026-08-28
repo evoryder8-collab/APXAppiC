@@ -429,6 +429,39 @@ final class APEXSmokeUITests: XCTestCase {
         capture("training-calendar-no-prescription")
     }
 
+    func testSessionBriefingShowsMovementKnowledgeAndSessionContext() {
+        let app = configuredApp()
+        app.launch()
+
+        let main = app.buttons["portal.main"]
+        XCTAssertTrue(scrollUntilVisible(main, in: app))
+        main.tap()
+
+        let briefing = app.buttons["What this session trains"]
+        XCTAssertTrue(scrollUntilVisible(briefing, in: app, attempts: 12))
+        tapClearOfDock(briefing)
+
+        let sessionContext = app.descendants(matching: .any)["session-briefing-context"]
+        XCTAssertTrue(scrollUntilVisible(sessionContext, in: app, attempts: 12))
+
+        let lessonOpeners = [
+            "Strength and bodyweight work improve",
+            "Mobility work can change",
+            "Yoga here is practice",
+            "An isometric builds strength",
+            "A carry links grip",
+            "Steady cardio is its own",
+            "Recovery makes hard intervals",
+            "Easy recovery work may change",
+        ]
+        XCTAssertTrue(lessonOpeners.contains { opener in
+            app.staticTexts.matching(
+                NSPredicate(format: "label BEGINSWITH %@", opener)
+            ).firstMatch.exists
+        })
+        capture("session-briefing-movement-knowledge")
+    }
+
     func testCustomWorkoutBuilderExposesTheCanonicalLibraryAndSelectsASportMovement() {
         let app = configuredApp()
         app.launch()
