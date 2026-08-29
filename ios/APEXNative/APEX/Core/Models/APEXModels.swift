@@ -1436,6 +1436,28 @@ struct ImportedActivity: Codable, Identifiable, Hashable, Sendable {
         )
     }
 
+    func linkingToAPEXSession(_ sessionID: UUID?) -> ImportedActivity {
+        ImportedActivity(
+            id: id,
+            userID: userID,
+            date: date,
+            kind: kind,
+            activity: activity,
+            durationMinutes: durationMinutes,
+            source: source,
+            healthKitWorkoutID: healthKitWorkoutID,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            workoutNameKey: workoutNameKey,
+            distanceKM: distanceKM,
+            activeEnergyKcal: activeEnergyKcal,
+            sourceBundleIdentifier: sourceBundleIdentifier,
+            activityTypeRaw: activityTypeRaw,
+            apexWorkoutSessionID: sessionID,
+            hiddenAt: hiddenAt
+        )
+    }
+
     var isVisibleInAPEX: Bool {
         hiddenAt == nil
     }

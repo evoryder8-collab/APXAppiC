@@ -5030,3 +5030,24 @@
 "Fitness initiation" = "Inițiere în fitness";
 "It's time to transform, no excuses" = "E timpul să te transformi, fără scuze";
 "Build a new plan" = "Creează un plan nou";
+
+/* Linked wearable workout evidence · 2026-08-29 */
+"Already finished?" = "Ai terminat deja?";
+"Pause this follow-along and finish with an external wearable activity." = "Pune pe pauză această sesiune ghidată și finalizeaz-o cu o activitate externă de pe dispozitivul purtabil.";
+"Session recovery" = "Finalizarea sesiunii";
+"Did you finish this planned workout on your own?" = "Ai terminat deja pe cont propriu acest antrenament planificat?";
+"APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session." = "APEX a pus pe pauză sesiunea ghidată. Păstrează doar datele pe care le-ai înregistrat deja aici, apoi asociază opțional efortul de pe dispozitivul purtabil care aparține acestei sesiuni.";
+"Choose the wearable activity that matches this workout" = "Alege activitatea de pe dispozitivul purtabil care corespunde acestui antrenament";
+"Refresh workouts" = "Actualizează antrenamentele";
+"No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one." = "Nu s-au găsit antrenamente de pe dispozitivul purtabil pentru această zi. Actualizează după ce activitatea ajunge în Apple Health sau finalizează fără un dispozitiv purtabil.";
+"Use this activity and finish" = "Folosește această activitate și finalizează";
+"Finish without a wearable" = "Finalizează fără un dispozitiv purtabil";
+"Yes, choose wearable activity" = "Da, alege activitatea de pe dispozitiv";
+"Finished without a wearable" = "Terminat fără dispozitiv purtabil";
+"No, keep training" = "Nu, continuă antrenamentul";
+"Not selected" = "Neselectat";
+"Linked wearable effort" = "Efort asociat de pe dispozitiv";
+"Device metrics are read-only and are not added to HealthKit energy twice." = "Măsurătorile dispozitivului sunt doar pentru citire și nu se adaugă din nou la energia din HealthKit.";
+"Wearable linked" = "Dispozitiv asociat";
+"Completed externally from the APEX guided player" = "Finalizat extern din playerul ghidat APEX";
+"That wearable activity is no longer available. Choose it again." = "Activitatea respectivă de pe dispozitiv nu mai este disponibilă. Alege-o din nou.";

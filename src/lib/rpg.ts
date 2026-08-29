@@ -20,7 +20,7 @@ import type { AppData, DayType, Profile, RecoveryDataSource, RpgSnapshot } from 
 import { computeTargets, nutritionPlanContext } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
 import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
-import { visibleImportedActivitiesForOwner } from './importedActivityVisibility.ts'
+import { signalBearingImportedActivitiesForOwner } from './importedActivityVisibility.ts'
 
 export interface StatBlock {
   health: number
@@ -169,7 +169,7 @@ const FLEX_TYPES: DayType[] = ['mobility', 'fix']
 export function computeEngine(data: AppData, throughDate: string): EngineResult {
   const profile = data.profile
   if (!profile) return { snapshots: [], synergies: [] }
-  const importedActivities = visibleImportedActivitiesForOwner(data)
+  const importedActivities = signalBearingImportedActivitiesForOwner(data)
   const start = profile.baseline_date
   const total = differenceInCalendarDays(
     new Date(throughDate + 'T12:00:00'),
@@ -611,7 +611,7 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
     if (key && (!lastFed[key] || s.date > (lastFed[key] as string))) lastFed[key] = s.date
   }
   /* imported activities also count as feeding for advice purposes */
-  for (const imp of visibleImportedActivitiesForOwner(data)) {
+  for (const imp of signalBearingImportedActivitiesForOwner(data)) {
     const key = imp.kind === 'strength' ? 'upper' : imp.kind === 'endurance' ? 'endurance' : 'flexibility'
     if (!lastFed[key] || imp.date > (lastFed[key] as string)) lastFed[key] = imp.date
   }
@@ -799,7 +799,7 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
   for (const metric of data.health_metrics) {
     if (metric.date >= recentStart && metric.date <= now.date) evidenceDays.add(metric.date)
   }
-  for (const activity of visibleImportedActivitiesForOwner(data)) {
+  for (const activity of signalBearingImportedActivitiesForOwner(data)) {
     if (activity.date >= recentStart && activity.date <= now.date) evidenceDays.add(activity.date)
   }
   const confidence: BodyAssessment['confidence'] =

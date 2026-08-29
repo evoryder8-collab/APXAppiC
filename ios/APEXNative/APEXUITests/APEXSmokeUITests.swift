@@ -200,7 +200,7 @@ final class APEXSmokeUITests: XCTestCase {
         tapClearOfDock(transition)
 
         let allElements = app.descendants(matching: .any)
-        let signal = allElements["training-today-signal"].firstMatch
+        let signal = allElements["training-muscle-signal"].firstMatch
         let today = allElements["training-today-card"].firstMatch
         let mode = allElements["training-session-mode"].firstMatch
         let calendar = allElements["training-calendar"].firstMatch
@@ -858,6 +858,48 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(app.buttons["workout-skip-rest"].isEnabled)
         app.buttons["workout-skip-rest"].tap()
         XCTAssertTrue(app.descendants(matching: .any)["workout-phase-active"].waitForExistence(timeout: 2))
+    }
+
+    func testAlreadyFinishedPausesAndCompletesWithoutInventingSets() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
+        app.buttons["portal.transition"].tap()
+
+        let trainingDay = app.buttons.matching(
+            NSPredicate(format: "identifier BEGINSWITH %@", "training-day-")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(trainingDay, in: app))
+        trainingDay.tap()
+
+        let start = app.buttons["workout-start-session"]
+        XCTAssertTrue(start.waitForExistence(timeout: 5))
+        XCTAssertTrue(scrollUntilVisible(start, in: app))
+        app.swipeUp()
+        tapClearOfDock(start)
+
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 10))
+        let recovery = app.buttons["workout-already-finished"]
+        XCTAssertTrue(recovery.waitForExistence(timeout: 2))
+        recovery.tap()
+
+        XCTAssertTrue(app.buttons["workout-already-finished-choose-wearable"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["Did you finish this planned workout on your own?"].exists)
+        app.buttons["workout-already-finished-cancel"].tap()
+        XCTAssertTrue(app.descendants(matching: .any)["workout-phase-warmup"].waitForExistence(timeout: 3))
+
+        recovery.tap()
+        let withoutWearable = app.buttons["workout-already-finished-without-wearable"]
+        XCTAssertTrue(withoutWearable.waitForExistence(timeout: 3))
+        withoutWearable.tap()
+
+        let done = app.buttons["workout-receipt-done"]
+        XCTAssertTrue(done.waitForExistence(timeout: 10), "external completion should open the normal receipt")
+        XCTAssertTrue(app.staticTexts["Stats at a glance"].exists)
+        capture("workout-already-finished-receipt")
+        done.tap()
     }
 
     /// A finished session used to save and vanish. The receipt is the only

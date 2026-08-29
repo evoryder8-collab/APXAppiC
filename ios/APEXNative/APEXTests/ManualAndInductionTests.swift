@@ -654,7 +654,9 @@ final class TrainingInductionTests: XCTestCase {
         let completion = String(appSession[start.lowerBound..<end.lowerBound])
         XCTAssertTrue(completion.contains("guard let ownerID = TrainingInduction.workoutOwnerID"))
         XCTAssertFalse(completion.contains("guard let profile else { return nil }"))
-        XCTAssertTrue(completion.contains("if let profile, profile.userID == ownerID"))
+        XCTAssertTrue(completion.contains(
+            "if wearableLinkRequest == .automatic,\n           let profile, profile.userID == ownerID"
+        ))
         XCTAssertGreaterThanOrEqual(
             completion.components(separatedBy: "ownerID: ownerID").count - 1,
             2,
@@ -2205,7 +2207,7 @@ final class TrainingInductionTests: XCTestCase {
         let source = try String(
             contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift")
         )
-        let signal = try XCTUnwrap(source.range(of: "training-today-signal")?.lowerBound)
+        let signal = try XCTUnwrap(source.range(of: "MuscleMapCard(")?.lowerBound)
         let today = try XCTUnwrap(source.range(of: "training-today-card")?.lowerBound)
         let mode = try XCTUnwrap(source.range(of: "training-session-mode")?.lowerBound)
         let calendar = try XCTUnwrap(source.range(of: "training-calendar")?.lowerBound)

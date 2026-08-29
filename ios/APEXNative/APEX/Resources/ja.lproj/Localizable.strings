@@ -5048,3 +5048,24 @@
 "Fitness initiation" = "フィットネスの始動";
 "It's time to transform, no excuses" = "変わる時だ。言い訳はなし";
 "Build a new plan" = "新しいプランを作成";
+
+/* Linked wearable workout evidence · 2026-08-29 */
+"Already finished?" = "もう完了しましたか？";
+"Pause this follow-along and finish with an external wearable activity." = "このガイド付きセッションを一時停止し、外部ウェアラブルのアクティビティで完了します。";
+"Session recovery" = "セッションの完了";
+"Did you finish this planned workout on your own?" = "この予定ワークアウトを自分で完了しましたか？";
+"APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session." = "APEXはガイド付きセッションを一時停止しました。ここですでに記録したデータだけを残し、必要に応じてこのセッションに対応するウェアラブルのアクティビティを連携してください。";
+"Choose the wearable activity that matches this workout" = "このワークアウトに対応するウェアラブルのアクティビティを選択";
+"Refresh workouts" = "ワークアウトを更新";
+"No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one." = "この日のウェアラブルワークアウトが見つかりません。アクティビティがApple Healthに反映されたら更新するか、ウェアラブルなしで完了してください。";
+"Use this activity and finish" = "このアクティビティを使って完了";
+"Finish without a wearable" = "ウェアラブルなしで完了";
+"Yes, choose wearable activity" = "はい、ウェアラブルのアクティビティを選ぶ";
+"Finished without a wearable" = "ウェアラブルなしで完了済み";
+"No, keep training" = "いいえ、トレーニングを続ける";
+"Not selected" = "未選択";
+"Linked wearable effort" = "連携したウェアラブルの運動";
+"Device metrics are read-only and are not added to HealthKit energy twice." = "デバイスの指標は読み取り専用で、HealthKitの消費エネルギーに重複して加算されません。";
+"Wearable linked" = "ウェアラブル連携済み";
+"Completed externally from the APEX guided player" = "APEXガイドプレーヤーから外部で完了";
+"That wearable activity is no longer available. Choose it again." = "そのウェアラブルアクティビティは利用できなくなりました。もう一度選択してください。";

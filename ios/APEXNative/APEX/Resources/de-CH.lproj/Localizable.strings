@@ -5047,3 +5047,24 @@
 "Fitness initiation" = "Fitness-Iistig";
 "It's time to transform, no excuses" = "Ziit für Veränderig – kei Usrede";
 "Build a new plan" = "Neuen Plan erstelle";
+
+/* Linked wearable workout evidence · 2026-08-29 */
+"Already finished?" = "Scho fertig?";
+"Pause this follow-along and finish with an external wearable activity." = "Pausier die geführti Einheit und schlüss sie mit ere externe Wearable-Aktivität ab.";
+"Session recovery" = "Einheit abschlüsse";
+"Did you finish this planned workout on your own?" = "Hesch das plant Training scho sälber fertig gmacht?";
+"APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session." = "APEX het die geführti Einheit pausiert. Behalt nur d Date, wo du da scho erfasst hesch, und verknüpf optional die passendi Wearable-Aktivität.";
+"Choose the wearable activity that matches this workout" = "Wähl die Wearable-Aktivität, wo zu dem Training ghört";
+"Refresh workouts" = "Trainings aktualisiere";
+"No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one." = "Für dä Tag sind kei Wearable-Trainings gfunde worde. Aktualisier, sobald d Aktivität i Apple Health isch, oder schlüss ohni Wearable ab.";
+"Use this activity and finish" = "Die Aktivität bruuche und abschlüsse";
+"Finish without a wearable" = "Ohni Wearable abschlüsse";
+"Yes, choose wearable activity" = "Ja, Wearable-Aktivität wähle";
+"Finished without a wearable" = "Ohni Wearable fertig";
+"No, keep training" = "Nei, wiitertrainiere";
+"Not selected" = "Nöd usgwählt";
+"Linked wearable effort" = "Verknüpfti Wearable-Aktivität";
+"Device metrics are read-only and are not added to HealthKit energy twice." = "Gerätedate sind schriibgschützt und werded nöd nomal zur HealthKit-Energie dezuegrechnet.";
+"Wearable linked" = "Wearable verknüpft";
+"Completed externally from the APEX guided player" = "Extern über de gführte APEX-Player abgeschlossen";
+"That wearable activity is no longer available. Choose it again." = "Die Wearable-Aktivität isch nüm verfügbar. Wähl sie nomal us.";

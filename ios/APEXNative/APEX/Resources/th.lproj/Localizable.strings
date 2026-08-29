@@ -5030,3 +5030,24 @@
 "Fitness initiation" = "เริ่มต้นเส้นทางฟิตเนส";
 "It's time to transform, no excuses" = "ถึงเวลาเปลี่ยนแปลง ไม่มีข้ออ้าง";
 "Build a new plan" = "สร้างแผนใหม่";
+
+/* Linked wearable workout evidence · 2026-08-29 */
+"Already finished?" = "เสร็จแล้วหรือยัง?";
+"Pause this follow-along and finish with an external wearable activity." = "หยุดเซสชันแบบทำตามนี้ชั่วคราว แล้วจบด้วยกิจกรรมจากอุปกรณ์สวมใส่ภายนอก";
+"Session recovery" = "การจบเซสชัน";
+"Did you finish this planned workout on your own?" = "คุณทำการฝึกตามแผนนี้เสร็จด้วยตัวเองแล้วใช่ไหม?";
+"APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session." = "APEX หยุดเซสชันแบบทำตามไว้ชั่วคราว เก็บเฉพาะข้อมูลที่คุณบันทึกไว้แล้วที่นี่ จากนั้นเลือกเชื่อมโยงกิจกรรมจากอุปกรณ์สวมใส่ที่เป็นของเซสชันนี้";
+"Choose the wearable activity that matches this workout" = "เลือกกิจกรรมจากอุปกรณ์สวมใส่ที่ตรงกับการฝึกนี้";
+"Refresh workouts" = "อัปเดตการฝึก";
+"No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one." = "ไม่พบการฝึกจากอุปกรณ์สวมใส่ในวันนี้ โปรดอัปเดตเมื่อกิจกรรมเข้าสู่ Apple Health หรือจบโดยไม่เชื่อมโยงอุปกรณ์";
+"Use this activity and finish" = "ใช้กิจกรรมนี้และจบการฝึก";
+"Finish without a wearable" = "จบโดยไม่ใช้อุปกรณ์สวมใส่";
+"Yes, choose wearable activity" = "ใช่ เลือกกิจกรรมจากอุปกรณ์สวมใส่";
+"Finished without a wearable" = "จบโดยไม่ใช้อุปกรณ์สวมใส่แล้ว";
+"No, keep training" = "ไม่ ฝึกต่อ";
+"Not selected" = "ยังไม่ได้เลือก";
+"Linked wearable effort" = "กิจกรรมจากอุปกรณ์สวมใส่ที่เชื่อมโยง";
+"Device metrics are read-only and are not added to HealthKit energy twice." = "ค่าจากอุปกรณ์เป็นแบบอ่านอย่างเดียว และจะไม่ถูกบวกซ้ำกับพลังงานใน HealthKit";
+"Wearable linked" = "เชื่อมโยงอุปกรณ์แล้ว";
+"Completed externally from the APEX guided player" = "จบจากภายนอกผ่านโหมดฝึกตาม APEX";
+"That wearable activity is no longer available. Choose it again." = "กิจกรรมจากอุปกรณ์สวมใส่นั้นไม่พร้อมใช้งานแล้ว โปรดเลือกอีกครั้ง";

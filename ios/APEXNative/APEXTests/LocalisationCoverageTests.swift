@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 39, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 41, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -337,6 +337,20 @@ final class LocalisationCoverageTests: XCTestCase {
             for (key, expected) in zip(["APPLE HEALTH", "Hide from APEX"], externalWorkoutValues[language] ?? []) {
                 XCTAssertEqual(table?[key], expected, "Unexpected compact HealthKit copy for \(language): \(key)")
             }
+            let linkedWearableValues: [String: [String]] = [
+                "en": ["Already done?", "Watch linked"],
+                "de": ["Schon fertig?", "Uhr verknüpft"],
+                "de-CH": ["Scho fertig?", "Uhr verknüpft"],
+                "it": ["Già finito?", "Orologio collegato"],
+                "es": ["¿Ya terminaste?", "Reloj vinculado"],
+                "pt": ["Já terminou?", "Relógio ligado"],
+                "ja": ["もう完了？", "ウォッチ連携"],
+                "ro": ["Ai terminat?", "Ceas asociat"],
+                "th": ["เสร็จแล้ว?", "เชื่อมต่อนาฬิกา"],
+            ]
+            for (key, expected) in zip(["Already finished?", "Wearable linked"], linkedWearableValues[language] ?? []) {
+                XCTAssertEqual(table?[key], expected, "Unexpected compact wearable copy for \(language): \(key)")
+            }
             if let expectedKeys {
                 XCTAssertEqual(keys, expectedKeys, "Compact keys drifted for \(language)")
             } else {
@@ -357,6 +371,25 @@ final class LocalisationCoverageTests: XCTestCase {
             "Active energy",
             "READ-ONLY RECEIPT",
             "Imported from Apple Health. This receipt is read-only in APEX.",
+            "Already finished?",
+            "Pause this follow-along and finish with an external wearable activity.",
+            "Session recovery",
+            "Did you finish this planned workout on your own?",
+            "APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session.",
+            "Choose the wearable activity that matches this workout",
+            "Refresh workouts",
+            "No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one.",
+            "Use this activity and finish",
+            "Finish without a wearable",
+            "Yes, choose wearable activity",
+            "Finished without a wearable",
+            "No, keep training",
+            "Not selected",
+            "Linked wearable effort",
+            "Device metrics are read-only and are not added to HealthKit energy twice.",
+            "Wearable linked",
+            "That wearable activity is no longer available. Choose it again.",
+            "Completed externally from the APEX guided player",
         ]
         let required = receiptKeys.union(HealthWorkoutCatalog.authoredNameKeys)
 

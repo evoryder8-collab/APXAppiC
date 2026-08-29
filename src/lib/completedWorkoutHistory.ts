@@ -7,6 +7,7 @@ export interface CompletedWorkoutHistoryItem {
   session: WorkoutSession
   title: string
   isQuickLog: boolean
+  linkedWearable?: ImportedActivity | null
 }
 
 export interface CompletedWorkoutDeletionPlan {
@@ -179,16 +180,32 @@ export function finishedWorkoutHistoryForDate(
   date?: string,
   limit?: number,
 ): FinishedWorkoutHistoryItem[] {
+  const visibleExternal = visibleImportedActivitiesForOwner(data)
+    .filter((activity) => (
+      Boolean(activity.healthkit_workout_id)
+      && (date == null || activity.date === date)
+    ))
+  const linkedBySession = new Map<string, ImportedActivity>()
+  for (const activity of [...visibleExternal].sort((left, right) => (
+    (right.started_at ?? right.ended_at ?? right.date)
+      .localeCompare(left.started_at ?? left.ended_at ?? left.date)
+  ))) {
+    if (activity.apex_workout_session_id && !linkedBySession.has(activity.apex_workout_session_id)) {
+      linkedBySession.set(activity.apex_workout_session_id, activity)
+    }
+  }
   const apex: FinishedWorkoutHistoryItem[] = completedWorkoutHistoryForDate(data, date).map((item) => ({
     ...item,
+    linkedWearable: linkedBySession.get(item.session.id) ?? null,
     kind: 'apex',
     id: item.session.id,
     sortTime: item.session.completed_at ?? item.session.started_at ?? `${item.session.date}T00:00:00.000Z`,
   }))
-  const external: FinishedWorkoutHistoryItem[] = visibleImportedActivitiesForOwner(data)
+  const visibleAPEXSessionIDs = new Set(apex.map((item) => item.id))
+  const external: FinishedWorkoutHistoryItem[] = visibleExternal
     .filter((activity) => (
-      Boolean(activity.healthkit_workout_id)
-      && (date == null || activity.date === date)
+      activity.apex_workout_session_id == null
+      || !visibleAPEXSessionIDs.has(activity.apex_workout_session_id)
     ))
     .map((activity) => ({
       kind: 'external',

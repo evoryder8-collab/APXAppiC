@@ -5048,3 +5048,24 @@
 "Fitness initiation" = "Início do fitness";
 "It's time to transform, no excuses" = "É hora de mudar, sem desculpas";
 "Build a new plan" = "Criar um novo plano";
+
+/* Linked wearable workout evidence · 2026-08-29 */
+"Already finished?" = "Já terminou?";
+"Pause this follow-along and finish with an external wearable activity." = "Coloque esta sessão guiada em pausa e conclua-a com uma atividade externa do wearable.";
+"Session recovery" = "Conclusão da sessão";
+"Did you finish this planned workout on your own?" = "Já concluiu sozinho este treino planeado?";
+"APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session." = "A APEX colocou a sessão guiada em pausa. Mantenha apenas os dados que já registou aqui e, se quiser, associe o esforço do wearable que pertence a esta sessão.";
+"Choose the wearable activity that matches this workout" = "Escolha a atividade do wearable que corresponde a este treino";
+"Refresh workouts" = "Atualizar treinos";
+"No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one." = "Não foram encontrados treinos do wearable para este dia. Atualize quando a atividade chegar ao Apple Health ou conclua sem wearable.";
+"Use this activity and finish" = "Usar esta atividade e concluir";
+"Finish without a wearable" = "Concluir sem wearable";
+"Yes, choose wearable activity" = "Sim, escolher atividade do wearable";
+"Finished without a wearable" = "Concluído sem wearable";
+"No, keep training" = "Não, continuar a treinar";
+"Not selected" = "Não selecionado";
+"Linked wearable effort" = "Esforço do wearable associado";
+"Device metrics are read-only and are not added to HealthKit energy twice." = "As métricas do dispositivo são apenas de leitura e não são novamente somadas à energia do HealthKit.";
+"Wearable linked" = "Wearable associado";
+"Completed externally from the APEX guided player" = "Concluído externamente no modo guiado do APEX";
+"That wearable activity is no longer available. Choose it again." = "Essa atividade do wearable já não está disponível. Escolha-a novamente.";

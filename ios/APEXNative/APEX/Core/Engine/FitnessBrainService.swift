@@ -114,6 +114,7 @@ enum FitnessBrainService {
         let imports = data.importedActivities.compactMap { activity -> FBImportedActivity? in
             guard activity.userID == profile.userID,
                   activity.isVisibleInAPEX,
+                  activity.apexWorkoutSessionID == nil,
                   ExternalWorkoutImport.isAPEXMirror(
                     activity,
                     apexSessions: apexSessionIdentities

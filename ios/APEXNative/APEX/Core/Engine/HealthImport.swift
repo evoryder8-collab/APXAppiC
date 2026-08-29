@@ -263,10 +263,16 @@ enum ExternalWorkoutImport {
                 continue
             }
 
+            let preservedLink = (existingRows + legacyRows)
+                .filter { isAPEXBundleIdentifier($0.sourceBundleIdentifier ?? "") == false }
+                .compactMap(\.apexWorkoutSessionID)
+                .sorted { $0.uuidString < $1.uuidString }
+                .first
             let replacement = importedActivity(
                 from: workout,
                 ownerID: ownerID,
-                hiddenAt: (existingRows + legacyRows).compactMap(\.hiddenAt).max()
+                hiddenAt: (existingRows + legacyRows).compactMap(\.hiddenAt).max(),
+                preservingLinkedSessionID: preservedLink
             )
             rowIDsToDelete.formUnion(
                 existingRows.lazy.filter { $0.id != replacement.id }.map(\.id)
@@ -305,7 +311,8 @@ enum ExternalWorkoutImport {
     static func importedActivity(
         from workout: HealthWorkoutSnapshot,
         ownerID: UUID,
-        hiddenAt: String? = nil
+        hiddenAt: String? = nil,
+        preservingLinkedSessionID: UUID? = nil
     ) -> ImportedActivity {
         ImportedActivity(
             id: accountScopedID(ownerID: ownerID, workoutID: workout.id),
@@ -323,7 +330,7 @@ enum ExternalWorkoutImport {
             activeEnergyKcal: workout.activeEnergyKcal,
             sourceBundleIdentifier: workout.sourceBundleIdentifier,
             activityTypeRaw: workout.activityTypeRaw,
-            apexWorkoutSessionID: workout.apexSessionID,
+            apexWorkoutSessionID: workout.apexSessionID ?? preservingLinkedSessionID,
             hiddenAt: hiddenAt
         )
     }
@@ -332,11 +339,11 @@ enum ExternalWorkoutImport {
         _ workout: HealthWorkoutSnapshot,
         apexSessions: [APEXSessionIdentity]
     ) -> Bool {
+        guard isAPEXBundleIdentifier(workout.sourceBundleIdentifier) else { return false }
         if let apexSessionID = workout.apexSessionID,
            apexSessions.contains(where: { $0.id == apexSessionID }) {
             return true
         }
-        guard isAPEXBundleIdentifier(workout.sourceBundleIdentifier) else { return false }
         return apexSessions.contains {
             abs($0.startedAt.timeIntervalSince(workout.startedAt)) < 5 * 60
         }
@@ -346,18 +353,18 @@ enum ExternalWorkoutImport {
         _ activity: ImportedActivity,
         apexSessions: [APEXSessionIdentity]
     ) -> Bool {
+        guard activity.sourceBundleIdentifier.map(isAPEXBundleIdentifier) == true else { return false }
         if let sessionID = activity.apexWorkoutSessionID,
            apexSessions.contains(where: { $0.id == sessionID }) {
             return true
         }
-        guard activity.sourceBundleIdentifier.map(isAPEXBundleIdentifier) == true,
-              let startedAt = parseTimestamp(activity.startedAt) else { return false }
+        guard let startedAt = parseTimestamp(activity.startedAt) else { return false }
         return apexSessions.contains {
             abs($0.startedAt.timeIntervalSince(startedAt)) < 5 * 60
         }
     }
 
-    private static func isAPEXBundleIdentifier(_ value: String) -> Bool {
+    static func isAPEXBundleIdentifier(_ value: String) -> Bool {
         value == "ch.apexperformance.APEX"
             || value.hasPrefix("ch.apexperformance.APEX.")
     }
@@ -367,6 +374,15 @@ enum ExternalWorkoutImport {
         let fractional = ISO8601DateFormatter()
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+    }
+
+    static func parseDay(_ value: String) -> Date? {
+        let formatter = DateFormatter()
+        formatter.calendar = Calendar(identifier: .gregorian)
+        formatter.locale = Locale(identifier: "en_US_POSIX")
+        formatter.timeZone = TimeZone(secondsFromGMT: 0)
+        formatter.dateFormat = "yyyy-MM-dd"
+        return formatter.date(from: value)
     }
 
     private static func avatarKind(for workoutKind: String) -> String {
@@ -400,4 +416,119 @@ enum ExternalWorkoutImport {
             bytes[12], bytes[13], bytes[14], bytes[15]
         ))
     }
+}
+
+enum WearableWorkoutLinking {
+    private static let automaticLeadWindow: TimeInterval = 5 * 60
+
+    static func candidatesForDay(
+        activities: [ImportedActivity],
+        ownerID: UUID,
+        date: String
+    ) -> [ImportedActivity] {
+        activities
+            .filter {
+                selectable($0, ownerID: ownerID, date: date)
+            }
+            .sorted {
+                let left = ExternalWorkoutImport.parseTimestamp($0.startedAt ?? $0.endedAt)
+                    ?? ExternalWorkoutImport.parseDay($0.date)
+                    ?? .distantPast
+                let right = ExternalWorkoutImport.parseTimestamp($1.startedAt ?? $1.endedAt)
+                    ?? ExternalWorkoutImport.parseDay($1.date)
+                    ?? .distantPast
+                if left != right { return left > right }
+                return $0.id.uuidString > $1.id.uuidString
+            }
+    }
+
+    static func explicitLink(
+        _ activity: ImportedActivity,
+        to session: WorkoutSession
+    ) -> ImportedActivity? {
+        if activity.apexWorkoutSessionID == session.id { return activity }
+        guard selectable(activity, ownerID: session.userID, date: session.date) else { return nil }
+        return activity.linkingToAPEXSession(session.id)
+    }
+
+    static func automaticLinks(
+        sessions: [WorkoutSession],
+        activities: [ImportedActivity],
+        ownerID: UUID
+    ) -> [ImportedActivity] {
+        let linkedSessionIDs = Set(activities.compactMap { activity -> UUID? in
+            guard activity.userID == ownerID,
+                  let sessionID = activity.apexWorkoutSessionID,
+                  ExternalWorkoutImport.isAPEXBundleIdentifier(
+                    activity.sourceBundleIdentifier ?? ""
+                  ) == false else { return nil }
+            return sessionID
+        })
+        let eligibleSessions = sessions.filter {
+            $0.userID == ownerID
+                && $0.completed
+                && linkedSessionIDs.contains($0.id) == false
+                && ExternalWorkoutImport.parseTimestamp($0.startedAt) != nil
+                && ExternalWorkoutImport.parseTimestamp($0.completedAt) != nil
+        }
+        let eligibleActivities = activities.filter {
+            selectable($0, ownerID: ownerID, date: $0.date)
+        }
+        var activityIDsBySession: [UUID: [UUID]] = [:]
+        var sessionIDsByActivity: [UUID: [UUID]] = [:]
+
+        for session in eligibleSessions {
+            for activity in eligibleActivities where activity.date == session.date {
+                guard overlapsAutomaticWindow(session: session, activity: activity) else { continue }
+                activityIDsBySession[session.id, default: []].append(activity.id)
+                sessionIDsByActivity[activity.id, default: []].append(session.id)
+            }
+        }
+
+        let activitiesByID = Dictionary(uniqueKeysWithValues: eligibleActivities.map { ($0.id, $0) })
+        return eligibleSessions.compactMap { session in
+            guard let candidateIDs = activityIDsBySession[session.id],
+                  candidateIDs.count == 1,
+                  let activityID = candidateIDs.first,
+                  sessionIDsByActivity[activityID]?.count == 1,
+                  let activity = activitiesByID[activityID] else { return nil }
+            return activity.linkingToAPEXSession(session.id)
+        }
+    }
+
+    private static func selectable(
+        _ activity: ImportedActivity,
+        ownerID: UUID,
+        date: String
+    ) -> Bool {
+        activity.userID == ownerID
+            && activity.date == date
+            && activity.healthKitWorkoutID != nil
+            && activity.hiddenAt == nil
+            && activity.apexWorkoutSessionID == nil
+            && ExternalWorkoutImport.isAPEXBundleIdentifier(
+                activity.sourceBundleIdentifier ?? ""
+            ) == false
+    }
+
+    private static func overlapsAutomaticWindow(
+        session: WorkoutSession,
+        activity: ImportedActivity
+    ) -> Bool {
+        guard let sessionStart = ExternalWorkoutImport.parseTimestamp(session.startedAt),
+              let sessionEnd = ExternalWorkoutImport.parseTimestamp(session.completedAt),
+              let activityStart = ExternalWorkoutImport.parseTimestamp(activity.startedAt),
+              activityStart >= sessionStart.addingTimeInterval(-automaticLeadWindow),
+              activityStart <= sessionEnd else { return false }
+        guard let activityEnd = ExternalWorkoutImport.parseTimestamp(activity.endedAt) else {
+            return activityStart >= sessionStart
+        }
+        return activityEnd >= sessionStart
+    }
+}
+
+enum WearableLinkRequest: Equatable, Sendable {
+    case automatic
+    case none
+    case activity(UUID)
 }

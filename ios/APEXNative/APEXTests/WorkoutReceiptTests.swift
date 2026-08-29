@@ -316,6 +316,35 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertEqual(row.activeEnergyKcal, 612)
     }
 
+    func testLinkedWearableEvidenceNestsUnderItsAPEXReceiptInsteadOfAppearingTwice() {
+        let ownerID = UUID()
+        let sessionID = UUID()
+        let session = workout(
+            id: sessionID, userID: ownerID, date: "2026-08-29",
+            dayID: UUID(), completedAt: "2026-08-29T11:00:00.000Z"
+        )
+        let linked = ImportedActivity(
+            id: UUID(), userID: ownerID, date: "2026-08-29", kind: "strength",
+            activity: "Traditional Strength Training", durationMinutes: 60,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-29T07:58:00.000Z",
+            endedAt: "2026-08-29T08:58:00.000Z",
+            sourceBundleIdentifier: "com.apple.health",
+            apexWorkoutSessionID: sessionID
+        )
+
+        let history = WorkoutReceipt.finishedHistory(
+            sessions: [session], days: [], importedActivities: [linked],
+            date: nil, ownerID: ownerID, limit: nil
+        )
+
+        XCTAssertEqual(history.count, 1)
+        guard case let .apex(item) = history[0] else {
+            return XCTFail("the linked evidence must stay inside the APEX receipt")
+        }
+        XCTAssertEqual(item.linkedWearable?.id, linked.id)
+    }
+
     func testExternalReceiptOffersHideFromAPEXAndNeverAppleHealthDeletionOrEditing() throws {
         let nativeRoot = URL(fileURLWithPath: #filePath)
             .deletingLastPathComponent()
@@ -399,6 +428,14 @@ final class WorkoutReceiptTests: XCTestCase {
                 activity: "APEX mirror", durationMinutes: 45, source: "APEX Watch",
                 healthKitWorkoutID: UUID(), startedAt: "2026-08-29T08:00:20.000Z",
                 sourceBundleIdentifier: "ch.apexperformance.APEX.watchkitapp"
+            ),
+            ImportedActivity(
+                id: UUID(), userID: ownerID, date: "2026-08-29", kind: "strength",
+                activity: "Linked device evidence", durationMinutes: 45,
+                source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+                startedAt: "2026-08-29T08:00:30.000Z",
+                sourceBundleIdentifier: "com.apple.health",
+                apexWorkoutSessionID: apexSession.id
             ),
         ]
 

@@ -183,6 +183,34 @@ test('finished history merges owned visible HealthKit workouts with APEX receipt
   )
 })
 
+test('linked wearable evidence nests under its APEX receipt instead of appearing twice', () => {
+  const apex = session({
+    id: 'apex-workout', date: '2026-08-26', program_day_id: 'day',
+    started_at: '2026-08-26T10:00:00.000Z',
+    completed_at: '2026-08-26T11:00:00.000Z',
+  })
+  const linked = externalWorkout({
+    id: 'linked-watch',
+    apex_workout_session_id: apex.id,
+    started_at: '2026-08-26T09:58:00.000Z',
+    ended_at: '2026-08-26T10:58:00.000Z',
+  })
+  const data: AppData = {
+    ...EMPTY_DATA,
+    settings: {
+      user_id: 'owner', theme: 'dark', language: 'en',
+      addons: { endurance1: false, endurance2: false, endurance3: false },
+    },
+    workout_sessions: [apex],
+    imported_activities: [linked],
+  }
+
+  const history = finishedWorkoutHistoryForDate(data, '2026-08-26')
+  assert.equal(history.length, 1)
+  assert.equal(history[0].kind, 'apex')
+  if (history[0].kind === 'apex') assert.equal(history[0].linkedWearable?.id, linked.id)
+})
+
 test('finished history defensively omits a nearby APEX HealthKit mirror without crossing owner boundaries', () => {
   const owned = session({
     id: 'owned-apex',
@@ -466,7 +494,7 @@ test('external workout presentation uses the authored key and selected APEX loca
 test('external workout title and receipt metadata remain fully wrapping rather than truncated', () => {
   const cards = readFileSync(new URL('../src/components/workout/CompletedWorkoutHistoryCards.tsx', import.meta.url), 'utf8')
   const start = cards.indexOf("if (entry.kind === 'external')")
-  const end = cards.indexOf('const { session, title, isQuickLog }', start)
+  const end = cards.indexOf('const { session, title, isQuickLog, linkedWearable }', start)
   assert.ok(start >= 0 && end > start, 'external workout card branch is missing')
   const externalCard = cards.slice(start, end)
 

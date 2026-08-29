@@ -7,7 +7,7 @@ import { useCallback, useEffect, useMemo, useReducer, useRef, useState } from 'r
 import { useNavigate, useParams, useSearchParams } from 'react-router-dom'
 import { AnimatePresence, motion } from 'framer-motion'
 import { ACCENTS, type Accent } from '../lib/theme'
-import type { ProgramSlug } from '../lib/types'
+import type { ImportedActivity, ProgramSlug } from '../lib/types'
 import { useStore } from '../store/AppStore'
 import { planForDate, type PlannedExercise } from '../lib/plan'
 import {
@@ -34,16 +34,23 @@ import { activityCatalogMap, activityLogFromBlock, emptyActivityBlock } from '..
 import { activityLogId } from '../lib/ids'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { WorkoutStatsSheet } from '../components/workout/WorkoutStatsSheet'
+import { externalWorkoutReceiptPresentation } from '../lib/completedWorkoutHistory'
 import { ExerciseFactFields } from '../components/workout/ExerciseFactFields'
 import { catalogExerciseByName, displayExerciseName } from '../data/exerciseCatalog'
 import { isConditioningFocusT25, isFocusT25Name } from '../lib/focusT25'
 import { exerciseExecutionCue } from '../lib/exerciseGuidance'
+import { timeZoneFromSettings } from '../lib/mealTiming'
 import { useFoodStore } from '../store/FoodStore'
 import {
   ATHLETE_SUPPORT_PROTOCOLS,
   postWorkoutMealTargetFor,
   powderGramsForProtein,
 } from '../lib/personalProtocol'
+import {
+  automaticWearableLinks,
+  explicitWearableLink,
+  wearableCandidatesForDay,
+} from '../lib/wearableWorkoutLinking'
 
 const PERSIST_KEY = 'apex.player.v1'
 
@@ -67,6 +74,10 @@ interface PlayerState {
   countedReps: Record<string, number> // `${exIdx}-${setNo}` -> reps counted by cadence
   startedAt: string
 }
+
+type ExternalCompletionRequest =
+  | { kind: 'none' }
+  | { kind: 'activity'; activityId: string }
 
 type Action =
   | { type: 'tick'; dt: number }
@@ -212,6 +223,16 @@ export function Player() {
   const [setAnnouncementReady, setSetAnnouncementReady] = useState(true)
   const [showExerciseList, setShowExerciseList] = useState(false)
   const [selectedExerciseInfo, setSelectedExerciseInfo] = useState<number | null>(null)
+  const [showAlreadyFinished, setShowAlreadyFinished] = useState(false)
+  const [choosingWearableActivity, setChoosingWearableActivity] = useState(false)
+  const [selectedWearableActivityId, setSelectedWearableActivityId] = useState<string | null>(null)
+  const [externalCompletionRequest, setExternalCompletionRequest] = useState<ExternalCompletionRequest | null>(null)
+  const pausedBeforeAlreadyFinished = useRef(false)
+  const wearableActivityCandidates = useMemo(
+    () => ownerId ? wearableCandidatesForDay(data.imported_activities, ownerId, date) : [],
+    [data.imported_activities, date, ownerId],
+  )
+  const playerTimeZone = timeZoneFromSettings(data.settings)
 
   /* announced rep tracker to fire voice/tick exactly once per rep */
   const lastRep = useRef(0)
@@ -468,6 +489,10 @@ export function Player() {
 
     const sessionId = crypto.randomUUID()
     const completedAt = new Date().toISOString()
+    const externallyCompleted = externalCompletionRequest != null
+    const exercisesToPersist = plan.exercises
+      .map((exercise, exIdx) => ({ exercise, exIdx, result: state.results[exIdx] }))
+      .filter(({ result }) => !externallyCompleted || result?.finalized === true)
     // Built by the same function the tracked list view uses, so a set logged
     // here and a set typed in there are stored identically.
     const { session, logs } = buildSessionRecords({
@@ -481,20 +506,23 @@ export function Player() {
       qualityScore: quality,
       startedAt: state.startedAt,
       completedAt,
-      exercises: plan.exercises.map((e, exIdx) => {
-        const r = state.results[exIdx]
+      notes: externallyCompleted
+        ? 'Completed externally from the APEX guided player'
+        : 'Completed in APEX web',
+      exercises: exercisesToPersist.map(({ exercise: e, exIdx, result: r }) => {
         const isRealExercise = data.exercises.some((x) => x.id === e.id)
+        const persistedSetCount = externallyCompleted ? (r?.sets.length ?? 0) : e.planned_sets
         return {
           exerciseId: isRealExercise ? e.id : null,
           movementId: e.movement_id,
           name: e.name,
-          plannedSets: e.planned_sets,
+          plannedSets: persistedSetCount,
           repUnit: e.rep_unit,
           workGroupId: e.work_group_id,
           workGroupPosition: e.work_group_position,
           skipped: r?.skippedAll ?? !r,
           override: r?.override ?? false,
-          sets: Array.from({ length: e.planned_sets }, (_unused, index) => {
+          sets: Array.from({ length: persistedSetCount }, (_unused, index) => {
             const sr = r?.sets[index]
             return {
               ...sr,
@@ -508,8 +536,32 @@ export function Player() {
         }
       }),
     })
+
+    let linkedWearable: ImportedActivity | null = null
+    if (externalCompletionRequest?.kind === 'activity') {
+      const selected = data.imported_activities.find((activity) => (
+        activity.id === externalCompletionRequest.activityId
+      ))
+      linkedWearable = selected ? explicitWearableLink(selected, session) : null
+      if (!linkedWearable) {
+        savedRef.current = false
+        toast('That wearable activity is no longer available. Choose it again.', 'error')
+        setExternalCompletionRequest(null)
+        setChoosingWearableActivity(true)
+        setShowAlreadyFinished(true)
+        dispatch({ type: 'jump', idx: Math.max(0, blocks.length - 2) })
+        return
+      }
+    } else if (externalCompletionRequest == null) {
+      linkedWearable = automaticWearableLinks(
+        [...data.workout_sessions, session],
+        data.imported_activities,
+        ownerId,
+      ).find((activity) => activity.apex_workout_session_id === session.id) ?? null
+    }
     upsert('workout_sessions', session)
     logs.forEach((log) => upsert('workout_logs', log))
+    if (linkedWearable) upsert('imported_activities', linkedWearable)
 
     const completedFocusT25 = plan.exercises.some((exercise, index) =>
       isConditioningFocusT25(exercise.name) && state.results[index] && !state.results[index].skippedAll,
@@ -522,7 +574,7 @@ export function Player() {
         : 'apex-strength'
     const activityCatalog = activityCatalogMap(data.activity_types)
     const activityType = activityCatalog.get(activityTypeId)
-    if (activityType && data.profile) {
+    if (!externallyCompleted && activityType && data.profile) {
       const durations = plannedWorkoutDurationBreakdown(plan, plan.programDay.est_minutes, lite)
       const activityBlock = {
         ...emptyActivityBlock(
@@ -538,7 +590,7 @@ export function Player() {
         activityLogFromBlock(activityBlock, data.profile, date, activityCatalog),
       )
     }
-    if (completedFocusT25 && dayType !== 't25' && data.profile) {
+    if (!externallyCompleted && completedFocusT25 && dayType !== 't25' && data.profile) {
       const focusType = activityCatalog.get('focus-hiit')
       if (focusType) {
         const focusBlock = {
@@ -574,6 +626,26 @@ export function Player() {
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [finished])
 
+  const openAlreadyFinished = (): void => {
+    pausedBeforeAlreadyFinished.current = state.paused
+    dispatch({ type: 'pause', paused: true })
+    setChoosingWearableActivity(false)
+    setSelectedWearableActivityId(null)
+    setShowAlreadyFinished(true)
+  }
+
+  const closeAlreadyFinished = (): void => {
+    setShowAlreadyFinished(false)
+    dispatch({ type: 'pause', paused: pausedBeforeAlreadyFinished.current })
+  }
+
+  const finishAlreadyCompleted = (request: ExternalCompletionRequest): void => {
+    setExternalCompletionRequest(request)
+    setShowAlreadyFinished(false)
+    dispatch({ type: 'pause', paused: true })
+    dispatch({ type: 'jump', idx: Math.max(0, blocks.length - 1) })
+  }
+
   if (!plan.programDay || blocks.length <= 2) {
     return (
       <div className="mx-auto w-full max-w-md pt-10 text-center">
@@ -588,7 +660,7 @@ export function Player() {
   const progress = Math.min(1, state.idx / (blocks.length - 1))
 
   return (
-    <div className="mx-auto flex w-full max-w-xl flex-col" style={{ minHeight: 'calc(100dvh - 7rem - env(safe-area-inset-bottom))' }}>
+    <div className="relative mx-auto flex w-full max-w-xl flex-col" style={{ minHeight: 'calc(100dvh - 7rem - env(safe-area-inset-bottom))' }}>
       {/* header: progress + controls */}
       <div className="mb-2">
         <div className="flex items-center justify-between gap-3">
@@ -729,6 +801,105 @@ export function Player() {
           })}
         </div>
       </div>
+      {!finished && (
+        <button
+          type="button"
+          onClick={openAlreadyFinished}
+          className="fixed right-4 bottom-[calc(6.6rem+env(safe-area-inset-bottom))] z-40 rounded-full px-4 py-3 text-[11px] font-black text-white shadow-xl"
+          style={{ background: accent.gradient }}
+          aria-label={voiceText('Already finished?')}
+          data-already-finished
+        >
+          ✓ {voiceText('Already finished?')}
+        </button>
+      )}
+      <AnimatePresence>
+        {showAlreadyFinished && (
+          <motion.div
+            className="fixed inset-0 z-[90] grid place-items-end bg-slate-950/38 px-3 pb-[max(1rem,env(safe-area-inset-bottom))] backdrop-blur-sm sm:place-items-center"
+            initial={{ opacity: 0 }}
+            animate={{ opacity: 1 }}
+            exit={{ opacity: 0 }}
+            onPointerDown={(event) => {
+              if (event.target === event.currentTarget) closeAlreadyFinished()
+            }}
+          >
+            <motion.div
+              role="dialog"
+              aria-modal="true"
+              aria-labelledby="already-finished-title"
+              initial={{ opacity: 0, y: 24, scale: 0.98 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: 18, scale: 0.98 }}
+              className="glass max-h-[82dvh] w-full max-w-md overflow-y-auto rounded-[2rem] border border-white/90 p-5 shadow-2xl"
+            >
+              <div className="flex items-start justify-between gap-3">
+                <div>
+                  <p className="font-mono text-[9px] font-black tracking-[.15em] uppercase" style={{ color: accent.deep }}>{voiceText('Session recovery')}</p>
+                  <h2 id="already-finished-title" className="mt-1 font-display text-2xl font-black text-ink">{voiceText('Did you finish this planned workout on your own?')}</h2>
+                </div>
+                <button type="button" onClick={closeAlreadyFinished} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-ink/6 text-lg font-black text-ink" aria-label={voiceText('Close')}>×</button>
+              </div>
+              <p className="mt-3 text-sm leading-relaxed font-semibold text-ink-soft">{voiceText('APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session.')}</p>
+
+              {choosingWearableActivity ? (
+                <div className="mt-4">
+                  <p className="font-display text-sm font-black text-ink">{voiceText('Choose the wearable activity that matches this workout')}</p>
+                  <div className="mt-3 max-h-[42dvh] space-y-2 overflow-y-auto pr-1">
+                    {wearableActivityCandidates.length === 0 ? (
+                      <p className="rounded-2xl border border-sky-100 bg-sky-50/80 p-4 text-xs leading-relaxed font-semibold text-sky-950/75">{voiceText('No wearable workouts were found for this day. They appear here after the activity reaches Apple Health and syncs to APEX.')}</p>
+                    ) : wearableActivityCandidates.map((activity) => {
+                      const receipt = externalWorkoutReceiptPresentation(
+                        activity,
+                        language,
+                        playerTimeZone,
+                        voiceText,
+                      )
+                      const selected = selectedWearableActivityId === activity.id
+                      return (
+                        <button
+                          type="button"
+                          key={activity.id}
+                          onClick={() => setSelectedWearableActivityId(activity.id)}
+                          className="flex w-full items-start gap-3 rounded-2xl border p-3 text-left transition active:scale-[.985]"
+                          style={{
+                            borderColor: selected ? accent.glowStrong : 'rgba(26,26,34,.08)',
+                            background: selected ? accent.wash : 'rgba(255,255,255,.68)',
+                          }}
+                          aria-pressed={selected}
+                        >
+                          <span className="mt-0.5 text-lg font-black" style={{ color: selected ? accent.deep : '#9a9aa4' }}>{selected ? '●' : '○'}</span>
+                          <span className="min-w-0 flex-1">
+                            <span className="block break-words font-display text-sm font-black text-ink">{receipt.title}</span>
+                            <span className="mt-1 block break-words font-mono text-[9px] font-bold leading-relaxed text-ink-faint">{[receipt.moment, receipt.duration, activity.source].join(' · ')}</span>
+                            {(receipt.energy || receipt.distance) && <span className="mt-1 block font-mono text-[9px] font-black" style={{ color: accent.deep }}>{[receipt.energy, receipt.distance].filter(Boolean).join(' · ')}</span>}
+                          </span>
+                        </button>
+                      )
+                    })}
+                  </div>
+                  <button
+                    type="button"
+                    disabled={!selectedWearableActivityId}
+                    onClick={() => {
+                      if (selectedWearableActivityId) finishAlreadyCompleted({ kind: 'activity', activityId: selectedWearableActivityId })
+                    }}
+                    className="mt-4 w-full rounded-2xl px-4 py-3 text-xs font-black text-white disabled:opacity-40"
+                    style={{ background: accent.gradient }}
+                  >{voiceText('Use this activity and finish')}</button>
+                  <button type="button" onClick={() => finishAlreadyCompleted({ kind: 'none' })} className="mt-2 w-full rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-ink">{voiceText('Finish without a wearable')}</button>
+                </div>
+              ) : (
+                <div className="mt-5 grid gap-2">
+                  <button type="button" onClick={() => setChoosingWearableActivity(true)} className="rounded-2xl px-4 py-3 text-xs font-black text-white" style={{ background: accent.gradient }}>⌚ {voiceText('Yes, choose wearable activity')}</button>
+                  <button type="button" onClick={() => finishAlreadyCompleted({ kind: 'none' })} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-ink">{voiceText('Finished without a wearable')}</button>
+                  <button type="button" onClick={closeAlreadyFinished} className="rounded-2xl px-4 py-3 text-xs font-black text-ink-soft">{voiceText('No, keep training')}</button>
+                </div>
+              )}
+            </motion.div>
+          </motion.div>
+        )}
+      </AnimatePresence>
       <WorkoutStatsSheet open={showStats} onClose={() => setShowStats(false)} sessionId={summary?.sessionId ?? null} accent={accent} />
       <AnimatePresence>
         {showExerciseList && (

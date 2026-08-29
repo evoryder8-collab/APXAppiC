@@ -422,7 +422,13 @@ struct CompletedWorkoutHistoryCards: View {
                             .font(APEXFont.display(17))
                             .foregroundStyle(APEXColor.ink)
                             .lineLimit(2)
-                        Text([item.session.date, time, language.format("%d working sets", summary.workingSets), language.format("%d movements", summary.movements)].compactMap { $0 }.joined(separator: " · "))
+                        Text([
+                            item.session.date,
+                            time,
+                            language.format("%d working sets", summary.workingSets),
+                            language.format("%d movements", summary.movements),
+                            item.linkedWearable == nil ? nil : language.shortText("Wearable linked"),
+                        ].compactMap { $0 }.joined(separator: " · "))
                             .font(APEXFont.mono(8, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                     }
@@ -469,6 +475,12 @@ struct CompletedWorkoutHistoryCards: View {
                 }
                 .padding(.horizontal, 15)
                 .padding(.top, 12)
+
+                if let linkedWearable = item.linkedWearable {
+                    linkedWearableEvidence(linkedWearable)
+                        .padding(.horizontal, 15)
+                        .padding(.top, 10)
+                }
 
                 VStack(alignment: .leading, spacing: 8) {
                     ForEach(WorkoutReceipt.grouped(logs), id: \.name) { group in
@@ -543,6 +555,57 @@ struct CompletedWorkoutHistoryCards: View {
                     finishReveal(id: item.id, translation: value.translation, expanded: isExpanded)
                 }
         )
+    }
+
+    private func linkedWearableEvidence(_ item: ImportedActivity) -> some View {
+        let title = language.language == .english
+            ? item.activity
+            : language.text(item.workoutNameKey ?? item.activity)
+        let moment = WorkoutReceipt.externalDateText(
+            item.startedAt ?? item.date,
+            locale: language.language.locale
+        )
+        return VStack(alignment: .leading, spacing: 8) {
+            Text(language.text("Linked wearable effort"))
+                .font(APEXFont.mono(8, weight: .bold))
+                .tracking(1.0)
+                .foregroundStyle(APEXColor.cyan)
+            Text(title)
+                .font(APEXFont.display(15))
+                .foregroundStyle(APEXColor.ink)
+                .fixedSize(horizontal: false, vertical: true)
+            Text([
+                moment,
+                language.format("%d min", item.durationMinutes),
+                item.source,
+            ].filter { $0.isEmpty == false }.joined(separator: " · "))
+                .font(APEXFont.mono(8, weight: .semibold))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+            if item.activeEnergyKcal != nil || item.distanceKM != nil {
+                HStack(spacing: 8) {
+                    if let energy = item.activeEnergyKcal {
+                        historyMetric("Active energy", value: language.format("%d kcal", Int(energy.rounded())))
+                    }
+                    if let distance = item.distanceKM {
+                        historyMetric("Distance", value: language.format("%.2f km", distance))
+                    }
+                }
+            }
+            Text(language.text("Device metrics are read-only and are not added to HealthKit energy twice."))
+                .font(APEXFont.body(10, weight: .semibold))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .frame(maxWidth: .infinity, alignment: .leading)
+        .padding(12)
+        .background(APEXColor.cyan.opacity(0.09), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+        .overlay {
+            RoundedRectangle(cornerRadius: 16, style: .continuous)
+                .stroke(APEXColor.cyan.opacity(0.18), lineWidth: 1)
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("linked-wearable-evidence-\(item.id.uuidString.lowercased())")
     }
 
     private func externalHistoryCard(_ item: ImportedActivity) -> some View {

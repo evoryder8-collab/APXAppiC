@@ -465,7 +465,7 @@ test('a profileless installed plan remains followable without weight-derived act
   assert.match(player, /const ownerId = data\.profile\?\.user_id \?\? data\.settings\?\.user_id/)
   assert.match(player, /if \(!finished \|\| savedRef\.current \|\| !plan\.programDay \|\| !ownerId\) return/)
   assert.match(player, /userId: ownerId/)
-  assert.match(player, /if \(activityType && data\.profile\)/)
+  assert.match(player, /if \(!externallyCompleted && activityType && data\.profile\)/)
 
   for (const relativePath of ['src/components/DaySheet.tsx', 'src/pages/WorkoutSection.tsx']) {
     const source = readFileSync(join(process.cwd(), relativePath), 'utf8')

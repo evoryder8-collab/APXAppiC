@@ -3003,7 +3003,9 @@ final class AppSession {
         day: ProgramDay,
         setInputs: [WorkoutSetInput],
         lite: Bool,
-        startedAt: Date
+        startedAt: Date,
+        wearableLinkRequest: WearableLinkRequest = .automatic,
+        completionDate: String? = nil
     ) async -> UUID? {
         guard let ownerID = TrainingInduction.workoutOwnerID(in: data, day: day) else { return nil }
         let accountToken = accountGeneration.token
@@ -3027,10 +3029,13 @@ final class AppSession {
             marks: data.deloadMarks ?? []
         )
         let workout = WorkoutSession(
-            id: UUID(), userID: ownerID, date: Date().apexDateKey,
+            id: UUID(), userID: ownerID, date: completionDate ?? Date().apexDateKey,
             programDayID: day.id, isLite: lite, isDeload: isDeload,
             isEventRecovery: false, completed: true, qualityScore: 1,
-            startedAt: startedAt.ISO8601Format(), completedAt: now, notes: "Completed in APEX iOS"
+            startedAt: startedAt.ISO8601Format(), completedAt: now,
+            notes: wearableLinkRequest == .automatic
+                ? "Completed in APEX iOS"
+                : "Completed externally from the APEX guided player"
         )
         let logs = normalizedInputs.map { input in
             return WorkoutLog(
@@ -3049,11 +3054,32 @@ final class AppSession {
                 overrideFlag: false, createdAt: now
             )
         }
+        var linkedWearable: ImportedActivity?
+        if case let .activity(activityID) = wearableLinkRequest {
+            guard let selected = data.importedActivities.first(where: { $0.id == activityID }),
+                  let linked = WearableWorkoutLinking.explicitLink(selected, to: workout) else {
+                return nil
+            }
+            linkedWearable = linked
+        }
+
         data.workoutSessions.append(workout)
         data.workoutLogs.append(contentsOf: logs)
+        if wearableLinkRequest == .automatic {
+            linkedWearable = WearableWorkoutLinking.automaticLinks(
+                sessions: data.workoutSessions,
+                activities: data.importedActivities,
+                ownerID: ownerID
+            ).first { $0.apexWorkoutSessionID == workout.id }
+        }
+        if let linkedWearable {
+            data.importedActivities.removeAll { $0.id == linkedWearable.id }
+            data.importedActivities.append(linkedWearable)
+        }
 
         var linkedActivity: ActivityLog?
-        if let profile, profile.userID == ownerID,
+        if wearableLinkRequest == .automatic,
+           let profile, profile.userID == ownerID,
            let activityType = data.activityTypes.first(where: { $0.id == "apex-strength" }) {
             let elapsed = max(1, Int(Date().timeIntervalSince(startedAt) / 60))
             let activity = ActivityLog(
@@ -3118,6 +3144,15 @@ final class AppSession {
                     )
                 )
             }
+            if let linkedWearable {
+                dependents.append(
+                    try OfflineOperation.upsert(
+                        linkedWearable,
+                        table: "imported_activities",
+                        onConflict: "user_id,healthkit_workout_id"
+                    )
+                )
+            }
             try await offlineStore.enqueue(
                 parent: parent,
                 dependents: dependents,
@@ -3167,9 +3202,9 @@ final class AppSession {
         return true
     }
 
-    /// Remove a completed receipt and all of its measured set rows. Activity
-    /// records are deliberately not guessed by date/source: without a durable
-    /// session id link, deleting one would risk removing unrelated expenditure.
+    /// Remove a completed receipt and all of its measured set rows. A linked
+    /// external workout is unlinked first and remains intact in Apple Health;
+    /// unrelated activity records are never guessed by date or source.
     @discardableResult
     func deleteCompletedWorkoutSession(id: UUID) async -> Bool {
         guard let ownerID = verifiedPersistenceOwnerID(),
@@ -3183,6 +3218,18 @@ final class AppSession {
         }
 
         let logIDs = Set(plan.logIDs)
+        let unlinkedWearables = data.importedActivities.compactMap { activity -> ImportedActivity? in
+            guard activity.userID == ownerID,
+                  activity.apexWorkoutSessionID == plan.sessionID,
+                  ExternalWorkoutImport.isAPEXBundleIdentifier(
+                    activity.sourceBundleIdentifier ?? ""
+                  ) == false else { return nil }
+            return activity.linkingToAPEXSession(nil)
+        }
+        for activity in unlinkedWearables {
+            data.importedActivities.removeAll { $0.id == activity.id }
+            data.importedActivities.append(activity)
+        }
         data.workoutLogs.removeAll { logIDs.contains($0.id) }
         data.workoutSessions.removeAll { $0.id == plan.sessionID }
         recomputeBrain()
@@ -3190,6 +3237,14 @@ final class AppSession {
 
         for logID in plan.logIDs {
             await persistDelete(table: "workout_logs", id: logID, ownerID: ownerID)
+        }
+        for activity in unlinkedWearables {
+            await persistUpsert(
+                activity,
+                table: "imported_activities",
+                onConflict: "user_id,healthkit_workout_id",
+                ownerID: ownerID
+            )
         }
         await persistDelete(table: "workout_sessions", id: plan.sessionID, ownerID: ownerID)
         return true
@@ -4433,6 +4488,10 @@ final class AppSession {
         }
     }
 
+    func refreshExternalWorkouts() async {
+        await importHealthWorkoutChanges()
+    }
+
     private func importHealthWorkoutChanges() async {
         guard let profile else { return }
         let ownerID = profile.userID
@@ -4491,11 +4550,23 @@ final class AppSession {
             await persistDelete(table: "activity_logs", id: logID, ownerID: ownerID)
             guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
-        for row in reconciled.upserts {
+        var persistenceRows = reconciled.upserts
+        for row in persistenceRows {
             data.importedActivities.removeAll { $0.id == row.id && $0.userID == ownerID }
             data.importedActivities.append(row)
         }
-        for batch in ExternalWorkoutImport.persistenceBatches(reconciled.upserts) {
+        let automaticLinks = WearableWorkoutLinking.automaticLinks(
+            sessions: data.workoutSessions,
+            activities: data.importedActivities,
+            ownerID: ownerID
+        )
+        for linked in automaticLinks {
+            data.importedActivities.removeAll { $0.id == linked.id && $0.userID == ownerID }
+            data.importedActivities.append(linked)
+            persistenceRows.removeAll { $0.id == linked.id }
+            persistenceRows.append(linked)
+        }
+        for batch in ExternalWorkoutImport.persistenceBatches(persistenceRows) {
             await persistUpsert(
                 batch,
                 table: "imported_activities",

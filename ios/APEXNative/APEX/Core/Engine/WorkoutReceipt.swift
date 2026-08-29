@@ -15,8 +15,18 @@ enum WorkoutReceipt {
         let session: WorkoutSession
         let title: String
         let isQuickLog: Bool
+        let linkedWearable: ImportedActivity?
 
         var id: UUID { session.id }
+
+        func attachingWearable(_ activity: ImportedActivity?) -> HistoryItem {
+            HistoryItem(
+                session: session,
+                title: title,
+                isQuickLog: isQuickLog,
+                linkedWearable: activity
+            )
+        }
     }
 
     struct Summary: Hashable, Sendable {
@@ -111,7 +121,8 @@ enum WorkoutReceipt {
                 return HistoryItem(
                     session: item,
                     title: quickTitle ?? dayNames[item.programDayID] ?? "Completed workout",
-                    isQuickLog: quickTitle != nil
+                    isQuickLog: quickTitle != nil,
+                    linkedWearable: nil
                 )
             }
         guard let limit else { return history }
@@ -301,13 +312,13 @@ extension WorkoutReceipt {
         ownerID: UUID?,
         limit: Int?
     ) -> [FinishedHistoryItem] {
-        let apexItems = history(
+        let baseAPEXItems = history(
             sessions: sessions,
             days: days,
             date: date,
             ownerID: ownerID,
             limit: nil
-        ).map(FinishedHistoryItem.apex)
+        )
 
         let apexSessionIdentities = sessions.compactMap { session -> ExternalWorkoutImport.APEXSessionIdentity? in
             guard session.userID == ownerID,
@@ -317,9 +328,10 @@ extension WorkoutReceipt {
             return .init(id: session.id, startedAt: startedAt)
         }
 
+        let apexItems: [FinishedHistoryItem]
         let externalItems: [FinishedHistoryItem]
         if let ownerID {
-            externalItems = importedActivities
+            let visibleExternal = importedActivities
                 .filter {
                     $0.userID == ownerID
                         && $0.healthKitWorkoutID != nil
@@ -330,8 +342,30 @@ extension WorkoutReceipt {
                         ) == false
                         && (date == nil || $0.date == date)
                 }
+            var linkedBySession: [UUID: ImportedActivity] = [:]
+            for activity in visibleExternal.sorted(by: {
+                ($0.startedAt ?? $0.endedAt ?? $0.date)
+                    > ($1.startedAt ?? $1.endedAt ?? $1.date)
+            }) {
+                if let sessionID = activity.apexWorkoutSessionID,
+                   linkedBySession[sessionID] == nil {
+                    linkedBySession[sessionID] = activity
+                }
+            }
+            apexItems = baseAPEXItems.map {
+                FinishedHistoryItem.apex(
+                    $0.attachingWearable(linkedBySession[$0.session.id])
+                )
+            }
+            let visibleAPEXSessionIDs = Set(baseAPEXItems.map(\.id))
+            externalItems = visibleExternal
+                .filter {
+                    guard let linkedID = $0.apexWorkoutSessionID else { return true }
+                    return visibleAPEXSessionIDs.contains(linkedID) == false
+                }
                 .map(FinishedHistoryItem.external)
         } else {
+            apexItems = baseAPEXItems.map(FinishedHistoryItem.apex)
             externalItems = []
         }
 

@@ -45,9 +45,26 @@ export function visibleImportedActivitiesForOwner(
 
   return data.imported_activities.filter((activity) => {
     if (activity.user_id !== ownerID || activity.hidden_at != null) return false
-    if (activity.apex_workout_session_id && ownedSessionIDs.has(activity.apex_workout_session_id)) return false
+    if (
+      activity.apex_workout_session_id
+      && ownedSessionIDs.has(activity.apex_workout_session_id)
+      && isAPEXBundleIdentifier(activity.source_bundle_id)
+    ) return false
     if (!isAPEXBundleIdentifier(activity.source_bundle_id) || !activity.started_at) return true
     const activityTime = Date.parse(activity.started_at)
     return !Number.isFinite(activityTime) || !hasNearbySession(ownedSessionTimes, activityTime)
   })
+}
+
+/**
+ * Imported workouts that may independently affect fitness scoring. A wearable
+ * activity linked to an APEX receipt is evidence for that receipt, not a second
+ * workout signal.
+ */
+export function signalBearingImportedActivitiesForOwner(
+  data: ImportedActivityVisibilityData,
+): ImportedActivity[] {
+  return visibleImportedActivitiesForOwner(data).filter(
+    (activity) => activity.apex_workout_session_id == null,
+  )
 }

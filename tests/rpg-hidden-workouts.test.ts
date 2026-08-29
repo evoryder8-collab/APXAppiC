@@ -149,6 +149,22 @@ test('foreign and APEX-mirrored imported workouts give no RPG credit while an ow
   assert.ok((withOwnedExternal.snapshots.at(-1)?.endurance ?? 0) > (withoutImports.snapshots.at(-1)?.endurance ?? 0))
 })
 
+test('wearable evidence linked to an APEX receipt does not award a second fitness signal', () => {
+  const session = apexSession()
+  const base = { ...appData([]), workout_sessions: [session] }
+  const linkedWearable = {
+    ...importedWorkout('linked-wearable', '2026-08-29', null),
+    apex_workout_session_id: session.id,
+    started_at: '2026-08-29T10:01:00.000Z',
+    source_bundle_id: 'com.apple.health',
+  }
+
+  assert.deepEqual(
+    computeEngine({ ...base, imported_activities: [linkedWearable] }, '2026-08-29'),
+    computeEngine(base, '2026-08-29'),
+  )
+})
+
 test('a hidden pre-baseline workout gives no RPG baseline credit while a visible workout still does', () => {
   const hidden = importedWorkout('hidden-baseline', '2026-08-28', '2026-08-29T23:00:00.000Z')
   const visible = { ...hidden, id: 'visible-baseline', hidden_at: null }

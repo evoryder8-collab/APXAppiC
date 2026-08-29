@@ -311,7 +311,6 @@ struct TrainingProgramView: View {
                         eyebrow: language.text("TODAY'S SIGNAL"),
                         focus: language.text(muscleFocus)
                     )
-                    .accessibilityIdentifier("training-today-signal")
                 }
 
                 if slug != "custom" {
@@ -1454,6 +1453,12 @@ struct WorkoutPlayerView: View {
     @State private var lastClockTick = Date()
     @State private var suspendedAt: Date?
     @State private var lastDraftSave = Date.distantPast
+    @State private var showAlreadyFinished = false
+    @State private var choosingWearableActivity = false
+    @State private var selectedWearableActivityID: UUID?
+    @State private var pausedBeforeAlreadyFinished = false
+    @State private var finishingExternalSession = false
+    @State private var refreshingWearableActivities = false
 
     /* Automatic rep cadence, ported from the web player (playerTimeline.ts):
        APEX counts and paces every rep from the exercise's prescribed tempo.
@@ -1523,6 +1528,15 @@ struct WorkoutPlayerView: View {
 
     private var workoutOwnerID: UUID? {
         TrainingInduction.workoutOwnerID(in: session.data, day: day)
+    }
+
+    private var wearableActivityCandidates: [ImportedActivity] {
+        guard let ownerID = workoutOwnerID else { return [] }
+        return WearableWorkoutLinking.candidatesForDay(
+            activities: session.data.importedActivities,
+            ownerID: ownerID,
+            date: date
+        )
     }
 
     private var reconciliationBlock: PlayerTimeline.Block? {
@@ -1639,7 +1653,28 @@ struct WorkoutPlayerView: View {
                 }
                 .padding(.horizontal, 18)
                 .padding(.top, 8)
-                .padding(.bottom, 30)
+                .padding(.bottom, phase == .complete ? 30 : 86)
+            }
+        }
+        .overlay(alignment: .bottomTrailing) {
+            if phase != .complete && completedSession == nil {
+                Button {
+                    openAlreadyFinished()
+                } label: {
+                    Label(language.shortText("Already finished?"), systemImage: "checkmark.circle")
+                        .font(APEXFont.body(11, weight: .bold))
+                        .foregroundStyle(.white)
+                        .padding(.horizontal, 13)
+                        .frame(minHeight: 42)
+                        .background(accent.gradient, in: Capsule())
+                        .shadow(color: accent.opacity(0.24), radius: 10, y: 5)
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(language.text("Already finished?"))
+                .accessibilityHint(language.text("Pause this follow-along and finish with an external wearable activity."))
+                .accessibilityIdentifier("workout-already-finished")
+                .padding(.trailing, 18)
+                .padding(.bottom, 18)
             }
         }
         .interactiveDismissDisabled()
@@ -1674,6 +1709,11 @@ struct WorkoutPlayerView: View {
         } message: {
             Text(language.text("Sets completed in this unfinished session have not been saved."))
         }
+        .sheet(isPresented: $showAlreadyFinished, onDismiss: restorePauseAfterAlreadyFinished) {
+            alreadyFinishedSheet
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+        }
         .alert(language.text("Workout"), isPresented: $completionError) {
             Button(language.text("OK"), role: .cancel) {}
         } message: {
@@ -1687,6 +1727,221 @@ struct WorkoutPlayerView: View {
                 dismiss()
             }
             .environment(session)
+        }
+    }
+
+    private var alreadyFinishedSheet: some View {
+        NavigationStack {
+            ScrollView {
+                VStack(alignment: .leading, spacing: 16) {
+                    Text(language.text("Session recovery").uppercased(with: language.language.locale))
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .tracking(1.5)
+                        .foregroundStyle(accent)
+                    Text(language.text("Did you finish this planned workout on your own?"))
+                        .font(APEXFont.display(24))
+                    Text(language.text("APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session."))
+                        .font(APEXFont.body(13, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+
+                    if choosingWearableActivity {
+                        VStack(alignment: .leading, spacing: 10) {
+                            HStack {
+                                Text(language.text("Choose the wearable activity that matches this workout"))
+                                    .font(APEXFont.body(14, weight: .bold))
+                                Spacer()
+                                Button {
+                                    Task {
+                                        refreshingWearableActivities = true
+                                        await session.refreshExternalWorkouts()
+                                        refreshingWearableActivities = false
+                                    }
+                                } label: {
+                                    if refreshingWearableActivities {
+                                        ProgressView()
+                                    } else {
+                                        Label(language.text("Refresh workouts"), systemImage: "arrow.clockwise")
+                                    }
+                                }
+                                .buttonStyle(.bordered)
+                                .disabled(refreshingWearableActivities || finishingExternalSession)
+                            }
+
+                            if wearableActivityCandidates.isEmpty {
+                                Text(language.text("No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one."))
+                                    .font(APEXFont.body(12, weight: .medium))
+                                    .foregroundStyle(APEXColor.secondaryInk)
+                                    .padding(14)
+                                    .frame(maxWidth: .infinity, alignment: .leading)
+                                    .background(APEXColor.cyan.opacity(0.08), in: RoundedRectangle(cornerRadius: 16))
+                            } else {
+                                ForEach(wearableActivityCandidates) { activity in
+                                    wearableActivityChoice(activity)
+                                }
+                            }
+                        }
+
+                        Button {
+                            guard let selectedWearableActivityID else { return }
+                            finishAlreadyCompletedWorkout(linkedActivityID: selectedWearableActivityID)
+                        } label: {
+                            if finishingExternalSession {
+                                ProgressView().tint(.white)
+                            } else {
+                                Text(language.text("Use this activity and finish"))
+                                    .frame(maxWidth: .infinity)
+                            }
+                        }
+                        .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                        .disabled(selectedWearableActivityID == nil || finishingExternalSession)
+                        .accessibilityIdentifier("workout-already-finished-confirm-wearable")
+
+                        Button(language.text("Finish without a wearable")) {
+                            finishAlreadyCompletedWorkout(linkedActivityID: nil)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        .disabled(finishingExternalSession)
+                    } else {
+                        Button {
+                            choosingWearableActivity = true
+                        } label: {
+                            Label(language.text("Yes, choose wearable activity"), systemImage: "applewatch")
+                                .frame(maxWidth: .infinity)
+                        }
+                        .buttonStyle(APEXPrimaryButtonStyle(color: accent))
+                        .accessibilityIdentifier("workout-already-finished-choose-wearable")
+
+                        Button(language.text("Finished without a wearable")) {
+                            finishAlreadyCompletedWorkout(linkedActivityID: nil)
+                        }
+                        .buttonStyle(.bordered)
+                        .frame(maxWidth: .infinity)
+                        .accessibilityIdentifier("workout-already-finished-without-wearable")
+
+                        Button(language.text("No, keep training")) {
+                            showAlreadyFinished = false
+                        }
+                        .buttonStyle(.plain)
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .frame(maxWidth: .infinity, minHeight: 44)
+                        .accessibilityIdentifier("workout-already-finished-cancel")
+                    }
+                }
+                .padding(20)
+            }
+            .navigationTitle(language.text("Already finished?"))
+            .navigationBarTitleDisplayMode(.inline)
+            .toolbar {
+                ToolbarItem(placement: .topBarTrailing) {
+                    Button {
+                        showAlreadyFinished = false
+                    } label: {
+                        Image(systemName: "xmark")
+                    }
+                    .disabled(finishingExternalSession)
+                    .accessibilityLabel(language.text("Close"))
+                }
+            }
+        }
+        .interactiveDismissDisabled(finishingExternalSession)
+    }
+
+    private func wearableActivityChoice(_ activity: ImportedActivity) -> some View {
+        let selected = selectedWearableActivityID == activity.id
+        let title = language.language == .english
+            ? activity.activity
+            : language.text(activity.workoutNameKey ?? activity.activity)
+        let moment = WorkoutReceipt.externalDateText(
+            activity.startedAt ?? activity.date,
+            locale: language.language.locale
+        )
+        let metrics = [
+            language.format("%d min", activity.durationMinutes),
+            activity.activeEnergyKcal.map { language.format("%d kcal", Int($0.rounded())) },
+            activity.distanceKM.map { language.format("%.2f km", $0) },
+        ].compactMap { $0 }.joined(separator: " · ")
+
+        return Button {
+            selectedWearableActivityID = activity.id
+        } label: {
+            HStack(alignment: .top, spacing: 12) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 20, weight: .bold))
+                    .foregroundStyle(selected ? accent : APEXColor.secondaryInk)
+                VStack(alignment: .leading, spacing: 4) {
+                    Text(title)
+                        .font(APEXFont.body(14, weight: .bold))
+                        .foregroundStyle(APEXColor.ink)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text([moment, activity.source].filter { $0.isEmpty == false }.joined(separator: " · "))
+                        .font(APEXFont.mono(8, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Text(metrics)
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .foregroundStyle(APEXColor.cyan)
+                }
+                Spacer(minLength: 0)
+            }
+            .padding(14)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(selected ? accent.opacity(0.10) : .white.opacity(0.7), in: RoundedRectangle(cornerRadius: 18))
+            .overlay {
+                RoundedRectangle(cornerRadius: 18)
+                    .stroke(selected ? accent.opacity(0.40) : APEXColor.ink.opacity(0.07), lineWidth: 1)
+            }
+        }
+        .buttonStyle(.plain)
+        .accessibilityIdentifier("workout-wearable-choice-\(activity.id.uuidString.lowercased())")
+        .accessibilityValue(language.text(selected ? "Selected" : "Not selected"))
+    }
+
+    private func openAlreadyFinished() {
+        pausedBeforeAlreadyFinished = paused
+        paused = true
+        choosingWearableActivity = false
+        selectedWearableActivityID = nil
+        finishingExternalSession = false
+        showAlreadyFinished = true
+        persistDraft()
+    }
+
+    private func restorePauseAfterAlreadyFinished() {
+        guard finishingExternalSession == false else { return }
+        paused = pausedBeforeAlreadyFinished
+        persistDraft()
+    }
+
+    private func finishAlreadyCompletedWorkout(linkedActivityID: UUID?) {
+        guard !isSaving, !finishingExternalSession else { return }
+        let recordedInputs = setInputs
+            .map { $0.normalizedForPersistence() }
+            .filter { $0.skipped || ExerciseLogging.isValid($0) }
+        let linkRequest = linkedActivityID.map(WearableLinkRequest.activity) ?? .none
+        paused = true
+        isSaving = true
+        finishingExternalSession = true
+        Task {
+            let finished = await session.completeWorkout(
+                day: day,
+                setInputs: recordedInputs,
+                lite: lite,
+                startedAt: startedAt,
+                wearableLinkRequest: linkRequest,
+                completionDate: date
+            )
+            isSaving = false
+            if let finished {
+                clearDraft()
+                session.stopWatchWorkout()
+                showAlreadyFinished = false
+                completedSession = FinishedSession(id: finished)
+            } else {
+                finishingExternalSession = false
+                showAlreadyFinished = false
+                completionError = true
+            }
         }
     }
 

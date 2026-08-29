@@ -5048,3 +5048,24 @@
 "Fitness initiation" = "Inizio del percorso fitness";
 "It's time to transform, no excuses" = "È ora di trasformarsi, niente scuse";
 "Build a new plan" = "Crea un nuovo piano";
+
+/* Linked wearable workout evidence · 2026-08-29 */
+"Already finished?" = "Hai già finito?";
+"Pause this follow-along and finish with an external wearable activity." = "Metti in pausa questa sessione guidata e concludila con un'attività esterna del wearable.";
+"Session recovery" = "Completamento della sessione";
+"Did you finish this planned workout on your own?" = "Hai già completato in autonomia questo allenamento programmato?";
+"APEX has paused the follow-along. Keep only the facts you already recorded here, then optionally attach the wearable effort that belongs to this session." = "APEX ha messo in pausa la sessione guidata. Conserva solo i dati già registrati qui e, se vuoi, collega l'attività del wearable che appartiene a questa sessione.";
+"Choose the wearable activity that matches this workout" = "Scegli l'attività del wearable che corrisponde a questo allenamento";
+"Refresh workouts" = "Aggiorna allenamenti";
+"No wearable workouts were found for this day. Refresh after the activity reaches Apple Health, or finish without one." = "Non sono stati trovati allenamenti del wearable per questo giorno. Aggiorna quando l'attività arriva in Apple Health oppure termina senza wearable.";
+"Use this activity and finish" = "Usa questa attività e termina";
+"Finish without a wearable" = "Termina senza wearable";
+"Yes, choose wearable activity" = "Sì, scegli attività del wearable";
+"Finished without a wearable" = "Terminato senza wearable";
+"No, keep training" = "No, continua ad allenarti";
+"Not selected" = "Non selezionato";
+"Linked wearable effort" = "Attività del wearable collegata";
+"Device metrics are read-only and are not added to HealthKit energy twice." = "Le metriche del dispositivo sono di sola lettura e non vengono sommate di nuovo all'energia di HealthKit.";
+"Wearable linked" = "Wearable collegato";
+"Completed externally from the APEX guided player" = "Completato esternamente dal player guidato APEX";
+"That wearable activity is no longer available. Choose it again." = "Quell'attività del wearable non è più disponibile. Sceglila di nuovo.";

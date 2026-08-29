@@ -119,6 +119,157 @@ final class HealthImportParityTests: XCTestCase {
         )
     }
 
+    private func linkingSession(
+        id: UUID = UUID(),
+        ownerID: UUID,
+        startedAt: String = "2026-08-29T10:00:00.000Z",
+        completedAt: String = "2026-08-29T11:00:00.000Z"
+    ) -> WorkoutSession {
+        WorkoutSession(
+            id: id, userID: ownerID, date: "2026-08-29", programDayID: UUID(),
+            isLite: false, isDeload: false, isEventRecovery: false,
+            completed: true, qualityScore: 1, startedAt: startedAt,
+            completedAt: completedAt, notes: "Completed in APEX"
+        )
+    }
+
+    private func linkingActivity(
+        id: UUID = UUID(),
+        ownerID: UUID,
+        startedAt: String = "2026-08-29T09:55:00.000Z",
+        endedAt: String = "2026-08-29T10:55:00.000Z",
+        sourceBundleIdentifier: String = "com.apple.health",
+        linkedSessionID: UUID? = nil,
+        hiddenAt: String? = nil
+    ) -> ImportedActivity {
+        ImportedActivity(
+            id: id, userID: ownerID, date: "2026-08-29", kind: "strength",
+            activity: "Traditional Strength Training", durationMinutes: 60,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: startedAt, endedAt: endedAt,
+            workoutNameKey: "health.workout.traditional_strength_training",
+            sourceBundleIdentifier: sourceBundleIdentifier,
+            apexWorkoutSessionID: linkedSessionID, hiddenAt: hiddenAt
+        )
+    }
+
+    func testOneOverlappingWearableWorkoutLinksAtTheInclusiveFiveMinuteBoundary() {
+        let ownerID = UUID()
+        let session = linkingSession(ownerID: ownerID)
+        let boundary = linkingActivity(ownerID: ownerID)
+
+        let links = WearableWorkoutLinking.automaticLinks(
+            sessions: [session], activities: [boundary], ownerID: ownerID
+        )
+
+        XCTAssertEqual(links.map(\.id), [boundary.id])
+        XCTAssertEqual(links.first?.apexWorkoutSessionID, session.id)
+        let endedBeforeStart = linkingActivity(
+            ownerID: ownerID,
+            startedAt: "2026-08-29T09:50:00.000Z",
+            endedAt: "2026-08-29T09:59:59.000Z"
+        )
+        XCTAssertTrue(WearableWorkoutLinking.automaticLinks(
+            sessions: [session], activities: [endedBeforeStart], ownerID: ownerID
+        ).isEmpty)
+    }
+
+    func testAutomaticWearableAssociationRefusesAmbiguousActivitiesAndSessions() {
+        let ownerID = UUID()
+        let firstSession = linkingSession(ownerID: ownerID)
+        let firstActivity = linkingActivity(ownerID: ownerID, startedAt: "2026-08-29T09:58:00.000Z")
+        let secondActivity = linkingActivity(ownerID: ownerID, startedAt: "2026-08-29T10:02:00.000Z")
+        XCTAssertTrue(WearableWorkoutLinking.automaticLinks(
+            sessions: [firstSession], activities: [firstActivity, secondActivity], ownerID: ownerID
+        ).isEmpty)
+
+        let secondSession = linkingSession(
+            ownerID: ownerID, startedAt: "2026-08-29T10:01:00.000Z"
+        )
+        XCTAssertTrue(WearableWorkoutLinking.automaticLinks(
+            sessions: [firstSession, secondSession], activities: [secondActivity], ownerID: ownerID
+        ).isEmpty)
+    }
+
+    func testManualWearableChoicesAreOwnerDayScopedExternalAndNewestFirst() {
+        let ownerID = UUID()
+        let session = linkingSession(ownerID: ownerID)
+        let older = linkingActivity(ownerID: ownerID, startedAt: "2026-08-29T07:00:00.000Z")
+        let newer = linkingActivity(ownerID: ownerID, startedAt: "2026-08-29T12:00:00.000Z")
+        let hidden = linkingActivity(ownerID: ownerID, hiddenAt: "2026-08-29T12:30:00.000Z")
+        let mirror = linkingActivity(
+            ownerID: ownerID, sourceBundleIdentifier: "ch.apexperformance.APEX.watchkitapp"
+        )
+        let linked = linkingActivity(ownerID: ownerID, linkedSessionID: UUID())
+        let foreign = linkingActivity(ownerID: UUID())
+
+        let candidates = WearableWorkoutLinking.candidatesForDay(
+            activities: [older, newer, hidden, mirror, linked, foreign],
+            ownerID: ownerID,
+            date: "2026-08-29"
+        )
+
+        XCTAssertEqual(candidates.map(\.id), [newer.id, older.id])
+        XCTAssertEqual(
+            WearableWorkoutLinking.explicitLink(newer, to: session)?.apexWorkoutSessionID,
+            session.id
+        )
+        XCTAssertNil(WearableWorkoutLinking.explicitLink(foreign, to: session))
+    }
+
+    func testHealthKitRefreshPreservesAnExternalWearableLink() {
+        let ownerID = UUID()
+        let sessionID = UUID()
+        let workout = healthWorkout(
+            id: "20000000-0000-0000-0000-000000000321",
+            startedAt: Date(timeIntervalSince1970: 1_777_000_000),
+            nameKey: "health.workout.traditional_strength_training",
+            sourceBundleIdentifier: "com.apple.health"
+        )
+        let canonical = ExternalWorkoutImport.importedActivity(from: workout, ownerID: ownerID)
+        let linked = ImportedActivity(
+            id: canonical.id, userID: canonical.userID, date: canonical.date,
+            kind: canonical.kind, activity: canonical.activity,
+            durationMinutes: max(1, canonical.durationMinutes - 1), source: canonical.source,
+            healthKitWorkoutID: canonical.healthKitWorkoutID,
+            startedAt: canonical.startedAt, endedAt: canonical.endedAt,
+            workoutNameKey: canonical.workoutNameKey,
+            distanceKM: canonical.distanceKM,
+            activeEnergyKcal: canonical.activeEnergyKcal,
+            sourceBundleIdentifier: canonical.sourceBundleIdentifier,
+            activityTypeRaw: canonical.activityTypeRaw,
+            apexWorkoutSessionID: sessionID
+        )
+
+        let result = ExternalWorkoutImport.reconcile(
+            changeSet: .init(workouts: [workout], deletedWorkoutIDs: []),
+            existing: [linked], apexSessions: [], ownerID: ownerID,
+            legacyActivityLogIDs: []
+        )
+
+        XCTAssertEqual(result.upserts.first?.apexWorkoutSessionID, sessionID)
+        XCTAssertFalse(ExternalWorkoutImport.isAPEXMirror(linked, apexSessions: [
+            .init(id: sessionID, startedAt: workout.startedAt)
+        ]))
+    }
+
+    func testExternalCompletionUsesTheViewedDayForReceiptAndWearableOwnership() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let appSession = try String(contentsOf: nativeRoot.appending(
+            path: "APEX/App/AppSession.swift"
+        ))
+        let player = try String(contentsOf: nativeRoot.appending(
+            path: "APEX/Features/Training/TrainingProgramView.swift"
+        ))
+
+        XCTAssertTrue(appSession.contains("completionDate: String? = nil"))
+        XCTAssertTrue(appSession.contains("date: completionDate ?? Date().apexDateKey"))
+        XCTAssertTrue(appSession.contains("if wearableLinkRequest == .automatic,\n           let profile"))
+        XCTAssertTrue(player.contains("wearableLinkRequest: linkRequest,\n                completionDate: date"))
+    }
+
     func testDailyLogsMatchTheWeb() {
         let rows = built().dailyLogs.sorted { $0.date < $1.date }
         let expected = Self.fixture.expected.daily_logs

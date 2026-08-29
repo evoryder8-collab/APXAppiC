@@ -12,6 +12,7 @@ import { timeZoneFromSettings } from '../../lib/mealTiming'
 import type { Accent } from '../../lib/theme'
 import { ACCENTS } from '../../lib/theme'
 import { workoutLogsInPerformedOrder } from '../../lib/workoutLogOrder'
+import { isAPEXWorkoutSourceBundle } from '../../lib/wearableWorkoutLinking'
 import { useStore } from '../../store/AppStore'
 import { WorkoutStatsSheet } from './WorkoutStatsSheet'
 
@@ -97,6 +98,15 @@ export function CompletedWorkoutHistoryCards({
       setPendingDelete(null)
       return
     }
+    for (const activity of data.imported_activities) {
+      if (
+        activity.user_id === (data.profile?.user_id ?? data.settings?.user_id)
+        && activity.apex_workout_session_id === plan.sessionId
+        && !isAPEXWorkoutSourceBundle(activity.source_bundle_id)
+      ) {
+        upsert('imported_activities', { ...activity, apex_workout_session_id: null })
+      }
+    }
     for (const logId of plan.logIds) remove('workout_logs', logId)
     remove('workout_sessions', plan.sessionId)
     setExpanded((current) => {
@@ -179,7 +189,7 @@ export function CompletedWorkoutHistoryCards({
           )
         }
 
-        const { session, title, isQuickLog } = entry
+        const { session, title, isQuickLog, linkedWearable } = entry
         const open = expanded.has(session.id)
         const logs = workoutLogsInPerformedOrder(data, session.id)
         const working = logs.filter((log) => !log.skipped)
@@ -187,6 +197,9 @@ export function CompletedWorkoutHistoryCards({
         const volume = loadedStrengthVolume(working)
         const time = session.completed_at?.slice(11, 16) ?? null
         const groups = groupReceiptLogs(logs)
+        const linkedReceipt = linkedWearable
+          ? externalWorkoutReceiptPresentation(linkedWearable, language, timeZone, t)
+          : null
         const swipeOffset = liveSwipe?.id === session.id
           ? liveSwipe.offset
           : revealedSessionId === session.id ? -88 : 0
@@ -221,7 +234,7 @@ export function CompletedWorkoutHistoryCards({
                 <span className="min-w-0 flex-1">
                   <span className="block font-mono text-[8px] font-black tracking-[.14em] text-emerald-800 uppercase">{t(isQuickLog ? 'Quick Log complete' : 'Tracked workout complete')}</span>
                   <span className="mt-1 block break-words font-display text-base font-black leading-tight text-ink">{t(title)}</span>
-                  <span className="mt-1 block font-mono text-[9px] font-bold text-ink-faint">{[session.date, time, `${working.length} ${t('working sets')}`, `${movements} ${t(movements === 1 ? 'movement' : 'movements')}`].filter(Boolean).join(' · ')}</span>
+                  <span className="mt-1 block font-mono text-[9px] font-bold text-ink-faint">{[session.date, time, `${working.length} ${t('working sets')}`, `${movements} ${t(movements === 1 ? 'movement' : 'movements')}`, linkedWearable ? t('Wearable linked') : null].filter(Boolean).join(' · ')}</span>
                 </span>
                 <span aria-hidden className={`mt-1 text-lg font-black text-emerald-800 transition ${open ? 'rotate-180' : ''}`}>⌄</span>
               </button>
@@ -241,6 +254,20 @@ export function CompletedWorkoutHistoryCards({
                     <HistoryMetric label={t('Working sets')} value={String(working.length)} />
                     <HistoryMetric label={t('Movements')} value={String(movements)} />
                   </div>
+                  {linkedWearable && linkedReceipt && (
+                    <div className="mt-3 rounded-2xl border border-sky-200/80 bg-gradient-to-br from-sky-50 to-cyan-50 p-3" data-linked-wearable-evidence>
+                      <p className="font-mono text-[8px] font-black tracking-[.14em] text-sky-800 uppercase">{t('Linked wearable effort')}</p>
+                      <p className="mt-1 break-words font-display text-sm font-black text-ink">{linkedReceipt.title}</p>
+                      <p className="mt-1 break-words font-mono text-[9px] font-bold leading-relaxed text-ink-faint">{[linkedReceipt.moment, linkedReceipt.duration, linkedWearable.source].filter(Boolean).join(' · ')}</p>
+                      {(linkedReceipt.energy || linkedReceipt.distance) && (
+                        <div className="mt-2 grid grid-cols-2 gap-2">
+                          {linkedReceipt.energy && <HistoryMetric label={t('Active energy')} value={linkedReceipt.energy} />}
+                          {linkedReceipt.distance && <HistoryMetric label={t('Distance')} value={linkedReceipt.distance} />}
+                        </div>
+                      )}
+                      <p className="mt-2 text-[10px] leading-relaxed font-semibold text-sky-900/70">{t('Device metrics are read-only and are not added to HealthKit energy twice.')}</p>
+                    </div>
+                  )}
                   <div className="mt-3 space-y-2" data-completed-workout-receipt>
                     {groups.map((group) => (
                       <div key={group.name} className="rounded-2xl border border-white/90 bg-white/72 p-3">
