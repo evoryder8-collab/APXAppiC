@@ -252,6 +252,7 @@ struct CompletedWorkoutHistoryCards: View {
     @State private var expanded: Set<UUID> = []
     @State private var receipt: FinishedSession?
     @State private var pendingDeletion: WorkoutReceipt.HistoryItem?
+    @State private var pendingHide: ImportedActivity?
     @State private var revealedSessionID: UUID?
     @State private var swipingSessionID: UUID?
     @State private var liveRevealOffset: CGFloat = 0
@@ -261,10 +262,11 @@ struct CompletedWorkoutHistoryCards: View {
     var limit: Int? = nil
     private let revealWidth: CGFloat = 82
 
-    private var history: [WorkoutReceipt.HistoryItem] {
-        WorkoutReceipt.history(
+    private var history: [WorkoutReceipt.FinishedHistoryItem] {
+        WorkoutReceipt.finishedHistory(
             sessions: session.data.workoutSessions,
             days: session.data.programDays,
+            importedActivities: session.data.importedActivities,
             date: date,
             ownerID: session.profile?.userID,
             limit: limit
@@ -287,7 +289,12 @@ struct CompletedWorkoutHistoryCards: View {
                 .padding(.horizontal, 4)
 
                 ForEach(history) { item in
-                    historyCard(item)
+                    switch item {
+                    case let .apex(apex):
+                        apexHistoryCard(apex)
+                    case let .external(external):
+                        externalHistoryCard(external)
+                    }
                 }
             }
             .sheet(item: $receipt) { finished in
@@ -311,6 +318,23 @@ struct CompletedWorkoutHistoryCards: View {
                 Button(language.text("Cancel"), role: .cancel) { pendingDeletion = nil }
             } message: { _ in
                 Text(language.text("Its receipt and recorded sets will be removed from your history and progression."))
+            }
+            .alert(
+                language.text("Hide this Apple Health workout from APEX?"),
+                isPresented: Binding(
+                    get: { pendingHide != nil },
+                    set: { if !$0 { pendingHide = nil } }
+                ),
+                presenting: pendingHide
+            ) { item in
+                Button(language.text("Hide from APEX"), role: .destructive) {
+                    pendingHide = nil
+                    expanded.remove(item.id)
+                    Task { await session.hideExternalWorkoutFromAPEX(id: item.id) }
+                }
+                Button(language.text("Cancel"), role: .cancel) { pendingHide = nil }
+            } message: { _ in
+                Text(language.text("The original workout stays in Apple Health."))
             }
         }
     }
@@ -341,7 +365,7 @@ struct CompletedWorkoutHistoryCards: View {
         }
     }
 
-    private func historyCard(_ item: WorkoutReceipt.HistoryItem) -> some View {
+    private func apexHistoryCard(_ item: WorkoutReceipt.HistoryItem) -> some View {
         let isExpanded = expanded.contains(item.id)
         let logs = WorkoutLogOrder.performedOrder(session.data, sessionID: item.id)
         let summary = WorkoutReceipt.summarize(logs)
@@ -521,6 +545,131 @@ struct CompletedWorkoutHistoryCards: View {
         )
     }
 
+    private func externalHistoryCard(_ item: ImportedActivity) -> some View {
+        let isExpanded = expanded.contains(item.id)
+        let title = language.language == .english
+            ? item.activity
+            : language.text(item.workoutNameKey ?? item.activity)
+        let dateText = WorkoutReceipt.externalDateText(
+            item.startedAt ?? item.date,
+            locale: language.language.locale
+        )
+        let metadata = [
+            item.source,
+            dateText,
+            language.format("%d min", item.durationMinutes),
+        ].filter { $0.isEmpty == false }.joined(separator: " · ")
+
+        return VStack(spacing: 0) {
+            Button {
+                withAnimation(.snappy) {
+                    if isExpanded { expanded.remove(item.id) }
+                    else { expanded.insert(item.id) }
+                }
+            } label: {
+                HStack(alignment: .top, spacing: 12) {
+                    Image(systemName: "heart.text.square.fill")
+                        .font(.system(size: 15, weight: .black))
+                        .foregroundStyle(.white)
+                        .frame(width: 40, height: 40)
+                        .background(APEXColor.cyan.gradient, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    VStack(alignment: .leading, spacing: 3) {
+                        Text(language.shortText("APPLE HEALTH"))
+                            .font(APEXFont.mono(8, weight: .bold))
+                            .tracking(1.1)
+                            .foregroundStyle(APEXColor.cyan)
+                        Text(title)
+                            .font(APEXFont.display(17))
+                            .foregroundStyle(APEXColor.ink)
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(metadata)
+                            .font(APEXFont.mono(8, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    Spacer(minLength: 4)
+                    Image(systemName: "chevron.down")
+                        .font(.system(size: 12, weight: .bold))
+                        .foregroundStyle(APEXColor.cyan)
+                        .rotationEffect(.degrees(isExpanded ? 180 : 0))
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(15)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(
+                "external-workout-\(isExpanded ? "expanded-" : "")\(item.id.uuidString.lowercased())"
+            )
+            .accessibilityLabel(title)
+            .accessibilityValue(language.text(isExpanded ? "Expanded" : "Collapsed"))
+
+            if isExpanded {
+                Divider().overlay(.white.opacity(0.9))
+                LazyVGrid(
+                    columns: [GridItem(.adaptive(minimum: 92), spacing: 8)],
+                    alignment: .leading,
+                    spacing: 8
+                ) {
+                    historyMetric("Duration", value: language.format("%d min", item.durationMinutes))
+                    if let energy = item.activeEnergyKcal {
+                        historyMetric("Active energy", value: language.format("%d kcal", Int(energy.rounded())))
+                    }
+                    if let distance = item.distanceKM {
+                        historyMetric("Distance", value: language.format("%.2f km", distance))
+                    }
+                }
+                .padding(.horizontal, 15)
+                .padding(.top, 12)
+
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(language.text("READ-ONLY RECEIPT"))
+                        .font(APEXFont.mono(8, weight: .bold))
+                        .tracking(1.0)
+                        .foregroundStyle(APEXColor.cyan)
+                    Text(language.text("Imported from Apple Health. This receipt is read-only in APEX."))
+                        .font(APEXFont.body(12))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+                .padding(.horizontal, 15)
+                .padding(.top, 12)
+
+                Button {
+                    pendingHide = item
+                } label: {
+                    Text(language.shortText("Hide from APEX"))
+                        .font(APEXFont.body(12, weight: .bold))
+                        .frame(maxWidth: .infinity, minHeight: 42)
+                        .foregroundStyle(APEXColor.danger)
+                        .background(
+                            APEXColor.danger.opacity(0.09),
+                            in: RoundedRectangle(cornerRadius: 14, style: .continuous)
+                        )
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(language.text("The original workout stays in Apple Health."))
+                .accessibilityIdentifier("external-workout-hide-\(item.id.uuidString.lowercased())")
+                .padding(15)
+                .padding(.top, -4)
+            }
+        }
+        .background(
+            LinearGradient(
+                colors: [APEXColor.cyan.opacity(0.11), .white.opacity(0.78), APEXColor.teal.opacity(0.07)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            ),
+            in: RoundedRectangle(cornerRadius: 25, style: .continuous)
+        )
+        .overlay {
+            RoundedRectangle(cornerRadius: 25, style: .continuous)
+                .stroke(.white.opacity(0.9), lineWidth: 1)
+        }
+        .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+    }
+
     private func historyMetric(_ label: String, value: String) -> some View {
         VStack(spacing: 3) {
             Text(language.text(label).uppercased())
@@ -544,4 +693,5 @@ struct CompletedWorkoutHistoryCards: View {
         let end = iso.index(start, offsetBy: 5)
         return String(iso[start..<end])
     }
+
 }

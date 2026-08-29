@@ -1365,11 +1365,95 @@ struct ImportedActivity: Codable, Identifiable, Hashable, Sendable {
     let activity: String
     let durationMinutes: Int
     let source: String
+    let healthKitWorkoutID: UUID?
+    let startedAt: String?
+    let endedAt: String?
+    let workoutNameKey: String?
+    let distanceKM: Double?
+    let activeEnergyKcal: Double?
+    let sourceBundleIdentifier: String?
+    let activityTypeRaw: Int?
+    let apexWorkoutSessionID: UUID?
+    let hiddenAt: String?
+
+    init(
+        id: UUID,
+        userID: UUID,
+        date: String,
+        kind: String,
+        activity: String,
+        durationMinutes: Int,
+        source: String,
+        healthKitWorkoutID: UUID? = nil,
+        startedAt: String? = nil,
+        endedAt: String? = nil,
+        workoutNameKey: String? = nil,
+        distanceKM: Double? = nil,
+        activeEnergyKcal: Double? = nil,
+        sourceBundleIdentifier: String? = nil,
+        activityTypeRaw: Int? = nil,
+        apexWorkoutSessionID: UUID? = nil,
+        hiddenAt: String? = nil
+    ) {
+        self.id = id
+        self.userID = userID
+        self.date = date
+        self.kind = kind
+        self.activity = activity
+        self.durationMinutes = durationMinutes
+        self.source = source
+        self.healthKitWorkoutID = healthKitWorkoutID
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.workoutNameKey = workoutNameKey
+        self.distanceKM = distanceKM
+        self.activeEnergyKcal = activeEnergyKcal
+        self.sourceBundleIdentifier = sourceBundleIdentifier
+        self.activityTypeRaw = activityTypeRaw
+        self.apexWorkoutSessionID = apexWorkoutSessionID
+        self.hiddenAt = hiddenAt
+    }
+
+    func hidingFromAPEX(at timestamp: String) -> ImportedActivity {
+        ImportedActivity(
+            id: id,
+            userID: userID,
+            date: date,
+            kind: kind,
+            activity: activity,
+            durationMinutes: durationMinutes,
+            source: source,
+            healthKitWorkoutID: healthKitWorkoutID,
+            startedAt: startedAt,
+            endedAt: endedAt,
+            workoutNameKey: workoutNameKey,
+            distanceKM: distanceKM,
+            activeEnergyKcal: activeEnergyKcal,
+            sourceBundleIdentifier: sourceBundleIdentifier,
+            activityTypeRaw: activityTypeRaw,
+            apexWorkoutSessionID: apexWorkoutSessionID,
+            hiddenAt: timestamp
+        )
+    }
+
+    var isVisibleInAPEX: Bool {
+        hiddenAt == nil
+    }
 
     enum CodingKeys: String, CodingKey {
         case id, date, kind, activity, source
         case userID = "user_id"
         case durationMinutes = "duration_min"
+        case healthKitWorkoutID = "healthkit_workout_id"
+        case startedAt = "started_at"
+        case endedAt = "ended_at"
+        case workoutNameKey = "workout_name_key"
+        case distanceKM = "distance_km"
+        case activeEnergyKcal = "active_energy_kcal"
+        case sourceBundleIdentifier = "source_bundle_id"
+        case activityTypeRaw = "activity_type_raw"
+        case apexWorkoutSessionID = "apex_workout_session_id"
+        case hiddenAt = "hidden_at"
     }
 }
 

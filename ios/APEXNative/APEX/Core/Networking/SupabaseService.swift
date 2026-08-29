@@ -82,6 +82,24 @@ actor SupabaseService {
         let filterValue: UUID
     }
 
+    /// The smallest server row that can identify an APEX-authored HealthKit
+    /// mirror. Receipt details and set logs stay on the bounded dashboard;
+    /// historical reconciliation only needs this account-owned identity.
+    struct WorkoutSessionIdentityRow: Decodable, Equatable, Sendable {
+        let id: UUID
+        let userID: UUID
+        let date: String
+        let startedAt: String?
+        let completedAt: String?
+
+        enum CodingKeys: String, CodingKey {
+            case id, date
+            case userID = "user_id"
+            case startedAt = "started_at"
+            case completedAt = "completed_at"
+        }
+    }
+
     private func optionalHydrationRows<Value: Decodable & Sendable>(
         _ load: @Sendable () async throws -> [Value]
     ) async throws -> [Value] {
@@ -129,9 +147,67 @@ actor SupabaseService {
         ].map { RealtimeSubscription(table: $0, filterColumn: "user_id", filterValue: userID) }
     }
 
+    nonisolated static func collectPaginatedRows<Row>(
+        pageSize: Int = 500,
+        fetch: (_ range: ClosedRange<Int>) async throws -> [Row]
+    ) async rethrows -> [Row] {
+        precondition(pageSize > 0)
+        var rows: [Row] = []
+        var offset = 0
+
+        while true {
+            let page = try await fetch(offset ... (offset + pageSize - 1))
+            guard page.isEmpty == false else { return rows }
+            rows.append(contentsOf: page)
+            // Advance by what the server actually returned. PostgREST may
+            // enforce a smaller maximum than the requested page size.
+            offset += page.count
+        }
+    }
+
+    nonisolated static func collectWorkoutSessionIdentities(
+        ownerID: UUID,
+        pageSize: Int = 250,
+        fetch: (
+            _ scopedOwnerID: UUID,
+            _ range: ClosedRange<Int>
+        ) async throws -> [WorkoutSessionIdentityRow]
+    ) async rethrows -> [ExternalWorkoutImport.APEXSessionIdentity] {
+        let rows = try await collectPaginatedRows(pageSize: pageSize) { range in
+            try await fetch(ownerID, range)
+        }
+        return rows.compactMap { row in
+            guard row.userID == ownerID,
+                  let startedAt = ExternalWorkoutImport.parseTimestamp(
+                      row.startedAt ?? row.completedAt
+                  ) else { return nil }
+            return .init(id: row.id, startedAt: startedAt)
+        }
+    }
+
     func currentUserID() async -> UUID? {
         guard let client else { return nil }
         return try? await client.auth.session.user.id
+    }
+
+    func loadWorkoutSessionIdentities(
+        ownerID: UUID
+    ) async throws -> [ExternalWorkoutImport.APEXSessionIdentity] {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        return try await Self.collectWorkoutSessionIdentities(ownerID: ownerID) {
+            scopedOwnerID,
+            range in
+            try await client
+                .from("workout_sessions")
+                .select("id,user_id,date,started_at,completed_at")
+                .eq("user_id", value: scopedOwnerID)
+                .eq("completed", value: true)
+                .order("date", ascending: false)
+                .order("id", ascending: false)
+                .range(from: range.lowerBound, to: range.upperBound)
+                .execute()
+                .value
+        }
     }
 
     func refreshAuthenticationSession() async throws {
@@ -298,7 +374,16 @@ actor SupabaseService {
         async let loggedFoodEntries: [LoggedFoodEntry] = client.from("logged_food_entries").select().order("created_at", ascending: false).limit(1000).execute().value
         async let snapshots: [RPGSnapshot] = client.from("rpg_snapshots").select().order("date", ascending: false).limit(180).execute().value
         async let healthMetrics: [HealthMetric] = client.from("health_metrics").select().order("date", ascending: false).limit(180).execute().value
-        async let importedActivities: [ImportedActivity] = client.from("imported_activities").select().order("date", ascending: false).limit(360).execute().value
+        async let importedActivities: [ImportedActivity] = Self.collectPaginatedRows { range in
+            try await client
+                .from("imported_activities")
+                .select()
+                .order("date", ascending: false)
+                .order("id", ascending: false)
+                .range(from: range.lowerBound, to: range.upperBound)
+                .execute()
+                .value
+        }
         async let progressPhotos: [ProgressPhoto] = client.from("progress_photos").select().order("local_date", ascending: false).limit(120).execute().value
         async let orbitRoutes: [OrbitRouteRecord] = client.from("orbit_routes").select().order("updated_at", ascending: false).limit(120).execute().value
         async let orbitRuns: [OrbitRunRecord] = client.from("orbit_runs").select().order("local_date", ascending: false).limit(180).execute().value

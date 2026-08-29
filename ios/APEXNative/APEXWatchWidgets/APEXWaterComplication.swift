@@ -89,14 +89,33 @@ struct WaterProvider: AppIntentTimelineProvider {
     }
 
     func snapshot(for configuration: WaterConfigurationIntent, in context: Context) async -> WaterEntry {
-        await Self.entry(for: configuration)
+        await Self.resolvedEntry(for: configuration).entry
     }
 
     func timeline(for configuration: WaterConfigurationIntent, in context: Context) async -> Timeline<WaterEntry> {
-        let entry = await Self.entry(for: configuration)
-        /* Refresh on the half hour. Logging from the watch app or the phone
-           also reloads timelines directly. */
-        return Timeline(entries: [entry], policy: .after(Date().addingTimeInterval(30 * 60)))
+        let resolved = await Self.resolvedEntry(for: configuration)
+        if let delivered = resolved.visibleSignature.flatMap({
+            HydrationComplicationDeliveryPolicy.acknowledgedSignature(
+                $0,
+                delivery: .timeline(isPreview: context.isPreview)
+            )
+        }) {
+            Self.markDeliveredTimeline(signature: delivered)
+        }
+        let schedule = HydrationComplicationTimelinePolicy.schedule(after: resolved.entry.date)
+        let midnightEntry = WaterEntry(
+            date: schedule.midnightReset.date,
+            liters: Double(schedule.midnightReset.totalML) / 1_000,
+            targetLiters: resolved.entry.targetLiters,
+            displayMode: resolved.entry.displayMode,
+            composition: schedule.midnightReset.composition
+        )
+        /* Never carry yesterday's percentage past midnight. Logging from the
+           watch app or the phone also requests a deduplicated immediate reload. */
+        return Timeline(
+            entries: [resolved.entry, midnightEntry],
+            policy: .after(schedule.refreshAfter)
+        )
     }
 
     /* Offered in the watch-face complication gallery. */
@@ -108,7 +127,12 @@ struct WaterProvider: AppIntentTimelineProvider {
         }
     }
 
-    private static func entry(for configuration: WaterConfigurationIntent) async -> WaterEntry {
+    private struct ResolvedEntry {
+        let entry: WaterEntry
+        let visibleSignature: String?
+    }
+
+    private static func resolvedEntry(for configuration: WaterConfigurationIntent) async -> ResolvedEntry {
         let shared = sharedState()
         let widgetHealthState = shared.flatMap(sharedHealthState)
         let resolvedShared = shared.map {
@@ -117,6 +141,7 @@ struct WaterProvider: AppIntentTimelineProvider {
                 healthState: widgetHealthState
             )
         }
+        let observationRevision = HydrationComplicationRefreshPolicy.revision()
         let health = await todayHydration(
             ownerID: shared?.ownerID,
             queryAnchorData: resolvedShared?.healthQueryAnchorData
@@ -147,11 +172,12 @@ struct WaterProvider: AppIntentTimelineProvider {
                     inTotalML: resolvedShared?.totalML ?? shared.totalML,
                     composition: resolvedShared?.composition ?? shared.composition
                 )
-                persistReconciledHealthState(
+                await HydrationHealthSidecarStore.shared.persist(
                     shared: shared,
-                    health: health,
+                    healthQueryAnchorData: health.queryAnchorData,
                     update: update,
-                    reconciled: reconciled
+                    reconciled: reconciled,
+                    observationRevision: observationRevision
                 )
             } else {
                 reconciled = HydrationReconciledState(
@@ -168,22 +194,39 @@ struct WaterProvider: AppIntentTimelineProvider {
             totalML = 0
             composition = []
         }
-        return WaterEntry(
+        let entry = WaterEntry(
             date: Date(),
             liters: Double(totalML) / 1_000,
             targetLiters: Double(shared?.targetML ?? 2_750) / 1_000,
             displayMode: configuration.displayMode ?? .percent,
             composition: composition
         )
+        let signature = shared.map {
+            HydrationComplicationRefreshPolicy.visibleSignature(
+                ownerID: $0.ownerID,
+                localDate: $0.localDate,
+                totalML: totalML,
+                targetML: $0.targetML,
+                composition: composition
+            )
+        }
+        return ResolvedEntry(entry: entry, visibleSignature: signature)
+    }
+
+    private static func markDeliveredTimeline(signature: String) {
+        guard let defaults = UserDefaults(suiteName: HydrationWidgetStorage.suiteName) else { return }
+        defaults.set(
+            signature,
+            forKey: HydrationWidgetStorage.renderedVisibleSignatureKey
+        )
     }
 
     private static func sharedState() -> HydrationWidgetState? {
         guard let data = UserDefaults(suiteName: HydrationWidgetStorage.suiteName)?
             .data(forKey: HydrationWidgetStorage.stateKey),
-              let state = try? HydrationWidgetState.decode(data),
-              state.localDate == Date().apexDateKey
+              let state = try? HydrationWidgetState.decode(data)
         else { return nil }
-        return state
+        return HydrationComplicationDayRollover.state(state, for: Date().apexDateKey)
     }
 
     private static func sharedHealthState(
@@ -210,40 +253,12 @@ struct WaterProvider: AppIntentTimelineProvider {
         let queryAnchorData: Data?
     }
 
-    private static func persistReconciledHealthState(
-        shared: HydrationWidgetState,
-        health: HealthHydration,
-        update: HydrationHealthOverlayUpdate,
-        reconciled: HydrationReconciledState
-    ) {
-        guard let defaults = UserDefaults(suiteName: HydrationWidgetStorage.suiteName),
-              let latestData = defaults.data(forKey: HydrationWidgetStorage.stateKey),
-              let latest = try? HydrationWidgetState.decode(latestData),
-              latest.ownerID == shared.ownerID,
-              latest.localDate == shared.localDate,
-              latest.revision == shared.revision
-        else { return }
-
-        let updated = HydrationWidgetHealthState(
-            ownerID: latest.ownerID,
-            localDate: latest.localDate,
-            baseRevision: latest.revision,
-            totalML: reconciled.totalML,
-            composition: reconciled.composition,
-            healthAnchor: update.nextAnchor,
-            healthQueryAnchorData: health.queryAnchorData ?? latest.healthQueryAnchorData,
-            healthOverlay: update.mutations
-        )
-        if let data = try? updated.encoded() {
-            defaults.set(data, forKey: HydrationWidgetStorage.healthStateKey)
-        }
-    }
-
     private static func todayHydration(
         ownerID: UUID?,
         queryAnchorData: Data?
     ) async -> HealthHydration? {
-        guard HKHealthStore.isHealthDataAvailable(),
+        guard let ownerID,
+              HKHealthStore.isHealthDataAvailable(),
               let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater)
         else { return nil }
         let store = HKHealthStore()
@@ -269,13 +284,18 @@ struct WaterProvider: AppIntentTimelineProvider {
             }
             var totals: [Key: Int] = [:]
             var sampleAnchors: [HydrationHealthSampleAnchor] = []
+            let claimDefaults = UserDefaults(suiteName: HydrationWidgetStorage.suiteName)
             for sample in rawSamples {
-                if let rawOwner = sample.metadata?[HydrationMetadata.ownerID] as? String,
-                   let sampleOwner = UUID(uuidString: rawOwner),
-                   let ownerID,
-                   sampleOwner != ownerID {
-                    continue
-                }
+                let explicitOwnerID = (sample.metadata?[HydrationMetadata.ownerID] as? String)
+                    .flatMap(UUID.init(uuidString:))
+                let sharedClaimOwnerID = claimDefaults?.string(
+                    forKey: HydrationWidgetStorage.healthSampleOwnerClaimKey(for: sample.uuid)
+                ).flatMap(UUID.init(uuidString:))
+                guard HydrationHealthSampleOwnershipPolicy.belongs(
+                    explicitOwnerID: explicitOwnerID,
+                    sharedClaimOwnerID: sharedClaimOwnerID,
+                    activeOwnerID: ownerID
+                ) else { continue }
                 let milliliters = Int(max(0, sample.quantity.doubleValue(
                     for: .literUnit(with: .milli)
                 )).rounded())

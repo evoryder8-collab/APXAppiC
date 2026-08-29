@@ -164,6 +164,38 @@ final class WatchHydrationFillStateTests: XCTestCase {
         XCTAssertEqual(WatchHydrationDisplayMode.gallons.shortValue(for: state), "0.36gal")
     }
 
+    @MainActor
+    func testHydrationObserverCompletionRunsAfterTheFullAsyncRefresh() async {
+        var events: [String] = []
+
+        await HydrationObserverDelivery.process(
+            operation: {
+                events.append("refresh started")
+                await Task.yield()
+                events.append("refresh finished")
+            },
+            completion: { events.append("completion") }
+        )
+
+        XCTAssertEqual(events, ["refresh started", "refresh finished", "completion"])
+    }
+
+    @MainActor
+    func testHydrationObserverCompletionStillRunsWhenRefreshThrows() async {
+        enum ExpectedFailure: Error { case refresh }
+        var events: [String] = []
+
+        await HydrationObserverDelivery.process(
+            operation: {
+                events.append("refresh")
+                throw ExpectedFailure.refresh
+            },
+            completion: { events.append("completion") }
+        )
+
+        XCTAssertEqual(events, ["refresh", "completion"])
+    }
+
     func testComplicationKeepsNewerCompanionSnapshotWhenLocalHealthKitIsBehind() {
         XCTAssertEqual(
             HydrationComplicationRefreshPolicy.readingSource(
@@ -184,13 +216,13 @@ final class WatchHydrationFillStateTests: XCTestCase {
         )
     }
 
-    func testComplicationUsesHealthKitWhenNoSharedStateExists() {
+    func testComplicationNeverShowsAccountUnscopedHealthKitWithoutACanonicalOwner() {
         XCTAssertEqual(
             HydrationComplicationRefreshPolicy.readingSource(
                 hasSharedState: false,
                 hasHealthData: true
             ),
-            .healthKit
+            .empty
         )
     }
 
@@ -256,6 +288,79 @@ final class WatchHydrationFillStateTests: XCTestCase {
                 incomingRevision: "2026-08-27T20:05:00.000Z"
             )
         )
+    }
+
+    func testPendingWatchGoalRejectsDelayedPhoneSnapshotUntilThePhoneCatchesUp() {
+        XCTAssertFalse(
+            HydrationComplicationRefreshPolicy.shouldAcceptCompanionRevision(
+                acceptedCompanionRevision: "2026-08-27T20:00:00.000Z",
+                localWidgetRevision: "2026-08-27T20:10:00.000Z",
+                incomingRevision: "2026-08-27T20:05:00.000Z",
+                protectsLocalWidgetRevision: true
+            )
+        )
+        XCTAssertTrue(
+            HydrationComplicationRefreshPolicy.shouldAcceptCompanionRevision(
+                acceptedCompanionRevision: "2026-08-27T20:05:00.000Z",
+                localWidgetRevision: "2026-08-27T20:10:00.000Z",
+                incomingRevision: "2026-08-27T20:10:00.000Z",
+                protectsLocalWidgetRevision: true
+            )
+        )
+
+        var watchPreference = WatchHydrationPreferences.default
+        watchPreference.targetMode = .custom
+        watchPreference.targetLiters = 3.8
+        let matchingPhonePreference = watchPreference
+        var stalePhonePreference = watchPreference
+        stalePhonePreference.targetLiters = 2.75
+
+        XCTAssertFalse(HydrationPendingPreferencePolicy.acknowledges(
+            pending: watchPreference,
+            incoming: stalePhonePreference
+        ))
+        XCTAssertTrue(HydrationPendingPreferencePolicy.acknowledges(
+            pending: watchPreference,
+            incoming: matchingPhonePreference
+        ))
+    }
+
+    func testPendingAutomaticWatchPreferenceAcceptsARecalculatedPhoneTargetOnly() {
+        var watchPreference = WatchHydrationPreferences.default
+        watchPreference.targetMode = .automatic
+        watchPreference.targetLiters = 2.75
+        watchPreference.unit = .gallons
+        watchPreference.showsPresetNames = false
+        watchPreference.confirmationHaptics = false
+        watchPreference.motionIntensity = .full
+        watchPreference.remindersEnabled = true
+        watchPreference.reminderIntervalMinutes = 120
+        watchPreference.quietHoursStartMinutes = 20 * 60
+        watchPreference.quietHoursEndMinutes = 7 * 60
+
+        var recalculatedPhonePreference = watchPreference
+        recalculatedPhonePreference.targetLiters = 3.45
+
+        XCTAssertTrue(HydrationPendingPreferencePolicy.acknowledges(
+            pending: watchPreference,
+            incoming: recalculatedPhonePreference
+        ))
+
+        var changedUserPreference = recalculatedPhonePreference
+        changedUserPreference.remindersEnabled = false
+        XCTAssertFalse(HydrationPendingPreferencePolicy.acknowledges(
+            pending: watchPreference,
+            incoming: changedUserPreference
+        ))
+
+        watchPreference.targetMode = .custom
+        watchPreference.targetLiters = 3.8
+        var changedCustomTarget = watchPreference
+        changedCustomTarget.targetLiters = 3.9
+        XCTAssertFalse(HydrationPendingPreferencePolicy.acknowledges(
+            pending: watchPreference,
+            incoming: changedCustomTarget
+        ))
     }
 
     func testAnchoredHealthKitDeltaPreservesCompleteSharedTotalAndTracksExternalChanges() throws {
@@ -332,6 +437,105 @@ final class WatchHydrationFillStateTests: XCTestCase {
         )
         XCTAssertEqual(unanchored.totalML, 770)
         XCTAssertEqual(unanchored.composition, baseComposition)
+    }
+
+    func testEmptyHydrationAdjustmentsPreserveNewestFirstCanonicalCompositionExactly() {
+        let newestFirst = [
+            HydrationCompositionBand(
+                kind: .coffee,
+                paletteToken: "espresso",
+                iconToken: "cup.and.saucer.fill",
+                milliliters: 300
+            ),
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 500
+            ),
+            HydrationCompositionBand(
+                kind: .tea,
+                paletteToken: "tea",
+                iconToken: "mug.fill",
+                milliliters: 200
+            ),
+        ]
+
+        let resolved = HydrationHealthReconciler.applying(
+            [],
+            toTotalML: 1_000,
+            composition: newestFirst
+        )
+
+        XCTAssertEqual(resolved.totalML, 1_000)
+        XCTAssertEqual(resolved.composition, newestFirst)
+    }
+
+    func testHydrationAdjustmentsMinimallyMergeWithoutReorderingUnaffectedBands() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000080")!
+        let coffee = HydrationCompositionBand(
+            kind: .coffee,
+            paletteToken: "espresso",
+            iconToken: "cup.and.saucer.fill",
+            milliliters: 300
+        )
+        let water = HydrationCompositionBand(
+            kind: .water,
+            paletteToken: "aqua",
+            iconToken: "drop.fill",
+            milliliters: 500
+        )
+        let tea = HydrationCompositionBand(
+            kind: .tea,
+            paletteToken: "tea",
+            iconToken: "mug.fill",
+            milliliters: 200
+        )
+        let waterAddition = HydrationPendingMutation(
+            ownerID: ownerID,
+            localDate: "2026-08-29",
+            action: .upsert,
+            sample: healthSample(
+                "00000000-0000-0000-0000-000000000081",
+                milliliters: 100
+            )
+        )
+        let externalAddition = HydrationPendingMutation(
+            ownerID: ownerID,
+            localDate: "2026-08-29",
+            action: .upsert,
+            sample: healthSample(
+                "00000000-0000-0000-0000-000000000082",
+                milliliters: 50,
+                kind: .external,
+                palette: "external",
+                icon: "heart.fill"
+            )
+        )
+
+        let resolved = HydrationHealthReconciler.applying(
+            [waterAddition, externalAddition],
+            toTotalML: 1_000,
+            composition: [coffee, water, tea]
+        )
+
+        XCTAssertEqual(resolved.totalML, 1_150)
+        XCTAssertEqual(resolved.composition, [
+            HydrationCompositionBand(
+                kind: .external,
+                paletteToken: "external",
+                iconToken: "heart.fill",
+                milliliters: 50
+            ),
+            coffee,
+            HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 600
+            ),
+            tea,
+        ])
     }
 
     func testPendingWatchMutationsOverlaySnapshotsUntilTheirEventIsAcknowledged() {
@@ -670,7 +874,7 @@ final class WatchHydrationFillStateTests: XCTestCase {
                 canonical: canonical,
                 healthState: healthState
             ).totalML,
-            870
+            770
         )
         XCTAssertEqual(
             HydrationWidgetStateResolver.resolve(
@@ -768,6 +972,403 @@ final class WatchHydrationFillStateTests: XCTestCase {
                 newVisibleSignature: "owner|day|770|1000|water"
             )
         )
+    }
+
+    func testComplicationResolverCannotReplaceTheCanonicalTotalWithAStaleSameRevisionSidecar() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000072")!
+        let canonical = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-08-29",
+            totalML: 1_696,
+            targetML: 3_750,
+            composition: [HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 1_696
+            )],
+            revision: "2026-08-29T12:46:56.970Z"
+        )
+        let staleThirtyThreePercent = HydrationWidgetHealthState(
+            ownerID: ownerID,
+            localDate: canonical.localDate,
+            baseRevision: canonical.revision,
+            totalML: 1_238,
+            composition: [HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 1_238
+            )],
+            healthAnchor: [],
+            healthQueryAnchorData: nil,
+            healthOverlay: []
+        )
+
+        let resolved = HydrationWidgetStateResolver.resolve(
+            canonical: canonical,
+            healthState: staleThirtyThreePercent
+        )
+
+        XCTAssertEqual(resolved.totalML, 1_696)
+        XCTAssertEqual(resolved.composition, canonical.composition)
+        XCTAssertEqual(
+            HydrationComplicationRefreshPolicy.visibleSignature(
+                ownerID: canonical.ownerID,
+                localDate: canonical.localDate,
+                totalML: resolved.totalML,
+                targetML: canonical.targetML,
+                composition: resolved.composition
+            ),
+            HydrationComplicationRefreshPolicy.visibleSignature(for: canonical)
+        )
+    }
+
+    func testTimelineReloadGateRefreshesChangedAndUnrenderedStateWithoutLooping() {
+        XCTAssertTrue(HydrationComplicationRefreshPolicy.shouldReloadTimeline(
+            renderedVisibleSignature: "owner|day|1238|3750|water",
+            requestedVisibleSignature: "owner|day|1238|3750|water",
+            newVisibleSignature: "owner|day|1696|3750|water",
+            retryUnrenderedRequest: false
+        ))
+        XCTAssertFalse(HydrationComplicationRefreshPolicy.shouldReloadTimeline(
+            renderedVisibleSignature: "owner|day|1238|3750|water",
+            requestedVisibleSignature: "owner|day|1696|3750|water",
+            newVisibleSignature: "owner|day|1696|3750|water",
+            retryUnrenderedRequest: false
+        ))
+        XCTAssertTrue(HydrationComplicationRefreshPolicy.shouldReloadTimeline(
+            renderedVisibleSignature: "owner|day|1238|3750|water",
+            requestedVisibleSignature: "owner|day|1696|3750|water",
+            newVisibleSignature: "owner|day|1696|3750|water",
+            retryUnrenderedRequest: true
+        ))
+        XCTAssertFalse(HydrationComplicationRefreshPolicy.shouldReloadTimeline(
+            renderedVisibleSignature: "owner|day|1696|3750|water",
+            requestedVisibleSignature: "owner|day|1696|3750|water",
+            newVisibleSignature: "owner|day|1696|3750|water",
+            retryUnrenderedRequest: true
+        ))
+    }
+
+    func testVisibleSignatureInvalidatesForWatchPhoneRemovalAndGoalChanges() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000073")!
+        func signature(totalML: Int, targetML: Int) -> String {
+            HydrationComplicationRefreshPolicy.visibleSignature(
+                ownerID: ownerID,
+                localDate: "2026-08-29",
+                totalML: totalML,
+                targetML: targetML,
+                composition: totalML == 0 ? [] : [HydrationCompositionBand(
+                    kind: .water,
+                    paletteToken: "aqua",
+                    iconToken: "drop.fill",
+                    milliliters: totalML
+                )]
+            )
+        }
+
+        let original = signature(totalML: 1_238, targetML: 3_750)
+        XCTAssertNotEqual(original, signature(totalML: 1_488, targetML: 3_750), "local Watch add")
+        XCTAssertNotEqual(original, signature(totalML: 988, targetML: 3_750), "local Watch removal")
+        XCTAssertNotEqual(original, signature(totalML: 1_696, targetML: 3_750), "phone snapshot")
+        XCTAssertNotEqual(original, signature(totalML: 1_238, targetML: 3_000), "goal change")
+    }
+
+    func testTimelineCarriesAnExplicitEmptyMidnightEntryUntilTheRoutineRefresh() {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        let now = ISO8601DateFormatter().date(from: "2026-08-29T23:50:00Z")!
+        let expectedMidnight = ISO8601DateFormatter().date(from: "2026-08-30T00:00:00Z")!
+        let expectedRefresh = ISO8601DateFormatter().date(from: "2026-08-30T00:20:00Z")!
+        let schedule = HydrationComplicationTimelinePolicy.schedule(
+            after: now,
+            calendar: calendar
+        )
+
+        XCTAssertEqual(schedule.midnightReset.date, expectedMidnight)
+        XCTAssertEqual(schedule.midnightReset.totalML, 0)
+        XCTAssertTrue(schedule.midnightReset.composition.isEmpty)
+        XCTAssertEqual(schedule.refreshAfter, expectedRefresh)
+    }
+
+    func testComplicationCarriesTheCanonicalOwnerAndGoalAcrossMidnightButNotYesterdayTotal() throws {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000099")!
+        let stored = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-08-29",
+            totalML: 1_696,
+            targetML: 3_750,
+            composition: [HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 1_696
+            )],
+            revision: "2026-08-29T23:59:50.000Z"
+        )
+
+        let rolled = try XCTUnwrap(HydrationComplicationDayRollover.state(
+            stored,
+            for: "2026-08-30"
+        ))
+
+        XCTAssertEqual(rolled.ownerID, ownerID)
+        XCTAssertEqual(rolled.localDate, "2026-08-30")
+        XCTAssertEqual(rolled.targetML, 3_750)
+        XCTAssertEqual(rolled.totalML, 0)
+        XCTAssertTrue(rolled.composition.isEmpty)
+        XCTAssertNil(rolled.healthAnchor)
+        XCTAssertNil(rolled.healthQueryAnchorData)
+        XCTAssertNil(rolled.canonicalSampleIDs)
+        XCTAssertNil(rolled.healthOverlay)
+        XCTAssertEqual(HydrationComplicationDayRollover.state(
+            stored,
+            for: stored.localDate
+        ), stored)
+        XCTAssertNil(HydrationComplicationDayRollover.state(
+            stored,
+            for: "2026-08-28"
+        ))
+    }
+
+    func testOnlyDeliveredNonPreviewTimelineAcknowledgesVisibleSignature() {
+        let current = "owner|day|1696|3750|water"
+
+        XCTAssertNil(HydrationComplicationDeliveryPolicy.acknowledgedSignature(
+            current,
+            delivery: .snapshot
+        ))
+        XCTAssertNil(HydrationComplicationDeliveryPolicy.acknowledgedSignature(
+            current,
+            delivery: .timeline(isPreview: true)
+        ))
+        XCTAssertEqual(
+            HydrationComplicationDeliveryPolicy.acknowledgedSignature(
+                current,
+                delivery: .timeline(isPreview: false)
+            ),
+            current
+        )
+    }
+
+    func testNewerSameBaseHealthObservationCannotBeOverwrittenByAnOlderCompletion() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000074")!
+        let canonical = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-08-29",
+            totalML: 1_000,
+            targetML: 3_000,
+            composition: [HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 1_000
+            )],
+            revision: "2026-08-29T12:00:00.000Z"
+        )
+        func sidecar(revision: String?, overlayML: Int) -> HydrationWidgetHealthState {
+            HydrationWidgetHealthState(
+                ownerID: ownerID,
+                localDate: canonical.localDate,
+                baseRevision: canonical.revision,
+                observationRevision: revision,
+                totalML: 1_000 + overlayML,
+                composition: canonical.composition,
+                healthAnchor: [],
+                healthQueryAnchorData: nil,
+                healthOverlay: overlayML == 0 ? [] : [HydrationPendingMutation(
+                    ownerID: ownerID,
+                    localDate: canonical.localDate,
+                    action: .upsert,
+                    sample: HydrationHealthSampleAnchor(
+                        id: UUID(uuidString: "00000000-0000-0000-0000-000000000076")!,
+                        milliliters: overlayML,
+                        kind: .external,
+                        paletteToken: "external",
+                        iconToken: "heart.fill"
+                    )
+                )]
+            )
+        }
+        let older = sidecar(revision: "2026-08-29T12:00:01.000Z", overlayML: 100)
+        let newer = sidecar(revision: "2026-08-29T12:00:02.000Z", overlayML: 250)
+
+        XCTAssertTrue(HydrationHealthSidecarWritePolicy.shouldPersist(
+            existing: older,
+            incoming: newer,
+            canonical: canonical
+        ))
+        XCTAssertFalse(HydrationHealthSidecarWritePolicy.shouldPersist(
+            existing: newer,
+            incoming: older,
+            canonical: canonical
+        ))
+        XCTAssertTrue(HydrationHealthSidecarWritePolicy.shouldPersist(
+            existing: sidecar(revision: nil, overlayML: 50),
+            incoming: newer,
+            canonical: canonical
+        ))
+        XCTAssertEqual(
+            HydrationWidgetStateResolver.resolve(canonical: canonical, healthState: newer).totalML,
+            1_250
+        )
+        XCTAssertEqual(
+            HydrationWidgetStateResolver.resolve(canonical: canonical, healthState: older).totalML,
+            1_100
+        )
+    }
+
+    func testConcurrentSidecarTransactionsCannotLetAnOlderObservationWin() async throws {
+        let suiteName = "ch.apexperformance.APEX.tests.sidecar.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defaults.removePersistentDomain(forName: suiteName)
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000083")!
+        let canonical = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-08-29",
+            totalML: 1_000,
+            targetML: 3_000,
+            composition: [HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 1_000
+            )],
+            revision: "2026-08-29T12:00:00.000Z"
+        )
+        defaults.set(try canonical.encoded(), forKey: HydrationWidgetStorage.stateKey)
+
+        func input(
+            id: String,
+            milliliters: Int
+        ) -> (HydrationHealthOverlayUpdate, HydrationReconciledState) {
+            let sample = healthSample(id, milliliters: milliliters, kind: .external)
+            return (
+                HydrationHealthOverlayUpdate(
+                    mutations: [HydrationPendingMutation(
+                        ownerID: ownerID,
+                        localDate: canonical.localDate,
+                        action: .upsert,
+                        sample: sample
+                    )],
+                    nextAnchor: [sample]
+                ),
+                HydrationReconciledState(
+                    totalML: 1_000 + milliliters,
+                    composition: canonical.composition + [HydrationCompositionBand(
+                        kind: .external,
+                        paletteToken: "external",
+                        iconToken: "heart.fill",
+                        milliliters: milliliters
+                    )]
+                )
+            )
+        }
+        let older = input(
+            id: "00000000-0000-0000-0000-000000000084",
+            milliliters: 100
+        )
+        let newer = input(
+            id: "00000000-0000-0000-0000-000000000085",
+            milliliters: 250
+        )
+        let store = HydrationHealthSidecarStore(suiteName: suiteName)
+
+        async let olderPersisted = store.persist(
+            shared: canonical,
+            healthQueryAnchorData: Data([1]),
+            update: older.0,
+            reconciled: older.1,
+            observationRevision: "2026-08-29T12:00:01.000Z"
+        )
+        async let newerPersisted = store.persist(
+            shared: canonical,
+            healthQueryAnchorData: Data([2]),
+            update: newer.0,
+            reconciled: newer.1,
+            observationRevision: "2026-08-29T12:00:02.000Z"
+        )
+        _ = await (olderPersisted, newerPersisted)
+
+        let stored = try HydrationWidgetHealthState.decode(try XCTUnwrap(
+            defaults.data(forKey: HydrationWidgetStorage.healthStateKey)
+        ))
+        XCTAssertEqual(stored.observationRevision, "2026-08-29T12:00:02.000Z")
+        XCTAssertEqual(stored.totalML, 1_250)
+        XCTAssertEqual(stored.healthQueryAnchorData, Data([2]))
+        XCTAssertEqual(stored.healthOverlay, newer.0.mutations)
+    }
+
+    func testSharedHealthSampleOwnershipKeepsBothConsumersAccountScoped() {
+        let accountA = UUID(uuidString: "00000000-0000-0000-0000-000000000077")!
+        let accountB = UUID(uuidString: "00000000-0000-0000-0000-000000000078")!
+
+        XCTAssertTrue(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: accountA,
+            sharedClaimOwnerID: nil,
+            activeOwnerID: accountA
+        ))
+        XCTAssertFalse(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: accountA,
+            sharedClaimOwnerID: nil,
+            activeOwnerID: accountB
+        ))
+        XCTAssertFalse(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: nil,
+            sharedClaimOwnerID: nil,
+            activeOwnerID: accountA
+        ))
+        XCTAssertTrue(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: nil,
+            sharedClaimOwnerID: accountA,
+            activeOwnerID: accountA
+        ))
+        XCTAssertFalse(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: nil,
+            sharedClaimOwnerID: accountA,
+            activeOwnerID: accountB
+        ))
+        XCTAssertFalse(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: accountA,
+            sharedClaimOwnerID: nil,
+            activeOwnerID: nil
+        ))
+        XCTAssertFalse(HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: nil,
+            sharedClaimOwnerID: nil,
+            activeOwnerID: nil
+        ))
+    }
+
+    func testVisibleSignaturePreservesRenderedCompositionOrder() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000079")!
+        let water = HydrationCompositionBand(
+            kind: .water,
+            paletteToken: "aqua",
+            iconToken: "drop.fill",
+            milliliters: 750
+        )
+        let coffee = HydrationCompositionBand(
+            kind: .coffee,
+            paletteToken: "espresso",
+            iconToken: "cup.and.saucer.fill",
+            milliliters: 250
+        )
+        func signature(_ composition: [HydrationCompositionBand]) -> String {
+            HydrationComplicationRefreshPolicy.visibleSignature(
+                ownerID: ownerID,
+                localDate: "2026-08-29",
+                totalML: 1_000,
+                targetML: 3_000,
+                composition: composition
+            )
+        }
+
+        XCTAssertEqual(signature([water, coffee]), signature([water, coffee]))
+        XCTAssertNotEqual(signature([water, coffee]), signature([coffee, water]))
     }
 
     func testPrimaryWatchAmountKeepsTheUnitBesideTheValueWithoutARedundantDayLabel() {

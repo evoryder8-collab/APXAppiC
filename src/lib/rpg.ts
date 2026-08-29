@@ -20,6 +20,7 @@ import type { AppData, DayType, Profile, RecoveryDataSource, RpgSnapshot } from 
 import { computeTargets, nutritionPlanContext } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
 import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
+import { visibleImportedActivitiesForOwner } from './importedActivityVisibility.ts'
 
 export interface StatBlock {
   health: number
@@ -168,6 +169,7 @@ const FLEX_TYPES: DayType[] = ['mobility', 'fix']
 export function computeEngine(data: AppData, throughDate: string): EngineResult {
   const profile = data.profile
   if (!profile) return { snapshots: [], synergies: [] }
+  const importedActivities = visibleImportedActivitiesForOwner(data)
   const start = profile.baseline_date
   const total = differenceInCalendarDays(
     new Date(throughDate + 'T12:00:00'),
@@ -256,7 +258,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
     a.kcal = d.kcal
     a.protein = d.protein_g
   }
-  for (const imp of data.imported_activities) {
+  for (const imp of importedActivities) {
     const a = getDay(imp.date)
     if (imp.kind === 'strength') a.importStrengthMin += imp.duration_min
     else if (imp.kind === 'endurance') a.importEnduranceMin += imp.duration_min
@@ -313,7 +315,7 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   }
   const preWindowStart = addDaysIso(start, -60)
   const preCounts = { strength: 0, endurance: 0, mobility: 0 }
-  for (const imp of data.imported_activities) {
+  for (const imp of importedActivities) {
     if (imp.date >= preWindowStart && imp.date < start) preCounts[imp.kind] += 1
   }
   if (preCounts.strength + preCounts.endurance + preCounts.mobility > 0) {
@@ -609,7 +611,7 @@ export function whatYourBodyNeeds(data: AppData, snapshots: RpgSnapshot[]): Stat
     if (key && (!lastFed[key] || s.date > (lastFed[key] as string))) lastFed[key] = s.date
   }
   /* imported activities also count as feeding for advice purposes */
-  for (const imp of data.imported_activities) {
+  for (const imp of visibleImportedActivitiesForOwner(data)) {
     const key = imp.kind === 'strength' ? 'upper' : imp.kind === 'endurance' ? 'endurance' : 'flexibility'
     if (!lastFed[key] || imp.date > (lastFed[key] as string)) lastFed[key] = imp.date
   }
@@ -797,7 +799,7 @@ export function assessBodyState(data: AppData, snapshots: RpgSnapshot[]): BodyAs
   for (const metric of data.health_metrics) {
     if (metric.date >= recentStart && metric.date <= now.date) evidenceDays.add(metric.date)
   }
-  for (const activity of data.imported_activities) {
+  for (const activity of visibleImportedActivitiesForOwner(data)) {
     if (activity.date >= recentStart && activity.date <= now.date) evidenceDays.add(activity.date)
   }
   const confidence: BodyAssessment['confidence'] =

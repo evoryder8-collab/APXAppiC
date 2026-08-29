@@ -5,6 +5,7 @@
  *   movements = every exercise performed, conditioning included
  */
 import XCTest
+import HealthKit
 @testable import APEX
 
 final class WorkoutReceiptTests: XCTestCase {
@@ -254,6 +255,158 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertTrue(source.contains("Text(language.text(\"Edit receipt\"))"))
         XCTAssertFalse(source.contains("View & edit receipt"))
         XCTAssertFalse(source.contains("Text(language.text(\"Edit workout\"))"))
+    }
+
+    func testFinishedHistoryMergesVisibleOwnedHealthKitReceiptsWithoutTreatingThemAsAPEXSessions() {
+        let ownerID = UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
+        let visibleID = UUID(uuidString: "20000000-0000-0000-0000-000000000001")!
+        let hiddenID = UUID(uuidString: "20000000-0000-0000-0000-000000000002")!
+        let visible = ImportedActivity(
+            id: visibleID,
+            userID: ownerID,
+            date: "2026-08-29",
+            kind: "endurance",
+            activity: "Outdoor Run",
+            durationMinutes: 44,
+            source: "Constantin’s Apple Watch",
+            healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-29T07:30:00Z",
+            endedAt: "2026-08-29T08:14:00Z",
+            workoutNameKey: "health.workout.outdoor_run",
+            distanceKM: 8.4,
+            activeEnergyKcal: 612,
+            sourceBundleIdentifier: "com.apple.health",
+            activityTypeRaw: Int(HKWorkoutActivityType.running.rawValue)
+        )
+        let hidden = ImportedActivity(
+            id: hiddenID,
+            userID: ownerID,
+            date: "2026-08-28",
+            kind: "strength",
+            activity: "Traditional Strength Training",
+            durationMinutes: 50,
+            source: "Apple Watch",
+            healthKitWorkoutID: UUID(),
+            hiddenAt: "2026-08-29T08:00:00Z"
+        )
+        let foreign = ImportedActivity(
+            id: UUID(), userID: UUID(), date: "2026-08-29", kind: "endurance",
+            activity: "Cycling", durationMinutes: 30, source: "Apple Watch",
+            healthKitWorkoutID: UUID()
+        )
+        let legacyImport = ImportedActivity(
+            id: UUID(), userID: ownerID, date: "2026-08-29", kind: "endurance",
+            activity: "Legacy XML row", durationMinutes: 30, source: "Health import"
+        )
+
+        let history = WorkoutReceipt.finishedHistory(
+            sessions: [],
+            days: [],
+            importedActivities: [hidden, foreign, legacyImport, visible],
+            date: nil,
+            ownerID: ownerID,
+            limit: nil
+        )
+
+        XCTAssertEqual(history.map(\.id), [visibleID])
+        guard case let .external(row) = history[0] else {
+            return XCTFail("HealthKit row must remain a read-only external receipt")
+        }
+        XCTAssertEqual(row.distanceKM, 8.4)
+        XCTAssertEqual(row.activeEnergyKcal, 612)
+    }
+
+    func testExternalReceiptOffersHideFromAPEXAndNeverAppleHealthDeletionOrEditing() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/WorkoutReceiptSheet.swift")
+        )
+
+        XCTAssertTrue(source.contains("Hide from APEX"))
+        XCTAssertTrue(source.contains("The original workout stays in Apple Health."))
+        XCTAssertTrue(source.contains("hideExternalWorkoutFromAPEX"))
+        XCTAssertTrue(source.contains("externalHistoryCard"))
+        XCTAssertFalse(source.contains("deleteHealthKitWorkout"))
+    }
+
+    func testExternalReceiptDateUsesTheSelectedLocaleAndParsesFractionalSeconds() {
+        let value = WorkoutReceipt.externalDateText(
+            "2026-08-29T07:30:00.123Z",
+            locale: Locale(identifier: "ro_RO"),
+            timeZone: TimeZone(secondsFromGMT: 7_200)!
+        )
+
+        XCTAssertTrue(value.contains("09:30"), value)
+        XCTAssertFalse(value.contains("2026-08-29T07:30:00.123Z"), value)
+    }
+
+    func testFinishedHistoryDefensivelyExcludesAnAPEXHealthKitMirrorImportedBeforeCompletion() {
+        let ownerID = UUID(uuidString: "10000000-0000-0000-0000-000000000001")!
+        let sessionID = UUID(uuidString: "30000000-0000-0000-0000-000000000001")!
+        let dayID = UUID(uuidString: "40000000-0000-0000-0000-000000000001")!
+        let session = workout(
+            id: sessionID,
+            userID: ownerID,
+            date: "2026-08-29",
+            dayID: dayID,
+            completedAt: "2026-08-29T08:15:00.000Z"
+        )
+        let mirror = ImportedActivity(
+            id: UUID(), userID: ownerID, date: "2026-08-29", kind: "strength",
+            activity: "Traditional Strength Training", durationMinutes: 15,
+            source: "APEX Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-29T08:00:20.000Z",
+            sourceBundleIdentifier: "ch.apexperformance.APEX.watchkitapp"
+        )
+
+        let history = WorkoutReceipt.finishedHistory(
+            sessions: [session], days: [], importedActivities: [mirror],
+            date: nil, ownerID: ownerID, limit: nil
+        )
+
+        XCTAssertEqual(history.count, 1)
+        guard case let .apex(item) = history[0] else {
+            return XCTFail("the native APEX session must win over its HealthKit mirror")
+        }
+        XCTAssertEqual(item.session.id, sessionID)
+    }
+
+    func testHideFromAPEXAlsoRemovesTheExternalWorkoutFromFitnessSignals() throws {
+        var data = APEXDebugFixture.dashboard()
+        let ownerID = try XCTUnwrap(data.profile?.userID)
+        let apexSession = workout(
+            userID: ownerID,
+            date: "2026-08-29",
+            dayID: UUID(),
+            completedAt: "2026-08-29T08:45:00.000Z"
+        )
+        data.workoutSessions = [apexSession]
+        data.importedActivities = [
+            ImportedActivity(
+                id: UUID(), userID: ownerID, date: "2026-08-28", kind: "strength",
+                activity: "Hidden", durationMinutes: 45, source: "Apple Health",
+                healthKitWorkoutID: UUID(), hiddenAt: "2026-08-29T09:00:00Z"
+            ),
+            ImportedActivity(
+                id: UUID(), userID: ownerID, date: "2026-08-29", kind: "endurance",
+                activity: "Visible", durationMinutes: 30, source: "Apple Health",
+                healthKitWorkoutID: UUID()
+            ),
+            ImportedActivity(
+                id: UUID(), userID: ownerID, date: "2026-08-29", kind: "strength",
+                activity: "APEX mirror", durationMinutes: 45, source: "APEX Watch",
+                healthKitWorkoutID: UUID(), startedAt: "2026-08-29T08:00:20.000Z",
+                sourceBundleIdentifier: "ch.apexperformance.APEX.watchkitapp"
+            ),
+        ]
+
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: data))
+
+        XCTAssertEqual(input.importedActivities.count, 1)
+        XCTAssertEqual(input.importedActivities[0].date, "2026-08-29")
+        XCTAssertEqual(input.importedActivities[0].kind, .endurance)
     }
 
     func testCollapsedDeleteTrayRequiresANegativeSwipeOffsetAndNeverReplacesExpandedContent() {

@@ -186,3 +186,218 @@ enum HealthImport {
         )
     }
 }
+
+struct HealthWorkoutChangeSet: Hashable, Sendable {
+    let workouts: [HealthWorkoutSnapshot]
+    let deletedWorkoutIDs: Set<UUID>
+    let anchorData: Data?
+
+    init(
+        workouts: [HealthWorkoutSnapshot],
+        deletedWorkoutIDs: Set<UUID>,
+        anchorData: Data? = nil
+    ) {
+        self.workouts = workouts
+        self.deletedWorkoutIDs = deletedWorkoutIDs
+        self.anchorData = anchorData
+    }
+}
+
+enum ExternalWorkoutImport {
+    struct APEXSessionIdentity: Hashable, Sendable {
+        let id: UUID
+        let startedAt: Date
+    }
+
+    struct Reconciliation: Equatable, Sendable {
+        let upserts: [ImportedActivity]
+        let importedActivityIDsToDelete: [UUID]
+        let activityLogIDsToDelete: [UUID]
+
+        static let unchanged = Reconciliation(
+            upserts: [],
+            importedActivityIDsToDelete: [],
+            activityLogIDsToDelete: []
+        )
+    }
+
+    static func reconcile(
+        changeSet: HealthWorkoutChangeSet?,
+        existing: [ImportedActivity],
+        apexSessions: [APEXSessionIdentity],
+        ownerID: UUID,
+        legacyActivityLogIDs: Set<UUID>
+    ) -> Reconciliation {
+        guard let changeSet else { return .unchanged }
+
+        let existingForOwner = existing.filter { $0.userID == ownerID }
+        let existingRowsByWorkoutID = Dictionary(
+            grouping: existingForOwner.compactMap { row in
+                row.healthKitWorkoutID.map { ($0, row) }
+            },
+            by: \.0
+        )
+        let affectedWorkoutIDs = Set(changeSet.workouts.map(\.id))
+            .union(changeSet.deletedWorkoutIDs)
+        var rowIDsToDelete = Set(existingForOwner.compactMap { row -> UUID? in
+            if isAPEXMirror(row, apexSessions: apexSessions) { return row.id }
+            if let workoutID = row.healthKitWorkoutID {
+                return changeSet.deletedWorkoutIDs.contains(workoutID) ? row.id : nil
+            }
+            return affectedWorkoutIDs.contains(row.id) ? row.id : nil
+        })
+        var seenWorkoutIDs = Set<UUID>()
+        var upserts: [ImportedActivity] = []
+
+        for workout in changeSet.workouts {
+            guard seenWorkoutIDs.insert(workout.id).inserted else { continue }
+            guard changeSet.deletedWorkoutIDs.contains(workout.id) == false else { continue }
+
+            let existingRows = existingRowsByWorkoutID[workout.id]?.map(\.1) ?? []
+            let legacyRows = existingForOwner.filter {
+                $0.healthKitWorkoutID == nil && $0.id == workout.id
+            }
+            if isAPEXMirror(workout, apexSessions: apexSessions) {
+                rowIDsToDelete.formUnion(existingRows.map(\.id))
+                rowIDsToDelete.formUnion(legacyRows.map(\.id))
+                continue
+            }
+
+            let replacement = importedActivity(
+                from: workout,
+                ownerID: ownerID,
+                hiddenAt: (existingRows + legacyRows).compactMap(\.hiddenAt).max()
+            )
+            rowIDsToDelete.formUnion(
+                existingRows.lazy.filter { $0.id != replacement.id }.map(\.id)
+            )
+            let canonicalRows = existingRows.filter { $0.id == replacement.id }
+            if canonicalRows.count != 1 || canonicalRows[0] != replacement || legacyRows.isEmpty == false {
+                upserts.append(replacement)
+            }
+        }
+
+        let rowsToDelete = rowIDsToDelete
+            .sorted { $0.uuidString < $1.uuidString }
+
+        let logsToDelete = legacyActivityLogIDs
+            .intersection(affectedWorkoutIDs)
+            .sorted { $0.uuidString < $1.uuidString }
+
+        return Reconciliation(
+            upserts: upserts,
+            importedActivityIDsToDelete: rowsToDelete,
+            activityLogIDsToDelete: logsToDelete
+        )
+    }
+
+    static func persistenceBatches(
+        _ rows: [ImportedActivity],
+        maximumCount: Int = 100
+    ) -> [[ImportedActivity]] {
+        guard rows.isEmpty == false else { return [] }
+        let size = max(1, maximumCount)
+        return stride(from: 0, to: rows.count, by: size).map { lowerBound in
+            Array(rows[lowerBound..<min(lowerBound + size, rows.count)])
+        }
+    }
+
+    static func importedActivity(
+        from workout: HealthWorkoutSnapshot,
+        ownerID: UUID,
+        hiddenAt: String? = nil
+    ) -> ImportedActivity {
+        ImportedActivity(
+            id: accountScopedID(ownerID: ownerID, workoutID: workout.id),
+            userID: ownerID,
+            date: workout.date,
+            kind: avatarKind(for: workout.kind),
+            activity: workout.activityName,
+            durationMinutes: workout.durationMinutes,
+            source: workout.sourceName,
+            healthKitWorkoutID: workout.id,
+            startedAt: workout.startedAt.ISO8601Format(),
+            endedAt: workout.endedAt.ISO8601Format(),
+            workoutNameKey: workout.activityNameKey,
+            distanceKM: workout.distanceKM,
+            activeEnergyKcal: workout.activeEnergyKcal,
+            sourceBundleIdentifier: workout.sourceBundleIdentifier,
+            activityTypeRaw: workout.activityTypeRaw,
+            apexWorkoutSessionID: workout.apexSessionID,
+            hiddenAt: hiddenAt
+        )
+    }
+
+    static func isAPEXMirror(
+        _ workout: HealthWorkoutSnapshot,
+        apexSessions: [APEXSessionIdentity]
+    ) -> Bool {
+        if let apexSessionID = workout.apexSessionID,
+           apexSessions.contains(where: { $0.id == apexSessionID }) {
+            return true
+        }
+        guard isAPEXBundleIdentifier(workout.sourceBundleIdentifier) else { return false }
+        return apexSessions.contains {
+            abs($0.startedAt.timeIntervalSince(workout.startedAt)) < 5 * 60
+        }
+    }
+
+    static func isAPEXMirror(
+        _ activity: ImportedActivity,
+        apexSessions: [APEXSessionIdentity]
+    ) -> Bool {
+        if let sessionID = activity.apexWorkoutSessionID,
+           apexSessions.contains(where: { $0.id == sessionID }) {
+            return true
+        }
+        guard activity.sourceBundleIdentifier.map(isAPEXBundleIdentifier) == true,
+              let startedAt = parseTimestamp(activity.startedAt) else { return false }
+        return apexSessions.contains {
+            abs($0.startedAt.timeIntervalSince(startedAt)) < 5 * 60
+        }
+    }
+
+    private static func isAPEXBundleIdentifier(_ value: String) -> Bool {
+        value == "ch.apexperformance.APEX"
+            || value.hasPrefix("ch.apexperformance.APEX.")
+    }
+
+    static func parseTimestamp(_ value: String?) -> Date? {
+        guard let value else { return nil }
+        let fractional = ISO8601DateFormatter()
+        fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
+        return fractional.date(from: value) ?? ISO8601DateFormatter().date(from: value)
+    }
+
+    private static func avatarKind(for workoutKind: String) -> String {
+        switch workoutKind {
+        case "run", "walk", "hiit", "endurance": return "endurance"
+        case "strength": return "strength"
+        case "mobility": return "mobility"
+        default: return "mobility"
+        }
+    }
+
+    private static func accountScopedID(ownerID: UUID, workoutID: UUID) -> UUID {
+        let owner = ownerID.uuid
+        let workout = workoutID.uuid
+        var bytes: [UInt8] = [
+            owner.0 ^ workout.0, owner.1 ^ workout.1,
+            owner.2 ^ workout.2, owner.3 ^ workout.3,
+            owner.4 ^ workout.4, owner.5 ^ workout.5,
+            owner.6 ^ workout.6, owner.7 ^ workout.7,
+            owner.8 ^ workout.8, owner.9 ^ workout.9,
+            owner.10 ^ workout.10, owner.11 ^ workout.11,
+            owner.12 ^ workout.12, owner.13 ^ workout.13,
+            owner.14 ^ workout.14, owner.15 ^ workout.15,
+        ]
+        bytes[6] = (bytes[6] & 0x0F) | 0x50
+        bytes[8] = (bytes[8] & 0x3F) | 0x80
+        return UUID(uuid: (
+            bytes[0], bytes[1], bytes[2], bytes[3],
+            bytes[4], bytes[5], bytes[6], bytes[7],
+            bytes[8], bytes[9], bytes[10], bytes[11],
+            bytes[12], bytes[13], bytes[14], bytes[15]
+        ))
+    }
+}

@@ -22,6 +22,23 @@ private struct WatchHydrationHealthChanges: Sendable {
     let queryAnchorData: Data?
 }
 
+private final class WatchHealthObserverCompletion: @unchecked Sendable {
+    private let lock = NSLock()
+    private var callback: (() -> Void)?
+
+    init(_ callback: @escaping () -> Void) {
+        self.callback = callback
+    }
+
+    func call() {
+        lock.lock()
+        let callback = callback
+        self.callback = nil
+        lock.unlock()
+        callback?()
+    }
+}
+
 @MainActor
 final class WatchHydrationStore: ObservableObject {
     @Published private(set) var liters = 0.0
@@ -42,6 +59,8 @@ final class WatchHydrationStore: ObservableObject {
     private var latestWidgetLocalDate: String?
     private var latestWidgetRevision: String?
     private var acceptedCompanionRevision: String?
+    private var pendingPreferenceOwnerID: UUID?
+    private var pendingPreferenceRevision: String?
     private var healthAnchor: [HydrationHealthSampleAnchor]?
     private var healthQueryAnchorData: Data?
     private var pendingMutations: [HydrationPendingMutation] = []
@@ -57,6 +76,10 @@ final class WatchHydrationStore: ObservableObject {
         "ch.apexperformance.APEX.watch.hydration.deferred-deletes.v1"
     private static let acceptedCompanionRevisionKey =
         "ch.apexperformance.APEX.watch.hydration.accepted-companion-revision.v1"
+    private static let pendingPreferenceOwnerKey =
+        "ch.apexperformance.APEX.watch.hydration.pending-preference-owner.v1"
+    private static let pendingPreferenceRevisionKey =
+        "ch.apexperformance.APEX.watch.hydration.pending-preference-revision.v1"
     private static let reminderIdentifierPrefix = "ch.apexperformance.APEX.hydration.reminder."
     private static let reminderCountDayKey = "ch.apexperformance.APEX.watch.hydration.reminder.day"
     private static let reminderCountKey = "ch.apexperformance.APEX.watch.hydration.reminder.count"
@@ -65,6 +88,12 @@ final class WatchHydrationStore: ObservableObject {
         self.defaults = defaults
         connectivity = WatchHydrationConnectivity()
         acceptedCompanionRevision = defaults.string(forKey: Self.acceptedCompanionRevisionKey)
+        if let ownerValue = defaults.string(forKey: Self.pendingPreferenceOwnerKey),
+           let ownerID = UUID(uuidString: ownerValue),
+           let revision = defaults.string(forKey: Self.pendingPreferenceRevisionKey) {
+            pendingPreferenceOwnerID = ownerID
+            pendingPreferenceRevision = revision
+        }
         if let data = defaults.data(forKey: Self.pendingMutationsKey),
            let restored = try? JSONDecoder().decode([HydrationPendingMutation].self, from: data) {
             pendingMutations = restored
@@ -86,17 +115,20 @@ final class WatchHydrationStore: ObservableObject {
                 .data(forKey: HydrationWidgetStorage.healthStateKey)
                 .flatMap { try? HydrationWidgetHealthState.decode($0) }
                 .flatMap { $0.matches(state) ? $0 : nil }
+            let resolved = HydrationWidgetStateResolver.resolve(
+                canonical: state,
+                healthState: widgetHealthState
+            )
             activeOwnerID = state.ownerID
-            liters = Double(widgetHealthState?.totalML ?? state.totalML) / 1_000
-            composition = widgetHealthState?.composition ?? state.composition
+            liters = Double(resolved.totalML) / 1_000
+            composition = resolved.composition
             preferences.targetLiters = Double(state.targetML) / 1_000
             latestWidgetLocalDate = state.localDate
             latestWidgetRevision = state.revision
-            healthAnchor = widgetHealthState?.healthAnchor ?? state.healthAnchor
-            healthQueryAnchorData = widgetHealthState?.healthQueryAnchorData
-                ?? state.healthQueryAnchorData
+            healthAnchor = resolved.healthAnchor
+            healthQueryAnchorData = resolved.healthQueryAnchorData
             canonicalSampleIDs = Set(state.canonicalSampleIDs ?? [])
-            healthOverlay = widgetHealthState?.healthOverlay ?? state.healthOverlay ?? []
+            healthOverlay = resolved.healthOverlay
         }
         connectivity.snapshotHandler = { [weak self] snapshot in
             self?.apply(snapshot)
@@ -142,7 +174,12 @@ final class WatchHydrationStore: ObservableObject {
         defaults.set(data, forKey: Self.preferencesKey)
         preferences = validated
         persistWidgetState()
-        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+        if let activeOwnerID, let latestWidgetRevision {
+            pendingPreferenceOwnerID = activeOwnerID
+            pendingPreferenceRevision = latestWidgetRevision
+            persistPendingPreferenceRevision()
+        }
+        requestComplicationReload()
 
         if validated.remindersEnabled, !remindersWereEnabled {
             let granted = (try? await UNUserNotificationCenter.current().requestAuthorization(
@@ -180,7 +217,7 @@ final class WatchHydrationStore: ObservableObject {
             try await healthStore.requestAuthorization(toShare: [waterType], read: [waterType])
             refreshAuthorizationStatus(waterType)
             if !isAuthorized { message = permissionMessage }
-            await refresh()
+            await refresh(retryComplicationIfStale: true)
             beginObserving(waterType)
         } catch {
             refreshAuthorizationStatus(waterType)
@@ -373,7 +410,7 @@ final class WatchHydrationStore: ObservableObject {
         }
     }
 
-    func refresh() async {
+    func refresh(retryComplicationIfStale: Bool = false) async {
         guard let waterType = HKObjectType.quantityType(forIdentifier: .dietaryWater) else { return }
         guard let activeOwnerID else {
             liters = 0
@@ -381,6 +418,11 @@ final class WatchHydrationStore: ObservableObject {
             composition = []
             message = "Open APEX on iPhone once to connect this Watch."
             return
+        }
+        defer {
+            requestComplicationReload(
+                retryIfUnrendered: retryComplicationIfStale
+            )
         }
         let localDate = Date().apexDateKey
         ensureCurrentDay(localDate)
@@ -506,7 +548,6 @@ final class WatchHydrationStore: ObservableObject {
                 || reconciled.composition != previousComposition
             if visibleStateChanged {
                 persistWidgetState(absorbSidecar: false)
-                WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
             } else if healthAnchor != previousHealthAnchor
                 || healthOverlay != previousHealthOverlay
                 || healthQueryAnchorData != previousHealthQueryAnchorData {
@@ -525,10 +566,14 @@ final class WatchHydrationStore: ObservableObject {
 
     private func beginObserving(_ waterType: HKQuantityType) {
         guard observerQuery == nil else { return }
-        let query = HKObserverQuery(sampleType: waterType, predicate: nil) { [weak self] _, completion, _ in
-            completion()
+        let query = HKObserverQuery(sampleType: waterType, predicate: nil) { [weak self] _, completion, error in
+            guard error == nil else { completion(); return }
+            let observerCompletion = WatchHealthObserverCompletion(completion)
             Task { @MainActor in
-                await self?.refresh()
+                await HydrationObserverDelivery.process(
+                    operation: { [weak self] in await self?.refresh() },
+                    completion: { observerCompletion.call() }
+                )
             }
         }
         observerQuery = query
@@ -572,11 +617,26 @@ final class WatchHydrationStore: ObservableObject {
 
     private func apply(_ snapshot: HydrationCompanionSnapshot) {
         guard snapshot.localDate == Date().apexDateKey else { return }
+        let protectsPendingPreference = pendingPreferenceOwnerID == snapshot.ownerID
+            && pendingPreferenceRevision != nil
+        if protectsPendingPreference,
+           !HydrationPendingPreferencePolicy.acknowledges(
+               pending: preferences,
+               incoming: snapshot.preferences
+           ) {
+            return
+        }
         guard HydrationComplicationRefreshPolicy.shouldAcceptCompanionRevision(
             acceptedCompanionRevision: acceptedCompanionRevision,
-            localWidgetRevision: latestWidgetRevision,
-            incomingRevision: snapshot.revision
+            localWidgetRevision: protectsPendingPreference
+                ? pendingPreferenceRevision
+                : latestWidgetRevision,
+            incomingRevision: snapshot.revision,
+            protectsLocalWidgetRevision: protectsPendingPreference
         ) else { return }
+        if protectsPendingPreference || pendingPreferenceOwnerID != snapshot.ownerID {
+            clearPendingPreferenceRevision()
+        }
         absorbWidgetHealthStateIfCurrent()
         if activeOwnerID != snapshot.ownerID || latestWidgetLocalDate != snapshot.localDate {
             stateGeneration &+= 1
@@ -646,7 +706,7 @@ final class WatchHydrationStore: ObservableObject {
         acceptedCompanionRevision = snapshot.revision
         defaults.set(snapshot.revision, forKey: Self.acceptedCompanionRevisionKey)
         persistWidgetState(revision: snapshot.revision, absorbSidecar: false)
-        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+        requestComplicationReload()
         if isAuthorized {
             Task { @MainActor [weak self] in
                 await self?.refresh()
@@ -673,6 +733,7 @@ final class WatchHydrationStore: ObservableObject {
         healthOverlay = []
         pendingMutations = []
         persistPendingMutations()
+        clearPendingPreferenceRevision()
         latestWidgetLocalDate = Date().apexDateKey
         latestWidgetRevision = revision
         acceptedCompanionRevision = revision
@@ -680,6 +741,10 @@ final class WatchHydrationStore: ObservableObject {
         defaults.removeObject(forKey: Self.preferencesKey)
         widgetDefaults?.removeObject(forKey: HydrationWidgetStorage.stateKey)
         widgetDefaults?.removeObject(forKey: HydrationWidgetStorage.healthStateKey)
+        widgetDefaults?.set(
+            "disconnected|\(revision)",
+            forKey: HydrationWidgetStorage.requestedVisibleSignatureKey
+        )
         WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
         Task { @MainActor [weak self] in
             await self?.removeHydrationReminders()
@@ -689,16 +754,34 @@ final class WatchHydrationStore: ObservableObject {
 
     private func watchSampleBelongsToActiveOwner(_ sample: HKQuantitySample) -> Bool {
         guard let activeOwnerID else { return false }
-        if let rawOwner = sample.metadata?[HydrationMetadata.ownerID] as? String,
-           let sampleOwner = UUID(uuidString: rawOwner) {
-            return sampleOwner == activeOwnerID
+        let explicitOwnerID = (sample.metadata?[HydrationMetadata.ownerID] as? String)
+            .flatMap(UUID.init(uuidString:))
+        if explicitOwnerID != nil {
+            return HydrationHealthSampleOwnershipPolicy.belongs(
+                explicitOwnerID: explicitOwnerID,
+                sharedClaimOwnerID: nil,
+                activeOwnerID: activeOwnerID
+            )
         }
-        let key = "apex.hk.hydration.claim.\(sample.uuid.uuidString.lowercased())"
-        if let claimed = defaults.string(forKey: key).flatMap(UUID.init(uuidString:)) {
-            return claimed == activeOwnerID
+
+        let sharedKey = HydrationWidgetStorage.healthSampleOwnerClaimKey(for: sample.uuid)
+        let legacyKey = "apex.hk.hydration.claim.\(sample.uuid.uuidString.lowercased())"
+        var sharedClaimOwnerID = widgetDefaults?.string(forKey: sharedKey)
+            .flatMap(UUID.init(uuidString:))
+        if sharedClaimOwnerID == nil,
+           let legacyClaimOwnerID = defaults.string(forKey: legacyKey).flatMap(UUID.init(uuidString:)) {
+            widgetDefaults?.set(legacyClaimOwnerID.uuidString.lowercased(), forKey: sharedKey)
+            sharedClaimOwnerID = legacyClaimOwnerID
         }
-        defaults.set(activeOwnerID.uuidString.lowercased(), forKey: key)
-        return true
+        if sharedClaimOwnerID == nil, widgetDefaults != nil {
+            widgetDefaults?.set(activeOwnerID.uuidString.lowercased(), forKey: sharedKey)
+            sharedClaimOwnerID = activeOwnerID
+        }
+        return HydrationHealthSampleOwnershipPolicy.belongs(
+            explicitOwnerID: nil,
+            sharedClaimOwnerID: sharedClaimOwnerID,
+            activeOwnerID: activeOwnerID
+        )
     }
 
     private func persistWidgetState(
@@ -732,6 +815,35 @@ final class WatchHydrationStore: ObservableObject {
         latestWidgetRevision = state.revision
     }
 
+    private func requestComplicationReload(retryIfUnrendered: Bool = false) {
+        guard let activeOwnerID,
+              let localDate = latestWidgetLocalDate,
+              let widgetDefaults
+        else { return }
+        let signature = HydrationComplicationRefreshPolicy.visibleSignature(
+            ownerID: activeOwnerID,
+            localDate: localDate,
+            totalML: Int((liters * 1_000).rounded()),
+            targetML: Int((preferences.targetLiters * 1_000).rounded()),
+            composition: composition
+        )
+        guard HydrationComplicationRefreshPolicy.shouldReloadTimeline(
+            renderedVisibleSignature: widgetDefaults.string(
+                forKey: HydrationWidgetStorage.renderedVisibleSignatureKey
+            ),
+            requestedVisibleSignature: widgetDefaults.string(
+                forKey: HydrationWidgetStorage.requestedVisibleSignatureKey
+            ),
+            newVisibleSignature: signature,
+            retryUnrenderedRequest: retryIfUnrendered
+        ) else { return }
+        widgetDefaults.set(
+            signature,
+            forKey: HydrationWidgetStorage.requestedVisibleSignatureKey
+        )
+        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+    }
+
     private func rebaseForNewDay(_ localDate: String) {
         stateGeneration &+= 1
         liters = 0
@@ -745,7 +857,7 @@ final class WatchHydrationStore: ObservableObject {
         persistPendingMutations()
         latestWidgetLocalDate = localDate
         persistWidgetState(absorbSidecar: false)
-        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+        requestComplicationReload()
     }
 
     private func ensureCurrentDay(_ localDate: String) {
@@ -802,6 +914,25 @@ final class WatchHydrationStore: ObservableObject {
         }
     }
 
+    private func persistPendingPreferenceRevision() {
+        guard let pendingPreferenceOwnerID, let pendingPreferenceRevision else {
+            defaults.removeObject(forKey: Self.pendingPreferenceOwnerKey)
+            defaults.removeObject(forKey: Self.pendingPreferenceRevisionKey)
+            return
+        }
+        defaults.set(
+            pendingPreferenceOwnerID.uuidString.lowercased(),
+            forKey: Self.pendingPreferenceOwnerKey
+        )
+        defaults.set(pendingPreferenceRevision, forKey: Self.pendingPreferenceRevisionKey)
+    }
+
+    private func clearPendingPreferenceRevision() {
+        pendingPreferenceOwnerID = nil
+        pendingPreferenceRevision = nil
+        persistPendingPreferenceRevision()
+    }
+
     private func recordDeferredDelete(_ deletion: HydrationDeferredDelete) {
         deferredDeletes.removeAll {
             $0.ownerID == deletion.ownerID && $0.eventID == deletion.eventID
@@ -850,7 +981,7 @@ final class WatchHydrationStore: ObservableObject {
         }
         composition = Self.sortedComposition(adjusted)
         persistWidgetState(absorbSidecar: false)
-        WidgetCenter.shared.reloadTimelines(ofKind: "ch.apexperformance.APEX.water")
+        requestComplicationReload()
     }
 
     private static func compositionBands(from entries: [WatchHydrationEntry]) -> [HydrationCompositionBand] {

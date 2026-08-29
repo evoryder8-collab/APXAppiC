@@ -58,9 +58,46 @@ struct HealthWorkoutSnapshot: Hashable, Sendable {
     let endedAt: Date
     let kind: String
     let activityName: String
+    let activityNameKey: String
     let durationMinutes: Int
     let distanceKM: Double?
     let activeEnergyKcal: Double?
+    let sourceName: String
+    let sourceBundleIdentifier: String
+    let activityTypeRaw: Int
+    let apexSessionID: UUID?
+
+    init(
+        id: UUID,
+        date: String,
+        startedAt: Date,
+        endedAt: Date,
+        kind: String,
+        activityName: String,
+        activityNameKey: String? = nil,
+        durationMinutes: Int,
+        distanceKM: Double?,
+        activeEnergyKcal: Double?,
+        sourceName: String = "Apple Health",
+        sourceBundleIdentifier: String = "com.apple.health",
+        activityTypeRaw: Int = Int(HKWorkoutActivityType.other.rawValue),
+        apexSessionID: UUID? = nil
+    ) {
+        self.id = id
+        self.date = date
+        self.startedAt = startedAt
+        self.endedAt = endedAt
+        self.kind = kind
+        self.activityName = activityName
+        self.activityNameKey = activityNameKey ?? activityName
+        self.durationMinutes = durationMinutes
+        self.distanceKM = distanceKM
+        self.activeEnergyKcal = activeEnergyKcal
+        self.sourceName = sourceName
+        self.sourceBundleIdentifier = sourceBundleIdentifier
+        self.activityTypeRaw = activityTypeRaw
+        self.apexSessionID = apexSessionID
+    }
 }
 
 struct HealthWaterTotals: Sendable {
@@ -254,6 +291,183 @@ extension HealthSnapshot {
     }
 }
 
+enum HealthWorkoutCatalog {
+    struct Identity: Hashable, Sendable {
+        let kind: String
+        let nameKey: String
+        let fallbackName: String
+    }
+
+    static var authoredNameKeys: Set<String> {
+        let publicRawValues = Array(1...80) + [82, 83, 84, 3000]
+        var keys = Set(publicRawValues.compactMap {
+            HKWorkoutActivityType(rawValue: UInt($0)).map { identity(for: $0).nameKey }
+        })
+        keys.formUnion([
+            identity(for: .cycling, isIndoor: true).nameKey,
+            identity(for: .cycling, isIndoor: false).nameKey,
+            identity(for: .running, isIndoor: true).nameKey,
+            identity(for: .running, isIndoor: false).nameKey,
+            identity(for: .walking, isIndoor: true).nameKey,
+            identity(for: .walking, isIndoor: false).nameKey,
+            "health.workout.unknown",
+        ])
+        return keys
+    }
+
+    static func identity(
+        for type: HKWorkoutActivityType,
+        isIndoor: Bool? = nil
+    ) -> Identity {
+        func item(_ kind: String, _ key: String, _ name: String) -> Identity {
+            Identity(kind: kind, nameKey: "health.workout.\(key)", fallbackName: name)
+        }
+
+        switch type {
+        case .americanFootball: return item("endurance", "american_football", "American Football")
+        case .archery: return item("mobility", "archery", "Archery")
+        case .australianFootball: return item("endurance", "australian_football", "Australian Football")
+        case .badminton: return item("endurance", "badminton", "Badminton")
+        case .baseball: return item("endurance", "baseball", "Baseball")
+        case .basketball: return item("endurance", "basketball", "Basketball")
+        case .bowling: return item("mobility", "bowling", "Bowling")
+        case .boxing: return item("endurance", "boxing", "Boxing")
+        case .climbing: return item("strength", "climbing", "Climbing")
+        case .cricket: return item("endurance", "cricket", "Cricket")
+        case .crossTraining: return item("strength", "cross_training", "Cross Training")
+        case .curling: return item("endurance", "curling", "Curling")
+        case .cycling:
+            if isIndoor == true { return item("endurance", "indoor_cycling", "Indoor Cycling") }
+            if isIndoor == false { return item("endurance", "outdoor_cycling", "Outdoor Cycling") }
+            return item("endurance", "cycling", "Cycling")
+        case .dance: return item("endurance", "dance", "Dance")
+        case .danceInspiredTraining: return item("endurance", "dance_training", "Dance Training")
+        case .elliptical: return item("endurance", "elliptical", "Elliptical")
+        case .equestrianSports: return item("endurance", "equestrian_sports", "Equestrian Sports")
+        case .fencing: return item("endurance", "fencing", "Fencing")
+        case .fishing: return item("mobility", "fishing", "Fishing")
+        case .functionalStrengthTraining: return item("strength", "functional_strength_training", "Functional Strength Training")
+        case .golf: return item("endurance", "golf", "Golf")
+        case .gymnastics: return item("strength", "gymnastics", "Gymnastics")
+        case .handball: return item("endurance", "handball", "Handball")
+        case .hiking: return item("endurance", "hiking", "Hiking")
+        case .hockey: return item("endurance", "hockey", "Hockey")
+        case .hunting: return item("endurance", "hunting", "Hunting")
+        case .lacrosse: return item("endurance", "lacrosse", "Lacrosse")
+        case .martialArts: return item("endurance", "martial_arts", "Martial Arts")
+        case .mindAndBody: return item("mobility", "mind_and_body", "Mind and Body")
+        case .mixedMetabolicCardioTraining: return item("endurance", "mixed_metabolic_cardio", "Mixed Metabolic Cardio")
+        case .paddleSports: return item("endurance", "paddle_sports", "Paddle Sports")
+        case .play: return item("endurance", "play", "Play")
+        case .preparationAndRecovery: return item("mobility", "preparation_and_recovery", "Preparation and Recovery")
+        case .racquetball: return item("endurance", "racquetball", "Racquetball")
+        case .rowing: return item("endurance", "rowing", "Rowing")
+        case .rugby: return item("endurance", "rugby", "Rugby")
+        case .running:
+            if isIndoor == true { return item("endurance", "indoor_run", "Indoor Run") }
+            if isIndoor == false { return item("endurance", "outdoor_run", "Outdoor Run") }
+            return item("endurance", "running", "Running")
+        case .sailing: return item("endurance", "sailing", "Sailing")
+        case .skatingSports: return item("endurance", "skating_sports", "Skating Sports")
+        case .snowSports: return item("endurance", "snow_sports", "Snow Sports")
+        case .soccer: return item("endurance", "soccer", "Soccer")
+        case .softball: return item("endurance", "softball", "Softball")
+        case .squash: return item("endurance", "squash", "Squash")
+        case .stairClimbing: return item("endurance", "stair_climbing", "Stair Climbing")
+        case .surfingSports: return item("endurance", "surfing_sports", "Surfing Sports")
+        case .swimming: return item("endurance", "swimming", "Swimming")
+        case .tableTennis: return item("endurance", "table_tennis", "Table Tennis")
+        case .tennis: return item("endurance", "tennis", "Tennis")
+        case .trackAndField: return item("endurance", "track_and_field", "Track and Field")
+        case .traditionalStrengthTraining: return item("strength", "traditional_strength_training", "Traditional Strength Training")
+        case .volleyball: return item("endurance", "volleyball", "Volleyball")
+        case .walking:
+            if isIndoor == true { return item("endurance", "indoor_walk", "Indoor Walk") }
+            if isIndoor == false { return item("endurance", "outdoor_walk", "Outdoor Walk") }
+            return item("endurance", "walking", "Walking")
+        case .waterFitness: return item("endurance", "water_fitness", "Water Fitness")
+        case .waterPolo: return item("endurance", "water_polo", "Water Polo")
+        case .waterSports: return item("endurance", "water_sports", "Water Sports")
+        case .wrestling: return item("strength", "wrestling", "Wrestling")
+        case .yoga: return item("mobility", "yoga", "Yoga")
+        case .barre: return item("mobility", "barre", "Barre")
+        case .coreTraining: return item("strength", "core_training", "Core Training")
+        case .crossCountrySkiing: return item("endurance", "cross_country_skiing", "Cross-Country Skiing")
+        case .downhillSkiing: return item("endurance", "downhill_skiing", "Downhill Skiing")
+        case .flexibility: return item("mobility", "flexibility", "Flexibility")
+        case .highIntensityIntervalTraining: return item("endurance", "high_intensity_interval_training", "High Intensity Interval Training")
+        case .jumpRope: return item("endurance", "jump_rope", "Jump Rope")
+        case .kickboxing: return item("endurance", "kickboxing", "Kickboxing")
+        case .pilates: return item("mobility", "pilates", "Pilates")
+        case .snowboarding: return item("endurance", "snowboarding", "Snowboarding")
+        case .stairs: return item("endurance", "stairs", "Stairs")
+        case .stepTraining: return item("endurance", "step_training", "Step Training")
+        case .wheelchairWalkPace: return item("endurance", "wheelchair_walk", "Wheelchair Walk")
+        case .wheelchairRunPace: return item("endurance", "wheelchair_run", "Wheelchair Run")
+        case .taiChi: return item("mobility", "tai_chi", "Tai Chi")
+        case .mixedCardio: return item("endurance", "mixed_cardio", "Mixed Cardio")
+        case .handCycling: return item("endurance", "hand_cycling", "Hand Cycling")
+        case .discSports: return item("endurance", "disc_sports", "Disc Sports")
+        case .fitnessGaming: return item("endurance", "fitness_gaming", "Fitness Gaming")
+        case .cardioDance: return item("endurance", "cardio_dance", "Cardio Dance")
+        case .socialDance: return item("endurance", "social_dance", "Social Dance")
+        case .pickleball: return item("endurance", "pickleball", "Pickleball")
+        case .cooldown: return item("mobility", "cooldown", "Cooldown")
+        case .swimBikeRun: return item("endurance", "swim_bike_run", "Swim, Bike, Run")
+        case .transition: return item("endurance", "transition", "Transition")
+        case .underwaterDiving: return item("endurance", "underwater_diving", "Underwater Diving")
+        case .other: return item("mobility", "other", "Apple Health Workout")
+        @unknown default: return item("mobility", "unknown", "Apple Health Workout")
+        }
+    }
+}
+
+enum HealthWorkoutMetrics {
+    static var distanceIdentifiers: [HKQuantityTypeIdentifier] {
+        var identifiers: [HKQuantityTypeIdentifier] = [
+            .distanceWalkingRunning,
+            .distanceCycling,
+            .distanceSwimming,
+            .distanceWheelchair,
+            .distanceDownhillSnowSports,
+        ]
+        if #available(iOS 18.0, watchOS 11.0, *) {
+            identifiers += [
+                .distanceCrossCountrySkiing,
+                .distancePaddleSports,
+                .distanceRowing,
+                .distanceSkatingSports,
+            ]
+        }
+        return identifiers
+    }
+}
+
+enum HealthObserverDelivery {
+    @MainActor
+    static func process<Value>(
+        load: () async -> Value?,
+        consume: (Value) async -> Void,
+        completion: () -> Void
+    ) async {
+        defer { completion() }
+        guard let value = await load() else { return }
+        await consume(value)
+    }
+}
+
+private final class HealthObserverCompletion: @unchecked Sendable {
+    private let callback: () -> Void
+
+    init(_ callback: @escaping () -> Void) {
+        self.callback = callback
+    }
+
+    func call() {
+        callback()
+    }
+}
+
 @MainActor
 @Observable
 final class HealthKitManager {
@@ -272,6 +486,7 @@ final class HealthKitManager {
     private var observerQueries: [HKObserverQuery] = []
     private var importHandler: (@MainActor @Sendable (HealthSnapshot) async -> Void)?
     private static let dietaryWaterAnchorKey = "apex.hk.dietary-water.anchor.v1"
+    private static let workoutAnchorKeyPrefix = "apex.hk.workouts.anchor.v1"
 
     private init() {}
 
@@ -400,11 +615,22 @@ final class HealthKitManager {
         ].compactMap({ $0 }) {
             let query = HKObserverQuery(sampleType: sampleType, predicate: nil) { [weak self] _, completion, error in
                 guard error == nil else { completion(); return }
-                completion()
+                let observerCompletion = HealthObserverCompletion(completion)
                 Task { @MainActor [weak self] in
-                    guard let self, let snapshot = try? await self.readToday() else { return }
-                    self.lastSnapshot = snapshot
-                    if let importHandler = self.importHandler { await importHandler(snapshot) }
+                    await HealthObserverDelivery.process(
+                        load: { [weak self] in
+                            guard let self else { return nil }
+                            return try? await self.readToday()
+                        },
+                        consume: { [weak self] (snapshot: HealthSnapshot) in
+                            guard let self else { return }
+                            self.lastSnapshot = snapshot
+                            if let importHandler = self.importHandler {
+                                await importHandler(snapshot)
+                            }
+                        },
+                        completion: { observerCompletion.call() }
+                    )
                 }
             }
             observerQueries.append(query)
@@ -565,13 +791,15 @@ final class HealthKitManager {
     }
 
     private var readTypes: [HKObjectType] {
-        [
+        let coreTypes: [HKObjectType?] = [
             quantity(.bodyMass), quantity(.vo2Max), quantity(.restingHeartRate),
             quantity(.dietaryWater), quantity(.stepCount), quantity(.activeEnergyBurned),
             quantity(.appleExerciseTime), quantity(.heartRateVariabilitySDNN),
             HKObjectType.categoryType(forIdentifier: .sleepAnalysis),
             HKObjectType.workoutType(), HKObjectType.activitySummaryType()
-        ].compactMap { $0 }
+        ]
+        let workoutMetricTypes = HealthWorkoutMetrics.distanceIdentifiers.map(quantity)
+        return (coreTypes + workoutMetricTypes).compactMap { $0 }
     }
 
     private var writeTypes: [HKSampleType] {
@@ -873,45 +1101,108 @@ final class HealthKitManager {
                 sortDescriptors: [NSSortDescriptor(key: HKSampleSortIdentifierStartDate, ascending: true)]
             ) { _, samples, error in
                 if let error { continuation.resume(throwing: error); return }
-                let workouts = (samples as? [HKWorkout] ?? []).map { workout in
-                    let identity = Self.workoutIdentity(workout.workoutActivityType)
-                    return HealthWorkoutSnapshot(
-                        id: workout.uuid,
-                        date: workout.startDate.apexDateKey,
-                        startedAt: workout.startDate,
-                        endedAt: workout.endDate,
-                        kind: identity.kind,
-                        activityName: identity.name,
-                        durationMinutes: Int((workout.duration / 60).rounded()),
-                        distanceKM: workout.totalDistance?.doubleValue(for: .meterUnit(with: .kilo)),
-                        activeEnergyKcal: workout.totalEnergyBurned?.doubleValue(for: .kilocalorie())
-                    )
-                }
+                let workouts = (samples as? [HKWorkout] ?? []).map(Self.snapshot)
                 continuation.resume(returning: workouts)
             }
             store.execute(query)
         }
     }
 
-    nonisolated private static func workoutIdentity(_ type: HKWorkoutActivityType) -> (kind: String, name: String) {
-        switch type {
-        case .running: ("run", "Running")
-        case .walking, .hiking: ("walk", type == .hiking ? "Hiking" : "Walking")
-        case .traditionalStrengthTraining, .functionalStrengthTraining: ("strength", "Strength training")
-        case .highIntensityIntervalTraining: ("hiit", "High-intensity intervals")
-        case .yoga, .flexibility, .mindAndBody: ("mobility", "Mobility or yoga")
-        default: ("other", "Apple Health workout")
+    func workoutChanges(ownerID: UUID) async throws -> HealthWorkoutChangeSet {
+        let key = Self.workoutAnchorKey(ownerID: ownerID)
+        let storedAnchorData = UserDefaults.standard.data(forKey: key)
+        let anchor = storedAnchorData.flatMap {
+            try? NSKeyedUnarchiver.unarchivedObject(ofClass: HKQueryAnchor.self, from: $0)
+        }
+
+        return try await withCheckedThrowingContinuation { continuation in
+            let query = HKAnchoredObjectQuery(
+                type: HKObjectType.workoutType(),
+                predicate: nil,
+                anchor: anchor,
+                limit: HKObjectQueryNoLimit
+            ) { _, samples, deleted, newAnchor, error in
+                if let error {
+                    continuation.resume(throwing: error)
+                    return
+                }
+                let workouts = (samples as? [HKWorkout] ?? []).map(Self.snapshot)
+                let deletedIDs = Set((deleted ?? []).map(\.uuid))
+                let shouldAdvance = storedAnchorData != nil || workouts.isEmpty == false || deletedIDs.isEmpty == false
+                let newAnchorData = shouldAdvance
+                    ? newAnchor.flatMap {
+                        try? NSKeyedArchiver.archivedData(
+                            withRootObject: $0,
+                            requiringSecureCoding: true
+                        )
+                    }
+                    : nil
+                continuation.resume(returning: HealthWorkoutChangeSet(
+                    workouts: workouts,
+                    deletedWorkoutIDs: deletedIDs,
+                    anchorData: newAnchorData
+                ))
+            }
+            store.execute(query)
         }
     }
 
+    func commitWorkoutAnchor(_ data: Data, ownerID: UUID) {
+        UserDefaults.standard.set(data, forKey: Self.workoutAnchorKey(ownerID: ownerID))
+    }
+
+    private static func workoutAnchorKey(ownerID: UUID) -> String {
+        "\(workoutAnchorKeyPrefix).\(ownerID.uuidString.lowercased())"
+    }
+
+    nonisolated private static func snapshot(_ workout: HKWorkout) -> HealthWorkoutSnapshot {
+        let indoor = workout.metadata?[HKMetadataKeyIndoorWorkout] as? Bool
+        let identity = HealthWorkoutCatalog.identity(
+            for: workout.workoutActivityType,
+            isIndoor: indoor
+        )
+        let distanceMeters = HealthWorkoutMetrics.distanceIdentifiers.compactMap { identifier -> Double? in
+            guard let type = HKQuantityType.quantityType(forIdentifier: identifier) else { return nil }
+            return workout.statistics(for: type)?.sumQuantity()?.doubleValue(for: .meter())
+        }.reduce(0, +)
+        let energyType = HKQuantityType.quantityType(forIdentifier: .activeEnergyBurned)
+        let energy = energyType.flatMap {
+            workout.statistics(for: $0)?.sumQuantity()?.doubleValue(for: .kilocalorie())
+        }
+        let source = workout.sourceRevision.source
+        let apexSessionID = (
+            workout.metadata?["ch.apexperformance.apex.workout-session-id"] as? String
+            ?? workout.metadata?[HKMetadataKeyExternalUUID] as? String
+        ).flatMap(UUID.init(uuidString:))
+
+        return HealthWorkoutSnapshot(
+            id: workout.uuid,
+            date: workout.startDate.apexDateKey,
+            startedAt: workout.startDate,
+            endedAt: workout.endDate,
+            kind: identity.kind,
+            activityName: identity.fallbackName,
+            activityNameKey: identity.nameKey,
+            durationMinutes: Int((workout.duration / 60).rounded()),
+            distanceKM: distanceMeters > 0 ? distanceMeters / 1_000 : nil,
+            activeEnergyKcal: energy,
+            sourceName: source.name,
+            sourceBundleIdentifier: source.bundleIdentifier,
+            activityTypeRaw: Int(workout.workoutActivityType.rawValue),
+            apexSessionID: apexSessionID
+        )
+    }
+
     private func enableBackgroundDelivery() async {
+        let workoutType = HKObjectType.workoutType()
         for type in [
             quantity(.bodyMass), quantity(.dietaryWater), quantity(.vo2Max),
             quantity(.restingHeartRate), quantity(.stepCount), quantity(.activeEnergyBurned),
             quantity(.appleExerciseTime), quantity(.heartRateVariabilitySDNN),
-            HKObjectType.categoryType(forIdentifier: .sleepAnalysis), HKObjectType.workoutType()
+            HKObjectType.categoryType(forIdentifier: .sleepAnalysis)
         ].compactMap({ $0 }) {
             try? await store.enableBackgroundDelivery(for: type, frequency: .hourly)
         }
+        try? await store.enableBackgroundDelivery(for: workoutType, frequency: .immediate)
     }
 }

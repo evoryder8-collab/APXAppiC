@@ -55,6 +55,32 @@ enum OrbitIntegrations {
         return result
     }
 
+    /// Detects an imported HealthKit receipt for an Orbit run without relying
+    /// on the user-facing source name, which may be the Watch or app name.
+    static func healthWorkoutRepresentsRun(
+        _ activities: [ImportedActivity],
+        ownerID: UUID,
+        localDate: String,
+        durationMinutes: Int,
+        startedAt: String
+    ) -> Bool {
+        guard let runStartedAt = ExternalWorkoutImport.parseTimestamp(startedAt) else {
+            return false
+        }
+        return activities.contains { activity in
+            guard let activityStartedAt = ExternalWorkoutImport.parseTimestamp(activity.startedAt) else {
+                return false
+            }
+            return activity.userID == ownerID
+                && activity.isVisibleInAPEX
+                && activity.healthKitWorkoutID != nil
+                && activity.date == localDate
+                && activity.kind == "endurance"
+                && abs(activity.durationMinutes - durationMinutes) <= 5
+                && abs(activityStartedAt.timeIntervalSince(runStartedAt)) < 5 * 60
+        }
+    }
+
     static func nutritionAdjustment(run: OrbitRunRecord, weightKG: Double) -> OrbitNutritionAdjustment {
         let durationMinutes = (run.metrics["moving_s"]?.numberValue ?? 0) / 60
         if durationMinutes < 60 {

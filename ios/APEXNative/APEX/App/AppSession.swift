@@ -712,8 +712,11 @@ final class AppSession {
                 accountID: profile.userID
             )
         }
-        guard let snapshot = await HealthKitManager.shared.silentRefresh() else { return }
-        await applyHealthSnapshot(snapshot)
+        if let snapshot = await HealthKitManager.shared.silentRefresh() {
+            await applyHealthSnapshot(snapshot)
+        } else {
+            await importHealthWorkoutChanges()
+        }
     }
 
     func startWatchWorkout(day: ProgramDay, exercises: [Exercise]) async {
@@ -2053,10 +2056,7 @@ final class AppSession {
             guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
 
-        for workout in snapshot.workouts {
-            await importHealthWorkoutIfNeeded(workout)
-            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
-        }
+        await importHealthWorkoutChanges()
     }
 
     func saveWearableActivity(_ record: WearableActivityRecord, automaticallyApply: Bool) async {
@@ -3181,6 +3181,27 @@ final class AppSession {
         return true
     }
 
+    /// Hide only APEX's account-owned receipt. The source HKWorkout remains
+    /// untouched in Apple Health and can continue contributing to its totals.
+    @discardableResult
+    func hideExternalWorkoutFromAPEX(id: UUID) async -> Bool {
+        guard let ownerID = verifiedPersistenceOwnerID(),
+              let index = data.importedActivities.firstIndex(where: {
+                  $0.id == id && $0.userID == ownerID && $0.healthKitWorkoutID != nil
+              }) else { return false }
+
+        let hidden = data.importedActivities[index].hidingFromAPEX(at: Date().ISO8601Format())
+        data.importedActivities[index] = hidden
+        await saveLocalSnapshot()
+        await persistUpsert(
+            hidden,
+            table: "imported_activities",
+            onConflict: "user_id,healthkit_workout_id",
+            ownerID: ownerID
+        )
+        return true
+    }
+
     func toggleDeload(on date: Date = .now) async {
         guard let ownerID = verifiedPersistenceOwnerID() else { return }
         let day = date.apexDateKey
@@ -3658,12 +3679,13 @@ final class AppSession {
         )
         await persistUpsert(activity, table: "activity_logs")
 
-        let healthAlreadyRepresentsRun = data.importedActivities.contains {
-            $0.date == run.localDate
-                && $0.kind == "endurance"
-                && $0.source == "Apple Health"
-                && abs($0.durationMinutes - durationMinutes) <= 5
-        }
+        let healthAlreadyRepresentsRun = OrbitIntegrations.healthWorkoutRepresentsRun(
+            data.importedActivities,
+            ownerID: profile.userID,
+            localDate: run.localDate,
+            durationMinutes: durationMinutes,
+            startedAt: run.startedAt
+        )
         if healthAlreadyRepresentsRun == false {
             let importedID = APEXStableID.orbitUUID(userID: profile.userID, key: "imported:\(run.id.uuidString.lowercased())")
             let imported = ImportedActivity(
@@ -4397,76 +4419,79 @@ final class AppSession {
         }
     }
 
-    private func importHealthWorkoutIfNeeded(_ workout: HealthWorkoutSnapshot) async {
+    private func importHealthWorkoutChanges() async {
         guard let profile else { return }
-        guard data.importedActivities.contains(where: { $0.id == workout.id }) == false else { return }
-
-        let overlapsOrbit = data.orbitRuns.contains { run in
-            guard let start = ISO8601DateFormatter().date(from: run.startedAt) else { return false }
-            return abs(start.timeIntervalSince(workout.startedAt)) < 5 * 60
+        let ownerID = profile.userID
+        let accountToken = accountGeneration.token
+        guard let changes = try? await HealthKitManager.shared.workoutChanges(ownerID: ownerID) else {
+            return
         }
-        guard overlapsOrbit == false else { return }
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
 
-        let avatarKind: String
-        switch workout.kind {
-        case "run", "walk", "hiit": avatarKind = "endurance"
-        case "strength": avatarKind = "strength"
-        case "mobility": avatarKind = "mobility"
-        default: avatarKind = "mobility"
+        let persistedWorkoutSessions =
+            (try? await service.loadWorkoutSessionIdentities(ownerID: ownerID)) ?? []
+        guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        let currentWorkoutSessions = data.workoutSessions.compactMap { session -> ExternalWorkoutImport.APEXSessionIdentity? in
+            guard session.userID == ownerID,
+                  let value = session.startedAt ?? session.completedAt,
+                  let startedAt = ExternalWorkoutImport.parseTimestamp(value) else { return nil }
+            return .init(id: session.id, startedAt: startedAt)
+        }
+        var workoutSessionsByID = Dictionary(
+            uniqueKeysWithValues: persistedWorkoutSessions.map { ($0.id, $0) }
+        )
+        // A just-completed offline session may not be visible remotely yet.
+        // Prefer the in-memory identity until its queued write reaches the server.
+        for session in currentWorkoutSessions {
+            workoutSessionsByID[session.id] = session
+        }
+        let workoutSessions = workoutSessionsByID.values.sorted {
+            if $0.startedAt != $1.startedAt { return $0.startedAt > $1.startedAt }
+            return $0.id.uuidString > $1.id.uuidString
+        }
+        let orbitSessions = data.orbitRuns.compactMap { run -> ExternalWorkoutImport.APEXSessionIdentity? in
+            guard run.userID == ownerID,
+                  let startedAt = ExternalWorkoutImport.parseTimestamp(run.startedAt) else { return nil }
+            return .init(id: run.id, startedAt: startedAt)
+        }
+        let legacyLogIDs = Set(data.activityLogs.compactMap { log in
+            log.userID == ownerID && log.source == "workout_module" && log.reconciled
+                ? log.id
+                : nil
+        })
+        let reconciled = ExternalWorkoutImport.reconcile(
+            changeSet: changes,
+            existing: data.importedActivities,
+            apexSessions: workoutSessions + orbitSessions,
+            ownerID: ownerID,
+            legacyActivityLogIDs: legacyLogIDs
+        )
+
+        for rowID in reconciled.importedActivityIDsToDelete {
+            data.importedActivities.removeAll { $0.id == rowID && $0.userID == ownerID }
+            await persistDelete(table: "imported_activities", id: rowID, ownerID: ownerID)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+        for logID in reconciled.activityLogIDsToDelete {
+            data.activityLogs.removeAll { $0.id == logID && $0.userID == ownerID }
+            await persistDelete(table: "activity_logs", id: logID, ownerID: ownerID)
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
+        }
+        for row in reconciled.upserts {
+            data.importedActivities.removeAll { $0.id == row.id && $0.userID == ownerID }
+            data.importedActivities.append(row)
+        }
+        for batch in ExternalWorkoutImport.persistenceBatches(reconciled.upserts) {
+            await persistUpsert(
+                batch,
+                table: "imported_activities",
+                onConflict: "user_id,healthkit_workout_id"
+            )
+            guard hydrationOperationIsCurrent(ownerID: ownerID, token: accountToken) else { return }
         }
 
-        let imported = ImportedActivity(
-            id: workout.id,
-            userID: profile.userID,
-            date: workout.date,
-            kind: avatarKind,
-            activity: workout.activityName,
-            durationMinutes: workout.durationMinutes,
-            source: "Apple Health"
-        )
-        data.importedActivities.append(imported)
-        await persistUpsert(imported, table: "imported_activities")
-
-        guard data.activityLogs.contains(where: { $0.id == workout.id }) == false else { return }
-
-        let type: ActivityType?
-        switch workout.kind {
-        case "run": type = data.activityTypes.first { $0.id == "jog-run" }
-        case "walk":
-            type = data.activityTypes.first {
-                $0.id == (workout.distanceKM == nil ? "casual-walk" : "walking-distance")
-            }
-        case "strength": type = data.activityTypes.first { $0.id == "apex-strength" }
-        case "hiit": type = data.activityTypes.first { $0.id == "focus-hiit" }
-        case "mobility": type = data.activityTypes.first { $0.id == "mobility" }
-        default: type = nil
+        if let anchorData = changes.anchorData {
+            HealthKitManager.shared.commitWorkoutAnchor(anchorData, ownerID: ownerID)
         }
-        guard let type else { return }
-        let now = Date().ISO8601Format()
-        let computed = EnergyEngine.blockCalories(
-            type: type,
-            quantity: 1,
-            durationMinutes: workout.durationMinutes,
-            distanceKM: workout.distanceKM,
-            watchKcal: workout.activeEnergyKcal,
-            weightKG: profile.weightKG
-        )
-        let log = ActivityLog(
-            id: workout.id,
-            userID: profile.userID,
-            date: workout.date,
-            typeID: type.id,
-            quantity: 1,
-            durationMinutes: type.inputStyle == .duration ? workout.durationMinutes : nil,
-            distanceKM: workout.distanceKM,
-            watchKcal: workout.activeEnergyKcal,
-            computedKcal: computed,
-            source: "workout_module",
-            reconciled: true,
-            createdAt: now,
-            updatedAt: now
-        )
-        data.activityLogs.append(log)
-        await persistUpsert(log, table: "activity_logs")
     }
 }

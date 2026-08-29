@@ -10,6 +10,10 @@ const watchPath = new URL(
   '../ios/APEXNative/APEX/Resources/Assets.xcassets/HydrationMaleSilhouette.imageset/HydrationMaleSilhouette.svg',
   import.meta.url,
 )
+const projectPath = new URL(
+  '../ios/APEXNative/APEXNative.xcodeproj/project.pbxproj',
+  import.meta.url,
+)
 
 function normalizePath(value: string): string {
   return value.trim().replaceAll(/\s+/g, ' ')
@@ -27,6 +31,28 @@ test('Watch hydration uses the exact canonical APEX body silhouette', () => {
   assert.ok(watchBody, 'Watch silhouette path must exist')
   assert.equal(normalizePath(watchBody), normalizePath(canonicalBody))
   assert.match(watchAsset, /viewBox="-150 -150 583\.6 1015"/)
+})
+
+test('Watch target packages the icon and hydration silhouette asset catalog', () => {
+  const project = readFileSync(projectPath, 'utf8')
+  const targetStart = project.indexOf('/* APEXWatch */ = {\n\t\t\tisa = PBXNativeTarget;')
+  const targetEnd = project.indexOf('\n\t\t};', targetStart)
+  const watchTarget = project.slice(targetStart, targetEnd)
+  const resourcesPhaseID = watchTarget.match(/([A-F0-9]{24}) \/\* Resources \*\//)?.[1]
+
+  assert.ok(resourcesPhaseID, 'APEXWatch must have a resources build phase')
+
+  const phaseStart = project.indexOf(`${resourcesPhaseID} /* Resources */ = {`)
+  const phaseEnd = project.indexOf('\n\t\t};', phaseStart)
+  const resourcesPhase = project.slice(phaseStart, phaseEnd)
+
+  assert.match(resourcesPhase, /Assets\.xcassets in Resources/)
+
+  const appIcon = readFileSync(
+    new URL('../ios/APEXNative/APEX/Resources/Assets.xcassets/AppIcon.appiconset/Contents.json', import.meta.url),
+    'utf8',
+  )
+  assert.match(appIcon, /"platform"\s*:\s*"watchos"/)
 })
 
 test('Watch hydration refresh and animation remain event-driven', () => {

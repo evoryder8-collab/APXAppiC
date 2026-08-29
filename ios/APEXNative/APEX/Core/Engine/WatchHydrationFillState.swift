@@ -34,12 +34,68 @@ enum HydrationComplicationReadingSource: Equatable, Sendable {
     case empty
 }
 
+enum HydrationComplicationDelivery: Equatable, Sendable {
+    case snapshot
+    case timeline(isPreview: Bool)
+}
+
+enum HydrationComplicationDeliveryPolicy {
+    static func acknowledgedSignature(
+        _ signature: String,
+        delivery: HydrationComplicationDelivery
+    ) -> String? {
+        switch delivery {
+        case .snapshot, .timeline(isPreview: true): nil
+        case .timeline(isPreview: false): signature
+        }
+    }
+}
+
+enum HydrationObserverDelivery {
+    @MainActor
+    static func process(
+        operation: () async throws -> Void,
+        completion: () -> Void
+    ) async {
+        defer { completion() }
+        try? await operation()
+    }
+}
+
+enum HydrationHealthSampleOwnershipPolicy {
+    static func belongs(
+        explicitOwnerID: UUID?,
+        sharedClaimOwnerID: UUID?,
+        activeOwnerID: UUID?
+    ) -> Bool {
+        guard let activeOwnerID else { return false }
+        if let explicitOwnerID { return explicitOwnerID == activeOwnerID }
+        return sharedClaimOwnerID == activeOwnerID
+    }
+}
+
+enum HydrationPendingPreferencePolicy {
+    static func acknowledges(
+        pending: WatchHydrationPreferences,
+        incoming: WatchHydrationPreferences
+    ) -> Bool {
+        guard pending.effectiveTargetMode == .automatic,
+              incoming.effectiveTargetMode == .automatic
+        else { return pending == incoming }
+
+        var normalizedIncoming = incoming
+        normalizedIncoming.targetLiters = pending.targetLiters
+        normalizedIncoming.targetMode = pending.targetMode
+        return pending == normalizedIncoming
+    }
+}
+
 enum HydrationComplicationRefreshPolicy {
     static func readingSource(
         hasSharedState: Bool,
         hasHealthData: Bool
     ) -> HydrationComplicationReadingSource {
-        guard hasSharedState else { return hasHealthData ? .healthKit : .empty }
+        guard hasSharedState else { return .empty }
         return .sharedState
     }
 
@@ -58,11 +114,17 @@ enum HydrationComplicationRefreshPolicy {
 
     static func shouldAcceptCompanionRevision(
         acceptedCompanionRevision: String?,
-        localWidgetRevision _: String?,
-        incomingRevision: String
+        localWidgetRevision: String?,
+        incomingRevision: String,
+        protectsLocalWidgetRevision: Bool = false
     ) -> Bool {
-        shouldAcceptSnapshot(
+        guard shouldAcceptSnapshot(
             currentRevision: acceptedCompanionRevision,
+            incomingRevision: incomingRevision
+        ) else { return false }
+        guard protectsLocalWidgetRevision else { return true }
+        return shouldAcceptSnapshot(
+            currentRevision: localWidgetRevision,
             incomingRevision: incomingRevision
         )
     }
@@ -96,7 +158,6 @@ enum HydrationComplicationRefreshPolicy {
             .map {
                 "\($0.kind.rawValue):\($0.paletteToken):\($0.iconToken):\($0.milliliters)"
             }
-            .sorted()
             .joined(separator: ",")
         return [
             ownerID.uuidString.lowercased(),
@@ -107,11 +168,100 @@ enum HydrationComplicationRefreshPolicy {
         ].joined(separator: "|")
     }
 
+    static func visibleSignature(for state: HydrationWidgetState) -> String {
+        visibleSignature(
+            ownerID: state.ownerID,
+            localDate: state.localDate,
+            totalML: state.totalML,
+            targetML: state.targetML,
+            composition: state.composition
+        )
+    }
+
+    static func shouldReloadTimeline(
+        renderedVisibleSignature: String?,
+        requestedVisibleSignature: String?,
+        newVisibleSignature: String,
+        retryUnrenderedRequest: Bool
+    ) -> Bool {
+        guard renderedVisibleSignature != newVisibleSignature else { return false }
+        return requestedVisibleSignature != newVisibleSignature || retryUnrenderedRequest
+    }
+
+    static func nextTimelineRefresh(
+        after date: Date,
+        calendar: Calendar = .current
+    ) -> Date {
+        let routineRefresh = date.addingTimeInterval(30 * 60)
+        let midnight = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: date)
+        ) ?? routineRefresh
+        return min(routineRefresh, midnight)
+    }
+
     private static func revisionDate(_ value: String) -> Date? {
         let fractional = ISO8601DateFormatter()
         fractional.formatOptions = [.withInternetDateTime, .withFractionalSeconds]
         if let date = fractional.date(from: value) { return date }
         return ISO8601DateFormatter().date(from: value)
+    }
+}
+
+struct HydrationComplicationMidnightReset: Equatable, Sendable {
+    let date: Date
+    let totalML: Int
+    let composition: [HydrationCompositionBand]
+}
+
+struct HydrationComplicationTimelineSchedule: Equatable, Sendable {
+    let midnightReset: HydrationComplicationMidnightReset
+    let refreshAfter: Date
+}
+
+enum HydrationComplicationDayRollover {
+    static func state(
+        _ stored: HydrationWidgetState,
+        for currentDate: String
+    ) -> HydrationWidgetState? {
+        if stored.localDate == currentDate { return stored }
+        guard stored.localDate < currentDate else { return nil }
+
+        return HydrationWidgetState(
+            ownerID: stored.ownerID,
+            localDate: currentDate,
+            totalML: 0,
+            targetML: stored.targetML,
+            composition: [],
+            revision: stored.revision,
+            healthAnchor: nil,
+            healthQueryAnchorData: nil,
+            canonicalSampleIDs: nil,
+            healthOverlay: nil
+        )
+    }
+}
+
+enum HydrationComplicationTimelinePolicy {
+    static func schedule(
+        after date: Date,
+        calendar: Calendar = .current
+    ) -> HydrationComplicationTimelineSchedule {
+        let refreshAfter = date.addingTimeInterval(30 * 60)
+        let midnight = calendar.date(
+            byAdding: .day,
+            value: 1,
+            to: calendar.startOfDay(for: date)
+        ) ?? refreshAfter
+        return HydrationComplicationTimelineSchedule(
+            midnightReset: HydrationComplicationMidnightReset(
+                date: midnight,
+                totalML: 0,
+                composition: []
+            ),
+            refreshAfter: refreshAfter
+        )
     }
 }
 
@@ -202,6 +352,55 @@ struct HydrationHealthOverlayUpdate: Equatable, Sendable {
     let nextAnchor: [HydrationHealthSampleAnchor]
 }
 
+actor HydrationHealthSidecarStore {
+    static let shared = HydrationHealthSidecarStore()
+
+    private let suiteName: String
+
+    init(suiteName: String = HydrationWidgetStorage.suiteName) {
+        self.suiteName = suiteName
+    }
+
+    @discardableResult
+    func persist(
+        shared: HydrationWidgetState,
+        healthQueryAnchorData: Data?,
+        update: HydrationHealthOverlayUpdate,
+        reconciled: HydrationReconciledState,
+        observationRevision: String
+    ) -> Bool {
+        guard let defaults = UserDefaults(suiteName: suiteName),
+              let latestData = defaults.data(forKey: HydrationWidgetStorage.stateKey),
+              let latest = try? HydrationWidgetState.decode(latestData),
+              latest.ownerID == shared.ownerID,
+              latest.localDate == shared.localDate,
+              latest.revision == shared.revision
+        else { return false }
+
+        let updated = HydrationWidgetHealthState(
+            ownerID: latest.ownerID,
+            localDate: latest.localDate,
+            baseRevision: latest.revision,
+            observationRevision: observationRevision,
+            totalML: reconciled.totalML,
+            composition: reconciled.composition,
+            healthAnchor: update.nextAnchor,
+            healthQueryAnchorData: healthQueryAnchorData ?? latest.healthQueryAnchorData,
+            healthOverlay: update.mutations
+        )
+        let existing = defaults.data(forKey: HydrationWidgetStorage.healthStateKey)
+            .flatMap { try? HydrationWidgetHealthState.decode($0) }
+        guard HydrationHealthSidecarWritePolicy.shouldPersist(
+            existing: existing,
+            incoming: updated,
+            canonical: latest
+        ), let data = try? updated.encoded() else { return false }
+
+        defaults.set(data, forKey: HydrationWidgetStorage.healthStateKey)
+        return true
+    }
+}
+
 struct HydrationWatchOperationScope: Equatable, Sendable {
     let ownerID: UUID
     let localDate: String
@@ -229,12 +428,6 @@ enum HydrationWatchScopePolicy {
 }
 
 enum HydrationHealthReconciler {
-    private struct BandKey: Hashable {
-        let kind: HydrationKind
-        let paletteToken: String
-        let iconToken: String
-    }
-
     static func applying(
         _ pending: [HydrationPendingMutation],
         toTotalML totalML: Int,
@@ -378,41 +571,40 @@ enum HydrationHealthReconciler {
         toTotalML totalML: Int,
         composition: [HydrationCompositionBand]
     ) -> HydrationReconciledState {
-        var bandTotals: [BandKey: Int] = [:]
-        for band in composition where band.milliliters > 0 {
-            let key = BandKey(
-                kind: band.kind,
-                paletteToken: band.paletteToken,
-                iconToken: band.iconToken
-            )
-            bandTotals[key, default: 0] += band.milliliters
-        }
-        for adjustment in adjustments where adjustment.deltaML != 0 {
-            let key = BandKey(
-                kind: adjustment.sample.kind,
-                paletteToken: adjustment.sample.paletteToken,
-                iconToken: adjustment.sample.iconToken
-            )
-            bandTotals[key, default: 0] += adjustment.deltaML
+        guard !adjustments.isEmpty else {
+            return HydrationReconciledState(totalML: max(0, totalML), composition: composition)
         }
 
-        let order: [HydrationKind: Int] = [
-            .water: 0, .coffee: 1, .tea: 2, .juice: 3, .shake: 4,
-            .other: 5, .external: 6, .food: 7, .legacy: 8,
-        ]
-        let resolvedComposition: [HydrationCompositionBand] = bandTotals.compactMap { element in
-            let (key, amount) = element
-            guard amount > 0 else { return nil }
-            return HydrationCompositionBand(
-                kind: key.kind,
-                paletteToken: key.paletteToken,
-                iconToken: key.iconToken,
-                milliliters: amount
-            )
-        }.sorted {
-            let lhs = (order[$0.kind] ?? 99, $0.paletteToken, $0.iconToken)
-            let rhs = (order[$1.kind] ?? 99, $1.paletteToken, $1.iconToken)
-            return lhs < rhs
+        var resolvedComposition = composition
+        for adjustment in adjustments where adjustment.deltaML != 0 {
+            let sample = adjustment.sample
+            if let index = resolvedComposition.firstIndex(where: {
+                $0.kind == sample.kind
+                    && $0.paletteToken == sample.paletteToken
+                    && $0.iconToken == sample.iconToken
+            }) {
+                let amount = resolvedComposition[index].milliliters + adjustment.deltaML
+                if amount > 0 {
+                    resolvedComposition[index] = HydrationCompositionBand(
+                        kind: sample.kind,
+                        paletteToken: sample.paletteToken,
+                        iconToken: sample.iconToken,
+                        milliliters: amount
+                    )
+                } else {
+                    resolvedComposition.remove(at: index)
+                }
+            } else if adjustment.deltaML > 0 {
+                resolvedComposition.insert(
+                    HydrationCompositionBand(
+                        kind: sample.kind,
+                        paletteToken: sample.paletteToken,
+                        iconToken: sample.iconToken,
+                        milliliters: adjustment.deltaML
+                    ),
+                    at: 0
+                )
+            }
         }
         return HydrationReconciledState(
             totalML: max(0, totalML + adjustments.reduce(0) { $0 + $1.deltaML }),

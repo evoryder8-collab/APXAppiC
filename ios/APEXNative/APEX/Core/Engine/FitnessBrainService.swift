@@ -103,8 +103,22 @@ enum FitnessBrainService {
         let metrics = data.healthMetrics.map {
             FBHealthMetric(date: $0.date, vo2max: $0.vo2Max, restingHR: $0.restingHeartRate)
         }
+        let apexSessionIdentities = data.workoutSessions.compactMap {
+            session -> ExternalWorkoutImport.APEXSessionIdentity? in
+            guard session.userID == profile.userID,
+                  let startedAt = ExternalWorkoutImport.parseTimestamp(
+                    session.startedAt ?? session.completedAt
+                  ) else { return nil }
+            return .init(id: session.id, startedAt: startedAt)
+        }
         let imports = data.importedActivities.compactMap { activity -> FBImportedActivity? in
-            guard let kind = FBImportKind(rawValue: activity.kind) else { return nil }
+            guard activity.userID == profile.userID,
+                  activity.isVisibleInAPEX,
+                  ExternalWorkoutImport.isAPEXMirror(
+                    activity,
+                    apexSessions: apexSessionIdentities
+                  ) == false,
+                  let kind = FBImportKind(rawValue: activity.kind) else { return nil }
             return FBImportedActivity(
                 date: activity.date, kind: kind, durationMin: Double(activity.durationMinutes))
         }

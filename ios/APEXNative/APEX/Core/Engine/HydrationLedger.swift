@@ -178,6 +178,12 @@ enum HydrationWidgetStorage {
     static let suiteName = "group.ch.apexperformance.APEX"
     static let stateKey = "apex_hydration_widget_state_v1"
     static let healthStateKey = "apex_hydration_widget_health_state_v1"
+    static let requestedVisibleSignatureKey = "apex_hydration_widget_requested_signature_v1"
+    static let renderedVisibleSignatureKey = "apex_hydration_widget_rendered_signature_v1"
+
+    static func healthSampleOwnerClaimKey(for sampleID: UUID) -> String {
+        "apex_hydration_health_sample_owner_v1.\(sampleID.uuidString.lowercased())"
+    }
 }
 
 enum HydrationMetadata {
@@ -471,6 +477,7 @@ struct HydrationWidgetHealthState: Codable, Equatable, Sendable {
     let ownerID: UUID
     let localDate: String
     let baseRevision: String
+    let observationRevision: String?
     let totalML: Int
     let composition: [HydrationCompositionBand]
     let healthAnchor: [HydrationHealthSampleAnchor]
@@ -481,6 +488,7 @@ struct HydrationWidgetHealthState: Codable, Equatable, Sendable {
         ownerID: UUID,
         localDate: String,
         baseRevision: String,
+        observationRevision: String? = nil,
         totalML: Int,
         composition: [HydrationCompositionBand],
         healthAnchor: [HydrationHealthSampleAnchor],
@@ -490,6 +498,7 @@ struct HydrationWidgetHealthState: Codable, Equatable, Sendable {
         self.ownerID = ownerID
         self.localDate = localDate
         self.baseRevision = baseRevision
+        self.observationRevision = observationRevision
         self.totalML = max(0, totalML)
         self.composition = composition
         self.healthAnchor = healthAnchor
@@ -507,6 +516,28 @@ struct HydrationWidgetHealthState: Codable, Equatable, Sendable {
 
     static func decode(_ data: Data) throws -> HydrationWidgetHealthState {
         try JSONDecoder().decode(HydrationWidgetHealthState.self, from: data)
+    }
+}
+
+enum HydrationHealthSidecarWritePolicy {
+    static func shouldPersist(
+        existing: HydrationWidgetHealthState?,
+        incoming: HydrationWidgetHealthState,
+        canonical: HydrationWidgetState
+    ) -> Bool {
+        guard incoming.matches(canonical) else { return false }
+        guard let existing, existing.matches(canonical) else { return true }
+        switch (existing.observationRevision, incoming.observationRevision) {
+        case (_, nil):
+            return existing.observationRevision == nil
+        case (nil, .some):
+            return true
+        case let (.some(current), .some(incoming)):
+            return HydrationComplicationRefreshPolicy.shouldAcceptSnapshot(
+                currentRevision: current,
+                incomingRevision: incoming
+            )
+        }
     }
 }
 
@@ -532,9 +563,15 @@ enum HydrationWidgetStateResolver {
                 healthOverlay: canonical.healthOverlay ?? []
             )
         }
+        let reconciled = HydrationHealthReconciler.replacingOverlay(
+            canonical.healthOverlay ?? [],
+            with: healthState.healthOverlay,
+            inTotalML: canonical.totalML,
+            composition: canonical.composition
+        )
         return HydrationWidgetResolvedState(
-            totalML: healthState.totalML,
-            composition: healthState.composition,
+            totalML: reconciled.totalML,
+            composition: reconciled.composition,
             healthAnchor: healthState.healthAnchor,
             healthQueryAnchorData: healthState.healthQueryAnchorData,
             healthOverlay: healthState.healthOverlay

@@ -194,6 +194,7 @@
 		C085A173776E040F97A913FD /* NutritionParityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */; };
 		C1492157925018A76B1F05CD /* arms_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2DCCC6DAAD90DC79C994C853 /* arms_bump.jpg */; };
 		C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
+		A9E83D100000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
 		C363F0EC4FF9F04D9969ED89 /* HealthImportParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA197AD6E551099CA1068BC /* HealthImportParityTests.swift */; };
 		C4123922CAA3C5A734833158 /* HydrationLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3C6FF7866E9D9D3E3B680 /* HydrationLedger.swift */; };
 		C643CC39DC869012CA364630 /* torso_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 8B1D338388006FFDC7405C7B /* torso_bump.jpg */; };
@@ -1135,6 +1136,7 @@
 			buildConfigurationList = 1527996CCE63F8B7FD91A555 /* Build configuration list for PBXNativeTarget "APEXWatch" */;
 			buildPhases = (
 				048DBF7B1F78A7A64DC84463 /* Sources */,
+				A9E83D100000000000000002 /* Resources */,
 				F3575C115524204FC0EAA0FA /* Embed Foundation Extensions */,
 			);
 			buildRules = (
@@ -1272,6 +1274,14 @@
 				82BBDBE227779625CC926024 /* progress-parity.json in Resources */,
 				299721ACD1752C4F2B392967 /* strength-parity.json in Resources */,
 				6250713D3E5FA542A5535F97 /* training-support-parity.json in Resources */,
+			);
+			runOnlyForDeploymentPostprocessing = 0;
+		};
+		A9E83D100000000000000002 /* Resources */ = {
+			isa = PBXResourcesBuildPhase;
+			buildActionMask = 2147483647;
+			files = (
+				A9E83D100000000000000001 /* Assets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};
@@ -1743,7 +1753,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 379;
+				CURRENT_PROJECT_VERSION = 380;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1807,7 +1817,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 379;
+				CURRENT_PROJECT_VERSION = 380;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;

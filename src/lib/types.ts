@@ -316,6 +316,16 @@ export interface ImportedActivity {
   activity: string // original HK activity name
   duration_min: number
   source: string
+  healthkit_workout_id?: string | null
+  started_at?: string | null
+  ended_at?: string | null
+  workout_name_key?: string | null
+  distance_km?: number | null
+  active_energy_kcal?: number | null
+  source_bundle_id?: string | null
+  activity_type_raw?: number | null
+  apex_workout_session_id?: string | null
+  hidden_at?: string | null
 }
 
 export interface Settings {

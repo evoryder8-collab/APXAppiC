@@ -101,8 +101,8 @@ enum WorkoutReceipt {
                     && (ownerID == nil || item.userID == ownerID)
             }
             .sorted { left, right in
-                let leftTime = left.completedAt ?? left.startedAt ?? "\(left.date)T00:00:00.000Z"
-                let rightTime = right.completedAt ?? right.startedAt ?? "\(right.date)T00:00:00.000Z"
+                let leftTime = left.completedAt ?? left.startedAt ?? left.date
+                let rightTime = right.completedAt ?? right.startedAt ?? right.date
                 if leftTime == rightTime { return left.id.uuidString > right.id.uuidString }
                 return leftTime > rightTime
             }
@@ -241,5 +241,107 @@ enum WorkoutReceipt {
         return order.compactMap { name in
             byName[name].map { (name: name, logs: $0) }
         }
+    }
+}
+
+extension WorkoutReceipt {
+    static func externalDateText(
+        _ value: String,
+        locale: Locale,
+        timeZone: TimeZone = .current
+    ) -> String {
+        if let date = ExternalWorkoutImport.parseTimestamp(value) {
+            let formatter = DateFormatter()
+            formatter.locale = locale
+            formatter.timeZone = timeZone
+            formatter.dateStyle = .medium
+            formatter.timeStyle = .short
+            return formatter.string(from: date)
+        }
+        let day = DateFormatter()
+        day.locale = Locale(identifier: "en_US_POSIX")
+        day.calendar = Calendar(identifier: .gregorian)
+        day.timeZone = timeZone
+        day.dateFormat = "yyyy-MM-dd"
+        guard let date = day.date(from: value) else { return value }
+        let formatter = DateFormatter()
+        formatter.locale = locale
+        formatter.timeZone = timeZone
+        formatter.dateStyle = .medium
+        formatter.timeStyle = .none
+        return formatter.string(from: date)
+    }
+
+    enum FinishedHistoryItem: Identifiable, Hashable, Sendable {
+        case apex(HistoryItem)
+        case external(ImportedActivity)
+
+        var id: UUID {
+            switch self {
+            case let .apex(item): item.id
+            case let .external(item): item.id
+            }
+        }
+
+        fileprivate var chronologicalKey: String {
+            switch self {
+            case let .apex(item):
+                item.session.completedAt ?? item.session.startedAt ?? item.session.date
+            case let .external(item):
+                item.startedAt ?? item.date
+            }
+        }
+    }
+
+    static func finishedHistory(
+        sessions: [WorkoutSession],
+        days: [ProgramDay],
+        importedActivities: [ImportedActivity],
+        date: String?,
+        ownerID: UUID?,
+        limit: Int?
+    ) -> [FinishedHistoryItem] {
+        let apexItems = history(
+            sessions: sessions,
+            days: days,
+            date: date,
+            ownerID: ownerID,
+            limit: nil
+        ).map(FinishedHistoryItem.apex)
+
+        let apexSessionIdentities = sessions.compactMap { session -> ExternalWorkoutImport.APEXSessionIdentity? in
+            guard session.userID == ownerID,
+                  let startedAt = ExternalWorkoutImport.parseTimestamp(
+                    session.startedAt ?? session.completedAt
+                  ) else { return nil }
+            return .init(id: session.id, startedAt: startedAt)
+        }
+
+        let externalItems: [FinishedHistoryItem]
+        if let ownerID {
+            externalItems = importedActivities
+                .filter {
+                    $0.userID == ownerID
+                        && $0.healthKitWorkoutID != nil
+                        && $0.isVisibleInAPEX
+                        && ExternalWorkoutImport.isAPEXMirror(
+                            $0,
+                            apexSessions: apexSessionIdentities
+                        ) == false
+                        && (date == nil || $0.date == date)
+                }
+                .map(FinishedHistoryItem.external)
+        } else {
+            externalItems = []
+        }
+
+        let merged = (apexItems + externalItems).sorted {
+            if $0.chronologicalKey == $1.chronologicalKey {
+                return $0.id.uuidString < $1.id.uuidString
+            }
+            return $0.chronologicalKey > $1.chronologicalKey
+        }
+        guard let limit else { return merged }
+        return Array(merged.prefix(max(0, limit)))
     }
 }

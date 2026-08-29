@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 37, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 39, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -323,6 +323,20 @@ final class LocalisationCoverageTests: XCTestCase {
             for (key, expected) in zip(portalKeys, expectedPortalValues[language] ?? []) {
                 XCTAssertEqual(table?[key], expected, "Unexpected compact Fitness Plan copy for \(language): \(key)")
             }
+            let externalWorkoutValues: [String: [String]] = [
+                "en": ["APPLE HEALTH", "Hide from APEX"],
+                "de": ["APPLE HEALTH", "In APEX ausblenden"],
+                "de-CH": ["APPLE HEALTH", "In APEX usblände"],
+                "it": ["APPLE HEALTH", "Nascondi da APEX"],
+                "es": ["APPLE HEALTH", "Ocultar de APEX"],
+                "pt": ["APPLE HEALTH", "Ocultar da APEX"],
+                "ja": ["APPLE HEALTH", "APEXで非表示"],
+                "ro": ["APPLE HEALTH", "Ascunde din APEX"],
+                "th": ["APPLE HEALTH", "ซ่อนจาก APEX"],
+            ]
+            for (key, expected) in zip(["APPLE HEALTH", "Hide from APEX"], externalWorkoutValues[language] ?? []) {
+                XCTAssertEqual(table?[key], expected, "Unexpected compact HealthKit copy for \(language): \(key)")
+            }
             if let expectedKeys {
                 XCTAssertEqual(keys, expectedKeys, "Compact keys drifted for \(language)")
             } else {
@@ -331,6 +345,30 @@ final class LocalisationCoverageTests: XCTestCase {
             if language == "de-CH" {
                 XCTAssertFalse(table?.values.contains(where: { $0.contains("ß") }) ?? true)
             }
+        }
+    }
+
+    func testEveryOfferedLanguageHasAuthoredExternalWorkoutReceiptsAndCompleteHealthKitNames() {
+        let receiptKeys: Set<String> = [
+            "APPLE HEALTH",
+            "Hide this Apple Health workout from APEX?",
+            "Hide from APEX",
+            "The original workout stays in Apple Health.",
+            "Active energy",
+            "READ-ONLY RECEIPT",
+            "Imported from Apple Health. This receipt is read-only in APEX.",
+        ]
+        let required = receiptKeys.union(HealthWorkoutCatalog.authoredNameKeys)
+
+        for language in languages {
+            guard let translations = table(language) else {
+                XCTFail("Missing full translation table for \(language)")
+                continue
+            }
+            let missing = required.subtracting(translations.keys)
+            XCTAssertTrue(missing.isEmpty, "\(language) is missing \(missing.count) HealthKit receipt strings: \(missing.sorted())")
+            let blank = required.filter { translations[$0]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false }
+            XCTAssertTrue(blank.isEmpty, "\(language) has blank HealthKit receipt strings: \(blank.sorted())")
         }
     }
 

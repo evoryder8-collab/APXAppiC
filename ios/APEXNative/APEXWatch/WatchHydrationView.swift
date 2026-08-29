@@ -126,7 +126,7 @@ struct WatchHydrationView: View {
         }
         .onChange(of: scenePhase) { _, newPhase in
             guard newPhase == .active, previewLiters == nil else { return }
-            Task { await hydration.refresh() }
+            Task { await hydration.refresh(retryComplicationIfStale: true) }
         }
         .sheet(isPresented: $showsCustomAmount) {
             CustomHydrationAmountView()

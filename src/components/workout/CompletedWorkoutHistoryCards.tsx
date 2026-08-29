@@ -3,9 +3,12 @@ import { loadedStrengthVolume, workoutLogFactSummary } from '../../lib/exerciseL
 import {
   collapsedWorkoutDeleteTrayVisible,
   completedWorkoutDeletionPlan,
-  completedWorkoutHistoryForDate,
+  externalWorkoutReceiptPresentation,
+  externalWorkoutHidePlan,
+  finishedWorkoutHistoryForDate,
 } from '../../lib/completedWorkoutHistory'
 import { translateInterfaceText, useLanguage } from '../../lib/i18n'
+import { timeZoneFromSettings } from '../../lib/mealTiming'
 import type { Accent } from '../../lib/theme'
 import { ACCENTS } from '../../lib/theme'
 import { workoutLogsInPerformedOrder } from '../../lib/workoutLogOrder'
@@ -23,18 +26,22 @@ export function CompletedWorkoutHistoryCards({
   accent?: Accent
   includeQuickLogs?: boolean
 }) {
-  const { data, remove, toast } = useStore()
+  const { data, remove, toast, upsert } = useStore()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
+  const timeZone = timeZoneFromSettings(data.settings)
   const [expanded, setExpanded] = useState<Set<string>>(new Set())
   const [receiptSessionId, setReceiptSessionId] = useState<string | null>(null)
   const [pendingDelete, setPendingDelete] = useState<{ id: string; title: string } | null>(null)
+  const [pendingHide, setPendingHide] = useState<{ id: string; title: string } | null>(null)
   const [revealedSessionId, setRevealedSessionId] = useState<string | null>(null)
   const [liveSwipe, setLiveSwipe] = useState<{ id: string; offset: number } | null>(null)
   const pointerStart = useRef<{ id: string; x: number; y: number; base: number; offset: number } | null>(null)
   const swipeConsumedClick = useRef(false)
   const history = useMemo(
-    () => completedWorkoutHistoryForDate(data, date, limit).filter((item) => includeQuickLogs || !item.isQuickLog),
+    () => finishedWorkoutHistoryForDate(data, date, limit).filter((item) => (
+      item.kind === 'external' || includeQuickLogs || !item.isQuickLog
+    )),
     [data, date, includeQuickLogs, limit],
   )
 
@@ -102,13 +109,77 @@ export function CompletedWorkoutHistoryCards({
     toast(t('Workout deleted.'), 'ok')
   }
 
+  const confirmHide = (): void => {
+    if (!pendingHide) return
+    const hidden = externalWorkoutHidePlan(data, pendingHide.id)
+    if (!hidden) {
+      toast(t('This workout could not be hidden.'), 'error')
+      setPendingHide(null)
+      return
+    }
+    upsert('imported_activities', hidden)
+    setExpanded((current) => {
+      const next = new Set(current)
+      next.delete(hidden.id)
+      return next
+    })
+    setPendingHide(null)
+    toast(t('Workout hidden from APEX.'), 'ok')
+  }
+
   return (
     <section className="space-y-2" data-completed-workout-history>
       <div className="flex items-center justify-between px-1">
         <p className="font-mono text-[9px] font-black tracking-[.16em] text-emerald-800 uppercase">{t('Finished workouts')}</p>
         <p className="font-mono text-[8px] font-bold text-ink-faint">{history.length} {t(history.length === 1 ? 'session' : 'sessions')}</p>
       </div>
-      {history.map(({ session, title, isQuickLog }) => {
+      {history.map((entry) => {
+        if (entry.kind === 'external') {
+          const { activity } = entry
+          const open = expanded.has(activity.id)
+          const receipt = externalWorkoutReceiptPresentation(activity, language, timeZone, t)
+          return (
+            <article key={activity.id} className="overflow-hidden rounded-[26px] border border-sky-100/90 bg-gradient-to-br from-sky-50/95 via-white/92 to-cyan-50/85 shadow-[0_20px_52px_-38px_rgba(2,132,199,.75)]" data-external-healthkit-workout>
+              <button
+                type="button"
+                onClick={() => toggle(activity.id)}
+                aria-expanded={open}
+                className="flex w-full items-start gap-3 px-4 pt-4 pb-3 text-left"
+              >
+                <span className="grid h-10 w-10 shrink-0 place-items-center rounded-2xl bg-sky-600 text-lg text-white shadow-sm" aria-hidden>♥</span>
+                <span className="min-w-0 flex-1">
+                  <span className="block font-mono text-[8px] font-black tracking-[.14em] text-sky-800 uppercase">{t('APPLE HEALTH')}</span>
+                  <span className="mt-1 block break-words font-display text-base font-black leading-tight text-ink">{receipt.title}</span>
+                  <span className="mt-1 block break-words font-mono text-[9px] font-bold leading-relaxed text-ink-faint">{[receipt.moment, receipt.duration, activity.source].filter(Boolean).join(' · ')}</span>
+                </span>
+                <span aria-hidden className={`mt-1 text-lg font-black text-sky-800 transition ${open ? 'rotate-180' : ''}`}>⌄</span>
+              </button>
+
+              {open && (
+                <div className="border-t border-white/85 px-4 pt-3 pb-4" data-external-workout-receipt>
+                  {(receipt.energy || receipt.distance) && (
+                    <div className="grid grid-cols-2 gap-2">
+                      {receipt.energy && <HistoryMetric label={t('Active energy')} value={receipt.energy} />}
+                      {receipt.distance && <HistoryMetric label={t('Distance')} value={receipt.distance} />}
+                    </div>
+                  )}
+                  <div className="mt-3 rounded-2xl border border-white/90 bg-white/72 p-3">
+                    <p className="font-mono text-[8px] font-black tracking-[.14em] text-sky-800 uppercase">{t('READ-ONLY RECEIPT')}</p>
+                    <p className="mt-2 text-xs leading-relaxed text-ink-soft">{t('Imported from Apple Health. This receipt is read-only in APEX.')}</p>
+                    <p className="mt-2 break-words font-mono text-[9px] font-bold leading-relaxed text-ink-faint">{t('Source')}: {activity.source}</p>
+                  </div>
+                  <button
+                    type="button"
+                    onClick={() => setPendingHide({ id: activity.id, title: receipt.title })}
+                    className="mt-3 w-full rounded-2xl border border-sky-200 bg-white px-4 py-3 text-xs font-black text-sky-800"
+                  >{t('Hide from APEX')}</button>
+                </div>
+              )}
+            </article>
+          )
+        }
+
+        const { session, title, isQuickLog } = entry
         const open = expanded.has(session.id)
         const logs = workoutLogsInPerformedOrder(data, session.id)
         const working = logs.filter((log) => !log.skipped)
@@ -206,6 +277,20 @@ export function CompletedWorkoutHistoryCards({
             <div className="mt-4 grid grid-cols-2 gap-2">
               <button type="button" onClick={() => setPendingDelete(null)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-ink">{t('Cancel')}</button>
               <button type="button" onClick={confirmDeletion} className="rounded-2xl bg-rose-600 px-4 py-3 text-xs font-black text-white">{t('Delete workout')}</button>
+            </div>
+          </div>
+        </div>
+      )}
+      {pendingHide && (
+        <div className="fixed inset-0 z-[90] grid place-items-center bg-slate-950/38 px-5 backdrop-blur-sm" role="presentation" onPointerDown={(event) => { if (event.target === event.currentTarget) setPendingHide(null) }}>
+          <div role="alertdialog" aria-modal="true" aria-labelledby="hide-external-workout-title" className="w-full max-w-sm rounded-[28px] border border-white/90 bg-white p-5 shadow-2xl">
+            <p className="font-mono text-[9px] font-black tracking-[.15em] text-sky-700 uppercase">{t('APPLE HEALTH')}</p>
+            <h3 id="hide-external-workout-title" className="mt-2 font-display text-xl font-black text-ink">{t('Hide this Apple Health workout from APEX?')}</h3>
+            <p className="mt-2 text-sm leading-relaxed text-ink-soft">{t('The original workout stays in Apple Health.')}</p>
+            <p className="mt-3 rounded-2xl bg-slate-50 px-3 py-2 font-mono text-xs font-bold text-ink">{t(pendingHide.title)}</p>
+            <div className="mt-4 grid grid-cols-2 gap-2">
+              <button type="button" onClick={() => setPendingHide(null)} className="rounded-2xl border border-slate-200 bg-white px-4 py-3 text-xs font-black text-ink">{t('Cancel')}</button>
+              <button type="button" onClick={confirmHide} className="rounded-2xl bg-sky-700 px-4 py-3 text-xs font-black text-white">{t('Hide from APEX')}</button>
             </div>
           </div>
         </div>

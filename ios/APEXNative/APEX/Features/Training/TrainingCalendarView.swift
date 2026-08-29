@@ -82,7 +82,7 @@ struct TrainingCalendarView: View {
     }
     private var importedDates: Set<String> {
         Set(session.data.importedActivities.filter { row in
-            userID == nil || row.userID == userID
+            row.isVisibleInAPEX && (userID == nil || row.userID == userID)
         }.map(\.date))
     }
     private var events: [EventRecord] {

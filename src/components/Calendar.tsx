@@ -16,6 +16,7 @@ import {
 import type { Accent } from '../lib/theme'
 import type { AppData, DayType, ProgramSlug } from '../lib/types'
 import { approachRamp, eventContextFor } from '../lib/plan'
+import { visibleImportedActivitiesForOwner } from '../lib/importedActivityVisibility'
 import { activeInductionDayIds, activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import type { CampaignSession } from '../orbit/domain/types'
 import { useOrbitText } from '../orbit/ui/i18n'
@@ -93,8 +94,8 @@ export function Calendar({ month, data, slug, accent, orbitSessions = [], onSele
   )
   /* imported Apple Health activity, shown as a small pulse ring */
   const importedDates = useMemo(
-    () => new Set(data.imported_activities.map((a) => a.date)),
-    [data.imported_activities],
+    () => new Set(visibleImportedActivitiesForOwner(data).map((activity) => activity.date)),
+    [data.profile, data.settings, data.workout_sessions, data.imported_activities],
   )
 
   const pressTimer = useRef<number | null>(null)

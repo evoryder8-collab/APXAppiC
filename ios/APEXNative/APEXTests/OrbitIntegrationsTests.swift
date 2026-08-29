@@ -76,6 +76,61 @@ final class OrbitIntegrationsTests: XCTestCase {
         XCTAssertTrue(result.contains { $0.id == watchCalories.id })
     }
 
+    func testOrbitRecognizesAnOwnedVisibleHealthKitRunWithoutDependingOnDisplaySource() {
+        let orbitRun = run(minutes: 75)
+        let matching = ImportedActivity(
+            id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate,
+            kind: "endurance", activity: "Outdoor Run", durationMinutes: 75,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-16T08:04:59Z",
+            sourceBundleIdentifier: "com.apple.health.123456"
+        )
+        let foreign = ImportedActivity(
+            id: UUID(), userID: UUID(), date: orbitRun.localDate,
+            kind: "endurance", activity: "Outdoor Run", durationMinutes: 75,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-16T08:04:59Z",
+            sourceBundleIdentifier: "com.apple.health.123456"
+        )
+        let hidden = ImportedActivity(
+            id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate,
+            kind: "endurance", activity: "Outdoor Run", durationMinutes: 75,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-16T08:04:59Z",
+            sourceBundleIdentifier: "com.apple.health.123456",
+            hiddenAt: "2026-08-16T12:00:00Z"
+        )
+        let unrelated = ImportedActivity(
+            id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate,
+            kind: "endurance", activity: "Outdoor Run", durationMinutes: 75,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-16T12:00:00Z",
+            sourceBundleIdentifier: "com.apple.health.123456"
+        )
+        let atFiveMinuteBoundary = ImportedActivity(
+            id: UUID(), userID: orbitRun.userID, date: orbitRun.localDate,
+            kind: "endurance", activity: "Outdoor Run", durationMinutes: 75,
+            source: "Constantin’s Apple Watch", healthKitWorkoutID: UUID(),
+            startedAt: "2026-08-16T08:05:00Z",
+            sourceBundleIdentifier: "com.apple.health.123456"
+        )
+
+        XCTAssertTrue(OrbitIntegrations.healthWorkoutRepresentsRun(
+            [matching, foreign, hidden],
+            ownerID: orbitRun.userID,
+            localDate: orbitRun.localDate,
+            durationMinutes: 75,
+            startedAt: orbitRun.startedAt
+        ))
+        XCTAssertFalse(OrbitIntegrations.healthWorkoutRepresentsRun(
+            [foreign, hidden, unrelated, atFiveMinuteBoundary],
+            ownerID: orbitRun.userID,
+            localDate: orbitRun.localDate,
+            durationMinutes: 75,
+            startedAt: orbitRun.startedAt
+        ))
+    }
+
     func testAvatarContributionUsesOneRunAndReportsPacingDiscipline() {
         let contribution = OrbitIntegrations.avatarContribution(run: run(minutes: 75))
 
