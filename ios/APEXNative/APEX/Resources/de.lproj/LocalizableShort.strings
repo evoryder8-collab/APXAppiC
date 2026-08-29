@@ -39,3 +39,11 @@
 "Hide from APEX" = "In APEX ausblenden";
 "Already finished?" = "Schon fertig?";
 "Wearable linked" = "Uhr verknüpft";
+"Day" = "Tag";
+"Week" = "Woche";
+"Year" = "Jahr";
+"Custom" = "Eigene";
+"Export PNG" = "PNG sichern";
+"Share PNG" = "PNG teilen";
+"h" = "Std.";
+"min" = "Min.";

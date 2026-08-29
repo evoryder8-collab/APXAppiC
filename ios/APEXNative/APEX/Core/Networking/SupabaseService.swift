@@ -350,8 +350,8 @@ actor SupabaseService {
         async let programs: [Program] = client.from("programs").select().execute().value
         async let programDays: [ProgramDay] = client.from("program_days").select().order("sort_order").execute().value
         async let exercises: [Exercise] = client.from("exercises").select().order("sort_order").execute().value
-        async let workoutSessions: [WorkoutSession] = client.from("workout_sessions").select().order("date", ascending: false).limit(180).execute().value
-        async let workoutLogs: [WorkoutLog] = client.from("workout_logs").select().order("created_at", ascending: false).limit(2000).execute().value
+        async let workoutSessions = loadAllWorkoutSessions(client: client)
+        async let workoutLogs = loadAllWorkoutLogs(client: client)
         async let deloadMarks: [DeloadMark] = client.from("deload_marks").select().order("date", ascending: false).limit(180).execute().value
         async let activityTypes: [ActivityType] = client.from("activity_types").select().execute().value
         async let activityLogs: [ActivityLog] = client.from("activity_logs").select().order("date", ascending: false).limit(360).execute().value
@@ -433,6 +433,32 @@ actor SupabaseService {
             orbitCampaigns: orbitCampaigns,
             orbitCampaignSessions: orbitCampaignSessions
         )
+    }
+
+    private func loadAllWorkoutSessions(client: SupabaseClient) async throws -> [WorkoutSession] {
+        try await Self.collectPaginatedRows { range in
+            try await client
+                .from("workout_sessions")
+                .select()
+                .order("date", ascending: false)
+                .order("id", ascending: false)
+                .range(from: range.lowerBound, to: range.upperBound)
+                .execute()
+                .value
+        }
+    }
+
+    private func loadAllWorkoutLogs(client: SupabaseClient) async throws -> [WorkoutLog] {
+        try await Self.collectPaginatedRows { range in
+            try await client
+                .from("workout_logs")
+                .select()
+                .order("created_at", ascending: false)
+                .order("id", ascending: false)
+                .range(from: range.lowerBound, to: range.upperBound)
+                .execute()
+                .value
+        }
     }
 
     func upsert<T: Encodable & Sendable>(_ value: T, table: String, onConflict: String? = nil) async throws {

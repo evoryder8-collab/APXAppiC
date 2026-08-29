@@ -53,6 +53,7 @@ import { recommendActivityMode } from '../lib/personalProtocol'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
+import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -1145,6 +1146,7 @@ export function SimpleHome() {
                   />
                   <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
                 </div>
+                <WorkoutInsightsCard anchorDate={selectedDate} accent={ACCENTS.teal} />
                 <CompletedWorkoutHistoryCards date={undefined} accent={ACCENTS.teal} />
               </div>
             ) : blockId === 'activity' ? (

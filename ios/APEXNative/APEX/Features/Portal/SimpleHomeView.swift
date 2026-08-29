@@ -315,6 +315,7 @@ struct SimpleHomeView: View {
                     }
 
                     metrics
+                    WorkoutInsightsCard(anchorDate: selectedDate.apexDateKey, accent: APEXColor.teal)
                     CompletedWorkoutHistoryCards(date: nil, accent: APEXColor.teal)
                     WearableActivityCard(date: selectedDate)
 

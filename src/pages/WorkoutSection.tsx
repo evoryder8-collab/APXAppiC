@@ -32,6 +32,7 @@ import { ManualWorkoutLogger, TodayManualWorkoutCard } from '../components/worko
 import { useFoodStore } from '../store/FoodStore'
 import { timeZoneFromSettings } from '../lib/mealTiming'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
+import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
 
 const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
@@ -247,24 +248,6 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </div>
         )}
 
-        <TodayManualWorkoutCard
-          detailed={detailedInterface}
-          date={today}
-          onAdd={() => {
-            setEditingManualSessionId(null)
-            setEditingManualExerciseId(null)
-            setShowManualWorkout(true)
-          }}
-          onEdit={(sessionId, exerciseId) => {
-            setEditingManualSessionId(sessionId)
-            setEditingManualExerciseId(exerciseId)
-            setShowManualWorkout(true)
-          }}
-          accent={accent}
-        />
-
-        <CompletedWorkoutHistoryCards date={undefined} accent={accent} includeQuickLogs={false} />
-
         {/* Calendar */}
         <div data-training-section="calendar">
         <GlassCard accent={accent} className="p-4 sm:p-5">
@@ -302,6 +285,26 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('APEX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
         </GlassCard>
         </div>
+
+        <WorkoutInsightsCard anchorDate={today} accent={accent} />
+
+        <TodayManualWorkoutCard
+          detailed={detailedInterface}
+          date={today}
+          onAdd={() => {
+            setEditingManualSessionId(null)
+            setEditingManualExerciseId(null)
+            setShowManualWorkout(true)
+          }}
+          onEdit={(sessionId, exerciseId) => {
+            setEditingManualSessionId(sessionId)
+            setEditingManualExerciseId(exerciseId)
+            setShowManualWorkout(true)
+          }}
+          accent={accent}
+        />
+
+        <CompletedWorkoutHistoryCards date={undefined} accent={accent} includeQuickLogs={false} />
 
         {/* Custom workout studio */}
         <div className="relative overflow-hidden rounded-[30px] border border-violet-200/35 bg-[#07111f] p-5 text-white shadow-[0_28px_70px_-38px_rgba(109,40,217,.95)] sm:p-6">

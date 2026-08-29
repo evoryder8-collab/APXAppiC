@@ -341,6 +341,8 @@ struct TrainingProgramView: View {
                     .accessibilityIdentifier("training-calendar")
                 }
 
+                WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
+
                 CompletedWorkoutHistoryCards(date: nil, accent: accent)
 
                 if slug == "custom" {

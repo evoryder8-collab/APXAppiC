@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 41, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 49, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -350,6 +350,21 @@ final class LocalisationCoverageTests: XCTestCase {
             ]
             for (key, expected) in zip(["Already finished?", "Wearable linked"], linkedWearableValues[language] ?? []) {
                 XCTAssertEqual(table?[key], expected, "Unexpected compact wearable copy for \(language): \(key)")
+            }
+            let workoutInsightKeys = ["Day", "Week", "Year", "Custom", "Export PNG", "Share PNG", "h", "min"]
+            let workoutInsightValues: [String: [String]] = [
+                "en": ["Day", "Week", "Year", "Custom", "Export PNG", "Share PNG", "h", "min"],
+                "de": ["Tag", "Woche", "Jahr", "Eigene", "PNG sichern", "PNG teilen", "Std.", "Min."],
+                "de-CH": ["Tag", "Wuche", "Jahr", "Eigene", "PNG sichere", "PNG teile", "Std.", "Min."],
+                "it": ["Giorno", "Settimana", "Anno", "Date", "Crea PNG", "Condividi PNG", "h", "min"],
+                "es": ["Día", "Semana", "Año", "Fechas", "Crear PNG", "Compartir PNG", "h", "min"],
+                "pt": ["Dia", "Semana", "Ano", "Datas", "Criar PNG", "Partilhar PNG", "h", "min"],
+                "ja": ["日", "週", "年", "期間指定", "PNG作成", "PNG共有", "時間", "分"],
+                "ro": ["Zi", "Săpt.", "An", "Interval", "Creează PNG", "Distribuie PNG", "h", "min"],
+                "th": ["วัน", "สัปดาห์", "ปี", "กำหนดช่วง", "สร้าง PNG", "แชร์ PNG", "ชม.", "นาที"],
+            ]
+            for (key, expected) in zip(workoutInsightKeys, workoutInsightValues[language] ?? []) {
+                XCTAssertEqual(table?[key], expected, "Unexpected compact workout insight copy for \(language): \(key)")
             }
             if let expectedKeys {
                 XCTAssertEqual(keys, expectedKeys, "Compact keys drifted for \(language)")

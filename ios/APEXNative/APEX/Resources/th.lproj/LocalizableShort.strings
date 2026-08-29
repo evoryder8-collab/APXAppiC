@@ -39,3 +39,11 @@
 "Hide from APEX" = "ซ่อนจาก APEX";
 "Already finished?" = "เสร็จแล้ว?";
 "Wearable linked" = "เชื่อมต่อนาฬิกา";
+"Day" = "วัน";
+"Week" = "สัปดาห์";
+"Year" = "ปี";
+"Custom" = "กำหนดช่วง";
+"Export PNG" = "สร้าง PNG";
+"Share PNG" = "แชร์ PNG";
+"h" = "ชม.";
+"min" = "นาที";

@@ -39,3 +39,11 @@
 "Hide from APEX" = "APEXで非表示";
 "Already finished?" = "もう完了？";
 "Wearable linked" = "ウォッチ連携";
+"Day" = "日";
+"Week" = "週";
+"Year" = "年";
+"Custom" = "期間指定";
+"Export PNG" = "PNG作成";
+"Share PNG" = "PNG共有";
+"h" = "時間";
+"min" = "分";

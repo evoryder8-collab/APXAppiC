@@ -218,6 +218,35 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertEqual(rebuild.label, "Build a new plan")
     }
 
+    func testWorkoutInsightsRangesAndExportsRoundedPNG() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-installed-plan")
+        app.launch()
+
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        let transition = app.buttons["portal.transition"]
+        XCTAssertTrue(scrollUntilVisible(transition, in: app, attempts: 4))
+        tapClearOfDock(transition)
+
+        let insights = app.descendants(matching: .any)["workout-insights-card"]
+        XCTAssertTrue(scrollUntilReachableSettled(insights, in: app, attempts: 24))
+
+        let year = app.buttons["workout-insights-range-year"]
+        XCTAssertTrue(scrollUntilVisible(year, in: app, attempts: 4))
+        year.tap()
+        XCTAssertEqual(year.value as? String, "Selected")
+
+        let export = app.buttons["Export PNG"]
+        XCTAssertTrue(scrollUpUntilVisible(export, in: app, attempts: 4))
+        export.tap()
+        XCTAssertTrue(
+            app.descendants(matching: .any).matching(
+                NSPredicate(format: "label == %@", "Share PNG")
+            ).firstMatch.waitForExistence(timeout: 5),
+            "rendering must replace the export action with a shareable PNG"
+        )
+    }
+
     func testFivePortalNavigationAndCoreScreens() {
         let app = configuredApp()
         app.launch()
