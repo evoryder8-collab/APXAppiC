@@ -194,7 +194,7 @@
 		C085A173776E040F97A913FD /* NutritionParityViews.swift in Sources */ = {isa = PBXBuildFile; fileRef = 8B4BE4E6417FAD8287CE7592 /* NutritionParityViews.swift */; };
 		C1492157925018A76B1F05CD /* arms_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 2DCCC6DAAD90DC79C994C853 /* arms_bump.jpg */; };
 		C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
-		A9E83D100000000000000001 /* Assets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */; };
+		A9E83D100000000000000001 /* WatchAssets.xcassets in Resources */ = {isa = PBXBuildFile; fileRef = A9E83D100000000000000003 /* WatchAssets.xcassets */; };
 		C363F0EC4FF9F04D9969ED89 /* HealthImportParityTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = 2AA197AD6E551099CA1068BC /* HealthImportParityTests.swift */; };
 		C4123922CAA3C5A734833158 /* HydrationLedger.swift in Sources */ = {isa = PBXBuildFile; fileRef = 45E3C6FF7866E9D9D3E3B680 /* HydrationLedger.swift */; };
 		C643CC39DC869012CA364630 /* torso_bump.jpg in Resources */ = {isa = PBXBuildFile; fileRef = 8B1D338388006FFDC7405C7B /* torso_bump.jpg */; };
@@ -483,6 +483,7 @@
 		A3A6BA3B20612031DA418FC8 /* PlayerTimelineTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = PlayerTimelineTests.swift; sourceTree = "<group>"; };
 		A6F726BF795538B01541803E /* bundle.js */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.javascript; path = bundle.js; sourceTree = "<group>"; };
 		A7FE32BA4B8A7F3E8E4FC71D /* APEXWatchWidgets.entitlements */ = {isa = PBXFileReference; lastKnownFileType = text.plist.entitlements; path = APEXWatchWidgets.entitlements; sourceTree = "<group>"; };
+		A9E83D100000000000000003 /* WatchAssets.xcassets */ = {isa = PBXFileReference; lastKnownFileType = folder.assetcatalog; path = WatchAssets.xcassets; sourceTree = "<group>"; };
 		A80A4616A724F251A3020AE1 /* MuscleMapAssetHandler.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MuscleMapAssetHandler.swift; sourceTree = "<group>"; };
 		AA088C5E3529823FEBFF66E6 /* AuthoredExerciseGuidanceTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = AuthoredExerciseGuidanceTests.swift; sourceTree = "<group>"; };
 		ABFF865FEAA53E90ACEED8B0 /* TrainingCalendarDay.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = TrainingCalendarDay.swift; sourceTree = "<group>"; };
@@ -752,6 +753,7 @@
 			isa = PBXGroup;
 			children = (
 				C0D62AAA22223F571969B818 /* APEXWatch.entitlements */,
+				A9E83D100000000000000003 /* WatchAssets.xcassets */,
 				61AFE9BFC5E92652BD0408A7 /* APEXWaterWatchApp.swift */,
 				1477C72FA445DA292C502653 /* Info.plist */,
 				7DC4A26147A37D8179312E35 /* WatchHydrationConnectivity.swift */,
@@ -1281,7 +1283,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
-				A9E83D100000000000000001 /* Assets.xcassets in Resources */,
+				A9E83D100000000000000001 /* WatchAssets.xcassets in Resources */,
 			);
 			runOnlyForDeploymentPostprocessing = 0;
 		};

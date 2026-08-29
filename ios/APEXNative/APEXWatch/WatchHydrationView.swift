@@ -705,7 +705,7 @@ private struct HydrationSilhouetteGauge: View {
                 .blur(radius: 7)
                 .scaleEffect(1 + (breath * 0.045))
 
-            Image("HydrationMaleSilhouette")
+            Image("WatchHydrationSilhouette")
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()
@@ -725,13 +725,13 @@ private struct HydrationSilhouetteGauge: View {
                 )
                 .shadow(color: aqua.opacity(0.7), radius: 7)
                 .mask {
-                    Image("HydrationMaleSilhouette")
+                    Image("WatchHydrationSilhouette")
                         .renderingMode(.template)
                         .resizable()
                         .scaledToFit()
                 }
 
-            Image("HydrationMaleSilhouette")
+            Image("WatchHydrationSilhouette")
                 .renderingMode(.template)
                 .resizable()
                 .scaledToFit()

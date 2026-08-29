@@ -89,6 +89,31 @@ final class HydrationGaugeTests: XCTestCase {
             "disabled Add copy needs a deliberate high-contrast palette rather than whole-control fading"
         )
     }
+
+    func testWatchOwnsDedicatedIconAndSilhouetteAssets() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let project = try String(
+            contentsOf: nativeRoot.appending(path: "APEXNative.xcodeproj/project.pbxproj")
+        )
+        let watchAssets = nativeRoot.appending(path: "APEXWatch/WatchAssets.xcassets")
+        let iconManifest = try String(
+            contentsOf: watchAssets.appending(path: "AppIcon.appiconset/Contents.json")
+        )
+        let silhouetteManifest = try String(
+            contentsOf: watchAssets.appending(path: "WatchHydrationSilhouette.imageset/Contents.json")
+        )
+        let watchView = try String(
+            contentsOf: nativeRoot.appending(path: "APEXWatch/WatchHydrationView.swift")
+        )
+
+        XCTAssertTrue(project.contains("WatchAssets.xcassets"))
+        XCTAssertTrue(iconManifest.contains("APEXWatchIcon.png"))
+        XCTAssertTrue(iconManifest.contains(#""platform" : "watchos""#))
+        XCTAssertTrue(silhouetteManifest.contains("WatchHydrationSilhouette.png"))
+        XCTAssertTrue(watchView.contains(#"Image("WatchHydrationSilhouette")"#))
+    }
 }
 
 final class WatchHydrationFillStateTests: XCTestCase {

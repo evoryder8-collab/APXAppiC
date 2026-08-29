@@ -1606,3 +1606,13 @@ GitHub publication evidence:
 - Removed the page-mount animation dependency that could fire while the lazy Stats card was still off-screen. Every native stat lane now starts and completes its own 0.55-second fill when it enters the viewport, updates promptly when its value changes, and renders immediately under Reduce Motion. Web lanes use the same viewport-owned behavior.
 - Fixed two defects exposed by the installed-plan journey. The 3D signal's old SwiftUI drag claimed vertical gestures before deciding not to turn, so it could trap the phase page above the calendar; a direction-gated UIKit recognizer now accepts only genuinely horizontal turns. Plan briefings are presented by the stable phase container, so relocating or rebuilding the plan panel cannot discard either the post-install guide or a later `Plan guide` presentation.
 - Verification: full web/repository suite 641/641; production web build succeeded across 1,184 modules; full native unit suite 631/631; focused installed hierarchy and complete first-run/install/rebuild/guide UI journeys 2/2; all 17 APEX localization tables passed `plutil -lint`; `git diff --check` passed. All simulator verification used the explicitly named `APEX Lane · iPhone 17 Pro`; BA-Studio and Finalova lanes were not used.
+
+## 2026-08-29 — Watch icon and hydration figure asset hotfix
+
+- Gave the Watch app its own asset catalog instead of compiling the iPhone catalog into both products.
+- Replaced the translucent shared app-icon input with a dedicated opaque 1024×1024 Watch icon so clean installs and icon-cache refreshes retain the APEX icon.
+- Replaced the Watch hydration figure's shared SVG lookup with a dedicated rasterized template asset, preserving the existing silhouette composition and animated fill.
+- Added a regression contract covering Watch target membership, the Watch-only app icon, and the in-app silhouette lookup.
+- Red/green evidence: the focused asset contract first failed because the dedicated catalog did not exist, then passed after the target and assets were repaired.
+- Verification: the Watch scheme built successfully with signing; the resulting `Assets.car` contains `AppIcon` and `WatchHydrationSilhouette`; installation and launch succeeded on the connected physical Apple Watch; the post-install device capture shows the silhouette and current 2.12 L / 57% hydration state.
+- Simulator isolation: only `APEX Lane · iPhone 17 Pro` was used for the focused unit test. BA-Studio, Finalova, and the generic Watch simulator were not touched.
