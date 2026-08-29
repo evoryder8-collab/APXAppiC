@@ -12,6 +12,15 @@ struct TrainingInductionPanel: View {
     @State private var language = LanguageState.shared
 
     let slug: String
+    let onPresentBriefing: ((TrainingInduction.PlanBriefing) -> Void)?
+
+    init(
+        slug: String,
+        onPresentBriefing: ((TrainingInduction.PlanBriefing) -> Void)? = nil
+    ) {
+        self.slug = slug
+        self.onPresentBriefing = onPresentBriefing
+    }
 
     @State private var showBuilder = false
     @State private var showBriefing = false
@@ -73,7 +82,7 @@ struct TrainingInductionPanel: View {
                 Button {
                     openBuilder()
                 } label: {
-                    Text(language.text(hasActiveGeneratedPlan ? "Rebuild my plan" : "Build my plan"))
+                    Text(language.text(hasActiveGeneratedPlan ? "Build a new plan" : "Build my plan"))
                         .font(APEXFont.body(14, weight: .bold))
                         .frame(maxWidth: .infinity, minHeight: 48)
                         .foregroundStyle(.white)
@@ -181,8 +190,13 @@ struct TrainingInductionPanel: View {
             from: current,
             fallbackStartDate: Date().apexDateKey
         )
-        briefing = makeBriefing(for: input)
-        showBriefing = true
+        let currentBriefing = makeBriefing(for: input)
+        if let onPresentBriefing {
+            onPresentBriefing(currentBriefing)
+        } else {
+            briefing = currentBriefing
+            showBriefing = true
+        }
     }
 
     private func chip(_ text: String, _ color: Color) -> some View {
@@ -873,13 +887,18 @@ struct TrainingInductionPanel: View {
         Task {
             await session.installInductionPlan(submitted)
             guard TrainingInduction.hasCompleteGeneratedPlan(in: session.data, slug: slug) else { return }
-            briefing = makeBriefing(for: submitted)
-            showBriefing = true
+            let installedBriefing = makeBriefing(for: submitted)
+            if let onPresentBriefing {
+                onPresentBriefing(installedBriefing)
+            } else {
+                briefing = installedBriefing
+                showBriefing = true
+            }
         }
     }
 }
 
-private struct PlanBriefingDeck: View {
+struct PlanBriefingDeck: View {
     @Environment(AppSession.self) private var session
     @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     @State private var language = LanguageState.shared

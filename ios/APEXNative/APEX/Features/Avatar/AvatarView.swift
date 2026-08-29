@@ -5,7 +5,6 @@ struct AvatarView: View {
     @State private var engineExpanded = false
     @State private var showEvolutionInfo = false
     @Environment(AppSession.self) private var session
-    @State private var animate = false
     @State private var language = LanguageState.shared
     @State private var trendDays = 30
     @State private var jointArms = 3.0
@@ -78,7 +77,6 @@ struct AvatarView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadJointCheck()
-            withAnimation(.easeOut(duration: 0.9).delay(0.12)) { animate = true }
         }
     }
 
@@ -321,7 +319,7 @@ struct AvatarView: View {
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack { Text(language.text("Stats")).font(APEXFont.display(27)); Spacer(); periodPicker(dark: false) }
-                ForEach(stats) { stat in AvatarStatRow(stat: stat, animate: animate) }
+                ForEach(stats) { stat in AvatarStatRow(stat: stat) }
                 if let upper = stats.first(where: { $0.key == "upper" }), let lower = stats.first(where: { $0.key == "lower" }) {
                     VStack(alignment: .leading, spacing: 8) {
                         HStack {
@@ -699,8 +697,13 @@ private struct MetabolicRhythm {
 
 private struct AvatarStatRow: View {
     @State private var language = LanguageState.shared
+    @State private var fillFraction: CGFloat = 0
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
     let stat: AvatarStat
-    let animate: Bool
+
+    private var targetFillFraction: CGFloat {
+        CGFloat(min(max(stat.value / 100, 0.025), 1))
+    }
 
     var body: some View {
         VStack(spacing: 8) {
@@ -717,10 +720,29 @@ private struct AvatarStatRow: View {
                 ZStack(alignment: .leading) {
                     Capsule().fill(APEXColor.ink.opacity(0.07))
                     Capsule().fill(stat.color.gradient)
-                        .frame(width: animate ? proxy.size.width * min(max(stat.value / 100, 0.025), 1) : 0)
+                        .frame(width: proxy.size.width * fillFraction)
                         .shadow(color: stat.color.opacity(0.3), radius: 8)
                 }
             }.frame(height: 10)
+        }
+        .onAppear {
+            if accessibilityReduceMotion {
+                fillFraction = targetFillFraction
+            } else {
+                fillFraction = 0
+                withAnimation(.easeOut(duration: 0.55)) {
+                    fillFraction = targetFillFraction
+                }
+            }
+        }
+        .onChange(of: stat.value) { _, _ in
+            if accessibilityReduceMotion {
+                fillFraction = targetFillFraction
+            } else {
+                withAnimation(.easeOut(duration: 0.4)) {
+                    fillFraction = targetFillFraction
+                }
+            }
         }
     }
 }

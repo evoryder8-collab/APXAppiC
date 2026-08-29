@@ -1545,6 +1545,11 @@ const rows: Array<[string, string, string]> = [
   ['Back after a long break?', 'Revii după o pauză lungă.', 'กลับมาฝึกหลังพักนาน'],
   ['Ready for the main phase.', 'Ești gata pentru etapa principală.', 'พร้อมเริ่มช่วงหลัก'],
   ['Sessions you built yourself', 'Sesiuni create de tine', 'เซสชันที่คุณสร้างเอง'],
+  ['Fitness initiation', 'Inițiere în fitness', 'เริ่มต้นเส้นทางฟิตเนส'],
+  ["It's time to transform, no excuses", 'E timpul să te transformi, fără scuze', 'ถึงเวลาเปลี่ยนแปลง ไม่มีข้ออ้าง'],
+  ['Build a new plan', 'Creează un plan nou', 'สร้างแผนใหม่'],
+  ['Session mode', 'Modul sesiunii', 'โหมดเซสชัน'],
+  ['Minimum effective', 'Minimul eficient', 'ขั้นต่ำที่ได้ผล'],
 ]
 
 export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries(

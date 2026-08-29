@@ -928,7 +928,7 @@ final class TrainingInductionTests: XCTestCase {
             "hasActiveGeneratedPlan ? \"Your generated plan is active. Rebuild it any time, or restore your original programme from Settings.\""
         ))
         XCTAssertTrue(panel.contains(
-            "hasActiveGeneratedPlan ? \"Rebuild my plan\" : \"Build my plan\""
+            "hasActiveGeneratedPlan ? \"Build a new plan\" : \"Build my plan\""
         ))
     }
 
@@ -2196,5 +2196,56 @@ final class TrainingInductionTests: XCTestCase {
                 "\(day.name) light should not exceed full"
             )
         }
+    }
+
+    func testBuiltPhaseHierarchyPutsTheSignalAndTodayBeforeModeAndCalendar() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/TrainingProgramView.swift")
+        )
+        let signal = try XCTUnwrap(source.range(of: "training-today-signal")?.lowerBound)
+        let today = try XCTUnwrap(source.range(of: "training-today-card")?.lowerBound)
+        let mode = try XCTUnwrap(source.range(of: "training-session-mode")?.lowerBound)
+        let calendar = try XCTUnwrap(source.range(of: "training-calendar")?.lowerBound)
+        let rebuild = try XCTUnwrap(source.range(of: "training-plan-rebuild-bottom")?.lowerBound)
+
+        XCTAssertLessThan(signal, today)
+        XCTAssertLessThan(today, mode)
+        XCTAssertLessThan(mode, calendar)
+        XCTAssertLessThan(calendar, rebuild)
+        XCTAssertTrue(source.contains("if showInduction && !hasUsablePrescription"))
+        XCTAssertTrue(source.contains("if showInduction && hasUsablePrescription"))
+    }
+
+    func testAvatarStatsAnimateWhenEachLaneActuallyEntersTheViewport() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Avatar/AvatarView.swift")
+        )
+        let rowStart = try XCTUnwrap(source.range(of: "private struct AvatarStatRow")?.lowerBound)
+        let rowSource = String(source[rowStart...])
+
+        XCTAssertTrue(rowSource.contains("@State private var fillFraction"))
+        XCTAssertTrue(rowSource.contains(".onAppear"))
+        XCTAssertTrue(rowSource.contains("accessibilityReduceMotion"))
+        XCTAssertFalse(source.contains("AvatarStatRow(stat: stat, animate: animate)"))
+    }
+
+    func testMuscleMapHorizontalTurnFailsEarlyForVerticalPageScrolls() throws {
+        let nativeRoot = URL(fileURLWithPath: #filePath)
+            .deletingLastPathComponent()
+            .deletingLastPathComponent()
+        let source = try String(
+            contentsOf: nativeRoot.appending(path: "APEX/Features/Training/MuscleMapCard.swift")
+        )
+
+        XCTAssertTrue(source.contains("gestureRecognizerShouldBegin"))
+        XCTAssertTrue(source.contains("abs(velocity.x) > abs(velocity.y) * 1.4"))
+        XCTAssertTrue(source.contains("HorizontalTurnSurface"))
+        XCTAssertFalse(source.contains(".simultaneousGesture(turnGesture)"))
     }
 }

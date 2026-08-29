@@ -15,6 +15,7 @@ struct TrainingProgramView: View {
     @State private var selectedDay: CalendarDaySelection?
     @State private var showManualLogger = false
     @State private var exportURL: ExportedReport?
+    @State private var installedPlanBriefing: TrainingInduction.PlanBriefing?
 
     private var program: Program? {
         TrainingInduction.ownedProgram(in: session.data, slug: slug)
@@ -242,9 +243,9 @@ struct TrainingProgramView: View {
 
     private var headline: String {
         switch slug {
-        case "main": return "Build what lasts."
+        case "main": return "It's time to transform, no excuses"
         case "custom": return "Your own sessions."
-        default: return "Prepare the system."
+        default: return "Fitness initiation"
         }
     }
 
@@ -293,16 +294,14 @@ struct TrainingProgramView: View {
                 }
                 #endif
 
-                if showInduction {
-                    TrainingInductionPanel(slug: slug)
+                if showInduction && !hasUsablePrescription {
+                    TrainingInductionPanel(slug: slug) { briefing in
+                        installedPlanBriefing = briefing
+                    }
                         .environment(session)
                 }
 
-                if slug != "custom" { todayHero }
-
-                CompletedWorkoutHistoryCards(date: nil, accent: accent)
-
-                if slug == "custom" || hasUsablePrescription {
+                if slug != "custom" && hasUsablePrescription {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,
                         sessionDate: Date().apexDateKey,
@@ -312,6 +311,15 @@ struct TrainingProgramView: View {
                         eyebrow: language.text("TODAY'S SIGNAL"),
                         focus: language.text(muscleFocus)
                     )
+                    .accessibilityIdentifier("training-today-signal")
+                }
+
+                if slug != "custom" {
+                    VStack(spacing: 0) {
+                        todayHero
+                    }
+                        .accessibilityElement(children: .contain)
+                        .accessibilityIdentifier("training-today-card")
                 }
 
                 if slug != "custom" && hasUsablePrescription {
@@ -320,6 +328,7 @@ struct TrainingProgramView: View {
                         Text(language.text("Minimum effective")).tag(true)
                     }
                     .pickerStyle(.segmented)
+                    .accessibilityIdentifier("training-session-mode")
                 }
 
                 /* The month, as on the web: every planned day carries its type,
@@ -331,6 +340,20 @@ struct TrainingProgramView: View {
                         }
                     }
                     .accessibilityIdentifier("training-calendar")
+                }
+
+                CompletedWorkoutHistoryCards(date: nil, accent: accent)
+
+                if slug == "custom" {
+                    MuscleMapCard(
+                        dayType: todayMuscleDayType,
+                        sessionDate: Date().apexDateKey,
+                        exerciseNames: todayExerciseNames,
+                        height: 442,
+                        accent: accent,
+                        eyebrow: language.text("TODAY'S SIGNAL"),
+                        focus: language.text(muscleFocus)
+                    )
                 }
 
                 /* Web parity: the studio opens from any training screen, not
@@ -461,6 +484,14 @@ struct TrainingProgramView: View {
                         }
                     }
                 }
+
+                if showInduction && hasUsablePrescription {
+                    // training-plan-rebuild-bottom: keep plan controls beneath the working phase.
+                    TrainingInductionPanel(slug: slug) { briefing in
+                        installedPlanBriefing = briefing
+                    }
+                        .environment(session)
+                }
             }
             .padding(.horizontal, 18)
             .padding(.top, 10)
@@ -469,6 +500,28 @@ struct TrainingProgramView: View {
         }
         .navigationTitle(language.text(program?.name ?? "Training"))
         .navigationBarTitleDisplayMode(.inline)
+        .fullScreenCover(
+            isPresented: Binding(
+                get: { installedPlanBriefing != nil },
+                set: { presented in
+                    if !presented { installedPlanBriefing = nil }
+                }
+            )
+        ) {
+            if let installedPlanBriefing {
+                PlanBriefingDeck(
+                    briefing: installedPlanBriefing,
+                    onDismiss: { self.installedPlanBriefing = nil },
+                    onOpenPlan: {
+                        Task {
+                            guard await session.prepareCommittedPlanForPortal() else { return }
+                            session.setInterfaceMode(.simple)
+                            self.installedPlanBriefing = nil
+                        }
+                    }
+                )
+            }
+        }
         .sheet(isPresented: $showManualLogger) {
             ManualWorkoutLoggerView()
                 .environment(session)

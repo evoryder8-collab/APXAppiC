@@ -37,6 +37,10 @@ const CustomWorkoutBuilder = lazy(() =>
   import('../components/CustomWorkoutBuilder').then((module) => ({ default: module.CustomWorkoutBuilder })),
 )
 
+const HologramStage = lazy(() =>
+  import('../components/hologram/HologramStage').then((module) => ({ default: module.HologramStage })),
+)
+
 const EVENT_TYPES: Array<{ value: EventType; label: string }> = [
   { value: 'filming_championship', label: 'Filming Championship' },
   { value: 'travel', label: 'Travel' },
@@ -59,6 +63,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const [showManualWorkout, setShowManualWorkout] = useState(false)
   const [editingManualSessionId, setEditingManualSessionId] = useState<string | null>(null)
   const [editingManualExerciseId, setEditingManualExerciseId] = useState<string | null>(null)
+  const [lite, setLite] = useState(false)
   const detailedInterface = (data.settings?.addons.interface_mode ?? 'clean') === 'detailed'
 
   const today = todayIso()
@@ -71,7 +76,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
     ? slug === 'transition' ? 'For beginners' : 'Bodybuilding'
     : program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')
   const streak = useMemo(() => currentStreak(data, today), [data, today])
-  const todayPlan = useMemo(() => planForDate(data, slug, today, false), [data, slug, today])
+  const todayPlan = useMemo(() => planForDate(data, slug, today, lite), [data, lite, slug, today])
+  const hasInstalledPlan = Boolean(data.settings?.addons.training_induction)
   const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
   const showTrainingInduction = Boolean(
     data.settings &&
@@ -151,7 +157,13 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
       <SectionHeader
         accent={accent}
         title={planText(sectionTitle)}
-        subtitle={detailedInterface ? planText(sectionSubtitle) : undefined}
+        subtitle={detailedInterface ? planText(
+          slug === 'main'
+            ? "It's time to transform, no excuses"
+            : slug === 'transition'
+              ? 'Fitness initiation'
+              : sectionSubtitle,
+        ) : undefined}
         right={
           <div className="flex items-center gap-2">
             <div className="relative overflow-hidden rounded-2xl border border-white/85 bg-white/72 px-3 py-2 text-right shadow-[0_12px_30px_-20px_rgba(109,40,217,.8)] backdrop-blur-xl">
@@ -163,11 +175,28 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         }
       />
 
-      <div className="space-y-5">
-        {showTrainingInduction && <TrainingInductionPanel slug={slug} />}
+      <div className="flex flex-col gap-5">
+        {showTrainingInduction && (
+          <div data-training-section="rebuild" className={hasInstalledPlan ? 'order-[99]' : 'order-first'}>
+            <TrainingInductionPanel slug={slug} />
+          </div>
+        )}
+
+        {slug !== 'custom' && hasInstalledPlan && (
+          <div data-training-section="signal">
+            <Suspense fallback={<div className="glass h-[300px] rounded-3xl" aria-hidden />}>
+              <HologramStage
+                dayType={todayPlan.programDay?.day_type ?? null}
+                exerciseNames={todayPlan.exercises.map((exercise) => exercise.name)}
+                accent={accent}
+                height={300}
+              />
+            </Suspense>
+          </div>
+        )}
 
         {/* Today hero */}
-        <motion.div initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }}>
+        <motion.div data-training-section="today" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }}>
           <GlassCard accent={accent} breathe className="p-5">
             <div className="flex items-center justify-between gap-3">
               <div className="min-w-0">
@@ -199,6 +228,25 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </GlassCard>
         </motion.div>
 
+        {slug !== 'custom' && hasInstalledPlan && (
+          <div data-training-section="mode" className="grid grid-cols-2 rounded-2xl bg-ink/5 p-1" role="group" aria-label={t('Session mode')}>
+            {[
+              { label: t('Full session'), value: false },
+              { label: t('Minimum effective'), value: true },
+            ].map((option) => (
+              <button
+                key={option.label}
+                type="button"
+                aria-pressed={lite === option.value}
+                onClick={() => setLite(option.value)}
+                className={`min-h-11 rounded-xl px-3 text-xs font-black transition ${lite === option.value ? 'bg-white text-ink shadow-sm' : 'text-ink-soft'}`}
+              >
+                {option.label}
+              </button>
+            ))}
+          </div>
+        )}
+
         <TodayManualWorkoutCard
           detailed={detailedInterface}
           date={today}
@@ -218,6 +266,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         <CompletedWorkoutHistoryCards date={undefined} accent={accent} includeQuickLogs={false} />
 
         {/* Calendar */}
+        <div data-training-section="calendar">
         <GlassCard accent={accent} className="p-4 sm:p-5">
           <div className="mb-4 flex items-center justify-between">
             <button
@@ -252,6 +301,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           </p>}
           {visibleOrbitSessions.length > 0 && <div className="mt-4 space-y-2 border-t border-white/70 pt-4"><p className="font-mono text-[10px] font-bold tracking-widest text-sky-800">{t('APEX ORBIT · PRESCRIBED / COMPLETED')}</p>{visibleOrbitSessions.slice(0, 8).map((session) => <div key={session.id} className="flex items-center justify-between gap-3 rounded-2xl bg-sky-50/65 px-3 py-2.5"><div className="min-w-0"><p className="truncate text-xs font-bold text-ink">{session.date} · {t(session.adapted.title)}</p><p className="text-[10px] text-ink-soft">{t(missionLabel(session.adapted.mission))} · {session.adapted.duration_min} min · {t(session.status)}</p></div><button type="button" onClick={() => session.completion_run_id ? navigate(`/orbit/debrief/${session.completion_run_id}`) : navigate('/orbit/run', { state: { mission: session.adapted.mission, campaignSessionId: session.id } })} className="shrink-0 rounded-xl bg-sky-900 px-3 py-2 text-[10px] font-bold text-white">{t(session.completion_run_id ? 'Debrief' : 'Start run')}</button></div>)}</div>}
         </GlassCard>
+        </div>
 
         {/* Custom workout studio */}
         <div className="relative overflow-hidden rounded-[30px] border border-violet-200/35 bg-[#07111f] p-5 text-white shadow-[0_28px_70px_-38px_rgba(109,40,217,.95)] sm:p-6">
@@ -310,6 +360,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         <div className="flex justify-end">
           <GhostButton onClick={() => setShowExport(true)}>Export for AI assessment</GhostButton>
         </div>
+
       </div>
 
       {/* Day sheet */}
@@ -320,6 +371,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           dateIso={selectedDay}
           slug={slug}
           accent={accent}
+          initialLite={lite}
         />
       )}
 

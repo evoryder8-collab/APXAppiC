@@ -26,6 +26,7 @@ interface DaySheetProps {
   dateIso: string
   slug: ProgramSlug
   accent: Accent
+  initialLite?: boolean
 }
 
 function completedSessionFor(
@@ -42,13 +43,13 @@ function completedSessionFor(
   )
 }
 
-export function DaySheet({ open, onClose, dateIso, slug, accent }: DaySheetProps) {
+export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = false }: DaySheetProps) {
   const { data, upsert, remove } = useStore()
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
-  const [lite, setLite] = useState(false)
+  const [lite, setLite] = useState(initialLite)
   const [statsOpen, setStatsOpen] = useState(false)
 
   const plan = useMemo(() => planForDate(data, slug, dateIso, lite), [data, slug, dateIso, lite])

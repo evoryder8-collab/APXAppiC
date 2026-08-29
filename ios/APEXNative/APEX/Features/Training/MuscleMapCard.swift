@@ -1,4 +1,5 @@
 import SwiftUI
+import UIKit
 import WebKit
 
 /*
@@ -65,34 +66,12 @@ struct MuscleMapCard: View {
     var focus: String?
 
     @State private var controller = MuscleMapController()
-    @State private var lastTranslation: CGFloat = 0
-    @State private var isTurning = false
     @Environment(\.accessibilityReduceMotion) private var reduceMotion
     @State private var language = LanguageState.shared
     @State private var showBriefing = false
 
     private var decorativeMotionEnabled: Bool {
         !reduceMotion && !APEXRuntimeEnvironment.usesLocalUITestFixture()
-    }
-
-    /// A drag only turns the figure once it is clearly sideways, so a scroll
-    /// that happens to start on the figure still scrolls.
-    private var turnGesture: some Gesture {
-        DragGesture(minimumDistance: 12)
-            .onChanged { value in
-                if !isTurning {
-                    guard abs(value.translation.width) > abs(value.translation.height) * 1.4 else { return }
-                    isTurning = true
-                    lastTranslation = 0
-                }
-                let delta = value.translation.width - lastTranslation
-                lastTranslation = value.translation.width
-                controller.turn(by: Double(delta) * 0.55)
-            }
-            .onEnded { _ in
-                isTurning = false
-                lastTranslation = 0
-            }
     }
 
     var body: some View {
@@ -111,7 +90,12 @@ struct MuscleMapCard: View {
         }
         .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
         .contentShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-        .simultaneousGesture(turnGesture)
+        .overlay {
+            HorizontalTurnSurface { delta in
+                controller.turn(by: Double(delta) * 0.55)
+            }
+            .accessibilityHidden(true)
+        }
         .overlay(alignment: .topLeading) {
             if eyebrow != nil || focus != nil {
                 /* The figure sits on a pale backdrop, so this label carries the
@@ -222,5 +206,65 @@ struct MuscleMapCard: View {
         .buttonStyle(.plain)
         .accessibilityIdentifier("musclemap-\(label.lowercased())")
         .accessibilityAddTraits(on ? [.isSelected] : [])
+    }
+}
+
+/// UIKit can decline a pan before it begins. SwiftUI's `DragGesture` cannot,
+/// so even a vertical drag it later ignored still prevented the parent phase
+/// page from scrolling. Horizontal turns remain interactive while vertical
+/// movement is handed straight to the enclosing `ScrollView`.
+private struct HorizontalTurnSurface: UIViewRepresentable {
+    let onDelta: (CGFloat) -> Void
+
+    func makeCoordinator() -> Coordinator {
+        Coordinator(onDelta: onDelta)
+    }
+
+    func makeUIView(context: Context) -> UIView {
+        let view = UIView()
+        view.backgroundColor = .clear
+        view.isOpaque = false
+        let pan = UIPanGestureRecognizer(
+            target: context.coordinator,
+            action: #selector(Coordinator.handlePan(_:))
+        )
+        pan.maximumNumberOfTouches = 1
+        pan.cancelsTouchesInView = false
+        pan.delegate = context.coordinator
+        view.addGestureRecognizer(pan)
+        return view
+    }
+
+    func updateUIView(_ uiView: UIView, context: Context) {
+        context.coordinator.onDelta = onDelta
+    }
+
+    final class Coordinator: NSObject, UIGestureRecognizerDelegate {
+        var onDelta: (CGFloat) -> Void
+
+        init(onDelta: @escaping (CGFloat) -> Void) {
+            self.onDelta = onDelta
+        }
+
+        @objc func handlePan(_ recognizer: UIPanGestureRecognizer) {
+            guard recognizer.state == .began || recognizer.state == .changed,
+                  let view = recognizer.view else { return }
+            let translation = recognizer.translation(in: view)
+            recognizer.setTranslation(.zero, in: view)
+            onDelta(translation.x)
+        }
+
+        func gestureRecognizerShouldBegin(_ gestureRecognizer: UIGestureRecognizer) -> Bool {
+            guard let pan = gestureRecognizer as? UIPanGestureRecognizer else { return false }
+            let velocity = pan.velocity(in: pan.view)
+            return abs(velocity.x) > abs(velocity.y) * 1.4
+        }
+
+        func gestureRecognizer(
+            _ gestureRecognizer: UIGestureRecognizer,
+            shouldRecognizeSimultaneouslyWith otherGestureRecognizer: UIGestureRecognizer
+        ) -> Bool {
+            true
+        }
     }
 }

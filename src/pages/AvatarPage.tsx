@@ -4,7 +4,7 @@
  * and the "What your body needs" recommendation cards.
  */
 import { useMemo, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { useNavigate } from 'react-router-dom'
 import { useStore } from '../store/AppStore'
 import { ACCENTS } from '../lib/theme'
@@ -80,6 +80,7 @@ export function AvatarPage() {
   const [showBaseline, setShowBaseline] = useState(false)
   const [range, setRange] = useState<30 | 90>(30)
   const [expanded, setExpanded] = useState<string | null>(null)
+  const reduceMotion = useReducedMotion()
 
   const now = snapshots[snapshots.length - 1] ?? null
   const before = snapshots[Math.max(0, snapshots.length - 15)] ?? now
@@ -259,9 +260,10 @@ export function AvatarPage() {
                       <motion.div
                         className="h-full rounded-full"
                         style={{ background: `linear-gradient(90deg, ${s.color}, ${s.colorSoft})`, boxShadow: `0 0 12px ${s.glow}` }}
-                        initial={{ width: 0 }}
-                        animate={{ width: `${value}%` }}
-                        transition={{ duration: 0.9, ease: EASE }}
+                        initial={{ width: reduceMotion ? `${value}%` : 0 }}
+                        whileInView={{ width: `${value}%` }}
+                        viewport={{ once: false, amount: 0.35 }}
+                        transition={{ duration: reduceMotion ? 0 : 0.55, ease: EASE }}
                       />
                     </div>
                   </button>
@@ -284,9 +286,10 @@ export function AvatarPage() {
                             <motion.div
                               className="h-full rounded-full"
                               style={{ background: `linear-gradient(90deg, ${s.color}, ${s.colorSoft})` }}
-                              initial={{ width: 0 }}
-                              animate={{ width: `${v}%` }}
-                              transition={{ duration: 0.9, ease: EASE }}
+                              initial={{ width: reduceMotion ? `${v}%` : 0 }}
+                              whileInView={{ width: `${v}%` }}
+                              viewport={{ once: false, amount: 0.35 }}
+                              transition={{ duration: reduceMotion ? 0 : 0.55, ease: EASE }}
                             />
                           </div>
                         </div>

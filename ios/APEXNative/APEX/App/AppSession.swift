@@ -150,6 +150,20 @@ final class AppSession {
             }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-installed-plan"),
+               var settings = data.settings {
+                let generated = TrainingInduction.generate(
+                    userID: settings.userID,
+                    input: TrainingInduction.Input(startDate: Date().apexDateKey),
+                    existingPrograms: data.programs
+                )
+                settings.addons["training_induction"] = .object(generated.induction)
+                data = TrainingInduction.applyingGeneratedPlan(
+                    generated,
+                    settings: settings,
+                    to: data
+                )
+            }
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-incomplete-plan"),
                var settings = data.settings {
                 func claimedIDs(_ slug: String) -> JSONValue {

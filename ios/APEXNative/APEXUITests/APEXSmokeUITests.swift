@@ -119,8 +119,14 @@ final class APEXSmokeUITests: XCTestCase {
             "a successfully installed plan must present its briefing before returning to training"
         )
         closeBriefing.tap()
-        XCTAssertTrue(app.buttons["induction-rebuild"].waitForExistence(timeout: 2))
-        XCTAssertTrue(app.buttons["induction-briefing-open"].exists)
+        let rebuild = app.buttons["induction-rebuild"]
+        XCTAssertTrue(
+            scrollUntilReachableSettled(rebuild, in: app, attempts: 24),
+            "an installed plan must move its rebuild action below the working phase content"
+        )
+        XCTAssertEqual(rebuild.label, "Build a new plan")
+        let planGuide = app.buttons["induction-briefing-open"]
+        XCTAssertTrue(scrollUntilReachableSettled(planGuide, in: app, attempts: 6))
         let installedState = app.staticTexts["induction-installed-state"]
         XCTAssertTrue(
             installedState.waitForExistence(timeout: 3),
@@ -131,7 +137,7 @@ final class APEXSmokeUITests: XCTestCase {
             "goal=strength;venue=outdoors;sessions=3;planWeeks=26;equipment=weighted_vest;pain=knee;transitionRows=3;mainRows=3"
         )
 
-        app.buttons["induction-briefing-open"].tap()
+        tapClearOfDock(planGuide)
         let overviewSlide = allElements["plan-briefing-slide-overview"]
         XCTAssertTrue(overviewSlide.waitForExistence(timeout: 2))
         overviewSlide.swipeLeft()
@@ -181,6 +187,35 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertFalse(app.otherElements["training-calendar"].exists)
         XCTAssertFalse(app.staticTexts["TODAY'S SIGNAL"].exists)
         XCTAssertFalse(app.descendants(matching: .any)["training-muscle-signal"].exists)
+    }
+
+    func testInstalledPhaseLeadsWithSignalAndMovesPlanRebuildToTheBottom() {
+        let app = configuredApp()
+        app.launchArguments.append("-apex-ui-test-installed-plan")
+        app.launch()
+
+        XCTAssertTrue(expandFitnessPlan(in: app))
+        let transition = app.buttons["portal.transition"]
+        XCTAssertTrue(scrollUntilVisible(transition, in: app, attempts: 4))
+        tapClearOfDock(transition)
+
+        let allElements = app.descendants(matching: .any)
+        let signal = allElements["training-today-signal"].firstMatch
+        let today = allElements["training-today-card"].firstMatch
+        let mode = allElements["training-session-mode"].firstMatch
+        let calendar = allElements["training-calendar"].firstMatch
+        XCTAssertTrue(signal.waitForExistence(timeout: 5))
+        XCTAssertTrue(today.exists)
+        XCTAssertTrue(mode.exists)
+        XCTAssertTrue(calendar.exists)
+        XCTAssertLessThan(signal.frame.minY, today.frame.minY)
+        XCTAssertLessThan(today.frame.minY, mode.frame.minY)
+        XCTAssertLessThan(mode.frame.minY, calendar.frame.minY)
+
+        let rebuild = app.buttons["induction-rebuild"]
+        XCTAssertFalse(rebuild.isHittable, "the installed-plan builder must not clutter the top")
+        XCTAssertTrue(scrollUntilReachableSettled(rebuild, in: app, attempts: 16))
+        XCTAssertEqual(rebuild.label, "Build a new plan")
     }
 
     func testFivePortalNavigationAndCoreScreens() {
@@ -1043,6 +1078,25 @@ final class APEXSmokeUITests: XCTestCase {
         if isReachable(element) { return true }
         for _ in 0..<attempts {
             app.swipeDown()
+            if isReachable(element) { return true }
+        }
+        return isReachable(element)
+    }
+
+    /// Large phase cards need each drag to settle before the next one starts;
+    /// otherwise XCTest queues flicks faster than the outer ScrollView can move.
+    private func scrollUntilReachableSettled(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        attempts: Int
+    ) -> Bool {
+        if isReachable(element) { return true }
+        let outerScrollView = app.scrollViews.firstMatch
+        for _ in 0..<attempts {
+            outerScrollView.swipeUp()
+            let settled = XCTestExpectation(description: "phase scroll settled")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { settled.fulfill() }
+            _ = XCTWaiter().wait(for: [settled], timeout: 1)
             if isReachable(element) { return true }
         }
         return isReachable(element)
