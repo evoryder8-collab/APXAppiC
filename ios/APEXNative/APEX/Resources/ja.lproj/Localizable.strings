@@ -46,6 +46,11 @@
 "Nutrition" = "栄養";
 "Transition Phase" = "移行フェーズ";
 "Main Phase" = "メインフェーズ";
+"Fitness Plan" = "トレーニングプラン";
+"If you haven't trained in a long time." = "しばらく運動から離れていた人向け";
+"Fit enough to start the main journey." = "メインフェーズを始められる体力がある人向け";
+"Return here after a long break to rebuild consistency, movement quality and training tolerance." = "長いブランク明けはここから。習慣、フォーム、トレーニングに耐える力を取り戻します。";
+"Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "継続して運動できる土台があり、筋力・筋肉・パフォーマンスを伸ばしたい人はこちら。";
 "Custom Workouts" = "カスタムワークアウト";
 "Sessions you built yourself" = "自分で作成したセッション";
 "Settings" = "設定";

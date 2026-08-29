@@ -28,3 +28,10 @@
 "Moderately active" = "ปานกลาง";
 "Very active" = "มาก";
 "Extra active" = "มากเป็นพิเศษ";
+"Fitness Plan" = "แผนการฝึก";
+"Transition Phase" = "ช่วงเปลี่ยนผ่าน";
+"Main Phase" = "ช่วงหลัก";
+"If you haven't trained in a long time." = "กลับมาฝึกหลังพักนาน";
+"Fit enough to start the main journey." = "พร้อมเริ่มช่วงหลัก";
+"Return here after a long break to rebuild consistency, movement quality and training tolerance." = "เรียกพื้นฐานกลับมาหลังพักนาน";
+"Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "พร้อมเพิ่มแรงและกล้ามเนื้อ";

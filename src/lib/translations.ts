@@ -1442,6 +1442,14 @@ const rows: Array<[string, string, string]> = [
   ['Tomatoes', 'Roșii', 'มะเขือเทศ'],
   ['Spring onion', 'Ceapă verde', 'ต้นหอม'],
   ['Optional half avocado with a lean protein', 'O jumătate de avocado opțională cu o proteină slabă', 'อะโวคาโดครึ่งผล (ไม่บังคับ) เมื่อเลือกโปรตีนไขมันต่ำ'],
+  ['Fitness Plan', 'Plan de antrenament', 'แผนการฝึก'],
+  ["If you haven't trained in a long time.", 'Revii la antrenamente după o pauză lungă.', 'กลับมาฝึกหลังหยุดไปนาน'],
+  ['Fit enough to start the main journey.', 'Ai baza necesară pentru etapa principală.', 'ฟิตพอที่จะเริ่มช่วงหลัก'],
+  ['Return here after a long break to rebuild consistency, movement quality and training tolerance.', 'Revino aici după o pauză lungă ca să-ți refaci ritmul, tehnica și toleranța la efort.', 'ถ้าหยุดฝึกไปนาน ให้เริ่มตรงนี้เพื่อเรียกความสม่ำเสมอ ฟอร์มการเคลื่อนไหว และความพร้อมรับการฝึกกลับมา'],
+  ["Choose this when regular training feels manageable and you're ready to build strength, muscle and performance.", 'Alege etapa asta când te antrenezi deja constant și ești gata să crești în forță, masă musculară și performanță.', 'เลือกช่วงนี้เมื่อฝึกเป็นประจำได้สบายแล้ว และพร้อมพัฒนาความแข็งแรง กล้ามเนื้อ และสมรรถนะ'],
+  ['Back after a long break?', 'Revii după o pauză lungă.', 'กลับมาฝึกหลังพักนาน'],
+  ['Ready for the main phase.', 'Ești gata pentru etapa principală.', 'พร้อมเริ่มช่วงหลัก'],
+  ['Sessions you built yourself', 'Sesiuni create de tine', 'เซสชันที่คุณสร้างเอง'],
 ]
 
 export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries(

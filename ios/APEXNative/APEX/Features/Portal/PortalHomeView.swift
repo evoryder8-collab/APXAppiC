@@ -58,6 +58,7 @@ struct PortalHomeView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 32)
 
+                ProfilePortalTile()
                 PortalTile(
                     title: language.text(.nutrition),
                     subtitle: language.text(.mealsSupplementsLog),
@@ -65,20 +66,7 @@ struct PortalHomeView: View {
                     color: APEXColor.amber,
                     destination: .nutrition
                 )
-                PortalTile(
-                    title: language.text(.transition),
-                    subtitle: language.text(.currentProgram),
-                    icon: "chevron.forward.2",
-                    color: APEXColor.teal,
-                    destination: .transition
-                )
-                PortalTile(
-                    title: language.text(.mainPhase),
-                    subtitle: language.text(.eliteProgram),
-                    icon: "bolt.fill",
-                    color: APEXColor.violet,
-                    destination: .mainPhase
-                )
+                FitnessPlanDisclosure()
                 if session.data.programs.contains(where: { $0.slug == "custom" }) {
                     PortalTile(
                         title: language.text(.customWorkouts),
@@ -95,7 +83,6 @@ struct PortalHomeView: View {
                     color: APEXColor.cyan,
                     destination: .orbit
                 )
-                ProfilePortalTile()
 
                 HStack {
                     PortalLanguagePicker()
@@ -135,6 +122,311 @@ struct PortalHomeView: View {
         }
         .task { await session.refreshNudges() }
         .toolbar(.hidden, for: .navigationBar)
+    }
+}
+
+private struct FitnessPlanDisclosure: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    @State private var language = LanguageState.shared
+    @State private var state = FitnessPlanDisclosureState()
+    @State private var revealTask: Task<Void, Never>?
+
+    private var introductionSeen: Bool {
+        session.data.settings?.addons["fitness_plan_intro_seen"]?.boolValue ?? false
+    }
+
+    private var disclosureTransition: AnyTransition {
+        reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity)
+    }
+
+    var body: some View {
+        VStack(spacing: 0) {
+            Button(action: toggleDisclosure) {
+                HStack(spacing: 17) {
+                    Image(systemName: "dumbbell.fill")
+                        .font(.system(size: 25, weight: .semibold))
+                        .foregroundStyle(.white)
+                        .frame(width: 70, height: 70)
+                        .background(
+                            LinearGradient(
+                                colors: [APEXColor.teal, APEXColor.violet],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: RoundedRectangle(cornerRadius: 23)
+                        )
+                        .shadow(color: APEXColor.violet.opacity(0.2), radius: 14, y: 8)
+
+                    VStack(alignment: .leading, spacing: 6) {
+                        Text(language.shortText("Fitness Plan").uppercased(with: language.language.locale))
+                            .font(APEXFont.display(20))
+                            .tracking(2.3)
+                            .foregroundStyle(APEXColor.ink)
+                        Text("\(language.shortText("Transition Phase")) · \(language.shortText("Main Phase"))")
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                        HStack(spacing: 7) {
+                            Capsule()
+                                .fill(APEXColor.teal)
+                                .frame(width: 22, height: 4)
+                            Capsule()
+                                .fill(APEXColor.violet)
+                                .frame(width: 22, height: 4)
+                        }
+                        .accessibilityHidden(true)
+                    }
+                    Spacer(minLength: 8)
+                }
+                .padding(16)
+                .frame(minHeight: 112)
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier("portal.fitness-plan")
+            .accessibilityLabel(language.text("Fitness Plan"))
+            .accessibilityValue(language.text(state.expanded ? "Expanded" : "Collapsed"))
+            .sensoryFeedback(.selection, trigger: state.expanded)
+
+            if state.expanded {
+                VStack(spacing: 12) {
+                    FitnessPlanPhaseCard(
+                        phase: .transition,
+                        title: language.shortText("Transition Phase"),
+                        titleAccessibility: language.text("Transition Phase"),
+                        introduction: language.shortText("If you haven't trained in a long time."),
+                        introductionAccessibility: language.text("If you haven't trained in a long time."),
+                        information: language.text("Return here after a long break to rebuild consistency, movement quality and training tolerance."),
+                        icon: "chevron.forward.2",
+                        color: APEXColor.teal,
+                        showsIntroduction: state.showsIntroduction,
+                        introductionPresented: state.presentedIntroductionPhases.contains(.transition),
+                        activeInfo: $state.activeInfo,
+                        action: openTransition
+                    )
+                    FitnessPlanPhaseCard(
+                        phase: .main,
+                        title: language.shortText("Main Phase"),
+                        titleAccessibility: language.text("Main Phase"),
+                        introduction: language.shortText("Fit enough to start the main journey."),
+                        introductionAccessibility: language.text("Fit enough to start the main journey."),
+                        information: language.text("Choose this when regular training feels manageable and you're ready to build strength, muscle and performance."),
+                        icon: "bolt.fill",
+                        color: APEXColor.violet,
+                        showsIntroduction: state.showsIntroduction,
+                        introductionPresented: state.presentedIntroductionPhases.contains(.main),
+                        activeInfo: $state.activeInfo,
+                        action: openMainPhase
+                    )
+                }
+                .padding(.horizontal, 12)
+                .padding(.bottom, 14)
+                .transition(disclosureTransition)
+            }
+        }
+        .background(.ultraThinMaterial.opacity(0.94), in: RoundedRectangle(cornerRadius: 30))
+        .overlay {
+            RoundedRectangle(cornerRadius: 30)
+                .stroke(
+                    LinearGradient(
+                        colors: [.white.opacity(0.95), APEXColor.violet.opacity(0.18)],
+                        startPoint: .topLeading,
+                        endPoint: .bottomTrailing
+                    )
+                )
+        }
+        .shadow(color: APEXColor.violet.opacity(0.12), radius: 22, y: 12)
+        .onDisappear(perform: cancelReveal)
+    }
+
+    private func toggleDisclosure() {
+        cancelReveal()
+        let opening = !state.expanded
+        withAnimation(reduceMotion ? .easeOut(duration: 0.18) : .spring(response: 0.46, dampingFraction: 0.86)) {
+            state.toggle(introductionSeen: introductionSeen)
+        }
+        guard opening else { return }
+        beginIntroductionReveal()
+    }
+
+    private func beginIntroductionReveal() {
+        guard state.expanded, state.showsIntroduction else { return }
+        revealTask = Task { @MainActor in
+            if !reduceMotion {
+                try? await Task.sleep(for: .milliseconds(360))
+            }
+            guard !Task.isCancelled else { return }
+            withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.82)) {
+                _ = state.recordIntroductionPresented(for: .transition)
+            }
+
+            if !reduceMotion {
+                try? await Task.sleep(for: .milliseconds(120))
+            }
+            guard !Task.isCancelled else { return }
+            let shouldPersist = withAnimation(reduceMotion ? .easeOut(duration: 0.15) : .spring(response: 0.38, dampingFraction: 0.82)) {
+                state.recordIntroductionPresented(for: .main)
+            }
+            if shouldPersist {
+                await session.updateSettings { settings in
+                    settings.addons["fitness_plan_intro_seen"] = .bool(true)
+                }
+            }
+        }
+    }
+
+    private func cancelReveal() {
+        revealTask?.cancel()
+        revealTask = nil
+        state.selectInfo(nil)
+    }
+
+    private func openTransition() {
+        state.selectInfo(nil)
+        session.navigationPath.append(.transition)
+    }
+
+    private func openMainPhase() {
+        state.selectInfo(nil)
+        session.navigationPath.append(.mainPhase)
+    }
+}
+
+private struct FitnessPlanPhaseCard: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let phase: FitnessPlanPhase
+    let title: String
+    let titleAccessibility: String
+    let introduction: String
+    let introductionAccessibility: String
+    let information: String
+    let icon: String
+    let color: Color
+    let showsIntroduction: Bool
+    let introductionPresented: Bool
+    @Binding var activeInfo: FitnessPlanPhase?
+    let action: () -> Void
+
+    private var infoPresented: Binding<Bool> {
+        Binding(
+            get: { activeInfo == phase },
+            set: { presented in
+                if !presented, activeInfo == phase { activeInfo = nil }
+            }
+        )
+    }
+
+    private var destinationAccessibilityLabel: String {
+        guard showsIntroduction, introductionPresented else { return titleAccessibility }
+        return "\(titleAccessibility). \(introductionAccessibility)"
+    }
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Button(action: action) {
+                HStack(spacing: 13) {
+                    Image(systemName: icon)
+                        .font(.system(size: 17, weight: .bold))
+                        .foregroundStyle(.white)
+                        .frame(width: 46, height: 46)
+                        .background(color.gradient, in: RoundedRectangle(cornerRadius: 15))
+
+                    VStack(alignment: .leading, spacing: 4) {
+                        Text(title.uppercased())
+                            .font(APEXFont.display(16))
+                            .tracking(1.6)
+                            .foregroundStyle(APEXColor.ink)
+                        if showsIntroduction, introductionPresented {
+                            Text(introduction)
+                                .font(APEXFont.body(13, weight: .semibold))
+                                .foregroundStyle(color)
+                                .fixedSize(horizontal: false, vertical: true)
+                                .transition(reduceMotion ? .opacity : .move(edge: .top).combined(with: .opacity))
+                        }
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                }
+                .contentShape(Rectangle())
+            }
+            .buttonStyle(.plain)
+            .accessibilityIdentifier(phase == .transition ? "portal.transition" : "portal.main")
+            .accessibilityLabel(destinationAccessibilityLabel)
+
+            if !showsIntroduction {
+                GleamingPhaseInfoButton(
+                    information: information,
+                    color: color,
+                    isPresented: infoPresented,
+                    action: toggleInformation
+                )
+                .accessibilityIdentifier(
+                    phase == .transition ? "fitness-plan.info.transition" : "fitness-plan.info.main"
+                )
+            }
+        }
+        .padding(12)
+        .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 23))
+        .overlay {
+            RoundedRectangle(cornerRadius: 23).stroke(color.opacity(0.16))
+        }
+        .shadow(color: color.opacity(0.09), radius: 14, y: 7)
+    }
+
+    private func toggleInformation() {
+        activeInfo = activeInfo == phase ? nil : phase
+    }
+}
+
+private struct GleamingPhaseInfoButton: View {
+    @Environment(\.accessibilityReduceMotion) private var reduceMotion
+    let information: String
+    let color: Color
+    let isPresented: Binding<Bool>
+    let action: () -> Void
+    @State private var shine = false
+
+    var body: some View {
+        Button(information, systemImage: "info.circle.fill", action: action)
+            .labelStyle(.iconOnly)
+            .font(.system(size: 21, weight: .semibold))
+            .foregroundStyle(color)
+            .frame(width: 44, height: 44)
+            .background(color.opacity(0.1), in: Circle())
+            .overlay {
+                LinearGradient(
+                    colors: [.clear, .white.opacity(0.95), .clear],
+                    startPoint: .top,
+                    endPoint: .bottom
+                )
+                .frame(width: 9, height: 52)
+                .rotationEffect(.degrees(-24))
+                .offset(x: shine ? 26 : -26)
+                .mask(Circle().frame(width: 44, height: 44))
+                .allowsHitTesting(false)
+            }
+            .popover(isPresented: isPresented, attachmentAnchor: .rect(.bounds), arrowEdge: .trailing) {
+                Text(information)
+                    .font(.body)
+                    .foregroundStyle(APEXColor.ink)
+                    .padding()
+                    .frame(idealWidth: 270, alignment: .leading)
+                    .presentationCompactAdaptation(.popover)
+            }
+            .task(id: reduceMotion) {
+                shine = false
+                guard !reduceMotion else { return }
+                while !Task.isCancelled {
+                    do {
+                        try await Task.sleep(for: .milliseconds(4_500))
+                    } catch {
+                        return
+                    }
+                    withAnimation(.easeInOut(duration: 0.75)) {
+                        shine.toggle()
+                    }
+                }
+            }
     }
 }
 

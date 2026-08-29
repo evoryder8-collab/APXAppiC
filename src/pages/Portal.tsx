@@ -1,8 +1,9 @@
 import { motion } from 'framer-motion'
 import { format } from 'date-fns'
 import { PortalCard } from '../components/PortalCard'
+import { FitnessPlanDisclosure } from '../components/FitnessPlanDisclosure'
 import { ACCENTS } from '../lib/theme'
-import { BoltIcon, LeafIcon, OrbitIcon, TransitionIcon } from '../components/Icons'
+import { DumbbellIcon, LeafIcon, OrbitIcon } from '../components/Icons'
 import { useStore } from '../store/AppStore'
 import { personaBySlug } from '../lib/persona'
 import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
@@ -21,7 +22,7 @@ function greeting(now: Date, name: string): string {
 }
 
 export function Portal() {
-  const { data } = useStore()
+  const { data, setSettings } = useStore()
   const t = useOrbitText()
   const { language } = useLanguage()
   const portalText = (value: string): string => language === 'en' ? value : UI_TRANSLATIONS[value]?.[language] ?? t(value)
@@ -29,9 +30,6 @@ export function Portal() {
   const profile = data.profile
   const persona = personaBySlug(profile?.persona ?? 'constantine')
   const firstName = profile?.display_name?.split(' ')[0] || persona.firstName
-  const transition = data.programs.find((program) => program.slug === 'transition')
-  const main = data.programs.find((program) => program.slug === 'main')
-  const isIulian = profile?.persona === 'iulian'
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col sm:min-h-[calc(100dvh-13rem)] sm:justify-center">
@@ -51,50 +49,6 @@ export function Portal() {
       </motion.header>
 
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
-        <PortalCard
-          to="/nutrition"
-          accent={ACCENTS.amber}
-          title="NUTRITION"
-          subtitle="Meals, supplement stack, daily log"
-          icon={<LeafIcon className="h-7 w-7" />}
-          index={0}
-        />
-        <PortalCard
-          to="/transition"
-          accent={ACCENTS.teal}
-          title={portalText(isIulian ? 'Transitional Training' : transition?.name ?? 'Transition phase').toUpperCase()}
-          subtitle={portalText(profile?.persona === 'june'
-            ? 'Busy-day glute growth fallback'
-            : profile?.persona === 'matthew'
-              ? 'Fast, repeatable morning training'
-              : isIulian
-                ? 'For beginners'
-                : 'Current program, home training')}
-          icon={<TransitionIcon className="h-7 w-7" />}
-          index={1}
-        />
-        <PortalCard
-          to="/main-phase"
-          accent={ACCENTS.violet}
-          title={portalText(isIulian ? 'Main Training' : main?.name ?? 'Main phase').toUpperCase()}
-          subtitle={portalText(profile?.persona === 'june'
-            ? 'Full glute-focused home programme'
-            : profile?.persona === 'matthew'
-              ? 'Lean power, abs and conditioning'
-              : isIulian
-                ? 'Bodybuilding'
-                : 'V8.1')}
-          icon={<BoltIcon className="h-7 w-7" />}
-          index={2}
-        />
-        <PortalCard
-          to="/orbit"
-          accent={ACCENTS.ice}
-          title="APEX ORBIT"
-          subtitle="Run intelligence and marathon conditioning"
-          icon={<OrbitIcon className="h-8 w-8" />}
-          index={3}
-        />
         <div className="sm:col-span-2">
           <PortalCard
             to="/avatar"
@@ -103,9 +57,55 @@ export function Portal() {
             subtitle="Stats, level and what your body needs"
             portrait={persona.portrait}
             portraitAlt={`${profile?.display_name || persona.name} portrait`}
-            index={4}
+            index={0}
           />
         </div>
+        <div className="sm:col-span-2">
+          <PortalCard
+            to="/nutrition"
+            accent={ACCENTS.amber}
+            title="NUTRITION"
+            subtitle="Meals, supplement stack, daily log"
+            icon={<LeafIcon className="h-7 w-7" />}
+            index={1}
+          />
+        </div>
+        <div className="sm:col-span-2">
+          <FitnessPlanDisclosure
+            introSeen={Boolean(data.settings?.addons.fitness_plan_intro_seen)}
+            onIntroSeen={() => {
+              const addons = data.settings?.addons
+              if (!addons) return
+              setSettings({
+                addons: {
+                  ...addons,
+                  fitness_plan_intro_seen: true,
+                },
+              })
+            }}
+            transitionTitle={portalText('Transition phase')}
+            mainTitle={portalText('Main phase')}
+            text={portalText}
+          />
+        </div>
+        {data.programs.some((program) => program.slug === 'custom') && (
+          <PortalCard
+            to="/custom-workouts"
+            accent={ACCENTS.violet}
+            title={portalText('Custom workouts').toUpperCase()}
+            subtitle={portalText('Sessions you built yourself')}
+            icon={<DumbbellIcon className="h-7 w-7" />}
+            index={3}
+          />
+        )}
+        <PortalCard
+          to="/orbit"
+          accent={ACCENTS.ice}
+          title="APEX ORBIT"
+          subtitle="Run intelligence and marathon conditioning"
+          icon={<OrbitIcon className="h-8 w-8" />}
+          index={4}
+        />
       </div>
       <PortalLanguageMenu />
     </div>

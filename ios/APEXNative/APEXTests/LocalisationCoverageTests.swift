@@ -279,6 +279,26 @@ final class LocalisationCoverageTests: XCTestCase {
 
     func testEveryOfferedLanguageHasTheAuthoredCompactTable() throws {
         let languages = ["en", "de", "de-CH", "it", "es", "pt", "ja", "ro", "th"]
+        let portalKeys = [
+            "Fitness Plan",
+            "Transition Phase",
+            "Main Phase",
+            "If you haven't trained in a long time.",
+            "Fit enough to start the main journey.",
+            "Return here after a long break to rebuild consistency, movement quality and training tolerance.",
+            "Choose this when regular training feels manageable and you're ready to build strength, muscle and performance.",
+        ]
+        let expectedPortalValues: [String: [String]] = [
+            "en": ["Fitness Plan", "Transition", "Main", "Back after a long break?", "Ready for the main phase.", "Rebuild your base after a break.", "Ready to build strength and muscle."],
+            "de": ["Trainingsplan", "Übergang", "Hauptphase", "Nach längerer Pause", "Bereit für die Hauptphase", "Zurück zu Rhythmus und Technik", "Kraft und Muskeln aufbauen"],
+            "de-CH": ["Trainingsplan", "Übergang", "Hauptphase", "Nach ere längere Pause", "Bereit für d Hauptphase", "Zrugg zu Rhythmus und Technik", "Chraft und Muskle ufbaue"],
+            "it": ["Piano di allenamento", "Transizione", "Principale", "Rientro dopo una lunga pausa", "Pronto per la fase principale", "Ritrova la base dopo la pausa", "Forza e massa, si parte"],
+            "es": ["Plan de entrenamiento", "Transición", "Principal", "Vuelves tras un parón largo", "Listo para la fase principal", "Recupera tu base tras el parón", "A por fuerza y músculo"],
+            "pt": ["Plano de treino", "Transição", "Principal", "Regresso após uma pausa longa", "Pronto para a fase principal", "Recupera a base após a pausa", "Força e músculo a seguir"],
+            "ja": ["トレーニングプラン", "移行期", "メイン", "ブランク明けはここから", "メイン開始の準備OK", "ブランク後の土台づくり", "筋力と筋肉を伸ばす"],
+            "ro": ["Plan de antrenament", "Tranziție", "Principală", "Revii după o pauză lungă.", "Ești gata pentru etapa principală.", "Reia ritmul după o pauză lungă.", "Gata pentru forță și masă."],
+            "th": ["แผนการฝึก", "ช่วงเปลี่ยนผ่าน", "ช่วงหลัก", "กลับมาฝึกหลังพักนาน", "พร้อมเริ่มช่วงหลัก", "เรียกพื้นฐานกลับมาหลังพักนาน", "พร้อมเพิ่มแรงและกล้ามเนื้อ"],
+        ]
         var expectedKeys: Set<String>?
 
         for language in languages {
@@ -293,9 +313,16 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 30, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 37, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
+            XCTAssertTrue(
+                Set(portalKeys).isSubset(of: keys),
+                "Missing compact Fitness Plan copy for \(language)"
+            )
+            for (key, expected) in zip(portalKeys, expectedPortalValues[language] ?? []) {
+                XCTAssertEqual(table?[key], expected, "Unexpected compact Fitness Plan copy for \(language): \(key)")
+            }
             if let expectedKeys {
                 XCTAssertEqual(keys, expectedKeys, "Compact keys drifted for \(language)")
             } else {
@@ -303,6 +330,36 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             if language == "de-CH" {
                 XCTAssertFalse(table?.values.contains(where: { $0.contains("ß") }) ?? true)
+            }
+        }
+    }
+
+    func testEveryTranslatedLanguageHasAuthoredFullFitnessPlanCopy() {
+        let keys = [
+            "Fitness Plan",
+            "If you haven't trained in a long time.",
+            "Fit enough to start the main journey.",
+            "Return here after a long break to rebuild consistency, movement quality and training tolerance.",
+            "Choose this when regular training feels manageable and you're ready to build strength, muscle and performance.",
+        ]
+        let expectedValues: [String: [String]] = [
+            "de": ["Trainingsplan", "Wenn du lange nicht trainiert hast.", "Deine Basis reicht für den Einstieg in die Hauptphase.", "Starte hier nach einer längeren Pause und finde zurück zu Rhythmus, sauberer Technik und Belastbarkeit.", "Wähle diese Phase, wenn regelmäßiges Training gut klappt und du Kraft, Muskeln und Leistung weiterentwickeln willst."],
+            "de-CH": ["Trainingsplan", "Wenn du lang nüm trainiert hesch.", "Dini Basis längt für de Start i d Hauptphase.", "Fang nach ere längere Pause da aa und find zrugg zu Rhythmus, sauberer Technik und Belastbarkeit.", "Wähl die Phase, wenn regelmässigs Training guet klappt und du Chraft, Muskle und Leistig witerentwickle wotsch."],
+            "it": ["Piano di allenamento", "Se non ti alleni da molto tempo.", "Hai la base per iniziare la fase principale.", "Riparti da qui dopo una lunga pausa per ritrovare costanza, tecnica e tolleranza all'allenamento.", "Scegli questa fase quando allenarti con regolarità ti risulta gestibile e sei pronto a sviluppare forza, massa muscolare e prestazione."],
+            "es": ["Plan de entrenamiento", "Si llevas mucho tiempo sin entrenar.", "Tienes base para empezar la fase principal.", "Vuelve aquí tras un parón largo para recuperar constancia, técnica y tolerancia al entrenamiento.", "Elige esta fase cuando entrenar con regularidad ya te resulte llevadero y estés listo para ganar fuerza, músculo y rendimiento."],
+            "pt": ["Plano de treino", "Se já não treinas há muito tempo.", "Tens base para começar a fase principal.", "Começa aqui depois de uma pausa longa para recuperares consistência, técnica e tolerância ao treino.", "Escolhe esta fase quando treinar com regularidade já for confortável e estiveres pronto para desenvolver força, músculo e desempenho."],
+            "ja": ["トレーニングプラン", "しばらく運動から離れていた人向け", "メインフェーズを始められる体力がある人向け", "長いブランク明けはここから。習慣、フォーム、トレーニングに耐える力を取り戻します。", "継続して運動できる土台があり、筋力・筋肉・パフォーマンスを伸ばしたい人はこちら。"],
+            "ro": ["Plan de antrenament", "Revii la antrenamente după o pauză lungă.", "Ai baza necesară pentru etapa principală.", "Revino aici după o pauză lungă ca să-ți refaci ritmul, tehnica și toleranța la efort.", "Alege etapa asta când te antrenezi deja constant și ești gata să crești în forță, masă musculară și performanță."],
+            "th": ["แผนการฝึก", "กลับมาฝึกหลังหยุดไปนาน", "ฟิตพอที่จะเริ่มช่วงหลัก", "ถ้าหยุดฝึกไปนาน ให้เริ่มตรงนี้เพื่อเรียกความสม่ำเสมอ ฟอร์มการเคลื่อนไหว และความพร้อมรับการฝึกกลับมา", "เลือกช่วงนี้เมื่อฝึกเป็นประจำได้สบายแล้ว และพร้อมพัฒนาความแข็งแรง กล้ามเนื้อ และสมรรถนะ"],
+        ]
+
+        for language in completeLanguages {
+            guard let table = table(language) else {
+                XCTFail("Missing full table for \(language)")
+                continue
+            }
+            for (key, expected) in zip(keys, expectedValues[language] ?? []) {
+                XCTAssertEqual(table[key], expected, "Unexpected full Fitness Plan copy for \(language): \(key)")
             }
         }
     }

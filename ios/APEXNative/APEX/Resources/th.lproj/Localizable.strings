@@ -983,6 +983,11 @@
 "Fish oil, high concentration" = "น้ำมันปลาเข้มข้น";
 "Fit route" = "จัดเส้นทางให้พอดี";
 "Fitness-readiness boundary" = "ขอบเขตความพร้อมด้านฟิตเนส";
+"Fitness Plan" = "แผนการฝึก";
+"If you haven't trained in a long time." = "กลับมาฝึกหลังหยุดไปนาน";
+"Fit enough to start the main journey." = "ฟิตพอที่จะเริ่มช่วงหลัก";
+"Return here after a long break to rebuild consistency, movement quality and training tolerance." = "ถ้าหยุดฝึกไปนาน ให้เริ่มตรงนี้เพื่อเรียกความสม่ำเสมอ ฟอร์มการเคลื่อนไหว และความพร้อมรับการฝึกกลับมา";
+"Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "เลือกช่วงนี้เมื่อฝึกเป็นประจำได้สบายแล้ว และพร้อมพัฒนาความแข็งแรง กล้ามเนื้อ และสมรรถนะ";
 "Fitness-readiness check" = "ตรวจความพร้อมด้านการออกกำลังกาย";
 "FITNESS-READINESS CHECK" = "ตรวจความพร้อมด้านฟิตเนส";
 "Fitness-readiness outcome" = "ผลการตรวจความพร้อม";

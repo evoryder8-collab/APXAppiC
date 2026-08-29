@@ -46,6 +46,11 @@
 "Nutrition" = "Nutrición";
 "Transition Phase" = "Fase de transición";
 "Main Phase" = "Fase principal";
+"Fitness Plan" = "Plan de entrenamiento";
+"If you haven't trained in a long time." = "Si llevas mucho tiempo sin entrenar.";
+"Fit enough to start the main journey." = "Tienes base para empezar la fase principal.";
+"Return here after a long break to rebuild consistency, movement quality and training tolerance." = "Vuelve aquí tras un parón largo para recuperar constancia, técnica y tolerancia al entrenamiento.";
+"Choose this when regular training feels manageable and you're ready to build strength, muscle and performance." = "Elige esta fase cuando entrenar con regularidad ya te resulte llevadero y estés listo para ganar fuerza, músculo y rendimiento.";
 "Custom Workouts" = "Entrenamientos personalizados";
 "Sessions you built yourself" = "Sesiones creadas por ti";
 "Settings" = "Ajustes";

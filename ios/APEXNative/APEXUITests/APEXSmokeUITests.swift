@@ -47,6 +47,7 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(finishConsent.waitForExistence(timeout: 4), "baseline-only setup must advance to optional permissions")
         finishConsent.tap()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         let transition = app.buttons["portal.transition"]
         XCTAssertTrue(transition.waitForExistence(timeout: 4))
         XCTAssertTrue(scrollUntilVisible(transition, in: app, attempts: 4))
@@ -169,6 +170,7 @@ final class APEXSmokeUITests: XCTestCase {
         app.launchArguments.append("-apex-ui-test-incomplete-plan")
         app.launch()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         let transition = app.buttons["portal.transition"]
         XCTAssertTrue(transition.waitForExistence(timeout: 4))
         XCTAssertTrue(scrollUntilVisible(transition, in: app, attempts: 4))
@@ -186,8 +188,37 @@ final class APEXSmokeUITests: XCTestCase {
         app.launch()
 
         XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
-        XCTAssertTrue(app.buttons["portal.transition"].exists)
-        XCTAssertTrue(app.buttons["portal.main"].exists)
+        let fitnessPlan = app.buttons["portal.fitness-plan"]
+        XCTAssertTrue(scrollUntilVisible(fitnessPlan, in: app))
+        XCTAssertEqual(fitnessPlan.value as? String, "Collapsed")
+        XCTAssertFalse(app.buttons["portal.transition"].exists)
+        XCTAssertFalse(app.buttons["portal.main"].exists)
+        tapClearOfDock(fitnessPlan)
+
+        let transition = app.buttons["portal.transition"]
+        let main = app.buttons["portal.main"]
+        XCTAssertTrue(transition.waitForExistence(timeout: 4))
+        XCTAssertTrue(main.waitForExistence(timeout: 4))
+        XCTAssertEqual(
+            XCTWaiter().wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "label CONTAINS %@", "If you haven't trained in a long time."),
+                    object: transition
+                )],
+                timeout: 4
+            ),
+            .completed
+        )
+        XCTAssertEqual(
+            XCTWaiter().wait(
+                for: [XCTNSPredicateExpectation(
+                    predicate: NSPredicate(format: "label CONTAINS %@", "Fit enough to start the main journey."),
+                    object: main
+                )],
+                timeout: 4
+            ),
+            .completed
+        )
         XCTAssertTrue(scrollUntilVisible(app.buttons["portal.orbit"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.buttons["portal.avatar"], in: app))
 
@@ -214,10 +245,29 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(expandSection("activities", in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Today's Activities"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily targets"], in: app))
+        XCTAssertTrue(scrollUpUntilVisible(app.buttons["section-toggle-activities"], in: app))
+        XCTAssertTrue(collapseSection("activities", in: app))
         XCTAssertTrue(expandSection("supplements", in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Supplement stack"], in: app))
         XCTAssertTrue(scrollUntilVisible(app.staticTexts["Daily log"], in: app))
         tapBack(in: app)
+
+        XCTAssertTrue(scrollUntilVisible(fitnessPlan, in: app))
+        if fitnessPlan.value as? String == "Expanded" {
+            tapClearOfDock(fitnessPlan)
+            let collapsed = NSPredicate(format: "value == %@", "Collapsed")
+            XCTAssertEqual(
+                XCTWaiter().wait(
+                    for: [XCTNSPredicateExpectation(predicate: collapsed, object: fitnessPlan)],
+                    timeout: 4
+                ),
+                .completed
+            )
+        }
+        XCTAssertEqual(fitnessPlan.value as? String, "Collapsed")
+        tapClearOfDock(fitnessPlan)
+        XCTAssertTrue(app.buttons["fitness-plan.info.transition"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.buttons["fitness-plan.info.main"].exists)
 
         XCTAssertTrue(scrollUntilVisible(app.buttons["portal.orbit"], in: app))
         app.buttons["portal.orbit"].tap()
@@ -408,6 +458,7 @@ final class APEXSmokeUITests: XCTestCase {
         let app = configuredApp()
         app.launch()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         let main = app.buttons["portal.main"]
         XCTAssertTrue(scrollUntilVisible(main, in: app))
         main.tap()
@@ -443,6 +494,7 @@ final class APEXSmokeUITests: XCTestCase {
         let app = configuredApp()
         app.launch()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         let main = app.buttons["portal.main"]
         XCTAssertTrue(scrollUntilVisible(main, in: app))
         main.tap()
@@ -476,6 +528,7 @@ final class APEXSmokeUITests: XCTestCase {
         let app = configuredApp()
         app.launch()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         let training = app.buttons["portal.transition"]
         XCTAssertTrue(training.waitForExistence(timeout: 4))
         XCTAssertTrue(scrollUntilVisible(training, in: app))
@@ -729,6 +782,7 @@ final class APEXSmokeUITests: XCTestCase {
         let app = configuredApp()
         app.launch()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
         app.buttons["portal.transition"].tap()
 
@@ -777,6 +831,7 @@ final class APEXSmokeUITests: XCTestCase {
         let app = configuredApp()
         app.launch()
 
+        XCTAssertTrue(expandFitnessPlan(in: app))
         XCTAssertTrue(app.buttons["portal.transition"].waitForExistence(timeout: 4))
         app.buttons["portal.transition"].tap()
 
@@ -895,6 +950,20 @@ final class APEXSmokeUITests: XCTestCase {
         return formatter.string(from: date)
     }
 
+    /// Opens the Fitness Plan disclosure and leaves it open.
+    @discardableResult
+    private func expandFitnessPlan(in app: XCUIApplication) -> Bool {
+        let toggle = app.buttons["portal.fitness-plan"]
+        guard scrollUntilVisible(toggle, in: app), isReachable(toggle) else { return false }
+        if toggle.value as? String == "Expanded" { return true }
+        tapClearOfDock(toggle)
+        let expanded = NSPredicate(format: "value == %@", "Expanded")
+        return XCTWaiter().wait(
+            for: [XCTNSPredicateExpectation(predicate: expanded, object: toggle)],
+            timeout: 4
+        ) == .completed
+    }
+
     /// Opens a collapsible section and leaves it open. The disclosure's unique
     /// accessibility identifier and value are a stable contract; visible copy
     /// can be duplicated or remain outside the accessibility viewport.
@@ -912,6 +981,19 @@ final class APEXSmokeUITests: XCTestCase {
         let expanded = NSPredicate(format: "value == %@", "Expanded")
         return XCTWaiter().wait(
             for: [XCTNSPredicateExpectation(predicate: expanded, object: toggle)],
+            timeout: 4
+        ) == .completed
+    }
+
+    @discardableResult
+    private func collapseSection(_ id: String, in app: XCUIApplication) -> Bool {
+        let toggle = app.buttons["section-toggle-\(id)"]
+        guard scrollUntilVisible(toggle, in: app), isReachable(toggle) else { return false }
+        if toggle.value as? String == "Collapsed" { return true }
+        toggle.tap()
+        let collapsed = NSPredicate(format: "value == %@", "Collapsed")
+        return XCTWaiter().wait(
+            for: [XCTNSPredicateExpectation(predicate: collapsed, object: toggle)],
             timeout: 4
         ) == .completed
     }
@@ -953,6 +1035,19 @@ final class APEXSmokeUITests: XCTestCase {
         return element.firstMatch.exists
     }
 
+    private func scrollUpUntilVisible(
+        _ element: XCUIElement,
+        in app: XCUIApplication,
+        attempts: Int = 20
+    ) -> Bool {
+        if isReachable(element) { return true }
+        for _ in 0..<attempts {
+            app.swipeDown()
+            if isReachable(element) { return true }
+        }
+        return isReachable(element)
+    }
+
     /// The profile dock floats over the bottom of every screen and takes any
     /// tap that lands on it, so tap a control through its own upper half.
     /// A flick keeps travelling after the swipe ends, so a tap issued straight
@@ -974,7 +1069,22 @@ final class APEXSmokeUITests: XCTestCase {
     }
 
     private func scrollToTop(in app: XCUIApplication) {
-        for _ in 0..<8 { app.swipeDown() }
+        let firstPortalTile = app.buttons["portal.avatar"]
+        func firstTileIsOnScreen() -> Bool {
+            guard firstPortalTile.exists else { return false }
+            let frame = firstPortalTile.frame
+            return frame.width > 0
+                && frame.height > 0
+                && frame.minY >= app.frame.minY
+                && frame.maxY <= app.frame.maxY
+        }
+
+        if firstTileIsOnScreen() { return }
+        for _ in 0..<8 {
+            app.swipeDown()
+            if firstTileIsOnScreen() { return }
+        }
+        XCTFail("Avatar must become reachable when returning to the top of Advanced")
     }
 
     private func tapBack(in app: XCUIApplication) {
