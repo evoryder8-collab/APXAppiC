@@ -1805,3 +1805,4 @@ GitHub publication evidence:
 - Preserved the current v1 RPG snapshots and Avatar presentation unchanged. V2 has no account identity, bespoke-protocol, calorie-target, or programme-authority field and cannot authorize protected content.
 - Added one shared six-scenario JSON parity fixture plus separation and authority guards. Focused verification: web `8/8`, native `3/3`. Full verification: web `717/717`, native `678/678` on `APEX Lane · iPhone 17 Pro`; TypeScript and production Vite build passed; Xcode project/fixture validation and `git diff --check` passed.
 - Next: Project 3 adds immutable, account-owned evidence persistence and source normalization. The short onboarding and Avatar **Edit / Calibrate my baseline** sheet remain intentionally gated on that evidence foundation.
+- Implementation commit `665d4fbe5001bda134716b30c31eb8732f3103d3` was pushed to both required refs. GitHub Pages run `33326172664` completed successfully for that exact SHA.
