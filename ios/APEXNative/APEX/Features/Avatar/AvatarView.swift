@@ -4,6 +4,7 @@ import SwiftUI
 struct AvatarView: View {
     @State private var engineExpanded = false
     @State private var showEvolutionInfo = false
+    @State private var showCalibration = false
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
     @State private var trendDays = 30
@@ -58,6 +59,7 @@ struct AvatarView: View {
                 AvatarHero(profile: session.profile)
                 bodyIndexCard
                 radarCard
+                calibrationControl
                 statsCard
                 needsCard
                 StrengthHistoryCard(sessions: session.data.workoutSessions, logs: session.data.workoutLogs, days: trendDays)
@@ -75,6 +77,12 @@ struct AvatarView: View {
         }
         .navigationTitle(session.profile?.displayName ?? language.text("Avatar"))
         .navigationBarTitleDisplayMode(.inline)
+        .sheet(isPresented: $showCalibration) {
+            BaselineCalibrationSheet()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationContentInteraction(.scrolls)
+        }
         .onAppear {
             loadJointCheck()
         }
@@ -88,6 +96,26 @@ struct AvatarView: View {
             Capsule().fill(APEXColor.green.gradient).frame(width: 64, height: 5)
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var calibrationControl: some View {
+        HStack {
+            Spacer()
+            Button {
+                showCalibration = true
+            } label: {
+                Label(language.text("Edit"), systemImage: "slider.horizontal.3")
+                    .font(APEXFont.body(13, weight: .bold))
+                    .padding(.horizontal, 15)
+                    .frame(minHeight: 44)
+                    .background(APEXColor.green.opacity(0.1), in: Capsule())
+            }
+            .buttonStyle(.plain)
+            .foregroundStyle(APEXColor.green)
+            .accessibilityLabel(language.text("Calibrate my baseline"))
+            .accessibilityHint(language.text("Opens a resumable baseline questionnaire."))
+            .accessibilityIdentifier("avatar.calibrate-baseline")
+        }
     }
 
     private var visualProgressLink: some View {

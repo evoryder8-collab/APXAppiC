@@ -148,6 +148,9 @@ final class AppSession {
             for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("apex.section.expanded.") {
                 defaults.removeObject(forKey: key)
             }
+            for key in defaults.dictionaryRepresentation().keys where key.hasPrefix("apex.baseline-calibration.v1.") {
+                defaults.removeObject(forKey: key)
+            }
             LanguageState.shared.language = .english
             data = APEXDebugFixture.dashboard()
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-installed-plan"),
@@ -4356,6 +4359,70 @@ final class AppSession {
                 throw error
             }
         }
+    }
+
+    func saveBaselineCalibration(
+        _ answers: BaselineCalibrationAnswers,
+        measuredAt: Date = .now
+    ) async throws -> OnboardingBaselineBands {
+        guard let ownerID = verifiedPersistenceOwnerID() else {
+            throw BaselineCalibrationSaveError.missingAccount
+        }
+        let importedAt = Date().ISO8601Format()
+        let measuredAtString = measuredAt.ISO8601Format()
+        guard case .accepted(let evaluation) = BaselineCalibrationAssessment.evaluate(
+            userID: ownerID.uuidString,
+            measuredAt: measuredAtString,
+            importedAt: importedAt,
+            answers: answers
+        ) else {
+            throw BaselineCalibrationSaveError.invalidAssessment
+        }
+        for draft in evaluation.evidence {
+            guard case .accepted(let evidence) = FitnessEvidenceNormalizer.normalize(
+                draft,
+                admission: .user,
+                referenceNow: importedAt
+            ) else {
+                throw BaselineCalibrationSaveError.invalidEvidence
+            }
+            try await recordFitnessEvidence(evidence)
+        }
+        return evaluation.bands
+    }
+
+    func saveManualCalibrationResult(
+        metric: FitnessEvidenceMetric,
+        value: Double,
+        unit: String,
+        declaredSource: String,
+        measuredAt: Date
+    ) async throws {
+        guard let ownerID = verifiedPersistenceOwnerID() else {
+            throw BaselineCalibrationSaveError.missingAccount
+        }
+        let importedAt = Date().ISO8601Format()
+        guard case .accepted(let evidence) = BaselineCalibrationAssessment.manualEvidence(
+            userID: ownerID.uuidString,
+            metric: metric,
+            value: value,
+            unit: unit,
+            declaredSource: declaredSource,
+            measuredAt: measuredAt.ISO8601Format(),
+            importedAt: importedAt
+        ) else {
+            throw BaselineCalibrationSaveError.invalidEvidence
+        }
+        try await recordFitnessEvidence(evidence)
+    }
+
+    func connectHealthForBaselineCalibration() async -> Bool {
+        guard verifiedPersistenceOwnerID() != nil else { return false }
+        guard let snapshot = await HealthKitManager.shared.requestAccessAndImport() else {
+            return false
+        }
+        await applyHealthSnapshot(snapshot)
+        return true
     }
 
     private func mergeFitnessEvidenceRecord(_ record: FitnessEvidenceRecord) {

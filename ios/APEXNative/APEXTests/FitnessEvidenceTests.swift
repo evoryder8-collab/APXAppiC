@@ -225,3 +225,105 @@ final class OnboardingBaselineTests: XCTestCase {
         return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
     }
 }
+
+final class BaselineCalibrationTests: XCTestCase {
+    func testDraftsResumeForTheirOwnerAndNeverCrossAccounts() throws {
+        let suiteName = "BaselineCalibrationTests.\(UUID().uuidString)"
+        let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
+        defer { defaults.removePersistentDomain(forName: suiteName) }
+
+        let owner = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let otherOwner = UUID(uuidString: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")!
+        var answers = BaselineCalibrationAnswers.empty
+        answers.cardiorespiratory[0] = BaselineCalibrationAnswer.capable.rawValue
+        let draft = BaselineCalibrationDraft(step: 2, answers: answers)
+
+        BaselineCalibrationDraftStore.save(draft, userID: owner, defaults: defaults)
+        XCTAssertEqual(BaselineCalibrationDraftStore.load(userID: owner, defaults: defaults), draft)
+        XCTAssertNil(BaselineCalibrationDraftStore.load(userID: otherOwner, defaults: defaults))
+
+        BaselineCalibrationDraftStore.clear(userID: otherOwner, defaults: defaults)
+        XCTAssertEqual(BaselineCalibrationDraftStore.load(userID: owner, defaults: defaults), draft)
+        BaselineCalibrationDraftStore.clear(userID: owner, defaults: defaults)
+        XCTAssertNil(BaselineCalibrationDraftStore.load(userID: owner, defaults: defaults))
+    }
+
+    func testSharedCalibrationScenarios() throws {
+        let fixture: BaselineCalibrationFixture = try decodeCalibrationFixture()
+        for scenario in fixture.scenarios {
+            let result = BaselineCalibrationAssessment.evaluate(
+                userID: fixture.userID,
+                measuredAt: fixture.measuredAt,
+                importedAt: fixture.importedAt,
+                answers: scenario.input
+            )
+            XCTAssertEqual(
+                BaselineCalibrationAssessment.summarize(result),
+                scenario.expected,
+                "Scenario failed: \(scenario.name)"
+            )
+        }
+    }
+
+    func testCalibrationNeverClaimsOverallOrProgrammeAuthority() throws {
+        let fixture: BaselineCalibrationFixture = try decodeCalibrationFixture()
+        let result = BaselineCalibrationAssessment.evaluate(
+            userID: fixture.userID,
+            measuredAt: fixture.measuredAt,
+            importedAt: fixture.importedAt,
+            answers: fixture.scenarios[1].input
+        )
+        guard case .accepted(let evaluation) = result else {
+            return XCTFail("Expected accepted calibration")
+        }
+        XCTAssertEqual(evaluation.bands.overallFitness, .buildingBaseline)
+        XCTAssertFalse(evaluation.evidence.contains { $0.metric == "overall_fitness" })
+        for evidence in evaluation.evidence {
+            XCTAssertEqual(evidence.source, FitnessEvidenceSource.structuredSelfReport.rawValue)
+            XCTAssertEqual(evidence.requestedConfidence, FitnessEvidenceConfidence.low.rawValue)
+            XCTAssertEqual(evidence.metadata.objectValue?["display_precision"], .string("band_only"))
+            XCTAssertTrue(evidence.clientIdempotencyKey.hasPrefix("calibration-v1:"))
+        }
+        XCTAssertEqual(BaselineCalibrationAuthority.standard.canReplaceProgramme, false)
+        XCTAssertEqual(BaselineCalibrationAuthority.bespoke.canReplaceProgramme, false)
+        XCTAssertEqual(BaselineCalibrationAuthority.bespoke.canAuthorizeBespoke, false)
+    }
+
+    func testRecentResultBuilderValidatesAndKeepsUserConfidenceLow() throws {
+        let fixture: BaselineCalibrationFixture = try decodeCalibrationFixture()
+        let accepted = BaselineCalibrationAssessment.manualEvidence(
+            userID: fixture.userID,
+            metric: .restingMetabolicRate,
+            value: 1_683,
+            unit: "kcal_per_day",
+            declaredSource: "DEXA report",
+            measuredAt: fixture.measuredAt,
+            importedAt: fixture.importedAt
+        )
+        guard case .accepted(let evidence) = accepted else {
+            return XCTFail("Expected valid external result")
+        }
+        XCTAssertEqual(evidence.source, .userEnteredExternalResult)
+        XCTAssertEqual(evidence.confidence, .low)
+        XCTAssertEqual(evidence.metadata["declared_source"], .string("DEXA report"))
+
+        let rejected = BaselineCalibrationAssessment.manualEvidence(
+            userID: fixture.userID,
+            metric: .vo2Max,
+            value: 999,
+            unit: "ml_per_kg_min",
+            declaredSource: "Lab result",
+            measuredAt: fixture.measuredAt,
+            importedAt: fixture.importedAt
+        )
+        XCTAssertEqual(rejected, .rejected("invalid_unit_or_range"))
+    }
+
+    private func decodeCalibrationFixture<T: Decodable>() throws -> T {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(
+            forResource: "baseline-calibration",
+            withExtension: "json"
+        ))
+        return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+    }
+}

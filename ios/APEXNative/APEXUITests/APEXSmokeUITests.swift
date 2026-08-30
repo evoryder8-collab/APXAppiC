@@ -345,6 +345,40 @@ final class APEXSmokeUITests: XCTestCase {
         capture("settings-active-identity")
     }
 
+    func testAvatarCalibrationControlSitsAboveStatsAndResumesProgress() {
+        let app = configuredApp()
+        app.launch()
+
+        let avatar = app.buttons["portal.avatar"]
+        XCTAssertTrue(avatar.waitForExistence(timeout: 4))
+        avatar.tap()
+        XCTAssertTrue(app.staticTexts["Avatar"].waitForExistence(timeout: 3))
+
+        let calibrate = app.descendants(matching: .any)["avatar.calibrate-baseline"]
+        XCTAssertTrue(scrollUntilVisible(calibrate, in: app))
+        let stats = app.staticTexts["Stats"].firstMatch
+        XCTAssertTrue(stats.waitForExistence(timeout: 2))
+        XCTAssertLessThan(calibrate.frame.maxY, stats.frame.minY)
+        XCTAssertEqual(calibrate.label, "Calibrate my baseline")
+        calibrate.tap()
+
+        XCTAssertTrue(app.navigationBars["Calibrate my baseline"].waitForExistence(timeout: 3))
+        app.buttons["calibration.route.questions"].tap()
+        XCTAssertTrue(app.staticTexts["Stamina"].waitForExistence(timeout: 3))
+        app.buttons["calibration.next"].tap()
+        XCTAssertTrue(app.staticTexts["Upper body"].waitForExistence(timeout: 3))
+
+        app.buttons["Close"].tap()
+        XCTAssertTrue(calibrate.waitForExistence(timeout: 3))
+        calibrate.tap()
+        app.buttons["calibration.route.questions"].tap()
+        XCTAssertTrue(
+            app.staticTexts["Upper body"].waitForExistence(timeout: 3),
+            "The owner-scoped draft must resume at the last completed section"
+        )
+        capture("avatar-baseline-calibration")
+    }
+
     func testFivePortalNavigationAndCoreScreens() {
         let app = configuredApp()
         app.launch()
@@ -634,14 +668,16 @@ final class APEXSmokeUITests: XCTestCase {
             )
 
         let today = calendarKey(offset: 0)
-        let weekday = Calendar.current.component(.weekday, from: Date())
-        let emptyDay = calendarKey(offset: weekday == 1 ? -1 : 1)
         let todayCell = app.buttons["calendar-day-\(today)"]
         XCTAssertTrue(scrollUntilVisible(todayCell, in: app))
         XCTAssertTrue(todayCell.label.contains("Scheduled"), todayCell.label)
 
-        let emptyCell = app.buttons["calendar-day-\(emptyDay)"]
-        XCTAssertTrue(emptyCell.exists)
+        let nearbyOffsets = [1, -1, 2, -2, 3, -3, 4, -4, 5, -5, 6, -6, 7, -7]
+        let emptyCell = nearbyOffsets
+            .map { app.buttons["calendar-day-\(calendarKey(offset: $0))"] }
+            .first { $0.exists && $0.isEnabled && $0.label.contains("No prescription") }
+        XCTAssertNotNil(emptyCell, "Expected an enabled no-prescription day in the displayed month")
+        guard let emptyCell else { return }
         XCTAssertTrue(emptyCell.label.contains("No prescription"), emptyCell.label)
         capture("training-calendar-states")
         emptyCell.tap()

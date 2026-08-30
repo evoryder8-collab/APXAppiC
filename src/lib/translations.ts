@@ -1614,10 +1614,6 @@ const rows: Array<[string, string, string]> = [
   ['APEX athlete', 'Sportiv APEX', 'นักกีฬา APEX'],
 ]
 
-export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries(
-  rows.map(([english, romanian, thai]) => [english, { ro: romanian, th: thai }]),
-)
-
 export const DATE_WORDS: Record<Exclude<IntroLanguage, 'en'>, Record<string, string>> = {
   ro: {
     Monday: 'luni', Tuesday: 'marți', Wednesday: 'miercuri', Thursday: 'joi', Friday: 'vineri', Saturday: 'sâmbătă', Sunday: 'duminică',
@@ -1745,3 +1741,69 @@ export const ACTIVITY_TRANSLATIONS: Array<[string, string, string]> = [
   ['Source', 'Sursă', 'แหล่งที่มา'],
   ['min', 'min', 'นาที'],
 ]
+
+const BASELINE_CALIBRATION_TRANSLATIONS: Array<[string, string, string]> = [
+  ['Calibrate my baseline', 'Calibrează-mi nivelul de bază', 'ปรับเทียบค่าพื้นฐานของฉัน'],
+  ['Opens a resumable baseline questionnaire.', 'Deschide un chestionar de bază pe care îl poți relua.', 'เปิดแบบประเมินค่าพื้นฐานที่กลับมาทำต่อได้'],
+  ['Sharpen your map', 'Rafinează-ți harta', 'ปรับแผนที่ร่างกายให้ชัดขึ้น'],
+  ['Add better evidence without turning fitness into a test you can fail.', 'Adaugă dovezi mai bune fără să transformi condiția fizică într-un test pe care îl poți pica.', 'เพิ่มหลักฐานที่ดีขึ้นโดยไม่ทำให้การออกกำลังกายเป็นบททดสอบที่คุณสอบตกได้'],
+  ['Your bespoke plan stays protected. Calibration only refines your evidence.', 'Planul tău personalizat rămâne protejat. Calibrarea îți rafinează doar dovezile.', 'แผนเฉพาะบุคคลของคุณยังคงได้รับการปกป้อง การปรับเทียบจะปรับเฉพาะหลักฐานของคุณเท่านั้น'],
+  ['Calibration refines your evidence. It never rewrites your training or nutrition plan.', 'Calibrarea îți rafinează dovezile. Nu îți rescrie niciodată planul de antrenament sau nutriție.', 'การปรับเทียบช่วยทำให้หลักฐานแม่นขึ้น แต่จะไม่แก้ไขแผนฝึกหรือโภชนาการของคุณ'],
+  ['Sharpen with questions', 'Rafinează prin întrebări', 'ปรับให้ชัดด้วยคำถาม'],
+  ['Twelve observable prompts in four short sections.', 'Douăsprezece repere observabile în patru secțiuni scurte.', 'คำถามสังเกตได้ 12 ข้อใน 4 ช่วงสั้นๆ'],
+  ['Connect what you track', 'Conectează ceea ce urmărești', 'เชื่อมต่อข้อมูลที่คุณติดตาม'],
+  ['Import the Apple Health categories you choose.', 'Importă categoriile Apple Health pe care le alegi.', 'นำเข้าหมวด Apple Health ที่คุณเลือก'],
+  ['Add a recent result', 'Adaugă un rezultat recent', 'เพิ่มผลล่าสุด'],
+  ['Keep a DEXA, metabolic, VO₂, heart-rate or waist result with its source.', 'Păstrează un rezultat DEXA, metabolic, VO₂, de puls sau talie împreună cu sursa lui.', 'เก็บผล DEXA การเผาผลาญ VO₂ อัตราการเต้นหัวใจ หรือรอบเอวพร้อมแหล่งที่มา'],
+  ['Your question progress is saved privately on this device.', 'Progresul întrebărilor este salvat privat pe acest dispozitiv.', 'ความคืบหน้าของคำถามถูกบันทึกแบบส่วนตัวบนอุปกรณ์นี้'],
+  ['Calibration progress', 'Progresul calibrării', 'ความคืบหน้าการปรับเทียบ'],
+  ['Answer from recent, pain-free experience. Do not test a movement now. Choose Not tested if pain or uncertainty is involved.', 'Răspunde din experiențe recente, fără durere. Nu testa acum o mișcare. Alege Netestat dacă există durere sau nesiguranță.', 'ตอบจากประสบการณ์ล่าสุดที่ไม่เจ็บปวด ไม่ต้องลองท่าตอนนี้ เลือก ยังไม่ได้ทดสอบ หากมีอาการปวดหรือไม่แน่ใจ'],
+  ['Read each line left to right: Foundation, Developing, Capable, Strong signal.', 'Citește fiecare rând de la stânga la dreapta: Bază, În dezvoltare, Capabil, Semnal puternic.', 'อ่านแต่ละบรรทัดจากซ้ายไปขวา: พื้นฐาน กำลังพัฒนา ทำได้ดี สัญญาณแข็งแรง'],
+  ['Sustained effort: a few minutes · brisk 20 minutes · steady cardio 20 minutes · trained intervals', 'Efort susținut: câteva minute · 20 de minute alert · 20 de minute cardio constant · intervale antrenate', 'ออกแรงต่อเนื่อง: ไม่กี่นาที · เดินเร็ว 20 นาที · คาร์ดิโอคงที่ 20 นาที · ฝึกอินเทอร์วัลเป็นประจำ'],
+  ['Stairs: frequent pause · one flight comfortable · several flights controlled · repeated climbs trained', 'Scări: pauze dese · un etaj confortabil · mai multe etaje controlat · urcări repetate antrenate', 'บันได: ต้องพักบ่อย · ขึ้นหนึ่งชั้นสบาย · ขึ้นหลายชั้นได้ดี · ฝึกขึ้นซ้ำเป็นประจำ'],
+  ['Conditioning week: none · one easy session · two steady sessions · three or more purposeful sessions', 'Săptămână cardio: deloc · o ședință ușoară · două ședințe constante · cel puțin trei ședințe cu scop', 'สัปดาห์คาร์ดิโอ: ไม่มี · เบาๆ หนึ่งครั้ง · สม่ำเสมอสองครั้ง · ตั้งใจฝึกอย่างน้อยสามครั้ง'],
+  ['Pressing: body weight difficult · raised push-ups · floor push-ups · challenging presses', 'Împins: greutatea corpului e dificilă · flotări ridicate · flotări la sol · împinsuri dificile', 'แรงผลัก: น้ำหนักตัวทำได้ยาก · วิดพื้นยกสูง · วิดพื้นพื้นราบ · ฝึกแรงผลักที่ท้าทาย'],
+  ['Pulling: little recent work · light supported rows · controlled rows · pull-ups or challenging pulls', 'Tras: puțină practică recentă · ramat ușor cu sprijin · ramat controlat · tracțiuni sau trageri dificile', 'แรงดึง: ช่วงนี้แทบไม่ได้ฝึก · โรว์เบาแบบพยุง · โรว์ควบคุมได้ · ดึงข้อหรือแรงดึงที่ท้าทาย'],
+  ['Upper-body training: none · occasional · weekly progressive work · multiple challenging sessions', 'Antrenament superior: deloc · ocazional · progresiv săptămânal · mai multe ședințe dificile', 'ฝึกร่างกายส่วนบน: ไม่มี · เป็นครั้งคราว · เพิ่มระดับทุกสัปดาห์ · หลายครั้งที่ท้าทาย'],
+  ['Chair and stairs: tiring · comfortable · repeated with control · high work capacity', 'Scaun și scări: obositor · confortabil · repetat cu control · capacitate mare de efort', 'ลุกเก้าอี้และขึ้นบันได: เหนื่อย · สบาย · ทำซ้ำได้ดี · มีความทนทานสูง'],
+  ['Squat and lunge: restricted · chair-depth control · deep controlled reps · challenging full-range work', 'Genuflexiune și fandare: limitate · control până la scaun · repetări adânci controlate · efort dificil pe amplitudine completă', 'สควอตและลันจ์: จำกัด · คุมได้ถึงระดับเก้าอี้ · ลงลึกได้ดี · ฝึกเต็มช่วงที่ท้าทาย'],
+  ['Lower-body training: none · occasional · weekly progressive work · multiple challenging sessions', 'Antrenament inferior: deloc · ocazional · progresiv săptămânal · mai multe ședințe dificile', 'ฝึกร่างกายส่วนล่าง: ไม่มี · เป็นครั้งคราว · เพิ่มระดับทุกสัปดาห์ · หลายครั้งที่ท้าทาย'],
+  ['Hips and posterior chain: daily restriction · functional reach · deep hinge or squat · advanced range practice', 'Șolduri și lanț posterior: limitare zilnică · amplitudine funcțională · hinge sau genuflexiune adâncă · practică avansată', 'สะโพกและแนวหลัง: ติดขัดทุกวัน · ช่วงใช้งานได้ · ฮิปฮินจ์หรือสควอตลึก · ฝึกช่วงขั้นสูง'],
+  ['Ankles: heels lift early · daily range comfortable · knee-over-toe range controlled · deep loaded range trained', 'Glezne: călcâiele se ridică devreme · amplitudine zilnică confortabilă · genunchi peste vârf controlat · amplitudine adâncă sub sarcină', 'ข้อเท้า: ส้นยกเร็ว · ช่วงเคลื่อนไหวประจำวันสบาย · เข่าเลยปลายเท้าได้ดี · ฝึกช่วงลึกพร้อมน้ำหนัก'],
+  ['Shoulders: overhead reach restricted · daily reach comfortable · full overhead control · advanced range trained', 'Umeri: atingere deasupra capului limitată · mișcare zilnică confortabilă · control complet deasupra capului · amplitudine avansată antrenată', 'ไหล่: เอื้อมเหนือศีรษะจำกัด · ช่วงประจำวันสบาย · คุมเหนือศีรษะเต็มช่วง · ฝึกช่วงขั้นสูง'],
+  ['Review my baseline', 'Revizuiește-mi nivelul de bază', 'ตรวจค่าพื้นฐานของฉัน'],
+  ['Your sharper starting map', 'Harta ta de pornire mai clară', 'แผนที่เริ่มต้นที่ชัดขึ้น'],
+  ['These remain broad bands, not laboratory measurements. Overall Fitness stays Building your baseline until enough independent evidence exists.', 'Acestea rămân intervale largi, nu măsurători de laborator. Condiția generală rămâne în Construirea nivelului de bază până există suficiente dovezi independente.', 'ผลเหล่านี้ยังเป็นช่วงกว้าง ไม่ใช่ค่าห้องแล็บ สมรรถภาพโดยรวมจะยังอยู่ที่ กำลังสร้างค่าพื้นฐาน จนมีหลักฐานอิสระเพียงพอ'],
+  ['Answer at least two prompts in a section to sharpen that band.', 'Răspunde la cel puțin două repere dintr-o secțiune pentru a rafina intervalul.', 'ตอบอย่างน้อยสองข้อในแต่ละช่วงเพื่อปรับช่วงนั้นให้ชัดขึ้น'],
+  ['Saved to your evidence', 'Salvat în dovezile tale', 'บันทึกไว้ในหลักฐานของคุณแล้ว'],
+  ['Save baseline', 'Salvează nivelul de bază', 'บันทึกค่าพื้นฐาน'],
+  ['Your baseline could not be saved yet. Your answers remain on this device.', 'Nivelul de bază nu a putut fi salvat încă. Răspunsurile rămân pe acest dispozitiv.', 'ยังบันทึกค่าพื้นฐานไม่ได้ คำตอบของคุณยังคงอยู่บนอุปกรณ์นี้'],
+  ['Back to questions', 'Înapoi la întrebări', 'กลับไปที่คำถาม'],
+  ['APEX keeps a value you enter as unverified until a supported source confirms it.', 'APEX păstrează valoarea introdusă ca neverificată până când o sursă acceptată o confirmă.', 'APEX จะเก็บค่าที่คุณกรอกเป็นข้อมูลที่ยังไม่ยืนยันจนกว่าแหล่งที่รองรับจะยืนยัน'],
+  ['Result type', 'Tipul rezultatului', 'ประเภทผลลัพธ์'],
+  ['Where did this result come from?', 'De unde provine acest rezultat?', 'ผลนี้มาจากที่ใด'],
+  ['For example, DEXA report or laboratory test', 'De exemplu, raport DEXA sau test de laborator', 'เช่น รายงาน DEXA หรือการตรวจในห้องแล็บ'],
+  ['Measured on', 'Măsurat la data de', 'วัดเมื่อ'],
+  ['Result saved', 'Rezultat salvat', 'บันทึกผลแล้ว'],
+  ['Save result', 'Salvează rezultatul', 'บันทึกผล'],
+  ['Check the value and source, then try again.', 'Verifică valoarea și sursa, apoi încearcă din nou.', 'ตรวจสอบค่าและแหล่งที่มาแล้วลองอีกครั้ง'],
+  ['You choose what APEX can read. Denial or missing data never lowers your baseline, and manual calibration always remains available.', 'Tu alegi ce poate citi APEX. Refuzul sau datele lipsă nu îți reduc niciodată nivelul de bază, iar calibrarea manuală rămâne disponibilă.', 'คุณเลือกได้ว่า APEX อ่านอะไร การปฏิเสธหรือข้อมูลที่ขาดจะไม่ลดค่าพื้นฐาน และยังปรับเทียบด้วยตนเองได้เสมอ'],
+  ['Apple Health synced the categories you allowed.', 'Apple Health a sincronizat categoriile permise de tine.', 'Apple Health ซิงค์หมวดที่คุณอนุญาตแล้ว'],
+  ['No new permitted data was available. You can keep calibrating manually.', 'Nu au fost disponibile date noi permise. Poți continua calibrarea manuală.', 'ไม่มีข้อมูลใหม่ที่ได้รับอนุญาต คุณยังปรับเทียบด้วยตนเองต่อได้'],
+  ['Connect Apple Health', 'Conectează Apple Health', 'เชื่อมต่อ Apple Health'],
+  ['Apple Health connects through the APEX iPhone app, where iOS lets you choose each category. Denial or missing data never lowers your baseline.', 'Apple Health se conectează prin aplicația APEX de pe iPhone, unde iOS îți permite să alegi fiecare categorie. Refuzul sau datele lipsă nu îți reduc nivelul de bază.', 'Apple Health เชื่อมต่อผ่านแอป APEX บน iPhone ซึ่ง iOS ให้คุณเลือกแต่ละหมวด การปฏิเสธหรือข้อมูลที่ขาดจะไม่ลดค่าพื้นฐาน'],
+  ['Open Avatar on your iPhone and choose Edit, then Connect what you track. Your manual routes remain available here.', 'Deschide Avatar pe iPhone, alege Editează, apoi Conectează ceea ce urmărești. Opțiunile manuale rămân disponibile aici.', 'เปิด Avatar บน iPhone เลือก แก้ไข แล้วเลือก เชื่อมต่อข้อมูลที่คุณติดตาม ตัวเลือกแบบกรอกเองยังใช้ได้ที่นี่'],
+  ['Resting energy (BMR/RMR)', 'Energie de repaus (BMR/RMR)', 'พลังงานขณะพัก (BMR/RMR)'],
+  ['Waist circumference', 'Circumferința taliei', 'รอบเอว'],
+  ['Value', 'Valoare', 'ค่า'],
+  ['VO₂ max', 'VO₂ maxim', 'ค่า VO₂ สูงสุด'],
+  ['Resting heart rate', 'Puls în repaus', 'ชีพจรขณะพัก'],
+  ['Not tested', 'Netestat', 'ยังไม่ได้ทดสอบ'],
+]
+
+export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries(
+  [...rows, ...BASELINE_CALIBRATION_TRANSLATIONS].map(([english, romanian, thai]) => [
+    english,
+    { ro: romanian, th: thai },
+  ]),
+)

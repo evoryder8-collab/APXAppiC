@@ -21,6 +21,7 @@ import { AvatarPortraitHero } from '../components/avatar/AvatarPortraitHero'
 import { StrengthProgressPanel } from '../components/avatar/StrengthProgressPanel'
 import { MetabolicRhythmPanel } from '../components/avatar/MetabolicRhythmPanel'
 import { RecoveryTrendPanel } from '../components/avatar/RecoveryTrendPanel'
+import { BaselineCalibrationDialog } from '../components/avatar/BaselineCalibrationDialog'
 
 const emerald = ACCENTS.emerald
 
@@ -79,6 +80,7 @@ export function AvatarPage() {
   const t = (value: string): string => translateInterfaceText(value, language)
   const navigate = useNavigate()
   const [showBaseline, setShowBaseline] = useState(false)
+  const [showCalibration, setShowCalibration] = useState(false)
   const [range, setRange] = useState<30 | 90>(30)
   const [expanded, setExpanded] = useState<string | null>(null)
   const reduceMotion = useReducedMotion()
@@ -205,6 +207,21 @@ export function AvatarPage() {
                 </motion.div>
               ))}
             </div>
+          </div>
+        )}
+
+        {profile && (
+          <div className="flex justify-end">
+            <button
+              type="button"
+              data-testid="avatar-calibrate-baseline"
+              aria-label={t('Calibrate my baseline')}
+              onClick={() => setShowCalibration(true)}
+              className="inline-flex min-h-11 items-center gap-2 rounded-full bg-emerald-500/10 px-4 text-sm font-bold text-emerald transition-colors hover:bg-emerald-500/15 focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-emerald"
+            >
+              <span aria-hidden>⌁</span>
+              <span>{t('Edit')}</span>
+            </button>
           </div>
         )}
 
@@ -388,6 +405,9 @@ export function AvatarPage() {
           )}
         </GlassCard>
       </div>
+      {showCalibration && profile && (
+        <BaselineCalibrationDialog profile={profile} onClose={() => setShowCalibration(false)} />
+      )}
     </div>
   )
 }

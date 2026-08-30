@@ -152,6 +152,9 @@
 		F22100000000000000000006 /* fitness-evidence-normalization.json in Resources */ = {isa = PBXBuildFile; fileRef = F22100000000000000000003 /* fitness-evidence-normalization.json */; };
 		F22200000000000000000004 /* OnboardingBaseline.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22200000000000000000001 /* OnboardingBaseline.swift */; };
 		F22200000000000000000006 /* onboarding-baseline.json in Resources */ = {isa = PBXBuildFile; fileRef = F22200000000000000000003 /* onboarding-baseline.json */; };
+		F22300000000000000000004 /* BaselineCalibration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22300000000000000000001 /* BaselineCalibration.swift */; };
+		F22300000000000000000005 /* BaselineCalibrationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22300000000000000000002 /* BaselineCalibrationSheet.swift */; };
+		F22300000000000000000006 /* baseline-calibration.json in Resources */ = {isa = PBXBuildFile; fileRef = F22300000000000000000003 /* baseline-calibration.json */; };
 		8877B70250BE84F4417ADD50 /* OrbitGPXService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6681DF046ED9381B422E42E /* OrbitGPXService.swift */; };
 		8919266C5A4F0701D86E6C23 /* FitnessBrainEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A775E9746F75FF485AA68B /* FitnessBrainEngine.swift */; };
 		8959C5F43634727949ECA305 /* FoodAmountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E2F7B6697D817761D223A9 /* FoodAmountSheet.swift */; };
@@ -417,6 +420,9 @@
 		F22100000000000000000003 /* fitness-evidence-normalization.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "fitness-evidence-normalization.json"; sourceTree = "<group>"; };
 		F22200000000000000000001 /* OnboardingBaseline.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OnboardingBaseline.swift; sourceTree = "<group>"; };
 		F22200000000000000000003 /* onboarding-baseline.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "onboarding-baseline.json"; sourceTree = "<group>"; };
+		F22300000000000000000001 /* BaselineCalibration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineCalibration.swift; sourceTree = "<group>"; };
+		F22300000000000000000002 /* BaselineCalibrationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineCalibrationSheet.swift; sourceTree = "<group>"; };
+		F22300000000000000000003 /* baseline-calibration.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "baseline-calibration.json"; sourceTree = "<group>"; };
 		53A12AB559BCB32B420CC5D9 /* MarathonCampaignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonCampaignView.swift; sourceTree = "<group>"; };
 		546D39EB90030A612FF78CF7 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		57258905C757B4949A5AC5C6 /* ProgressComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressComparisonView.swift; sourceTree = "<group>"; };
@@ -616,6 +622,7 @@
 		1780C2A1F3BC9B129F9C6DB1 /* Avatar */ = {
 			isa = PBXGroup;
 			children = (
+				F22300000000000000000002 /* BaselineCalibrationSheet.swift */,
 				C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */,
 				667FD05A1B3F81CA1699019E /* ProgressCameraView.swift */,
 				8BDCFCD44A40EFED71D0A623 /* ProgressCaptureBriefing.swift */,
@@ -765,6 +772,7 @@
 			isa = PBXGroup;
 			children = (
 				4D65A340828BC773255E99E7 /* engine-parity.json */,
+				F22300000000000000000003 /* baseline-calibration.json */,
 				F22100000000000000000003 /* fitness-evidence-normalization.json */,
 				F22200000000000000000003 /* onboarding-baseline.json */,
 				530C9841C32436703E1AC31A /* health-import-parity.json */,
@@ -1026,6 +1034,7 @@
 				F22000000000000000000001 /* FitnessBrainV2Semantics.swift */,
 				F22100000000000000000001 /* FitnessEvidence.swift */,
 				F22200000000000000000001 /* OnboardingBaseline.swift */,
+				F22300000000000000000001 /* BaselineCalibration.swift */,
 				08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */,
 				59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */,
 				4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */,
@@ -1307,6 +1316,7 @@
 			buildActionMask = 2147483647;
 			files = (
 				CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */,
+				F22300000000000000000006 /* baseline-calibration.json in Resources */,
 				F22100000000000000000006 /* fitness-evidence-normalization.json in Resources */,
 				F22200000000000000000006 /* onboarding-baseline.json in Resources */,
 				97CA260C4CEF8966A48F7E55 /* health-import-parity.json in Resources */,
@@ -1369,6 +1379,7 @@
 				5179CE96D30A5E7676A5D37C /* AppSession.swift in Sources */,
 				8D333D944FA594ACEF54CCEC /* AvatarImage.swift in Sources */,
 				ECD3432C01771AC92976B664 /* AvatarView.swift in Sources */,
+				F22300000000000000000005 /* BaselineCalibrationSheet.swift in Sources */,
 				37B855D4508C3A104F80E28C /* BarcodeScannerView.swift in Sources */,
 				F51077D8FF8673F38D33FA65 /* ConsentView.swift in Sources */,
 				ECF677C2717A29BAC1997232 /* CustomWorkoutBuilder.swift in Sources */,
@@ -1387,6 +1398,7 @@
 				F22000000000000000000004 /* FitnessBrainV2Semantics.swift in Sources */,
 				F22100000000000000000004 /* FitnessEvidence.swift in Sources */,
 				F22200000000000000000004 /* OnboardingBaseline.swift in Sources */,
+				F22300000000000000000004 /* BaselineCalibration.swift in Sources */,
 				0EA74FD3C3F993F87B9D16DD /* FitnessBrainService.swift in Sources */,
 				352AACC240CD4D66A83DD10E /* FitnessBrainTargets.swift in Sources */,
 				B8C52E30ADA7E0154708CE81 /* FocusT25.swift in Sources */,
@@ -1807,7 +1819,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 381;
+				CURRENT_PROJECT_VERSION = 382;
 				DEBUG_INFORMATION_FORMAT = "dwarf-with-dsym";
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_NS_ASSERTIONS = NO;
@@ -1871,7 +1883,7 @@
 				CLANG_WARN__DUPLICATE_METHOD_MATCH = YES;
 				CODE_SIGN_STYLE = Automatic;
 				COPY_PHASE_STRIP = NO;
-				CURRENT_PROJECT_VERSION = 381;
+				CURRENT_PROJECT_VERSION = 382;
 				DEBUG_INFORMATION_FORMAT = dwarf;
 				DEVELOPMENT_TEAM = UG979XDY72;
 				ENABLE_STRICT_OBJC_MSGSEND = YES;
