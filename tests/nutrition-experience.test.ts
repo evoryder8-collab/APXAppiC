@@ -355,3 +355,19 @@ test('meal presets are composable, reviewable, subtitled and compact by default'
   assert.match(source, /Presets are reusable food groups/)
   assert.doesNotMatch(source, /setName\(preset\.name\)/)
 })
+
+test('native nutrition goal info controls open anchored explanations without changing the popup layout branch', () => {
+  const source = readFileSync(
+    new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionParityViews.swift', import.meta.url),
+    'utf8',
+  )
+  const picker = source.slice(source.indexOf('struct NutritionGoalPresetPicker'), source.indexOf('private struct TargetChoiceStyle'))
+
+  assert.match(picker, /\.popover\(\s*isPresented:/)
+  assert.match(picker, /\.presentationCompactAdaptation\(\.popover\)/)
+  assert.match(picker, /nutrition-goal-info-/)
+  assert.match(picker, /nutrition-goal-explanation-/)
+  assert.match(picker, /language\.text\(preset\.explanation\)/)
+  assert.match(picker, /language\.text\(preset\.caution\)/)
+  assert.doesNotMatch(picker, /if let explained = presets\.first/)
+})

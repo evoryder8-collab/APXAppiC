@@ -247,6 +247,29 @@ final class APEXSmokeUITests: XCTestCase {
         )
     }
 
+    func testNutritionGoalInfoPresentsStablePopover() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+        XCTAssertTrue(app.otherElements["nutrition-glance-card"].waitForExistence(timeout: 3))
+        app.buttons["Nutrition at a glance"].tap()
+        XCTAssertTrue(app.buttons["Close"].waitForExistence(timeout: 3))
+
+        let info = app.buttons["nutrition-goal-info-recomp"]
+        XCTAssertTrue(info.waitForExistence(timeout: 3))
+        XCTAssertTrue(info.isHittable)
+        XCTAssertTrue(app.buttons["nutrition-goal-info-maintain"].exists)
+        XCTAssertTrue(app.buttons["nutrition-goal-info-bulk"].exists)
+        info.tap()
+
+        let explanation = app.descendants(matching: .any)["nutrition-goal-explanation-recomp"]
+        XCTAssertTrue(explanation.waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["A moderate deficit with extra protein support."].exists)
+        capture("nutrition-goal-explanation")
+    }
+
     func testFivePortalNavigationAndCoreScreens() {
         let app = configuredApp()
         app.launch()

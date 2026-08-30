@@ -1682,3 +1682,11 @@ GitHub publication evidence:
 - Kept complete numbers, decimal values, units, provenance, colours, and VoiceOver values. No number or unit is truncated, and the implementation preserves the repository-wide rule against shrinking localized text with `minimumScaleFactor`.
 - Verification: focused typography and localization-layout contracts 19/19; full repository/web suite 678/678; production web build succeeded across 1,188 modules; the signed native target compiled and the existing Food Memory decimal-amount UI journey passed 1/1 on `APEX Lane · iPhone 17 Pro` (`6907359A-18D1-46B0-87F1-13CED5CE1C46`); `git diff --check` passed.
 - Physical verification: the exact signed Debug build installed and launched successfully on connected `iConstantine Main` as process 6429. BA-Studio and Finalova simulator lanes were not touched.
+
+## 2026-08-30 — Nutrition goal explanation controls hotfix
+
+- Fixed the non-responsive information controls beside plan-aware energy choices such as Accelerated cut, Steady cut, and Gentle cut. Their former inline disclosure changed the target editor's measured height, allowing the parent adaptive popup to switch layout branches and recreate the picker with its disclosure state cleared immediately.
+- Each mode now owns a stable anchored popover with the complete localized factor, explanation, and caution. The visible control is clearer, its touch target is 44 points, and the parent calorie editor no longer changes layout when help opens.
+- Added stable accessibility identifiers and preserved the authored explanation/caution keys already present in every offered translated table, including Swiss Standard German.
+- Verification: focused source contract 18/18; full repository/web suite 679/679; production build succeeded across 1,188 modules; focused native UI journey passed 1/1 on `APEX Lane · iPhone 17 Pro` and its captured frame shows the anchored explanation open with fully wrapped copy; `git diff --check` passed.
+- Physical verification: the exact signed Debug build installed and launched successfully on connected `iConstantine Main` as process 6470. BA-Studio and Finalova simulator lanes were not touched.

@@ -519,31 +519,46 @@ struct NutritionGoalPresetPicker: View {
     private let columns = Array(repeating: GridItem(.flexible(), spacing: 7), count: 3)
 
     var body: some View {
-        VStack(alignment: .leading, spacing: 8) {
-            LazyVGrid(columns: columns, spacing: 7) {
-                ForEach(presets, id: \.goal) { preset in
-                    goalChoice(preset)
-                }
-            }
-
-            if let explained = presets.first(where: { $0.goal == explainedGoal }) {
-                VStack(alignment: .leading, spacing: 4) {
-                    let percent = Int(((explained.factor - 1) * 100).rounded())
-                    Text("\(language.text(explained.label)) · \(percent > 0 ? "+" : "")\(percent)%")
-                        .font(APEXFont.body(11, weight: .bold))
-                    Text(language.text(explained.explanation))
-                        .font(APEXFont.body(10, weight: .semibold))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                    Text(language.text(explained.caution))
-                        .font(APEXFont.body(9, weight: .bold))
-                        .foregroundStyle(APEXColor.amberDeep)
-                }
-                .fixedSize(horizontal: false, vertical: true)
-                .padding(11)
-                .frame(maxWidth: .infinity, alignment: .leading)
-                .background(APEXColor.amber.opacity(0.08), in: RoundedRectangle(cornerRadius: 15))
+        LazyVGrid(columns: columns, spacing: 7) {
+            ForEach(presets, id: \.goal) { preset in
+                goalChoice(preset)
             }
         }
+    }
+
+    private func explanationBinding(for goal: Goal) -> Binding<Bool> {
+        Binding(
+            get: { explainedGoal == goal },
+            set: { isPresented in
+                if isPresented {
+                    explainedGoal = goal
+                } else if explainedGoal == goal {
+                    explainedGoal = nil
+                }
+            }
+        )
+    }
+
+    private func goalExplanation(_ preset: NutritionGoalPreset) -> some View {
+        let percent = Int(((preset.factor - 1) * 100).rounded())
+        return VStack(alignment: .leading, spacing: 7) {
+            Text("\(language.text(preset.label)) · \(percent > 0 ? "+" : "")\(percent)%")
+                .font(APEXFont.body(13, weight: .bold))
+                .foregroundStyle(APEXColor.ink)
+            Text(language.text(preset.explanation))
+                .font(APEXFont.body(12, weight: .semibold))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(language.text(preset.caution))
+                .font(APEXFont.body(11, weight: .bold))
+                .foregroundStyle(APEXColor.amberDeep)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(14)
+        .frame(idealWidth: 280, maxWidth: 300, alignment: .leading)
+        .background(APEXColor.canvas)
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("nutrition-goal-explanation-\(preset.goal.rawValue)")
     }
 
     private func goalChoice(_ preset: NutritionGoalPreset) -> some View {
@@ -571,15 +586,28 @@ struct NutritionGoalPresetPicker: View {
             .accessibilityAddTraits(active ? .isSelected : [])
 
             Button {
-                explainedGoal = explainedGoal == preset.goal ? nil : preset.goal
+                explainedGoal = preset.goal
             } label: {
-                Image(systemName: "info")
-                    .font(.system(size: 10, weight: .bold))
-                    .frame(width: 28, height: 28)
+                Image(systemName: "info.circle.fill")
+                    .font(.system(size: 14, weight: .bold))
                     .foregroundStyle(active ? Color.white : APEXColor.amberDeep)
+                    .frame(width: 26, height: 26)
+                    .background(active ? Color.white.opacity(0.12) : APEXColor.amber.opacity(0.1), in: Circle())
+                    .frame(width: 44, height: 44)
+                    .contentShape(Rectangle())
             }
             .buttonStyle(.plain)
+            .zIndex(1)
             .accessibilityLabel(language.text("About \(preset.label)"))
+            .accessibilityIdentifier("nutrition-goal-info-\(preset.goal.rawValue)")
+            .popover(
+                isPresented: explanationBinding(for: preset.goal),
+                attachmentAnchor: .rect(.bounds),
+                arrowEdge: .top
+            ) {
+                goalExplanation(preset)
+                    .presentationCompactAdaptation(.popover)
+            }
         }
     }
 }
