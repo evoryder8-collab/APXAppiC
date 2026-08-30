@@ -59,19 +59,23 @@ enum TrainingInduction {
         var painAreas: [String] = []
         var recentOperation = false
         var chronicLowerBackPain = false
+        var acuteSymptoms = false
         var sessionsPerWeek = 3
         var planWeeks = 12
+        var availableMinutes = 0
         var goal: String = "general"
+        var baselineAnswers = OnboardingBaselineAnswers.unanswered
         var bodyBaseline: BodyBaseline?
         var dataConsent: DataConsent?
 
         var hasHealthConcerns: Bool {
-            recentOperation || chronicLowerBackPain || !painAreas.isEmpty
+            recentOperation || chronicLowerBackPain || acuteSymptoms || !painAreas.isEmpty
         }
 
         mutating func clearHealthConcerns() {
             recentOperation = false
             chronicLowerBackPain = false
+            acuteSymptoms = false
             painAreas.removeAll()
         }
 
@@ -120,12 +124,27 @@ enum TrainingInduction {
             ?? []
         restored.recentOperation = induction["recent_operation"]?.boolValue ?? false
         restored.chronicLowerBackPain = induction["chronic_lower_back_pain"]?.boolValue ?? false
+        restored.acuteSymptoms = induction["acute_symptoms"]?.boolValue ?? false
         if let sessions = induction["sessions_per_week"]?.numberValue.map(Int.init) {
             restored.sessionsPerWeek = min(7, max(2, sessions))
         }
         if let weeks = induction["plan_weeks"]?.numberValue.map(Int.init),
            supportedPlanWeeks.contains(weeks) {
             restored.planWeeks = weeks
+        }
+        if let minutes = induction["available_minutes"]?.numberValue.map(Int.init),
+           (15...180).contains(minutes) {
+            restored.availableMinutes = minutes
+        }
+        if let assessment = induction["baseline_assessment"]?.objectValue,
+           let movement = assessment["movement"]?.objectValue {
+            restored.baselineAnswers = OnboardingBaselineAnswers(
+                activityPattern: assessment["activity_pattern"]?.stringValue ?? "",
+                cardiorespiratory: movement["cardiorespiratory"]?.stringValue ?? "",
+                upperStrength: movement["upper_strength"]?.stringValue ?? "",
+                lowerStrength: movement["lower_strength"]?.stringValue ?? "",
+                mobility: movement["mobility"]?.stringValue ?? ""
+            )
         }
         switch induction["goal"]?.stringValue {
         case "rebuild": restored.goal = "general"
@@ -161,6 +180,85 @@ enum TrainingInduction {
             case .answered(let input), .baselineOnly(let input): input.bodyBaseline
             case .skipped: nil
             }
+        }
+
+        var profileActivityLevel: ActivityLevel? {
+            switch self {
+            case .answered(let input), .baselineOnly(let input):
+                OnboardingActivityPattern(rawValue: input.baselineAnswers.activityPattern)?.activityLevel
+            case .skipped:
+                nil
+            }
+        }
+
+        func fitnessEvidenceDrafts(userID: UUID, importedAt: String) -> [FitnessEvidenceDraft] {
+            let input: Input
+            switch self {
+            case .answered(let value), .baselineOnly(let value): input = value
+            case .skipped: return []
+            }
+            guard let baseline = input.bodyBaseline else { return [] }
+            let measuredAt = input.startDate + #"T12:00:00Z"#
+            let owner = userID.uuidString.lowercased()
+            var drafts = [
+                bodyEvidenceDraft(
+                    userID: owner,
+                    metric: .bodyMass,
+                    value: baseline.weightKG,
+                    unit: "kg",
+                    measuredAt: measuredAt,
+                    importedAt: importedAt
+                ),
+                bodyEvidenceDraft(
+                    userID: owner,
+                    metric: .height,
+                    value: baseline.heightCM,
+                    unit: "cm",
+                    measuredAt: measuredAt,
+                    importedAt: importedAt
+                ),
+            ]
+            guard case .accepted(let assessment) = OnboardingBaselineAssessment.evaluate(
+                userID: owner,
+                measuredAt: measuredAt,
+                importedAt: importedAt,
+                answers: input.baselineAnswers
+            ) else { return drafts }
+            drafts.append(contentsOf: assessment.evidence)
+            return drafts
+        }
+
+        private func bodyEvidenceDraft(
+            userID: String,
+            metric: FitnessEvidenceMetric,
+            value: Double,
+            unit: String,
+            measuredAt: String,
+            importedAt: String
+        ) -> FitnessEvidenceDraft {
+            FitnessEvidenceDraft(
+                userID: userID,
+                metric: metric.rawValue,
+                value: value,
+                unit: unit,
+                source: FitnessEvidenceSource.structuredSelfReport.rawValue,
+                protocol: "apex_onboarding_body_v1",
+                device: nil,
+                measuredAt: measuredAt,
+                importedAt: importedAt,
+                requestedConfidence: FitnessEvidenceConfidence.low.rawValue,
+                metadata: .object([
+                    "assessment_version": .number(Double(OnboardingBaselineAssessment.version)),
+                    "display_precision": .string("entered_value"),
+                ]),
+                supersedesID: nil,
+                clientIdempotencyKey: OnboardingBaselineAssessment.stableEvidenceKey(
+                    userID: userID,
+                    metric: metric.rawValue,
+                    answer: String(value),
+                    measuredAt: measuredAt
+                )
+            )
         }
 
         private var dataConsent: DataConsent? {
@@ -829,14 +927,17 @@ enum TrainingInduction {
         )
     }
 
-    /// A recent operation stops loaded training until a clinician says otherwise;
+    /// A recent operation or acute exertional symptom stops loaded training until a clinician says otherwise;
     /// a long layoff, back pain or current joint discomfort softens the plan.
     static func assess(_ input: Input) -> Assessment {
-        if input.recentOperation {
+        if input.recentOperation || input.acuteSymptoms {
             return Assessment(
                 caution: "clearance",
                 sessionsPerWeek: 2,
-                reasons: ["Recent operation reported", "Loaded training waits for clinician clearance"]
+                reasons: [
+                    input.recentOperation ? "Recent operation reported" : "Exercise warning symptom reported",
+                    "Loaded training waits for clinician clearance",
+                ]
             )
         }
         let longLayoff = input.inactivity == "six_to_twelve_months" || input.inactivity == "over_one_year"
@@ -1329,6 +1430,7 @@ enum TrainingInduction {
             "pain_areas": .array(input.painAreas.map { .string($0) }),
             "recent_operation": .bool(input.recentOperation),
             "chronic_lower_back_pain": .bool(input.chronicLowerBackPain),
+            "acute_symptoms": .bool(input.acuteSymptoms),
             "sessions_per_week": .number(Double(count)),
             "goal": .string(input.goal),
             "caution": .string(assessment.caution),
@@ -1338,6 +1440,26 @@ enum TrainingInduction {
             "transition_day_ids": .array((dayIDs["transition"] ?? []).map { .string($0) }),
             "main_day_ids": .array((dayIDs["main"] ?? []).map { .string($0) }),
         ]
+        if (15...180).contains(input.availableMinutes) {
+            induction["available_minutes"] = .number(Double(input.availableMinutes))
+        }
+        let pulse = input.baselineAnswers
+        if OnboardingActivityPattern(rawValue: pulse.activityPattern) != nil,
+           OnboardingMovementAnswer(rawValue: pulse.cardiorespiratory) != nil,
+           OnboardingMovementAnswer(rawValue: pulse.upperStrength) != nil,
+           OnboardingMovementAnswer(rawValue: pulse.lowerStrength) != nil,
+           OnboardingMovementAnswer(rawValue: pulse.mobility) != nil {
+            induction["baseline_assessment"] = .object([
+                "version": .number(Double(OnboardingBaselineAssessment.version)),
+                "activity_pattern": .string(pulse.activityPattern),
+                "movement": .object([
+                    "cardiorespiratory": .string(pulse.cardiorespiratory),
+                    "upper_strength": .string(pulse.upperStrength),
+                    "lower_strength": .string(pulse.lowerStrength),
+                    "mobility": .string(pulse.mobility),
+                ]),
+            ])
+        }
         if count >= 6 { induction["hard_set_cap"] = .number(2) }
 
         return GeneratedPlan(

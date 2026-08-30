@@ -6,6 +6,65 @@ final class APEXSmokeUITests: XCTestCase {
         continueAfterFailure = false
     }
 
+    func testFirstRunDistillsAnswersIntoBroadStartingMapBeforePlanCreation() {
+        let app = XCUIApplication()
+        app.launchArguments = [
+            "-apex-preview", "induction", "-apex-ui-test-first-run", "-AppleLanguages", "(en)",
+        ]
+        app.launchEnvironment["APEX_UI_TESTING"] = "1"
+        app.launch()
+
+        app.buttons["induction-terms-consent"].tap()
+        app.buttons["induction-privacy-consent"].tap()
+        app.buttons["induction-next"].tap()
+
+        app.buttons["induction-baseline-sex-female"].tap()
+        app.textFields["induction-baseline-weight"].tap()
+        app.textFields["induction-baseline-weight"].typeText("64.5")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-height"].typeText("169")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-birthDay"].typeText("18")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-birthMonth"].typeText("3")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.textFields["induction-baseline-birthYear"].typeText("1994")
+        app.buttons["induction-baseline-keyboard-next"].tap()
+        app.buttons["induction-next"].tap()
+
+        app.buttons["induction-choice-general"].tap()
+        app.buttons["induction-next"].tap()
+        app.buttons["induction-choice-mixed_day"].tap()
+        app.buttons["induction-choice-six_to_twelve_months"].tap()
+        app.buttons["induction-next"].tap()
+
+        app.buttons["induction-movement-cardiorespiratory-capable"].tap()
+        app.buttons["induction-movement-upper-strength"].tap()
+        app.buttons["induction-movement-upper_strength-developing"].tap()
+        app.buttons["induction-movement-lower-strength"].tap()
+        app.buttons["induction-movement-lower_strength-strong"].tap()
+        app.buttons["induction-movement-mobility"].tap()
+        app.buttons["induction-movement-mobility-not_tested"].tap()
+        app.buttons["induction-next"].tap()
+
+        app.buttons["induction-choice-home"].tap()
+        let timeChoice = app.buttons["induction-time-45"]
+        XCTAssertTrue(scrollUntilVisible(timeChoice, in: app, attempts: 5))
+        timeChoice.tap()
+        app.buttons["induction-next"].tap()
+
+        let noConcerns = app.buttons["induction-health-none"]
+        XCTAssertTrue(scrollUntilVisible(noConcerns, in: app, attempts: 8))
+        noConcerns.tap()
+        app.buttons["induction-next"].tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["induction-starting-map"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.descendants(matching: .any)["induction-starting-overall"].exists)
+        XCTAssertTrue(app.staticTexts["Building your baseline"].exists)
+        XCTAssertEqual(app.buttons["induction-next"].label, "Build my plan")
+        capture("distilled-onboarding-starting-map")
+    }
+
     func testInductionRequiresConsentBodyAndGoalBeforeSkipAndNoPlanAccountCanReturnToTheBuilder() {
         let app = XCUIApplication()
         app.launchArguments = [
@@ -607,7 +666,10 @@ final class APEXSmokeUITests: XCTestCase {
         briefing.tap()
 
         let sessionContext = app.descendants(matching: .any)["session-briefing-context"]
-        XCTAssertTrue(scrollUntilVisible(sessionContext, in: app, attempts: 12))
+        XCTAssertTrue(
+            scrollUntilVisible(sessionContext, in: app, attempts: 24),
+            "the full-suite runner must reach context beneath long movement knowledge"
+        )
 
         let lessonOpeners = [
             "Strength and bodyweight work improve",

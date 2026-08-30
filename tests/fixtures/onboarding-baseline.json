@@ -1,0 +1,98 @@
+{
+  "version": 1,
+  "user_id": "11111111-2222-3333-4444-555555555555",
+  "measured_at": "2026-08-30T12:00:00Z",
+  "imported_at": "2026-08-30T12:05:00Z",
+  "scenarios": [
+    {
+      "name": "honest unknown baseline",
+      "input": {
+        "activity_pattern": "not_sure",
+        "cardiorespiratory": "not_tested",
+        "upper_strength": "not_tested",
+        "lower_strength": "not_tested",
+        "mobility": "not_tested"
+      },
+      "expected": {
+        "status": "accepted",
+        "activity_level": "sedentary",
+        "bands": {
+          "cardiorespiratory": "building_baseline",
+          "upper_strength": "building_baseline",
+          "lower_strength": "building_baseline",
+          "mobility": "building_baseline",
+          "overall_fitness": "building_baseline"
+        },
+        "evidence": []
+      }
+    },
+    {
+      "name": "ordinary provisional baseline",
+      "input": {
+        "activity_pattern": "mixed_day",
+        "cardiorespiratory": "developing",
+        "upper_strength": "capable",
+        "lower_strength": "developing",
+        "mobility": "capable"
+      },
+      "expected": {
+        "status": "accepted",
+        "activity_level": "light",
+        "bands": {
+          "cardiorespiratory": "developing",
+          "upper_strength": "capable",
+          "lower_strength": "developing",
+          "mobility": "capable",
+          "overall_fitness": "building_baseline"
+        },
+        "evidence": [
+          { "metric": "cardio_capacity_score", "value": 47, "lower_bound": 40, "upper_bound": 54, "band": "developing" },
+          { "metric": "upper_body_strength_score", "value": 62, "lower_bound": 55, "upper_bound": 69, "band": "capable" },
+          { "metric": "lower_body_strength_score", "value": 47, "lower_bound": 40, "upper_bound": 54, "band": "developing" },
+          { "metric": "flexibility_score", "value": 62, "lower_bound": 55, "upper_bound": 69, "band": "capable" }
+        ]
+      }
+    },
+    {
+      "name": "strong self report stays broad",
+      "input": {
+        "activity_pattern": "physical_work",
+        "cardiorespiratory": "strong",
+        "upper_strength": "strong",
+        "lower_strength": "strong",
+        "mobility": "strong"
+      },
+      "expected": {
+        "status": "accepted",
+        "activity_level": "very",
+        "bands": {
+          "cardiorespiratory": "strong",
+          "upper_strength": "strong",
+          "lower_strength": "strong",
+          "mobility": "strong",
+          "overall_fitness": "building_baseline"
+        },
+        "evidence": [
+          { "metric": "cardio_capacity_score", "value": 77, "lower_bound": 70, "upper_bound": 84, "band": "strong" },
+          { "metric": "upper_body_strength_score", "value": 77, "lower_bound": 70, "upper_bound": 84, "band": "strong" },
+          { "metric": "lower_body_strength_score", "value": 77, "lower_bound": 70, "upper_bound": 84, "band": "strong" },
+          { "metric": "flexibility_score", "value": 77, "lower_bound": 70, "upper_bound": 84, "band": "strong" }
+        ]
+      }
+    },
+    {
+      "name": "unsupported answer fails closed",
+      "input": {
+        "activity_pattern": "mixed_day",
+        "cardiorespiratory": "developing",
+        "upper_strength": "elite",
+        "lower_strength": "developing",
+        "mobility": "capable"
+      },
+      "expected": {
+        "status": "rejected",
+        "reason": "unsupported_answer"
+      }
+    }
+  ]
+}

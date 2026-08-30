@@ -23,6 +23,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
     let weightKG: Double?
     let heightCM: Double?
     let birthdate: String?
+    let activityLevel: ActivityLevel?
     let profileKind = ProfileIntegrityPolicy.Kind.standard
     let displayName = "APEX Athlete"
     let seedVersion = SeedVersion.current
@@ -30,7 +31,8 @@ struct ProfileCreationRequest: Encodable, Sendable {
     init(
         userID: UUID,
         goal: String?,
-        baseline: TrainingInduction.BodyBaseline? = nil
+        baseline: TrainingInduction.BodyBaseline? = nil,
+        activityLevel: ActivityLevel? = nil
     ) {
         /* One account owns one profile. Reusing the authenticated UUID makes
            retries deterministic and satisfies the schema's non-null primary
@@ -42,6 +44,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
         weightKG = baseline?.weightKG
         heightCM = baseline?.heightCM
         birthdate = baseline?.birthdate
+        self.activityLevel = activityLevel
     }
 
     enum CodingKeys: String, CodingKey {
@@ -52,6 +55,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
         case weightKG = "weight_kg"
         case heightCM = "height_cm"
         case birthdate
+        case activityLevel = "activity_level"
         case profileKind = "profile_kind"
         case displayName = "display_name"
         case seedVersion = "seed_version"
@@ -276,7 +280,8 @@ actor SupabaseService {
     func createProfileIfNeeded(
         userID: UUID,
         goal: String?,
-        baseline: TrainingInduction.BodyBaseline? = nil
+        baseline: TrainingInduction.BodyBaseline? = nil,
+        activityLevel: ActivityLevel? = nil
     ) async throws -> Profile {
         assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
@@ -288,7 +293,8 @@ actor SupabaseService {
             .insert(ProfileCreationRequest(
                 userID: userID,
                 goal: goal,
-                baseline: baseline
+                baseline: baseline,
+                activityLevel: activityLevel
             ))
             .select()
             .execute().value

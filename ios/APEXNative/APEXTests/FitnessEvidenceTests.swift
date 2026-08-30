@@ -106,3 +106,122 @@ final class FitnessEvidenceTests: XCTestCase {
         return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
     }
 }
+
+final class OnboardingBaselineTests: XCTestCase {
+    func testSharedBroadBandScenarios() throws {
+        let fixture: OnboardingBaselineFixture = try decodeOnboardingFixture()
+        for scenario in fixture.scenarios {
+            let result = OnboardingBaselineAssessment.evaluate(
+                userID: fixture.userID,
+                measuredAt: fixture.measuredAt,
+                importedAt: fixture.importedAt,
+                answers: scenario.input
+            )
+            XCTAssertEqual(
+                OnboardingBaselineAssessment.summarize(result),
+                scenario.expected,
+                "Scenario failed: \(scenario.name)"
+            )
+        }
+    }
+
+    func testOnboardingEvidenceNeverClaimsPrecisionOrOverallFitness() throws {
+        let fixture: OnboardingBaselineFixture = try decodeOnboardingFixture()
+        let scenario = fixture.scenarios[1]
+        let result = OnboardingBaselineAssessment.evaluate(
+            userID: fixture.userID,
+            measuredAt: fixture.measuredAt,
+            importedAt: fixture.importedAt,
+            answers: scenario.input
+        )
+        guard case .accepted(let evaluation) = result else {
+            return XCTFail("Expected accepted onboarding baseline")
+        }
+        XCTAssertEqual(evaluation.bands.overallFitness, .buildingBaseline)
+        XCTAssertEqual(OnboardingBaselineAssessment.movementDomains.count, 4)
+        for draft in evaluation.evidence {
+            XCTAssertEqual(draft.source, FitnessEvidenceSource.structuredSelfReport.rawValue)
+            XCTAssertEqual(draft.requestedConfidence, FitnessEvidenceConfidence.low.rawValue)
+            XCTAssertEqual(draft.metadata.objectValue?["display_precision"], .string("band_only"))
+            XCTAssertTrue(draft.clientIdempotencyKey.hasPrefix("onboarding-v1:"))
+        }
+    }
+
+    func testAnsweredSubmissionPersistsBodyAndMovementEvidenceDeterministically() throws {
+        var input = TrainingInduction.Input(startDate: "2026-08-30")
+        input.bodyBaseline = TrainingInduction.BodyBaseline(
+            sex: "female",
+            weightKG: 68,
+            heightCM: 171,
+            birthdate: "1990-02-03"
+        )
+        input.baselineAnswers = OnboardingBaselineAnswers(
+            activityPattern: "mixed_day",
+            cardiorespiratory: "developing",
+            upperStrength: "capable",
+            lowerStrength: "developing",
+            mobility: "not_tested"
+        )
+        let submission = TrainingInduction.Submission.answered(input)
+        XCTAssertEqual(submission.profileActivityLevel, .light)
+
+        let owner = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        let first = submission.fitnessEvidenceDrafts(
+            userID: owner,
+            importedAt: "2026-08-30T12:05:00Z"
+        )
+        let second = submission.fitnessEvidenceDrafts(
+            userID: owner,
+            importedAt: "2026-08-30T12:05:00Z"
+        )
+        XCTAssertEqual(first, second)
+        XCTAssertEqual(first.map(\.metric), [
+            "body_mass", "height", "cardio_capacity_score",
+            "upper_body_strength_score", "lower_body_strength_score",
+        ])
+        for draft in first {
+            guard case .accepted(let evidence) = FitnessEvidenceNormalizer.normalize(
+                draft,
+                admission: .user,
+                referenceNow: "2026-08-30T12:05:00Z"
+            ) else { return XCTFail("Onboarding generated invalid evidence") }
+            XCTAssertEqual(evidence.confidence, .low)
+            XCTAssertEqual(evidence.source, .structuredSelfReport)
+        }
+    }
+
+    func testPlanMetadataRoundTripsAssessmentTimeAndWarningSymptoms() throws {
+        let owner = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        var input = TrainingInduction.Input(startDate: "2026-08-30")
+        input.availableMinutes = 45
+        input.acuteSymptoms = true
+        input.baselineAnswers = OnboardingBaselineAnswers(
+            activityPattern: "on_feet",
+            cardiorespiratory: "capable",
+            upperStrength: "developing",
+            lowerStrength: "capable",
+            mobility: "not_tested"
+        )
+        let generated = TrainingInduction.generate(
+            userID: owner,
+            input: input,
+            completedAt: "2026-08-30T12:05:00Z"
+        )
+        let restored = TrainingInduction.input(
+            from: generated.induction,
+            fallbackStartDate: input.startDate
+        )
+        XCTAssertEqual(restored.availableMinutes, 45)
+        XCTAssertEqual(restored.acuteSymptoms, true)
+        XCTAssertEqual(restored.baselineAnswers, input.baselineAnswers)
+        XCTAssertEqual(TrainingInduction.assess(restored).caution, "clearance")
+    }
+
+    private func decodeOnboardingFixture<T: Decodable>() throws -> T {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(
+            forResource: "onboarding-baseline",
+            withExtension: "json"
+        ))
+        return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+    }
+}

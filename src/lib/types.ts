@@ -528,6 +528,7 @@ export interface TrainingInductionProfile {
   pain_areas: TrainingPainArea[]
   recent_operation: boolean
   chronic_lower_back_pain: boolean
+  acute_symptoms?: boolean
   sessions_per_week: TrainingSessionsPerWeek
   goal: TrainingGoal
   caution: TrainingPlanCaution
@@ -536,6 +537,17 @@ export interface TrainingInductionProfile {
   transition_day_ids: string[]
   main_day_ids: string[]
   generation_revision?: number
+  available_minutes?: number
+  baseline_assessment?: {
+    version: 1
+    activity_pattern: string
+    movement: {
+      cardiorespiratory: string
+      upper_strength: string
+      lower_strength: string
+      mobility: string
+    }
+  }
 }
 
 export interface JointCheckin {

@@ -478,11 +478,13 @@ final class AppSession {
                 let profile = try await service.createProfileIfNeeded(
                     userID: userID,
                     goal: submission.profileGoal,
-                    baseline: submission.profileBaseline
+                    baseline: submission.profileBaseline,
+                    activityLevel: submission.profileActivityLevel
                 )
                 guard accountGeneration.accepts(accountToken) else { return }
                 data.profile = profile
             }
+            await persistInductionEvidence(submission, userID: userID, accountToken: accountToken)
             await saveLocalSnapshot()
             guard accountGeneration.accepts(accountToken) else { return }
             do { try await refreshDashboard(expectedUserID: userID) }
@@ -497,6 +499,34 @@ final class AppSession {
         } catch {
             guard accountGeneration.accepts(accountToken) else { return }
             alertMessage = error.localizedDescription
+        }
+    }
+
+    private func persistInductionEvidence(
+        _ submission: TrainingInduction.Submission,
+        userID: UUID,
+        accountToken: UInt64
+    ) async {
+        let importedAt = ISO8601DateFormatter().string(from: .now)
+        for draft in submission.fitnessEvidenceDrafts(userID: userID, importedAt: importedAt) {
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(userID) == userID,
+                  case .accepted(let evidence) = FitnessEvidenceNormalizer.normalize(
+                    draft,
+                    admission: .user,
+                    referenceNow: importedAt
+                  ) else { return }
+            do {
+                try await recordFitnessEvidence(evidence)
+            } catch is CancellationError {
+                return
+            } catch {
+                // Raw answers remain in account-owned induction metadata and
+                // transient RPC failures are already queued by the ledger.
+                // A baseline sync issue must never strand a new account after
+                // its profile and programme have been committed.
+                continue
+            }
         }
     }
 
@@ -521,6 +551,9 @@ final class AppSession {
             data.profile?.weightKG = baseline.weightKG
             data.profile?.heightCM = baseline.heightCM
             data.profile?.birthdate = baseline.birthdate
+        }
+        if let activityLevel = submission.profileActivityLevel {
+            data.profile?.activityLevel = activityLevel
         }
         data.settings = settings
         data.programs = plan?.programs ?? []

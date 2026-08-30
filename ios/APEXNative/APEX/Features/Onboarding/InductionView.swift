@@ -2,7 +2,7 @@ import SwiftUI
 
 /// What a new account is asked before anything is generated for it.
 ///
-/// Nine short steps, one per screen, because a single long form is where people
+/// Consent plus seven short stages, one per screen, because a single long form is where people
 /// give up. Only what changes the plan is asked: nothing here is collected
 /// because it would be nice to have.
 struct InductionView: View {
@@ -27,11 +27,15 @@ struct InductionView: View {
     @State private var showDeclineExplanation = false
     @FocusState private var baselineField: BaselineField?
     @State private var pendingHighFrequencyDays: Int?
+    @State private var pulsePage = 0
+    @State private var showEquipment = false
+    @State private var showEstimateDetails = false
     /* Drives the per-question entrance. Keyed on the step so each question
        assembles itself rather than the whole screen blinking. */
     @State private var shown = false
 
-    private let stepCount = 9
+    @ScaledMetric(relativeTo: .body) private var pulseHeight = 470
+    private let stepCount = 8
 
     var body: some View {
         ZStack {
@@ -193,6 +197,13 @@ struct InductionView: View {
         case 0: termsAccepted && privacyAccepted
         case 1: bodyBaseline?.isValid == true
         case 2: ["general", "muscle", "fat_loss", "strength", "endurance"].contains(input.goal)
+        case 3: OnboardingActivityPattern(rawValue: input.baselineAnswers.activityPattern) != nil
+        case 4:
+            OnboardingMovementAnswer(rawValue: input.baselineAnswers.cardiorespiratory) != nil
+                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.upperStrength) != nil
+                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.lowerStrength) != nil
+                && OnboardingMovementAnswer(rawValue: input.baselineAnswers.mobility) != nil
+        case 5: (15...180).contains(input.availableMinutes)
         default: true
         }
     }
@@ -204,12 +215,11 @@ struct InductionView: View {
         case 0: language.text("Your data. Your decision.")
         case 1: language.text("Build your starting point")
         case 2: language.text("What are you training for?")
-        case 3: language.text("When did you last train regularly?")
-        case 4: language.text("Where will you train?")
-        case 5: language.text("What do you have to train with?")
-        case 6: language.text("How many days a week?")
-        case 7: language.text("How long should your plan be?")
-        default: language.text("Anything we should work around?")
+        case 3: language.text("Your normal week")
+        case 4: language.text("Your movement pulse")
+        case 5: language.text("Your setup")
+        case 6: language.text("Train safely")
+        default: language.text("Your starting map")
         }
     }
 
@@ -217,10 +227,11 @@ struct InductionView: View {
         switch step {
         case 0: language.text("APEX needs clear permission before it processes body, nutrition or training data.")
         case 1: language.text("These measured facts calculate your starting calories and macros. You can change them later.")
-        case 3: language.text("A long gap is not a problem. It only changes where we start.")
-        case 6: language.text("Pick what you will actually do on a busy week, not your best one.")
-        case 7: language.text("Choose a realistic horizon. APEX gives the plan a real end date instead of repeating it forever.")
-        case 8: language.text("This decides what gets left out. Nothing here is shared with anyone.")
+        case 3: language.text("Choose the week you usually live, not your most active one.")
+        case 4: language.text("Four quick, observable signals give APEX a broad starting range. There is no penalty for not knowing.")
+        case 5: language.text("Pick what you can reliably use on a busy week. You can change it later.")
+        case 6: language.text("This decides what gets adapted or paused. Nothing here is shared with anyone.")
+        case 7: language.text("Broad early bands, never invented precision. You can sharpen them later from your Avatar.")
         default: nil
         }
     }
@@ -239,27 +250,11 @@ struct InductionView: View {
                  ("endurance", "Build endurance")],
                 selection: $input.goal
             )
-        case 3:
-            choices(
-                [("under_three_months", "I train now, or stopped recently"),
-                 ("three_to_six_months", "Three to six months ago"),
-                 ("six_to_twelve_months", "Six to twelve months ago"),
-                 ("over_one_year", "Over a year ago")],
-                selection: $input.inactivity
-            )
-        case 4:
-            choices(
-                [("gym", "A gym"), ("home", "At home"), ("outdoors", "Outdoors")],
-                selection: $input.venue
-            )
-        case 5:
-            equipment
-        case 6:
-            sessions
-        case 7:
-            duration
-        default:
-            health
+        case 3: normalWeek
+        case 4: movementPulse
+        case 5: setup
+        case 6: health
+        default: startingMap
         }
     }
 
@@ -518,8 +513,334 @@ struct InductionView: View {
         return baseline.isValid ? baseline : nil
     }
 
+    private var normalWeek: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            onboardingSection("Most days, I am…")
+            choices(
+                [("mostly_seated", "Mostly seated, with short walks"),
+                 ("mixed_day", "A mix of sitting and moving"),
+                 ("on_feet", "On my feet for much of the day"),
+                 ("physical_work", "Doing physically demanding work"),
+                 ("not_sure", "Not sure")],
+                selection: $input.baselineAnswers.activityPattern
+            )
+
+            onboardingSection("When did you last train regularly?")
+            choices(
+                [("under_three_months", "I train now, or stopped recently"),
+                 ("three_to_six_months", "Three to six months ago"),
+                 ("six_to_twelve_months", "Six to twelve months ago"),
+                 ("over_one_year", "Over a year ago")],
+                selection: $input.inactivity
+            )
+        }
+    }
+
+    private var movementPulse: some View {
+        VStack(spacing: 14) {
+            LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
+                ForEach(Array(OnboardingBaselineAssessment.movementDomains.enumerated()), id: \.offset) { index, domain in
+                    Button {
+                        withAnimation(reduceMotion ? nil : .snappy) { pulsePage = index }
+                    } label: {
+                        Text(movementDomainTitle(domain))
+                            .font(APEXFont.body(12, weight: pulsePage == index ? .bold : .semibold))
+                            .lineLimit(2)
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                            .background(
+                                RoundedRectangle(cornerRadius: 14, style: .continuous)
+                                    .fill(pulsePage == index ? APEXColor.violet.opacity(0.16) : Color.white.opacity(0.55))
+                            )
+                    }
+                    .buttonStyle(.plain)
+                    .accessibilityIdentifier(movementIdentifier(domain))
+                }
+            }
+
+            TabView(selection: $pulsePage) {
+                ForEach(Array(OnboardingBaselineAssessment.movementDomains.enumerated()), id: \.offset) { index, domain in
+                    movementQuestion(domain)
+                        .tag(index)
+                        .padding(.horizontal, 2)
+                }
+            }
+            .tabViewStyle(.page(indexDisplayMode: .never))
+            .frame(height: pulseHeight)
+            .accessibilityHint(language.text("Swipe between the four movement questions."))
+        }
+    }
+
+    private func movementQuestion(_ domain: OnboardingMovementDomain) -> some View {
+        let options = movementOptions(domain)
+        let selection = movementBinding(domain)
+
+        return VStack(alignment: .leading, spacing: 10) {
+            Text(movementQuestionTitle(domain))
+                .font(APEXFont.body(17, weight: .bold))
+                .fixedSize(horizontal: false, vertical: true)
+            VStack(spacing: 9) {
+                ForEach(Array(options.enumerated()), id: \.element.0) { position, option in
+                    selectRow(
+                        label: language.text(option.1),
+                        selected: selection.wrappedValue == option.0,
+                        index: position
+                    ) {
+                        selection.wrappedValue = option.0
+                    }
+                    .accessibilityIdentifier("induction-movement-\(domain.rawValue)-\(option.0)")
+                }
+            }
+        }
+        .frame(maxHeight: .infinity, alignment: .top)
+    }
+
+    private func movementBinding(_ domain: OnboardingMovementDomain) -> Binding<String> {
+        Binding(
+            get: {
+                switch domain {
+                case .cardiorespiratory: input.baselineAnswers.cardiorespiratory
+                case .upperStrength: input.baselineAnswers.upperStrength
+                case .lowerStrength: input.baselineAnswers.lowerStrength
+                case .mobility: input.baselineAnswers.mobility
+                }
+            },
+            set: { value in
+                switch domain {
+                case .cardiorespiratory: input.baselineAnswers.cardiorespiratory = value
+                case .upperStrength: input.baselineAnswers.upperStrength = value
+                case .lowerStrength: input.baselineAnswers.lowerStrength = value
+                case .mobility: input.baselineAnswers.mobility = value
+                }
+            }
+        )
+    }
+
+    private func movementDomainTitle(_ domain: OnboardingMovementDomain) -> String {
+        switch domain {
+        case .cardiorespiratory: language.text("Stamina")
+        case .upperStrength: language.text("Upper body")
+        case .lowerStrength: language.text("Lower body")
+        case .mobility: language.text("Mobility")
+        }
+    }
+
+    private func movementIdentifier(_ domain: OnboardingMovementDomain) -> String {
+        switch domain {
+        case .cardiorespiratory: "induction-movement-cardiorespiratory"
+        case .upperStrength: "induction-movement-upper-strength"
+        case .lowerStrength: "induction-movement-lower-strength"
+        case .mobility: "induction-movement-mobility"
+        }
+    }
+
+    private func movementQuestionTitle(_ domain: OnboardingMovementDomain) -> String {
+        switch domain {
+        case .cardiorespiratory: language.text("Which feels most like your stamina today?")
+        case .upperStrength: language.text("Which feels most like your upper-body strength today?")
+        case .lowerStrength: language.text("Which feels most like your lower-body strength today?")
+        case .mobility: language.text("Which feels most like your comfortable range today?")
+        }
+    }
+
+    private func movementOptions(_ domain: OnboardingMovementDomain) -> [(String, String)] {
+        let options: [String]
+        switch domain {
+        case .cardiorespiratory:
+            options = [
+                "I need a pause after a few minutes of brisk movement.",
+                "I can walk briskly for about 20 minutes without stopping.",
+                "I can jog, cycle or row steadily for about 20 minutes.",
+                "I train sustained or interval cardio comfortably.",
+            ]
+        case .upperStrength:
+            options = [
+                "Pushing or pulling my body weight feels difficult.",
+                "I can do wall or raised push-ups with control.",
+                "I can do several floor push-ups or comparable rows.",
+                "I regularly train challenging presses, pulls or pull-ups.",
+            ]
+        case .lowerStrength:
+            options = [
+                "Repeated chair stands or stairs tire my legs quickly.",
+                "I can squat to a chair and climb stairs comfortably.",
+                "I can do controlled deep squats or lunges.",
+                "I regularly train challenging squats, hinges or split squats.",
+            ]
+        case .mobility:
+            options = [
+                "Everyday movement feels restricted.",
+                "I move comfortably through normal daily ranges.",
+                "I comfortably reach deep squat and hip-hinge positions.",
+                "I train deep ranges such as full splits or advanced mobility work.",
+            ]
+        }
+        return zip(["foundation", "developing", "capable", "strong"], options)
+            .map { ($0.0, $0.1) }
+            + [("not_tested", "I haven't tested this")]
+    }
+
+    private var setup: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            onboardingSection("Where will you train?")
+            choices(
+                [("gym", "A gym"), ("home", "At home"), ("outdoors", "Outdoors")],
+                selection: $input.venue
+            )
+
+            onboardingSection("How many training days fit a normal week?")
+            Stepper(value: Binding(
+                get: { input.sessionsPerWeek },
+                set: { count in
+                    input.sessionsPerWeek = count
+                    if TrainingInduction.highFrequencyAdvisory(for: count) != nil {
+                        pendingHighFrequencyDays = count
+                    }
+                }
+            ), in: 2...7) {
+                Text(language.format("%d days a week", input.sessionsPerWeek))
+                    .font(APEXFont.body(15, weight: .semibold))
+            }
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+            .accessibilityIdentifier("induction-sessions-stepper")
+
+            onboardingSection("How much time fits most sessions?")
+            VStack(spacing: 9) {
+                ForEach([(30, "About 30 minutes"), (45, "About 45 minutes"),
+                         (60, "About 60 minutes"), (75, "75 minutes or more")], id: \.0) { minutes, label in
+                    selectRow(
+                        label: language.text(label),
+                        selected: input.availableMinutes == minutes
+                    ) { input.availableMinutes = minutes }
+                    .accessibilityIdentifier("induction-time-\(minutes)")
+                }
+            }
+
+            DisclosureGroup(isExpanded: $showEquipment) {
+                equipment.padding(.top, 8)
+            } label: {
+                Text(language.text("Choose equipment (optional)"))
+                    .font(APEXFont.body(15, weight: .semibold))
+            }
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+            DisclosureGroup {
+                duration.padding(.top, 8)
+            } label: {
+                Text(language.text("Plan horizon") + " · " + planHorizonLabel)
+                    .font(APEXFont.body(15, weight: .semibold))
+            }
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+    }
+
+    private var planHorizonLabel: String {
+        input.planWeeks == 26
+            ? language.text("6 months")
+            : language.format("%d weeks", input.planWeeks)
+    }
+
+    private var startingMap: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            startingMapRow("Stamina", band: startingBands.cardiorespiratory)
+            startingMapRow("Upper body strength", band: startingBands.upperStrength)
+            startingMapRow("Lower body strength", band: startingBands.lowerStrength)
+            startingMapRow("Mobility", band: startingBands.mobility)
+            startingMapRow("Overall Fitness", band: .buildingBaseline)
+                .accessibilityIdentifier("induction-starting-overall")
+
+            if input.recentOperation || input.acuteSymptoms {
+                Label(
+                    language.text("Your plan will stay in clearance mode until a qualified clinician says loaded training is appropriate."),
+                    systemImage: "cross.case.fill"
+                )
+                .font(APEXFont.body(13, weight: .semibold))
+                .foregroundStyle(.red)
+                .padding(14)
+                .background(.red.opacity(0.08), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+            }
+
+            DisclosureGroup(
+                language.text("How APEX estimated this"),
+                isExpanded: $showEstimateDetails
+            ) {
+                Text(language.text("These are broad early bands from your answers, not measured test results. Self-report stays low confidence. Overall Fitness remains Building your baseline until APEX has enough region-specific evidence."))
+                    .font(APEXFont.body(13))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(.top, 8)
+            }
+            .font(APEXFont.body(15, weight: .semibold))
+            .padding(16)
+            .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        }
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("induction-starting-map")
+    }
+
+    private var startingBands: OnboardingBaselineBands {
+        let measuredAt = input.startDate + #"T12:00:00Z"#
+        let result = OnboardingBaselineAssessment.evaluate(
+            userID: "starting-map",
+            measuredAt: measuredAt,
+            importedAt: measuredAt,
+            answers: input.baselineAnswers
+        )
+        guard case .accepted(let evaluation) = result else {
+            return OnboardingBaselineBands(
+                cardiorespiratory: .buildingBaseline,
+                upperStrength: .buildingBaseline,
+                lowerStrength: .buildingBaseline,
+                mobility: .buildingBaseline,
+                overallFitness: .buildingBaseline
+            )
+        }
+        return evaluation.bands
+    }
+
+    private func startingMapRow(_ title: String, band: OnboardingBaselineBand) -> some View {
+        HStack(spacing: 12) {
+            Text(language.text(title))
+                .font(APEXFont.body(15, weight: .semibold))
+                .fixedSize(horizontal: false, vertical: true)
+            Spacer(minLength: 8)
+            Text(language.text(bandTitle(band)))
+                .font(APEXFont.body(12, weight: .bold))
+                .multilineTextAlignment(.trailing)
+                .fixedSize(horizontal: false, vertical: true)
+                .padding(.horizontal, 10)
+                .padding(.vertical, 7)
+                .background(APEXColor.violet.opacity(0.12), in: Capsule())
+        }
+        .padding(16)
+        .background(.ultraThinMaterial, in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+    }
+
+    private func bandTitle(_ band: OnboardingBaselineBand) -> String {
+        switch band {
+        case .buildingBaseline: "Building your baseline"
+        case .foundation: "Foundation"
+        case .developing: "Developing"
+        case .capable: "Capable"
+        case .strong: "Strong signal"
+        }
+    }
+
+    private func onboardingSection(_ title: String) -> some View {
+        Text(language.text(title))
+            .font(APEXFont.body(13, weight: .bold))
+            .foregroundStyle(APEXColor.secondaryInk)
+            .fixedSize(horizontal: false, vertical: true)
+    }
+
     private var equipment: some View {
         VStack(spacing: 9) {
+            selectRow(
+                label: language.text("No equipment"),
+                selected: input.equipment.isEmpty
+            ) { input.equipment.removeAll() }
             ForEach(Array(TrainingInduction.equipmentCatalog.enumerated()), id: \.element.id) { position, option in
                 selectRow(
                     label: language.text(option.label),
@@ -577,6 +898,10 @@ struct InductionView: View {
             toggleRow(
                 label: language.text("I have ongoing lower-back pain"),
                 isOn: $input.chronicLowerBackPain
+            )
+            toggleRow(
+                label: language.text("Exercise has caused chest pain, faintness or unusual breathlessness"),
+                isOn: $input.acuteSymptoms
             )
             Text(language.text("Any joints currently sore?"))
                 .font(APEXFont.body(13, weight: .semibold))
@@ -768,11 +1093,10 @@ private struct InductionIllustration: View {
         case 1: ("figure.stand", "heart.text.square.fill")
         case 2: ("scope", "figure.run")
         case 3: ("clock.arrow.circlepath", "figure.walk")
-        case 4: ("house.fill", "location.fill")
-        case 5: ("dumbbell.fill", "checkmark.seal.fill")
-        case 6: ("calendar", "figure.strengthtraining.traditional")
-        case 7: ("calendar.badge.clock", "flag.checkered")
-        default: ("figure.arms.open", "cross.case.fill")
+        case 4: ("waveform.path.ecg", "figure.run")
+        case 5: ("dumbbell.fill", "house.fill")
+        case 6: ("cross.case.fill", "figure.arms.open")
+        default: ("map.fill", "sparkles")
         }
     }
 
@@ -781,8 +1105,7 @@ private struct InductionIllustration: View {
         case 0, 2, 7: APEXColor.violet
         case 1, 3, 6: APEXColor.cyan
         case 4: APEXColor.green
-        case 5: APEXColor.amberDeep
-        default: .red
+        default: APEXColor.amberDeep
         }
     }
 

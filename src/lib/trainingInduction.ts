@@ -79,9 +79,21 @@ export interface TrainingInductionInput {
   pain_areas: TrainingPainArea[]
   recent_operation: boolean
   chronic_lower_back_pain: boolean
+  acute_symptoms?: boolean
   sessions_per_week: TrainingSessionsPerWeek
   plan_weeks: TrainingPlanWeeks
+  available_minutes?: number
   goal: TrainingGoal
+  baseline_assessment?: {
+    version: 1
+    activity_pattern: string
+    movement: {
+      cardiorespiratory: string
+      upper_strength: string
+      lower_strength: string
+      mobility: string
+    }
+  }
 }
 
 export const TRAINING_PLAN_WEEK_OPTIONS: readonly TrainingPlanWeeks[] = [4, 8, 12, 26]
@@ -142,6 +154,11 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
   const rawSessions = typeof raw.sessions_per_week === 'number' && Number.isFinite(raw.sessions_per_week)
     ? Math.trunc(raw.sessions_per_week)
     : 3
+  const baselineAssessment = jsonRecord(raw.baseline_assessment)
+  const movement = jsonRecord(baselineAssessment?.movement)
+  const availableMinutes = typeof raw.available_minutes === 'number' && Number.isFinite(raw.available_minutes)
+    ? Math.trunc(raw.available_minutes)
+    : undefined
   return {
     start_date: typeof raw.start_date === 'string' && raw.start_date ? raw.start_date : fallbackStartDate,
     inactivity: typeof raw.inactivity === 'string'
@@ -154,9 +171,29 @@ export function trainingInputFromProfile(value: unknown, fallbackStartDate: stri
     ) as TrainingPainArea[],
     recent_operation: raw.recent_operation === true,
     chronic_lower_back_pain: raw.chronic_lower_back_pain === true,
+    acute_symptoms: raw.acute_symptoms === true,
     sessions_per_week: Math.min(7, Math.max(2, rawSessions)) as TrainingSessionsPerWeek,
     plan_weeks: normalizedPlanWeeks(raw.plan_weeks),
+    ...(availableMinutes != null && availableMinutes >= 15 && availableMinutes <= 180
+      ? { available_minutes: availableMinutes }
+      : {}),
     goal: typeof raw.goal === 'string' ? goalMap[raw.goal] ?? 'rebuild' : 'rebuild',
+    ...(baselineAssessment && movement
+      ? {
+        baseline_assessment: {
+          version: 1 as const,
+          activity_pattern: typeof baselineAssessment.activity_pattern === 'string'
+            ? baselineAssessment.activity_pattern
+            : '',
+          movement: {
+            cardiorespiratory: typeof movement.cardiorespiratory === 'string' ? movement.cardiorespiratory : '',
+            upper_strength: typeof movement.upper_strength === 'string' ? movement.upper_strength : '',
+            lower_strength: typeof movement.lower_strength === 'string' ? movement.lower_strength : '',
+            mobility: typeof movement.mobility === 'string' ? movement.mobility : '',
+          },
+        },
+      }
+      : {}),
   }
 }
 
@@ -174,11 +211,14 @@ export function missingProfileTrainingGoal(
 }
 
 export function assessTrainingInput(input: TrainingInductionInput): TrainingAssessment {
-  if (input.recent_operation) {
+  if (input.recent_operation || input.acute_symptoms === true) {
     return {
       caution: 'clearance',
       sessions_per_week: 2,
-      reasons: ['Recent operation reported', 'Loaded training waits for clinician clearance'],
+      reasons: [
+        input.recent_operation ? 'Recent operation reported' : 'Exercise warning symptom reported',
+        'Loaded training waits for clinician clearance',
+      ],
     }
   }
   const longLayoff = input.inactivity === 'six_to_twelve_months' || input.inactivity === 'over_one_year'
@@ -920,6 +960,7 @@ export function generateTrainingPlan(
       pain_areas: [...input.pain_areas],
       recent_operation: input.recent_operation,
       chronic_lower_back_pain: input.chronic_lower_back_pain,
+      acute_symptoms: input.acute_symptoms === true,
       sessions_per_week: count,
       goal: input.goal,
       caution: assessment.caution,
@@ -928,6 +969,10 @@ export function generateTrainingPlan(
         : count >= 6
           ? 'distributed'
           : 'standard',
+      ...(input.available_minutes != null && input.available_minutes >= 15 && input.available_minutes <= 180
+        ? { available_minutes: Math.trunc(input.available_minutes) }
+        : {}),
+      ...(input.baseline_assessment ? { baseline_assessment: input.baseline_assessment } : {}),
       ...(count >= 6 ? { hard_set_cap: 2 } : {}),
       transition_day_ids: dayIds.transition,
       main_day_ids: dayIds.main,

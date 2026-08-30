@@ -364,6 +364,7 @@ test('native-shaped induction metadata is canonical before the web form or gener
     ...nativeMetadata,
     inactivity: 'one_to_three_months',
     pain_areas: ['knees', 'shoulders'],
+    acute_symptoms: false,
     plan_weeks: 12,
     goal: 'rebuild',
   })

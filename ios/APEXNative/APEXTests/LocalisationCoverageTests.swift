@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 49, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 58, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -365,6 +365,24 @@ final class LocalisationCoverageTests: XCTestCase {
             ]
             for (key, expected) in zip(workoutInsightKeys, workoutInsightValues[language] ?? []) {
                 XCTAssertEqual(table?[key], expected, "Unexpected compact workout insight copy for \(language): \(key)")
+            }
+            let onboardingKeys = [
+                "Stamina", "Upper body", "Lower body", "Mobility", "Building your baseline",
+                "Foundation", "Developing", "Capable", "Strong signal",
+            ]
+            let onboardingValues: [String: [String]] = [
+                "en": ["Stamina", "Upper", "Lower", "Mobility", "Building baseline", "Foundation", "Developing", "Capable", "Strong"],
+                "de": ["Ausdauer", "Oberkörper", "Unterkörper", "Mobilität", "Startprofil läuft", "Basis", "Im Aufbau", "Solide", "Stark"],
+                "de-CH": ["Usduur", "Oberkörper", "Unterkörper", "Mobilität", "Startprofil läuft", "Basis", "Im Ufbau", "Solide", "Stark"],
+                "it": ["Resistenza", "Superiore", "Inferiore", "Mobilità", "Creazione base", "Base", "In sviluppo", "Capace", "Forte"],
+                "es": ["Resistencia", "Superior", "Inferior", "Movilidad", "Creando base", "Base", "En progreso", "Capaz", "Fuerte"],
+                "pt": ["Resistência", "Superior", "Inferior", "Mobilidade", "A criar base", "Base", "Em evolução", "Capaz", "Forte"],
+                "ja": ["持久力", "上半身", "下半身", "可動性", "基準値作成中", "基礎", "成長段階", "良好", "強い"],
+                "ro": ["Rezistență", "Superior", "Inferior", "Mobilitate", "Se creează baza", "Bază", "În dezvoltare", "Capabil", "Puternic"],
+                "th": ["ความอึด", "ช่วงบน", "ช่วงล่าง", "การเคลื่อนไหว", "กำลังสร้างค่าฐาน", "พื้นฐาน", "กำลังพัฒนา", "ทำได้ดี", "แข็งแรง"],
+            ]
+            for (key, expected) in zip(onboardingKeys, onboardingValues[language] ?? []) {
+                XCTAssertEqual(table?[key], expected, "Unexpected compact onboarding copy for \(language): \(key)")
             }
             if let expectedKeys {
                 XCTAssertEqual(keys, expectedKeys, "Compact keys drifted for \(language)")
