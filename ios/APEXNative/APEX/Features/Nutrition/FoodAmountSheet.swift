@@ -190,7 +190,7 @@ struct FoodAmountSheet: View {
                     .font(APEXFont.mono(10))
                     .tracking(1.8)
                     .foregroundStyle(APEXColor.amberDeep)
-                Text(food.name)
+                Text(food.localizedName(language.language))
                     .font(APEXFont.display(20))
                     .foregroundStyle(APEXColor.ink)
                     .fixedSize(horizontal: false, vertical: true)

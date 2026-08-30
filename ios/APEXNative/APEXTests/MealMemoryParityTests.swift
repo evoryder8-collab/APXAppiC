@@ -192,4 +192,57 @@ final class MealMemoryParityTests: XCTestCase {
         XCTAssertEqual(preference.usualUnit, "g")
         XCTAssertEqual(preference.lastUsedAt, usedAt)
     }
+
+    func testFoodMemorySearchMatchesLocalizedNamesAndPrivateAliasesOffline() throws {
+        let food = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
+        var localizedFood = food
+        localizedFood.namesI18n["de"] = "Haus-Burger"
+        localizedFood.namesI18n["de-CH"] = "Haus-Burger Schweiz"
+        let userID = UUID()
+        let preference = FoodPreference(
+            id: UUID(),
+            userID: userID,
+            foodID: try XCTUnwrap(UUID(uuidString: food.id)),
+            personalName: "Mein Abendessen",
+            aliases: ["cheeseburger royal", "after gym burger"],
+            favourite: false,
+            usualAmount: nil,
+            usualUnit: nil,
+            usageCount: 1,
+            lastUsedAt: nil,
+            hidden: false
+        )
+
+        XCTAssertEqual(
+            MealMemory.searchFoods(query: "haus burger", foods: [localizedFood], preferences: [preference]).map(\.id),
+            [localizedFood.id],
+            "localized names must remain searchable without the provider"
+        )
+        XCTAssertEqual(localizedFood.localizedName(.german), "Haus-Burger")
+        XCTAssertEqual(localizedFood.localizedName(.swissGerman), "Haus-Burger Schweiz")
+        XCTAssertEqual(
+            MealMemory.searchFoods(query: "Royal", foods: [localizedFood], preferences: [preference]).map(\.id),
+            [localizedFood.id],
+            "a user's private aliases must remain searchable without the provider"
+        )
+        XCTAssertEqual(
+            MealMemory.searchFoods(query: "abendessen mein", foods: [localizedFood], preferences: [preference]).map(\.id),
+            [localizedFood.id],
+            "token order and the personal name should not make a saved food disappear"
+        )
+    }
+
+    func testFoodMemorySearchHonoursHiddenPreference() throws {
+        let food = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
+        let userID = UUID()
+        let preference = FoodPreference(
+            id: UUID(), userID: userID,
+            foodID: try XCTUnwrap(UUID(uuidString: food.id)),
+            personalName: nil, aliases: ["burger"], favourite: false,
+            usualAmount: nil, usualUnit: nil, usageCount: 0,
+            lastUsedAt: nil, hidden: true
+        )
+
+        XCTAssertTrue(MealMemory.searchFoods(query: "burger", foods: [food], preferences: [preference]).isEmpty)
+    }
 }

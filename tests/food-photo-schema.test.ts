@@ -4,6 +4,8 @@ import test from 'node:test'
 
 const migration = readFileSync(new URL('../supabase/migrations/005_food_and_visual_progress.sql', import.meta.url), 'utf8')
 const edge = readFileSync(new URL('../supabase/functions/food-lookup/index.ts', import.meta.url), 'utf8')
+const resilientSearchMigration = readFileSync(new URL('../supabase/migrations/033_food_search_resilience.sql', import.meta.url), 'utf8')
+const nativeSession = readFileSync(new URL('../ios/APEXNative/APEX/App/AppSession.swift', import.meta.url), 'utf8')
 
 test('migration is additive and preserves manual nutrition while structured totals are active', () => {
   assert.match(migration, /create table if not exists foods/i)
@@ -41,4 +43,19 @@ test('food lookup authenticates callers and keeps provider traffic server-side',
   assert.match(edge, /world\.openfoodfacts\.org/i)
   assert.match(edge, /AbortSignal\.timeout\(8000\)/i)
   assert.match(edge, /OPEN_FOOD_FACTS_FIELDS/i)
+})
+
+test('food search uses the account-safe APEX catalog before the public provider', () => {
+  assert.match(resilientSearchMigration, /create or replace function (?:public\.)?search_food_catalog/i)
+  assert.match(resilientSearchMigration, /owner_user_id is null or f\.owner_user_id = auth\.uid\(\)/i)
+  assert.match(resilientSearchMigration, /food_preferences/i)
+  assert.match(resilientSearchMigration, /aliases/i)
+  assert.match(resilientSearchMigration, /grant execute on function (?:public\.)?search_food_catalog/i)
+  assert.match(edge, /authClient\.rpc\('search_food_catalog'/i)
+  assert.ok(edge.indexOf("authClient.rpc('search_food_catalog'") < edge.indexOf("world.openfoodfacts.org"))
+})
+
+test('native Food Memory keeps local results when the provider is unavailable', () => {
+  assert.match(nativeSession, /MealMemory\.searchFoods\([\s\S]*?query: query,[\s\S]*?foods: data\.foods,[\s\S]*?preferences: data\.foodPreferences/)
+  assert.match(nativeSession, /catch \{\s*return local\s*\}/s)
 })

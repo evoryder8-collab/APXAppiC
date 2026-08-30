@@ -233,6 +233,89 @@ enum MealMemory {
         return result
     }
 
+    /// Searches the account's in-memory Food Memory before any public
+    /// provider is contacted. This keeps private foods, personal names,
+    /// aliases and localized catalogue names useful while offline.
+    static func searchFoods(
+        query: String,
+        foods: [Food],
+        preferences: [FoodPreference],
+        userID: UUID? = nil,
+        limit: Int = 50
+    ) -> [Food] {
+        let needle = normalizedSearchText(query)
+        guard needle.count >= 2 else { return [] }
+        let tokens = needle.split(separator: " ").map(String.init)
+        let scopedPreferences = preferences.filter { preference in
+            userID == nil || preference.userID == userID
+        }
+        let preferenceByFoodID = Dictionary(
+            scopedPreferences.map { ($0.foodID.uuidString.lowercased(), $0) },
+            uniquingKeysWith: { first, _ in first }
+        )
+
+        struct Match {
+            let food: Food
+            let score: Int
+            let favourite: Bool
+            let usageCount: Int
+        }
+
+        let matches = foods.compactMap { food -> Match? in
+            let preference = preferenceByFoodID[food.id.lowercased()]
+            guard preference?.hidden != true else { return nil }
+            let fields = ([food.name, food.brand]
+                + Array(food.namesI18n.values)
+                + [preference?.personalName]
+                + (preference?.aliases ?? []))
+                .compactMap { $0 }
+                .map(normalizedSearchText)
+                .filter { !$0.isEmpty }
+            guard !fields.isEmpty else { return nil }
+            let combined = fields.joined(separator: " ")
+            let score: Int
+            if fields.contains(needle) {
+                score = 0
+            } else if fields.contains(where: { $0.hasPrefix(needle) }) {
+                score = 1
+            } else if fields.contains(where: { $0.contains(needle) }) {
+                score = 2
+            } else if tokens.allSatisfy({ combined.contains($0) }) {
+                score = 3
+            } else {
+                return nil
+            }
+            return Match(
+                food: food,
+                score: score,
+                favourite: preference?.favourite ?? false,
+                usageCount: preference?.usageCount ?? 0
+            )
+        }
+
+        return matches.sorted { left, right in
+            if left.score != right.score { return left.score < right.score }
+            if left.favourite != right.favourite { return left.favourite }
+            if left.usageCount != right.usageCount { return left.usageCount > right.usageCount }
+            return left.food.name.localizedCaseInsensitiveCompare(right.food.name) == .orderedAscending
+        }.prefix(max(1, limit)).map(\.food)
+    }
+
+    /// Diacritic, punctuation and token-order tolerant matching mirrors the
+    /// forgiving food search used by the web client.
+    private static func normalizedSearchText(_ value: String) -> String {
+        let folded = value
+            .folding(options: [.caseInsensitive, .diacriticInsensitive, .widthInsensitive], locale: .current)
+            .lowercased()
+        let plain = folded.unicodeScalars
+            .map { CharacterSet.alphanumerics.contains($0) ? String($0) : " " }
+            .joined()
+        return plain
+            .split(separator: " ")
+            .map(String.init)
+            .joined(separator: " ")
+    }
+
     /// Produce only the account-owned preference rows touched by a confirmed
     /// meal. Repeated appearances increment independently and the final item
     /// supplies the exact quantity used by quick add next time.

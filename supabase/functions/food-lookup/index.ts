@@ -59,6 +59,7 @@ Deno.serve(async (request) => {
   const authClient = createClient(url, anonKey, { global: { headers: { Authorization: authorization } } })
   const { data: userData, error: authError } = await authClient.auth.getUser(token)
   if (authError || !userData.user) return json(origin, { state: 'invalid', message: 'Invalid session' }, 401)
+  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
 
   let rawBarcode = ''
   let rawQuery = ''
@@ -74,6 +75,14 @@ Deno.serve(async (request) => {
     if (rawQuery.length < 2 || rawQuery.length > 80) {
       return json(origin, { state: 'invalid', message: 'Search must be between 2 and 80 characters' }, 400)
     }
+    const { data: catalogResults, error: catalogError } = await authClient.rpc('search_food_catalog', {
+      p_query: rawQuery,
+      p_limit: 25,
+    })
+    if (!catalogError && catalogResults?.length) {
+      return json(origin, { state: 'results', query: rawQuery, source: 'apex_catalog', results: catalogResults })
+    }
+
     const searchUrl = new URL('https://world.openfoodfacts.org/cgi/search.pl')
     searchUrl.searchParams.set('search_terms', rawQuery)
     searchUrl.searchParams.set('search_simple', '1')
@@ -86,7 +95,10 @@ Deno.serve(async (request) => {
         headers: { Accept: 'application/json', 'User-Agent': 'APEX private performance app/1.0' },
         signal: AbortSignal.timeout(8000),
       })
-      if (!response.ok) return json(origin, { state: 'provider_error', message: 'Extended search is temporarily unavailable' })
+      if (!response.ok) return json(origin, {
+        state: 'results', query: rawQuery, results: [],
+        message: 'The public provider is temporarily unavailable; APEX Food Memory remains available.',
+      })
       const payload = await response.json() as { products?: Array<Record<string, unknown>> }
       const results = (payload.products ?? []).flatMap((product) => {
         const code = normalizeBarcode(String(product.code ?? ''))
@@ -96,13 +108,15 @@ Deno.serve(async (request) => {
       }).sort((a, b) => extendedSearchScore(rawQuery, b) - extendedSearchScore(rawQuery, a))
       return json(origin, { state: 'results', query: rawQuery, results })
     } catch {
-      return json(origin, { state: 'provider_error', message: 'Extended search is temporarily unavailable' })
+      return json(origin, {
+        state: 'results', query: rawQuery, results: [],
+        message: 'The public provider is temporarily unavailable; APEX Food Memory remains available.',
+      })
     }
   }
   const barcode = normalizeBarcode(rawBarcode)
   if (!barcode) return json(origin, { state: 'invalid', message: 'Invalid EAN or UPC barcode' }, 400)
 
-  const admin = createClient(url, serviceKey, { auth: { persistSession: false, autoRefreshToken: false } })
   const { data: cached, error: cachedError } = await admin
     .from('foods')
     .select('*')

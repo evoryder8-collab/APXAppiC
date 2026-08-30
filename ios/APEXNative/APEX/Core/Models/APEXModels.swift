@@ -749,6 +749,19 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
         case pieceGramsOrML = "piece_grams_or_ml"
     }
 
+    func localizedName(_ language: AppLanguage) -> String {
+        if let exact = namesI18n[language.rawValue]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !exact.isEmpty {
+            return exact
+        }
+        if language == .swissGerman,
+           let german = namesI18n[AppLanguage.german.rawValue]?.trimmingCharacters(in: .whitespacesAndNewlines),
+           !german.isEmpty {
+            return german
+        }
+        return name
+    }
+
     func nutrients(forEquivalentAmount amount: Double) -> FoodNutrients {
         let scale = max(0, amount) / 100
         return FoodNutrients(

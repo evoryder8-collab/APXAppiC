@@ -330,6 +330,7 @@ struct CompletedWorkoutHistoryCards: View {
                 Button(language.text("Hide from APEX"), role: .destructive) {
                     pendingHide = nil
                     expanded.remove(item.id)
+                    revealedSessionID = nil
                     Task { await session.hideExternalWorkoutFromAPEX(id: item.id) }
                 }
                 Button(language.text("Cancel"), role: .cancel) { pendingHide = nil }
@@ -622,11 +623,38 @@ struct CompletedWorkoutHistoryCards: View {
             dateText,
             language.format("%d min", item.durationMinutes),
         ].filter { $0.isEmpty == false }.joined(separator: " · ")
+        let currentRevealOffset = revealOffset(for: item.id)
 
-        return VStack(spacing: 0) {
+        return ZStack(alignment: .trailing) {
+            if WorkoutReceipt.collapsedDeleteTrayVisible(
+                isExpanded: isExpanded,
+                revealOffset: currentRevealOffset
+            ) {
+                Button {
+                    pendingHide = item
+                } label: {
+                    VStack(spacing: 3) {
+                        Image(systemName: "eye.slash.fill")
+                            .font(.system(size: 14, weight: .black))
+                        Text(language.shortText("Hide from APEX"))
+                            .font(APEXFont.mono(6, weight: .bold))
+                            .multilineTextAlignment(.center)
+                    }
+                    .foregroundStyle(.white)
+                    .frame(width: revealWidth)
+                    .frame(maxHeight: .infinity)
+                    .background(APEXColor.cyan)
+                }
+                .buttonStyle(.plain)
+                .accessibilityHint(language.text("The original workout stays in Apple Health."))
+                .accessibilityIdentifier("external-workout-swipe-hide-\(item.id.uuidString.lowercased())")
+            }
+
+            VStack(spacing: 0) {
             Button {
                 withAnimation(.snappy) {
-                    if isExpanded { expanded.remove(item.id) }
+                    if revealedSessionID == item.id { revealedSessionID = nil }
+                    else if isExpanded { expanded.remove(item.id) }
                     else { expanded.insert(item.id) }
                 }
             } label: {
@@ -730,7 +758,18 @@ struct CompletedWorkoutHistoryCards: View {
             RoundedRectangle(cornerRadius: 25, style: .continuous)
                 .stroke(.white.opacity(0.9), lineWidth: 1)
         }
+        .offset(x: isExpanded ? 0 : currentRevealOffset)
+        }
         .clipShape(RoundedRectangle(cornerRadius: 25, style: .continuous))
+        .highPriorityGesture(
+            DragGesture(minimumDistance: 16)
+                .onChanged { value in
+                    updateReveal(id: item.id, translation: value.translation, expanded: isExpanded)
+                }
+                .onEnded { value in
+                    finishReveal(id: item.id, translation: value.translation, expanded: isExpanded)
+                }
+        )
     }
 
     private func historyMetric(_ label: String, value: String) -> some View {

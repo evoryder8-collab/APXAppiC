@@ -333,20 +333,36 @@ test('hiding an external receipt stays owner-scoped and preserves the original A
   assert.equal(externalWorkoutHidePlan(data, 'legacy-xml'), null)
 })
 
-test('completed workout history is rendered without a visibility cap below Simple Mode metrics and in phase pages', () => {
+test('a selected or future day never inherits completed or imported workouts from another date', () => {
+  const data: AppData = {
+    ...EMPTY_DATA,
+    settings: {
+      user_id: 'owner', theme: 'dark', language: 'en',
+      addons: { endurance1: false, endurance2: false, endurance3: false },
+    },
+    workout_sessions: [session({ id: 'apex-29', date: '2026-08-29', program_day_id: 'day' })],
+    imported_activities: [externalWorkout({ id: 'watch-29', date: '2026-08-29' })],
+  }
+
+  assert.deepEqual(finishedWorkoutHistoryForDate(data, '2026-08-29').map((item) => item.id), ['apex-29', 'watch-29'])
+  assert.deepEqual(finishedWorkoutHistoryForDate(data, '2026-08-30'), [])
+  assert.deepEqual(finishedWorkoutHistoryForDate(data, '2027-08-29'), [])
+})
+
+test('completed workout history is date-owned on Simple Mode and remains unbounded in phase pages', () => {
   const simple = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
   const phase = readFileSync(new URL('../src/pages/WorkoutSection.tsx', import.meta.url), 'utf8')
   const nativeSimple = readFileSync(new URL('../ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift', import.meta.url), 'utf8')
   const nativePhase = readFileSync(new URL('../ios/APEXNative/APEX/Features/Training/TrainingProgramView.swift', import.meta.url), 'utf8')
   assert.match(simple, /simple-summary-actions[\s\S]*CompletedWorkoutHistoryCards/)
   assert.match(phase, /CompletedWorkoutHistoryCards/)
-  assert.match(simple, /CompletedWorkoutHistoryCards date=\{undefined\} accent=\{ACCENTS\.teal\}/)
+  assert.match(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\} accent=\{ACCENTS\.teal\}/)
   assert.match(phase, /CompletedWorkoutHistoryCards date=\{undefined\} accent=\{accent\} includeQuickLogs=\{false\}/)
-  assert.doesNotMatch(simple, /CompletedWorkoutHistoryCards date=\{undefined\} limit=/)
+  assert.doesNotMatch(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\}[^>]*limit=/)
   assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{undefined\} limit=/)
-  assert.match(nativeSimple, /CompletedWorkoutHistoryCards\(date: nil, accent: APEXColor\.teal\)/)
+  assert.match(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey, accent: APEXColor\.teal\)/)
   assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: nil, accent: accent\)/)
-  assert.doesNotMatch(nativeSimple, /CompletedWorkoutHistoryCards\(date: nil,[^\n]*limit:/)
+  assert.doesNotMatch(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey,[^\n]*limit:/)
   assert.doesNotMatch(nativePhase, /CompletedWorkoutHistoryCards\(date: nil,[^\n]*limit:/)
 })
 
@@ -403,12 +419,16 @@ test('expanded finished-workout cards show the receipt inline with one edit acti
 
 test('external HealthKit cards are read-only receipts with Hide from APEX as their only destructive action', () => {
   const cards = readFileSync(new URL('../src/components/workout/CompletedWorkoutHistoryCards.tsx', import.meta.url), 'utf8')
+  const externalBlock = cards.split("if (entry.kind === 'external')")[1]?.split('const { session, title')[0] ?? ''
   assert.match(cards, /finishedWorkoutHistoryForDate/)
   assert.match(cards, /Hide from APEX/)
   assert.match(cards, /The original workout stays in Apple Health\./)
   assert.match(cards, /READ-ONLY RECEIPT/)
   assert.doesNotMatch(cards, /remove\('imported_activities'/)
   assert.doesNotMatch(cards, /deleteHealthKitWorkout/)
+  assert.match(externalBlock, /collapsedWorkoutDeleteTrayVisible\(open, swipeOffset\)/)
+  assert.match(externalBlock, /beginSwipe\(activity\.id, open, event\)/)
+  assert.match(externalBlock, /setPendingHide\(\{ id: activity\.id, title: receipt\.title \}\)/)
 })
 
 test('every HealthWorkoutCatalog name key has authored Romanian and Thai web copy', () => {

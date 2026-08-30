@@ -358,6 +358,30 @@ final class WorkoutReceiptTests: XCTestCase {
         XCTAssertTrue(source.contains("hideExternalWorkoutFromAPEX"))
         XCTAssertTrue(source.contains("externalHistoryCard"))
         XCTAssertFalse(source.contains("deleteHealthKitWorkout"))
+        let externalBlock = try XCTUnwrap(
+            source.components(separatedBy: "private func externalHistoryCard").last
+        )
+        XCTAssertTrue(externalBlock.contains("WorkoutReceipt.collapsedDeleteTrayVisible"))
+        XCTAssertTrue(externalBlock.contains("updateReveal(id: item.id"))
+        XCTAssertTrue(externalBlock.contains("finishReveal(id: item.id"))
+        XCTAssertTrue(externalBlock.contains(".highPriorityGesture"))
+    }
+
+    func testSelectedAndFutureDaysNeverInheritAnExternalWorkoutFromAnotherDate() {
+        let ownerID = UUID()
+        let imported = ImportedActivity(
+            id: UUID(), userID: ownerID, date: "2026-08-29", kind: "strength",
+            activity: "Traditional Strength Training", durationMinutes: 45,
+            source: "Apple Watch", healthKitWorkoutID: UUID()
+        )
+
+        for selectedDate in ["2026-08-30", "2027-08-29"] {
+            let history = WorkoutReceipt.finishedHistory(
+                sessions: [], days: [], importedActivities: [imported],
+                date: selectedDate, ownerID: ownerID, limit: nil
+            )
+            XCTAssertTrue(history.isEmpty, "\(selectedDate) inherited a 29 August workout")
+        }
     }
 
     func testExternalReceiptDateUsesTheSelectedLocaleAndParsesFractionalSeconds() {

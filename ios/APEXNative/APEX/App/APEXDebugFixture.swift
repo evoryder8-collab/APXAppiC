@@ -7,8 +7,17 @@ enum APEXDebugFixture {
         let mainID = UUID()
         let transitionDayID = UUID()
         let mainDayID = UUID()
-        let now = Date().ISO8601Format()
-        let today = Date().apexDateKey
+        let currentDate = Date()
+        let now = currentDate.ISO8601Format()
+        let today = currentDate.apexDateKey
+        let workoutCompletedDate = Calendar.current.date(
+            bySettingHour: 18,
+            minute: 30,
+            second: 0,
+            of: currentDate
+        ) ?? currentDate
+        let workoutStartedAt = workoutCompletedDate.addingTimeInterval(-30 * 60).ISO8601Format()
+        let workoutCompletedAt = workoutCompletedDate.ISO8601Format()
         let priorDate = Calendar.current.date(byAdding: .day, value: -30, to: .now)?.apexDateKey ?? today
         let weekday = apexWeekday(.now)
 
@@ -143,7 +152,8 @@ enum APEXDebugFixture {
         let workoutSession = WorkoutSession(
             id: UUID(), userID: userID, date: today, programDayID: transitionDayID,
             isLite: false, isDeload: false, isEventRecovery: false, completed: true,
-            qualityScore: 0.9, startedAt: now, completedAt: now, notes: "UI validation session"
+            qualityScore: 0.9, startedAt: workoutStartedAt, completedAt: workoutCompletedAt,
+            notes: "UI validation session"
         )
         let workoutLogs = [
             WorkoutLog(

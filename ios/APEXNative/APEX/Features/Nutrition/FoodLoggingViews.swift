@@ -65,10 +65,12 @@ struct FoodSearchSheet: View {
                 userID: userID
             )
         }
-        return ranked(session.data.foods.filter {
-            $0.name.localizedCaseInsensitiveContains(query)
-                || ($0.brand?.localizedCaseInsensitiveContains(query) ?? false)
-        })
+        return ranked(MealMemory.searchFoods(
+            query: query,
+            foods: session.data.foods,
+            preferences: session.data.foodPreferences,
+            userID: session.profile?.userID
+        ))
     }
 
     var body: some View {
@@ -101,7 +103,7 @@ struct FoodSearchSheet: View {
                                     .frame(width: 42, height: 42)
                                     .background(APEXColor.green.opacity(0.1), in: Circle())
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(food.name)
+                                    Text(food.localizedName(language.language))
                                         .font(APEXFont.body(15, weight: .bold))
                                         .foregroundStyle(APEXColor.ink)
                                     HStack(spacing: 6) {
@@ -263,7 +265,7 @@ struct FoodPortionSheet: View {
                 VStack(spacing: 18) {
                     GlassCard(radius: 30, padding: 20) {
                         VStack(alignment: .leading, spacing: 9) {
-                            Text(food.name)
+                            Text(food.localizedName(language.language))
                                 .font(APEXFont.display(28))
                             if let brand = food.brand, !brand.isEmpty {
                                 Text(brand)

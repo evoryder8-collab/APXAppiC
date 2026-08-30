@@ -133,6 +133,7 @@ export function CompletedWorkoutHistoryCards({
       next.delete(hidden.id)
       return next
     })
+    setRevealedSessionId(null)
     setPendingHide(null)
     toast(t('Workout hidden from APEX.'), 'ok')
   }
@@ -148,8 +149,29 @@ export function CompletedWorkoutHistoryCards({
           const { activity } = entry
           const open = expanded.has(activity.id)
           const receipt = externalWorkoutReceiptPresentation(activity, language, timeZone, t)
+          const swipeOffset = liveSwipe?.id === activity.id
+            ? liveSwipe.offset
+            : revealedSessionId === activity.id ? -88 : 0
           return (
-            <article key={activity.id} className="overflow-hidden rounded-[26px] border border-sky-100/90 bg-gradient-to-br from-sky-50/95 via-white/92 to-cyan-50/85 shadow-[0_20px_52px_-38px_rgba(2,132,199,.75)]" data-external-healthkit-workout>
+            <article key={activity.id} className="relative overflow-hidden rounded-[26px] border border-sky-100/90 bg-gradient-to-br from-sky-50/95 via-white/92 to-cyan-50/85 shadow-[0_20px_52px_-38px_rgba(2,132,199,.75)]" data-external-healthkit-workout>
+              {collapsedWorkoutDeleteTrayVisible(open, swipeOffset) && (
+                <button
+                  type="button"
+                  onClick={() => setPendingHide({ id: activity.id, title: receipt.title })}
+                  className="absolute inset-y-0 right-0 grid w-[88px] place-items-center bg-sky-700 font-mono text-[8px] font-black tracking-wide text-white uppercase"
+                  aria-label={`${t('Hide from APEX')}: ${receipt.title}`}
+                >
+                  <span className="grid gap-1 px-1 text-center"><span className="text-xl">⊘</span>{t('Hide from APEX')}</span>
+                </button>
+              )}
+              <div
+                className="relative bg-gradient-to-br from-sky-50/95 via-white/92 to-cyan-50/85 transition-transform duration-200 ease-out"
+                style={{ transform: `translateX(${open ? 0 : swipeOffset}px)` }}
+                onPointerDown={(event) => beginSwipe(activity.id, open, event)}
+                onPointerMove={moveSwipe}
+                onPointerUp={endSwipe}
+                onPointerCancel={endSwipe}
+              >
               <button
                 type="button"
                 onClick={() => toggle(activity.id)}
@@ -185,6 +207,7 @@ export function CompletedWorkoutHistoryCards({
                   >{t('Hide from APEX')}</button>
                 </div>
               )}
+              </div>
             </article>
           )
         }

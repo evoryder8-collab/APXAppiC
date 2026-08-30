@@ -1237,10 +1237,12 @@ private struct MealFoodPicker: View {
         if remoteResults.isEmpty == false { return visible(remoteResults) }
         let trimmed = query.trimmingCharacters(in: .whitespacesAndNewlines)
         if trimmed.isEmpty == false {
-            return visible(session.data.foods.filter {
-                $0.name.localizedCaseInsensitiveContains(trimmed)
-                    || ($0.brand?.localizedCaseInsensitiveContains(trimmed) ?? false)
-            })
+            return visible(MealMemory.searchFoods(
+                query: trimmed,
+                foods: session.data.foods,
+                preferences: session.data.foodPreferences,
+                userID: session.profile?.userID
+            ))
         }
         let ranked = visible(history.foods)
         /* Weekly memory means "what I eat on this weekday", so a populated
@@ -1309,7 +1311,7 @@ private struct MealFoodPicker: View {
                                 configuring = food
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
-                                    Text(food.name)
+                                    Text(food.localizedName(language.language))
                                         .font(APEXFont.body(15, weight: .bold))
                                         .foregroundStyle(APEXColor.ink)
                                         .lineLimit(1)
@@ -1336,7 +1338,7 @@ private struct MealFoodPicker: View {
                             }
                             .buttonStyle(.plain)
                             .accessibilityIdentifier("food-quick-add-\(food.id)")
-                            .accessibilityLabel(language.format("Quick add %@", food.name))
+                            .accessibilityLabel(language.format("Quick add %@", food.localizedName(language.language)))
                         }
                         .padding(14)
                         .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 21, style: .continuous))

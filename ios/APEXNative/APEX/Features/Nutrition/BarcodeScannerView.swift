@@ -141,7 +141,7 @@ struct BarcodeScannerView: View {
                                 .font(APEXFont.body(12, weight: .medium))
                                 .foregroundStyle(APEXColor.secondaryInk)
                         } else if let food {
-                            Text(food.name)
+                            Text(food.localizedName(language.language))
                                 .font(APEXFont.display(20))
                             Text(language.format(
                                 "%d kcal · P %d · C %d · F %d per 100",

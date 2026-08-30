@@ -730,7 +730,7 @@ final class APEXSmokeUITests: XCTestCase {
 
         let recovery = app.staticTexts["Protein opportunity is open"]
         XCTAssertTrue(scrollUntilVisible(recovery, in: app))
-        XCTAssertTrue(recovery.frame.intersects(app.frame))
+        XCTAssertTrue(isReachable(recovery))
 
         let workout = app.staticTexts["Workout completed"]
         XCTAssertTrue(scrollUntilVisible(workout, in: app))
@@ -1126,16 +1126,18 @@ final class APEXSmokeUITests: XCTestCase {
      */
     private func scrollUntilVisible(_ element: XCUIElement, in app: XCUIApplication, attempts: Int = 60) -> Bool {
         if isReachable(element) { return true }
-        for attempt in 0..<attempts {
-            if attempt.isMultiple(of: 2) {
-                app.swipeUp()
-            } else {
-                app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.78))
-                    .press(
-                        forDuration: 0.02,
-                        thenDragTo: app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.28))
-                    )
-            }
+        for _ in 0..<attempts {
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.68))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.48))
+            start.press(
+                forDuration: 0.05,
+                thenDragTo: end,
+                withVelocity: 200,
+                thenHoldForDuration: 0
+            )
+            let settled = XCTestExpectation(description: "incremental scroll settled")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { settled.fulfill() }
+            _ = XCTWaiter().wait(for: [settled], timeout: 1)
             if isReachable(element) { return true }
         }
         return element.firstMatch.exists

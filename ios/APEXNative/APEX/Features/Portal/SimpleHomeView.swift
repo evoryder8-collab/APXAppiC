@@ -316,7 +316,7 @@ struct SimpleHomeView: View {
 
                     metrics
                     WorkoutInsightsCard(anchorDate: selectedDate.apexDateKey, accent: APEXColor.teal)
-                    CompletedWorkoutHistoryCards(date: nil, accent: APEXColor.teal)
+                    CompletedWorkoutHistoryCards(date: selectedDate.apexDateKey, accent: APEXColor.teal)
                     WearableActivityCard(date: selectedDate)
 
                     if showGuidedPlan, let todayProgramDay, !workoutDone {

@@ -2247,8 +2247,23 @@ final class AppSession {
     }
 
     func searchFoods(query: String) async throws -> [Food] {
-        let remote = try await service.searchFoods(query: query)
-        return (remote.results ?? []).map(FoodHydration.resolved)
+        let local = MealMemory.searchFoods(
+            query: query,
+            foods: data.foods,
+            preferences: data.foodPreferences,
+            userID: profile?.userID
+        )
+        let remote: FoodLookupEnvelope
+        do {
+            remote = try await service.searchFoods(query: query)
+        } catch {
+            return local
+        }
+        let resolved = (remote.results ?? []).map(FoodHydration.resolved)
+        var seen = Set(local.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
+        return local + resolved.filter { food in
+            seen.insert(food.providerProductID ?? food.barcode ?? food.id.lowercased()).inserted
+        }
     }
 
     /// Saves a complete meal in one atomic Supabase operation. The same RPC is
