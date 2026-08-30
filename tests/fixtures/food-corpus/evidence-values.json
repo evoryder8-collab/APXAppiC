@@ -1,0 +1,24 @@
+{
+  "records": [
+    {
+      "source_key": "fixture-solid",
+      "source_record_id": "solid-1",
+      "name": "Evidence solid",
+      "basis": { "kind": "per_100g", "amount": 100, "unit": "g" },
+      "nutrients": [
+        { "code": "PROT", "name": "Protein", "unit": "g", "raw_value": "12.5" },
+        { "code": "VITA", "name": "Vitamin A", "unit": "µg", "raw_value": "tr" }
+      ]
+    },
+    {
+      "source_key": "fixture-liquid",
+      "source_record_id": "liquid-1",
+      "name": "Evidence liquid",
+      "basis": { "kind": "per_100ml", "amount": 100, "unit": "ml" },
+      "nutrients": [
+        { "code": "FAT", "name": "Fat", "unit": "g", "raw_value": "N" },
+        { "code": "WATER", "name": "Water", "unit": "g", "raw_value": "" }
+      ]
+    }
+  ]
+}

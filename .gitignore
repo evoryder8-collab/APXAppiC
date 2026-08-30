@@ -22,3 +22,7 @@ supabase/.temp/
 .playwright-mcp/
 build/
 tmp/
+
+# Python tooling bytecode
+__pycache__/
+*.pyc
