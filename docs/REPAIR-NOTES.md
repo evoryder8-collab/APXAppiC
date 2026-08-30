@@ -1740,3 +1740,15 @@ GitHub publication evidence:
 - Classified the current avatar score as a deterministic gamified heuristic rather than a validated physiological model. Fixed baselines, floors, half-lives, composite weights, same-day nutrition/hydration XP, raw VO2 mapping, upper-only imported-strength credit, disconnected sleep/HRV and joint-check inputs, and missing-data decay require redesign before “ultra-accurate” claims are supportable.
 - Proposed a staged correction: immediate generic-profile and nullable-measurement integrity fixes; a conservative Rules Engine v2 bridge; then an Evidence Ladder model that separates capacity, readiness, behavior, and health context while retaining provenance, confidence, freshness, and uncertainty. Data-trained personalization remains deferred until representative prospective outcomes exist.
 - Verification: controlled target probe showed a 45 kg woman and a 120 kg man both receiving Constantine's exact 2,450 kcal / 150 g protein / 75 g fat protocol, while the generic path produced appropriately different 1,542 and 3,264 kcal estimates; full repository/web suite passed 698/698; `git diff --check` is part of final documentation verification. No simulator was used for this audit, so BA-Studio and Finalova lanes were untouched.
+
+## 2026-08-30 — Fitness Brain trust architecture design
+
+- Converted the scientific/system audit into a staged trust architecture before changing production calculations.
+- Defined an explicit standard-versus-bespoke profile policy so ordinary subscribers can never inherit owner-specific nutrition targets.
+- Defined provenance-bearing evidence, confidence, coverage, freshness, model-version, and receipt contracts for every physiological-looking result.
+- Separated capacity, daily readiness, adherence/XP, and health context so missing telemetry is not treated as poor performance and unrelated domains cannot silently masquerade as one another.
+- Specified source-aware RMR/TDEE handling, including measured DEXA or indirect-calorimetry inputs, rejection of unverified legacy body-fat defaults, and bounded rather than automatic calorie eat-back.
+- Capped the required onboarding assessment at a roughly three-minute median and five-minute 90th percentile, with one friendly decision per card, observable answer anchors, and honest “Not sure” paths.
+- Moved deeper tests and imports into an optional, resumable **Sharpen my baseline** journey so scientific rigor does not create signup cognitive overload.
+- Defined non-destructive legacy-score preservation, shadow evaluation, invariants, rollback, accessibility, localization, and staged rollout gates.
+- Verification: Markdown self-review found no unresolved placeholders or diff-format errors; implementation remains intentionally gated on owner review of the written specification.
