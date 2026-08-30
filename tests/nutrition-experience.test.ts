@@ -81,6 +81,25 @@ test('Open Food Facts provenance asks for the package label without redundant pr
   assert.doesNotMatch(source, /Open Food Facts community record\. Check the package label\./)
 })
 
+test('native Food Amount metrics compress and reflow without clipping values or units', () => {
+  const source = readFileSync(
+    new URL('../ios/APEXNative/APEX/Features/Nutrition/FoodAmountSheet.swift', import.meta.url),
+    'utf8',
+  )
+  const tile = source.slice(source.indexOf('private func macroTile'), source.indexOf('private var amountControls'))
+  const preview = source.slice(source.indexOf('private var portionPreview'), source.indexOf('private var actions'))
+
+  assert.match(source, /LazyVGrid\(/)
+  assert.match(source, /\.adaptive\(minimum:/)
+  assert.doesNotMatch(tile, /minimumScaleFactor\(|allowsTightening\(/)
+  assert.doesNotMatch(tile, /fixedSize\(horizontal:\s*true/)
+  assert.match(preview, /ViewThatFits\(in:\s*\.horizontal\)/)
+  assert.doesNotMatch(preview, /minimumScaleFactor\(|allowsTightening\(/)
+  assert.match(source, /identifier: "water"/)
+  assert.ok(source.includes('food-amount-macro-\\(identifier)-value'))
+  assert.match(source, /food-amount-preview-metrics/)
+})
+
 test('Nutrition keeps one editable meal surface and removes the duplicate meal timeline', () => {
   const web = readFileSync(new URL('../src/components/food/ActualFoodTracker.tsx', import.meta.url), 'utf8')
   const native = readFileSync(new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionView.swift', import.meta.url), 'utf8')

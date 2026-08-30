@@ -26,6 +26,12 @@ struct FoodPortionResult: Equatable {
     let waterML: Double?
 }
 
+private struct FoodPortionMetric: Identifiable {
+    let id: String
+    let text: String
+    let color: Color
+}
+
 enum FoodPortionMath {
     /* Parity: availableFoodUnits */
     static func availableUnits(_ food: Food) -> [FoodUnitKind] {
@@ -132,6 +138,7 @@ enum FoodPortionMath {
 struct FoodAmountSheet: View {
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
+    @Environment(\.dynamicTypeSize) private var dynamicTypeSize
     @State private var language = LanguageState.shared
 
     let food: Food
@@ -228,17 +235,26 @@ struct FoodAmountSheet: View {
                     .padding(.vertical, 5)
                     .background(APEXColor.amber.opacity(0.12), in: Capsule())
             }
-            HStack(spacing: 9) {
-                macroTile(value: food.kcal100, label: "KCAL", suffix: "")
-                macroTile(value: food.protein100, label: "PROTEIN", suffix: "g")
-                macroTile(value: food.carbs100, label: "CARBS", suffix: "g")
-                macroTile(value: food.fat100, label: "FAT", suffix: "g")
+            LazyVGrid(
+                columns: [
+                    GridItem(
+                        .adaptive(minimum: dynamicTypeSize.isAccessibilitySize ? 180 : 82),
+                        spacing: 9
+                    )
+                ],
+                spacing: 9
+            ) {
+                macroTile(value: food.kcal100, label: "KCAL", suffix: "", identifier: "kcal")
+                macroTile(value: food.protein100, label: "PROTEIN", suffix: "g", identifier: "protein")
+                macroTile(value: food.carbs100, label: "CARBS", suffix: "g", identifier: "carbs")
+                macroTile(value: food.fat100, label: "FAT", suffix: "g", identifier: "fat")
                 if food.waterML100 != nil {
                     macroTile(
                         value: food.waterML100,
                         label: waterDisclosure.isEstimated ? "EST. WATER" : "WATER",
                         suffix: "ml",
-                        prefix: waterDisclosure.prefix
+                        prefix: waterDisclosure.prefix,
+                        identifier: "water"
                     )
                 }
             }
@@ -251,21 +267,28 @@ struct FoodAmountSheet: View {
         value: Double?,
         label: String,
         suffix: String,
-        prefix: String = ""
+        prefix: String = "",
+        identifier: String
     ) -> some View {
-        VStack(spacing: 3) {
-            Text(value == nil ? language.text("N/A") : "\(prefix)\(formatted(value!))\(suffix)")
-                .font(APEXFont.mono(19, weight: .bold))
+        let displayValue = value.map { "\(prefix)\(formatted($0))\(suffix)" } ?? language.text("N/A")
+        return VStack(spacing: 3) {
+            Text(displayValue)
+                .font(APEXFont.mono(15, weight: .bold))
                 .foregroundStyle(APEXColor.ink)
                 .lineLimit(1)
-                .fixedSize(horizontal: true, vertical: false)
+                .frame(maxWidth: .infinity)
             Text(language.text(label))
                 .font(APEXFont.mono(8))
                 .foregroundStyle(APEXColor.secondaryInk)
+                .lineLimit(1)
         }
         .frame(maxWidth: .infinity)
         .padding(.vertical, 11)
         .background(.white.opacity(0.7), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        .accessibilityElement(children: .ignore)
+        .accessibilityLabel(language.text(label))
+        .accessibilityValue(displayValue)
+        .accessibilityIdentifier("food-amount-macro-\(identifier)-value")
     }
 
     private var amountControls: some View {
@@ -335,26 +358,35 @@ struct FoodAmountSheet: View {
 
     private var portionPreview: some View {
         VStack(alignment: .leading, spacing: 6) {
-            HStack(spacing: 16) {
-                Text("\(portion.map { formatted($0.kcal) } ?? language.text("N/A")) kcal")
-                /* EU labelling leads with kilojoules, so European users see the
-                   figure their packets show alongside the one they track. */
-                if region.presentation.showsKilojoules, let portion {
-                    Text("\(FoodRegion.kilojoules(portion.kcal)) kJ")
-                        .foregroundStyle(APEXColor.secondaryInk)
+            let metrics = portionMetrics
+            ViewThatFits(in: .horizontal) {
+                HStack(spacing: 16) {
+                    ForEach(metrics) { metric in
+                        portionMetric(metric)
+                    }
                 }
-                Text("P \(portion.map { formatted($0.proteinG) } ?? language.text("N/A"))g")
-                Text("C \(portion.map { formatted($0.carbsG) } ?? language.text("N/A"))g")
-                Text("F \(portion.map { formatted($0.fatG) } ?? language.text("N/A"))g")
-                if let water = portion?.waterML, water > 0 {
-                    Text("\(language.text("W")) \(waterDisclosure.prefix)\(formatted(water))ml")
-                        .foregroundStyle(APEXColor.cyan)
+                .fixedSize(horizontal: true, vertical: false)
+
+                Grid(alignment: .leading, horizontalSpacing: 16, verticalSpacing: 5) {
+                    ForEach(Array(stride(from: 0, to: metrics.count, by: 3)), id: \.self) { start in
+                        GridRow {
+                            ForEach(start ..< min(start + 3, metrics.count), id: \.self) { index in
+                                portionMetric(metrics[index])
+                            }
+                        }
+                    }
+                }
+                .fixedSize(horizontal: true, vertical: false)
+
+                VStack(alignment: .leading, spacing: 4) {
+                    ForEach(metrics) { metric in
+                        portionMetric(metric)
+                    }
                 }
             }
-            .font(APEXFont.mono(13, weight: .bold))
-            .foregroundStyle(APEXColor.ink)
-            .lineLimit(2)
-            .fixedSize(horizontal: false, vertical: true)
+            .font(APEXFont.mono(12, weight: .bold))
+            .accessibilityElement(children: .combine)
+            .accessibilityIdentifier("food-amount-preview-metrics")
 
             Text(language.text(FoodPortionMath.provenanceLabel(food)))
                 .font(APEXFont.body(11, weight: .medium))
@@ -364,6 +396,55 @@ struct FoodAmountSheet: View {
         .padding(12)
         .background(APEXColor.amber.opacity(0.1), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
         .accessibilityIdentifier("food-amount-preview")
+    }
+
+    private var portionMetrics: [FoodPortionMetric] {
+        var metrics = [
+            FoodPortionMetric(
+                id: "kcal",
+                text: "\(portion.map { formatted($0.kcal) } ?? language.text("N/A")) kcal",
+                color: APEXColor.ink
+            )
+        ]
+        /* EU labelling leads with kilojoules, so European users see the
+           figure their packets show alongside the one they track. */
+        if region.presentation.showsKilojoules, let portion {
+            metrics.append(FoodPortionMetric(
+                id: "kilojoules",
+                text: "\(FoodRegion.kilojoules(portion.kcal)) kJ",
+                color: APEXColor.secondaryInk
+            ))
+        }
+        metrics.append(contentsOf: [
+            FoodPortionMetric(
+                id: "protein",
+                text: "P \(portion.map { formatted($0.proteinG) } ?? language.text("N/A"))g",
+                color: APEXColor.ink
+            ),
+            FoodPortionMetric(
+                id: "carbs",
+                text: "C \(portion.map { formatted($0.carbsG) } ?? language.text("N/A"))g",
+                color: APEXColor.ink
+            ),
+            FoodPortionMetric(
+                id: "fat",
+                text: "F \(portion.map { formatted($0.fatG) } ?? language.text("N/A"))g",
+                color: APEXColor.ink
+            )
+        ])
+        if let water = portion?.waterML, water > 0 {
+            metrics.append(FoodPortionMetric(
+                id: "water",
+                text: "\(language.text("W")) \(waterDisclosure.prefix)\(formatted(water))ml",
+                color: APEXColor.cyan
+            ))
+        }
+        return metrics
+    }
+
+    private func portionMetric(_ metric: FoodPortionMetric) -> some View {
+        Text(metric.text)
+            .foregroundStyle(metric.color)
     }
 
     private var actions: some View {
