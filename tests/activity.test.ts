@@ -110,6 +110,32 @@ test('whole-day wearable burn supersedes rather than adds activity estimates', (
   assert.equal(resolveDailyBurnedEnergy(-20, estimates), 600)
 })
 
+test('precise target math replaces block burn with whole-day wearable burn once', () => {
+  const blocks = [
+    block('massage-session', { quantity: 2, durationMin: 60 }),
+    block('supermarket-trip', { quantity: 1, durationMin: 25 }),
+  ]
+  const blockOnly = estimateActivityDay(baseProfile, blocks)
+  const wearableResolved = estimateActivityDay(baseProfile, blocks, ACTIVITY_BY_ID, undefined, 900)
+
+  assert.notEqual(blockOnly.rawBlockKcal, 900)
+  assert.equal(wearableResolved.rawBlockKcal, 900)
+  assert.equal(wearableResolved.tdee, wearableResolved.floorKcal + 900)
+})
+
+test('precise macros use the same rounded calorie target as native', () => {
+  const estimate = estimateActivityDay({
+    ...baseProfile,
+    custom_bmr: 1200,
+    goal: 'recomp',
+  }, [], ACTIVITY_BY_ID, undefined, 100)
+
+  assert.equal(estimate.targetKcal, 1371)
+  assert.equal(estimate.proteinG, 126)
+  assert.equal(estimate.fatG, 49)
+  assert.equal(estimate.carbsG, 107)
+})
+
 test('championship prefill reaches extra active without manual blocks', () => {
   let index = 0
   const estimate = estimateActivityDay(baseProfile, championshipPrefill(() => `event-${index++}`))

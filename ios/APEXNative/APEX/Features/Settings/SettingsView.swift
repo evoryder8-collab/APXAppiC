@@ -55,7 +55,9 @@ struct SettingsView: View {
         .navigationBarTitleDisplayMode(.inline)
         .task(id: profile?.userID) {
             timeZoneDraft = addonString("time_zone", default: TimeZone.current.identifier)
-            measuredBMRDraft = settings?.addons["custom_bmr"]?.numberValue.map { String(Int($0.rounded())) } ?? ""
+            measuredBMRDraft = profile
+                .flatMap { RestingEnergyPolicy.resolved(profile: $0, settings: settings) }
+                .map { String(Int($0.rounded())) } ?? ""
         }
         .confirmationDialog(language.text(.logoutWarning), isPresented: $showLogout, titleVisibility: .visible) {
             Button(language.text(.yesLogout), role: .destructive) { Task { await session.signOut() } }
@@ -379,7 +381,7 @@ struct SettingsView: View {
                 Divider()
                 VStack(alignment: .leading, spacing: 7) {
                     Text(language.text("Measured BMR (optional)")).font(APEXFont.display(17))
-                    Text(language.text("Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula."))
+                    Text(language.text("Use resting energy measured by indirect calorimetry. DEXA body-fat data already informs the estimate. Clear it to return to the calculated formula."))
                         .font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
                     HStack {
                         TextField("1559", text: $measuredBMRDraft)
@@ -387,7 +389,7 @@ struct SettingsView: View {
                             .padding(13).background(.white.opacity(0.65), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
                         Text("kcal").font(APEXFont.mono(11))
                         Button(language.text("Save")) {
-                            if let value = Double(measuredBMRDraft), (700...4000).contains(value) { setAddon("custom_bmr", .number(value)) }
+                            if let value = Double(measuredBMRDraft), RestingEnergyPolicy.validRange.contains(value) { setAddon("custom_bmr", .number(value)) }
                             else { setAddon("custom_bmr", .null) }
                         }.buttonStyle(.borderedProminent).tint(APEXColor.violet)
                     }

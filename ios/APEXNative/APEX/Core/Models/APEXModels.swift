@@ -217,10 +217,67 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         case updatedAt = "updated_at"
     }
 
+    /* Local dashboard caches retain the legacy value until the account-owned
+       settings migration has completed. Remote profile writes use
+       RemoteProfilePayload below and deliberately omit it. */
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(id, forKey: .id)
+        try container.encode(userID, forKey: .userID)
+        try container.encodeIfPresent(foundingMember, forKey: .foundingMember)
+        try container.encodeIfPresent(betaCodeRedeemed, forKey: .betaCodeRedeemed)
+        try container.encodeIfPresent(trialStartedAt, forKey: .trialStartedAt)
+        try container.encodeIfPresent(subscriptionTier, forKey: .subscriptionTier)
+        try container.encodeIfPresent(subscriptionExpiresAt, forKey: .subscriptionExpiresAt)
+        try container.encodeIfPresent(avatarPath, forKey: .avatarPath)
+        try container.encode(persona, forKey: .persona)
+        try container.encode(displayName, forKey: .displayName)
+        try container.encode(sex, forKey: .sex)
+        try container.encode(weightKG, forKey: .weightKG)
+        try container.encode(bodyFatPercent, forKey: .bodyFatPercent)
+        try container.encodeIfPresent(customBMR, forKey: .customBMR)
+        try container.encode(heightCM, forKey: .heightCM)
+        try container.encode(birthdate, forKey: .birthdate)
+        try container.encode(activityLevel, forKey: .activityLevel)
+        try container.encode(goal, forKey: .goal)
+        try container.encodeIfPresent(targetKcal, forKey: .targetKcal)
+        try container.encodeIfPresent(targetProteinG, forKey: .targetProteinG)
+        try container.encodeIfPresent(targetFatG, forKey: .targetFatG)
+        try container.encodeIfPresent(targetCarbsG, forKey: .targetCarbsG)
+        try container.encode(trainingTime, forKey: .trainingTime)
+        try container.encode(baselineDate, forKey: .baselineDate)
+        try container.encode(profileNote, forKey: .profileNote)
+        try container.encode(seedVersion, forKey: .seedVersion)
+        try container.encode(calibrationK, forKey: .calibrationK)
+        try container.encode(calibrationHistory, forKey: .calibrationHistory)
+        try container.encode(updatedAt, forKey: .updatedAt)
+    }
+
     var age: Int {
         let formatter = ISO8601DateFormatter.apexDateOnly
         guard let date = formatter.date(from: birthdate) else { return 0 }
         return Calendar.current.dateComponents([.year], from: date, to: .now).year ?? 0
+    }
+}
+
+struct RemoteProfilePayload: Encodable, Sendable {
+    private let value: JSONValue
+
+    init<T: Encodable>(_ source: T) throws {
+        let sourceEncoder = JSONEncoder()
+        sourceEncoder.dateEncodingStrategy = .iso8601
+        let data = try sourceEncoder.encode(source)
+        let decoded = try JSONDecoder().decode(JSONValue.self, from: data)
+        if var object = decoded.objectValue {
+            object.removeValue(forKey: "custom_bmr")
+            value = .object(object)
+        } else {
+            value = decoded
+        }
+    }
+
+    func encode(to encoder: Encoder) throws {
+        try value.encode(to: encoder)
     }
 }
 

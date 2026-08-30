@@ -2819,7 +2819,7 @@
 "Use across meals to taste" = "Folosește la mese, după gust";
 "Use adapted" = "Folosește varianta adaptată";
 "Use adapted session" = "Folosește sesiunea adaptată";
-"Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula." = "Folosește o valoare exactă din DEXA sau calorimetrie indirectă. Șterge-o pentru a reveni la formula calculată.";
+"Use resting energy measured by indirect calorimetry. DEXA body-fat data already informs the estimate. Clear it to return to the calculated formula." = "Folosește energia de repaus măsurată prin calorimetrie indirectă. Datele DEXA despre grăsimea corporală sunt deja incluse în estimare. Șterge valoarea pentru a reveni la formula calculată.";
 "Use controlled perceived effort if weather or course conditions differ." = "Folosește efortul perceput controlat dacă vremea sau traseul diferă.";
 "Use current location" = "Folosește locația curentă";
 "Use drawing" = "Folosește desenul";

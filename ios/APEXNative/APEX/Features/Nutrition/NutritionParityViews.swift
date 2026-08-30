@@ -379,7 +379,13 @@ struct NutritionTargetSheet: View {
             profile: profile,
             logs: logs,
             catalog: session.data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+            planContext: NutritionGoalPolicy.context(from: session.data.settings),
+            settings: session.data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: date.apexDateKey,
+                settings: session.data.settings,
+                ownerID: profile.userID
+            )
         )
     }
 

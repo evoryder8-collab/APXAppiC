@@ -771,7 +771,13 @@ struct MealComposerView: View {
             profile: profile,
             logs: logs,
             catalog: session.data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+            planContext: NutritionGoalPolicy.context(from: session.data.settings),
+            settings: session.data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: request.date.apexDateKey,
+                settings: session.data.settings,
+                ownerID: profile.userID
+            )
         )
         let share: Double
         switch draft.mealSlot {
@@ -1315,8 +1321,7 @@ private struct MealFoodPicker: View {
                             /* Tapping the food opens the amount configurator,
                                matching the web composer. Only + quick-adds. */
                             Button {
-                                searchFocused = false
-                                configuring = food
+                                configureAmount(for: food)
                             } label: {
                                 VStack(alignment: .leading, spacing: 4) {
                                     Text(food.localizedName(language.language))
@@ -1392,6 +1397,16 @@ private struct MealFoodPicker: View {
     private func preference(for food: Food) -> FoodPreference? {
         UUID(uuidString: food.id).flatMap { id in
             session.data.foodPreferences.first { $0.foodID == id }
+        }
+    }
+
+    private func configureAmount(for food: Food) {
+        /* Let the search field resign in this transaction before the popup is
+           inserted. Presenting both states together can leave the old search
+           keyboard attached, so input aimed at the amount field goes nowhere. */
+        searchFocused = false
+        DispatchQueue.main.async {
+            configuring = food
         }
     }
 

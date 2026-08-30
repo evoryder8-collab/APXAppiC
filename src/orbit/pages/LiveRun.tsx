@@ -218,7 +218,16 @@ export function LiveRun() {
     app.upsert('imported_activities', importedActivityForRun(completed))
     const dayActivityLogs = [...app.data.activity_logs.filter((log) => log.date === completed.local_date && !authoritative.removeIds.includes(log.id) && log.id !== authoritative.orbitLog.id), authoritative.orbitLog]
     const catalog = activityCatalogMap(app.data.activity_types)
-    const estimate = estimateActivityDay(profile, dayActivityLogs.map((log) => blockFromActivityLog(log, catalog)), catalog)
+    const wearableActiveCalories = (app.data.settings?.addons.watch_activity_history ?? [])
+      .filter((record) => record.date === completed.local_date)
+      .at(-1)?.active_calories
+    const estimate = estimateActivityDay(
+      profile,
+      dayActivityLogs.map((log) => blockFromActivityLog(log, catalog)),
+      catalog,
+      undefined,
+      wearableActiveCalories,
+    )
     const existingDaily = app.data.daily_logs.find((log) => log.date === completed.local_date)
     app.upsert('daily_logs', {
       id: existingDaily?.id ?? dailyLogId(completed.local_date, profile.user_id), user_id: profile.user_id, date: completed.local_date,

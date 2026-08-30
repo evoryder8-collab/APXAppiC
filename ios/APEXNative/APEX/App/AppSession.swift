@@ -225,11 +225,19 @@ final class AppSession {
             guard accountGeneration.accepts(accountToken) else { return }
             if let cached, TrainingInduction.belongsToAccount(cached, userID: userID) {
                 var hydratedCache = cached
+                let migratedRestingEnergySettings = RestingEnergyPolicy.migrateLegacyProfileValue(
+                    in: &hydratedCache,
+                    ownerID: userID
+                )
                 hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
                 data = hydratedCache
                 selectedPersona = hydratedCache.profile?.persona
                 route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                     ? .portal : .induction
+                if migratedRestingEnergySettings != nil {
+                    try? await offlineStore.saveDashboard(hydratedCache, for: userID)
+                    guard accountGeneration.accepts(accountToken) else { return }
+                }
             }
             do {
                 await flushPendingChanges(for: userID)
@@ -604,10 +612,12 @@ final class AppSession {
             EntitlementStore.shared.prepareForAccount(authenticatedUserID)
             next.settings = next.settings?.rebound(to: authenticatedUserID)
         }
+        var cachedDashboardForLegacyMigration: DashboardData?
         var pendingAfterReconciliation: [OfflineOperation]?
         var failuresAfterReconciliation: [FailedOfflineOperation]?
         if let userID = authenticatedUserID {
             let cachedDashboard = try? await offlineStore.loadDashboard(for: userID)
+            cachedDashboardForLegacyMigration = cachedDashboard
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
             let reconciliation = try? await offlineStore.reconcileFailures(
                 for: userID,
@@ -648,14 +658,24 @@ final class AppSession {
         } else {
             repairedPlanSettings = nil
         }
+        let migratedRestingEnergySettings: UserSettings?
+        if let authenticatedUserID {
+            migratedRestingEnergySettings = RestingEnergyPolicy.migrateLegacyProfileValue(
+                in: &next,
+                ownerID: authenticatedUserID,
+                fallbackProfile: cachedDashboardForLegacyMigration?.profile
+            )
+        } else {
+            migratedRestingEnergySettings = nil
+        }
         next.foods = next.foods.map(FoodHydration.resolved)
         data = next
-        if let repairedPlanSettings {
+        if let settingsToPersist = migratedRestingEnergySettings ?? repairedPlanSettings {
             await persistUpsert(
-                repairedPlanSettings,
+                settingsToPersist,
                 table: "settings",
                 onConflict: "user_id",
-                ownerID: repairedPlanSettings.userID,
+                ownerID: settingsToPersist.userID,
                 surfacePermanentFailure: false
             )
             guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -1082,7 +1102,13 @@ final class AppSession {
             profile: profile,
             logs: logs,
             catalog: data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: data.settings)
+            planContext: NutritionGoalPolicy.context(from: data.settings),
+            settings: data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: today,
+                settings: data.settings,
+                ownerID: profile.userID
+            )
         )
         let consumed = data.loggedMeals
             .filter { $0.localDate == today }
@@ -2085,10 +2111,14 @@ final class AppSession {
             settings.addons["watch_activity_history"] = .array(history.suffix(730).map(\.jsonValue))
         }
         if record.date == Date().apexDateKey { publishHydrationState() }
-        guard automaticallyApply,
-              data.activityLogs.contains(where: { $0.date == record.date }) == false else { return }
+        guard let profile,
+              WearableActivityEngine.shouldAutomaticallyApplyMode(
+                profile: profile,
+                requested: automaticallyApply,
+                hasActivityLogs: data.activityLogs.contains { $0.date == record.date }
+              ) else { return }
         let suggested = WearableActivityEngine.suggestedLevel(
-            persona: profile?.persona ?? .constantine,
+            persona: profile.persona,
             steps: record.steps,
             activeCalories: record.activeCalories,
             exerciseMinutes: record.exerciseMinutes
@@ -3792,7 +3822,13 @@ final class AppSession {
             profile: profile,
             logs: dayLogs,
             catalog: data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: data.settings)
+            planContext: NutritionGoalPolicy.context(from: data.settings),
+            settings: data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: run.localDate,
+                settings: data.settings,
+                ownerID: profile.userID
+            )
         )
         let existing = data.dailyLogs.first { $0.date == run.localDate }
         let daily = DailyLog(
@@ -4356,6 +4392,10 @@ final class AppSession {
 
     private func considerWeeklyCalibration() async {
         guard var profile else { return }
+        /* Constantine and June use explicit, confirmation-only whole-day
+           protocols. The generic activity coefficient must never drift their
+           authored calorie tables in the background. */
+        guard EnergyEngine.usesPersonalProtocol(profile) == false else { return }
         let today = Date().apexDateKey
         guard profile.calibrationHistory.last?.appliedAt.hasPrefix(today) != true else { return }
         let cutoff = Calendar.current.date(byAdding: .day, value: -13, to: .now)?.apexDateKey ?? today

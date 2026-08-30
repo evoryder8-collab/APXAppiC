@@ -1,5 +1,26 @@
 import SwiftUI
 
+enum APEXPopoverGeometry {
+    static let minimumGutter: CGFloat = 16
+    static let maximumCardWidth: CGFloat = 372
+
+    static func cardWidth(containerWidth: CGFloat, safeAreaInsets: EdgeInsets) -> CGFloat {
+        let safeWidth = max(
+            0,
+            containerWidth - safeAreaInsets.leading - safeAreaInsets.trailing
+        )
+        return max(0, min(maximumCardWidth, safeWidth - minimumGutter * 2))
+    }
+}
+
+private struct APEXPopoverContentHeightKey: PreferenceKey {
+    static let defaultValue: CGFloat = 0
+
+    static func reduce(value: inout CGFloat, nextValue: () -> CGFloat) {
+        value = max(value, nextValue())
+    }
+}
+
 /*
  * A real popup, not a sheet pretending to be one.
  *
@@ -18,11 +39,16 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
     @Binding var isPresented: Bool
     var maxHeightFraction: CGFloat = 0.78
     @ViewBuilder var popover: () -> PopoverContent
+    @State private var contentHeight: CGFloat = 0
 
     func body(content: Content) -> some View {
         content.overlay {
             if isPresented {
                 GeometryReader { proxy in
+                    let cardWidth = APEXPopoverGeometry.cardWidth(
+                        containerWidth: proxy.size.width,
+                        safeAreaInsets: proxy.safeAreaInsets
+                    )
                     ZStack {
                         /* Dim, and dismiss on a tap outside. */
                         Color.black.opacity(0.28)
@@ -32,12 +58,11 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
                             .transition(.opacity)
 
                         card(maxHeight: proxy.size.height * maxHeightFraction)
-                            .frame(maxWidth: min(proxy.size.width - 64, 372))
+                            .frame(width: cardWidth)
                             .transition(.scale(scale: 0.94).combined(with: .opacity))
                     }
                     .frame(width: proxy.size.width, height: proxy.size.height)
                 }
-                .ignoresSafeArea()
                 .zIndex(100)
             }
         }
@@ -45,24 +70,26 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
     }
 
     private func card(maxHeight: CGFloat) -> some View {
-        /* Hugs its content, and only becomes scrollable once it would outgrow
-           the screen. A plain ScrollView would always claim the full height and
-           leave the card half empty. */
-        /*
-         * The cap belongs to the scrolling branch alone. Applying it to both
-         * handed the hugging branch the whole allowance as its proposal, and it
-         * took it: the card came out full height with the content stranded in
-         * the middle of it.
-         */
-        ViewThatFits(in: .vertical) {
+        /* Keep one stateful content subtree. ViewThatFits builds both branches,
+           which re-created form state when keyboard metrics changed. Measuring
+           this scroll content lets its viewport hug short cards and cap long
+           cards without a second instance of the popup. */
+        ScrollView {
             popover()
                 .padding(15)
-                .fixedSize(horizontal: false, vertical: true)
-            ScrollView {
-                popover().padding(15)
-            }
-            .scrollBounceBehavior(.basedOnSize)
-            .frame(maxHeight: maxHeight)
+                .background {
+                    GeometryReader { proxy in
+                        Color.clear.preference(
+                            key: APEXPopoverContentHeightKey.self,
+                            value: proxy.size.height
+                        )
+                    }
+                }
+        }
+        .scrollBounceBehavior(.basedOnSize)
+        .frame(height: min(contentHeight, maxHeight))
+        .onPreferenceChange(APEXPopoverContentHeightKey.self) { nextHeight in
+            contentHeight = nextHeight
         }
         .background(APEXColor.canvas, in: RoundedRectangle(cornerRadius: 26, style: .continuous))
         .overlay(
@@ -70,6 +97,10 @@ struct APEXPopover<PopoverContent: View>: ViewModifier {
                 .stroke(.white.opacity(0.7), lineWidth: 1)
         )
         .shadow(color: .black.opacity(0.22), radius: 40, y: 18)
+        /* Keep the modal trait on the entire popup. Without an explicit
+           accessibility container SwiftUI can attach it to the first child
+           panel, which traps VoiceOver/XCTest focus away from later controls. */
+        .accessibilityElement(children: .contain)
         .accessibilityAddTraits(.isModal)
     }
 

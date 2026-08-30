@@ -128,11 +128,17 @@ struct OfflineOperation: Codable, Identifiable, Sendable {
         table: String,
         onConflict: String?
     ) throws -> OfflineOperation {
-        OfflineOperation(
+        let payload: Data
+        if table == "profile" {
+            payload = try JSONEncoder.apex.encode(RemoteProfilePayload(value))
+        } else {
+            payload = try JSONEncoder.apex.encode(value)
+        }
+        return OfflineOperation(
             id: UUID(),
             kind: .upsert,
             table: table,
-            payload: try JSONEncoder.apex.encode(value),
+            payload: payload,
             recordID: nil,
             onConflict: onConflict,
             rpcFunction: nil,
@@ -485,7 +491,9 @@ actor OfflineStore {
     func saveDashboard(_ dashboard: DashboardData, for userID: UUID) throws {
         try prepareDirectory(for: userID)
         let url = dashboardURL(for: userID)
-        try JSONEncoder.apex.encode(dashboard).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
+        var migratedDashboard = dashboard
+        RestingEnergyPolicy.migrateLegacyProfileValue(in: &migratedDashboard, ownerID: userID)
+        try JSONEncoder.apex.encode(migratedDashboard).write(to: url, options: [.atomic, .completeFileProtectionUntilFirstUserAuthentication])
     }
 
     func enqueue(_ operation: OfflineOperation, for userID: UUID) throws {

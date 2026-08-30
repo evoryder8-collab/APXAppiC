@@ -123,12 +123,66 @@ enum NutritionGoalPolicy {
     }
 }
 
+enum RestingEnergyPolicy {
+    static let validRange = 800.0...4_000.0
+
+    static func validated(_ value: Double?) -> Double? {
+        guard let value, value.isFinite, validRange.contains(value) else { return nil }
+        return value.rounded()
+    }
+
+    /* The settings JSON is the compatible persistence boundary for this
+       field. An explicit null means the user cleared it; only a missing key
+       falls back to an older profile/cache value. */
+    static func resolved(profile: Profile, settings: UserSettings?) -> Double? {
+        if let settings,
+           settings.userID == profile.userID,
+           settings.addons.keys.contains("custom_bmr") {
+            return validated(settings.addons["custom_bmr"]?.numberValue)
+        }
+        return validated(profile.customBMR)
+    }
+
+    static func applied(to profile: Profile, settings: UserSettings?) -> Profile {
+        var resolvedProfile = profile
+        resolvedProfile.customBMR = resolved(profile: profile, settings: settings)
+        return resolvedProfile
+    }
+
+    @discardableResult
+    static func migrateLegacyProfileValue(
+        in dashboard: inout DashboardData,
+        ownerID: UUID,
+        fallbackProfile: Profile? = nil
+    ) -> UserSettings? {
+        guard let profile = dashboard.profile,
+              profile.userID == ownerID,
+              var settings = dashboard.settings,
+              settings.userID == ownerID,
+              settings.addons.keys.contains("custom_bmr") == false
+        else { return nil }
+        let fallbackValue = fallbackProfile?.userID == ownerID
+            ? fallbackProfile?.customBMR
+            : nil
+        guard let measured = validated(profile.customBMR) ?? validated(fallbackValue)
+        else { return nil }
+        settings.addons["custom_bmr"] = .number(measured)
+        dashboard.settings = settings
+        return settings
+    }
+}
+
 enum EnergyEngine {
     static let calibrationLowerBound = 0.85
     static let calibrationUpperBound = 1.15
     static let calibrationLearningRate = 0.2
 
     static func bmr(for profile: Profile) -> Double {
+        if let measured = profile.customBMR,
+           measured.isFinite,
+           (800...4_000).contains(measured) {
+            return measured.rounded()
+        }
         if profile.bodyFatPercent > 0, profile.bodyFatPercent < 70 {
             let leanMass = profile.weightKG * (1 - profile.bodyFatPercent / 100)
             return 370 + 21.6 * leanMass
@@ -186,28 +240,49 @@ enum EnergyEngine {
         profile: Profile,
         logs: [ActivityLog],
         catalog: [ActivityType],
-        planContext: NutritionPlanContext? = nil
+        planContext: NutritionPlanContext? = nil,
+        settings: UserSettings? = nil,
+        wearableActiveCalories: Int? = nil
     ) -> NutritionTargets {
-        let bmr = bmr(for: profile)
+        let resolvedProfile = RestingEnergyPolicy.applied(to: profile, settings: settings)
+        let bmr = bmr(for: resolvedProfile)
+        if let personal = personalTargets(profile: resolvedProfile, bmr: bmr) {
+            return personal
+        }
         let precise = !logs.isEmpty
         let tdee: Double
         if precise {
-            let blockSum = logs.reduce(0) { $0 + max(0, $1.computedKcal) }
-            tdee = bmr * 1.2 + min(max(profile.calibrationK, 0.85), 1.15) * blockSum
+            /* Whole-day wearable active energy already contains the effort
+               represented by APEX activity blocks. It replaces their sum;
+               adding both would count the same workout twice. */
+            let activityEnergy: Double
+            if let wearableActiveCalories, wearableActiveCalories > 0 {
+                activityEnergy = Double(wearableActiveCalories)
+            } else {
+                activityEnergy = logs.reduce(0) { total, log in
+                    total + (log.computedKcal.isFinite ? max(0, log.computedKcal) : 0)
+                }
+            }
+            tdee = bmr * 1.2
+                + min(max(resolvedProfile.calibrationK, 0.85), 1.15) * activityEnergy
         } else {
-            tdee = bmr * profile.activityLevel.multiplier
+            tdee = bmr * resolvedProfile.activityLevel.multiplier
         }
 
         let pal = tdee / max(bmr, 1)
         let level = level(forPAL: pal)
-        let rawTarget = tdee * NutritionGoalPolicy.preset(for: profile.goal, context: planContext).factor
+        let rawTarget = tdee * NutritionGoalPolicy.preset(for: resolvedProfile.goal, context: planContext).factor
         let floor = bmr * 1.05
-        let target = max(rawTarget, floor)
-        let roundedTarget = Int(target.rounded())
+        let roundedTarget = targetCalories(
+            bmr: bmr,
+            tdee: tdee,
+            goal: resolvedProfile.goal,
+            planContext: planContext
+        )
         let macros = macroTargets(
-            weightKG: profile.weightKG,
+            weightKG: resolvedProfile.weightKG,
             level: level,
-            goal: profile.goal,
+            goal: resolvedProfile.goal,
             targetCalories: roundedTarget
         )
 
@@ -221,6 +296,54 @@ enum EnergyEngine {
             pal: (pal * 100).rounded() / 100,
             level: level,
             safetyFloorApplied: rawTarget < floor
+        )
+    }
+
+    static func targetCalories(
+        bmr: Double,
+        tdee: Double,
+        goal: Goal,
+        planContext: NutritionPlanContext? = nil
+    ) -> Int {
+        let factor = NutritionGoalPolicy.preset(for: goal, context: planContext).factor
+        return Int(max(bmr * 1.05, tdee * factor).rounded())
+    }
+
+    static func usesPersonalProtocol(_ profile: Profile) -> Bool {
+        guard let persona = FBPersona(rawValue: profile.persona.rawValue) else { return false }
+        return FitnessBrainTargets.personalProtocols[persona] != nil
+    }
+
+    private static func personalTargets(profile: Profile, bmr: Double) -> NutritionTargets? {
+        guard let persona = FBPersona(rawValue: profile.persona.rawValue),
+              let level = FBActivityLevel(rawValue: profile.activityLevel.rawValue),
+              let goal = FBGoal(rawValue: profile.goal.rawValue),
+              let personal = FitnessBrainTargets.personalProtocols[persona],
+              let target = personal.calories[goal]?[level],
+              let tdee = personal.calories[.maintain]?[level],
+              let protein = personal.protein[goal],
+              let fat = personal.fat[goal]
+        else { return nil }
+        let carbs = FitnessBrainTargets.carbohydrateGrams(
+            kcal: target,
+            proteinG: protein,
+            fatG: fat
+        )
+        return NutritionTargets(
+            bmr: Int(bmr.rounded()),
+            tdee: Int(tdee.rounded()),
+            targetCalories: Int(target.rounded()),
+            proteinG: Int(protein.rounded()),
+            fatG: Int(fat.rounded()),
+            carbsG: Int(carbs.rounded()),
+            pal: ((tdee / max(bmr, 1)) * 100).rounded() / 100,
+            /* Bespoke tables are explicit whole-day modes. Their selected
+               mode remains the label even when its quotient crosses a
+               generic PAL threshold. */
+            level: profile.activityLevel,
+            /* An authored personal-protocol value is displayed exactly. It is
+               not a generic target that the recovery floor adjusted. */
+            safetyFloorApplied: false
         )
     }
 

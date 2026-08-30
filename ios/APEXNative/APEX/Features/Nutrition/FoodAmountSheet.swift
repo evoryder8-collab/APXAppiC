@@ -181,6 +181,7 @@ struct FoodAmountSheet: View {
             portionPreview
             actions
         }
+        .frame(maxWidth: .infinity, alignment: .leading)
         .onAppear {
             let start = FoodPortionMath.defaultSelection(food, preference: preference, remembered: remembered)
             quantity = start.quantity
@@ -321,6 +322,7 @@ struct FoodAmountSheet: View {
                     }
                     .accessibilityIdentifier("food-amount-quantity")
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
             VStack(alignment: .leading, spacing: 7) {
                 Text(language.text("SERVING TYPE"))
                     .font(APEXFont.mono(10))
@@ -354,6 +356,7 @@ struct FoodAmountSheet: View {
                 }
                 .accessibilityIdentifier("food-amount-unit")
             }
+            .frame(maxWidth: .infinity, alignment: .leading)
         }
     }
 

@@ -46,6 +46,302 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertGreaterThanOrEqual(result.targetCalories, Int((Double(result.bmr) * 1.05).rounded(.down)))
     }
 
+    func testMeasuredRestingEnergyOverridesEstimatedBMRForGenericProfiles() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 70,
+                level: .moderate,
+                goal: .maintain,
+                customBMR: 1_683
+            ),
+            logs: [],
+            catalog: []
+        )
+
+        XCTAssertEqual(result.bmr, 1_683)
+        XCTAssertEqual(result.tdee, 2_609)
+        XCTAssertEqual(result.targetCalories, 2_609)
+    }
+
+    func testOwnedSettingsMeasuredRestingEnergyOverridesLegacyProfileValue() {
+        let storedProfile = profile(
+            weight: 70,
+            level: .moderate,
+            goal: .maintain,
+            customBMR: 1_500
+        )
+        let settings = UserSettings(
+            userID: storedProfile.userID,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: true,
+            guardianFactor: 0.96,
+            addons: ["custom_bmr": .number(1_683)]
+        )
+
+        let result = EnergyEngine.targets(
+            profile: storedProfile,
+            logs: [],
+            catalog: [],
+            settings: settings
+        )
+
+        XCTAssertEqual(result.bmr, 1_683)
+        XCTAssertEqual(result.tdee, 2_609)
+    }
+
+    func testExplicitNullClearsLegacyMeasuredRestingEnergyForTheSameOwner() {
+        let storedProfile = profile(
+            weight: 70,
+            level: .sedentary,
+            goal: .maintain,
+            customBMR: 1_683
+        )
+        let settings = UserSettings(
+            userID: storedProfile.userID,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: true,
+            guardianFactor: 0.96,
+            addons: ["custom_bmr": .null]
+        )
+
+        let result = EnergyEngine.targets(
+            profile: storedProfile,
+            logs: [],
+            catalog: [],
+            settings: settings
+        )
+
+        XCTAssertEqual(result.bmr, 1_580)
+        XCTAssertEqual(result.tdee, 1_896)
+    }
+
+    func testSettingsMeasuredRestingEnergyNeverCrossesAccountBoundary() {
+        let storedProfile = profile(
+            weight: 70,
+            level: .sedentary,
+            goal: .maintain
+        )
+        let otherAccountsSettings = UserSettings(
+            userID: UUID(),
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: true,
+            guardianFactor: 0.96,
+            addons: ["custom_bmr": .number(1_683)]
+        )
+
+        let result = EnergyEngine.targets(
+            profile: storedProfile,
+            logs: [],
+            catalog: [],
+            settings: otherAccountsSettings
+        )
+
+        XCTAssertEqual(result.bmr, 1_580)
+        XCTAssertEqual(result.tdee, 1_896)
+    }
+
+    func testFreshRemoteExplicitClearWinsOverSameOwnersCachedLegacyMeasuredBMR() {
+        let ownerID = UUID()
+        var remote = APEXDebugFixture.dashboard(userID: ownerID)
+        remote.profile?.customBMR = nil
+        remote.settings?.addons["custom_bmr"] = .null
+        var cached = APEXDebugFixture.dashboard(userID: ownerID)
+        cached.profile?.customBMR = 1_683
+
+        let migrated = RestingEnergyPolicy.migrateLegacyProfileValue(
+            in: &remote,
+            ownerID: ownerID,
+            fallbackProfile: cached.profile
+        )
+
+        XCTAssertNil(migrated)
+        XCTAssertEqual(remote.settings?.addons["custom_bmr"], .null)
+    }
+
+    func testFreshRemoteMissingKeyCanMigrateSameOwnersCachedLegacyMeasuredBMR() {
+        let ownerID = UUID()
+        var remote = APEXDebugFixture.dashboard(userID: ownerID)
+        remote.profile?.customBMR = nil
+        remote.settings?.addons.removeValue(forKey: "custom_bmr")
+        var cached = APEXDebugFixture.dashboard(userID: ownerID)
+        cached.profile?.customBMR = 1_683
+
+        let migrated = RestingEnergyPolicy.migrateLegacyProfileValue(
+            in: &remote,
+            ownerID: ownerID,
+            fallbackProfile: cached.profile
+        )
+
+        XCTAssertEqual(migrated?.addons["custom_bmr"]?.numberValue, 1_683)
+        XCTAssertEqual(remote.settings?.addons["custom_bmr"]?.numberValue, 1_683)
+    }
+
+    func testRemoteProfilePersistencePayloadNeverWritesSettingsBackedCustomBMRColumn() throws {
+        let operation = try OfflineOperation.upsert(
+            profile(weight: 70, goal: .maintain, customBMR: 1_683),
+            table: "profile",
+            onConflict: "user_id"
+        )
+        let encoded = try XCTUnwrap(operation.payload)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+
+        XCTAssertNil(object["custom_bmr"])
+        XCTAssertEqual(object["goal"] as? String, Goal.maintain.rawValue)
+    }
+
+    func testLegacyJSONProfilePayloadDropsCustomBMRBeforeRemoteReplay() throws {
+        let operation = try OfflineOperation.upsert(
+            JSONValue.object([
+                "id": .string(UUID().uuidString.lowercased()),
+                "user_id": .string(UUID().uuidString.lowercased()),
+                "goal": .string(Goal.maintain.rawValue),
+                "custom_bmr": .number(1_683),
+            ]),
+            table: "profile",
+            onConflict: "user_id"
+        )
+        let encoded = try XCTUnwrap(operation.payload)
+        let object = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encoded) as? [String: Any]
+        )
+
+        XCTAssertNil(object["custom_bmr"])
+        XCTAssertEqual(object["goal"] as? String, Goal.maintain.rawValue)
+    }
+
+    func testLiteralMeasuredBMRAndObservedTDEEResolveEveryCurrentGoalFactor() {
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: 1_683, tdee: 1_870, goal: Goal.recomp),
+            1_767
+        )
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: 1_683, tdee: 1_870, goal: Goal.maintain),
+            1_870
+        )
+        XCTAssertEqual(
+            EnergyEngine.targetCalories(bmr: 1_683, tdee: 1_870, goal: Goal.bulk),
+            2_001
+        )
+    }
+
+    func testConstantineBespokeModerateRecompRemainsFixedWhenActivityLogsExist() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 71,
+                level: .moderate,
+                goal: .recomp,
+                persona: .constantine,
+                bodyFatPercent: 22.5,
+                customBMR: 1_680,
+                heightCM: 177,
+                birthdate: "1992-07-25"
+            ),
+            logs: [log(typeID: "watch-strength", kcal: 900)],
+            catalog: []
+        )
+
+        XCTAssertEqual(result.targetCalories, 2_450)
+        XCTAssertEqual(result.tdee, 2_550)
+        XCTAssertEqual(result.proteinG, 150)
+        XCTAssertEqual(result.fatG, 75)
+        XCTAssertEqual(result.carbsG, 294)
+    }
+
+    func testJuneBespokeModerateBulkRemainsFixedWhenActivityLogsExist() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 41,
+                level: .moderate,
+                goal: .bulk,
+                persona: .june,
+                sex: "female",
+                bodyFatPercent: 18,
+                heightCM: 153,
+                birthdate: "1983-06-19"
+            ),
+            logs: [log(typeID: "watch-strength", kcal: 900)],
+            catalog: []
+        )
+
+        XCTAssertEqual(result.targetCalories, 2_400)
+        XCTAssertEqual(result.tdee, 2_300)
+        XCTAssertEqual(result.proteinG, 85)
+        XCTAssertEqual(result.fatG, 95)
+        XCTAssertEqual(result.carbsG, 301)
+    }
+
+    func testEveryConstantineAndJuneGoalActivityCombinationMatchesAuthoredTables() {
+        let levels: [ActivityLevel] = [.sedentary, .light, .moderate, .very, .extra]
+        let goals: [Goal] = [.recomp, .maintain, .bulk]
+        let fixtures: [(
+            persona: Persona,
+            weight: Double,
+            calories: [Goal: [Int]],
+            maintain: [Int],
+            protein: [Goal: Int],
+            fat: [Goal: Int]
+        )] = [
+            (
+                .constantine,
+                71,
+                [
+                    .recomp: [2_300, 2_400, 2_450, 2_650, 2_900],
+                    .maintain: [2_400, 2_500, 2_550, 2_750, 3_000],
+                    .bulk: [2_550, 2_650, 2_700, 2_900, 3_150],
+                ],
+                [2_400, 2_500, 2_550, 2_750, 3_000],
+                [.recomp: 150, .maintain: 150, .bulk: 150],
+                [.recomp: 75, .maintain: 80, .bulk: 85]
+            ),
+            (
+                .june,
+                41,
+                [
+                    .recomp: [2_200, 2_200, 2_200, 2_350, 2_550],
+                    .maintain: [2_200, 2_250, 2_300, 2_450, 2_650],
+                    .bulk: [2_300, 2_350, 2_400, 2_550, 2_750],
+                ],
+                [2_200, 2_250, 2_300, 2_450, 2_650],
+                [.recomp: 85, .maintain: 85, .bulk: 85],
+                [.recomp: 90, .maintain: 92, .bulk: 95]
+            ),
+        ]
+
+        for fixture in fixtures {
+            for (levelIndex, level) in levels.enumerated() {
+                for goal in goals {
+                    let result = EnergyEngine.targets(
+                        profile: profile(
+                            weight: fixture.weight,
+                            level: level,
+                            goal: goal,
+                            persona: fixture.persona,
+                            sex: fixture.persona == .june ? "female" : "male"
+                        ),
+                        logs: [log(typeID: "strength", kcal: 900)],
+                        catalog: [],
+                        wearableActiveCalories: 1_100
+                    )
+
+                    XCTAssertEqual(
+                        result.targetCalories,
+                        fixture.calories[goal]?[levelIndex],
+                        "\(fixture.persona.rawValue) \(goal.rawValue) \(level.rawValue) calories"
+                    )
+                    XCTAssertEqual(result.tdee, fixture.maintain[levelIndex])
+                    XCTAssertEqual(result.proteinG, fixture.protein[goal])
+                    XCTAssertEqual(result.fatG, fixture.fat[goal])
+                    XCTAssertFalse(result.safetyFloorApplied)
+                }
+            }
+        }
+    }
+
     func testNetBlocksAvoidRestingEnergyDoubleCount() {
         let profile = profile(weight: 70)
         let massage = activity(id: "massage-session", met: 4, input: .count, minutes: 60)
@@ -100,6 +396,154 @@ final class EnergyEngineTests: XCTestCase {
         XCTAssertEqual(
             EnergyEngine.resolvedActiveCalories(wearableActiveCalories: -20, logs: logs),
             600
+        )
+    }
+
+    func testGenericPreciseTargetsDoNotAddWearableBurnToActivityEstimatesAgain() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 70,
+                level: .moderate,
+                goal: .maintain,
+                customBMR: 1_683
+            ),
+            logs: [
+                log(typeID: "strength", kcal: 400),
+                log(typeID: "walk", kcal: 200),
+            ],
+            catalog: [],
+            wearableActiveCalories: 900
+        )
+
+        XCTAssertEqual(result.tdee, 2_920)
+        XCTAssertEqual(result.targetCalories, 2_920)
+    }
+
+    func testZeroWearableValueCannotEraseValidActivityLogs() {
+        let result = EnergyEngine.targets(
+            profile: profile(
+                weight: 70,
+                level: .moderate,
+                goal: .maintain,
+                customBMR: 1_683
+            ),
+            logs: [
+                log(typeID: "strength", kcal: 400),
+                log(typeID: "walk", kcal: 200),
+            ],
+            catalog: [],
+            wearableActiveCalories: 0
+        )
+
+        XCTAssertEqual(result.tdee, 2_620)
+        XCTAssertEqual(result.targetCalories, 2_620)
+    }
+
+    func testWearableBurnDoesNotActAsQuickModeCalorieEatBack() {
+        let generic = profile(
+            weight: 70,
+            level: .moderate,
+            goal: .maintain,
+            customBMR: 1_683
+        )
+        let withoutWearable = EnergyEngine.targets(
+            profile: generic,
+            logs: [],
+            catalog: []
+        )
+        let withWearable = EnergyEngine.targets(
+            profile: generic,
+            logs: [],
+            catalog: [],
+            wearableActiveCalories: 900
+        )
+
+        XCTAssertEqual(withWearable, withoutWearable)
+        XCTAssertEqual(withWearable.targetCalories, 2_609)
+    }
+
+    func testWearableImportNeverSilentlyChangesAnAuthoredPersonalProtocolMode() {
+        XCTAssertFalse(
+            WearableActivityEngine.shouldAutomaticallyApplyMode(
+                profile: profile(weight: 71, persona: .constantine),
+                requested: true,
+                hasActivityLogs: false
+            )
+        )
+        XCTAssertFalse(
+            WearableActivityEngine.shouldAutomaticallyApplyMode(
+                profile: profile(weight: 41, persona: .june, sex: "female"),
+                requested: true,
+                hasActivityLogs: false
+            )
+        )
+        XCTAssertTrue(
+            WearableActivityEngine.shouldAutomaticallyApplyMode(
+                profile: profile(weight: 70, persona: .iulian),
+                requested: true,
+                hasActivityLogs: false
+            )
+        )
+        XCTAssertFalse(
+            WearableActivityEngine.shouldAutomaticallyApplyMode(
+                profile: profile(weight: 70, persona: .iulian),
+                requested: true,
+                hasActivityLogs: true
+            )
+        )
+    }
+
+    func testWearableTargetEnergyIsIsolatedByOwnerAndDate() {
+        let ownerID = UUID()
+        let settings = UserSettings(
+            userID: ownerID,
+            voiceOn: true,
+            ticksOn: true,
+            notificationsOn: true,
+            guardianFactor: 0.96,
+            addons: [
+                "watch_activity_history": .array([
+                    WearableActivityRecord(
+                        date: "2026-08-29",
+                        steps: 8_000,
+                        activeCalories: 640,
+                        exerciseMinutes: 55,
+                        source: "apple_health",
+                        updatedAt: "2026-08-29T20:00:00Z"
+                    ).jsonValue,
+                    WearableActivityRecord(
+                        date: "2026-08-30",
+                        steps: 4_000,
+                        activeCalories: 320,
+                        exerciseMinutes: 25,
+                        source: "apple_health",
+                        updatedAt: "2026-08-30T12:00:00Z"
+                    ).jsonValue,
+                ])
+            ]
+        )
+
+        XCTAssertEqual(
+            WearableActivityRecord.activeCalories(
+                on: "2026-08-29",
+                settings: settings,
+                ownerID: ownerID
+            ),
+            640
+        )
+        XCTAssertNil(
+            WearableActivityRecord.activeCalories(
+                on: "2026-08-29",
+                settings: settings,
+                ownerID: UUID()
+            )
+        )
+        XCTAssertNil(
+            WearableActivityRecord.activeCalories(
+                on: "2026-08-31",
+                settings: settings,
+                ownerID: ownerID
+            )
         )
     }
 
@@ -240,19 +684,26 @@ final class EnergyEngineTests: XCTestCase {
     private func profile(
         weight: Double,
         level: ActivityLevel = .sedentary,
-        goal: Goal = .recomp
+        goal: Goal = .recomp,
+        persona: Persona = .iulian,
+        sex: String = "male",
+        bodyFatPercent: Double = 20,
+        customBMR: Double? = nil,
+        heightCM: Double = 175,
+        birthdate: String = "1990-01-01"
     ) -> Profile {
         let id = UUID()
         return Profile(
             id: id,
             userID: id,
-            persona: .constantine,
+            persona: persona,
             displayName: "Test User",
-            sex: "male",
+            sex: sex,
             weightKG: weight,
-            bodyFatPercent: 20,
-            heightCM: 175,
-            birthdate: "1990-01-01",
+            bodyFatPercent: bodyFatPercent,
+            customBMR: customBMR,
+            heightCM: heightCM,
+            birthdate: birthdate,
             activityLevel: level,
             goal: goal,
             targetKcal: nil,

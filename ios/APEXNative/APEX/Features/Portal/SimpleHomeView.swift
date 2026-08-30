@@ -35,7 +35,13 @@ struct SimpleHomeView: View {
             profile: profile,
             logs: activities,
             catalog: session.data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+            planContext: NutritionGoalPolicy.context(from: session.data.settings),
+            settings: session.data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: today,
+                settings: session.data.settings,
+                ownerID: profile.userID
+            )
         )
     }
     private var adaptivePlan: [AdaptiveMeal] {
@@ -976,6 +982,17 @@ struct WearableActivityRecord: Hashable, Sendable {
         }
     }
 
+    static func activeCalories(
+        on date: String,
+        settings: UserSettings?,
+        ownerID: UUID
+    ) -> Int? {
+        guard settings?.userID == ownerID else { return nil }
+        return history(from: settings?.addons["watch_activity_history"])
+            .last { $0.date == date }?
+            .activeCalories
+    }
+
     static func mergingHealthImport(
         date: String,
         existing: Self?,
@@ -1010,6 +1027,15 @@ enum WearableActivityEngine {
         let activeCalories: Int
         let exerciseMinutes: Int
         let level: ActivityLevel
+    }
+
+    static func shouldAutomaticallyApplyMode(
+        profile: Profile?,
+        requested: Bool,
+        hasActivityLogs: Bool
+    ) -> Bool {
+        guard requested, hasActivityLogs == false, let profile else { return false }
+        return EnergyEngine.usesPersonalProtocol(profile) == false
     }
 
     static func resolve(

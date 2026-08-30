@@ -23,7 +23,13 @@ struct NutritionView: View {
             profile: profile,
             logs: dayActivities,
             catalog: session.data.activityTypes,
-            planContext: NutritionGoalPolicy.context(from: session.data.settings)
+            planContext: NutritionGoalPolicy.context(from: session.data.settings),
+            settings: session.data.settings,
+            wearableActiveCalories: WearableActivityRecord.activeCalories(
+                on: dayKey,
+                settings: session.data.settings,
+                ownerID: profile.userID
+            )
         )
     }
 

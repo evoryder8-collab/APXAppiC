@@ -823,7 +823,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const catalog = activityCatalogMap(data.activity_types)
     const activityLogs = data.activity_logs.filter((log) => log.date === date)
     const blocks = activityLogs.map((log) => blockFromActivityLog(log, catalog))
-    const estimate = estimateActivityDay(profile, blocks, catalog)
+    const wearableActiveCalories = (data.settings?.addons.watch_activity_history ?? [])
+      .filter((record) => record.date === date)
+      .at(-1)?.active_calories
+    const estimate = estimateActivityDay(profile, blocks, catalog, undefined, wearableActiveCalories)
     const quickTargets = computeTargets(profile, nutritionPlanContext(data.settings?.addons.training_induction ?? data.settings?.addons.training_induction_baseline))
     const usesWholeDayProtocol = Boolean(personalTargetFor(profile))
     const mode = blocks.length > 0 && !usesWholeDayProtocol ? 'precise' : 'quick'
@@ -849,7 +852,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       activity_mode: mode,
       weight_kg: existing?.weight_kg ?? null,
     })
-  }, [data.activity_logs, data.activity_types, data.daily_logs, data.profile, upsert])
+  }, [data.activity_logs, data.activity_types, data.daily_logs, data.profile, data.settings, upsert])
 
   /* ---------- realtime merge from other devices ---------- */
   useEffect(() => {

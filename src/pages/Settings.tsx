@@ -656,7 +656,7 @@ export function Settings() {
             <div className={`${row} items-start`}>
               <div className="max-w-[58%]">
                 <p className={label}>Measured BMR (optional)</p>
-                <p className={sub}>Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula.</p>
+                <p className={sub}>Use resting energy measured by indirect calorimetry. DEXA body-fat data already informs the estimate. Clear it to return to the calculated formula.</p>
               </div>
               <div className="flex shrink-0 items-center gap-2">
                 <span className="glass flex items-center rounded-xl px-3 py-2">
@@ -692,9 +692,7 @@ export function Settings() {
             </div>
             {targets.bmrSource === 'custom' && (
               <div className="-mt-1 rounded-2xl border border-violet-300/20 bg-violet-500/8 px-3 py-2 text-[11px] font-semibold text-violet-800">
-                {language === 'en'
-                  ? `Measured BMR active · TDEE now uses ${targets.activeBmr} kcal`
-                  : `${translateInterfaceText('Measured BMR active', language)} · ${language === 'ro' ? `TDEE folosește acum ${targets.activeBmr} kcal` : `TDEE ใช้ ${targets.activeBmr} แคลอรี`}`}
+                {`${translateInterfaceText('Measured BMR active', language)} · ${targets.activeBmr} kcal`}
               </div>
             )}
             <div className={row}>

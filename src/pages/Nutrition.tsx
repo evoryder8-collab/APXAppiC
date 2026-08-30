@@ -134,8 +134,14 @@ export function Nutrition() {
   const activeNutritionGoalPreset = nutritionGoalPresets.find((preset) => preset.goal === profile?.goal) ?? nutritionGoalPresets[1]
   const quickTargets = useMemo(() => (profile ? computeTargets(profile, planNutritionContext) : null), [planNutritionContext, profile])
   const activityEstimate = useMemo(
-    () => (profile ? estimateActivityDay(profile, activityBlocks, catalog, goalPresetForPlan(profile.goal, planNutritionContext).factor) : null),
-    [profile, activityBlocks, catalog, planNutritionContext],
+    () => (profile ? estimateActivityDay(
+      profile,
+      activityBlocks,
+      catalog,
+      goalPresetForPlan(profile.goal, planNutritionContext).factor,
+      selectedWearableActivity?.active_calories,
+    ) : null),
+    [profile, activityBlocks, catalog, planNutritionContext, selectedWearableActivity?.active_calories],
   )
   const preciseMode = activityBlocks.length > 0
   const usesWholeDayProtocol = Boolean(profile && personalTargetFor(profile))
@@ -758,7 +764,13 @@ export function Nutrition() {
       upsert('activity_logs', activityLogFromBlock(block, profile, selectedLogDate, catalog, existing))
     }
 
-    const nextEstimate = estimateActivityDay(profile, nextBlocks, catalog)
+    const nextEstimate = estimateActivityDay(
+      profile,
+      nextBlocks,
+      catalog,
+      undefined,
+      selectedWearableActivity?.active_calories,
+    )
     const mode = nextBlocks.length > 0 ? 'precise' : 'quick'
     const estimatedTdee = mode === 'precise' ? nextEstimate.tdee : quickTargets.tdee
     const existingDay = data.daily_logs.find((log) => log.date === selectedLogDate)
@@ -974,7 +986,7 @@ export function Nutrition() {
               style={{ background: amber.wash }}
             >
               {targets.bmrSource === 'custom'
-                ? tx('The measured BMR overrides the formula for live TDEE and targets. Katch-McArdle remains visible only as a reference.')
+                ? tx('Measured resting energy replaces the formula for formula-based targets. Bespoke whole-day protocols remain authoritative; Katch-McArdle stays visible only as a reference.')
                 : language === 'ro'
                   ? `Katch-McArdle calculează din masa corporală slabă, nu din greutatea totală, astfel încât masa grasă măsurată să nu umfle estimarea. Valoarea actuală de ${profile.body_fat_pct}% grăsime corporală produce TDEE-ul de referință de mai sus. APEX îl combină cu activitatea și obiectivul selectate pentru ținta live.`
                   : language === 'th'

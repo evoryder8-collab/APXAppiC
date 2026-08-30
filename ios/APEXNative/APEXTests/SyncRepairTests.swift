@@ -16,6 +16,26 @@ private struct WorkoutLogFailureFixture: Codable, Sendable {
 }
 
 final class SyncRepairTests: XCTestCase {
+    func testDashboardCacheRoundTripPreservesAndMigratesLegacyMeasuredBMR() async throws {
+        let rootURL = FileManager.default.temporaryDirectory
+            .appendingPathComponent("APEXLegacyBMRMigrationTests-\(UUID().uuidString)", isDirectory: true)
+        defer { try? FileManager.default.removeItem(at: rootURL) }
+
+        let ownerID = UUID()
+        let store = OfflineStore(rootURL: rootURL)
+        var dashboard = APEXDebugFixture.dashboard(userID: ownerID)
+        dashboard.profile?.customBMR = 1_683
+        dashboard.settings?.addons.removeValue(forKey: "custom_bmr")
+
+        try await store.saveDashboard(dashboard, for: ownerID)
+        let loaded = try await store.loadDashboard(for: ownerID)
+        let restored = try XCTUnwrap(loaded)
+
+        XCTAssertEqual(restored.profile?.customBMR, 1_683)
+        XCTAssertEqual(restored.settings?.userID, ownerID)
+        XCTAssertEqual(restored.settings?.addons["custom_bmr"]?.numberValue, 1_683)
+    }
+
     func testUITestFixturesCannotUseRemotePersistence() {
         XCTAssertTrue(
             APEXRuntimeEnvironment.usesLocalUITestFixture(

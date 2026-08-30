@@ -464,6 +464,15 @@ actor SupabaseService {
     func upsert<T: Encodable & Sendable>(_ value: T, table: String, onConflict: String? = nil) async throws {
         assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
+        if table == "profile" {
+            let payload = try RemoteProfilePayload(value)
+            if let onConflict {
+                try await client.from(table).upsert(payload, onConflict: onConflict).execute()
+            } else {
+                try await client.from(table).upsert(payload).execute()
+            }
+            return
+        }
         if let onConflict {
             try await client.from(table).upsert(value, onConflict: onConflict).execute()
         } else {

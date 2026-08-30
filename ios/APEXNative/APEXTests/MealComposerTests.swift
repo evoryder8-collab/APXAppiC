@@ -1,7 +1,46 @@
 import XCTest
+import SwiftUI
 @testable import APEX
 
 final class MealComposerTests: XCTestCase {
+    func testAPEXPopoverCardWidthPreservesSixteenPointGuttersOnCompactNotchedPhone() {
+        let safeAreaInsets = EdgeInsets(top: 59, leading: 0, bottom: 34, trailing: 0)
+
+        let cardWidth = APEXPopoverGeometry.cardWidth(
+            containerWidth: 375,
+            safeAreaInsets: safeAreaInsets
+        )
+
+        XCTAssertEqual(cardWidth, 343, accuracy: 0.001)
+        XCTAssertGreaterThanOrEqual((375 - cardWidth) / 2, 16)
+    }
+
+    func testAPEXPopoverCardWidthCapsAtThreeHundredSeventyTwoOnWideNotchedPhone() {
+        let safeAreaInsets = EdgeInsets(top: 59, leading: 0, bottom: 34, trailing: 0)
+
+        let cardWidth = APEXPopoverGeometry.cardWidth(
+            containerWidth: 430,
+            safeAreaInsets: safeAreaInsets
+        )
+
+        XCTAssertEqual(cardWidth, 372, accuracy: 0.001)
+        XCTAssertLessThanOrEqual(cardWidth, 372)
+        XCTAssertGreaterThanOrEqual((430 - cardWidth) / 2, 16)
+    }
+
+    func testAPEXPopoverCardWidthKeepsGuttersInsideHorizontalSafeAreaInsets() {
+        let safeAreaInsets = EdgeInsets(top: 0, leading: 21, bottom: 0, trailing: 21)
+
+        let cardWidth = APEXPopoverGeometry.cardWidth(
+            containerWidth: 430,
+            safeAreaInsets: safeAreaInsets
+        )
+
+        XCTAssertEqual(cardWidth, 356, accuracy: 0.001)
+        XCTAssertGreaterThanOrEqual((430 - cardWidth) / 2, safeAreaInsets.leading + 16)
+        XCTAssertGreaterThanOrEqual((430 - cardWidth) / 2, safeAreaInsets.trailing + 16)
+    }
+
     func testNewMealLogKindNormalizesToDatabaseAcceptedCustomValue() {
         XCTAssertEqual(MealLogKind.normalized(nil), "custom")
         XCTAssertEqual(MealLogKind.normalized("actual"), "custom")

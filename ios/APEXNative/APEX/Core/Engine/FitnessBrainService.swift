@@ -49,7 +49,8 @@ enum FitnessBrainService {
     // MARK: - DashboardData -> engine input
 
     static func engineInput(from data: DashboardData) -> FBEngineInput? {
-        guard let profile = data.profile else { return nil }
+        guard let storedProfile = data.profile else { return nil }
+        let profile = RestingEnergyPolicy.applied(to: storedProfile, settings: data.settings)
         let fbProfile = FBProfile(
             userID: profile.userID.uuidString.lowercased(),
             persona: FBPersona(rawValue: profile.persona.rawValue) ?? .constantine,

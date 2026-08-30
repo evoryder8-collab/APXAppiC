@@ -2819,7 +2819,7 @@
 "Use across meals to taste" = "ใช้ปรุงมื้อต่าง ๆ ตามรสชาติ";
 "Use adapted" = "ใช้แผนที่ปรับแล้ว";
 "Use adapted session" = "ใช้แผนที่ปรับแล้ว";
-"Use an exact value from DEXA or indirect calorimetry. Clear it to return to the calculated formula." = "ใช้ค่าที่วัดจาก DEXA หรือการวัดการเผาผลาญโดยตรง ล้างค่าเพื่อกลับไปใช้สูตรคำนวณ";
+"Use resting energy measured by indirect calorimetry. DEXA body-fat data already informs the estimate. Clear it to return to the calculated formula." = "ใช้ค่าพลังงานขณะพักที่วัดด้วยการวัดอัตราการเผาผลาญทางอ้อม ข้อมูลไขมันในร่างกายจาก DEXA ถูกนำไปใช้ในการประมาณอยู่แล้ว ล้างค่านี้เพื่อกลับไปใช้สูตรคำนวณ";
 "Use controlled perceived effort if weather or course conditions differ." = "ใช้ระดับความเหนื่อยที่ควบคุมได้หากอากาศหรือเส้นทางต่างจากที่คาด";
 "Use current location" = "ใช้ตำแหน่งปัจจุบัน";
 "Use drawing" = "ใช้เส้นทางที่วาด";

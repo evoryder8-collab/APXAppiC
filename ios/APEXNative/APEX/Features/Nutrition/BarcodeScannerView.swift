@@ -195,19 +195,25 @@ struct BarcodeScannerView: View {
         }
         .sheet(isPresented: $showPortion) {
             if let food {
-                FoodAmountSheet(
-                    food: food,
-                    preference: preference(for: food),
-                    onClose: { showPortion = false }
-                ) { amount, unit in
-                    onAdd?(food, amount, unit)
-                    if onAdd != nil {
-                        showPortion = false
-                        dismiss()
+                ScrollView {
+                    FoodAmountSheet(
+                        food: food,
+                        preference: preference(for: food),
+                        onClose: { showPortion = false }
+                    ) { amount, unit in
+                        onAdd?(food, amount, unit)
+                        if onAdd != nil {
+                            showPortion = false
+                            dismiss()
+                        }
                     }
+                    .padding(.horizontal, 20)
+                    .padding(.vertical, 16)
                 }
-                    .presentationDetents([.medium, .large])
-                    .presentationDragIndicator(.visible)
+                .scrollBounceBehavior(.basedOnSize)
+                .presentationDetents([.medium, .large])
+                .presentationContentInteraction(.scrolls)
+                .presentationDragIndicator(.visible)
             }
         }
     }

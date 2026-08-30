@@ -860,16 +860,21 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertTrue(food.waitForExistence(timeout: 3))
         food.tap()
 
+        let amountHeading = app.staticTexts["CONFIGURE AMOUNT"]
+        XCTAssertTrue(amountHeading.waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(amountHeading.frame.minX, app.frame.minX + 16)
+        XCTAssertLessThanOrEqual(amountHeading.frame.maxX, app.frame.maxX - 16)
+
         let quantity = app.textFields["food-amount-quantity"]
         XCTAssertTrue(quantity.waitForExistence(timeout: 2))
         quantity.tap()
+        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
         quantity.typeText("7")
         XCTAssertEqual(search.value as? String, "protein", "typing an amount must not remain bound to Food Memory search")
         XCTAssertTrue(
             String(describing: quantity.value).contains("7"),
             "the amount field must own keyboard input after the configurator opens"
         )
-        XCTAssertTrue(app.keyboards.firstMatch.waitForExistence(timeout: 2))
         XCTAssertTrue(app.buttons["food-amount-keyboard-done"].waitForExistence(timeout: 2))
         capture("food-amount-keyboard-done")
         app.buttons["food-amount-keyboard-done"].tap()
@@ -877,6 +882,8 @@ final class APEXSmokeUITests: XCTestCase {
 
         let confirm = app.buttons["food-amount-confirm"]
         XCTAssertTrue(confirm.isHittable)
+        XCTAssertGreaterThanOrEqual(confirm.frame.minX, app.frame.minX + 16)
+        XCTAssertLessThanOrEqual(confirm.frame.maxX, app.frame.maxX - 16)
         confirm.tap()
         XCTAssertFalse(app.descendants(matching: .any)["food-amount-quantity"].exists)
     }

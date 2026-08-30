@@ -344,10 +344,14 @@ export function estimateActivityDay(
   blocks: ActivityBlock[],
   catalog = ACTIVITY_BY_ID,
   goalFactor = GOAL_FACTORS[profile.goal],
+  wearableActiveCalories?: number | null,
 ): ActivityEstimate {
   const bmr = activityBmr(profile)
   const floorKcal = bmr * 1.2
-  const rawBlockKcal = blocks.reduce((sum, block) => sum + netKcalForBlock(block, profile.weight_kg, catalog), 0)
+  const estimatedBlockKcal = blocks.reduce((sum, block) => sum + netKcalForBlock(block, profile.weight_kg, catalog), 0)
+  const rawBlockKcal = Number.isFinite(wearableActiveCalories) && Number(wearableActiveCalories) > 0
+    ? Math.round(Number(wearableActiveCalories))
+    : estimatedBlockKcal
   const calibrationK = Math.min(1.15, Math.max(0.85, profile.calibration_k ?? 1))
   const adjustedBlockKcal = rawBlockKcal * calibrationK
   const tdee = floorKcal + adjustedBlockKcal
@@ -355,8 +359,9 @@ export function estimateActivityDay(
   const safetyFloorKcal = bmr * 1.05
   const proposedTarget = tdee * goalFactor
   const targetKcal = Math.max(safetyFloorKcal, proposedTarget)
+  const roundedTargetKcal = Math.round(targetKcal)
   const level = activityLevelForPal(pal)
-  const macros = computeMacroTargets(profile.weight_kg, level, profile.goal, targetKcal)
+  const macros = computeMacroTargets(profile.weight_kg, level, profile.goal, roundedTargetKcal)
 
   return {
     bmr: Math.round(bmr),
@@ -366,7 +371,7 @@ export function estimateActivityDay(
     tdee: Math.round(tdee),
     pal: Math.round(pal * 100) / 100,
     level,
-    targetKcal: Math.round(targetKcal),
+    targetKcal: roundedTargetKcal,
     safetyFloorKcal: Math.round(safetyFloorKcal),
     safetyClamped: proposedTarget < safetyFloorKcal,
     proteinG: macros.protein_g,
