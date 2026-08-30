@@ -1690,3 +1690,11 @@ GitHub publication evidence:
 - Added stable accessibility identifiers and preserved the authored explanation/caution keys already present in every offered translated table, including Swiss Standard German.
 - Verification: focused source contract 18/18; full repository/web suite 679/679; production build succeeded across 1,188 modules; focused native UI journey passed 1/1 on `APEX Lane · iPhone 17 Pro` and its captured frame shows the anchored explanation open with fully wrapped copy; `git diff --check` passed.
 - Physical verification: the exact signed Debug build installed and launched successfully on connected `iConstantine Main` as process 6470. BA-Studio and Finalova simulator lanes were not touched.
+
+## 2026-08-30 — Premium information hierarchy Task 3: Settings identity
+
+- Rebuilt the native and web Active Identity hierarchy so the display name owns one flexible, non-hyphenating line instead of competing with a trailing persona badge. Native tightens character spacing when needed and uses tail truncation only for pathological lengths without violating the Dynamic Type rule against `minimumScaleFactor`; web preserves one line with no hyphenation and a responsive ellipsis.
+- Added case-, diacritic-, and whitespace-insensitive identity comparison on both platforms. A persona label that merely repeats Constantine/CONSTANTINE or Iulian/IULIÁN is omitted; genuinely distinct metadata such as Iulian-Andrei/Iulian remains directly below the display name.
+- Preserved the portrait, profile note, nutrition metrics, global top-bar account chip, account data, and every Settings control. Added stable Settings navigation/name/persona identifiers for assistive and UI verification.
+- Verification: focused web hierarchy 11/11; focused native identity unit 1/1; focused native Settings UI journey 1/1; full repository/web suite 681/681; production web build succeeded across 1,189 modules; the APEX-lane capture shows Constantine intact on one line with no duplicate persona chip; `git diff --check` passed.
+- Physical verification: the exact signed Debug build installed and launched successfully on connected `iConstantine Main` as process 6576. BA-Studio and Finalova simulator lanes were not touched.

@@ -335,4 +335,16 @@ final class SimpleHomeLogicTests: XCTestCase {
         XCTAssertEqual(updated.activityMode, "precise")
         XCTAssertEqual(updated.weightKG, 87.4)
     }
+
+    func testIdentityHidesOnlyAPersonaThatDuplicatesTheDisplayName() {
+        XCTAssertFalse(ProfileIdentityPresentation.showsPersona(
+            displayName: "Constantine", personaName: "CONSTANTINE"
+        ))
+        XCTAssertFalse(ProfileIdentityPresentation.showsPersona(
+            displayName: "Iulian", personaName: "IULIÁN"
+        ))
+        XCTAssertTrue(ProfileIdentityPresentation.showsPersona(
+            displayName: "Iulian-Andrei", personaName: "Iulian"
+        ))
+    }
 }

@@ -7,6 +7,7 @@ import { ageFrom, computeTargets, nutritionPlanContext } from '../lib/nutrition'
 import { ensurePermission } from '../lib/notify'
 import { buildImportRows, parseHealthFile, type ImportResult } from '../lib/healthImport'
 import { clearEntryGrant, clearSelectedPersona } from '../lib/persona'
+import { showsPersonaLabel } from '../lib/profileIdentity'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { canRestoreOriginalTrainingProgramme, isTrainingInductionEligible, restoreTrainingPlanAddons } from '../lib/trainingInduction'
 import { mealBlockLabel, normalizeMealBlockSettings, type CustomMealBlock, type CustomMealBlockId, type MealBlock, type MealBlockKind } from '../lib/mealBlocks'
@@ -276,12 +277,16 @@ export function Settings() {
 
       <div className="space-y-5">
         <GlassCard accent={violet} breathe className="p-5">
-          <div className="flex flex-wrap items-start justify-between gap-3">
-            <div>
+          <div className="flex items-start gap-3">
+            <div className="min-w-0 w-full">
               <p className="font-mono text-[10px] font-bold tracking-[0.18em] text-ink-faint uppercase">Active identity</p>
-              <h2 className="mt-1 font-display text-2xl font-bold tracking-tight text-ink">{profile.display_name}</h2>
+              <h2 className="mt-1 overflow-hidden text-ellipsis whitespace-nowrap [hyphens:none] font-display text-2xl font-bold tracking-tight text-ink">{profile.display_name}</h2>
+              {showsPersonaLabel(profile.display_name, profile.persona) && (
+                <div className="mt-2">
+                  <AccentChip accent={violet}>{profile.persona.toUpperCase()}</AccentChip>
+                </div>
+              )}
             </div>
-            <AccentChip accent={violet}>{profile.persona.toUpperCase()}</AccentChip>
           </div>
           <p className="mt-3 text-[13px] leading-relaxed font-medium text-ink-soft">{profile.profile_note}</p>
           {profile.target_kcal != null && (

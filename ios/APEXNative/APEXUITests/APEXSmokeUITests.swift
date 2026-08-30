@@ -270,6 +270,22 @@ final class APEXSmokeUITests: XCTestCase {
         capture("nutrition-goal-explanation")
     }
 
+    func testSettingsIdentityKeepsConstantineOnOneLineWithoutADuplicatePersona() {
+        let app = configuredApp()
+        app.launch()
+
+        let settings = app.buttons["portal.settings"]
+        XCTAssertTrue(settings.waitForExistence(timeout: 4))
+        settings.tap()
+
+        let name = app.staticTexts["settings-active-identity-name"]
+        XCTAssertTrue(name.waitForExistence(timeout: 3))
+        XCTAssertEqual(name.label, "Constantine")
+        XCTAssertLessThan(name.frame.height, 44, "the Active Identity name must remain one readable line")
+        XCTAssertFalse(app.staticTexts["settings-active-identity-persona"].exists)
+        capture("settings-active-identity")
+    }
+
     func testFivePortalNavigationAndCoreScreens() {
         let app = configuredApp()
         app.launch()

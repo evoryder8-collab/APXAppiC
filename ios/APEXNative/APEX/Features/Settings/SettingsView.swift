@@ -1,5 +1,20 @@
 import SwiftUI
 
+enum ProfileIdentityPresentation {
+    static func showsPersona(displayName: String, personaName: String) -> Bool {
+        normalized(displayName) != normalized(personaName)
+    }
+
+    private static func normalized(_ value: String) -> String {
+        value.folding(
+            options: [.caseInsensitive, .diacriticInsensitive],
+            locale: Locale(identifier: "en_US_POSIX")
+        )
+        .trimmingCharacters(in: .whitespacesAndNewlines)
+        .lowercased()
+    }
+}
+
 struct SettingsView: View {
     @Environment(AppSession.self) private var session
     @State private var health = HealthKitManager.shared
@@ -98,7 +113,9 @@ struct SettingsView: View {
     }
 
     private var identityCard: some View {
-        GlassCard(radius: 31, padding: 21) {
+        let displayName = profile?.displayName ?? "APEX"
+        let personaName = profile?.persona.displayName ?? "APEX"
+        return GlassCard(radius: 31, padding: 21) {
             VStack(alignment: .leading, spacing: 17) {
                 HStack(alignment: .top, spacing: 14) {
                     ProfileAvatarPicker()
@@ -108,14 +125,27 @@ struct SettingsView: View {
                             .foregroundStyle(APEXColor.secondaryInk)
                         Text(profile?.displayName ?? "APEX")
                             .font(APEXFont.display(26))
-                            .lineLimit(2)
-                            .fixedSize(horizontal: false, vertical: true)
+                            .lineLimit(1)
+                            .allowsTightening(true)
+                            .truncationMode(.tail)
+                            .frame(maxWidth: .infinity, alignment: .leading)
+                            .accessibilityIdentifier("settings-active-identity-name")
+                        if ProfileIdentityPresentation.showsPersona(
+                            displayName: displayName,
+                            personaName: personaName
+                        ) {
+                            Text(personaName.uppercased(with: language.language.locale))
+                                .font(APEXFont.mono(9))
+                                .tracking(1.1)
+                                .foregroundStyle(APEXColor.violet)
+                                .padding(.horizontal, 12)
+                                .padding(.vertical, 8)
+                                .overlay(Capsule().stroke(APEXColor.violet.opacity(0.3)))
+                                .padding(.top, 2)
+                                .accessibilityIdentifier("settings-active-identity-persona")
+                        }
                     }
-                    Spacer(minLength: 4)
-                    Text((profile?.persona.displayName ?? "APEX").uppercased(with: language.language.locale))
-                        .font(APEXFont.mono(9)).tracking(1.1).foregroundStyle(APEXColor.violet)
-                        .padding(.horizontal, 12).padding(.vertical, 8)
-                        .overlay(Capsule().stroke(APEXColor.violet.opacity(0.3)))
+                    .frame(maxWidth: .infinity, alignment: .leading)
                 }
                 Text(language.text(profile?.profileNote ?? "Your private performance system."))
                     .font(APEXFont.body(14, weight: .medium))

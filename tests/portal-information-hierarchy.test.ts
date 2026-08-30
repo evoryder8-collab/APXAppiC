@@ -8,6 +8,7 @@ import {
   toggleFitnessPlanDisclosure,
 } from '../src/lib/fitnessPlanDisclosure.ts'
 import { UI_TRANSLATIONS } from '../src/lib/translations.ts'
+import { showsPersonaLabel } from '../src/lib/profileIdentity.ts'
 
 test('first Fitness Plan expansion persists only after both subtitles arrive', () => {
   let state = toggleFitnessPlanDisclosure(collapsedFitnessPlanDisclosure(), false)
@@ -157,4 +158,22 @@ test('Fitness Plan exposes stable accessible controls and a vertical phase hiera
   assert.match(native, /accessibilityValue[\s\S]*(Expanded|Collapsed)/)
   assert.doesNotMatch(web, /sm:grid-cols-2/)
   assert.match(web, /initial=\{\{ opacity: 0, y: reducedMotion \? 0 : 26 \}\}/)
+})
+
+test('Settings hides only a persona label that repeats the display name', () => {
+  assert.equal(showsPersonaLabel('Constantine', 'CONSTANTINE'), false)
+  assert.equal(showsPersonaLabel('Iulian', 'IULIÁN'), false)
+  assert.equal(showsPersonaLabel('Iulian-Andrei', 'Iulian'), true)
+})
+
+test('Settings gives the name its own non-hyphenating row on native and web', () => {
+  const native = readFileSync(new URL('../ios/APEXNative/APEX/Features/Settings/SettingsView.swift', import.meta.url), 'utf8')
+  const web = readFileSync(new URL('../src/pages/Settings.tsx', import.meta.url), 'utf8')
+
+  assert.match(native, /Text\(profile\?\.displayName \?\? "APEX"\)[\s\S]*\.lineLimit\(1\)[\s\S]*\.allowsTightening\(true\)/)
+  assert.doesNotMatch(native, /minimumScaleFactor/)
+  assert.match(web, /whitespace-nowrap/)
+  assert.match(web, /\[hyphens:none\]/)
+  assert.match(native, /ProfileIdentityPresentation\.showsPersona/)
+  assert.match(web, /showsPersonaLabel/)
 })

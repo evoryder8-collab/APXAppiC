@@ -181,6 +181,8 @@ struct APEXTopBar: View {
             }
             .buttonStyle(.plain)
             .foregroundStyle(APEXColor.secondaryInk)
+            .accessibilityLabel(LanguageState.shared.text(.settings))
+            .accessibilityIdentifier("portal.settings")
         }
         .padding(.horizontal, 20)
         .frame(height: 72)
