@@ -1795,3 +1795,13 @@ GitHub publication evidence:
 - Installed the exact bundle over the existing app on `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`) without uninstalling or clearing account data, launched it successfully, and confirmed PID `1798`.
 - Confirmed `APEX Water` is installed on the paired physical `Constantin’s Apple Watch` (`F6BE2986-A704-5C82-BC2B-6D02E09CBD04`), launched it successfully, and confirmed PID `6016`.
 - Published commit `7f1f2352885354ab9df09b11da573aed539e8a1e` through GitHub Pages run `33325337663`; both build and deploy jobs completed successfully, and `https://evoryder8-collab.github.io/APXAppiC/` returned HTTP `200`.
+
+## 2026-08-30 — Fitness Brain v2 Project 2: trustworthy semantics
+
+- Added a shadow-only Fitness Brain v2 semantic boundary on web and native. Long-lived capacity, daily readiness, behavioural XP, adaptation support, and health/safety context are independent state layers; none can silently rewrite another.
+- Unknown evidence remains unavailable rather than defaulting to `50`. Structured self-report and legacy values require broad ranges and are capped at low confidence; supported-device and guided-test estimates are also capped by source quality, while aging and stale evidence reduce confidence without fabricating decline.
+- A non-clinical Overall band now requires cardiorespiratory evidence, separate upper- and lower-strength evidence, at least two region-specific mobility estimates, and aggregate coverage of at least `0.60`. Its confidence cannot exceed the weakest required input.
+- Added fail-closed rejection for duplicate domains, malformed ranges, unsupported reference scales, missing evidence/receipts, invalid coverage, and over-precise self-report. Every accepted estimate retains evidence identifiers, explanation receipts, freshness, coverage, confidence, reference scale, and model version.
+- Preserved the current v1 RPG snapshots and Avatar presentation unchanged. V2 has no account identity, bespoke-protocol, calorie-target, or programme-authority field and cannot authorize protected content.
+- Added one shared six-scenario JSON parity fixture plus separation and authority guards. Focused verification: web `8/8`, native `3/3`. Full verification: web `717/717`, native `678/678` on `APEX Lane · iPhone 17 Pro`; TypeScript and production Vite build passed; Xcode project/fixture validation and `git diff --check` passed.
+- Next: Project 3 adds immutable, account-owned evidence persistence and source normalization. The short onboarding and Avatar **Edit / Calibrate my baseline** sheet remain intentionally gated on that evidence foundation.

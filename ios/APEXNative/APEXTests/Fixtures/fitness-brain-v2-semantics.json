@@ -1,0 +1,289 @@
+{
+  "scenarios": [
+    {
+      "name": "missing evidence stays unknown",
+      "input": {
+        "as_of": "2026-08-30",
+        "capacity": [],
+        "readiness_signals": [],
+        "adherence_events": [],
+        "adaptation_signals": [],
+        "health_context": { "flags": [], "receipt_ids": [] }
+      },
+      "expected": {
+        "model_version": 2,
+        "cardiorespiratory_value": null,
+        "upper_strength_value": null,
+        "lower_strength_value": null,
+        "mobility_value": null,
+        "mobility_lower_bound": null,
+        "mobility_upper_bound": null,
+        "mobility_confidence": "unavailable",
+        "mobility_coverage": 0,
+        "mobility_freshness": "stale",
+        "overall_value": null,
+        "overall_lower_bound": null,
+        "overall_upper_bound": null,
+        "overall_confidence": "unavailable",
+        "overall_coverage": 0,
+        "overall_freshness": "stale",
+        "overall_band": "building_baseline",
+        "readiness_value": null,
+        "readiness_confidence": "unavailable",
+        "readiness_coverage": 0,
+        "readiness_freshness": "stale",
+        "readiness_band": "building_baseline",
+        "adherence_xp": 0,
+        "adaptation_band": "unknown",
+        "field_test_eligible": true,
+        "rejected_domains": [],
+        "issue_codes": []
+      }
+    },
+    {
+      "name": "self report remains broad and provisional",
+      "input": {
+        "as_of": "2026-08-30",
+        "capacity": [
+          { "domain": "cardiorespiratory", "value": 50, "lower_bound": 30, "upper_bound": 70, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["self-cardio"], "explanation_receipts": ["Everyday stamina anchor"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "upper_strength", "value": 55, "lower_bound": 35, "upper_bound": 75, "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.9, "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["self-upper"], "explanation_receipts": ["Upper-body anchor"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "lower_strength", "value": 45, "lower_bound": 25, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "low", "coverage": 0.8, "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["self-lower"], "explanation_receipts": ["Lower-body anchor"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_hip_posterior", "value": 60, "lower_bound": 40, "upper_bound": 80, "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.8, "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["self-hip"], "explanation_receipts": ["Comfortable hip range anchor"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_ankle", "value": 40, "lower_bound": 20, "upper_bound": 60, "reference_scale": "apex_capacity_percentile_v2", "confidence": "low", "coverage": 0.8, "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["self-ankle"], "explanation_receipts": ["Comfortable ankle range anchor"], "model_version": 2, "as_of": "2026-08-30" }
+        ],
+        "readiness_signals": [
+          { "kind": "fatigue", "normalized_value": 65, "confidence": "low", "freshness": "current", "evidence_id": "self-fatigue" }
+        ],
+        "adherence_events": [],
+        "adaptation_signals": [],
+        "health_context": { "flags": [], "receipt_ids": [] }
+      },
+      "expected": {
+        "model_version": 2,
+        "cardiorespiratory_value": 50,
+        "upper_strength_value": 55,
+        "lower_strength_value": 45,
+        "mobility_value": 50,
+        "mobility_lower_bound": 30,
+        "mobility_upper_bound": 70,
+        "mobility_confidence": "low",
+        "mobility_coverage": 0.3667,
+        "mobility_freshness": "current",
+        "overall_value": null,
+        "overall_lower_bound": null,
+        "overall_upper_bound": null,
+        "overall_confidence": "unavailable",
+        "overall_coverage": 0.4889,
+        "overall_freshness": "current",
+        "overall_band": "building_baseline",
+        "readiness_value": null,
+        "readiness_confidence": "unavailable",
+        "readiness_coverage": 0.25,
+        "readiness_freshness": "current",
+        "readiness_band": "building_baseline",
+        "adherence_xp": 0,
+        "adaptation_band": "unknown",
+        "field_test_eligible": true,
+        "rejected_domains": [],
+        "issue_codes": []
+      }
+    },
+    {
+      "name": "supported core evidence emits one cautious overall band",
+      "input": {
+        "as_of": "2026-08-30",
+        "capacity": [
+          { "domain": "cardiorespiratory", "value": 72, "lower_bound": 66, "upper_bound": 78, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 0.95, "freshness": "current", "source_class": "supported_device", "evidence_ids": ["watch-vo2"], "explanation_receipts": ["Supported device VO2 estimate"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "upper_strength", "value": 65, "lower_bound": 60, "upper_bound": 70, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 0.9, "freshness": "current", "source_class": "standardized_field_test", "evidence_ids": ["upper-test"], "explanation_receipts": ["Standardized upper-body test"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "lower_strength", "value": 55, "lower_bound": 50, "upper_bound": 60, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 0.9, "freshness": "aging", "source_class": "guided_field_test", "evidence_ids": ["lower-test"], "explanation_receipts": ["Guided lower-body test"], "model_version": 2, "as_of": "2026-08-01" },
+          { "domain": "mobility_hip_posterior", "value": 70, "lower_bound": 65, "upper_bound": 75, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 0.9, "freshness": "current", "source_class": "standardized_field_test", "evidence_ids": ["hip-test"], "explanation_receipts": ["Standardized hip mobility test"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_ankle", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.9, "freshness": "current", "source_class": "guided_field_test", "evidence_ids": ["ankle-test"], "explanation_receipts": ["Guided ankle mobility test"], "model_version": 2, "as_of": "2026-08-30" }
+        ],
+        "readiness_signals": [
+          { "kind": "sleep", "normalized_value": 80, "confidence": "high", "freshness": "current", "evidence_id": "sleep-1" },
+          { "kind": "hrv", "normalized_value": 60, "confidence": "medium", "freshness": "current", "evidence_id": "hrv-1" },
+          { "kind": "fatigue", "normalized_value": 70, "confidence": "low", "freshness": "current", "evidence_id": "fatigue-1" }
+        ],
+        "adherence_events": [
+          { "kind": "planned_training_completed", "xp": 25, "receipt_id": "session-1" },
+          { "kind": "measurement_supplied", "xp": 10, "receipt_id": "measurement-1" }
+        ],
+        "adaptation_signals": [
+          { "kind": "protein", "status": "supportive", "receipt_id": "protein-1" },
+          { "kind": "hydration", "status": "supportive", "receipt_id": "hydration-1" },
+          { "kind": "recovery", "status": "limiting", "receipt_id": "recovery-1" }
+        ],
+        "health_context": { "flags": ["pain"], "receipt_ids": ["pain-checkin"] }
+      },
+      "expected": {
+        "model_version": 2,
+        "cardiorespiratory_value": 72,
+        "upper_strength_value": 65,
+        "lower_strength_value": 55,
+        "mobility_value": 65,
+        "mobility_lower_bound": 60,
+        "mobility_upper_bound": 70,
+        "mobility_confidence": "medium",
+        "mobility_coverage": 0.5833,
+        "mobility_freshness": "current",
+        "overall_value": 65.6667,
+        "overall_lower_bound": 60.3333,
+        "overall_upper_bound": 71,
+        "overall_confidence": "medium",
+        "overall_coverage": 0.7528,
+        "overall_freshness": "aging",
+        "overall_band": "strong",
+        "readiness_value": 70,
+        "readiness_confidence": "low",
+        "readiness_coverage": 0.75,
+        "readiness_freshness": "current",
+        "readiness_band": "ready",
+        "adherence_xp": 35,
+        "adaptation_band": "supported",
+        "field_test_eligible": false,
+        "rejected_domains": [],
+        "issue_codes": []
+      }
+    },
+    {
+      "name": "stale evidence cannot retain high confidence",
+      "input": {
+        "as_of": "2026-08-30",
+        "capacity": [
+          { "domain": "cardiorespiratory", "value": 80, "lower_bound": 75, "upper_bound": 85, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "stale", "source_class": "clinical_lab", "evidence_ids": ["c1"], "explanation_receipts": ["Clinical result"], "model_version": 2, "as_of": "2025-01-01" },
+          { "domain": "upper_strength", "value": 80, "lower_bound": 75, "upper_bound": 85, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "stale", "source_class": "clinical_lab", "evidence_ids": ["u1"], "explanation_receipts": ["Clinical result"], "model_version": 2, "as_of": "2025-01-01" },
+          { "domain": "lower_strength", "value": 80, "lower_bound": 75, "upper_bound": 85, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "stale", "source_class": "clinical_lab", "evidence_ids": ["l1"], "explanation_receipts": ["Clinical result"], "model_version": 2, "as_of": "2025-01-01" },
+          { "domain": "mobility_hip_posterior", "value": 80, "lower_bound": 75, "upper_bound": 85, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "stale", "source_class": "clinical_lab", "evidence_ids": ["m1"], "explanation_receipts": ["Clinical result"], "model_version": 2, "as_of": "2025-01-01" },
+          { "domain": "mobility_ankle", "value": 80, "lower_bound": 75, "upper_bound": 85, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "stale", "source_class": "clinical_lab", "evidence_ids": ["m2"], "explanation_receipts": ["Clinical result"], "model_version": 2, "as_of": "2025-01-01" },
+          { "domain": "mobility_shoulder", "value": 80, "lower_bound": 75, "upper_bound": 85, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "stale", "source_class": "clinical_lab", "evidence_ids": ["m3"], "explanation_receipts": ["Clinical result"], "model_version": 2, "as_of": "2025-01-01" }
+        ],
+        "readiness_signals": [],
+        "adherence_events": [],
+        "adaptation_signals": [],
+        "health_context": { "flags": [], "receipt_ids": [] }
+      },
+      "expected": {
+        "model_version": 2,
+        "cardiorespiratory_value": 80,
+        "upper_strength_value": 80,
+        "lower_strength_value": 80,
+        "mobility_value": 80,
+        "mobility_lower_bound": 75,
+        "mobility_upper_bound": 85,
+        "mobility_confidence": "low",
+        "mobility_coverage": 1,
+        "mobility_freshness": "stale",
+        "overall_value": 80,
+        "overall_lower_bound": 75,
+        "overall_upper_bound": 85,
+        "overall_confidence": "low",
+        "overall_coverage": 1,
+        "overall_freshness": "stale",
+        "overall_band": "strong",
+        "readiness_value": null,
+        "readiness_confidence": "unavailable",
+        "readiness_coverage": 0,
+        "readiness_freshness": "stale",
+        "readiness_band": "building_baseline",
+        "adherence_xp": 0,
+        "adaptation_band": "unknown",
+        "field_test_eligible": true,
+        "rejected_domains": [],
+        "issue_codes": []
+      }
+    },
+    {
+      "name": "duplicate domain fails closed",
+      "input": {
+        "as_of": "2026-08-30",
+        "capacity": [
+          { "domain": "cardiorespiratory", "value": 55, "lower_bound": 50, "upper_bound": 60, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["c1"], "explanation_receipts": ["First result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "cardiorespiratory", "value": 65, "lower_bound": 60, "upper_bound": 70, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["c2"], "explanation_receipts": ["Ambiguous second result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "upper_strength", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["u1"], "explanation_receipts": ["Upper result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "lower_strength", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["l1"], "explanation_receipts": ["Lower result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_hip_posterior", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["m1"], "explanation_receipts": ["Hip result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_ankle", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["m2"], "explanation_receipts": ["Ankle result"], "model_version": 2, "as_of": "2026-08-30" }
+        ],
+        "readiness_signals": [],
+        "adherence_events": [],
+        "adaptation_signals": [],
+        "health_context": { "flags": [], "receipt_ids": [] }
+      },
+      "expected": {
+        "model_version": 2,
+        "cardiorespiratory_value": null,
+        "upper_strength_value": 60,
+        "lower_strength_value": 60,
+        "mobility_value": 60,
+        "mobility_lower_bound": 55,
+        "mobility_upper_bound": 65,
+        "mobility_confidence": "high",
+        "mobility_coverage": 0.6667,
+        "mobility_freshness": "current",
+        "overall_value": null,
+        "overall_lower_bound": null,
+        "overall_upper_bound": null,
+        "overall_confidence": "unavailable",
+        "overall_coverage": 0.5556,
+        "overall_freshness": "current",
+        "overall_band": "building_baseline",
+        "readiness_value": null,
+        "readiness_confidence": "unavailable",
+        "readiness_coverage": 0,
+        "readiness_freshness": "stale",
+        "readiness_band": "building_baseline",
+        "adherence_xp": 0,
+        "adaptation_band": "unknown",
+        "field_test_eligible": true,
+        "rejected_domains": ["cardiorespiratory"],
+        "issue_codes": ["duplicate_domain:cardiorespiratory"]
+      }
+    },
+    {
+      "name": "narrow self report fails closed",
+      "input": {
+        "as_of": "2026-08-30",
+        "capacity": [
+          { "domain": "cardiorespiratory", "value": 50, "lower_bound": 45, "upper_bound": 55, "reference_scale": "apex_capacity_percentile_v2", "confidence": "low", "coverage": 0.5, "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["self-c"], "explanation_receipts": ["Over-precise self report"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "upper_strength", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["u1"], "explanation_receipts": ["Upper result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "lower_strength", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["l1"], "explanation_receipts": ["Lower result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_hip_posterior", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["m1"], "explanation_receipts": ["Hip result"], "model_version": 2, "as_of": "2026-08-30" },
+          { "domain": "mobility_ankle", "value": 60, "lower_bound": 55, "upper_bound": 65, "reference_scale": "apex_capacity_percentile_v2", "confidence": "high", "coverage": 1, "freshness": "current", "source_class": "clinical_lab", "evidence_ids": ["m2"], "explanation_receipts": ["Ankle result"], "model_version": 2, "as_of": "2026-08-30" }
+        ],
+        "readiness_signals": [],
+        "adherence_events": [],
+        "adaptation_signals": [],
+        "health_context": { "flags": [], "receipt_ids": [] }
+      },
+      "expected": {
+        "model_version": 2,
+        "cardiorespiratory_value": null,
+        "upper_strength_value": 60,
+        "lower_strength_value": 60,
+        "mobility_value": 60,
+        "mobility_lower_bound": 55,
+        "mobility_upper_bound": 65,
+        "mobility_confidence": "high",
+        "mobility_coverage": 0.6667,
+        "mobility_freshness": "current",
+        "overall_value": null,
+        "overall_lower_bound": null,
+        "overall_upper_bound": null,
+        "overall_confidence": "unavailable",
+        "overall_coverage": 0.5556,
+        "overall_freshness": "current",
+        "overall_band": "building_baseline",
+        "readiness_value": null,
+        "readiness_confidence": "unavailable",
+        "readiness_coverage": 0,
+        "readiness_freshness": "stale",
+        "readiness_band": "building_baseline",
+        "adherence_xp": 0,
+        "adaptation_band": "unknown",
+        "field_test_eligible": true,
+        "rejected_domains": ["cardiorespiratory"],
+        "issue_codes": ["band_too_narrow:cardiorespiratory"]
+      }
+    }
+  ]
+}
