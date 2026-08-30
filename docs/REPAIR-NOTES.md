@@ -1752,3 +1752,11 @@ GitHub publication evidence:
 - Moved deeper tests and imports into an optional, resumable **Sharpen my baseline** journey so scientific rigor does not create signup cognitive overload.
 - Defined non-destructive legacy-score preservation, shadow evaluation, invariants, rollback, accessibility, localization, and staged rollout gates.
 - Verification: Markdown self-review found no unresolved placeholders or diff-format errors; implementation remains intentionally gated on owner review of the written specification.
+
+## 2026-08-30 — Fitness Brain P0 implementation plan and calibration entry
+
+- Recorded owner approval of the Fitness Brain trust architecture and moved it into staged implementation.
+- Added the approved Avatar entry point: a compact **Edit** control above Stats opens the resumable **Calibrate my baseline** sheet for standard and bespoke accounts. Calibration refines evidence-backed physiological estimates but cannot authorize or replace a bespoke programme or nutrition protocol.
+- Kept mandatory signup intentionally light: the optional long-form calibration contains the deeper questions and measurements instead of extending the sub-three-minute provisional onboarding.
+- Decomposed the first release into an executable P0 plan covering the additive profile-policy migration, exact bespoke protocol gating, conservative legacy decoding, body-fat provenance, native/web parity, account retention, signed-device verification, and production publication.
+- Verification: plan/spec `git diff --check` passed; placeholder, ambiguity, protocol-id, simulator-lane, and approved calibration-entry scans passed. Production code remains unchanged at this checkpoint; P0 begins with the failing migration contract.

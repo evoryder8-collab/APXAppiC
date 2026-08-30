@@ -1,7 +1,7 @@
 # Fitness Brain Trust Architecture Design
 
 Date: 2026-08-30
-Status: owner-approved direction; written-spec review pending
+Status: owner-approved; implementation planning in progress
 Audit: `docs/superpowers/audits/2026-08-30-apex-fitness-brain-scientific-audit.md`
 Evidence ledger: `docs/superpowers/audits/report-source.md`
 
@@ -42,9 +42,11 @@ Scientific quality must not turn signup into an examination.
 
 ### Progressive disclosure
 
-The default signup creates a safe provisional baseline. After the person reaches the app, APEX offers a non-blocking **Sharpen my baseline** journey that can be completed now, later, or in several short visits.
+The default signup creates a safe provisional baseline. After the person reaches the app, APEX offers a non-blocking **Calibrate my baseline** journey that can be completed now, later, or in several short visits.
 
 The optional journey can import measurements or guide field tests. It must never delay plan access, invalidate a skipped answer, or imply failure when the person chooses not to test.
+
+The Avatar places a compact **Edit** control directly above the Stats lanes. It has a minimum 44-point touch target and the accessibility label **Calibrate my baseline**. Activating it presents the resumable long-form calibration in a sheet or adaptive popup without navigating away from the Avatar. The same entry point and evidence rules apply to standard and bespoke accounts; calibration may refine physiological estimates but cannot replace or authorize a bespoke programme or nutrition protocol.
 
 ## System model
 
@@ -252,7 +254,7 @@ Then show no more than five visual/text anchors, for example:
 
 The exact anchors are protocol-specific, localized, and safety-reviewed. They do not directly equal a displayed score.
 
-## Sharpen my baseline
+## Calibrate my baseline
 
 After onboarding, APEX offers three optional routes:
 
@@ -315,7 +317,7 @@ This architecture is implemented as separately releasable projects:
 2. **Fitness Brain v2 semantics** — separate capacity, readiness, adherence XP, health context, confidence, freshness, and missingness.
 3. **Evidence storage and normalization** — account-owned immutable evidence records and source hierarchy.
 4. **Distilled onboarding** — the sub-three-minute provisional flow with authored localization and accessibility.
-5. **Sharpen my baseline** — imports and safe optional field-test routes.
+5. **Calibrate my baseline** — the Avatar Edit entry point, imports, and safe optional field-test routes.
 6. **Shadow validation and transition** — dual-run telemetry, legacy presentation, claim review, and controlled activation.
 
 Every project receives its own TDD cycle, tests, repair note, commit, push to both required refs, GitHub Pages deployment, and applicable APEX-lane/physical-device verification before the next project begins.
