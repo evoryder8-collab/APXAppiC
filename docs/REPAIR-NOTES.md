@@ -1781,3 +1781,16 @@ GitHub publication evidence:
 - Profile creation now explicitly requests a standard account and relies on the nullable database baseline. Legacy cache decoding preserves numeric body fat but fails closed, and remote profile payloads send explicit nulls when a user removes body fat without leaking measured BMR through the profile table.
 - Updated native Settings with an honest Add/Remove flow; any manual change is recorded as a self-estimate. Added natural guidance in every offered native language and regenerated the cross-platform golden fixture from the current web engine.
 - Verification: focused profile integrity 8/8 and combined energy/parity/plan contracts 51/51; all 17 full/compact string tables parsed; native localization suites 20/20; complete native unit suite 675/675; `git diff --check` passed. Simulator work used only `APEX Lane · iPhone 17 Pro` (`6907359A-18D1-46B0-87F1-13CED5CE1C46`); BA-Studio and Finalova lanes were not touched. Physical installation is reserved for the integrated P0 release stage after the production migration.
+
+## 2026-08-30 — Profile integrity hotfix, Task 4: production and device release gate
+
+- Applied `040_profile_integrity_policy.sql` directly to the linked APEX Supabase project through the Management API query path. This deliberately avoided `db push`, migration-history repair, reset, or any other history rewrite because the remote migration ledger predates the repository ledger.
+- Production preflight and postflight both reported exactly five profile rows. No profile or account-owned record was deleted.
+- Verified the four protected accounts resolve only to their exact immutable protocol contracts: Constantine `constantine-v8.5`, June `june-v8.4`, Matthew `matthew-v1`, and Iulian `iulian-v2`. The remaining account resolves to `standard` with no bespoke protocol.
+- Preserved all five existing body-fat values and explicitly marked them `legacy_unverified`. `body_fat_pct` is now nullable with no default, and new or unknown profiles therefore do not receive a fabricated percentage.
+- Verified the production constraints for allowed profile kinds, exact bespoke identity/protocol pairing, protocol presence, body-fat range/source pairing, and allowed provenance values.
+- Retention matrix: web `86/86` and native `57/57` passed for installed-plan recovery, weekday resolution, date-owned Finished Workouts on Simple/Main/Transition, owner-scoped hiding/deletion, receipt editing, external-workout deduplication, and account isolation.
+- Full verification: web `709/709`; native `675/675` on `APEX Lane · iPhone 17 Pro` (`6907359A-18D1-46B0-87F1-13CED5CE1C46`); TypeScript plus production Vite build passed; `git diff --check` passed. Vite retained only its existing large-chunk advisory.
+- Built a signed generic iOS device bundle with the embedded `APEX Water.app`, complication extension, and compiled Watch asset catalogue. Strict code-sign verification passed.
+- Installed the exact bundle over the existing app on `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`) without uninstalling or clearing account data, launched it successfully, and confirmed PID `1798`.
+- Confirmed `APEX Water` is installed on the paired physical `Constantin’s Apple Watch` (`F6BE2986-A704-5C82-BC2B-6D02E09CBD04`), launched it successfully, and confirmed PID `6016`.
