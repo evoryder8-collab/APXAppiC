@@ -26,6 +26,11 @@ test('Simple Mode removes the redundant greeting and manual checklist', () => {
   assert.doesNotMatch(webSimple, /Today, \$\{firstName\}/)
 })
 
+test('Simple Mode removes the redundant food-change and full-schedule shortcuts', () => {
+  assert.doesNotMatch(nativeSimple, /fullDetailShortcuts|Food or activity changed\?|Open full schedule/)
+  assert.doesNotMatch(webSimple, /Food or activity changed\?|Open full schedule/)
+})
+
 test('daily completion lives inside the Simple Mode nutrition card', () => {
   assert.match(nativeSimple, /NutritionGlanceCard\([\s\S]*?completion: completion/)
   assert.match(webSimple, /<NutritionGlance[\s\S]*?completion=\{completion\}/)

@@ -720,6 +720,19 @@ export function MealComposer({
   }
 
   const log = async () => {
+    if (replaceMealId && items.length === 0) {
+      setSaving(true)
+      try {
+        await store.deleteMeal(replaceMealId)
+        onLogged?.()
+        onClose()
+      } catch (error) {
+        setMessage(error instanceof Error ? error.message : 'Meal could not be logged.')
+      } finally {
+        setSaving(false)
+      }
+      return
+    }
     if (!items.length || totals.kcal <= 0) {
       setMessage('Add at least one complete food before logging.')
       return
@@ -1281,10 +1294,10 @@ export function MealComposer({
             )}
           </AnimatePresence>
 
-          {items.length > 0 && (
+          {(items.length > 0 || Boolean(replaceMealId)) && (
             <motion.button
               type="button"
-              disabled={saving || totals.kcal <= 0}
+              disabled={saving || (items.length > 0 && totals.kcal <= 0)}
               onClick={() => void log()}
               whileTap={{ scale: 0.985 }}
               className="sticky bottom-[calc(.75rem+env(safe-area-inset-bottom))] z-20 w-full rounded-[1.35rem] px-5 py-4 text-base font-black text-white shadow-[0_20px_42px_-18px_rgba(245,158,11,.95)] ring-1 ring-white/55 disabled:opacity-50"
@@ -1292,7 +1305,9 @@ export function MealComposer({
             >
               {saving
                 ? t('Saving meal…')
-                : `${t(replaceMealId ? 'Save changes & close' : planning ? 'Save to day & close' : 'Save meal & close')} · ${totals.kcal} ${t('kcal')}`}
+                : items.length === 0
+                  ? t('Save changes & close')
+                  : `${t(replaceMealId ? 'Save changes & close' : planning ? 'Save to day & close' : 'Save meal & close')} · ${totals.kcal} ${t('kcal')}`}
             </motion.button>
           )}
 

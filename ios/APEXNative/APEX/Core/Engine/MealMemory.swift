@@ -282,6 +282,8 @@ enum MealMemory {
                 score = 2
             } else if tokens.allSatisfy({ combined.contains($0) }) {
                 score = 3
+            } else if fields.contains(where: { fuzzySearchMatch(needle, $0) }) {
+                score = 4
             } else {
                 return nil
             }
@@ -314,6 +316,55 @@ enum MealMemory {
             .split(separator: " ")
             .map(String.init)
             .joined(separator: " ")
+    }
+
+    private static func fuzzySearchMatch(_ query: String, _ candidate: String) -> Bool {
+        let queryCompact = query.replacingOccurrences(of: " ", with: "")
+        guard queryCompact.count >= 4 else { return false }
+        let tokens = candidate.split(separator: " ").map(String.init)
+        guard !tokens.isEmpty else { return false }
+        var forms = Set(tokens)
+        if tokens.count > 1 {
+            for start in tokens.indices {
+                let upper = min(tokens.count, start + 4)
+                guard start + 1 < upper else { continue }
+                for end in (start + 1)..<upper {
+                    forms.insert(tokens[start...end].joined())
+                }
+            }
+        }
+        return forms.contains { form in
+            let compact = form.replacingOccurrences(of: " ", with: "")
+            if compact.contains(queryCompact) || queryCompact.contains(compact) {
+                return min(compact.count, queryCompact.count) >= 4
+            }
+            let limit = queryCompact.count >= 9 ? 2 : queryCompact.count >= 5 ? 1 : 0
+            return limit > 0 && editDistance(queryCompact, compact, limit: limit) <= limit
+        }
+    }
+
+    private static func editDistance(_ left: String, _ right: String, limit: Int) -> Int {
+        if abs(left.count - right.count) > limit { return limit + 1 }
+        let leftCharacters = Array(left)
+        let rightCharacters = Array(right)
+        var previous = Array(0...rightCharacters.count)
+        for leftIndex in leftCharacters.indices {
+            var current = [leftIndex + 1]
+            var rowMinimum = current[0]
+            for rightIndex in rightCharacters.indices {
+                let cost = leftCharacters[leftIndex] == rightCharacters[rightIndex] ? 0 : 1
+                let value = min(
+                    current[rightIndex] + 1,
+                    previous[rightIndex + 1] + 1,
+                    previous[rightIndex] + cost
+                )
+                current.append(value)
+                rowMinimum = min(rowMinimum, value)
+            }
+            if rowMinimum > limit { return limit + 1 }
+            previous = current
+        }
+        return previous[rightCharacters.count]
     }
 
     /// Produce only the account-owned preference rows touched by a confirmed

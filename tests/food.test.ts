@@ -214,6 +214,30 @@ test('food search tolerates potato typos while rejecting unrelated fruit results
   )
 })
 
+test('food search tolerates joined words and small brand-product misspellings', () => {
+  const template = COMMON_FOODS[0]
+  const royal = {
+    ...template,
+    id: 'search-fixture-royal',
+    name: 'Cheeseburger Royal',
+    names_i18n: { en: 'Cheeseburger Royal', 'de-CH': 'Cheeseburger Royal' },
+    brand: "McDonald's Switzerland",
+    provider_product_id: 'search-fixture:royal',
+  }
+  const bigTasty = {
+    ...template,
+    id: 'search-fixture-big-tasty',
+    name: 'Big Tasty Single',
+    names_i18n: { en: 'Big Tasty Single', 'de-CH': 'Big Tasty Single' },
+    brand: "McDonald's Switzerland",
+    provider_product_id: 'search-fixture:big-tasty',
+  }
+
+  assert.equal(rankFoods('cheeseburgerroyal', [royal, bigTasty], [], 'lunch')[0]?.id, royal.id)
+  assert.equal(rankFoods('cheeseburgerrroyal', [royal, bigTasty], [], 'lunch')[0]?.id, royal.id)
+  assert.equal(rankFoods('bigtsty', [royal, bigTasty], [], 'lunch')[0]?.id, bigTasty.id)
+})
+
 test('Thai and Asian staples resolve across English, Romanian and Thai search', () => {
   const expectations = [
     ['jasmine rice cooked', 'jasmine-rice-cooked-ratio-1-1-5'],

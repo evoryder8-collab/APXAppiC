@@ -349,7 +349,7 @@ test('a selected or future day never inherits completed or imported workouts fro
   assert.deepEqual(finishedWorkoutHistoryForDate(data, '2027-08-29'), [])
 })
 
-test('completed workout history is date-owned on Simple Mode and remains unbounded in phase pages', () => {
+test('completed workout history is date-owned on Simple Mode and phase pages', () => {
   const simple = readFileSync(new URL('../src/pages/SimpleHome.tsx', import.meta.url), 'utf8')
   const phase = readFileSync(new URL('../src/pages/WorkoutSection.tsx', import.meta.url), 'utf8')
   const nativeSimple = readFileSync(new URL('../ios/APEXNative/APEX/Features/Portal/SimpleHomeView.swift', import.meta.url), 'utf8')
@@ -357,13 +357,13 @@ test('completed workout history is date-owned on Simple Mode and remains unbound
   assert.match(simple, /simple-summary-actions[\s\S]*CompletedWorkoutHistoryCards/)
   assert.match(phase, /CompletedWorkoutHistoryCards/)
   assert.match(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\} accent=\{ACCENTS\.teal\}/)
-  assert.match(phase, /CompletedWorkoutHistoryCards date=\{undefined\} accent=\{accent\} includeQuickLogs=\{false\}/)
+  assert.match(phase, /CompletedWorkoutHistoryCards date=\{today\} accent=\{accent\} includeQuickLogs=\{false\}/)
   assert.doesNotMatch(simple, /CompletedWorkoutHistoryCards date=\{selectedDate\}[^>]*limit=/)
-  assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{undefined\} limit=/)
+  assert.doesNotMatch(phase, /CompletedWorkoutHistoryCards date=\{today\}[^>]*limit=/)
   assert.match(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey, accent: APEXColor\.teal\)/)
-  assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: nil, accent: accent\)/)
+  assert.match(nativePhase, /CompletedWorkoutHistoryCards\(date: Date\(\)\.apexDateKey, accent: accent\)/)
   assert.doesNotMatch(nativeSimple, /CompletedWorkoutHistoryCards\(date: selectedDate\.apexDateKey,[^\n]*limit:/)
-  assert.doesNotMatch(nativePhase, /CompletedWorkoutHistoryCards\(date: nil,[^\n]*limit:/)
+  assert.doesNotMatch(nativePhase, /CompletedWorkoutHistoryCards\(date: Date\(\)\.apexDateKey,[^\n]*limit:/)
 })
 
 test("Nutrition Today's Activities reuses the same date-owned finished workout receipts", () => {

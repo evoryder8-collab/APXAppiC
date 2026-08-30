@@ -740,12 +740,14 @@ struct MealComposerView: View {
             } label: {
                 if isSaving {
                     ProgressView().tint(.white)
+                } else if draft.items.isEmpty {
+                    Text(language.text("Save changes & close"))
                 } else {
                     Text(language.format("Save changes & close · %d kcal", Int(draft.totals.kcal.rounded())))
                 }
             }
             .buttonStyle(APEXPrimaryButtonStyle(color: APEXColor.amber))
-            .disabled(isSaving || draft.items.isEmpty)
+            .disabled(isSaving || (draft.items.isEmpty && request.existingMeal == nil))
             .padding(.horizontal, 16)
             .padding(.vertical, 10)
         }
@@ -902,6 +904,12 @@ struct MealComposerView: View {
     private func save() async {
         isSaving = true
         defer { isSaving = false }
+        if draft.items.isEmpty, let existingMeal = request.existingMeal {
+            await session.deleteLoggedMeal(existingMeal)
+            UINotificationFeedbackGenerator().notificationOccurred(.success)
+            dismiss()
+            return
+        }
         do {
             try await session.saveStructuredMeal(draft)
             UINotificationFeedbackGenerator().notificationOccurred(.success)

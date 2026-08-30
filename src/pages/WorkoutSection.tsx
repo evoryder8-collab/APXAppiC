@@ -309,7 +309,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           accent={accent}
         />
 
-        <CompletedWorkoutHistoryCards date={undefined} accent={accent} includeQuickLogs={false} />
+        <CompletedWorkoutHistoryCards date={today} accent={accent} includeQuickLogs={false} />
         <WorkoutInsightsCard anchorDate={today} accent={accent} />
 
         {/* Custom workout studio */}

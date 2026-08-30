@@ -1189,7 +1189,17 @@ final class APEXSmokeUITests: XCTestCase {
     ) -> Bool {
         if isReachable(element) { return true }
         for _ in 0..<attempts {
-            app.swipeDown()
+            let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.48))
+            let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.68))
+            start.press(
+                forDuration: 0.05,
+                thenDragTo: end,
+                withVelocity: 200,
+                thenHoldForDuration: 0
+            )
+            let settled = XCTestExpectation(description: "incremental reverse scroll settled")
+            DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { settled.fulfill() }
+            _ = XCTWaiter().wait(for: [settled], timeout: 1)
             if isReachable(element) { return true }
         }
         return isReachable(element)

@@ -230,6 +230,16 @@ final class MealMemoryParityTests: XCTestCase {
             [localizedFood.id],
             "token order and the personal name should not make a saved food disappear"
         )
+        XCTAssertEqual(
+            MealMemory.searchFoods(query: "hausburger", foods: [localizedFood], preferences: [preference]).map(\.id),
+            [localizedFood.id],
+            "joined words must still find a saved food"
+        )
+        XCTAssertEqual(
+            MealMemory.searchFoods(query: "cheeseburgerrroyal", foods: [localizedFood], preferences: [preference]).map(\.id),
+            [localizedFood.id],
+            "a small typo in a joined alias must still find a saved food"
+        )
     }
 
     func testFoodMemorySearchHonoursHiddenPreference() throws {

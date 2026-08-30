@@ -389,7 +389,7 @@ struct TrainingProgramView: View {
                     .accessibilityIdentifier("training-calendar")
                 }
 
-                CompletedWorkoutHistoryCards(date: nil, accent: accent)
+                CompletedWorkoutHistoryCards(date: Date().apexDateKey, accent: accent)
 
                 WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
 

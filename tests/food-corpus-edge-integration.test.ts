@@ -45,7 +45,9 @@ test('corpus search evidence maps to a decodable Food without inventing values',
   assert.equal(normalized.kcal_100, 124)
   assert.equal(normalized.fibre_100, null)
   assert.equal(normalized.sugar_100, 0)
-  assert.equal(normalized.water_ml_100, null, 'grams of water must not be relabelled as millilitres')
+  assert.equal(normalized.water_ml_100, 74.87, 'one gram of food water projects to one millilitre of hydration')
+  assert.equal(normalized.water_basis, 'provider_reported')
+  assert.equal(normalized.water_source_id, 'corpus:ca-cnf:571:WATER')
   assert.equal(normalized.confidence, 'provider_verified')
 })
 

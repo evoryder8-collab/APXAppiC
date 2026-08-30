@@ -63,6 +63,7 @@ export function normalizeFoodCorpusSearchResult(result: FoodCorpusSearchResult) 
   const multiplier = servingGrams === null ? 1 : 100 / servingGrams
   const nutritionBasis = isServing ? 'per_100g' : result.basis_kind
   const preparationState = result.preparation_state?.trim().toLocaleLowerCase() ?? ''
+  const waterPer100 = scaledEvidence(result.water_g, multiplier)
   const macroComplete = [result.kcal, result.protein_g, result.carbs_g, result.fat_g]
     .every((value) => scaledEvidence(value, 1) !== null)
 
@@ -91,10 +92,13 @@ export function normalizeFoodCorpusSearchResult(result: FoodCorpusSearchResult) 
     sugar_100: scaledEvidence(result.sugar_g, multiplier),
     saturated_fat_100: scaledEvidence(result.saturated_fat_g, multiplier),
     salt_100: scaledEvidence(result.salt_g, multiplier),
-    // The corpus preserves source water units. A gram value cannot be relabelled as millilitres.
-    water_ml_100: null,
-    water_basis: null,
-    water_source_id: null,
+    /* Composition tables publish grams of water. Pure water is 1 g/mL, so the
+       mass of water in 100 g of food is the same numeric hydration volume. */
+    water_ml_100: waterPer100,
+    water_basis: waterPer100 === null ? null : 'provider_reported',
+    water_source_id: waterPer100 === null
+      ? null
+      : `corpus:${result.source_key}:${result.source_record_id}:WATER`,
     serving_amount: isServing ? 1 : null,
     serving_unit: isServing ? 'serving' : null,
     serving_grams_or_ml: servingGrams,

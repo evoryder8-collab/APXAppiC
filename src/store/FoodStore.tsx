@@ -145,11 +145,24 @@ function outbox(userId: string, operation: string, entityId: string, payload: un
   }
 }
 
-function normalizeRemoteFood(row: Record<string, unknown>): FoodRecord {
+function resolveCatalogFoodWater(food: FoodRecord): FoodRecord {
+  if (food.water_ml_100 != null && Number.isFinite(food.water_ml_100)) return food
+  if (food.brand === 'APEX plan' || food.provider_product_id?.startsWith('apex-plan:')) return food
+  const resolved = estimateWaterContent(food)
+  if (!resolved) return food
   return {
+    ...food,
+    water_ml_100: resolved.water_ml_100,
+    water_basis: resolved.basis,
+    water_source_id: null,
+  }
+}
+
+function normalizeRemoteFood(row: Record<string, unknown>): FoodRecord {
+  return resolveCatalogFoodWater({
     ...(row as unknown as FoodRecord),
     names_i18n: (row.names_i18n ?? {}) as FoodRecord['names_i18n'],
-  }
+  })
 }
 
 async function searchPublicFoodCatalog(query: string): Promise<FoodRecord[]> {
@@ -200,13 +213,20 @@ function mergeFoodCatalog(incoming: FoodRecord[]): FoodRecord[] {
   const merged = new Map(COMMON_FOODS.map((food) => [food.id, food]))
   for (const food of incoming) {
     const fallback = merged.get(food.id)
-    merged.set(food.id, {
+    merged.set(food.id, resolveCatalogFoodWater({
       ...fallback,
       ...food,
       names_i18n: { ...(fallback?.names_i18n ?? {}), ...(food.names_i18n ?? {}) },
-    })
+      water_ml_100: food.water_ml_100 ?? fallback?.water_ml_100 ?? null,
+      water_basis: food.water_ml_100 != null
+        ? food.water_basis
+        : fallback?.water_basis ?? food.water_basis ?? 'unknown',
+      water_source_id: food.water_ml_100 != null
+        ? food.water_source_id
+        : fallback?.water_source_id ?? food.water_source_id ?? null,
+    }))
   }
-  return [...merged.values()]
+  return [...merged.values()].map(resolveCatalogFoodWater)
 }
 
 async function fetchAllOwnedFoodRows(

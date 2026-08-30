@@ -4,7 +4,7 @@
 -- canonical per-100 g basis while retaining the exact official serving mass.
 -- McRaclette remains an honestly labelled historical seasonal reference.
 
-with references (
+with fast_food_references (
   id, name, names_i18n, brand, provider_product_id, grams,
   kcal_100, protein_100, carbs_100, fat_100, fibre_100, sugar_100,
   saturated_fat_100, salt_100, confidence
@@ -44,7 +44,7 @@ select
   kcal_100, protein_100, carbs_100, fat_100, fibre_100, sugar_100,
   saturated_fat_100, salt_100, null, 'unknown', null,
   1, 'serving', grams, confidence
-from references
+from fast_food_references
 on conflict (id) do update set
   name = excluded.name,
   names_i18n = excluded.names_i18n,

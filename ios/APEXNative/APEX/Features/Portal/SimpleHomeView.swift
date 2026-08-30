@@ -353,7 +353,6 @@ struct SimpleHomeView: View {
 
                     if showOrbitShortcut { orbitShortcut }
                     if showBodyIndexShortcut { avatarShortcut }
-                    fullDetailShortcuts
 
                     HStack {
                         PortalLanguagePicker()
@@ -624,15 +623,6 @@ struct SimpleHomeView: View {
             )
         }
         .buttonStyle(.plain)
-    }
-
-    private var fullDetailShortcuts: some View {
-        HStack(spacing: 9) {
-            Button(language.text("Food or activity changed?")) { session.navigationPath.append(.nutrition) }
-            Button(language.text("Open full schedule")) { session.navigationPath.append(guidedProgramRoute) }
-        }
-        .font(APEXFont.body(11, weight: .bold))
-        .buttonStyle(SimpleTextButtonStyle())
     }
 
     private var latestSnapshot: RPGSnapshot? {

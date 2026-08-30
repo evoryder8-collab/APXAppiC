@@ -224,8 +224,10 @@ final class AppSession {
             let cached = try? await offlineStore.loadDashboard(for: userID)
             guard accountGeneration.accepts(accountToken) else { return }
             if let cached, TrainingInduction.belongsToAccount(cached, userID: userID) {
-                data = cached
-                selectedPersona = cached.profile?.persona
+                var hydratedCache = cached
+                hydratedCache.foods = hydratedCache.foods.map(FoodHydration.resolved)
+                data = hydratedCache
+                selectedPersona = hydratedCache.profile?.persona
                 route = TrainingInduction.shouldEnterPortal(profile: data.profile, settings: data.settings)
                     ? .portal : .induction
             }
@@ -646,6 +648,7 @@ final class AppSession {
         } else {
             repairedPlanSettings = nil
         }
+        next.foods = next.foods.map(FoodHydration.resolved)
         data = next
         if let repairedPlanSettings {
             await persistUpsert(
