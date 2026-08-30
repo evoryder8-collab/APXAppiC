@@ -944,6 +944,87 @@ The full Avatar page and any chart, the meal composer, plan browsing, the calend
 Dense reading on a small screen is where watch apps go to be uninstalled.
 
 
+## FOOD KNOWLEDGE CORPUS — separately gated project
+
+**Status.** This project entered the roadmap as deferred work from the external source bundle at
+`/Users/jaxoncorrey/Downloads/Food Facts for CB App` (approximately 1.8 GB / 214 files). The owner
+authorised execution after the urgent workout-history and Food Memory outage hotfix on 30 August
+2026. That authorisation does not waive a publisher's licence gate: a source rolls out only after
+its exact reuse terms are recorded and compatible. Never commit or ship the raw source bundle.
+
+### F.0 Licensing, attribution and reproducibility gate
+
+- Maintain a server-side source registry with publisher, dataset name, version/release date,
+  download URL, licence, attribution text, basis, file checksum and parser version.
+- Keep Open Food Facts in a separately attributable ODbL corpus. Do not silently combine its
+  share-alike rows into a differently licensed national-table export.
+- Do not ingest gated or incompatible material merely because a file exists. In particular,
+  FOODfiles terms require owner acceptance, NEVO requires its licence form, BLS is paid, and each
+  FAO workbook needs its own commercial-redistribution review.
+- Re-running the same source/version/parser must produce the same canonical rows and checksums.
+
+### F.1 Canonical nutrient evidence schema
+
+- Preserve every value's original unit and basis, including per 100 g, per 100 mL, edible portion,
+  dry matter, per serving and density. Grams and millilitres are never interchangeable without an
+  explicit sourced density.
+- Store numeric value separately from value state (`measured`, `calculated`, `estimated`, `trace`,
+  `below_detection`, `not_measured`, `missing`) and retain method, preparation state, edible part,
+  source row identifier and provenance. Trace, not-measured and missing never become zero.
+- Preserve publisher-declared kcal and kJ independently. Do not derive one merely to fill the
+  other, invent absent nutrients, or collapse incompatible vitamin conventions into one number.
+
+### F.2 Deterministic source parsers
+
+- Give each source/version a small parser with checked-in, licence-safe fixtures that cover its
+  headers, units, missing/trace markers, duplicate identifiers and preparation/basis variants.
+- Parsers emit the canonical interchange format and a validation report; they never write directly
+  to production. Large raw files stay outside Git and outside the client bundle.
+- Reject a source batch when required columns drift, units are unknown, row counts are implausible,
+  checksums change unexpectedly, or validation errors cross the source-specific threshold.
+
+### F.3 Evidence-based identity, deduplication and source priority
+
+- Preserve every source record even when several records describe the same food. A separate
+  evidence-backed identity/link layer may group rows using stable source IDs, GTIN/barcode,
+  scientific identity, preparation state, market and measured attributes.
+- Source priority is domain-specific rather than global: analytical national/intergovernmental
+  evidence outranks label/community data for generic foods, while an exact current package label
+  outranks a generic table for a branded product. Conflicts remain inspectable; no average is
+  invented to make sources agree.
+- Never merge raw/cooked, drained/undrained, edible/whole, dry/fresh or per-100-g/per-100-mL rows
+  solely because their names resemble one another.
+
+### F.4 Names, aliases, barcodes and retrieval
+
+- Store multilingual publisher names plus authored/search aliases, regional spellings, scientific
+  names and barcodes without replacing the canonical source label.
+- Search must be accent-, punctuation- and word-order tolerant, support common typos, and rank exact
+  barcode, exact name/brand and personal Food Memory aliases ahead of broad fuzzy matches.
+- Integrate the same retrieval contract with Food Search, barcode scanning and Food Memory while
+  preserving account-private names, aliases, favourites, hidden items and recents.
+
+### F.5 Server storage and bounded clients
+
+- Store the corpus and search indexes server-side. Do not place 1.8 GB (or a generated equivalent)
+  in either app binary, repository, web bundle or device backup.
+- Clients cache only bounded, account-scoped recents/favourites/results plus immutable nutrient
+  snapshots already used by logged history. Cache eviction must not erase user-created foods,
+  scanned recents, meals, portions or history.
+- Provider or network failure falls back to the bounded local catalogue and Food Memory rather than
+  making ordinary searches unavailable.
+
+### F.6 Validation and source-by-source rollout
+
+- Validate source counts, units/bases, marker handling, nutrient ranges, representative foods,
+  multilingual retrieval and provenance before every source-specific production import.
+- Roll out one licensed source/version at a time with a reversible batch identifier, production
+  count/query checks and regression fixtures. A failed source can be withdrawn without touching
+  user-owned data or other accepted sources.
+- Preserve all existing user-created foods, scans, recents, favourites, hidden preferences, meals,
+  portions and immutable logged-food history throughout schema changes and imports.
+
+
 ## VOICE AND TRAINING-SCIENCE ITEMS
 
 ### Follow-along voice (active, not deferred)
