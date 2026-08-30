@@ -29,6 +29,8 @@ do $$
 declare
   constantine_user constant uuid := '9a0fffbc-bb02-40ac-834a-d4e339b32574';
   june_user constant uuid := 'f1cc8158-0480-47c9-a2f1-bd03890182f9';
+  matthew_user constant uuid := 'ed1fa9d3-9d39-4d39-9b66-a51f2d140492';
+  iulian_user constant uuid := 'ce883869-fe72-4371-9788-5723d76f07b5';
 begin
   if exists (
     select 1
@@ -48,6 +50,24 @@ begin
     raise exception 'Protected June profile persona does not match its immutable owner';
   end if;
 
+  if exists (
+    select 1
+    from public.profile
+    where user_id = matthew_user
+      and persona <> 'matthew'
+  ) then
+    raise exception 'Protected Matthew profile persona does not match its immutable owner';
+  end if;
+
+  if exists (
+    select 1
+    from public.profile
+    where user_id = iulian_user
+      and persona <> 'iulian'
+  ) then
+    raise exception 'Protected Iulian profile persona does not match its immutable owner';
+  end if;
+
   update public.profile
   set
     profile_kind = 'bespoke',
@@ -61,6 +81,20 @@ begin
     bespoke_protocol_id = 'june-v8.4'
   where user_id = june_user
     and persona = 'june';
+
+  update public.profile
+  set
+    profile_kind = 'bespoke',
+    bespoke_protocol_id = 'matthew-v1'
+  where user_id = matthew_user
+    and persona = 'matthew';
+
+  update public.profile
+  set
+    profile_kind = 'bespoke',
+    bespoke_protocol_id = 'iulian-v2'
+  where user_id = iulian_user
+    and persona = 'iulian';
 end
 $$;
 
@@ -99,8 +133,26 @@ begin
       add constraint profile_bespoke_protocol_identity
       check (
         profile_kind = 'standard'
-        or (persona = 'constantine' and bespoke_protocol_id = 'constantine-v8.5')
-        or (persona = 'june' and bespoke_protocol_id = 'june-v8.4')
+        or (
+          user_id = '9a0fffbc-bb02-40ac-834a-d4e339b32574'
+          and persona = 'constantine'
+          and bespoke_protocol_id = 'constantine-v8.5'
+        )
+        or (
+          user_id = 'f1cc8158-0480-47c9-a2f1-bd03890182f9'
+          and persona = 'june'
+          and bespoke_protocol_id = 'june-v8.4'
+        )
+        or (
+          user_id = 'ed1fa9d3-9d39-4d39-9b66-a51f2d140492'
+          and persona = 'matthew'
+          and bespoke_protocol_id = 'matthew-v1'
+        )
+        or (
+          user_id = 'ce883869-fe72-4371-9788-5723d76f07b5'
+          and persona = 'iulian'
+          and bespoke_protocol_id = 'iulian-v2'
+        )
       );
   end if;
 

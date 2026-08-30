@@ -9,6 +9,7 @@ import type {
   TrainingPlanWeeks,
 } from './types'
 import { personalTargetFor } from './personalProtocol.ts'
+import { bodyFatIsEnergyEligible } from './profilePolicy.ts'
 
 export function ageFrom(birthdate: string, at: Date = new Date()): number {
   return differenceInYears(at, new Date(birthdate + 'T00:00:00'))
@@ -22,8 +23,9 @@ export function bmrMifflin(p: Profile): number {
 }
 
 /* Katch-McArdle: lean-mass based, more accurate when body fat % is known */
-export function bmrKatch(p: Profile): number {
-  const lean = p.weight_kg * (1 - p.body_fat_pct / 100)
+export function bmrKatch(p: Profile): number | null {
+  if (!bodyFatIsEnergyEligible(p)) return null
+  const lean = p.weight_kg * (1 - p.body_fat_pct! / 100)
   return Math.round(370 + 21.6 * lean)
 }
 
@@ -136,7 +138,7 @@ export function recommendedGoalForTrainingGoal(trainingGoal: TrainingGoal): Goal
 
 export interface Targets {
   bmrMifflin: number
-  bmrKatch: number
+  bmrKatch: number | null
   tdee: number
   kcal: number
   protein_g: number
@@ -217,9 +219,9 @@ export function computeMacroTargets(
 export function computeTargets(p: Profile, planContext?: NutritionPlanContext): Targets {
   const katch = bmrKatch(p)
   const mifflin = bmrMifflin(p)
-  const hasBodyFat = Number.isFinite(p.body_fat_pct) && p.body_fat_pct > 0 && p.body_fat_pct < 75
+  const hasBodyFat = bodyFatIsEnergyEligible(p)
   const hasCustomBmr = p.custom_bmr != null && Number.isFinite(p.custom_bmr) && p.custom_bmr >= 800 && p.custom_bmr <= 4000
-  const activeBmr = hasCustomBmr ? Math.round(p.custom_bmr!) : hasBodyFat ? katch : mifflin
+  const activeBmr = hasCustomBmr ? Math.round(p.custom_bmr!) : hasBodyFat && katch != null ? katch : mifflin
   const personal = personalTargetFor(p)
   if (personal) {
     return {

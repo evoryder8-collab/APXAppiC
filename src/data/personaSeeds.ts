@@ -537,7 +537,9 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
   if (persona === 'june') {
     return {
       id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'June', sex: 'female',
-      weight_kg: 41, body_fat_pct: 18, height_cm: 153, birthdate: '1983-06-19',
+      profile_kind: 'bespoke', bespoke_protocol_id: 'june-v8.4',
+      weight_kg: 41, body_fat_pct: 18, body_fat_source: 'legacy_unverified', body_fat_measured_at: null,
+      height_cm: 153, birthdate: '1983-06-19',
       custom_bmr: null,
       activity_level: 'moderate', goal: 'bulk', target_kcal: 2400, target_protein_g: 85,
       target_fat_g: 95, target_carbs_g: 301, training_time: '19:00', baseline_date: today(),
@@ -550,7 +552,9 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
   if (persona === 'iulian') {
     return {
       id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'Iulian-Andrei', sex: 'male',
-      weight_kg: 78, body_fat_pct: 13, custom_bmr: null, height_cm: 177, birthdate: '1997-05-09',
+      profile_kind: 'bespoke', bespoke_protocol_id: 'iulian-v2',
+      weight_kg: 78, body_fat_pct: 13, body_fat_source: 'legacy_unverified', body_fat_measured_at: null,
+      custom_bmr: null, height_cm: 177, birthdate: '1997-05-09',
       activity_level: 'moderate', goal: 'maintain', target_kcal: null, target_protein_g: null,
       target_fat_g: null, target_carbs_g: null, training_time: '18:30', baseline_date: today(),
       profile_note: 'Naturally muscular Romanian athlete. Meals begin empty so the nutrition plan can be built entirely from his actual routine.',
@@ -560,7 +564,9 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
   }
   return {
     id: uuidFor(userId, 'profile'), user_id: userId, persona, display_name: 'Matthew Hua', sex: 'male',
-    weight_kg: 78, body_fat_pct: 22, height_cm: 172, birthdate: '1971-01-01',
+    profile_kind: 'bespoke', bespoke_protocol_id: 'matthew-v1',
+    weight_kg: 78, body_fat_pct: 22, body_fat_source: 'legacy_unverified', body_fat_measured_at: null,
+    height_cm: 172, birthdate: '1971-01-01',
     custom_bmr: null,
     activity_level: 'very', goal: 'recomp', target_kcal: 2350, target_protein_g: 155,
     target_fat_g: 80, target_carbs_g: 253, training_time: '07:30', baseline_date: today(),

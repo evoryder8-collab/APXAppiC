@@ -75,6 +75,7 @@ import {
 } from '../lib/mealTiming'
 import { normalizeMealRhythmHistory } from '../lib/mealRhythm'
 import { normalizeRecoveryHistory, normalizeRecoverySource, normalizeWatchActivityHistory, personalTargetFor } from '../lib/personalProtocol'
+import { normalizeBodyFatSource, resolveProfilePolicy } from '../lib/profilePolicy.ts'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -194,9 +195,21 @@ function normalizeAppData(value: AppData): AppData {
     : null
   const settingsHasCustomBmr = Boolean(settings?.addons && Object.prototype.hasOwnProperty.call(settings.addons, 'custom_bmr'))
   const storedCustomBmr = settingsHasCustomBmr ? settings!.addons.custom_bmr : value.profile?.custom_bmr
+  const policy = value.profile ? resolveProfilePolicy(value.profile) : null
+  const storedBodyFat = value.profile?.body_fat_pct == null
+    ? null
+    : Number(value.profile.body_fat_pct)
+  const bodyFat = storedBodyFat != null && Number.isFinite(storedBodyFat) ? storedBodyFat : null
+  const storedBodyFatSource = normalizeBodyFatSource(value.profile?.body_fat_source)
+    ?? (bodyFat == null ? null : 'legacy_unverified')
   const profile = value.profile
     ? {
         ...value.profile,
+        profile_kind: policy?.kind ?? 'standard',
+        bespoke_protocol_id: policy?.bespokeProtocolID ?? null,
+        body_fat_pct: bodyFat,
+        body_fat_source: storedBodyFatSource,
+        body_fat_measured_at: value.profile.body_fat_measured_at ?? null,
         custom_bmr: storedCustomBmr == null ? null : Number(storedCustomBmr),
         calibration_k: Number(value.profile.calibration_k ?? 1),
         seed_version: Number(value.profile.seed_version ?? 0),
@@ -716,6 +729,10 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           user_id: sessionUserId,
           display_name: 'APEX Athlete',
           goal: recommendedGoalForTrainingGoal(missingProfileGoal),
+          profile_kind: 'standard',
+          bespoke_protocol_id: null,
+          body_fat_pct: null,
+          body_fat_source: null,
           seed_version: CURRENT_SEED_VERSION,
         }, { onConflict: 'user_id' }).select('*').single()
         if (recovered.error) throw recovered.error

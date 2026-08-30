@@ -1,4 +1,5 @@
 import type { AppData } from './types'
+import { bespokeProtocolFor } from './profilePolicy.ts'
 
 export const CURRENT_SEED_VERSION = 8
 
@@ -67,6 +68,7 @@ export function shouldRepairSeedDefinitions(current: AppData): boolean {
    * explicit profileless account states. Preserve those facts, while still
    * repairing an ordinary persona seed interrupted after its settings insert. */
   if (!current.profile && hasSettingsOnlyTrainingState) return false
+  if (!current.profile || bespokeProtocolFor(current.profile) == null) return false
   return !current.profile || Number(current.profile.seed_version ?? 0) < CURRENT_SEED_VERSION
 }
 
@@ -308,7 +310,9 @@ function upgradeV5PersonalProtocol(
 export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRepairResult {
   const currentVersion = Number(current.profile?.seed_version ?? 0)
   const needsRepair = shouldRepairSeedDefinitions(current)
-  if (!needsRepair) {
+  const currentAuthorization = current.profile ? bespokeProtocolFor(current.profile) : null
+  const seededAuthorization = seeded.profile ? bespokeProtocolFor(seeded.profile) : null
+  if (!needsRepair || currentAuthorization == null || currentAuthorization !== seededAuthorization) {
     return {
       data: current,
       needsRepair: false,

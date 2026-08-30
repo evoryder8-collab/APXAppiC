@@ -649,9 +649,51 @@ export function Settings() {
               <span className={label}>Weight</span>
               <Stepper accent={violet} value={profile.weight_kg} step={0.5} unit="kg" onChange={(v) => setProfile({ weight_kg: v })} />
             </div>
-            <div className={row}>
-              <span className={label}>Body fat</span>
-              <Stepper accent={violet} value={profile.body_fat_pct} step={0.5} unit="%" onChange={(v) => setProfile({ body_fat_pct: v })} />
+            <div className={`${row} items-start`}>
+              <div className="max-w-[52%]">
+                <p className={label}>{t('Body fat')}</p>
+                <p className={sub}>{t('A self-estimate stays visible but does not replace the standard energy formula.')}</p>
+              </div>
+              {profile.body_fat_pct == null ? (
+                <button
+                  type="button"
+                  onClick={() => setProfile({
+                    body_fat_pct: 20,
+                    body_fat_source: 'self_estimate',
+                    body_fat_measured_at: null,
+                  })}
+                  className="glass rounded-xl px-4 py-2 text-sm font-bold text-ink"
+                >
+                  {t('Add')}
+                </button>
+              ) : (
+                <div className="flex flex-col items-end gap-1.5">
+                  <Stepper
+                    accent={violet}
+                    value={profile.body_fat_pct}
+                    step={0.5}
+                    min={2}
+                    max={70}
+                    unit="%"
+                    onChange={(v) => setProfile({
+                      body_fat_pct: v,
+                      body_fat_source: 'self_estimate',
+                      body_fat_measured_at: null,
+                    })}
+                  />
+                  <button
+                    type="button"
+                    onClick={() => setProfile({
+                      body_fat_pct: null,
+                      body_fat_source: null,
+                      body_fat_measured_at: null,
+                    })}
+                    className="text-xs font-bold text-ink-soft underline decoration-ink/20 underline-offset-2"
+                  >
+                    {t('Remove')}
+                  </button>
+                </div>
+              )}
             </div>
             <div className={`${row} items-start`}>
               <div className="max-w-[58%]">
@@ -667,7 +709,7 @@ export function Settings() {
                     max="4000"
                     step="1"
                     value={customBmrDraft}
-                    placeholder={String(targets.bmrKatch)}
+                    placeholder={String(targets.bmrKatch ?? targets.bmrMifflin)}
                     onChange={(event) => setCustomBmrDraft(event.target.value)}
                     onBlur={commitCustomBmr}
                     onKeyDown={(event) => event.key === 'Enter' && event.currentTarget.blur()}

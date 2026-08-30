@@ -5,6 +5,7 @@ import type { ActivityType } from './activity'
 import type { MealBlockSettings } from './mealBlocks'
 import type { HydrationEvent, HydrationPreferences, HydrationPreset } from './hydrationLedger'
 import type { SUPABASE_ENUMS } from './supabaseEnums'
+import type { BespokeProtocolID, BodyFatSource, ProfileKind } from './profilePolicy'
 
 export type ActivityLevel = (typeof SUPABASE_ENUMS.activity_level)[number]
 export type Goal = (typeof SUPABASE_ENUMS.goal)[number]
@@ -22,10 +23,14 @@ export interface Profile {
   id: string
   user_id: string
   persona: PersonaSlug
+  profile_kind?: ProfileKind | null
+  bespoke_protocol_id?: BespokeProtocolID | null
   display_name: string
   sex: 'male' | 'female'
   weight_kg: number
-  body_fat_pct: number
+  body_fat_pct: number | null
+  body_fat_source?: BodyFatSource | null
+  body_fat_measured_at?: string | null
   /* Optional measured resting metabolism from a recent DEXA/metabolic test.
      When present it becomes the energy engine's BMR source. */
   custom_bmr?: number | null

@@ -16,6 +16,18 @@ import type { ActivityLevel, Goal } from '../src/lib/types.ts'
 
 const levels: ActivityLevel[] = ['sedentary', 'light', 'moderate', 'very', 'extra']
 const goals: Goal[] = ['recomp', 'maintain', 'bulk']
+const protectedPolicy = {
+  constantine: {
+    user_id: '9a0fffbc-bb02-40ac-834a-d4e339b32574',
+    profile_kind: 'bespoke' as const,
+    bespoke_protocol_id: 'constantine-v8.5' as const,
+  },
+  june: {
+    user_id: 'f1cc8158-0480-47c9-a2f1-bd03890182f9',
+    profile_kind: 'bespoke' as const,
+    bespoke_protocol_id: 'june-v8.4' as const,
+  },
+}
 
 const expected = {
   constantine: {
@@ -42,7 +54,7 @@ test('all 30 personalized goal and activity combinations use the exact tables an
   for (const persona of ['constantine', 'june'] as const) {
     for (const goal of goals) {
       for (const [index, activity_level] of levels.entries()) {
-        const result = personalTargetFor({ persona, goal, activity_level })
+        const result = personalTargetFor({ persona, goal, activity_level, ...protectedPolicy[persona] })
         assert.ok(result)
         const kcal = expected[persona].calories[goal][index]
         const protein = expected[persona].protein[goal]
@@ -57,11 +69,11 @@ test('all 30 personalized goal and activity combinations use the exact tables an
     }
   }
   assert.deepEqual(
-    personalTargetFor({ persona: 'constantine', goal: 'recomp', activity_level: 'moderate' }),
+    personalTargetFor({ persona: 'constantine', goal: 'recomp', activity_level: 'moderate', ...protectedPolicy.constantine }),
     { kcal: 2450, tdee: 2550, proteinG: 150, fatG: 75, carbsG: 294 },
   )
   assert.deepEqual(
-    personalTargetFor({ persona: 'june', goal: 'bulk', activity_level: 'moderate' }),
+    personalTargetFor({ persona: 'june', goal: 'bulk', activity_level: 'moderate', ...protectedPolicy.june }),
     { kcal: 2400, tdee: 2300, proteinG: 85, fatG: 95, carbsG: 301 },
   )
 })

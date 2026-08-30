@@ -1760,3 +1760,16 @@ GitHub publication evidence:
 - Kept mandatory signup intentionally light: the optional long-form calibration contains the deeper questions and measurements instead of extending the sub-three-minute provisional onboarding.
 - Decomposed the first release into an executable P0 plan covering the additive profile-policy migration, exact bespoke protocol gating, conservative legacy decoding, body-fat provenance, native/web parity, account retention, signed-device verification, and production publication.
 - Verification: plan/spec `git diff --check` passed; placeholder, ambiguity, protocol-id, simulator-lane, and approved calibration-entry scans passed. Production code remains unchanged at this checkpoint; P0 begins with the failing migration contract.
+
+## 2026-08-30 — Fitness Brain P0 Task 1: database profile policy
+
+- Added an additive, idempotent profile-integrity migration. New accounts default to `standard`, body fat defaults to unknown, and existing numeric body-fat values are preserved with explicit `legacy_unverified` provenance rather than being treated as measurements.
+- Bound bespoke authorization to the exact immutable owner, persona, and protocol triples for Constantine V8.5, June V8.4, Matthew V1, and Iulian V2. A protected identity mismatch aborts the migration, and database constraints reject protocol injection by ordinary accounts.
+- Verification: migration contract 4/4; isolated real PostgreSQL execution passed twice and proved all four mappings, standard defaults, legacy preservation, constraint rejection, and fail-closed mismatch behavior.
+
+## 2026-08-30 — Fitness Brain P0 Task 2: web profile enforcement
+
+- Added one fail-closed web policy resolver used by bespoke nutrition, seed repair, cache hydration, and missing-profile recovery. A presentation persona alone can no longer grant a personal calorie table or install owner-specific programme data.
+- Made body fat nullable and provenance-bearing. Only DEXA, BIA scale, caliper, or professional-estimate values may select the lean-mass equation; manual edits remain visible as self-estimates while the energy engine uses the standard anthropometric formula. A valid measured resting-energy input remains authoritative.
+- Updated Settings, Nutrition, and Avatar reasoning so unknown body fat is honest, removable, and never appears as a fabricated zero or `null%`.
+- Verification: focused policy/activity/seed contracts 65/65; full repository/web suite 709/709; production web build succeeded across 1,190 modules; `git diff --check` passed. No simulator was used for these web/database tasks, so BA-Studio and Finalova lanes remained untouched.

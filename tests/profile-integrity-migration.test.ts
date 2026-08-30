@@ -28,6 +28,14 @@ test('only immutable protected owners receive exact bespoke protocol authorizati
     migration,
     /f1cc8158-0480-47c9-a2f1-bd03890182f9[\s\S]*june-v8\.4/i,
   )
+  assert.match(
+    migration,
+    /ed1fa9d3-9d39-4d39-9b66-a51f2d140492[\s\S]*matthew-v1/i,
+  )
+  assert.match(
+    migration,
+    /ce883869-fe72-4371-9788-5723d76f07b5[\s\S]*iulian-v2/i,
+  )
   assert.match(migration, /raise exception[\s\S]*persona/i)
   assert.doesNotMatch(migration, /where\s+persona\s+in\s*\(/i)
 })

@@ -7,7 +7,9 @@ import {
   shouldRepairSeedDefinitions,
 } from '../src/lib/seedRepair.ts'
 
-const userId = 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'
+const userId = '9a0fffbc-bb02-40ac-834a-d4e339b32574'
+const juneUserId = 'f1cc8158-0480-47c9-a2f1-bd03890182f9'
+const matthewUserId = 'ed1fa9d3-9d39-4d39-9b66-a51f2d140492'
 
 test('Constantine seed ids stay deterministic across repeated builds', () => {
   const first = buildSeedData(userId, 'constantine')
@@ -21,7 +23,7 @@ test('Constantine seed ids stay deterministic across repeated builds', () => {
 
 test('personal protocol seed installs exact defaults, empty meal canvas and evidence-limited supplement modules', () => {
   const constantine = buildSeedData(userId, 'constantine')
-  const june = buildSeedData(userId, 'june')
+  const june = buildSeedData(juneUserId, 'june')
 
   assert.deepEqual(
     {
@@ -63,7 +65,7 @@ test('personal protocol seed installs exact defaults, empty meal canvas and evid
 })
 
 test('versioned repair completes a partial seed without replacing existing rows', () => {
-  const seeded = buildSeedData(userId, 'matthew')
+  const seeded = buildSeedData(matthewUserId, 'matthew')
   assert.ok(seeded.profile)
   const editedBreakfast = { ...seeded.meals[0], foods: 'User-edited breakfast' }
   const legacyTaurine = { ...seeded.supplements[0], id: 'bbbbbbbb-bbbb-4bbb-8bbb-bbbbbbbbbbbb' }
@@ -78,7 +80,7 @@ test('versioned repair completes a partial seed without replacing existing rows'
     exercises: [],
   }
 
-  const repair = repairSeedDefinitions(partial, buildSeedData(userId, 'matthew'))
+  const repair = repairSeedDefinitions(partial, buildSeedData(matthewUserId, 'matthew'))
 
   assert.equal(repair.needsRepair, true)
   assert.equal(repair.data.profile?.seed_version, CURRENT_SEED_VERSION)
@@ -128,7 +130,7 @@ test('a skipped settings-only account is never expanded into fabricated seed fac
   assert.deepEqual(repair.data.exercises, [])
 })
 
-test('an interrupted ordinary seed with settings but no onboarding state is still repaired', () => {
+test('a profileless cache cannot infer bespoke authorization from settings or persona seed', () => {
   const seeded = buildSeedData(userId, 'constantine')
   const addons = { ...seeded.settings!.addons }
   delete addons.training_induction_skipped
@@ -143,18 +145,18 @@ test('an interrupted ordinary seed with settings but no onboarding state is stil
     settings: { ...seeded.settings!, addons },
   }
 
-  assert.equal(shouldRepairSeedDefinitions(interrupted), true)
-  assert.equal(repairSeedDefinitions(interrupted, seeded).needsRepair, true)
+  assert.equal(shouldRepairSeedDefinitions(interrupted), false)
+  assert.equal(repairSeedDefinitions(interrupted, seeded).needsRepair, false)
 })
 
 test('V3 nutrition upgrade clears prescriptions and installs only the PDF supplement core', () => {
   for (const persona of ['constantine', 'june'] as const) {
-    const seeded = buildSeedData(userId, persona)
+    const seeded = buildSeedData(persona === 'june' ? juneUserId : userId, persona)
     assert.ok(seeded.profile)
     assert.ok(seeded.supplements.length > 0)
     const legacyMeal = {
       id: 'abababab-abab-4aba-8aba-abababababab',
-      user_id: userId,
+      user_id: seeded.profile!.user_id,
       time: '07:00',
       name: 'Legacy prescribed meal',
       foods: 'Old prescription',
@@ -198,7 +200,7 @@ test('V3 nutrition upgrade clears prescriptions and installs only the PDF supple
 })
 
 test('V5 protocol repair corrects defaults without deleting logged meals or custom activity choices', () => {
-  const seededJune = buildSeedData(userId, 'june')
+  const seededJune = buildSeedData(juneUserId, 'june')
   assert.ok(seededJune.profile)
   assert.ok(seededJune.settings)
   const legacySupplements = seededJune.supplements
@@ -211,7 +213,7 @@ test('V5 protocol repair corrects defaults without deleting logged meals or cust
     }))
   const customMeal = {
     id: '20000000-0000-4000-8000-000000000001',
-    user_id: userId,
+    user_id: juneUserId,
     time: '10:45',
     name: 'User meal',
     foods: 'User food',

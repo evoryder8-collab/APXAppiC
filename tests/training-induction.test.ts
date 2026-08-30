@@ -517,7 +517,8 @@ test('an empty legacy induction marker remains safely restorable', () => {
 })
 
 test('Iulian-Andrei receives concise gym bodybuilding definitions and versioned upgrades rewrite inherited rows', () => {
-  const seeded = buildSeedData(userId, 'iulian')
+  const protectedIulianId = 'ce883869-fe72-4371-9788-5723d76f07b5'
+  const seeded = buildSeedData(protectedIulianId, 'iulian')
   assert.equal(seeded.programs.find((program) => program.slug === 'main')?.name, 'Main Training')
   assert.equal(seeded.programs.find((program) => program.slug === 'main')?.description, 'Bodybuilding')
   assert.equal(seeded.programs.find((program) => program.slug === 'transition')?.name, 'Transitional Training')

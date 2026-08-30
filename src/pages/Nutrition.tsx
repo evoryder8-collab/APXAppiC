@@ -959,18 +959,24 @@ export function Nutrition() {
             <p className="font-medium text-ink-soft">
               BMR Mifflin-St Jeor: <span className={num}>{targets.bmrMifflin}</span>
             </p>
-            <p className="font-medium text-ink-soft">
-              Katch-McArdle: <span className={num}>{targets.bmrKatch}</span>
-              <button
-                type="button"
-                onClick={() => setShowBmrInfo((v) => !v)}
-                className="ml-1.5 inline-flex h-4.5 w-4.5 items-center justify-center rounded-full text-[10px] font-bold text-white align-middle"
-                style={{ background: amber.gradient }}
-                aria-label="Why Katch-McArdle"
-              >
-                i
-              </button>
-            </p>
+            {targets.bmrKatch != null ? (
+              <p className="font-medium text-ink-soft">
+                Katch-McArdle: <span className={num}>{targets.bmrKatch}</span>
+                <button
+                  type="button"
+                  onClick={() => setShowBmrInfo((v) => !v)}
+                  className="ml-1.5 inline-flex h-4.5 w-4.5 items-center justify-center rounded-full text-[10px] font-bold text-white align-middle"
+                  style={{ background: amber.gradient }}
+                  aria-label="Why Katch-McArdle"
+                >
+                  i
+                </button>
+              </p>
+            ) : (
+              <p className="font-medium text-ink-soft">
+                {tx('Lean-mass BMR is unavailable until body fat has a measured source.')}
+              </p>
+            )}
             <p className="font-medium text-ink-soft">
               TDEE: <span className={num}>{targets.tdee}</span>
             </p>
@@ -978,7 +984,7 @@ export function Nutrition() {
               <span className="rounded-full bg-violet-500/10 px-2.5 py-1 text-[10px] font-bold text-violet-800">{tx(`Measured BMR active · ${targets.activeBmr} kcal`)}</span>
             )}
           </div>
-          {showBmrInfo && (
+          {showBmrInfo && targets.bmrKatch != null && (
             <motion.p
               initial={{ opacity: 0, height: 0 }}
               animate={{ opacity: 1, height: 'auto' }}

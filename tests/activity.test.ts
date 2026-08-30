@@ -21,6 +21,7 @@ const baseProfile = {
   birthdate: '1992-07-25',
   sex: 'male' as const,
   body_fat_pct: 20,
+  body_fat_source: 'dexa' as const,
   goal: 'recomp' as const,
   calibration_k: 1,
 }

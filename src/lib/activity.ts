@@ -1,5 +1,6 @@
 import type { ActivityLevel, ActivityLog, Goal, Profile } from './types'
 import { computeMacroTargets } from './nutrition.ts'
+import { bodyFatIsEnergyEligible } from './profilePolicy.ts'
 
 import type { SUPABASE_ENUMS } from './supabaseEnums'
 
@@ -271,12 +272,12 @@ function ageOnDate(birthdate: string, at = new Date()): number {
   return age
 }
 
-export function activityBmr(profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'custom_bmr'>): number {
+export function activityBmr(profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'body_fat_source' | 'custom_bmr'>): number {
   if (profile.custom_bmr != null && Number.isFinite(profile.custom_bmr) && profile.custom_bmr >= 800 && profile.custom_bmr <= 4000) {
     return profile.custom_bmr
   }
-  if (Number.isFinite(profile.body_fat_pct) && profile.body_fat_pct > 0 && profile.body_fat_pct < 75) {
-    const leanMassKg = profile.weight_kg * (1 - profile.body_fat_pct / 100)
+  if (bodyFatIsEnergyEligible(profile)) {
+    const leanMassKg = profile.weight_kg * (1 - profile.body_fat_pct! / 100)
     return 370 + 21.6 * leanMassKg
   }
   const mifflin = 10 * profile.weight_kg + 6.25 * profile.height_cm - 5 * ageOnDate(profile.birthdate)
@@ -340,7 +341,7 @@ export function resolveDailyBurnedEnergy(
 }
 
 export function estimateActivityDay(
-  profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'custom_bmr' | 'goal'> & { calibration_k?: number },
+  profile: Pick<Profile, 'weight_kg' | 'height_cm' | 'birthdate' | 'sex' | 'body_fat_pct' | 'body_fat_source' | 'custom_bmr' | 'goal'> & { calibration_k?: number },
   blocks: ActivityBlock[],
   catalog = ACTIVITY_BY_ID,
   goalFactor = GOAL_FACTORS[profile.goal],

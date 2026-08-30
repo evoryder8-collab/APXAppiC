@@ -14,6 +14,7 @@ import type { SynergyEvent, SynergyKind } from '../lib/rpg'
 import type { Profile, RpgSnapshot } from '../lib/types'
 import { format as fmtDate } from 'date-fns'
 import { ageFrom } from '../lib/nutrition'
+import { bodyFatBaselineClause } from '../lib/profilePolicy'
 import { translateInterfaceText, useLanguage } from '../lib/i18n'
 import { CameraIcon } from '../components/Icons'
 import { AvatarPortraitHero } from '../components/avatar/AvatarPortraitHero'
@@ -372,7 +373,7 @@ export function AvatarPage() {
             >
               <li>
                 {profile
-                  ? t(`Calibrated for ${profile.display_name}: age ${ageFrom(profile.birthdate)}, ${profile.weight_kg} kg, ${profile.body_fat_pct}% body fat and ${profile.height_cm} cm. ${profile.profile_note}`)
+                  ? t(`Calibrated for ${profile.display_name}: age ${ageFrom(profile.birthdate)}, ${profile.weight_kg} kg${bodyFatBaselineClause(profile)} and ${profile.height_cm} cm. ${profile.profile_note}`)
                   : 'Calibrated from the current body profile and available performance history.'}
               </li>
               {notes.map((note) => (

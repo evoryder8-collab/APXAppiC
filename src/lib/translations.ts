@@ -887,6 +887,8 @@ const rows: Array<[string, string, string]> = [
   ['Active identity', 'Identitate activă', 'ตัวตนที่ใช้อยู่'],
   ['Body profile', 'Profil corporal', 'โปรไฟล์ร่างกาย'],
   ['Body fat', 'Grăsime corporală', 'ไขมันในร่างกาย'],
+  ['A self-estimate stays visible but does not replace the standard energy formula.', 'O autoestimare rămâne vizibilă, dar nu înlocuiește formula energetică standard.', 'ค่าประเมินด้วยตนเองยังคงแสดงอยู่ แต่จะไม่แทนที่สูตรพลังงานมาตรฐาน'],
+  ['Lean-mass BMR is unavailable until body fat has a measured source.', 'BMR-ul bazat pe masa slabă nu este disponibil până când grăsimea corporală nu are o sursă măsurată.', 'BMR ที่อิงมวลไร้ไขมันจะยังไม่พร้อมจนกว่าค่าไขมันในร่างกายจะมีแหล่งการวัด'],
   ['Height', 'Înălțime', 'ส่วนสูง'],
   ['Birthdate', 'Data nașterii', 'วันเกิด'],
   ['Default training time', 'Ora obișnuită de antrenament', 'เวลาฝึกปกติ'],

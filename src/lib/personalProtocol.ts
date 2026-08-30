@@ -1,5 +1,6 @@
 import type { ActivityLevel, Goal, Profile, RecoveryCheckin, RecoveryDataSource, WatchActivityCheckin } from './types'
 import type { PersonaSlug } from './persona'
+import { bespokeProtocolFor } from './profilePolicy.ts'
 
 export interface PersonalCalorieProtocol {
   calories: Record<Goal, Record<ActivityLevel, number>>
@@ -55,8 +56,16 @@ export function carbohydrateGrams(kcal: number, proteinG: number, fatG: number):
   return Math.max(0, Math.round((kcal - proteinG * 4 - fatG * 9) / 4))
 }
 
-export function personalTargetFor(profile: Pick<Profile, 'persona' | 'goal' | 'activity_level'>): PersonalTargetResult | null {
-  const protocol = PERSONAL_CALORIE_PROTOCOLS[profile.persona]
+export function personalTargetFor(
+  profile: Pick<Profile, 'user_id' | 'persona' | 'profile_kind' | 'bespoke_protocol_id' | 'goal' | 'activity_level'>,
+): PersonalTargetResult | null {
+  const protocolID = bespokeProtocolFor(profile)
+  const persona = protocolID === 'constantine-v8.5'
+    ? 'constantine'
+    : protocolID === 'june-v8.4'
+      ? 'june'
+      : null
+  const protocol = persona ? PERSONAL_CALORIE_PROTOCOLS[persona] : null
   if (!protocol) return null
   const kcal = protocol.calories[profile.goal][profile.activity_level]
   const proteinG = protocol.protein[profile.goal]
