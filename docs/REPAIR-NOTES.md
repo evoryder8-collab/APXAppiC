@@ -1794,3 +1794,4 @@ GitHub publication evidence:
 - Built a signed generic iOS device bundle with the embedded `APEX Water.app`, complication extension, and compiled Watch asset catalogue. Strict code-sign verification passed.
 - Installed the exact bundle over the existing app on `iConstantine Main` (`A1A6A3B7-CB35-5FE0-ADA7-4924BCB196D6`) without uninstalling or clearing account data, launched it successfully, and confirmed PID `1798`.
 - Confirmed `APEX Water` is installed on the paired physical `Constantin’s Apple Watch` (`F6BE2986-A704-5C82-BC2B-6D02E09CBD04`), launched it successfully, and confirmed PID `6016`.
+- Published commit `7f1f2352885354ab9df09b11da573aed539e8a1e` through GitHub Pages run `33325337663`; both build and deploy jobs completed successfully, and `https://evoryder8-collab.github.io/APXAppiC/` returned HTTP `200`.
