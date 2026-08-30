@@ -5094,3 +5094,4 @@
 "min" = "นาที";
 "AM ·" = "เช้า ·";
 "Deload: Wednesday Focus T25 is omitted; keep Tuesday Core and Thursday Stretch" = "ช่วงลดโหลด: งด Focus T25 วันพุธ แต่คง Core วันอังคารและ Stretch วันพฤหัสบดี";
+"A self-estimate stays visible but does not replace the standard energy formula." = "ค่าประเมินด้วยตนเองยังคงแสดงอยู่ แต่จะไม่แทนที่สูตรพลังงานมาตรฐาน";

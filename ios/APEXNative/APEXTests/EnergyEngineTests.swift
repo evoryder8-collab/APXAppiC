@@ -232,10 +232,13 @@ final class EnergyEngineTests: XCTestCase {
     func testConstantineBespokeModerateRecompRemainsFixedWhenActivityLogsExist() {
         let result = EnergyEngine.targets(
             profile: profile(
+                userID: UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!,
                 weight: 71,
                 level: .moderate,
                 goal: .recomp,
                 persona: .constantine,
+                profileKind: .bespoke,
+                protocolID: .constantineV85,
                 bodyFatPercent: 22.5,
                 customBMR: 1_680,
                 heightCM: 177,
@@ -255,10 +258,13 @@ final class EnergyEngineTests: XCTestCase {
     func testJuneBespokeModerateBulkRemainsFixedWhenActivityLogsExist() {
         let result = EnergyEngine.targets(
             profile: profile(
+                userID: UUID(uuidString: "f1cc8158-0480-47c9-a2f1-bd03890182f9")!,
                 weight: 41,
                 level: .moderate,
                 goal: .bulk,
                 persona: .june,
+                profileKind: .bespoke,
+                protocolID: .juneV84,
                 sex: "female",
                 bodyFatPercent: 18,
                 heightCM: 153,
@@ -279,7 +285,9 @@ final class EnergyEngineTests: XCTestCase {
         let levels: [ActivityLevel] = [.sedentary, .light, .moderate, .very, .extra]
         let goals: [Goal] = [.recomp, .maintain, .bulk]
         let fixtures: [(
+            userID: UUID,
             persona: Persona,
+            protocolID: ProfileIntegrityPolicy.ProtocolID,
             weight: Double,
             calories: [Goal: [Int]],
             maintain: [Int],
@@ -287,7 +295,9 @@ final class EnergyEngineTests: XCTestCase {
             fat: [Goal: Int]
         )] = [
             (
+                UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!,
                 .constantine,
+                .constantineV85,
                 71,
                 [
                     .recomp: [2_300, 2_400, 2_450, 2_650, 2_900],
@@ -299,7 +309,9 @@ final class EnergyEngineTests: XCTestCase {
                 [.recomp: 75, .maintain: 80, .bulk: 85]
             ),
             (
+                UUID(uuidString: "f1cc8158-0480-47c9-a2f1-bd03890182f9")!,
                 .june,
+                .juneV84,
                 41,
                 [
                     .recomp: [2_200, 2_200, 2_200, 2_350, 2_550],
@@ -317,10 +329,13 @@ final class EnergyEngineTests: XCTestCase {
                 for goal in goals {
                     let result = EnergyEngine.targets(
                         profile: profile(
+                            userID: fixture.userID,
                             weight: fixture.weight,
                             level: level,
                             goal: goal,
                             persona: fixture.persona,
+                            profileKind: .bespoke,
+                            protocolID: fixture.protocolID,
                             sex: fixture.persona == .june ? "female" : "male"
                         ),
                         logs: [log(typeID: "strength", kcal: 900)],
@@ -465,14 +480,27 @@ final class EnergyEngineTests: XCTestCase {
     func testWearableImportNeverSilentlyChangesAnAuthoredPersonalProtocolMode() {
         XCTAssertFalse(
             WearableActivityEngine.shouldAutomaticallyApplyMode(
-                profile: profile(weight: 71, persona: .constantine),
+                profile: profile(
+                    userID: UUID(uuidString: "9a0fffbc-bb02-40ac-834a-d4e339b32574")!,
+                    weight: 71,
+                    persona: .constantine,
+                    profileKind: .bespoke,
+                    protocolID: .constantineV85
+                ),
                 requested: true,
                 hasActivityLogs: false
             )
         )
         XCTAssertFalse(
             WearableActivityEngine.shouldAutomaticallyApplyMode(
-                profile: profile(weight: 41, persona: .june, sex: "female"),
+                profile: profile(
+                    userID: UUID(uuidString: "f1cc8158-0480-47c9-a2f1-bd03890182f9")!,
+                    weight: 41,
+                    persona: .june,
+                    profileKind: .bespoke,
+                    protocolID: .juneV84,
+                    sex: "female"
+                ),
                 requested: true,
                 hasActivityLogs: false
             )
@@ -682,25 +710,32 @@ final class EnergyEngineTests: XCTestCase {
     }
 
     private func profile(
+        userID: UUID = UUID(),
         weight: Double,
         level: ActivityLevel = .sedentary,
         goal: Goal = .recomp,
         persona: Persona = .iulian,
+        profileKind: ProfileIntegrityPolicy.Kind = .standard,
+        protocolID: ProfileIntegrityPolicy.ProtocolID? = nil,
         sex: String = "male",
-        bodyFatPercent: Double = 20,
+        bodyFatPercent: Double? = 20,
+        bodyFatSource: ProfileIntegrityPolicy.BodyFatSource? = .dexa,
         customBMR: Double? = nil,
         heightCM: Double = 175,
         birthdate: String = "1990-01-01"
     ) -> Profile {
-        let id = UUID()
         return Profile(
-            id: id,
-            userID: id,
+            id: userID,
+            userID: userID,
             persona: persona,
+            profileKind: profileKind,
+            bespokeProtocolID: protocolID,
             displayName: "Test User",
             sex: sex,
             weightKG: weight,
             bodyFatPercent: bodyFatPercent,
+            bodyFatSource: bodyFatSource,
+            bodyFatMeasuredAt: nil,
             customBMR: customBMR,
             heightCM: heightCM,
             birthdate: birthdate,

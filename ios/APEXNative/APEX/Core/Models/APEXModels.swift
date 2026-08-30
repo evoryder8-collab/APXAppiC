@@ -153,10 +153,14 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userID: UUID
     var persona: Persona
+    var profileKind: ProfileIntegrityPolicy.Kind? = nil
+    var bespokeProtocolID: ProfileIntegrityPolicy.ProtocolID? = nil
     var displayName: String
     var sex: String
     var weightKG: Double
-    var bodyFatPercent: Double
+    var bodyFatPercent: Double?
+    var bodyFatSource: ProfileIntegrityPolicy.BodyFatSource? = nil
+    var bodyFatMeasuredAt: String? = nil
     var customBMR: Double?
     var heightCM: Double
     var birthdate: String
@@ -195,10 +199,14 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         case subscriptionExpiresAt = "subscription_expires_at"
         case avatarPath = "avatar_path"
         case persona
+        case profileKind = "profile_kind"
+        case bespokeProtocolID = "bespoke_protocol_id"
         case displayName = "display_name"
         case sex
         case weightKG = "weight_kg"
         case bodyFatPercent = "body_fat_pct"
+        case bodyFatSource = "body_fat_source"
+        case bodyFatMeasuredAt = "body_fat_measured_at"
         case customBMR = "custom_bmr"
         case heightCM = "height_cm"
         case birthdate
@@ -231,10 +239,20 @@ struct Profile: Codable, Identifiable, Hashable, Sendable {
         try container.encodeIfPresent(subscriptionExpiresAt, forKey: .subscriptionExpiresAt)
         try container.encodeIfPresent(avatarPath, forKey: .avatarPath)
         try container.encode(persona, forKey: .persona)
+        if let profileKind {
+            try container.encode(profileKind, forKey: .profileKind)
+            if profileKind == .standard {
+                try container.encodeNil(forKey: .bespokeProtocolID)
+            } else {
+                try container.encodeIfPresent(bespokeProtocolID, forKey: .bespokeProtocolID)
+            }
+        }
         try container.encode(displayName, forKey: .displayName)
         try container.encode(sex, forKey: .sex)
         try container.encode(weightKG, forKey: .weightKG)
         try container.encode(bodyFatPercent, forKey: .bodyFatPercent)
+        try container.encode(bodyFatSource, forKey: .bodyFatSource)
+        try container.encode(bodyFatMeasuredAt, forKey: .bodyFatMeasuredAt)
         try container.encodeIfPresent(customBMR, forKey: .customBMR)
         try container.encode(heightCM, forKey: .heightCM)
         try container.encode(birthdate, forKey: .birthdate)

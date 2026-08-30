@@ -28,8 +28,11 @@ public struct FBProfile: Codable, Sendable {
     public var persona: FBPersona
     public var sex: String
     public var weightKG: Double
-    public var bodyFatPct: Double
+    public var bodyFatPct: Double?
     public var customBMR: Double?
+    public var profileKind: String?
+    public var bespokeProtocolID: String?
+    public var bodyFatSource: String?
     public var heightCM: Double
     public var birthdate: String
     public var activityLevel: FBActivityLevel
@@ -42,6 +45,9 @@ public struct FBProfile: Codable, Sendable {
         case weightKG = "weight_kg"
         case bodyFatPct = "body_fat_pct"
         case customBMR = "custom_bmr"
+        case profileKind = "profile_kind"
+        case bespokeProtocolID = "bespoke_protocol_id"
+        case bodyFatSource = "body_fat_source"
         case heightCM = "height_cm"
         case birthdate
         case activityLevel = "activity_level"
@@ -51,8 +57,10 @@ public struct FBProfile: Codable, Sendable {
 
     public init(
         userID: String, persona: FBPersona, sex: String, weightKG: Double,
-        bodyFatPct: Double, customBMR: Double?, heightCM: Double, birthdate: String,
-        activityLevel: FBActivityLevel, goal: FBGoal, baselineDate: String
+        bodyFatPct: Double?, customBMR: Double?, heightCM: Double, birthdate: String,
+        activityLevel: FBActivityLevel, goal: FBGoal, baselineDate: String,
+        profileKind: String? = nil, bespokeProtocolID: String? = nil,
+        bodyFatSource: String? = nil
     ) {
         self.userID = userID
         self.persona = persona
@@ -60,6 +68,9 @@ public struct FBProfile: Codable, Sendable {
         self.weightKG = weightKG
         self.bodyFatPct = bodyFatPct
         self.customBMR = customBMR
+        self.profileKind = profileKind
+        self.bespokeProtocolID = bespokeProtocolID
+        self.bodyFatSource = bodyFatSource
         self.heightCM = heightCM
         self.birthdate = birthdate
         self.activityLevel = activityLevel
@@ -389,7 +400,7 @@ public struct FBEngineResult: Sendable {
 
 public struct FBTargets: Codable, Sendable, Equatable {
     public var bmrMifflin: Double
-    public var bmrKatch: Double
+    public var bmrKatch: Double?
     public var tdee: Double
     public var kcal: Double
     public var proteinG: Double
@@ -406,7 +417,7 @@ public struct FBTargets: Codable, Sendable, Equatable {
     }
 
     public init(
-        bmrMifflin: Double, bmrKatch: Double, tdee: Double, kcal: Double,
+        bmrMifflin: Double, bmrKatch: Double?, tdee: Double, kcal: Double,
         proteinG: Double, fatG: Double, carbsG: Double, waterL: Double
     ) {
         self.bmrMifflin = bmrMifflin

@@ -62,7 +62,10 @@ enum FitnessBrainService {
             birthdate: profile.birthdate,
             activityLevel: FBActivityLevel(rawValue: profile.activityLevel.rawValue) ?? .moderate,
             goal: FBGoal(rawValue: profile.goal.rawValue) ?? .recomp,
-            baselineDate: profile.baselineDate
+            baselineDate: profile.baselineDate,
+            profileKind: profile.profileKind?.rawValue,
+            bespokeProtocolID: profile.bespokeProtocolID?.rawValue,
+            bodyFatSource: profile.bodyFatSource?.rawValue
         )
 
         let programDays = data.programDays.compactMap { day -> FBProgramDayRef? in

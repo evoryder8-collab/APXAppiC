@@ -371,8 +371,47 @@ struct SettingsView: View {
                     Task { await session.updateProfile { $0.weightKG = max(25, $0.weightKG + delta) } }
                 }
                 Divider()
-                profileStepper("Body fat", value: profile?.bodyFatPercent ?? 0, unit: "%", step: 0.5) { delta in
-                    Task { await session.updateProfile { $0.bodyFatPercent = min(70, max(2, $0.bodyFatPercent + delta)) } }
+                VStack(alignment: .leading, spacing: 9) {
+                    Text(language.text("Body fat"))
+                        .font(APEXFont.display(17))
+                    Text(language.text("A self-estimate stays visible but does not replace the standard energy formula."))
+                        .font(APEXFont.body(11, weight: .medium))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    if let bodyFatPercent = profile?.bodyFatPercent {
+                        profileStepper("Body fat", value: bodyFatPercent, unit: "%", step: 0.5) { delta in
+                            Task {
+                                await session.updateProfile {
+                                    let current = $0.bodyFatPercent ?? 20
+                                    $0.bodyFatPercent = min(70, max(2, current + delta))
+                                    $0.bodyFatSource = .selfEstimate
+                                    $0.bodyFatMeasuredAt = nil
+                                }
+                            }
+                        }
+                        Button(language.text("Remove"), role: .destructive) {
+                            Task {
+                                await session.updateProfile {
+                                    $0.bodyFatPercent = nil
+                                    $0.bodyFatSource = nil
+                                    $0.bodyFatMeasuredAt = nil
+                                }
+                            }
+                        }
+                        .frame(minHeight: 44)
+                    } else {
+                        Button(language.text("Add")) {
+                            Task {
+                                await session.updateProfile {
+                                    $0.bodyFatPercent = 20
+                                    $0.bodyFatSource = .selfEstimate
+                                    $0.bodyFatMeasuredAt = nil
+                                }
+                            }
+                        }
+                        .buttonStyle(.borderedProminent)
+                        .tint(APEXColor.violet)
+                        .frame(minHeight: 44)
+                    }
                 }
                 Divider()
                 profileStepper("Height", value: profile?.heightCM ?? 0, unit: "cm", step: 1) { delta in

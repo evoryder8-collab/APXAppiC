@@ -215,7 +215,7 @@ scenarios.push({ name: 'baseline_decay', persona: 'constantine', throughDate: TH
     recovery_history: [
       { date: '2026-06-10', source: 'apple', sleep_score: 88, sleep_pct: null, recovery_pct: null, updated_at: TS },
       { date: '2026-06-11', source: 'apple', sleep_score: 70, sleep_pct: null, recovery_pct: null, updated_at: TS },
-      { date: '2026-06-12', source: 'athlytic', sleep_score: null, sleep_pct: null, recovery_pct: 70, updated_at: TS },
+      { date: '2026-06-12', source: 'other', sleep_score: null, sleep_pct: null, recovery_pct: 70, updated_at: TS },
       { date: '2026-06-13', source: 'apple', sleep_score: 40, sleep_pct: null, recovery_pct: null, updated_at: TS },
     ],
     meal_rhythm_history: {

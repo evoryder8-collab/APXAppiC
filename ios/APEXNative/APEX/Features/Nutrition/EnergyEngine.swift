@@ -183,8 +183,9 @@ enum EnergyEngine {
            (800...4_000).contains(measured) {
             return measured.rounded()
         }
-        if profile.bodyFatPercent > 0, profile.bodyFatPercent < 70 {
-            let leanMass = profile.weightKG * (1 - profile.bodyFatPercent / 100)
+        if ProfileIntegrityPolicy.isBodyFatEnergyEligible(profile),
+           let bodyFatPercent = profile.bodyFatPercent {
+            let leanMass = profile.weightKG * (1 - bodyFatPercent / 100)
             return 370 + 21.6 * leanMass
         }
 
@@ -310,12 +311,15 @@ enum EnergyEngine {
     }
 
     static func usesPersonalProtocol(_ profile: Profile) -> Bool {
-        guard let persona = FBPersona(rawValue: profile.persona.rawValue) else { return false }
+        guard let protocolID = ProfileIntegrityPolicy.authorizedProtocol(for: profile),
+              let persona = personalPersona(for: protocolID)
+        else { return false }
         return FitnessBrainTargets.personalProtocols[persona] != nil
     }
 
     private static func personalTargets(profile: Profile, bmr: Double) -> NutritionTargets? {
-        guard let persona = FBPersona(rawValue: profile.persona.rawValue),
+        guard let protocolID = ProfileIntegrityPolicy.authorizedProtocol(for: profile),
+              let persona = personalPersona(for: protocolID),
               let level = FBActivityLevel(rawValue: profile.activityLevel.rawValue),
               let goal = FBGoal(rawValue: profile.goal.rawValue),
               let personal = FitnessBrainTargets.personalProtocols[persona],
@@ -345,6 +349,16 @@ enum EnergyEngine {
                not a generic target that the recovery floor adjusted. */
             safetyFloorApplied: false
         )
+    }
+
+    private static func personalPersona(
+        for protocolID: ProfileIntegrityPolicy.ProtocolID
+    ) -> FBPersona? {
+        switch protocolID {
+        case .constantineV85: .constantine
+        case .juneV84: .june
+        case .matthewV1, .iulianV2: nil
+        }
     }
 
     static func macroTargets(

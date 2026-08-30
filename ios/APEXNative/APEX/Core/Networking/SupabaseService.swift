@@ -23,6 +23,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
     let weightKG: Double?
     let heightCM: Double?
     let birthdate: String?
+    let profileKind = ProfileIntegrityPolicy.Kind.standard
     let displayName = "APEX Athlete"
     let seedVersion = SeedVersion.current
 
@@ -51,6 +52,7 @@ struct ProfileCreationRequest: Encodable, Sendable {
         case weightKG = "weight_kg"
         case heightCM = "height_cm"
         case birthdate
+        case profileKind = "profile_kind"
         case displayName = "display_name"
         case seedVersion = "seed_version"
     }

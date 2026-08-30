@@ -1,7 +1,8 @@
 /*
  * Nutrition targets, ported 1:1 from src/lib/nutrition.ts and
  * src/lib/personalProtocol.ts. Constantine and June run on the personal
- * calorie protocols; everyone else uses the BMR formula path.
+ * calorie protocols only when the immutable account policy authorizes them;
+ * everyone else uses the BMR formula path.
  */
 import Foundation
 
@@ -71,8 +72,12 @@ public enum FitnessBrainTargets {
         return jsRound(base + (p.sex == "male" ? 5 : -161))
     }
 
-    public static func bmrKatch(_ p: FBProfile) -> Double {
-        let lean = p.weightKG * (1 - p.bodyFatPct / 100)
+    public static func bmrKatch(_ p: FBProfile) -> Double? {
+        guard ProfileIntegrityPolicy.isBodyFatEnergyEligible(
+            value: p.bodyFatPct,
+            source: p.bodyFatSource.flatMap(ProfileIntegrityPolicy.BodyFatSource.init(rawValue:))
+        ), let bodyFatPct = p.bodyFatPct else { return nil }
+        let lean = p.weightKG * (1 - bodyFatPct / 100)
         return jsRound(370 + 21.6 * lean)
     }
 
@@ -83,11 +88,11 @@ public enum FitnessBrainTargets {
     public static func computeTargets(_ p: FBProfile, asOf: String) -> FBTargets {
         let katch = bmrKatch(p)
         let mifflin = bmrMifflin(p, asOf: asOf)
-        let hasBodyFat = p.bodyFatPct > 0 && p.bodyFatPct < 75
         let hasCustomBMR = p.customBMR.map { $0 >= 800 && $0 <= 4000 } ?? false
-        let activeBMR = hasCustomBMR ? jsRound(p.customBMR!) : hasBodyFat ? katch : mifflin
+        let activeBMR = hasCustomBMR ? jsRound(p.customBMR!) : katch ?? mifflin
 
-        if let proto = personalProtocols[p.persona] {
+        if let persona = authorizedPersonalPersona(p),
+           let proto = personalProtocols[persona] {
             let kcal = proto.calories[p.goal]![p.activityLevel]!
             let proteinG = proto.protein[p.goal]!
             let fatG = proto.fat[p.goal]!
@@ -99,7 +104,7 @@ public enum FitnessBrainTargets {
                 proteinG: proteinG,
                 fatG: fatG,
                 carbsG: carbohydrateGrams(kcal: kcal, proteinG: proteinG, fatG: fatG),
-                waterL: p.persona == .june ? 2.2 : 2.75
+                waterL: persona == .june ? 2.2 : 2.75
             )
         }
 
@@ -115,6 +120,25 @@ public enum FitnessBrainTargets {
             bmrMifflin: mifflin, bmrKatch: katch, tdee: tdee, kcal: kcal,
             proteinG: proteinG, fatG: fatG, carbsG: carbsG, waterL: 2.75
         )
+    }
+
+    private static func authorizedPersonalPersona(_ profile: FBProfile) -> FBPersona? {
+        guard let userID = UUID(uuidString: profile.userID),
+              let persona = Persona(rawValue: profile.persona.rawValue),
+              let kind = profile.profileKind.flatMap(ProfileIntegrityPolicy.Kind.init(rawValue:)),
+              let protocolID = profile.bespokeProtocolID.flatMap(ProfileIntegrityPolicy.ProtocolID.init(rawValue:)),
+              let authorized = ProfileIntegrityPolicy.authorizedProtocol(
+                userID: userID,
+                persona: persona,
+                kind: kind,
+                protocolID: protocolID
+              )
+        else { return nil }
+        switch authorized {
+        case .constantineV85: return .constantine
+        case .juneV84: return .june
+        case .matthewV1, .iulianV2: return nil
+        }
     }
 }
 

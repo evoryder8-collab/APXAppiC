@@ -132,7 +132,7 @@ final class FitnessBrainParityTests: XCTestCase {
                 scenario.input.profile, asOf: Self.fixture.generated_on)
             let want = scenario.expected.targets
             XCTAssertEqual(got.bmrMifflin, want.bmrMifflin, accuracy: 1e-9, "\(scenario.name) mifflin")
-            XCTAssertEqual(got.bmrKatch, want.bmrKatch, accuracy: 1e-9, "\(scenario.name) katch")
+            XCTAssertEqual(got.bmrKatch, want.bmrKatch, "\(scenario.name) katch")
             XCTAssertEqual(got.tdee, want.tdee, accuracy: 1e-9, "\(scenario.name) tdee")
             XCTAssertEqual(got.kcal, want.kcal, accuracy: 1e-9, "\(scenario.name) kcal")
             XCTAssertEqual(got.proteinG, want.proteinG, accuracy: 1e-9, "\(scenario.name) protein")

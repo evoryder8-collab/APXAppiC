@@ -5111,3 +5111,4 @@
 "min" = "Min.";
 "AM ·" = "Morgen ·";
 "Deload: Wednesday Focus T25 is omitted; keep Tuesday Core and Thursday Stretch" = "Entlastung: Focus T25 am Mittwoch entfällt; Core am Dienstag und Stretch am Donnerstag bleiben";
+"A self-estimate stays visible but does not replace the standard energy formula." = "Eine Selbsteinschätzung bleibt sichtbar, ersetzt aber nicht die Standardformel für den Energiebedarf.";
