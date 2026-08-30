@@ -6,7 +6,7 @@ import type { Accent } from '../lib/theme'
 import { ACCENTS } from '../lib/theme'
 import type { EventType, ProgramSlug } from '../lib/types'
 import { useStore } from '../store/AppStore'
-import { planForDate, todayIso } from '../lib/plan'
+import { planForDate, programDaysForDate, todayIso } from '../lib/plan'
 import { currentStreak } from '../lib/streak'
 import { buildReport, copyReport, downloadReport } from '../lib/exportReport'
 import {
@@ -58,6 +58,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
   const { language } = useLanguage()
   const [month, setMonth] = useState(() => new Date())
   const [selectedDay, setSelectedDay] = useState<string | null>(null)
+  const [selectedProgramDayId, setSelectedProgramDayId] = useState<string | null>(null)
   const [showEventForm, setShowEventForm] = useState(false)
   const [showExport, setShowExport] = useState(false)
   const [showWorkoutBuilder, setShowWorkoutBuilder] = useState(false)
@@ -77,7 +78,8 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
     ? slug === 'transition' ? 'For beginners' : 'Bodybuilding'
     : program?.description ?? (slug === 'transition' ? 'Current program, home only' : 'Full training programme')
   const streak = useMemo(() => currentStreak(data, today), [data, today])
-  const todayPlan = useMemo(() => planForDate(data, slug, today, lite), [data, lite, slug, today])
+  const todayPlans = useMemo(() => programDaysForDate(data, slug, today, lite), [data, lite, slug, today])
+  const todayPlan = todayPlans[0] ?? planForDate(data, slug, today, lite)
   const hasInstalledPlan = Boolean(data.settings?.addons.training_induction)
   const visibleOrbitSessions = useMemo(() => orbit.state.sessions.filter((session) => session.date.startsWith(format(month, 'yyyy-MM'))), [month, orbit.state.sessions])
   const showTrainingInduction = Boolean(
@@ -197,37 +199,41 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         )}
 
         {/* Today hero */}
-        <motion.div data-training-section="today" initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, ease: EASE }}>
-          <GlassCard accent={accent} breathe className="p-5">
-            <div className="flex items-center justify-between gap-3">
-              <div className="min-w-0">
-                <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">Today</p>
-                <h2 data-plan-day-id={todayPlan.programDay?.id ?? ''} className="truncate font-display text-xl font-bold text-ink">
-                  {planText(todayPlan.isRecoveryMicro ? 'Recovery micro-session' : (todayPlan.programDay?.name ?? 'Rest day'))}
-                </h2>
-                {todayPlan.programDay && (
-                  <p className="text-xs font-semibold text-ink-soft">
-                    {t(`~${todayPlan.programDay.est_minutes} min · ${todayPlan.exercises.length} exercises`)}
-                  </p>
+        <div data-training-section="today" className="space-y-3">
+          {(todayPlans.length > 0 ? todayPlans : [todayPlan]).map((dailyPlan, index) => (
+            <motion.div key={dailyPlan.programDay?.id ?? `rest-${index}`} initial={{ opacity: 0, y: 16 }} animate={{ opacity: 1, y: 0 }} transition={{ duration: 0.45, delay: index * 0.04, ease: EASE }}>
+              <GlassCard accent={accent} breathe className="p-5">
+                <div className="flex items-center justify-between gap-3">
+                  <div className="min-w-0">
+                    <p className="font-mono text-[11px] font-bold tracking-widest text-ink-faint uppercase">{index === 0 ? 'Today' : 'Later today'}</p>
+                    <h2 data-plan-day-id={dailyPlan.programDay?.id ?? ''} className="break-words font-display text-xl font-bold text-ink">
+                      {planText(dailyPlan.isRecoveryMicro ? 'Recovery micro-session' : (dailyPlan.programDay?.name ?? 'Rest day'))}
+                    </h2>
+                    {dailyPlan.programDay && (
+                      <p className="text-xs font-semibold text-ink-soft">
+                        {t(`~${dailyPlan.programDay.est_minutes} min · ${dailyPlan.exercises.length} exercises`)}
+                      </p>
+                    )}
+                  </div>
+                  {dailyPlan.exercises.length > 0 && (
+                    <GradientButton accent={accent} onClick={() => { setSelectedProgramDayId(dailyPlan.programDay?.id ?? null); setSelectedDay(today) }} className="shrink-0">
+                      Open
+                    </GradientButton>
+                  )}
+                </div>
+                {dailyPlan.badges.length > 0 && (
+                  <div className="mt-2.5 flex flex-wrap gap-1.5">
+                    {dailyPlan.badges.slice(0, 3).map((b) => (
+                      <AccentChip key={b} accent={ACCENTS.amber}>
+                        {planText(b).toUpperCase()}
+                      </AccentChip>
+                    ))}
+                  </div>
                 )}
-              </div>
-              {todayPlan.exercises.length > 0 && (
-                <GradientButton accent={accent} onClick={() => setSelectedDay(today)} className="shrink-0">
-                  Open
-                </GradientButton>
-              )}
-            </div>
-            {todayPlan.badges.length > 0 && (
-              <div className="mt-2.5 flex flex-wrap gap-1.5">
-                {todayPlan.badges.slice(0, 3).map((b) => (
-                  <AccentChip key={b} accent={ACCENTS.amber}>
-                    {planText(b).toUpperCase()}
-                  </AccentChip>
-                ))}
-              </div>
-            )}
-          </GlassCard>
-        </motion.div>
+              </GlassCard>
+            </motion.div>
+          ))}
+        </div>
 
         {slug !== 'custom' && hasInstalledPlan && (
           <div data-training-section="mode" className="grid grid-cols-2 rounded-2xl bg-ink/5 p-1" role="group" aria-label={t('Session mode')}>
@@ -276,7 +282,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
             slug={slug}
             accent={accent}
             orbitSessions={visibleOrbitSessions}
-            onSelectDay={setSelectedDay}
+            onSelectDay={(date) => { setSelectedProgramDayId(null); setSelectedDay(date) }}
             onLongPressDay={toggleDeload}
           />
           {detailedInterface && <p className="mt-3 text-center text-[11px] font-medium text-ink-faint">
@@ -286,7 +292,6 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         </GlassCard>
         </div>
 
-        <WorkoutInsightsCard anchorDate={today} accent={accent} />
 
         <TodayManualWorkoutCard
           detailed={detailedInterface}
@@ -305,6 +310,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
         />
 
         <CompletedWorkoutHistoryCards date={undefined} accent={accent} includeQuickLogs={false} />
+        <WorkoutInsightsCard anchorDate={today} accent={accent} />
 
         {/* Custom workout studio */}
         <div className="relative overflow-hidden rounded-[30px] border border-violet-200/35 bg-[#07111f] p-5 text-white shadow-[0_28px_70px_-38px_rgba(109,40,217,.95)] sm:p-6">
@@ -375,6 +381,7 @@ export function WorkoutSection({ slug, accent, title }: { slug: ProgramSlug; acc
           slug={slug}
           accent={accent}
           initialLite={lite}
+          initialProgramDayId={selectedProgramDayId ?? undefined}
         />
       )}
 

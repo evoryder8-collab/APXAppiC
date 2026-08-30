@@ -66,7 +66,7 @@ export function seedSettings(userId: string): Settings {
     ticks_on: true,
     notifications_on: false,
     guardian_factor: 1.5,
-    addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: { version: 81, start_date: today() }, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false, recovery_data_source: 'apple', recovery_history: [], watch_activity_history: [], meal_rhythm_history: {}, meal_blocks: { blocks: [{ id: 'breakfast', kind: 'breakfast', time: '07:00', enabled: true }, { id: 'lunch', kind: 'lunch', time: '13:00', enabled: true }, { id: 'dinner', kind: 'dinner', time: '19:15', enabled: true }, { id: 'snack', kind: 'snack', time: '15:30', enabled: true }, { id: 'post_workout', kind: 'post_workout', time: '21:00', enabled: true }], custom_blocks: [], preset_assignments: {} } },
+    addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: { version: 85, start_date: today() }, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false, recovery_data_source: 'apple', recovery_history: [], watch_activity_history: [], meal_rhythm_history: {}, meal_blocks: { blocks: [{ id: 'breakfast', kind: 'breakfast', time: '07:00', enabled: true }, { id: 'lunch', kind: 'lunch', time: '13:00', enabled: true }, { id: 'dinner', kind: 'dinner', time: '19:15', enabled: true }, { id: 'snack', kind: 'snack', time: '15:30', enabled: true }, { id: 'post_workout', kind: 'post_workout', time: '21:00', enabled: true }], custom_blocks: [], preset_assignments: {} } },
   }
 }
 
@@ -134,6 +134,7 @@ interface DaySpec {
   name: string
   type: ProgramDay['day_type']
   est: number
+  slot?: 'morning' | 'official' | 't25'
   warmup?: string
   full: ExSpec[]
   lite: ExSpec[]
@@ -282,7 +283,7 @@ const TRANSITION_DAYS: DaySpec[] = [
   },
 ]
 
-const MAIN_DAYS: DaySpec[] = [
+export const LEGACY_MAIN_DAYS: DaySpec[] = [
   {
     weekday: 1,
     name: 'Legs A · Partner strength',
@@ -415,6 +416,154 @@ const MAIN_DAYS: DaySpec[] = [
   },
 ]
 
+type MorningMovement = 'chest' | 'delts' | 'quads' | 'hamstrings' | 'calves'
+
+const CONSTANTINE_MORNING_MOVEMENTS: Record<MorningMovement, ExSpec> = {
+  chest: { name: 'Weighted backpack push-up', sets: 5, reps: [6, 15], rest: 90, incr: 2.5, notes: 'Morning circle · chest' },
+  delts: { name: 'Dumbbell lateral raise', sets: 5, reps: [12, 25], rest: 60, incr: 1, notes: 'Morning circle · side delts' },
+  quads: { name: 'Bulgarian split squat', sets: 5, reps: [8, 12], perSide: true, rest: 90, incr: 2.5, notes: 'Morning circle · quads' },
+  hamstrings: { name: 'Sliding leg curl', sets: 5, reps: [10, 20], rest: 75, down: 3, notes: 'Morning circle · hamstrings' },
+  calves: { name: 'Single-leg calf raise', sets: 5, reps: [12, 25], perSide: true, rest: 45, notes: 'Morning circle · calves' },
+}
+
+function constantineMorning(weekday: number, movements: MorningMovement[]): DaySpec {
+  const full = movements.map((movement) => ({ ...CONSTANTINE_MORNING_MOVEMENTS[movement] }))
+  return {
+    weekday,
+    name: 'AM · Morning circle',
+    type: 'upper',
+    est: Math.max(18, movements.length * 9),
+    slot: 'morning',
+    warmup: '07:00–08:00 morning circle. Use two to three reps in reserve during weeks one and two.',
+    full,
+    lite: full.map((exercise) => ({ ...exercise, sets: 2 })),
+  }
+}
+
+function focusT25Session(weekday: number, name: string): DaySpec {
+  const confirmation: ExSpec = {
+    name: `Focus T25 · ${name}`,
+    sets: 1,
+    reps: [25, 25],
+    unit: 'minutes',
+    rest: 0,
+    notes: 'Separate Focus T25 follow-along session. Ideally allow six hours from loaded strength work.',
+  }
+  return {
+    weekday,
+    name: `Focus T25 · ${name}`,
+    type: 't25',
+    est: 25,
+    slot: 't25',
+    warmup: 'Open the matching Focus T25 episode and complete it as its own session.',
+    full: [confirmation],
+    lite: [confirmation],
+  }
+}
+
+const CONSTANTINE_V85_DAYS: DaySpec[] = [
+  constantineMorning(1, ['chest', 'delts']),
+  {
+    weekday: 1, name: 'Legs A · Strength', type: 'legs_a', est: 62, slot: 'official',
+    warmup: 'Bodyweight split squats, slow hinges and ankle rocks before loading.',
+    full: [
+      { name: 'Bulgarian Split Squat', sets: 5, reps: [8, 12], perSide: true, rest: 120, incr: 2.5 },
+      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 10], rest: 120, incr: 2.5 },
+      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 15], rest: 90, down: 3 },
+      { name: 'Single-Leg Calf Raise', sets: 5, reps: [12, 20], perSide: true, rest: 60 },
+    ],
+    lite: [
+      { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, incr: 2.5 },
+      { name: 'Dumbbell Romanian Deadlift', sets: 2, reps: [8, 10], rest: 120, incr: 2.5 },
+      { name: 'Sliding Leg Curl', sets: 2, reps: [10, 15], rest: 90, down: 3 },
+    ],
+  },
+  constantineMorning(2, ['delts', 'quads', 'hamstrings', 'calves']),
+  {
+    weekday: 2, name: 'Push A · Strength', type: 'push', est: 30, slot: 'official',
+    warmup: 'Scapular push-ups, wrist circles and one easy push-up set.',
+    full: [
+      { name: 'Strict Bodyweight Push-Up', sets: 4, reps: [8, 20], rest: 90, notes: 'Stop every set when strict form ends.' },
+      { name: 'Diamond Push-Up', sets: 2, reps: [8, 15], rest: 90 },
+    ],
+    lite: [
+      { name: 'Strict Bodyweight Push-Up', sets: 2, reps: [8, 20], rest: 90 },
+      { name: 'Diamond Push-Up', sets: 1, reps: [8, 15], rest: 90 },
+    ],
+  },
+  focusT25Session(2, 'Core'),
+  constantineMorning(3, ['chest', 'delts', 'quads', 'hamstrings', 'calves']),
+  {
+    weekday: 3, name: 'Pull A · Strength', type: 'pull', est: 52, slot: 'official',
+    warmup: 'Scapular pull-ups, band rows and one easy assisted pull-up set.',
+    full: [
+      { name: 'Band-Assisted Pull-Up', sets: 4, reps: [4, 6], rest: 120 },
+      { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 90, incr: 2.5 },
+      { name: 'Band Face Pull', sets: 2, reps: [15, 20], rest: 60, pause: 2 },
+      { name: 'Gimbal Front Hold', sets: 3, reps: [30, 45], unit: 'seconds', rest: 60 },
+    ],
+    lite: [
+      { name: 'Band-Assisted Pull-Up', sets: 2, reps: [4, 6], rest: 120 },
+      { name: 'Chest-Supported Dumbbell Row', sets: 2, reps: [8, 12], rest: 90, incr: 2.5 },
+      { name: 'Gimbal Front Hold', sets: 2, reps: [30, 45], unit: 'seconds', rest: 60 },
+    ],
+  },
+  focusT25Session(3, 'Lower Focus and Speed'),
+  constantineMorning(4, ['chest', 'delts', 'quads', 'hamstrings', 'calves']),
+  {
+    weekday: 4, name: 'Recovery · Posture and wrists', type: 'fix', est: 18, slot: 'official',
+    warmup: 'Easy breathing and pain-free range only.',
+    full: [{ name: 'Posture and Wrist Circuit', sets: 2, reps: [1, 1], unit: 'rounds', rest: 45, notes: 'Two unhurried rounds.' }],
+    lite: [{ name: 'Posture and Wrist Circuit', sets: 1, reps: [1, 1], unit: 'rounds', rest: 45 }],
+  },
+  focusT25Session(4, 'Stretch'),
+  constantineMorning(5, ['chest', 'delts']),
+  {
+    weekday: 5, name: 'Legs B · Strength', type: 'legs_b', est: 58, slot: 'official',
+    warmup: 'Reverse lunges, single-leg hinges and ankle preparation.',
+    full: [
+      { name: 'Front Lunge', sets: 3, reps: [8, 12], perSide: true, rest: 105, incr: 2.5 },
+      { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 105, incr: 2.5 },
+      { name: 'Single-Leg Romanian Deadlift', sets: 3, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+      { name: 'Single-Leg Calf Raise', sets: 5, reps: [15, 25], perSide: true, rest: 60 },
+    ],
+    lite: [
+      { name: 'Front Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 105, incr: 2.5 },
+      { name: 'Single-Leg Romanian Deadlift', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+    ],
+  },
+  focusT25Session(5, 'Conditioning'),
+  constantineMorning(6, ['quads', 'hamstrings', 'calves']),
+  {
+    weekday: 6, name: 'Push B · Strength', type: 'push', est: 40, slot: 'official',
+    warmup: 'Scapular push-ups, wrist circles and a light lateral-raise set.',
+    full: [
+      { name: 'Weighted Push-Up', sets: 5, reps: [6, 10], rest: 120, incr: 2.5 },
+      { name: 'Dumbbell Lateral Raise', sets: 5, reps: [12, 25], rest: 60, incr: 1 },
+    ],
+    lite: [
+      { name: 'Weighted Push-Up', sets: 3, reps: [6, 10], rest: 120, incr: 2.5 },
+      { name: 'Dumbbell Lateral Raise', sets: 2, reps: [12, 25], rest: 60, incr: 1 },
+    ],
+  },
+  constantineMorning(7, ['chest', 'delts', 'quads', 'hamstrings', 'calves']),
+  {
+    weekday: 7, name: 'Pull B · Strength', type: 'pull', est: 47, slot: 'official',
+    warmup: 'Scapular pull-ups, band rows and one easy assisted chin-up set.',
+    full: [
+      { name: 'Band-Assisted Chin-Up', sets: 3, reps: [4, 6], rest: 120 },
+      { name: 'One-Arm Supported Dumbbell Row', sets: 3, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+      { name: 'Gimbal Front Hold', sets: 2, reps: [45, 60], unit: 'seconds', rest: 60 },
+      { name: 'Suitcase Hold or March', sets: 2, reps: [30, 45], unit: 'seconds', perSide: true, rest: 60, incr: 2.5 },
+    ],
+    lite: [
+      { name: 'Band-Assisted Chin-Up', sets: 2, reps: [4, 6], rest: 120 },
+      { name: 'One-Arm Supported Dumbbell Row', sets: 2, reps: [8, 12], perSide: true, rest: 90, incr: 2.5 },
+      { name: 'Gimbal Front Hold', sets: 1, reps: [45, 60], unit: 'seconds', rest: 60 },
+    ],
+  },
+]
+
 export function seedPrograms(userId: string): {
   programs: Program[]
   program_days: ProgramDay[]
@@ -441,10 +590,10 @@ export function seedPrograms(userId: string): {
 
   const specs: Array<[Program, DaySpec[]]> = [
     [programs[0], TRANSITION_DAYS],
-    [programs[1], MAIN_DAYS],
+    [programs[1], CONSTANTINE_V85_DAYS],
   ]
   for (const [program, days] of specs) {
-    days.forEach((d, di) => {
+    days.forEach((d) => {
       const dayId = sid()
       program_days.push({
         id: dayId,
@@ -455,7 +604,7 @@ export function seedPrograms(userId: string): {
         day_type: d.type,
         est_minutes: d.est,
         warmup_note: d.warmup ?? '',
-        sort_order: di,
+        sort_order: d.weekday * 10 + (d.slot === 'morning' ? 0 : d.slot === 't25' ? 2 : 1),
       })
       d.full.forEach((s, i) => exercises.push(ex(s, dayId, userId, false, i)))
       d.lite.forEach((s, i) => exercises.push(ex(s, dayId, userId, true, i)))

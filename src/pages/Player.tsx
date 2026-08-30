@@ -163,6 +163,7 @@ export function Player() {
   const { slug = 'transition', date = '' } = useParams<{ slug: ProgramSlug; date: string }>()
   const [params] = useSearchParams()
   const lite = params.get('lite') === '1'
+  const programDayId = params.get('day') ?? undefined
   const navigate = useNavigate()
   const { data, upsert, toast } = useStore()
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
@@ -173,15 +174,15 @@ export function Player() {
   }, [language])
 
   const accent: Accent = slug === 'main' || slug === 'custom' ? ACCENTS.violet : ACCENTS.teal
-  const plan = useMemo(() => planForDate(data, slug as ProgramSlug, date, lite), [data, slug, date, lite])
+  const plan = useMemo(() => planForDate(data, slug as ProgramSlug, date, lite, programDayId), [data, slug, date, lite, programDayId])
   const blocks = useMemo(() => buildTimeline(plan), [plan])
 
   const [state, dispatch] = useReducer(reducer, null, (): PlayerState => {
     try {
       const saved = JSON.parse(localStorage.getItem(PERSIST_KEY) ?? 'null') as
-        | (PlayerState & { slug: string; date: string; lite: boolean; persistedAt?: string })
+        | (PlayerState & { slug: string; date: string; lite: boolean; programDayId?: string; persistedAt?: string })
         | null
-      if (saved && saved.slug === slug && saved.date === date && saved.lite === lite) {
+      if (saved && saved.slug === slug && saved.date === date && saved.lite === lite && saved.programDayId === programDayId) {
         const restoredResults = Object.fromEntries(Object.entries(saved.results ?? {}).map(([key, result]) => [key, {
           ...result,
           sets: (result.sets ?? []).map((set) => ({ ...set, weight: set.weight ?? result.weight ?? null })),
@@ -211,9 +212,9 @@ export function Player() {
   useEffect(() => {
     localStorage.setItem(
       PERSIST_KEY,
-      JSON.stringify({ ...state, slug, date, lite, persistedAt: new Date().toISOString() }),
+      JSON.stringify({ ...state, slug, date, lite, programDayId, persistedAt: new Date().toISOString() }),
     )
-  }, [state, slug, date, lite])
+  }, [state, slug, date, lite, programDayId])
 
   const block: Block | undefined = blocks[state.idx]
   const voiceOn = data.settings?.voice_on ?? true
@@ -282,6 +283,7 @@ export function Player() {
             slug,
             date,
             lite,
+            programDayId,
             persistedAt: new Date().toISOString(),
           }),
         )
@@ -296,7 +298,7 @@ export function Player() {
       window.clearInterval(id)
       document.removeEventListener('visibilitychange', visibility)
     }
-  }, [date, lite, slug])
+  }, [date, lite, programDayId, slug])
 
   /* block entry announcements */
   useEffect(() => {

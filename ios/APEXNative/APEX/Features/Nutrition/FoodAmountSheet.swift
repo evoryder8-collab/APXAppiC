@@ -104,6 +104,15 @@ enum FoodPortionMath {
            let unit = FoodUnitKind(rawValue: rawUnit), units.contains(unit) {
             return (amount, unit)
         }
+        let providerID = food.providerProductID?.lowercased() ?? ""
+        let wholeItemRestaurantReference = providerID == "fsvo-v5.3:10675"
+            || providerID.hasPrefix("mcdonalds-ch:")
+            || providerID.hasPrefix("burger-king-ch:")
+            || providerID.hasPrefix("kfc-ch:")
+            || providerID.hasPrefix("popeyes-ch:")
+        if wholeItemRestaurantReference, food.servingUnit == "serving", units.contains(.serving) {
+            return (food.servingAmount ?? 1, .serving)
+        }
         return (100, units.first ?? .grams)
     }
 

@@ -169,8 +169,16 @@ export function beginFoodSelection(
   ) {
     return { food, quantity: preference.usual_amount, unit: preference.usual_unit }
   }
-  /* New foods start on their measured nutrition-basis unit. A serving or
-     piece remains selectable when its equivalent mass is known, while an
+  /* Whole-item restaurant products are intentionally authored with a serving
+     basis because one complete burger or sandwich is the expected entry. The
+     exact equivalent mass remains available for gram-level adjustments. */
+  const wholeItemRestaurantReference = /^(?:fsvo-v5\.3:10675|mcdonalds-ch:|burger-king-ch:|kfc-ch:|popeyes-ch:)/i
+    .test(food.provider_product_id ?? '')
+  if (wholeItemRestaurantReference && food.serving_unit === 'serving' && units.includes('serving')) {
+    return { food, quantity: food.serving_amount ?? 1, unit: 'serving' }
+  }
+  /* Other new foods start on their measured nutrition-basis unit. A serving
+     or piece remains selectable when its equivalent mass is known, while an
      amount the user actually confirmed still wins above. */
   return { food, quantity: 100, unit: units[0] }
 }

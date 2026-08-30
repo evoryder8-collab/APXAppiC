@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildSeedData } from '../src/data/seed.ts'
-import { planForDate } from '../src/lib/plan.ts'
+import { planForDate, programDaysForDate } from '../src/lib/plan.ts'
 import { buildTimeline, estimatedTimelineMinutes, plannedWorkoutDurationBreakdown } from '../src/lib/playerTimeline.ts'
 import { computeEngine } from '../src/lib/rpg.ts'
 
@@ -21,23 +21,23 @@ function withProtocol(persona: 'constantine' | 'june') {
   return data
 }
 
-test('Constantine V8.1 uses the prescribed weekday structure and dynamic Focus T25 episode', () => {
+test('Constantine V8.5 uses the prescribed official structure and a separate Focus T25 card', () => {
   const data = withProtocol('constantine')
   const monday = planForDate(data, 'main', '2026-08-03', false)
-  assert.equal(monday.programDay?.name, 'Legs A · Partner strength')
+  assert.equal(monday.programDay?.name, 'Legs A · Strength')
   assert.deepEqual(
     monday.exercises.map((exercise) => [exercise.name, exercise.planned_sets, exercise.rest_sec]),
     [
-      ['Bulgarian Split Squat', 4, 120],
+      ['Bulgarian Split Squat', 5, 120],
       ['Dumbbell Romanian Deadlift', 3, 120],
       ['Sliding Leg Curl', 3, 90],
-      ['Single-Leg Calf Raise', 3, 60],
+      ['Single-Leg Calf Raise', 5, 60],
     ],
   )
 
-  const tuesday = planForDate(data, 'main', '2026-08-04', false)
+  const tuesday = programDaysForDate(data, 'main', '2026-08-04').find((candidate) => candidate.programDay?.name.startsWith('Focus T25'))!
   assert.ok(tuesday.exercises.some((exercise) =>
-    exercise.name === 'Focus T25 · Ab Intervals' && exercise.rep_unit === 'check',
+    exercise.name === 'Focus T25 · Ab Intervals' && exercise.rep_unit === 'minutes',
   ))
 })
 
@@ -46,54 +46,51 @@ test('Friday Full and Light are explicit, distinct prescriptions in opening week
   const full = planForDate(data, 'main', '2026-07-31', false)
   const light = planForDate(data, 'main', '2026-07-31', true)
 
-  assert.equal(full.programDay?.name, 'Legs B · Partner strength')
+  assert.equal(full.programDay?.name, 'Legs B · Strength')
   assert.deepEqual(
     full.exercises.map((exercise) => [exercise.name, exercise.planned_sets]),
     [
-      ['Front Lunge', 2],
+      ['Front Lunge', 3],
       ['Reverse Lunge', 2],
       ['Single-Leg Romanian Deadlift', 3],
-      ['Calf Raise', 2],
+      ['Single-Leg Calf Raise', 5],
     ],
   )
   assert.ok(!full.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
   assert.deepEqual(
     light.exercises.map((exercise) => [exercise.name, exercise.planned_sets]),
     [
-      ['Front Lunge', 1],
-      ['Reverse Lunge', 1],
+      ['Front Lunge', 2],
       ['Single-Leg Romanian Deadlift', 2],
-      ['Focus T25 · Speed 1.0', 1],
     ],
   )
-  assert.match(light.exercises.at(-1)?.notes ?? '', /25 min/)
-  assert.ok(estimatedTimelineMinutes(light) >= 25)
+  assert.ok(estimatedTimelineMinutes(light) > 0)
   assert.ok(estimatedTimelineMinutes(light) < (full.programDay?.est_minutes ?? 0))
 })
 
-test('Constantine Wednesday 65-minute estimate includes the 25-minute Focus T25 episode', () => {
+test('Constantine Wednesday keeps strength and Focus T25 as independent durations', () => {
   const data = withProtocol('constantine')
   const wednesday = planForDate(data, 'main', '2026-07-29', false)
-  const focus = wednesday.exercises.find((exercise) => exercise.name.startsWith('Focus T25'))
+  const focus = programDaysForDate(data, 'main', '2026-07-29').find((candidate) => candidate.programDay?.name.startsWith('Focus T25'))!
 
-  assert.equal(wednesday.programDay?.est_minutes, 65)
-  assert.equal(focus?.rep_unit, 'check')
-  assert.match(focus?.notes ?? '', /25 min/)
-  assert.equal((wednesday.programDay?.est_minutes ?? 0) - 25, 40)
+  assert.equal(wednesday.programDay?.est_minutes, 52)
+  assert.equal(focus.programDay?.est_minutes, 25)
+  assert.equal(focus.exercises[0]?.rep_unit, 'minutes')
+  assert.match(focus.exercises[0]?.notes ?? '', /25 min/)
   assert.deepEqual(
     plannedWorkoutDurationBreakdown(wednesday, wednesday.programDay?.est_minutes ?? 0, false),
-    { total: 65, primary: 40, focusT25: 25 },
+    { total: 52, primary: 52, focusT25: 0 },
   )
 })
 
-test('deload weeks cap work at two sets and remove non-core Focus T25 sessions', () => {
+test('deload weeks cap strength while keeping separately scheduled Focus T25 visible', () => {
   const data = withProtocol('constantine')
   const deloadWednesday = planForDate(data, 'main', '2026-08-19', false)
   assert.equal(deloadWednesday.isDeload, true)
   assert.ok(deloadWednesday.exercises.every((exercise) => exercise.rep_unit === 'check' || exercise.planned_sets <= 2))
   assert.ok(!deloadWednesday.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
 
-  const deloadTuesday = planForDate(data, 'main', '2026-08-18', false)
+  const deloadTuesday = programDaysForDate(data, 'main', '2026-08-18').find((candidate) => candidate.programDay?.name.startsWith('Focus T25'))!
   assert.ok(deloadTuesday.exercises.some((exercise) => exercise.name === 'Focus T25 · Ab Intervals'))
 })
 
@@ -111,44 +108,39 @@ test('benchmark weeks replace normal push volume with the PDF max-test protocol'
   assert.ok(!plan.exercises.some((exercise) => exercise.name.includes('Feet-Elevated')))
 })
 
-test('June V8.1 has two glute days, three prescribed T25 slots and a true Sunday rest', () => {
+test('June V8.4 has two glute days, three separate T25 cards and a true Sunday rest', () => {
   const data = withProtocol('june')
-  assert.equal(planForDate(data, 'main', '2026-08-03', false).programDay?.name, 'Glutes A · Partner strength')
-  assert.equal(planForDate(data, 'main', '2026-08-07', false).programDay?.name, 'Glutes B · Partner strength')
+  assert.equal(planForDate(data, 'main', '2026-08-03', false).programDay?.name, 'Glutes A · Strength')
+  assert.equal(planForDate(data, 'main', '2026-08-07', false).programDay?.name, 'Glutes B · Strength')
   assert.equal(planForDate(data, 'main', '2026-08-09', false).exercises.length, 0)
   assert.equal(
-    planForDate(data, 'main', '2026-08-04', false).exercises.at(-1)?.name,
+    programDaysForDate(data, 'main', '2026-08-04').find((candidate) => candidate.programDay?.name.startsWith('Focus T25'))?.exercises.at(-1)?.name,
     'Focus T25 · Ab Intervals',
   )
   assert.equal(
-    planForDate(data, 'main', '2026-08-05', false).exercises.at(-1)?.name,
+    programDaysForDate(data, 'main', '2026-08-05').find((candidate) => candidate.programDay?.name.startsWith('Focus T25'))?.exercises.at(-1)?.name,
     'Focus T25 · Lower Focus',
   )
   assert.equal(
-    planForDate(data, 'main', '2026-08-06', false).exercises[0]?.name,
+    programDaysForDate(data, 'main', '2026-08-06').find((candidate) => candidate.programDay?.name.startsWith('Focus T25'))?.exercises[0]?.name,
     'Focus T25 · Stretch',
   )
 })
 
-test('June Full is never silently replaced by Light and partner blocks align first', () => {
-  const constantine = withProtocol('constantine')
+test('June Full is never silently replaced by Light and follows the V8.4 exercise order', () => {
   const june = withProtocol('june')
-  const constantineMonday = planForDate(constantine, 'main', '2026-08-03', false)
   const juneMonday = planForDate(june, 'main', '2026-08-03', false)
-  const constantineFriday = planForDate(constantine, 'main', '2026-07-31', false)
   const juneFriday = planForDate(june, 'main', '2026-07-31', false)
   const juneFridayLight = planForDate(june, 'main', '2026-07-31', true)
 
-  assert.deepEqual(
-    juneMonday.exercises.slice(0, 3).map((exercise) => exercise.name),
-    constantineMonday.exercises.slice(0, 3).map((exercise) => exercise.name),
-  )
-  assert.deepEqual(
-    juneFriday.exercises.slice(0, 3).map((exercise) => exercise.name),
-    constantineFriday.exercises.slice(0, 3).map((exercise) => exercise.name),
-  )
-  assert.deepEqual(juneFriday.exercises.map((exercise) => exercise.planned_sets), [2, 2, 2, 3, 2, 1])
-  assert.deepEqual(juneFridayLight.exercises.map((exercise) => exercise.planned_sets), [1, 2, 1, 2])
+  assert.deepEqual(juneMonday.exercises.slice(0, 3).map((exercise) => exercise.name), [
+    'Dumbbell Hip Thrust', 'Bulgarian Split Squat', 'Dumbbell Romanian Deadlift',
+  ])
+  assert.deepEqual(juneFriday.exercises.slice(0, 3).map((exercise) => exercise.name), [
+    'Reverse Lunge', 'B-Stance or Single-Leg Hip Thrust', 'Sliding Leg Curl',
+  ])
+  assert.deepEqual(juneFriday.exercises.map((exercise) => exercise.planned_sets), [3, 3, 3, 1])
+  assert.deepEqual(juneFridayLight.exercises.map((exercise) => exercise.planned_sets), [2, 2, 2])
   assert.ok(!juneFriday.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
   assert.ok(!juneFridayLight.exercises.some((exercise) => exercise.name.startsWith('Focus T25')))
 })

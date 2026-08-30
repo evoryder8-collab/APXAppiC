@@ -196,7 +196,7 @@ function food(
     water_source_id: options.waterSourceId ?? null,
     serving_amount: options.servingAmount ?? options.servingGrams ?? null,
     serving_unit: options.servingUnit ?? (options.servingGrams ? 'g' : null),
-    serving_grams_or_ml: options.servingAmount ?? options.servingGrams ?? null,
+    serving_grams_or_ml: options.servingGrams ?? options.servingAmount ?? null,
     piece_grams_or_ml: null,
     provider_updated_at: null,
     confidence: options.confidence ?? 'complete',
@@ -691,8 +691,164 @@ const RETAILER_REFERENCE_FOODS = RETAILER_REFERENCES.flatMap((retailer, retailer
   ),
 )
 
+interface SwissFastFoodReference {
+  name: string
+  names?: Partial<Record<'de' | 'de-CH' | 'fr' | 'it' | 'es' | 'pt' | 'ro' | 'th' | 'ja', string>>
+  brand: string
+  providerId: string
+  grams: number
+  kcal: number
+  protein: number
+  carbs: number
+  fat: number
+  fibre?: number
+  sugar?: number
+  saturatedFat?: number
+  salt?: number
+  valuesArePerServing?: boolean
+  confidence?: FoodRecord['confidence']
+}
+
+/* Current Swiss provider references. Burger King and KFC publish per-100 g
+   values and whole-item weights. Popeyes Switzerland publishes totals for the
+   complete sandwich, which are converted deterministically to the per-100 g
+   storage basis without inventing absent nutrients. McRaclette is explicitly
+   kept as a historical seasonal reference rather than marked provider-verified. */
+const SWISS_FAST_FOOD_SPECS: SwissFastFoodReference[] = [
+  {
+    name: 'Cheeseburger Royal', brand: "McDonald's Switzerland", providerId: 'fsvo-v5.3:10675', grams: 207,
+    kcal: 256, protein: 15.5, carbs: 17.4, fat: 13.5, fibre: 1.4, sugar: 4.3,
+    names: { de: 'Cheeseburger Royal', 'de-CH': 'Cheeseburger Royal', fr: 'Cheeseburger Royal', it: 'Cheeseburger Royal', es: 'Cheeseburger Royal', pt: 'Cheeseburger Royal', ro: 'Cheeseburger Royal', th: 'ชีสเบอร์เกอร์รอยัล', ja: 'チーズバーガー・ロイヤル' },
+  },
+  {
+    name: 'McRaclette Classic, seasonal reference', brand: "McDonald's Switzerland", providerId: 'mcdonalds-ch:mcraclette-classic-archive', grams: 269,
+    kcal: 272, protein: 16, carbs: 16, fat: 16, fibre: 1, confidence: 'complete',
+    names: { de: 'McRaclette Classic, Saisonreferenz', 'de-CH': 'McRaclette Classic, Saisonreferenz', fr: 'McRaclette Classic, référence saisonnière', it: 'McRaclette Classic, riferimento stagionale', es: 'McRaclette Classic, referencia de temporada', pt: 'McRaclette Classic, referência sazonal', ro: 'McRaclette Classic, referință sezonieră', th: 'McRaclette Classic ข้อมูลอ้างอิงตามฤดูกาล', ja: 'McRaclette Classic（季節限定参考値）' },
+  },
+  {
+    name: 'WHOPPER', brand: 'Burger King Switzerland', providerId: 'burger-king-ch:whopper', grams: 281.2,
+    kcal: 227.6, protein: 10.9, carbs: 17.9, fat: 12.3, sugar: 3.9, saturatedFat: 3.2, salt: 0.1,
+  },
+  {
+    name: 'Big King', brand: 'Burger King Switzerland', providerId: 'burger-king-ch:big-king', grams: 242.7,
+    kcal: 252.8, protein: 12.8, carbs: 17.6, fat: 14.3, sugar: 3.5, saturatedFat: 4.4, salt: 0.3,
+  },
+  {
+    name: 'Cheeseburger', brand: 'Burger King Switzerland', providerId: 'burger-king-ch:cheeseburger', grams: 124.5,
+    kcal: 269.2, protein: 14.7, carbs: 24.4, fat: 12.2, sugar: 4.6, saturatedFat: 4.9, salt: 0.4,
+  },
+  {
+    name: 'Hamburger', brand: 'Burger King Switzerland', providerId: 'burger-king-ch:hamburger', grams: 113,
+    kcal: 261.4, protein: 14.2, carbs: 26.5, fat: 10.7, sugar: 4.7, saturatedFat: 3.6, salt: 0.1,
+  },
+  {
+    name: 'Double Crispy Classic', brand: 'KFC Switzerland', providerId: 'kfc-ch:double-crispy-classic', grams: 167,
+    kcal: 239, protein: 12, carbs: 23, fat: 11, sugar: 2, salt: 1.3,
+  },
+  {
+    name: 'Crispy Cheese', brand: 'KFC Switzerland', providerId: 'kfc-ch:crispy-cheese', grams: 116,
+    kcal: 239, protein: 11, carbs: 31, fat: 8, sugar: 5, salt: 1.6,
+  },
+  {
+    name: 'Crispy Chili Cheese', brand: 'KFC Switzerland', providerId: 'kfc-ch:crispy-chili-cheese', grams: 116,
+    kcal: 283, protein: 11, carbs: 29, fat: 14, sugar: 4, salt: 1.5,
+  },
+  {
+    name: 'Classic Original', brand: 'KFC Switzerland', providerId: 'kfc-ch:classic-original', grams: 205,
+    kcal: 241, protein: 13, carbs: 23, fat: 10, sugar: 3, salt: 1.5,
+  },
+  {
+    name: 'Classic Zinger', brand: 'KFC Switzerland', providerId: 'kfc-ch:classic-zinger', grams: 200,
+    kcal: 245, protein: 13, carbs: 23, fat: 11, sugar: 3, salt: 1.1,
+  },
+  {
+    name: 'Classic Veggie', brand: 'KFC Switzerland', providerId: 'kfc-ch:classic-veggie', grams: 191,
+    kcal: 226, protein: 9, carbs: 25, fat: 9, sugar: 3, salt: 1.1,
+  },
+  {
+    name: 'Colonel Original', brand: 'KFC Switzerland', providerId: 'kfc-ch:colonel-original', grams: 243,
+    kcal: 234, protein: 12, carbs: 20, fat: 11, sugar: 4, salt: 1.5,
+  },
+  {
+    name: 'Cheese & Bacon', brand: 'KFC Switzerland', providerId: 'kfc-ch:cheese-bacon', grams: 239,
+    kcal: 249, protein: 14, carbs: 20, fat: 12, sugar: 3, salt: 1.7,
+  },
+  {
+    name: 'Classic Chicken Sandwich', brand: 'Popeyes Switzerland', providerId: 'popeyes-ch:item_54262', grams: 254,
+    kcal: 831, protein: 33, carbs: 53, fat: 53, fibre: 2.5, sugar: 7.5, saturatedFat: 17, salt: 3.7, valuesArePerServing: true,
+    names: { de: 'Classic Chicken Sandwich', 'de-CH': 'Classic Chicken Sandwich', fr: 'Sandwich au poulet Classic', it: 'Panino di pollo Classic', es: 'Sándwich de pollo Classic', pt: 'Sanduíche de frango Classic', ro: 'Sandviș Classic cu pui', th: 'แซนด์วิชไก่คลาสสิก', ja: 'クラシック・チキンサンド' },
+  },
+  {
+    name: 'Spicy Chicken Sandwich', brand: 'Popeyes Switzerland', providerId: 'popeyes-ch:item_54295', grams: 254,
+    kcal: 826, protein: 33, carbs: 53, fat: 53, fibre: 2.5, sugar: 7.2, saturatedFat: 17, salt: 4.3, valuesArePerServing: true,
+    names: { de: 'Spicy Chicken Sandwich', 'de-CH': 'Spicy Chicken Sandwich', fr: 'Sandwich au poulet Spicy', it: 'Panino di pollo Spicy', es: 'Sándwich de pollo Spicy', pt: 'Sanduíche de frango Spicy', ro: 'Sandviș picant cu pui', th: 'แซนด์วิชไก่สไปซี', ja: 'スパイシー・チキンサンド' },
+  },
+  {
+    name: 'Deluxe Chicken Sandwich', brand: 'Popeyes Switzerland', providerId: 'popeyes-ch:item_55735', grams: 308,
+    kcal: 931, protein: 39, carbs: 54, fat: 61, fibre: 2.7, sugar: 8.6, saturatedFat: 22, salt: 5.1, valuesArePerServing: true,
+  },
+  {
+    name: 'Deluxe Spicy Chicken Sandwich', brand: 'Popeyes Switzerland', providerId: 'popeyes-ch:item_55738', grams: 298,
+    kcal: 926, protein: 39, carbs: 55, fat: 61, fibre: 2.6, sugar: 8.3, saturatedFat: 22, salt: 5.5, valuesArePerServing: true,
+  },
+  {
+    name: 'Cheesy Chicken Sandwich', brand: 'Popeyes Switzerland', providerId: 'popeyes-ch:02ee86b1-f8cf-4cf1-ba92-82e7fdf0f2a5', grams: 285,
+    kcal: 836, protein: 38, carbs: 55, fat: 51, fibre: 3, sugar: 8.8, saturatedFat: 21, salt: 6.5, valuesArePerServing: true,
+  },
+  {
+    name: 'BBQ Chicken Sandwich', brand: 'Popeyes Switzerland', providerId: 'popeyes-ch:a384363f-80dc-4777-864b-ff6dd5e86048', grams: 284,
+    kcal: 744, protein: 37, carbs: 63, fat: 37, fibre: 3.1, sugar: 16, saturatedFat: 18, salt: 5, valuesArePerServing: true,
+  },
+]
+
+const SWISS_FAST_FOOD_REFERENCE_FOODS = SWISS_FAST_FOOD_SPECS.map((spec, index) => {
+  const factor = spec.valuesArePerServing ? 100 / spec.grams : 1
+  const id = `f4570000-0000-4000-8000-${String(index + 1).padStart(12, '0')}`
+  const base = food(
+    id,
+    spec.name,
+    spec.names?.de ?? spec.name,
+    spec.names?.fr ?? spec.name,
+    spec.names?.it ?? spec.name,
+    spec.kcal * factor,
+    spec.protein * factor,
+    spec.carbs * factor,
+    spec.fat * factor,
+    'as_sold',
+    {
+      brand: spec.brand,
+      providerId: spec.providerId,
+      packageQuantity: `${spec.grams} g`,
+      servingAmount: 1,
+      servingUnit: 'serving',
+      servingGrams: spec.grams,
+      fibre: spec.fibre == null ? undefined : spec.fibre * factor,
+      sugar: spec.sugar == null ? undefined : spec.sugar * factor,
+      saturatedFat: spec.saturatedFat == null ? undefined : spec.saturatedFat * factor,
+      salt: spec.salt == null ? undefined : spec.salt * factor,
+      confidence: spec.confidence ?? 'provider_verified',
+    },
+  )
+  return {
+    ...base,
+    names_i18n: {
+      en: spec.name,
+      de: spec.names?.de ?? spec.name,
+      'de-CH': spec.names?.['de-CH'] ?? spec.names?.de ?? spec.name,
+      fr: spec.names?.fr ?? spec.name,
+      it: spec.names?.it ?? spec.name,
+      es: spec.names?.es ?? spec.name,
+      pt: spec.names?.pt ?? spec.name,
+      ro: spec.names?.ro ?? spec.name,
+      th: spec.names?.th ?? spec.name,
+      ja: spec.names?.ja ?? spec.name,
+    },
+  }
+})
+
 export const COMMON_FOODS: FoodRecord[] = [
   ...CORE_FOODS,
   ...PROTOCOL_FOODS,
   ...RETAILER_REFERENCE_FOODS,
+  ...SWISS_FAST_FOOD_REFERENCE_FOODS,
 ]

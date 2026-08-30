@@ -19,7 +19,7 @@ import { useStore } from '../store/AppStore'
 import { useFoodStore } from '../store/FoodStore'
 import { ACCENTS } from '../lib/theme'
 import { ACTIVITY_MULTIPLIERS, buildTargetMealPlan, computeTargets, goalPresetsForPlan, nutritionPlanContext, type TargetMeal } from '../lib/nutrition'
-import { planForDate } from '../lib/plan'
+import { planForDate, programDaysForDate } from '../lib/plan'
 import { dailyLogId } from '../lib/ids'
 import type { ActivityLevel, DailyLog, ProgramSlug, Supplement } from '../lib/types'
 import { aggregateConsumedMeals, displayFoodName, reconcileConsumedMeals, type ComposerFoodItem, type FoodRecord, type LoggedMeal, type MealSlot } from '../lib/food'
@@ -314,18 +314,29 @@ export function SimpleHome() {
       ? 'main'
       : fallbackGuidedProgramSlug
   const guidedScheduleRoute = guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
-  const plan = useMemo(
-    () => planForDate(data, guidedProgramSlug, selectedDate, false),
+  const plans = useMemo(
+    () => programDaysForDate(data, guidedProgramSlug, selectedDate, false),
     [data, guidedProgramSlug, selectedDate],
   )
-  const lightPlan = useMemo(
-    () => planForDate(data, guidedProgramSlug, selectedDate, true),
+  const lightPlans = useMemo(
+    () => programDaysForDate(data, guidedProgramSlug, selectedDate, true),
     [data, guidedProgramSlug, selectedDate],
   )
+  const plan = plans[0] ?? planForDate(data, guidedProgramSlug, selectedDate, false)
+  const lightPlan = lightPlans.find((candidate) => candidate.programDay?.id === plan.programDay?.id)
+    ?? lightPlans[0]
+    ?? planForDate(data, guidedProgramSlug, selectedDate, true, plan.programDay?.id)
   const completedWorkoutSessions = useMemo(() => data.workout_sessions
     .filter((session) => session.date === selectedDate && session.completed)
     .sort((left, right) => (right.completed_at ?? right.started_at ?? '').localeCompare(left.completed_at ?? left.started_at ?? '')),
   [data.workout_sessions, selectedDate])
+  const completedProgramDayIds = useMemo(
+    () => new Set(completedWorkoutSessions.map((session) => session.program_day_id).filter(Boolean)),
+    [completedWorkoutSessions],
+  )
+  const incompleteGuidedPlans = plans.filter((candidate) =>
+    candidate.exercises.length > 0 && !completedProgramDayIds.has(candidate.programDay?.id ?? ''),
+  )
   const workoutDone = completedWorkoutSessions.length > 0
   const dailyLog = data.daily_logs.find((log) => log.date === selectedDate)
   const water = dailyLog?.water_l ?? 0
@@ -422,8 +433,11 @@ export function SimpleHome() {
   const completedCustomMealBlocks = enabledCustomMealBlocks.filter((block) => dateFoodMeals.some((meal) => mealMomentIdFromIdempotencyKey(meal.client_idempotency_key) === block.id)).length
   const completedMeals = mealBlockStatuses.filter((status) => status.completed).length + completedCustomMealBlocks
   const totalMealBlocks = mealBlockStatuses.length + enabledCustomMealBlocks.length
-  const hasWorkout = plan.exercises.length > 0
-  const fullWorkoutMinutes = plan.programDay?.est_minutes ?? Math.max(15, plan.exercises.length * 8)
+  const hasWorkout = plans.some((candidate) => candidate.exercises.length > 0) || plan.exercises.length > 0
+  const fullWorkoutMinutes = (plans.length > 0 ? plans : [plan]).reduce(
+    (total, candidate) => total + (candidate.exercises.length > 0 ? candidate.programDay?.est_minutes ?? Math.max(15, candidate.exercises.length * 8) : 0),
+    0,
+  )
   const lightWorkoutMinutes = Math.max(8, estimatedTimelineMinutes(lightPlan))
   const previewPlan = trainingPreviewMode === 'full' ? plan : lightPlan
   const previewWorkoutMinutes = trainingPreviewMode === 'full' ? fullWorkoutMinutes : lightWorkoutMinutes
@@ -931,10 +945,10 @@ export function SimpleHome() {
       meta: `${clockOf(group.time)} · ${t(`${group.items.length} items`)}`, action: 'Mark group done',
       run: () => toggleSupplementGroup(group), accent: ACCENTS.ice,
     })),
-    ...(showGuidedPlan && hasWorkout && !workoutDone ? [{
-      time: minuteOf(trainingTime), eyebrow: 'Today’s movement', title: plan.programDay?.name ?? 'Training',
-      meta: t(`~${plan.programDay?.est_minutes ?? 15} min · ${plan.exercises.length} exercises`), action: 'Start session',
-      run: () => navigate(`/player/${guidedProgramSlug}/${selectedDate}`), accent: ACCENTS.teal,
+    ...(showGuidedPlan && incompleteGuidedPlans.length > 0 ? [{
+      time: minuteOf(trainingTime), eyebrow: 'Today’s movement', title: incompleteGuidedPlans[0].programDay?.name ?? 'Training',
+      meta: t(`~${incompleteGuidedPlans[0].programDay?.est_minutes ?? 15} min · ${incompleteGuidedPlans[0].exercises.length} exercises`), action: 'Start session',
+      run: () => navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(incompleteGuidedPlans[0].programDay?.id ?? '')}`), accent: ACCENTS.teal,
     }] : []),
     ...(showHydrationReminder && !waterDone ? [{
       time: 21 * 60, eyebrow: 'Hydration', title: t(`${hydration.totalL.toFixed(2)} of ${waterTargetL.toFixed(2)} L`),
@@ -1146,8 +1160,8 @@ export function SimpleHome() {
                   />
                   <SimpleMetric icon={<DumbbellIcon className="h-4 w-4" />} value={workoutDone ? t('Done') : hasWorkout ? `${fullWorkoutMinutes}m` : t('Rest')} label={t('Training')} done={workoutDone} onClick={() => { setTrainingPreviewMode('full'); setQuickPanel('training') }} ariaLabel={t('Preview training')} />
                 </div>
-                <WorkoutInsightsCard anchorDate={selectedDate} accent={ACCENTS.teal} />
                 <CompletedWorkoutHistoryCards date={selectedDate} accent={ACCENTS.teal} />
+                <WorkoutInsightsCard anchorDate={selectedDate} accent={ACCENTS.teal} />
               </div>
             ) : blockId === 'activity' ? (
               <div className={`${selectedDate <= today && (profile.persona === 'constantine' || profile.persona === 'june') ? 'grid grid-cols-[minmax(0,1fr)_5.25rem]' : 'flex justify-end'} items-stretch gap-2`} data-simple-local-gesture>
@@ -1182,14 +1196,18 @@ export function SimpleHome() {
                 </div>
               </GlassCard> : null
             ) : blockId === 'guided-plan' ? (
-              !adhdMode && showGuidedPlan && hasWorkout && !workoutDone ? (
-                <GlassCard accent={ACCENTS.teal} className="p-4">
-                  <div className="flex items-start justify-between gap-3">
-                    <div className="min-w-0"><p className="truncate font-display text-base font-bold text-ink">{t(plan.programDay?.name ?? 'Guided workout')}</p>{(settings.addons.interface_mode ?? 'clean') === 'detailed' && <p className="text-[11px] font-medium text-ink-soft">{t('Start directly. Skip calendar and setup.')}</p>}</div>
-                    <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>
-                  </div>
-                  <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}`)}>{t('Start')}</GradientButton></div>
-                </GlassCard>
+              !adhdMode && showGuidedPlan && incompleteGuidedPlans.length > 0 ? (
+                <div className="space-y-2.5">
+                  {incompleteGuidedPlans.map((guidedPlan, index) => (
+                    <GlassCard key={guidedPlan.programDay?.id ?? index} accent={ACCENTS.teal} className="p-4">
+                      <div className="flex items-start justify-between gap-3">
+                        <div className="min-w-0"><p className="break-words font-display text-base font-bold text-ink">{t(guidedPlan.programDay?.name ?? 'Guided workout')}</p>{(settings.addons.interface_mode ?? 'clean') === 'detailed' && <p className="text-[11px] font-medium text-ink-soft">{t(`~${guidedPlan.programDay?.est_minutes ?? 15} min · ${guidedPlan.exercises.length} exercises`)}</p>}</div>
+                        {index === 0 && <button type="button" onClick={() => setSettings({ addons: { ...settings.addons, simple_show_guided_plan: false } })} aria-label={t('Hide guided plan')} className="grid h-7 w-7 shrink-0 place-items-center rounded-full bg-white/75 font-black text-ink-faint">×</button>}
+                      </div>
+                      <div className="mt-3 flex justify-end gap-2"><button type="button" onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1&day=${encodeURIComponent(guidedPlan.programDay?.id ?? '')}`)} className="rounded-xl bg-white/70 px-3 py-2 text-[10px] font-bold text-ink-soft">{t('Quick')}</button><GradientButton accent={ACCENTS.teal} onClick={() => navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(guidedPlan.programDay?.id ?? '')}`)}>{t('Start')}</GradientButton></div>
+                    </GlassCard>
+                  ))}
+                </div>
               ) : null
             ) : blockId === 'orbit' ? (
               !adhdMode && showOrbitShortcut ? <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
@@ -1434,8 +1452,8 @@ export function SimpleHome() {
                           ))}
                         </div>
                       </div>
-                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}`) }} className="mt-3 w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-[0_12px_26px_-14px_rgba(5,150,105,.85)] transition active:scale-[.98]">{t('Start Full')} · {fullWorkoutMinutes} min</button>
-                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1`) }} className="mt-2 w-full rounded-2xl bg-sky-500 px-4 py-2.5 text-[11px] font-black text-white shadow-[0_10px_22px_-14px_rgba(14,165,233,.9)] transition active:scale-[.98]">{t('Start Light')} · {lightWorkoutMinutes} min</button>
+                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}?day=${encodeURIComponent(plan.programDay?.id ?? '')}`) }} className="mt-3 w-full rounded-2xl bg-emerald-600 px-4 py-3.5 text-sm font-black text-white shadow-[0_12px_26px_-14px_rgba(5,150,105,.85)] transition active:scale-[.98]">{t('Start Full')} · {plan.programDay?.est_minutes ?? fullWorkoutMinutes} min</button>
+                      <button type="button" onClick={() => { setQuickPanel(null); navigate(`/player/${guidedProgramSlug}/${selectedDate}?lite=1&day=${encodeURIComponent(plan.programDay?.id ?? '')}`) }} className="mt-2 w-full rounded-2xl bg-sky-500 px-4 py-2.5 text-[11px] font-black text-white shadow-[0_10px_22px_-14px_rgba(14,165,233,.9)] transition active:scale-[.98]">{t('Start Light')} · {lightWorkoutMinutes} min</button>
                     </>
                   ) : (
                     <div className="mt-2 rounded-[20px] bg-slate-50 p-3 text-center">

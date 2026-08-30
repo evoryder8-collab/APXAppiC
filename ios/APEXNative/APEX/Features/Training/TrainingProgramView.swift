@@ -85,8 +85,13 @@ struct TrainingProgramView: View {
     }
     #endif
 
+    private var todayPlans: [PlannedDay] {
+        TrainingPlanEngine.programDays(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
+    }
+
     private var todayPlan: PlannedDay {
-        TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
+        todayPlans.first
+            ?? TrainingPlanEngine.plan(session.data, slug: slug, date: Date().apexDateKey, lite: lite)
     }
 
     /// The hero, hologram and briefing must describe the same prescription.
@@ -182,7 +187,10 @@ struct TrainingProgramView: View {
                     }
                     if !plan.exercises.isEmpty {
                         Button {
-                            selectedDay = CalendarDaySelection(date: Date().apexDateKey)
+                            selectedDay = CalendarDaySelection(
+                                date: Date().apexDateKey,
+                                programDayID: plan.programDay?.id
+                            )
                         } label: {
                             Label(language.text("Open today"), systemImage: "arrow.right")
                                 .font(APEXFont.body(13, weight: .bold))
@@ -196,6 +204,45 @@ struct TrainingProgramView: View {
                 }
             }
             .frame(maxWidth: .infinity, alignment: .leading)
+        }
+    }
+
+    @ViewBuilder
+    private var additionalTodayHeroes: some View {
+        ForEach(Array(todayPlans.dropFirst().enumerated()), id: \.offset) { index, plan in
+            GlassCard(radius: 26, padding: 17) {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(language.text(index == 0 ? "LATER TODAY" : "ANOTHER SESSION"))
+                        .font(APEXFont.mono(9, weight: .bold))
+                        .tracking(1.4)
+                        .foregroundStyle(APEXColor.secondaryInk)
+                    Text(language.text(plan.programDay?.name ?? "Rest day"))
+                        .font(APEXFont.display(21))
+                        .fixedSize(horizontal: false, vertical: true)
+                    if let day = plan.programDay {
+                        Text(language.format("~%d min · %d exercises", day.estimatedMinutes, plan.exercises.count))
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                    }
+                    if !plan.exercises.isEmpty {
+                        Button {
+                            selectedDay = CalendarDaySelection(
+                                date: Date().apexDateKey,
+                                programDayID: plan.programDay?.id
+                            )
+                        } label: {
+                            Label(language.text("Open today"), systemImage: "arrow.right")
+                                .font(APEXFont.body(13, weight: .bold))
+                                .frame(maxWidth: .infinity, minHeight: 44)
+                                .foregroundStyle(.white)
+                                .background(accent.gradient, in: RoundedRectangle(cornerRadius: 14))
+                        }
+                        .buttonStyle(.plain)
+                        .accessibilityIdentifier("training-today-open-\(index + 2)")
+                    }
+                }
+                .frame(maxWidth: .infinity, alignment: .leading)
+            }
         }
     }
 
@@ -314,8 +361,9 @@ struct TrainingProgramView: View {
                 }
 
                 if slug != "custom" {
-                    VStack(spacing: 0) {
+                    VStack(spacing: 10) {
                         todayHero
+                        additionalTodayHeroes
                     }
                         .accessibilityElement(children: .contain)
                         .accessibilityIdentifier("training-today-card")
@@ -335,15 +383,15 @@ struct TrainingProgramView: View {
                 if slug != "custom" && hasUsablePrescription {
                     GlassCard(radius: 26, padding: 16) {
                         TrainingCalendarView(slug: slug, accent: accent) { day in
-                            selectedDay = CalendarDaySelection(date: day)
+                            selectedDay = CalendarDaySelection(date: day, programDayID: nil)
                         }
                     }
                     .accessibilityIdentifier("training-calendar")
                 }
 
-                WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
-
                 CompletedWorkoutHistoryCards(date: nil, accent: accent)
+
+                WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
 
                 if slug == "custom" {
                     MuscleMapCard(
@@ -534,7 +582,12 @@ struct TrainingProgramView: View {
         .sheet(item: $selectedDay) { selection in
             /* A day is something to look at before deciding, so it opens part
                height with the calendar still visible behind it. */
-            WorkoutDaySheet(date: selection.date, slug: slug, accent: accent)
+            WorkoutDaySheet(
+                date: selection.date,
+                slug: slug,
+                accent: accent,
+                initialProgramDayID: selection.programDayID
+            )
                 .environment(session)
                 .apexTransientSheet()
         }
@@ -679,7 +732,8 @@ private struct ExportPreviewSheet: View {
 /// A date the calendar handed over, wrapped so a sheet can key off it.
 struct CalendarDaySelection: Identifiable, Hashable {
     let date: String
-    var id: String { date }
+    let programDayID: UUID?
+    var id: String { "\(date)|\(programDayID?.uuidString ?? "default")" }
 }
 
 /// The two ways to complete a planned day stay visible together. The tint only

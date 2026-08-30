@@ -352,15 +352,44 @@ private struct WorkoutInsightsArtwork: View {
 
     var body: some View {
         ZStack {
-            LinearGradient(colors: [Color(red: 0.025, green: 0.067, blue: 0.122), Color(red: 0.067, green: 0.094, blue: 0.15), .black], startPoint: .topLeading, endPoint: .bottomTrailing)
-            Circle().fill(accent.opacity(0.42)).frame(width: 280).blur(radius: 70).offset(x: 150, y: -180)
+            LinearGradient(
+                colors: [
+                    Color(red: 0.998, green: 0.992, blue: 0.972),
+                    Color(red: 0.998, green: 0.965, blue: 0.78),
+                    Color(red: 0.965, green: 0.925, blue: 1)
+                ],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+            Circle()
+                .fill(Color(red: 0.72, green: 0.39, blue: 1).opacity(0.30))
+                .frame(width: 270)
+                .blur(radius: 58)
+                .offset(x: 145, y: -185)
+            Circle()
+                .fill(Color(red: 1, green: 0.82, blue: 0.15).opacity(0.32))
+                .frame(width: 250)
+                .blur(radius: 54)
+                .offset(x: -150, y: 220)
             VStack(alignment: .leading, spacing: 13) {
                 HStack(alignment: .top) {
                     VStack(alignment: .leading, spacing: 4) {
-                        Text("APEX").font(.system(size: 10, weight: .black, design: .monospaced)).tracking(3).foregroundStyle(accent)
-                        Text(labels.title).font(.system(size: 27, weight: .black, design: .rounded)).foregroundStyle(.white)
-                        Text(athleteName).font(.system(size: 11, weight: .semibold)).foregroundStyle(.white.opacity(0.76))
-                        Text(rangeLabel).font(.system(size: 9, weight: .bold, design: .monospaced)).foregroundStyle(.white.opacity(0.66))
+                        Text("APEX")
+                            .font(.system(size: 10, weight: .black, design: .monospaced))
+                            .tracking(3)
+                            .foregroundStyle(Color(red: 0.45, green: 0.16, blue: 0.78))
+                        Text(labels.title)
+                            .font(.system(size: 22, weight: .black, design: .rounded))
+                            .foregroundStyle(Color(red: 0.14, green: 0.07, blue: 0.24))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(athleteName)
+                            .font(.system(size: 11, weight: .semibold))
+                            .foregroundStyle(Color(red: 0.32, green: 0.27, blue: 0.38))
+                            .fixedSize(horizontal: false, vertical: true)
+                        Text(rangeLabel)
+                            .font(.system(size: 9, weight: .bold, design: .monospaced))
+                            .foregroundStyle(Color(red: 0.38, green: 0.33, blue: 0.43))
+                            .fixedSize(horizontal: false, vertical: true)
                     }
                     Spacer()
                     if let years = summary.anniversaryYears {
@@ -368,30 +397,52 @@ private struct WorkoutInsightsArtwork: View {
                             Text("\(years) \(years == 1 ? "YEAR" : "YEARS")").font(.system(size: 14, weight: .black, design: .rounded))
                             Text(labels.anniversary.uppercased()).font(.system(size: 6, weight: .black, design: .monospaced)).tracking(0.8)
                         }
-                        .foregroundStyle(Color.black.opacity(0.8))
+                        .foregroundStyle(Color(red: 0.15, green: 0.07, blue: 0.24))
                         .padding(.horizontal, 10).padding(.vertical, 8)
-                        .background(accent.gradient, in: RoundedRectangle(cornerRadius: 12))
+                        .background(
+                            LinearGradient(
+                                colors: [Color(red: 1, green: 0.88, blue: 0.28), Color(red: 0.72, green: 0.39, blue: 1)],
+                                startPoint: .topLeading,
+                                endPoint: .bottomTrailing
+                            ),
+                            in: RoundedRectangle(cornerRadius: 12)
+                        )
                     }
                 }
                 LazyVGrid(columns: [GridItem(.flexible()), GridItem(.flexible())], spacing: 8) {
                     ForEach(Array(values.enumerated()), id: \.offset) { index, item in
                         VStack(alignment: .leading, spacing: 4) {
-                            Text(item.0.uppercased()).font(.system(size: 6, weight: .black, design: .monospaced)).tracking(0.5).foregroundStyle(.white.opacity(0.6))
-                            Text(item.1).font(.system(size: 14, weight: .black, design: .rounded)).foregroundStyle(index < 3 ? accent : .white).fixedSize(horizontal: false, vertical: true)
+                            Text(item.0.uppercased())
+                                .font(.system(size: 6, weight: .black, design: .monospaced))
+                                .tracking(0.35)
+                                .foregroundStyle(Color(red: 0.35, green: 0.30, blue: 0.40))
+                                .fixedSize(horizontal: false, vertical: true)
+                            Text(item.1)
+                                .font(.system(size: 14, weight: .black, design: .rounded))
+                                .foregroundStyle(index < 3 ? Color(red: 0.45, green: 0.16, blue: 0.78) : Color(red: 0.14, green: 0.07, blue: 0.24))
+                                .fixedSize(horizontal: false, vertical: true)
                         }
                         .frame(maxWidth: .infinity, minHeight: 51, alignment: .leading)
                         .padding(10)
-                        .background(.white.opacity(0.075), in: RoundedRectangle(cornerRadius: 14))
-                        .overlay(RoundedRectangle(cornerRadius: 14).stroke(.white.opacity(0.12), lineWidth: 0.7))
+                        .background(.white.opacity(0.72), in: RoundedRectangle(cornerRadius: 14))
+                        .overlay(RoundedRectangle(cornerRadius: 14).strokeBorder(Color(red: 0.37, green: 0.19, blue: 0.52).opacity(0.12), lineWidth: 0.7))
                     }
                 }
                 Spacer(minLength: 0)
-                Text(labels.verified).font(.system(size: 7, weight: .semibold)).foregroundStyle(.white.opacity(0.58)).fixedSize(horizontal: false, vertical: true)
+                Text(labels.verified)
+                    .font(.system(size: 7, weight: .semibold))
+                    .foregroundStyle(Color(red: 0.35, green: 0.30, blue: 0.40))
+                    .fixedSize(horizontal: false, vertical: true)
             }
-            .padding(26)
+            .padding(30)
         }
-        .clipShape(RoundedRectangle(cornerRadius: 32, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 32, style: .continuous).stroke(.white.opacity(0.18), lineWidth: 1))
+        .padding(6)
+        .background(Color(red: 0.998, green: 0.992, blue: 0.972))
+        .overlay(
+            RoundedRectangle(cornerRadius: 32, style: .continuous)
+                .strokeBorder(Color(red: 0.37, green: 0.19, blue: 0.52).opacity(0.20), lineWidth: 1)
+                .padding(6)
+        )
     }
 
     private func posterDuration(_ minutes: Int) -> String {
@@ -413,7 +464,7 @@ private enum WorkoutInsightsPoster {
         labels: WorkoutInsightsPosterLabels
     ) throws -> URL {
         let artwork = WorkoutInsightsArtwork(summary: summary, athleteName: athleteName, rangeLabel: rangeLabel, accent: accent, labels: labels)
-            .frame(width: 360, height: 450)
+            .frame(width: 360, height: 500)
         let renderer = ImageRenderer(content: artwork)
         renderer.scale = 3
         guard let data = renderer.uiImage?.pngData() else { throw CocoaError(.fileWriteUnknown) }

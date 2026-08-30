@@ -37,6 +37,7 @@ interface DaySpec {
   name: string
   type: DayType
   minutes: number
+  slot?: 'morning' | 'official' | 't25'
   warmup: string
   full: ExerciseSpec[]
   lite: ExerciseSpec[]
@@ -70,7 +71,7 @@ function today(): string {
   return new Date().toISOString().slice(0, 10)
 }
 
-const JUNE_DAYS: DaySpec[] = [
+export const LEGACY_JUNE_DAYS: DaySpec[] = [
   {
     weekday: 1, name: 'Glutes A · Partner strength', type: 'legs_a', minutes: 58,
     warmup: '8 bodyweight split squats per side, 10 slow hinges and 10 ankle rocks per side',
@@ -175,6 +176,138 @@ const JUNE_DAYS: DaySpec[] = [
     warmup: '',
     full: [],
     lite: [],
+  },
+]
+
+function juneMorning(
+  weekday: number,
+  hipThrustSets: number,
+  abductionSets = 0,
+): DaySpec {
+  const full: ExerciseSpec[] = [
+    { name: 'Weighted Dumbbell Hip Thrust', sets: hipThrustSets, reps: [6, 12], rest: 105, pause: 2, increment: 2, note: 'Separate morning glute exposure.' },
+    ...(abductionSets > 0
+      ? [{ name: 'Band Abduction', sets: abductionSets, reps: [15, 25] as [number, number], rest: 45, note: 'Separate morning glute exposure.' }]
+      : []),
+  ]
+  return {
+    weekday,
+    name: 'AM · Hip thrust',
+    type: 'legs_a',
+    minutes: 18,
+    slot: 'morning',
+    warmup: 'Short morning glute primer. Keep the pelvis controlled and finish with clean reps in reserve.',
+    full,
+    lite: full.map((exercise) => ({ ...exercise, sets: Math.min(2, exercise.sets) })),
+  }
+}
+
+function juneFocusT25(weekday: number, name: string): DaySpec {
+  const confirmation: ExerciseSpec = {
+    name: `Focus T25 · ${name}`,
+    sets: 1,
+    reps: [25, 25],
+    unit: 'minutes',
+    rest: 0,
+    note: 'Separate Focus T25 follow-along card. Deload weeks retain Tuesday Core and Thursday Stretch only.',
+  }
+  return {
+    weekday,
+    name: `Focus T25 · ${name}`,
+    type: 't25',
+    minutes: 25,
+    slot: 't25',
+    warmup: 'Open the matching Focus T25 episode and complete it as its own session.',
+    full: [confirmation],
+    lite: [confirmation],
+  }
+}
+
+const JUNE_V84_DAYS: DaySpec[] = [
+  {
+    weekday: 1, name: 'Glutes A · Strength', type: 'legs_a', minutes: 58, slot: 'official',
+    warmup: 'Glute bridges, bodyweight split squats, slow hinges and ankle rocks.',
+    full: [
+      { name: 'Dumbbell Hip Thrust', sets: 4, reps: [6, 10], rest: 120, pause: 2, increment: 2 },
+      { name: 'Bulgarian Split Squat', sets: 3, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'Dumbbell Romanian Deadlift', sets: 3, reps: [8, 12], rest: 120, increment: 2 },
+      { name: 'Band Abduction', sets: 2, reps: [15, 25], rest: 60 },
+    ],
+    lite: [
+      { name: 'Dumbbell Hip Thrust', sets: 2, reps: [6, 10], rest: 120, pause: 2, increment: 2 },
+      { name: 'Bulgarian Split Squat', sets: 2, reps: [8, 12], perSide: true, rest: 120, increment: 2 },
+      { name: 'Dumbbell Romanian Deadlift', sets: 2, reps: [8, 12], rest: 120, increment: 2 },
+    ],
+  },
+  juneMorning(2, 5),
+  {
+    weekday: 2, name: 'Push A · Strength', type: 'push', minutes: 30, slot: 'official',
+    warmup: 'Scapular push-ups, wrist circles and one easy push-up set.',
+    full: [
+      { name: 'Strict Push-Up', sets: 3, reps: [10, 15], rest: 90 },
+      { name: 'Diamond or Close-Grip Push-Up', sets: 2, reps: [8, 15], rest: 90 },
+    ],
+    lite: [
+      { name: 'Strict Push-Up', sets: 2, reps: [10, 15], rest: 90 },
+      { name: 'Diamond or Close-Grip Push-Up', sets: 1, reps: [8, 15], rest: 90 },
+    ],
+  },
+  juneFocusT25(2, 'Core'),
+  juneMorning(3, 3, 2),
+  {
+    weekday: 3, name: 'Pull A · Strength', type: 'pull', minutes: 42, slot: 'official',
+    warmup: 'Scapular pull-ups, band rows and one easy assisted pull-up set.',
+    full: [
+      { name: 'Band-Assisted Pull-Up', sets: 3, reps: [4, 8], rest: 120 },
+      { name: 'Chest-Supported Dumbbell Row', sets: 3, reps: [8, 12], rest: 90, increment: 2 },
+      { name: 'Band Face Pull', sets: 2, reps: [15, 20], rest: 60, pause: 2 },
+    ],
+    lite: [
+      { name: 'Band-Assisted Pull-Up', sets: 2, reps: [4, 8], rest: 120 },
+      { name: 'Chest-Supported Dumbbell Row', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
+    ],
+  },
+  juneFocusT25(3, 'Lower Focus and Speed'),
+  juneMorning(4, 5),
+  {
+    weekday: 4, name: 'Recovery · Posture and wrists', type: 'fix', minutes: 18, slot: 'official',
+    warmup: 'Easy breathing and pain-free range only.',
+    full: [{ name: 'Posture and Wrist Circuit', sets: 2, reps: [1, 1], unit: 'rounds', rest: 45, note: 'Two unhurried rounds.' }],
+    lite: [{ name: 'Posture and Wrist Circuit', sets: 1, reps: [1, 1], unit: 'rounds', rest: 45 }],
+  },
+  juneFocusT25(4, 'Stretch'),
+  {
+    weekday: 5, name: 'Glutes B · Strength', type: 'legs_b', minutes: 55, slot: 'official',
+    warmup: 'Reverse lunges, hip bridges and controlled single-leg hinges.',
+    full: [
+      { name: 'Reverse Lunge', sets: 3, reps: [8, 12], perSide: true, rest: 105, increment: 2 },
+      { name: 'B-Stance or Single-Leg Hip Thrust', sets: 3, reps: [8, 12], perSide: true, rest: 105, pause: 2, increment: 2 },
+      { name: 'Sliding Leg Curl', sets: 3, reps: [10, 15], rest: 90, down: 3 },
+      { name: 'Frog Pump', sets: 1, reps: [25, 35], rest: 60 },
+    ],
+    lite: [
+      { name: 'Reverse Lunge', sets: 2, reps: [8, 12], perSide: true, rest: 105, increment: 2 },
+      { name: 'B-Stance or Single-Leg Hip Thrust', sets: 2, reps: [8, 12], perSide: true, rest: 105, pause: 2, increment: 2 },
+      { name: 'Sliding Leg Curl', sets: 2, reps: [10, 15], rest: 90, down: 3 },
+    ],
+  },
+  juneMorning(6, 3, 2),
+  {
+    weekday: 6, name: 'Push B · Strength', type: 'push', minutes: 38, slot: 'official',
+    warmup: 'Scapular push-ups, wrist circles and one easy press set.',
+    full: [
+      { name: 'Weighted or Feet-Elevated Push-Up', sets: 3, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Dumbbell Overhead Press', sets: 2, reps: [8, 12], rest: 90, increment: 2 },
+      { name: 'Band Row', sets: 2, reps: [12, 15], rest: 60 },
+    ],
+    lite: [
+      { name: 'Weighted or Feet-Elevated Push-Up', sets: 2, reps: [6, 10], rest: 120, increment: 2 },
+      { name: 'Band Row', sets: 2, reps: [12, 15], rest: 60 },
+    ],
+  },
+  {
+    weekday: 7, name: 'Rest · Full recovery', type: 'mobility', minutes: 0, slot: 'official',
+    warmup: 'Full rest. A gentle walk is optional.', full: [], lite: [],
   },
 ]
 
@@ -441,7 +574,7 @@ function profileFor(userId: string, persona: FriendPersona): Profile {
 function settingsFor(userId: string, persona: FriendPersona): Settings {
   return {
     user_id: userId, voice_on: true, ticks_on: true, notifications_on: false,
-    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: persona === 'june' ? { version: 81, start_date: today() } : undefined, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false, recovery_data_source: 'apple', recovery_history: [], watch_activity_history: [], ...(persona === 'june' ? { meal_blocks: { blocks: [{ id: 'breakfast' as const, kind: 'breakfast' as const, time: '07:00', enabled: true }, { id: 'lunch' as const, kind: 'lunch' as const, time: '13:00', enabled: true }, { id: 'dinner' as const, kind: 'dinner' as const, time: '19:15', enabled: true }, { id: 'snack' as const, kind: 'snack' as const, time: '15:30', enabled: true }, { id: 'post_workout' as const, kind: 'post_workout' as const, time: '21:00', enabled: true }], custom_blocks: [], preset_assignments: {} } } : {}) },
+    guardian_factor: 1.4, addons: { endurance1: false, endurance2: false, endurance3: false, uiMode: 'simple', newbie_mode: false, training_induction: null, training_protocol: persona === 'june' ? { version: 84, start_date: today() } : undefined, comparison_export_mode: 'detailed', weight_unit: 'kg', simple_show_orbit: true, simple_show_body_index: true, simple_show_guided_plan: true, simple_show_hydration_reminder: false, simple_show_manual_workout: false, simple_show_next_action: false, adhd_mode: false, recovery_data_source: 'apple', recovery_history: [], watch_activity_history: [], ...(persona === 'june' ? { meal_blocks: { blocks: [{ id: 'breakfast' as const, kind: 'breakfast' as const, time: '07:00', enabled: true }, { id: 'lunch' as const, kind: 'lunch' as const, time: '13:00', enabled: true }, { id: 'dinner' as const, kind: 'dinner' as const, time: '19:15', enabled: true }, { id: 'snack' as const, kind: 'snack' as const, time: '15:30', enabled: true }, { id: 'post_workout' as const, kind: 'post_workout' as const, time: '21:00', enabled: true }], custom_blocks: [], preset_assignments: {} } } : {}) },
   }
 }
 
@@ -501,7 +634,8 @@ function supplementsFor(userId: string, persona: FriendPersona): Supplement[] {
 }
 
 function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'programs' | 'program_days' | 'exercises'> {
-  const days = persona === 'june' ? JUNE_DAYS : persona === 'iulian' ? IULIAN_DAYS : MATTHEW_DAYS
+  const legacyDays = persona === 'june' ? LEGACY_JUNE_DAYS : persona === 'iulian' ? IULIAN_DAYS : MATTHEW_DAYS
+  const mainDays = persona === 'june' ? JUNE_V84_DAYS : legacyDays
   const programs: Program[] = [
     {
       id: uuidFor(userId, 'program:transition'), user_id: userId, slug: 'transition',
@@ -524,13 +658,16 @@ function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'p
   const exercises: Exercise[] = []
 
   for (const program of programs) {
+    const days = program.slug === 'main' ? mainDays : legacyDays
     for (const day of days) {
-      const dayId = uuidFor(userId, `day:${program.slug}:${day.weekday}`)
+      const dayIdentity = day.slot && day.slot !== 'official' ? `${day.weekday}:${day.slot}` : `${day.weekday}`
+      const dayId = uuidFor(userId, `day:${program.slug}:${dayIdentity}`)
       program_days.push({
         id: dayId, user_id: userId, program_id: program.id, weekday: day.weekday,
         name: day.name, day_type: day.type,
         est_minutes: program.slug === 'transition' ? Math.max(12, Math.round(day.minutes * 0.65)) : day.minutes,
-        warmup_note: day.warmup, sort_order: day.weekday - 1,
+        warmup_note: day.warmup,
+        sort_order: day.weekday * 10 + (day.slot === 'morning' ? 0 : day.slot === 't25' ? 2 : 1),
       })
       const fullSpecs = program.slug === 'transition' ? day.lite : day.full
       const liteSpecs = program.slug === 'transition' ? day.lite.slice(0, Math.max(1, day.lite.length - 1)) : day.lite
@@ -540,7 +677,7 @@ function buildPrograms(userId: string, persona: FriendPersona): Pick<AppData, 'p
           const repRange: readonly [number, number] =
             typeof spec.reps === 'string' ? [0, 0] : spec.reps
           exercises.push({
-            id: uuidFor(userId, `exercise:${program.slug}:${day.weekday}:${isLite ? 'lite' : 'full'}:${index}`),
+            id: uuidFor(userId, `exercise:${program.slug}:${dayIdentity}:${isLite ? 'lite' : 'full'}:${index}`),
             user_id: userId, program_day_id: dayId, name: spec.name, sets: spec.sets,
             rep_min: repRange[0], rep_max: repRange[1],
             rep_unit: spec.unit ?? (isMax ? 'max' : 'reps'), per_side: spec.perSide ?? false,

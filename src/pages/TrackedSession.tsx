@@ -29,6 +29,7 @@ export function TrackedSession() {
   const { slug, date } = useParams()
   const [params] = useSearchParams()
   const lite = params.get('lite') === '1'
+  const programDayId = params.get('day') ?? undefined
   const navigate = useNavigate()
   const { language } = useLanguage()
   const t = (value: string): string => translateInterfaceText(value, language)
@@ -36,8 +37,8 @@ export function TrackedSession() {
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
 
   const plan = useMemo(
-    () => planForDate(data, slug as ProgramSlug, date ?? '', lite),
-    [data, slug, date, lite],
+    () => planForDate(data, slug as ProgramSlug, date ?? '', lite, programDayId),
+    [data, slug, date, lite, programDayId],
   )
 
   /* Last session's numbers are the only sensible starting point: nobody wants

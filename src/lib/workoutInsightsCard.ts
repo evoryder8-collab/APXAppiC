@@ -45,65 +45,115 @@ function durationLabel(minutes: number, locale: string): string {
   return `${metricValue(hours, locale)} h ${metricValue(remainder, locale)} min`
 }
 
+const CARD_WIDTH = 1200
+const CARD_HEIGHT = 1500
+const SAFE_INSET = 72
+const roundedFont = 'ui-rounded, -apple-system, BlinkMacSystemFont, sans-serif'
+const monoFont = 'ui-monospace, SFMono-Regular, Menlo, monospace'
+
+function fitText(
+  context: CanvasRenderingContext2D,
+  text: string,
+  maxWidth: number,
+  weight: number,
+  preferredSize: number,
+  minimumSize: number,
+  family = roundedFont,
+): number {
+  let size = preferredSize
+  do {
+    context.font = `${weight} ${size}px ${family}`
+    if (context.measureText(text).width <= maxWidth || size <= minimumSize) return size
+    size -= 1
+  } while (size >= minimumSize)
+  return minimumSize
+}
+
+function wrapText(context: CanvasRenderingContext2D, text: string, maxWidth: number): string[] {
+  const words = text.trim().split(/\s+/u)
+  const tokens = words.flatMap((word) => {
+    if (context.measureText(word).width <= maxWidth) return [word]
+    return Array.from(word)
+  })
+  const lines: string[] = []
+  let line = ''
+  for (const token of tokens) {
+    const separator = line && token.length > 1 ? ' ' : ''
+    const candidate = `${line}${separator}${token}`
+    if (line && context.measureText(candidate).width > maxWidth) {
+      lines.push(line)
+      line = token
+    } else {
+      line = candidate
+    }
+  }
+  if (line) lines.push(line)
+  return lines
+}
+
 export function workoutInsightsCardBlob(
   summary: WorkoutInsightSummary,
   options: WorkoutInsightsCardOptions,
 ): Promise<Blob> {
   const canvas = document.createElement('canvas')
-  canvas.width = 1200
-  canvas.height = 1500
+  canvas.width = CARD_WIDTH
+  canvas.height = CARD_HEIGHT
   const context = canvas.getContext('2d')
   if (!context) return Promise.reject(new Error('Canvas is unavailable.'))
 
-  const backdrop = context.createLinearGradient(0, 0, 1200, 1500)
-  backdrop.addColorStop(0, '#07111f')
-  backdrop.addColorStop(0.48, '#111827')
-  backdrop.addColorStop(1, '#04070d')
+  const backdrop = context.createLinearGradient(0, 0, CARD_WIDTH, CARD_HEIGHT)
+  backdrop.addColorStop(0, '#fffdf8')
+  backdrop.addColorStop(0.46, '#fff8df')
+  backdrop.addColorStop(1, '#f7efff')
   context.fillStyle = backdrop
-  context.fillRect(0, 0, 1200, 1500)
+  context.fillRect(0, 0, CARD_WIDTH, CARD_HEIGHT)
 
-  const aurora = context.createRadialGradient(960, 170, 10, 960, 170, 620)
-  aurora.addColorStop(0, `${options.accent.soft}aa`)
-  aurora.addColorStop(0.38, `${options.accent.bright}42`)
+  const aurora = context.createRadialGradient(1010, 160, 20, 1010, 160, 650)
+  aurora.addColorStop(0, 'rgba(177, 112, 255, .42)')
+  aurora.addColorStop(0.42, 'rgba(255, 220, 70, .30)')
   aurora.addColorStop(1, 'rgba(0,0,0,0)')
   context.fillStyle = aurora
-  context.fillRect(0, 0, 1200, 900)
+  context.fillRect(0, 0, CARD_WIDTH, 900)
 
-  context.save()
-  roundedRect(context, 54, 54, 1092, 1392, 72)
-  context.clip()
-  context.strokeStyle = 'rgba(255,255,255,.20)'
-  context.lineWidth = 3
+  const sunshine = context.createRadialGradient(90, 1300, 10, 90, 1300, 520)
+  sunshine.addColorStop(0, 'rgba(255, 214, 40, .36)')
+  sunshine.addColorStop(1, 'rgba(255,255,255,0)')
+  context.fillStyle = sunshine
+  context.fillRect(0, 850, 700, 650)
+
+  roundedRect(context, SAFE_INSET, SAFE_INSET, CARD_WIDTH - SAFE_INSET * 2, CARD_HEIGHT - SAFE_INSET * 2, 64)
+  context.strokeStyle = 'rgba(84, 45, 132, .18)'
+  context.lineWidth = 4
   context.stroke()
-  context.restore()
 
-  context.fillStyle = options.accent.soft
-  context.font = '700 28px ui-monospace, SFMono-Regular, Menlo, monospace'
+  context.fillStyle = '#7c3aed'
+  context.font = `800 28px ${monoFont}`
   context.letterSpacing = '8px'
-  context.fillText('APEX', 108, 145)
+  context.fillText('APEX', 120, 154)
   context.letterSpacing = '0px'
-  context.fillStyle = '#f8fafc'
-  context.font = '800 72px ui-rounded, -apple-system, BlinkMacSystemFont, sans-serif'
-  context.fillText(options.labels.title, 108, 245)
-  context.fillStyle = 'rgba(226,232,240,.76)'
-  context.font = '600 31px -apple-system, BlinkMacSystemFont, sans-serif'
-  context.fillText(options.athleteName, 108, 305)
-  context.font = '600 27px ui-monospace, SFMono-Regular, Menlo, monospace'
-  context.fillText(options.rangeLabel, 108, 355)
+  context.fillStyle = '#24133d'
+  fitText(context, options.labels.title, 650, 900, 72, 42)
+  context.fillText(options.labels.title, 120, 252)
+  context.fillStyle = '#5f526d'
+  fitText(context, options.athleteName, 650, 700, 32, 21)
+  context.fillText(options.athleteName, 120, 315)
+  fitText(context, options.rangeLabel, 650, 700, 27, 18, monoFont)
+  context.fillText(options.rangeLabel, 120, 365)
 
   if (summary.anniversaryYears) {
-    const crest = context.createLinearGradient(830, 96, 1080, 300)
-    crest.addColorStop(0, options.accent.soft)
-    crest.addColorStop(1, options.accent.bright)
+    const crest = context.createLinearGradient(840, 104, 1080, 286)
+    crest.addColorStop(0, '#ffe55c')
+    crest.addColorStop(1, '#bf7cff')
     context.fillStyle = crest
-    roundedRect(context, 820, 102, 258, 156, 42)
+    roundedRect(context, 824, 104, 264, 168, 44)
     context.fill()
-    context.fillStyle = '#06101b'
+    context.fillStyle = '#2c1648'
     context.textAlign = 'center'
-    context.font = '900 48px ui-rounded, -apple-system, BlinkMacSystemFont, sans-serif'
-    context.fillText(`${summary.anniversaryYears} ${summary.anniversaryYears === 1 ? 'YEAR' : 'YEARS'}`, 949, 171)
-    context.font = '800 21px ui-monospace, SFMono-Regular, Menlo, monospace'
-    context.fillText(options.labels.anniversary.toUpperCase(), 949, 215)
+    const years = `${summary.anniversaryYears} ${summary.anniversaryYears === 1 ? 'YEAR' : 'YEARS'}`
+    fitText(context, years, 224, 900, 46, 26)
+    context.fillText(years, 956, 176)
+    fitText(context, options.labels.anniversary.toUpperCase(), 224, 800, 20, 13, monoFont)
+    context.fillText(options.labels.anniversary.toUpperCase(), 956, 225)
     context.textAlign = 'left'
   }
 
@@ -121,28 +171,33 @@ export function workoutInsightsCardBlob(
   metrics.forEach(([label, value], index) => {
     const column = index % 2
     const row = Math.floor(index / 2)
-    const x = 108 + column * 504
+    const x = 120 + column * 504
     const y = 430 + row * 218
-    context.fillStyle = 'rgba(255,255,255,.075)'
+    const tileGradient = context.createLinearGradient(x, y, x + 456, y + 174)
+    tileGradient.addColorStop(0, index % 3 === 0 ? 'rgba(255, 225, 80, .45)' : 'rgba(255,255,255,.80)')
+    tileGradient.addColorStop(1, index % 3 === 1 ? 'rgba(193, 132, 255, .30)' : 'rgba(255,255,255,.58)')
+    context.fillStyle = tileGradient
     roundedRect(context, x, y, 456, 174, 38)
     context.fill()
-    context.strokeStyle = 'rgba(255,255,255,.12)'
+    context.strokeStyle = 'rgba(88, 45, 132, .13)'
     context.lineWidth = 2
     context.stroke()
-    context.fillStyle = 'rgba(203,213,225,.72)'
-    context.font = '700 22px ui-monospace, SFMono-Regular, Menlo, monospace'
-    context.fillText(label.toUpperCase(), x + 34, y + 48)
-    context.fillStyle = index < 3 ? options.accent.soft : '#f8fafc'
-    context.font = '800 44px ui-rounded, -apple-system, BlinkMacSystemFont, sans-serif'
+    context.fillStyle = '#665876'
+    fitText(context, label.toUpperCase(), 388, 800, 22, 14, monoFont)
+    const labelLines = wrapText(context, label.toUpperCase(), 388)
+    labelLines.forEach((line, lineIndex) => context.fillText(line, x + 34, y + 43 + lineIndex * 24))
+    context.fillStyle = index < 3 ? '#7c3aed' : '#28163f'
+    fitText(context, value, 388, 900, 44, 25)
     context.fillText(value, x + 34, y + 116)
   })
 
-  context.fillStyle = 'rgba(148,163,184,.72)'
-  context.font = '600 23px -apple-system, BlinkMacSystemFont, sans-serif'
-  context.fillText(options.labels.verified, 108, 1370)
-  context.fillStyle = options.accent.soft
+  context.fillStyle = '#74677f'
+  fitText(context, options.labels.verified, 900, 650, 23, 16)
+  const footerLines = wrapText(context, options.labels.verified, 900)
+  footerLines.forEach((line, index) => context.fillText(line, 120, 1360 + index * 30))
+  context.fillStyle = '#f5c518'
   context.beginPath()
-  context.arc(1065, 1362, 12, 0, Math.PI * 2)
+  context.arc(1060, 1352, 12, 0, Math.PI * 2)
   context.fill()
 
   return new Promise((resolve, reject) => {

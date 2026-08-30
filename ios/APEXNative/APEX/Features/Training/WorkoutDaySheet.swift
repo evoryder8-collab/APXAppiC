@@ -18,11 +18,31 @@ struct WorkoutDaySheet: View {
     let accent: Color
 
     @State private var lite = false
+    @State private var selectedProgramDayID: UUID?
     @State private var showGuidedPlayer = false
     @State private var showTrackedWorkout = false
 
+    init(date: String, slug: String, accent: Color, initialProgramDayID: UUID? = nil) {
+        self.date = date
+        self.slug = slug
+        self.accent = accent
+        _selectedProgramDayID = State(initialValue: initialProgramDayID)
+    }
+
+    private var plans: [PlannedDay] {
+        TrainingPlanEngine.programDays(session.data, slug: slug, date: date, lite: lite)
+    }
+
     private var plan: PlannedDay {
-        TrainingPlanEngine.plan(session.data, slug: slug, date: date, lite: lite)
+        plans.first { $0.programDay?.id == selectedProgramDayID }
+            ?? plans.first
+            ?? TrainingPlanEngine.plan(
+                session.data,
+                slug: slug,
+                date: date,
+                lite: lite,
+                programDayID: selectedProgramDayID
+            )
     }
 
     private var calendarDay: TrainingCalendarDay {
@@ -43,8 +63,11 @@ struct WorkoutDaySheet: View {
     }
 
     private var recordedSession: WorkoutSession? {
-        guard let sessionID = calendarDay.sessionID else { return nil }
-        return session.data.workoutSessions.first { $0.id == sessionID }
+        guard let dayID = plan.programDay?.id else { return nil }
+        return session.data.workoutSessions
+            .filter { $0.date == date && $0.completed && $0.programDayID == dayID }
+            .sorted { ($0.completedAt ?? $0.startedAt ?? "") > ($1.completedAt ?? $1.startedAt ?? "") }
+            .first
     }
 
     private var logs: [WorkoutLog] {
@@ -87,12 +110,16 @@ struct WorkoutDaySheet: View {
                 VStack(alignment: .leading, spacing: 16) {
                     header
 
-                    if calendarDay.state == .noPrescription {
+                    if plans.count > 1 {
+                        sessionSelector
+                    }
+
+                    if plan.programDay == nil {
                         emptyState(
                             symbolName: "calendar.badge.exclamationmark",
                             description: "No programme was authored for this date."
                         )
-                    } else if calendarDay.state == .rest {
+                    } else if plan.exercises.isEmpty && recordedSession == nil {
                         emptyState(
                             symbolName: "moon.zzz.fill",
                             description: "Recovery is the prescription for this date."
@@ -208,7 +235,7 @@ struct WorkoutDaySheet: View {
                 .tracking(1.5)
                 .foregroundStyle(APEXColor.secondaryInk)
             Text(language.text(
-                plan.isRecoveryMicro ? "Recovery micro-session" : calendarDay.title
+                plan.isRecoveryMicro ? "Recovery micro-session" : (plan.programDay?.name ?? calendarDay.title)
             ))
             .font(APEXFont.display(26))
             Label(language.text(calendarDay.accessibilityStatus), systemImage: calendarDay.state.symbolName)
@@ -221,6 +248,44 @@ struct WorkoutDaySheet: View {
             }
         }
         .frame(maxWidth: .infinity, alignment: .leading)
+    }
+
+    private var sessionSelector: some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(language.text("Sessions planned for this day").uppercased(with: language.language.locale))
+                .font(APEXFont.mono(9, weight: .black))
+                .tracking(1.2)
+                .foregroundStyle(APEXColor.secondaryInk)
+            ForEach(Array(plans.enumerated()), id: \.offset) { _, candidate in
+                let active = candidate.programDay?.id == plan.programDay?.id
+                Button {
+                    selectedProgramDayID = candidate.programDay?.id
+                } label: {
+                    HStack(spacing: 12) {
+                        VStack(alignment: .leading, spacing: 2) {
+                            Text(language.text(candidate.programDay?.name ?? "Rest"))
+                                .font(APEXFont.body(14, weight: .black))
+                                .foregroundStyle(APEXColor.ink)
+                                .multilineTextAlignment(.leading)
+                            Text(language.format(
+                                "~%d min · %d exercises",
+                                candidate.programDay?.estimatedMinutes ?? 0,
+                                candidate.exercises.count
+                            ))
+                            .font(APEXFont.body(10, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                        }
+                        Spacer(minLength: 8)
+                        Image(systemName: active ? "checkmark.circle.fill" : "circle")
+                            .foregroundStyle(active ? accent : APEXColor.secondaryInk.opacity(0.45))
+                    }
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .padding(13)
+                    .background(.white.opacity(active ? 0.82 : 0.48), in: RoundedRectangle(cornerRadius: 18))
+                }
+                .buttonStyle(.plain)
+            }
+        }
     }
 
     private var badgeStack: some View {

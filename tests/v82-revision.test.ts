@@ -1,7 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
 import { buildSeedData } from '../src/data/seed.ts'
-import { planForDate } from '../src/lib/plan.ts'
+import { planForDate, programDaysForDate } from '../src/lib/plan.ts'
 import { isProtocolPushupTestWeek } from '../src/lib/focusT25.ts'
 
 /*
@@ -41,8 +41,7 @@ test('a normal Tuesday is bodyweight rep capacity, not weighted volume', () => {
   const strict = tuesday.exercises.find((exercise) => exercise.name === 'Strict Bodyweight Push-Up')!
   assert.equal(strict.planned_sets, 4)
   assert.equal(strict.rest_sec, 90)
-  assert.match(strict.notes, /2 clean reps available/)
-  assert.match(strict.notes, /one total repetition/)
+  assert.match(strict.notes, /strict form ends/i)
 
   /* Diamonds stay on normal Tuesdays */
   assert.ok(names.some((name) => name.startsWith('Diamond')))
@@ -66,14 +65,13 @@ test('a benchmark Tuesday replaces the work sets with the test protocol', () => 
   assert.ok(!names.some((name) => name.startsWith('Diamond')), 'the PDF says skip diamonds on testing Tuesdays')
 })
 
-test('Saturday keeps the weighted work and gains a third pike set', () => {
+test('V8.5 Saturday keeps five weighted sets and five lateral-raise sets', () => {
   const saturday = planForDate(data, 'main', '2026-08-08', false)
   const weighted = saturday.exercises.find((exercise) => exercise.name === 'Weighted Push-Up')!
-  assert.equal(weighted.planned_sets, 4)
-  assert.match(weighted.notes, /1-2 kg only after 10, 10, 10/)
+  assert.equal(weighted.planned_sets, 5)
 
-  const pike = saturday.exercises.find((exercise) => exercise.name === 'Pike Push-Up')!
-  assert.equal(pike.planned_sets, 3, 'V8.2 raises pike volume from two sets to three')
+  const lateral = saturday.exercises.find((exercise) => exercise.name === 'Dumbbell Lateral Raise')!
+  assert.equal(lateral.planned_sets, 5)
 })
 
 test('Saturday stays protected from Focus T25', () => {
@@ -97,17 +95,15 @@ test('bespoke plan badge reflects the account protocol version', () => {
   assert.ok(planForDate(withVersion(80), 'main', '2026-08-04', false).badges.includes('V8 · week 2'))
 })
 
-test('V8.3 Friday Focus T25 guidance works for the full prescription', () => {
+test('V8.5 Friday Focus T25 guidance is an independent full prescription', () => {
   const main = data.programs.find((program) => program.slug === 'main')!
-  const friday = data.program_days.find((day) => day.program_id === main.id && day.weekday === 5)!
-  const lightFocus = data.exercises.find((exercise) =>
-    exercise.program_day_id === friday.id && exercise.name === 'Focus T25 · Friday conditioning',
-  )!
+  const friday = data.program_days.find((day) => day.program_id === main.id && day.weekday === 5 && day.name.startsWith('Focus T25'))!
+  const lightFocus = data.exercises.find((exercise) => exercise.program_day_id === friday.id && exercise.is_lite)!
   const v83 = {
     ...data,
     exercises: [
       ...data.exercises.filter((exercise) => exercise.id !== lightFocus.id),
-      { ...lightFocus, id: '83000000-0000-4000-8000-000000000001', is_lite: false, sort_order: 4 },
+      { ...lightFocus, id: '83000000-0000-4000-8000-000000000001', is_lite: false, sort_order: 0 },
     ],
     settings: {
       ...data.settings!,
@@ -118,10 +114,10 @@ test('V8.3 Friday Focus T25 guidance works for the full prescription', () => {
     },
   }
 
-  const focus = planForDate(v83, 'main', '2026-08-07', false).exercises.find((exercise) =>
+  const focus = programDaysForDate(v83, 'main', '2026-08-07').find((candidate) => candidate.programDay?.id === friday.id)?.exercises.find((exercise) =>
     exercise.name.startsWith('Focus T25'),
   )!
   assert.ok(focus)
   assert.doesNotMatch(focus.notes, /light option only/i)
-  assert.match(focus.notes, /strength first/i)
+  assert.match(focus.notes, /25 min/i)
 })

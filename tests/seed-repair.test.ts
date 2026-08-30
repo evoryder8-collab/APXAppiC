@@ -282,12 +282,14 @@ test('completed seed versions do not recreate intentionally removed definitions'
   assert.equal(repair.missing.supplements.length, 0)
 })
 
-test('V8.1 repair replaces the bespoke main plan while preserving historical day ids', () => {
+test('V8.5 repair replaces the bespoke main plan while preserving historical day ids', () => {
   const seeded = buildSeedData(userId, 'constantine')
   assert.ok(seeded.profile)
   const main = seeded.programs.find((row) => row.slug === 'main')
   assert.ok(main)
-  const tuesday = seeded.program_days.find((row) => row.program_id === main.id && row.weekday === 2)
+  const tuesday = seeded.program_days.find(
+    (row) => row.program_id === main.id && row.weekday === 2 && row.name === 'Push A · Strength',
+  )
   assert.ok(tuesday)
   const obsoleteExercise = {
     ...seeded.exercises.find((row) => row.program_day_id === tuesday.id)!,
@@ -330,24 +332,30 @@ test('V8.1 repair replaces the bespoke main plan while preserving historical day
   }
 
   const repair = repairSeedDefinitions(current, seeded)
-  const repairedTuesday = repair.data.program_days.find((row) => row.program_id === main.id && row.weekday === 2)
+  const repairedTuesday = repair.data.program_days.find(
+    (row) => row.program_id === main.id && row.weekday === 2 && row.name === 'Push A · Strength',
+  )
   assert.equal(repairedTuesday?.id, tuesday.id)
-  assert.equal(repairedTuesday?.name, 'Push A + Focus T25 Core')
+  assert.equal(repairedTuesday?.name, 'Push A · Strength')
   assert.equal(repair.data.workout_sessions[0].program_day_id, tuesday.id)
-  assert.ok(repair.data.exercises.some((row) => row.program_day_id === tuesday.id && row.rep_unit === 'check'))
+  assert.ok(repair.data.exercises.some(
+    (row) => row.program_day_id === tuesday.id && row.name === 'Strict Bodyweight Push-Up',
+  ))
   assert.ok(!repair.data.exercises.some((row) => row.name === 'Obsolete programme exercise'))
   assert.ok(repair.removed.exercises.includes(obsoleteExercise.id))
   assert.ok(repair.removed.exercises.length >= 1)
-  assert.equal(repair.data.settings?.addons.training_protocol?.version, 81)
-  assert.equal(repair.missing.program_days.length, 7)
+  assert.equal(repair.data.settings?.addons.training_protocol?.version, 85)
+  assert.ok(repair.missing.program_days.length >= 14)
 })
 
-test('V6 repairs existing V5 Full and Light rows without crossing strength history', () => {
+test('V8.5 repairs existing Full and Light rows without crossing strength history', () => {
   const seeded = buildSeedData(userId, 'constantine')
   assert.ok(seeded.profile)
   const main = seeded.programs.find((row) => row.slug === 'main')
   assert.ok(main)
-  const friday = seeded.program_days.find((row) => row.program_id === main.id && row.weekday === 5)
+  const friday = seeded.program_days.find(
+    (row) => row.program_id === main.id && row.weekday === 5 && row.name === 'Legs B · Strength',
+  )
   assert.ok(friday)
   const fridayRows = seeded.exercises.filter((row) => row.program_day_id === friday.id)
   const byName = (name: string, isLite: boolean) => {
@@ -356,8 +364,9 @@ test('V6 repairs existing V5 Full and Light rows without crossing strength histo
     return row
   }
   const oldFullFocus = {
-    ...byName('Focus T25 · Friday conditioning', true),
+    ...byName('Front Lunge', true),
     id: '61000000-0000-4000-8000-000000000001',
+    name: 'Focus T25 · Friday conditioning',
     is_lite: false,
     sort_order: 4,
   }
@@ -374,11 +383,10 @@ test('V6 repairs existing V5 Full and Light rows without crossing strength histo
     oldFullFront,
     byName('Reverse Lunge', false),
     byName('Single-Leg Romanian Deadlift', false),
-    byName('Calf Raise', false),
+    byName('Single-Leg Calf Raise', false),
     oldFullFocus,
     oldLightFront,
     byName('Single-Leg Romanian Deadlift', true),
-    byName('Focus T25 · Friday conditioning', true),
   ]
   const current = {
     ...seeded,
@@ -404,7 +412,9 @@ test('V6 repairs existing V5 Full and Light rows without crossing strength histo
   }
 
   const repair = repairSeedDefinitions(current, seeded)
-  const repairedFriday = repair.data.program_days.find((row) => row.program_id === main.id && row.weekday === 5)
+  const repairedFriday = repair.data.program_days.find(
+    (row) => row.program_id === main.id && row.weekday === 5 && row.name === 'Legs B · Strength',
+  )
   const repairedRows = repair.data.exercises.filter((row) => row.program_day_id === repairedFriday?.id)
 
   assert.equal(repair.needsRepair, true)
@@ -423,6 +433,6 @@ test('V6 repairs existing V5 Full and Light rows without crossing strength histo
     oldLightFront.id,
   )
   assert.ok(!repairedRows.some((row) => row.name.startsWith('Focus T25') && !row.is_lite))
-  assert.ok(repairedRows.some((row) => row.name === 'Reverse Lunge' && row.is_lite))
+  assert.ok(repairedRows.some((row) => row.name === 'Single-Leg Romanian Deadlift' && row.is_lite))
   assert.ok(repair.removed.exercises.includes(oldFullFocus.id))
 })

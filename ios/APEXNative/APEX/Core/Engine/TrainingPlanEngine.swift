@@ -253,7 +253,13 @@ enum TrainingPlanEngine {
 
     // MARK: - The plan
 
-    static func plan(_ data: DashboardData, slug: String, date: String, lite: Bool) -> PlannedDay {
+    static func plan(
+        _ data: DashboardData,
+        slug: String,
+        date: String,
+        lite: Bool,
+        programDayID: UUID? = nil
+    ) -> PlannedDay {
         let ownerID = data.profile?.userID ?? data.settings?.userID
         let program = data.programs
             .filter { $0.slug == slug && (ownerID == nil || $0.userID == ownerID) }
@@ -268,7 +274,7 @@ enum TrainingPlanEngine {
         let insideWindow = settingsBelongToUser
             ? isInsideInductionWindow(data, slug: slug, date: date)
             : true
-        let programDay: ProgramDay? = insideWindow
+        let candidateDays: [ProgramDay] = insideWindow
             ? TrainingInduction.activeProgramDays(in: data)
                 .filter {
                     $0.programID == program?.id
@@ -281,8 +287,12 @@ enum TrainingPlanEngine {
                         ? $0.id.uuidString < $1.id.uuidString
                         : $0.sortOrder < $1.sortOrder
                 }
-                .first
-            : nil
+            : []
+        let programDay: ProgramDay? = programDayID.flatMap { requestedID in
+            candidateDays.first { $0.id == requestedID }
+        } ?? candidateDays.first {
+            !$0.name.hasPrefix("AM ·") && !FocusT25.isFocusName($0.name)
+        } ?? candidateDays.first
 
         guard let program, let programDay else { return PlannedDay(programDay: programDay) }
 
@@ -330,7 +340,8 @@ enum TrainingPlanEngine {
         let protocolWeek = FocusT25.protocolWeek(start: protocolStart, date: date)
         let bespoke = slug == "main" && (persona == "constantine" || persona == "june")
         let scheduledDeload = bespoke && FocusT25.isDeloadWeek(protocolWeek)
-        let scheduledTest = bespoke && weekday == 2 && FocusT25.isPushupTestWeek(protocolWeek)
+        let isOfficialSession = !programDay.name.hasPrefix("AM ·") && !FocusT25.isFocusName(programDay.name)
+        let scheduledTest = bespoke && isOfficialSession && weekday == 2 && FocusT25.isPushupTestWeek(protocolWeek)
         var warmup = programDay.warmupNote
         var warmupDuration = (!warmup.isEmpty && warmup.range(of: "^no loaded warm-up", options: [.regularExpression, .caseInsensitive]) == nil) ? 180 : 0
 
@@ -447,10 +458,14 @@ enum TrainingPlanEngine {
                 badges.append("Full selected: complete prescribed sets. Choose Light for the opening-week ramp")
             }
 
-            if weekday == 1 || weekday == 5 {
+            if persona == "june" && scheduledDeload && weekday == 3 && FocusT25.isFocusName(programDay.name) {
+                exercises = []
+                badges.append("Deload: Wednesday Focus T25 is omitted; keep Tuesday Core and Thursday Stretch")
+            }
+            if isOfficialSession && (weekday == 1 || weekday == 5) {
                 badges.append("Partner-sync order: shared strength first, profile-specific finishers last")
             }
-            if weekday == 5 && persona == "constantine" {
+            if isOfficialSession && weekday == 5 && persona == "constantine" {
                 badges.append(lite
                     ? "Light pairs reduced leg work with controlled Speed 1.0"
                     : "Full ends after strength. Speed 1.0 is not an immediate finisher")
@@ -593,5 +608,35 @@ enum TrainingPlanEngine {
             legsBlocked: legsBlocked,
             layoffDeload: layoffDeload
         )
+    }
+
+    static func programDays(
+        _ data: DashboardData,
+        slug: String,
+        date: String,
+        lite: Bool
+    ) -> [PlannedDay] {
+        let ownerID = data.profile?.userID ?? data.settings?.userID
+        guard let program = data.programs
+            .filter({ $0.slug == slug && (ownerID == nil || $0.userID == ownerID) })
+            .sorted(by: { $0.id.uuidString < $1.id.uuidString })
+            .first
+        else { return [] }
+        guard isInsideInductionWindow(data, slug: slug, date: date) else { return [] }
+        let weekday = APEXDateMath.isoWeekday(date)
+        let activeDayIDs = activeInductionDayIDs(data, slug: slug)
+        return TrainingInduction.activeProgramDays(in: data)
+            .filter {
+                $0.programID == program.id
+                && $0.userID == program.userID
+                && $0.weekday == weekday
+                && (activeDayIDs == nil || activeDayIDs!.contains($0.id.uuidString.lowercased()) || activeDayIDs!.contains($0.id.uuidString))
+            }
+            .sorted {
+                $0.sortOrder == $1.sortOrder
+                    ? $0.id.uuidString < $1.id.uuidString
+                    : $0.sortOrder < $1.sortOrder
+            }
+            .map { plan(data, slug: slug, date: date, lite: lite, programDayID: $0.id) }
     }
 }

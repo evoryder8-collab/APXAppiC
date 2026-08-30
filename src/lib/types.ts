@@ -368,7 +368,7 @@ export interface Settings {
     /* Start of the current bespoke 12-week prescription. It is independent
        from the RPG baseline so a programme refresh never erases history. */
     training_protocol?: {
-      version: 81
+      version: number
       start_date: string
     }
     /* Controls only the shareable progress-photo PNG. Minimal keeps the two

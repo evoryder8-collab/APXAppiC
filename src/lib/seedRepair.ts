@@ -1,6 +1,6 @@
 import type { AppData } from './types'
 
-export const CURRENT_SEED_VERSION = 7
+export const CURRENT_SEED_VERSION = 8
 
 export type SeedDefinitionTable =
   | 'meals'
@@ -113,22 +113,31 @@ function upgradeBespokeMainProgramme(
   const seededProgram = seeded.programs.find((row) => row.slug === 'main')
   if (!currentProgram || !seededProgram || !current.profile) return null
 
+  const sessionKind = (name: string): 'morning' | 't25' | 'official' => {
+    if (name.startsWith('AM ·')) return 'morning'
+    if (name.toLocaleLowerCase('en').startsWith('focus t25')) return 't25'
+    return 'official'
+  }
+  const dayKey = (row: { weekday: number; name: string }) => `${row.weekday}|${sessionKind(row.name)}`
   const currentDays = current.program_days.filter((row) => row.program_id === currentProgram.id)
-  const currentDayByWeekday = new Map(currentDays.map((row) => [row.weekday, row]))
+  const currentDayByKey = new Map(currentDays.map((row) => [dayKey(row), row]))
   const seededDays = seeded.program_days.filter((row) => row.program_id === seededProgram.id)
+  const seededDayByKey = new Map(seededDays.map((row) => [dayKey(row), row]))
   const mappedDays = seededDays.map((row) => {
-    const existing = currentDayByWeekday.get(row.weekday)
+    const kind = sessionKind(row.name)
+    const existing = currentDayByKey.get(dayKey(row))
     return {
       ...row,
-      id: existing?.id ?? stableUpgradeId(currentProgram.user_id, `main-day:${row.weekday}`),
+      id: existing?.id ?? stableUpgradeId(currentProgram.user_id, `main-day:${row.weekday}:${kind}`),
       program_id: currentProgram.id,
     }
   })
 
   const mappedExercises = mappedDays.flatMap((mappedDay) => {
-    const seededDay = seededDays.find((row) => row.weekday === mappedDay.weekday)
+    const kind = sessionKind(mappedDay.name)
+    const seededDay = seededDayByKey.get(dayKey(mappedDay))
     if (!seededDay) return []
-    const existingDay = currentDayByWeekday.get(mappedDay.weekday)
+    const existingDay = currentDayByKey.get(dayKey(mappedDay))
     const currentRows = existingDay
       ? current.exercises.filter((row) => row.program_day_id === existingDay.id)
       : []
@@ -143,7 +152,7 @@ function upgradeBespokeMainProgramme(
         const existing = currentByIdentity.get(`${row.is_lite}|${row.name.toLocaleLowerCase('en')}`)
         return {
           ...row,
-          id: existing?.id ?? stableUpgradeId(currentProgram.user_id, `main-exercise:${mappedDay.weekday}:${slot}`),
+          id: existing?.id ?? stableUpgradeId(currentProgram.user_id, `main-exercise:${mappedDay.weekday}:${kind}:${slot}`),
           program_day_id: mappedDay.id,
         }
       })
@@ -322,13 +331,13 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
         exercises: replaceRowsBySeedId(current.exercises, seeded.exercises),
       }
     : current
-  /* Version 7 carries the V8.2 revision of Constantin's main plan: Tuesday
-     becomes bodyweight rep capacity and Saturday's pike volume rises. The
-     mapper keeps ids wherever a movement still matches by name, so logged
-     history stays attached to the movement it belongs to. */
+  /* Version 8 installs June V8.4 and Constantine V8.5. Morning, official and
+     Focus T25 work become distinct follow-along sessions. The mapper preserves
+     the existing official day ids and movement ids whenever identity still
+     matches, while assigning stable ids to the new cards. */
   const upgradesV81Programme =
-    ((current.profile?.persona === 'constantine' && currentVersion < 7) ||
-     (current.profile?.persona === 'june' && currentVersion < 6))
+    ((current.profile?.persona === 'constantine' && currentVersion < 8) ||
+     (current.profile?.persona === 'june' && currentVersion < 8))
       ? upgradeBespokeMainProgramme(iulianWorking, seeded)
       : null
   const programmeWorking = upgradesV81Programme?.data ?? iulianWorking
@@ -425,14 +434,23 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
       ? { ...seeded.profile, seed_version: CURRENT_SEED_VERSION }
       : null
   const seededProtocol = seeded.settings?.addons.training_protocol
-  const protocolWasAdded = !!seededProtocol && !current.settings?.addons.training_protocol
+  const currentProtocol = current.settings?.addons.training_protocol
+  const protocolWasAdded = !!seededProtocol && !currentProtocol
+  const protocolNeedsUpgrade = !!seededProtocol && Number(currentProtocol?.version ?? 0) < Number(seededProtocol.version)
   const settingsBase = upgradesPersonalProtocol.settingsChanged ? working.settings : current.settings
   const settings = settingsBase
     ? {
         ...settingsBase,
         addons: {
           ...settingsBase.addons,
-          ...(protocolWasAdded ? { training_protocol: seededProtocol } : {}),
+          ...(protocolWasAdded || protocolNeedsUpgrade
+            ? {
+                training_protocol: {
+                  ...seededProtocol,
+                  start_date: currentProtocol?.start_date ?? seededProtocol.start_date,
+                },
+              }
+            : {}),
         },
       }
     : seeded.settings
@@ -450,7 +468,7 @@ export function repairSeedDefinitions(current: AppData, seeded: AppData): SeedRe
     },
     needsRepair: true,
     profileChanged: !current.profile || currentVersion !== CURRENT_SEED_VERSION || upgradesPersonalProtocol.profileChanged,
-    settingsChanged: (!current.settings && !!settings) || protocolWasAdded || upgradesPersonalProtocol.settingsChanged,
+    settingsChanged: (!current.settings && !!settings) || protocolWasAdded || protocolNeedsUpgrade || upgradesPersonalProtocol.settingsChanged,
     missing,
     removed: {
       meals: upgradesNutrition?.removedMeals ?? [],

@@ -168,19 +168,25 @@ export function planForDate(
   slug: ProgramSlug,
   date: string,
   lite: boolean,
+  programDayId?: string,
 ): PlannedDay {
   const program = data.programs.find((p) => p.slug === slug)
   const weekday = getISODay(parse(date))
   const induction = data.settings?.addons.training_induction
   const activeDayIds = activeInductionDayIds(induction, slug)
   const insideWindow = isInsideInductionWindow(induction, slug, date)
-  const programDay = insideWindow
-    ? activeTrainingProgramDays(data).find((d) =>
+  const candidateDays = insideWindow
+    ? activeTrainingProgramDays(data).filter((d) =>
         d.program_id === program?.id &&
         d.weekday === weekday &&
         (!activeDayIds || activeDayIds.has(d.id)),
-      ) ?? null
-    : null
+      ).sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
+    : []
+  const programDay = programDayId
+    ? candidateDays.find((day) => day.id === programDayId) ?? null
+    : candidateDays.find((day) => !day.name.startsWith('AM ·') && !isFocusT25Name(day.name))
+      ?? candidateDays[0]
+      ?? null
 
   const empty: PlannedDay = {
     programDay,
@@ -234,7 +240,8 @@ export function planForDate(
   const protocolWeek = trainingProtocolWeek(protocolStart, date)
   const bespokeV81 = slug === 'main' && (persona === 'constantine' || persona === 'june')
   const scheduledDeload = bespokeV81 && isProtocolDeloadWeek(protocolWeek)
-  const scheduledTest = bespokeV81 && weekday === 2 && isProtocolPushupTestWeek(protocolWeek)
+  const isOfficialSession = !programDay.name.startsWith('AM ·') && !isFocusT25Name(programDay.name)
+  const scheduledTest = bespokeV81 && isOfficialSession && weekday === 2 && isProtocolPushupTestWeek(protocolWeek)
   let warmup = programDay.warmup_note || ''
   let warmupDuration = warmup && !/^no loaded warm-up/i.test(warmup) ? 180 : 0
 
@@ -312,10 +319,14 @@ export function planForDate(
       badges.push('Full selected: complete prescribed sets. Choose Light for the opening-week ramp')
     }
 
-    if ((weekday === 1 || weekday === 5) && (persona === 'constantine' || persona === 'june')) {
+    if (persona === 'june' && scheduledDeload && weekday === 3 && isFocusT25Name(programDay.name)) {
+      exercises = []
+      badges.push('Deload: Wednesday Focus T25 is omitted; keep Tuesday Core and Thursday Stretch')
+    }
+    if (isOfficialSession && (weekday === 1 || weekday === 5) && (persona === 'constantine' || persona === 'june')) {
       badges.push('Partner-sync order: shared strength first, profile-specific finishers last')
     }
-    if (weekday === 5 && persona === 'constantine') {
+    if (isOfficialSession && weekday === 5 && persona === 'constantine') {
       badges.push(lite
         ? 'Light pairs reduced leg work with controlled Speed 1.0'
         : 'Full ends after strength. Speed 1.0 is not an immediate finisher')
@@ -445,6 +456,28 @@ export function planForDate(
     legsBlocked,
     layoffDeload,
   }
+}
+
+export function programDaysForDate(
+  data: AppData,
+  slug: ProgramSlug,
+  date: string,
+  lite = false,
+): PlannedDay[] {
+  const program = data.programs.find((row) => row.slug === slug)
+  if (!program) return []
+  const weekday = getISODay(parse(date))
+  const induction = data.settings?.addons.training_induction
+  if (!isInsideInductionWindow(induction, slug, date)) return []
+  const activeDayIds = activeInductionDayIds(induction, slug)
+  return activeTrainingProgramDays(data)
+    .filter((day) =>
+      day.program_id === program.id &&
+      day.weekday === weekday &&
+      (!activeDayIds || activeDayIds.has(day.id)),
+    )
+    .sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
+    .map((day) => planForDate(data, slug, date, lite, day.id))
 }
 
 export function todayIso(): string {

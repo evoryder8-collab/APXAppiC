@@ -8,6 +8,7 @@ struct SimpleHomeView: View {
     @State private var showPaywall = false
     @State private var showWorkout = false
     @State private var workoutIsLite = false
+    @State private var selectedProgramDayID: UUID?
     @State private var selectedDate = Date()
     @State private var showTargetEditor = false
     @State private var showCalendar = false
@@ -114,15 +115,32 @@ struct SimpleHomeView: View {
             date: today
         )
     }
+    private var workoutPlans: [PlannedDay] {
+        guard hasUsableTrainingPlan else { return [] }
+        return TrainingPlanEngine.programDays(
+            session.data,
+            slug: guidedProgramSlug,
+            date: today,
+            lite: workoutIsLite
+        )
+    }
+    private var todayProgramDays: [ProgramDay] {
+        workoutPlans.compactMap(\.programDay)
+    }
     private var todayProgramDay: ProgramDay? {
-        guard hasUsableTrainingPlan else { return nil }
-        return TrainingInduction.visibleProgramDays(in: session.data, slug: guidedProgramSlug)
-            .first { $0.weekday == todayWeekday }
+        todayProgramDays.first { $0.id == selectedProgramDayID } ?? todayProgramDays.first
     }
     private var workoutDone: Bool {
         guard hasUsableTrainingPlan else { return false }
-        guard todayProgramDay != nil else { return true }
-        return completedWorkoutSessionID != nil
+        let prescribed = workoutPlans.filter { !$0.exercises.isEmpty }.compactMap(\.programDay)
+        guard !prescribed.isEmpty else { return true }
+        return prescribed.allSatisfy { day in
+            SimpleHomeLogic.completedSessionID(
+                sessions: session.data.workoutSessions,
+                date: today,
+                programDayID: day.id
+            ) != nil
+        }
     }
     private var completedWorkoutSessionID: UUID? {
         guard let todayProgramDay else { return nil }
@@ -137,7 +155,8 @@ struct SimpleHomeView: View {
             session.data,
             slug: guidedProgramSlug,
             date: today,
-            lite: workoutIsLite
+            lite: workoutIsLite,
+            programDayID: todayProgramDay?.id
         )
     }
     private var workoutExercises: [Exercise] {
@@ -315,12 +334,21 @@ struct SimpleHomeView: View {
                     }
 
                     metrics
-                    WorkoutInsightsCard(anchorDate: selectedDate.apexDateKey, accent: APEXColor.teal)
                     CompletedWorkoutHistoryCards(date: selectedDate.apexDateKey, accent: APEXColor.teal)
+                    WorkoutInsightsCard(anchorDate: selectedDate.apexDateKey, accent: APEXColor.teal)
                     WearableActivityCard(date: selectedDate)
 
-                    if showGuidedPlan, let todayProgramDay, !workoutDone {
-                        workoutShortcut(day: todayProgramDay)
+                    if showGuidedPlan {
+                        ForEach(workoutPlans.compactMap(\.programDay)) { day in
+                            if SimpleHomeLogic.completedSessionID(
+                                sessions: session.data.workoutSessions,
+                                date: today,
+                                programDayID: day.id
+                            ) == nil,
+                               workoutPlans.first(where: { $0.programDay?.id == day.id })?.exercises.isEmpty == false {
+                                workoutShortcut(day: day)
+                            }
+                        }
                     }
 
                     if showOrbitShortcut { orbitShortcut }
@@ -549,12 +577,14 @@ struct SimpleHomeView: View {
                 Spacer(minLength: 2)
                 VStack(spacing: 6) {
                     Button(language.text("Quick")) {
+                        selectedProgramDayID = day.id
                         workoutIsLite = true
                         showWorkout = true
                     }
                     .buttonStyle(.bordered)
                     .controlSize(.small)
                     Button(language.text("Start")) {
+                        selectedProgramDayID = day.id
                         workoutIsLite = false
                         showWorkout = true
                     }

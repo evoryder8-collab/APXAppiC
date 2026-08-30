@@ -6,7 +6,7 @@ import type { Accent } from '../lib/theme'
 import { ACCENTS } from '../lib/theme'
 import type { AppData, ProgramSlug, SessionMode, WorkoutSession } from '../lib/types'
 import { preferredSessionMode, rememberSessionMode } from '../lib/sessionShape'
-import { planForDate, todayIso } from '../lib/plan'
+import { planForDate, programDaysForDate, todayIso } from '../lib/plan'
 import { recommendLoad } from '../lib/progression'
 import { useStore } from '../store/AppStore'
 import { AccentChip, Sheet, Stepper } from './ui'
@@ -27,23 +27,29 @@ interface DaySheetProps {
   slug: ProgramSlug
   accent: Accent
   initialLite?: boolean
+  initialProgramDayId?: string
 }
 
 function completedSessionFor(
   data: AppData,
   slug: ProgramSlug,
   dateIso: string,
+  programDayId?: string,
 ): WorkoutSession | null {
   const program = data.programs.find((p) => p.slug === slug)
   const dayIds = new Set(data.program_days.filter((d) => d.program_id === program?.id).map((d) => d.id))
   return (
     data.workout_sessions.find(
-      (s) => s.date === dateIso && s.completed && (dayIds.has(s.program_day_id) || s.is_event_recovery),
+      (s) => s.date === dateIso && s.completed && (
+        programDayId
+          ? s.program_day_id === programDayId || s.is_event_recovery
+          : dayIds.has(s.program_day_id) || s.is_event_recovery
+      ),
     ) ?? null
   )
 }
 
-export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = false }: DaySheetProps) {
+export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = false, initialProgramDayId }: DaySheetProps) {
   const { data, upsert, remove } = useStore()
   const ownerId = data.profile?.user_id ?? data.settings?.user_id
   const { language } = useLanguage()
@@ -51,9 +57,16 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
   const navigate = useNavigate()
   const [lite, setLite] = useState(initialLite)
   const [statsOpen, setStatsOpen] = useState(false)
+  const [selectedProgramDayId, setSelectedProgramDayId] = useState(initialProgramDayId)
 
-  const plan = useMemo(() => planForDate(data, slug, dateIso, lite), [data, slug, dateIso, lite])
-  const done = useMemo(() => completedSessionFor(data, slug, dateIso), [data, slug, dateIso])
+  const plans = useMemo(() => programDaysForDate(data, slug, dateIso, lite), [data, slug, dateIso, lite])
+  const plan = plans.find((candidate) => candidate.programDay?.id === selectedProgramDayId)
+    ?? plans[0]
+    ?? planForDate(data, slug, dateIso, lite, selectedProgramDayId)
+  const done = useMemo(
+    () => completedSessionFor(data, slug, dateIso, plan.programDay?.id),
+    [data, slug, dateIso, plan.programDay?.id],
+  )
   const deloadMark = data.deload_marks.find((m) => m.date === dateIso)
 
   const dayLog = data.daily_logs.find((d) => d.date === dateIso)
@@ -118,6 +131,27 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
           ×
         </button>
       </div>
+
+      {plans.length > 1 && (
+        <div className="mt-4 grid gap-2" aria-label={t('Sessions planned for this day')}>
+          {plans.map((candidate, index) => {
+            const active = candidate.programDay?.id === plan.programDay?.id
+            return (
+              <button
+                key={candidate.programDay?.id ?? index}
+                type="button"
+                onClick={() => setSelectedProgramDayId(candidate.programDay?.id)}
+                className={`rounded-2xl border px-3.5 py-3 text-left transition ${active ? 'border-white/90 bg-white/85 shadow-sm' : 'border-white/45 bg-white/45'}`}
+              >
+                <span className="block break-words text-sm font-black text-ink">{t(candidate.programDay?.name ?? 'Rest')}</span>
+                <span className="mt-0.5 block text-[10px] font-semibold text-ink-soft">
+                  {t(`~${candidate.programDay?.est_minutes ?? 0} min · ${candidate.exercises.length} exercises`)}
+                </span>
+              </button>
+            )
+          })}
+        </div>
+      )}
 
       {plan.badges.length > 0 && (
         <div className="mt-3 flex flex-wrap gap-1.5">
@@ -275,14 +309,17 @@ export function DaySheet({ open, onClose, dateIso, slug, accent, initialLite = f
          * for the user by anything they answered in a questionnaire. The one
          * they chose last time is marked so the choice is predictable rather
          * than merely available. */
-        const query = lite ? '?lite=1' : ''
+        const query = new URLSearchParams()
+        if (lite) query.set('lite', '1')
+        if (plan.programDay?.id) query.set('day', plan.programDay.id)
+        const suffix = query.size > 0 ? `?${query.toString()}` : ''
         const preferred = preferredSessionMode(plan.programDay?.session_mode)
         const go = (mode: SessionMode): void => {
           rememberSessionMode(mode)
           onClose()
           navigate(mode === 'tracked'
-            ? `/log/${slug}/${dateIso}${query}`
-            : `/player/${slug}/${dateIso}${query}`)
+            ? `/log/${slug}/${dateIso}${suffix}`
+            : `/player/${slug}/${dateIso}${suffix}`)
         }
         const options: Array<[SessionMode, string, string]> = [
           ['guided', plan.isRecoveryMicro ? 'Follow recovery' : 'Follow along',
