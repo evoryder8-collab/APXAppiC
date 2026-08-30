@@ -952,6 +952,14 @@ authorised execution after the urgent workout-history and Food Memory outage hot
 2026. That authorisation does not waive a publisher's licence gate: a source rolls out only after
 its exact reuse terms are recorded and compatible. Never commit or ship the raw source bundle.
 
+The first authorised production rollout completed on 30 August 2026: 16 validated source/version
+batches expose 42,818 bounded search records, while 3,492,591 complete nutrient observations remain
+preserved in deterministic checksum-addressed archives in private server storage. This completes
+the approved national-table and official Wingstop rollout without placing the raw bundle or full
+evidence set in a client. Open Food Facts stays separately attributed through its existing provider;
+FAO and other licence-gated entries remain quarantined until their publisher-specific redistribution
+requirements are cleared.
+
 ### F.0 Licensing, attribution and reproducibility gate
 
 - Maintain a server-side source registry with publisher, dataset name, version/release date,

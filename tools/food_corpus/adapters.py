@@ -23,7 +23,7 @@ import zipfile
 
 CORPUS_NAMESPACE = uuid.UUID("cf87d423-ad7c-506f-928b-1867ac050761")
 
-TRACE_MARKERS = {"tr", "tr.", "trace", "traces"}
+TRACE_MARKERS = {"tr", "tr.", "(tr)", "trace", "traces"}
 NOT_MEASURED_MARKERS = {
     "n",
     "nd",
@@ -40,6 +40,7 @@ MISSING_MARKERS = {"", "-", "—", "..", "...", "null", "none", "*"}
 
 SOURCE_PRIORITIES = {
     "swiss-fsvo": 10,
+    "wingstop-official": 18,
     "usda-foundation": 20,
     "uk-cofid": 22,
     "fr-ciqual": 23,
@@ -56,6 +57,24 @@ SOURCE_PRIORITIES = {
     "usda-branded": 60,
 }
 
+WINGSTOP_NUTRIENTS = (
+    ("ENERC_KCAL", "Energy", "kcal"),
+    ("FAT", "Total Fat", "g"),
+    ("FASAT", "Saturated Fat", "g"),
+    ("FATRN", "Trans Fat", "g"),
+    ("CHOLE", "Cholesterol", "mg"),
+    ("NA", "Sodium", "mg"),
+    ("CHOAVL", "Total Carbohydrate", "g"),
+    ("FIBT", "Dietary Fiber", "g"),
+    ("SUGAR", "Total Sugars", "g"),
+    ("SUGAR_ADDED", "Added Sugars", "g"),
+    ("PROT", "Protein", "g"),
+    ("VITD", "Vitamin D", "mcg"),
+    ("CA", "Calcium", "mg"),
+    ("FE", "Iron", "mg"),
+    ("K", "Potassium", "mg"),
+)
+
 
 def normalize_text(value: Any) -> str:
     return re.sub(r"\s+", " ", str(value or "").strip())
@@ -71,6 +90,22 @@ def deterministic_record_id(source_key: str, source_record_id: str) -> str:
     return str(uuid.uuid5(CORPUS_NAMESPACE, f"{source_key}:{source_record_id}"))
 
 
+def resolved_source_record_id(
+    source_record_id: Any,
+    canonical_name: Any,
+    seen: dict[str, dict[str, str]],
+) -> str | None:
+    original = normalize_text(source_record_id)
+    fingerprint = normalized_search_text(canonical_name)
+    variants = seen.setdefault(original, {})
+    if fingerprint in variants:
+        return None
+    occurrence = len(variants) + 1
+    resolved = original if occurrence == 1 else f"{original}:duplicate:{occurrence}"
+    variants[fingerprint] = resolved
+    return resolved
+
+
 def parse_value(raw_value: Any) -> tuple[str, float | None, str]:
     original = "" if raw_value is None else str(raw_value).strip()
     folded = original.casefold()
@@ -84,7 +119,8 @@ def parse_value(raw_value: Any) -> tuple[str, float | None, str]:
         return "below_detection", None, original
 
     parenthetical = original.startswith("(") and original.endswith(")")
-    numeric = original.strip("() ").replace("\u00a0", "").replace(" ", "")
+    numeric = re.sub(r"[†‡]+$", "", original).strip()
+    numeric = numeric.strip("() ").replace("\u00a0", "").replace(" ", "")
     if numeric.count(",") == 1 and "." not in numeric:
         numeric = numeric.replace(",", ".")
     try:
@@ -134,33 +170,35 @@ def canonical_nutrient_code(source_code: Any, name: Any, unit: Any) -> str:
     code = normalize_text(source_code).upper().replace(" ", "_")
     label = normalize_text(name).casefold()
     unit_text = normalize_text(unit).casefold()
-    if "energy" in label and "kcal" in unit_text:
-        return "ENERC_KCAL"
+    if "energy" in label:
+        return "ENERC_KCAL" if "kcal" in unit_text else "ENERC"
     if code in {"KCALS", "ENERC_KCAL", "208", "1008"}:
         return "ENERC_KCAL"
     if code in {"PROT", "PROT-", "203", "1003"} or label == "protein":
         return "PROT"
-    if code in {"FAT", "FAT-", "204", "1004"} or label in {"fat", "total fat", "fat, total"}:
+    if code in {"FAT", "FAT-", "FETT", "204", "1004"} or label in {"fat", "total fat", "fat, total"}:
         return "FAT"
-    if code in {"CHO", "CHOAVL", "CHOAVLDF-", "205", "1005"} or label in {
+    if code in {"CHO", "CHOAVL", "CHOAVLDF-", "KARBO", "205", "1005"} or label in {
         "carbohydrate",
+        "carbohydrate, available",
         "carbohydrates, available",
         "available carbohydrates",
+        "available carbohydrate, without sugar alcohols",
         "carbohydrate, by difference",
     }:
         return "CHOAVL"
-    if code in {"FIBT", "AOACFIB", "FIB-", "291", "1079"} or "dietary fibre" in label or "dietary fiber" in label:
+    if code in {"FIBT", "AOACFIB", "FIB-", "FIBER", "291", "1079"} or "dietary fibre" in label or "dietary fiber" in label:
         return "FIBT"
-    if code in {"SUGAR", "TOTSUG", "SUGARS", "269", "2000"} or label in {"sugars", "sugars, total", "sugar total", "total sugars"}:
+    if code in {"SUGAR", "SUKKER", "TOTSUG", "SUGARS", "269", "2000"} or label in {"sugars", "sugars, total", "sugar total", "total sugars"}:
         return "SUGAR"
-    if code in {"FASAT", "SATFOD", "606", "1258"} or label in {
+    if code in {"FASAT", "SATFOD", "SFA", "METTET", "606", "1258"} or label in {
         "fatty acids, saturated, total",
         "fatty acids, total saturated",
     }:
         return "FASAT"
     if code in {"NACL", "SALT"} or label in {"salt", "salt, nacl", "salt labelling"}:
         return "NACL"
-    if code in {"WATER", "255", "1051"} or label in {"water", "moisture"}:
+    if code in {"WATER", "VANN", "255", "1051"} or label in {"water", "moisture", "moisture (water)"}:
         return "WATER"
     return code or "UNMAPPED"
 
@@ -234,6 +272,109 @@ def _limit(records: Iterable[dict[str, Any]], max_records: int | None) -> Iterat
         yield record
 
 
+def parse_wingstop_nutrition_line(line: str) -> dict[str, Any] | None:
+    """Parse one published Wingstop guide row without manufacturing missing values."""
+    serving_match = re.search(r"(?:1ea|Regular Order|Large Order)\s+\(\d+g\)", line)
+    if serving_match is None:
+        return None
+
+    name = normalize_text(line[: serving_match.start()])
+    serving = normalize_text(serving_match.group(0))
+    tail = line[serving_match.end() :].strip().split()
+    observations: dict[str, str] = {}
+    for (code, _, _), raw in zip(WINGSTOP_NUTRIENTS, tail):
+        normalized = raw.replace(",", "")
+        if normalized != "-" and re.fullmatch(r"\d+(?:\.\d+)?", normalized) is None:
+            break
+        observations[code] = normalized
+    if len(observations) != len(WINGSTOP_NUTRIENTS):
+        return None
+    return {"name": name, "serving": serving, "observations": observations}
+
+
+def parse_wingstop_pdf(
+    artifact: Path,
+    source: dict[str, Any],
+    max_records: int | None,
+    brands: list[str],
+) -> Iterable[dict[str, Any]]:
+    expected_counts = {1: 26, 2: 39, 3: 13}
+
+    def page_rows(page: int) -> list[dict[str, Any]]:
+        result = subprocess.run(
+            ["pdftotext", "-raw", "-f", str(page), "-l", str(page), str(artifact), "-"],
+            check=False,
+            capture_output=True,
+            text=True,
+        )
+        if result.returncode != 0:
+            raise ValueError(f"wingstop-official: pdftotext page {page} failed: {result.stderr.strip()}")
+        rows = [
+            parsed
+            for line in result.stdout.splitlines()
+            if (parsed := parse_wingstop_nutrition_line(line)) is not None
+        ]
+        if len(rows) != expected_counts[page]:
+            raise ValueError(
+                f"wingstop-official: expected {expected_counts[page]} nutrition rows "
+                f"on page {page}, found {len(rows)}"
+            )
+        return rows
+
+    def records() -> Iterator[dict[str, Any]]:
+        for page in (1, 2, 3):
+            previous_name = ""
+            for index, row in enumerate(page_rows(page)):
+                name = row["name"] or previous_name
+                if not name:
+                    raise ValueError(f"wingstop-official: missing flavour on page {page}, row {index + 1}")
+                previous_name = name
+
+                if page == 1:
+                    category = "Classic (Bone-In) Wings" if index < 13 else "Boneless Wings"
+                elif page == 2:
+                    category = "Bone-In Thighs" if index < 13 else "Thigh Bites"
+                else:
+                    category = "Boneless Tenders"
+
+                serving = row["serving"]
+                serving_label = re.sub(r"\s*\(\d+g\)$", "", serving)
+                display_suffix = "" if serving_label == "1ea" else f" — {serving_label}"
+                canonical_name = f"Wingstop {name} {category}{display_suffix}"
+                source_record_id = normalized_search_text(f"{category}:{name}:{serving}").replace(" ", "-")
+                reference = f"Wingstop Corporate Nutritional Guide, page {page}"
+                nutrients = [
+                    evidence(
+                        code,
+                        nutrient_name,
+                        unit,
+                        row["observations"][code],
+                        reference=reference,
+                    )
+                    for code, nutrient_name, unit in WINGSTOP_NUTRIENTS
+                ]
+                yield make_record(
+                    source,
+                    source_record_id,
+                    canonical_name,
+                    nutrients,
+                    basis_kind="per_serving",
+                    basis_amount=1,
+                    basis_unit="serving",
+                    aliases=[f"{name} {category}", f"Wingstop {name}"],
+                    brand="Wingstop",
+                    market="United States",
+                    preparation_state=category,
+                    metadata={
+                        "published_serving": serving,
+                        "guide_page": page,
+                        "guide_version": source.get("version"),
+                    },
+                )
+
+    return _limit(records(), max_records)
+
+
 def _zip_csv(archive: zipfile.ZipFile, suffix: str) -> Iterator[dict[str, str]]:
     member = next((name for name in archive.namelist() if name.endswith(suffix)), None)
     if member is None:
@@ -250,7 +391,12 @@ def parse_usda(
     brands: list[str],
 ) -> Iterable[dict[str, Any]]:
     with zipfile.ZipFile(artifact) as archive:
-        nutrient_lookup = {row["id"]: row for row in _zip_csv(archive, "/nutrient.csv")}
+        nutrient_lookup: dict[str, dict[str, str]] = {}
+        for row in _zip_csv(archive, "/nutrient.csv"):
+            nutrient_lookup[row["id"]] = row
+            nutrient_number = normalize_text(row.get("nutrient_nbr"))
+            if nutrient_number:
+                nutrient_lookup.setdefault(nutrient_number, row)
         branded_meta: dict[str, dict[str, str]] = {}
         is_branded = source["key"] == "usda-branded"
         brand_terms = [term.casefold() for term in brands if normalize_text(term)]
@@ -270,6 +416,10 @@ def parse_usda(
 
         foods: dict[str, dict[str, str]] = {}
         for row in _zip_csv(archive, "/food.csv"):
+            if not normalize_text(row.get("description")):
+                continue
+            if source["key"] == "usda-foundation" and row.get("data_type") != "foundation_food":
+                continue
             fdc_id = row["fdc_id"]
             if is_branded and fdc_id not in branded_meta:
                 continue
@@ -402,8 +552,12 @@ def parse_cofid(
     names = list(next(rows))
 
     def records() -> Iterator[dict[str, Any]]:
+        seen_source_ids: dict[str, dict[str, str]] = {}
         for row in rows:
             if not row or not row[0] or not row[1]:
+                continue
+            source_record_id = resolved_source_record_id(row[0], row[1], seen_source_ids)
+            if source_record_id is None:
                 continue
             nutrients = [
                 evidence(
@@ -418,11 +572,16 @@ def parse_cofid(
             ]
             yield make_record(
                 source,
-                row[0],
+                source_record_id,
                 row[1],
                 nutrients,
                 preparation_state=row[2],
-                metadata={"group": row[3], "description": row[2], "references": row[5]},
+                metadata={
+                    "group": row[3],
+                    "description": row[2],
+                    "references": row[5],
+                    "original_source_record_id": normalize_text(row[0]),
+                },
             )
 
     return _limit(records(), max_records)
@@ -458,9 +617,13 @@ def parse_ciqual(
     headings = list(next(rows))
 
     def records() -> Iterator[dict[str, Any]]:
+        seen_source_ids: dict[str, dict[str, str]] = {}
         try:
             for row in rows:
                 if not row or not row[6] or not row[7]:
+                    continue
+                source_record_id = resolved_source_record_id(row[6], row[7], seen_source_ids)
+                if source_record_id is None:
                     continue
                 nutrients = [
                     evidence(
@@ -474,7 +637,7 @@ def parse_ciqual(
                 ]
                 yield make_record(
                     source,
-                    row[6],
+                    source_record_id,
                     row[7],
                     nutrients,
                     scientific_name=row[8],
@@ -843,6 +1006,7 @@ SUPPORTED_PARSERS: dict[str, Parser] = {
     "matvaretabellen_v1": parse_matvaretabellen,
     "fineli_v1": parse_fineli,
     "nz_concise_v1": parse_nz_concise,
+    "wingstop_pdf_v1": parse_wingstop_pdf,
 }
 
 

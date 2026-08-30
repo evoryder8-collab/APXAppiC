@@ -211,6 +211,20 @@
     "status": "approved"
   },
   {
+    "key": "wingstop-official",
+    "dataset_name": "Wingstop Corporate Nutritional Guide",
+    "publisher": "Wingstop Restaurants Inc.",
+    "version": "WSR18-0009 publisher PDF snapshot retrieved 2026-08-30",
+    "path": "fastfood/Wingstop_Corporate_Nutritional_Guide.pdf",
+    "source_url": "https://s3.amazonaws.com/wingstop.com/assets/static/WSR18-0009-Corporate-NutritionalGuide-JumboWings-HR.pdf",
+    "licence": "Published nutrition facts; facts-only extraction, raw document not redistributed",
+    "licence_url": "https://www.wingstop.com/nutrition",
+    "attribution": "Wingstop Corporate Nutritional Guide, Wingstop Restaurants Inc.",
+    "checksum": "sha256:bbd7a0ee759a903de1658cae21693a5ca5000bf28ec42708a92a6f379a569988",
+    "parser": "wingstop_pdf_v1",
+    "status": "approved"
+  },
+  {
     "key": "fao-wafct",
     "dataset_name": "FAO/INFOODS West African Food Composition Table",
     "publisher": "FAO/INFOODS",

@@ -5,6 +5,10 @@ import {
   normalizeOpenFoodFactsProduct,
   openFoodFactsUrl,
 } from '../../../shared/openFoodFacts.ts'
+import {
+  normalizeFoodCorpusSearchResult,
+  type FoodCorpusSearchResult,
+} from '../../../shared/foodCorpus.ts'
 
 const allowedOrigins = new Set([
   'https://evoryder8-collab.github.io',
@@ -75,12 +79,65 @@ Deno.serve(async (request) => {
     if (rawQuery.length < 2 || rawQuery.length > 80) {
       return json(origin, { state: 'invalid', message: 'Search must be between 2 and 80 characters' }, 400)
     }
-    const { data: catalogResults, error: catalogError } = await authClient.rpc('search_food_catalog', {
-      p_query: rawQuery,
-      p_limit: 25,
-    })
-    if (!catalogError && catalogResults?.length) {
-      return json(origin, { state: 'results', query: rawQuery, source: 'apex_catalog', results: catalogResults })
+    const [catalogResponse, corpusResponse] = await Promise.all([
+      authClient.rpc('search_food_catalog', { p_query: rawQuery, p_limit: 25 }),
+      authClient.rpc('food_corpus_search_catalog_v2', { p_query: rawQuery, p_limit: 25 }),
+    ])
+    const catalogResults = catalogResponse.error ? [] : (catalogResponse.data ?? [])
+    const corpusResults = corpusResponse.error
+      ? []
+      : ((corpusResponse.data ?? []) as FoodCorpusSearchResult[])
+          .flatMap((result) => {
+            const normalized = normalizeFoodCorpusSearchResult(result)
+            return normalized ? [normalized] : []
+          })
+    const persistedCorpusResults = (
+      await Promise.all(corpusResults.map(async (food) => {
+        const { data: persisted, error: persistError } = await admin
+          .from('foods')
+          .upsert(food, { onConflict: 'id' })
+          .select('*')
+          .maybeSingle()
+        if (!persistError && persisted) return persisted
+
+        const { data: existingProvider } = await admin
+          .from('foods')
+          .select('*')
+          .is('owner_user_id', null)
+          .eq('source', 'apex_cache')
+          .eq('provider_product_id', food.provider_product_id)
+          .maybeSingle()
+        if (existingProvider) return existingProvider
+        if (!food.barcode) return null
+
+        const { data: existingBarcode } = await admin
+          .from('foods')
+          .select('*')
+          .is('owner_user_id', null)
+          .eq('barcode', food.barcode)
+          .maybeSingle()
+        return existingBarcode ?? null
+      }))
+    ).filter((food): food is NonNullable<typeof food> => food !== null)
+    const seen = new Set<string>()
+    const combinedResults = [...catalogResults, ...persistedCorpusResults].filter((food) => {
+      const barcode = String(food.barcode ?? '').trim()
+      const identity = barcode
+        ? `barcode:${barcode}`
+        : [food.name, food.brand, food.nutrition_basis, food.preparation_state]
+            .map((value) => String(value ?? '').trim().toLocaleLowerCase())
+            .join('|')
+      if (seen.has(identity)) return false
+      seen.add(identity)
+      return true
+    }).slice(0, 25)
+    if (combinedResults.length) {
+      return json(origin, {
+        state: 'results',
+        query: rawQuery,
+        source: persistedCorpusResults.length ? 'apex_corpus' : 'apex_catalog',
+        results: combinedResults,
+      })
     }
 
     const searchUrl = new URL('https://world.openfoodfacts.org/cgi/search.pl')

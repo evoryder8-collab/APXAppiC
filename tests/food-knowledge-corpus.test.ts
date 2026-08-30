@@ -7,10 +7,19 @@ const migrationPath = new URL(
   '../supabase/migrations/034_food_knowledge_corpus.sql',
   import.meta.url,
 )
+const archiveMigrationPath = new URL(
+  '../supabase/migrations/036_food_corpus_evidence_archives.sql',
+  import.meta.url,
+)
 const registryPath = new URL('../tools/food_corpus/sources.json', import.meta.url)
 const parserPath = new URL('../tools/food_corpus/import_food_corpus.py', import.meta.url)
+const adaptersPath = new URL('../tools/food_corpus/adapters.py', import.meta.url)
 const fixturePath = new URL(
   './fixtures/food-corpus/evidence-values.json',
+  import.meta.url,
+)
+const wingstopFixturePath = new URL(
+  './fixtures/food-corpus/wingstop-nutrition-lines.txt',
   import.meta.url,
 )
 
@@ -42,6 +51,21 @@ test('Food Knowledge Corpus schema is additive, evidence-preserving, and searcha
   )
 })
 
+test('full nutrient evidence is retained in private checksum-addressed archives', () => {
+  assert.equal(existsSync(archiveMigrationPath), true, 'archive storage migration must exist')
+  const migration = readFileSync(archiveMigrationPath, 'utf8')
+  const importer = readFileSync(parserPath, 'utf8')
+
+  assert.match(migration, /insert into storage\.buckets/i)
+  assert.match(migration, /food-corpus-evidence/i)
+  assert.match(migration, /\bfalse\b/i)
+  assert.doesNotMatch(migration, /create policy|\bpublic\s*=\s*true/i)
+  assert.match(importer, /evidence_archive_sha256/)
+  assert.match(importer, /evidence_archive_rows/)
+  assert.match(importer, /gzip\.GzipFile[\s\S]*mtime=0/)
+  assert.match(importer, /--compact-evidence/)
+})
+
 test('source registry gates every supplied database by licence and checksum', () => {
   assert.equal(existsSync(registryPath), true, 'source registry must exist')
   const sources = JSON.parse(readFileSync(registryPath, 'utf8')) as Array<{
@@ -71,6 +95,7 @@ test('source registry gates every supplied database by licence and checksum', ()
     'no-matvaretabellen',
     'fi-fineli',
     'nz-concise',
+    'wingstop-official',
     'fao-wafct',
     'fao-upulses',
     'fao-ufish',
@@ -148,6 +173,10 @@ test('canonical fixture parsing preserves trace, not-measured, missing, and basi
     [
       ['measured', 12.5, '12.5'],
       ['trace', null, 'tr'],
+      ['trace', null, '(Tr)'],
+      ['estimated', 0.1, '(0.1)'],
+      ['measured', 20.3, '20.3†'],
+      ['missing', null, '*'],
       ['not_measured', null, 'N'],
       ['missing', null, ''],
     ],
@@ -191,6 +220,121 @@ test('every approved source has a deterministic parser adapter', () => {
   assert.deepEqual(expected.filter((parser) => !supported.includes(parser)), [])
 })
 
+test('USDA staging rejects unnamed sub-sample rows without aborting valid foods', () => {
+  const adapters = readFileSync(adaptersPath, 'utf8')
+  assert.match(
+    adapters,
+    /if not normalize_text\(row\.get\(["']description["']\)\):\s*continue/,
+  )
+  assert.match(adapters, /row\.get\(["']nutrient_nbr["']\)/)
+  assert.match(adapters, /["']foundation_food["']/)
+})
+
+test('canonical nutrient mapping covers supplied national table terminology', () => {
+  const script = `
+import json
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from adapters import canonical_nutrient_code
+cases = json.loads(sys.argv[2])
+print(json.dumps([canonical_nutrient_code(*case) for case in cases]))
+`
+  const cases = [
+    ['Energy with dietary fibre, equated (kJ)', 'Energy with dietary fibre, equated', 'kJ'],
+    ['Available carbohydrate, without sugar alcohols (g)', 'Available carbohydrate, without sugar alcohols', 'g'],
+    ['Moisture (water) (g)', 'Moisture (water)', 'g'],
+    ['Karbo', 'Karbo', 'g'],
+    ['Fett', 'Fett', 'g'],
+    ['Vann', 'Vann', 'g'],
+    ['Fiber', 'Fiber', 'g'],
+    ['Sukker', 'Sukker', 'g'],
+    ['Mettet', 'Mettet', 'g'],
+    ['Carbohydrate, available', 'Carbohydrate, available', 'g'],
+    ['SFA', 'SFA', 'g'],
+  ]
+  const result = spawnSync('python3', ['-c', script, adaptersPath.pathname, JSON.stringify(cases)], {
+    encoding: 'utf8',
+  })
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.deepEqual(JSON.parse(result.stdout), [
+    'ENERC',
+    'CHOAVL',
+    'WATER',
+    'CHOAVL',
+    'FAT',
+    'WATER',
+    'FIBT',
+    'SUGAR',
+    'FASAT',
+    'CHOAVL',
+    'FASAT',
+  ])
+})
+
+test('duplicate publisher record identifiers are deterministically disambiguated', () => {
+  const script = `
+import json
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from adapters import resolved_source_record_id
+cofid_seen = {}
+ciqual_seen = {}
+print(json.dumps([
+    resolved_source_record_id('13-669', 'Aubergine', cofid_seen),
+    resolved_source_record_id('13-669', 'Watercress', cofid_seen),
+    resolved_source_record_id('9621', 'Wheat bran', ciqual_seen),
+    resolved_source_record_id('9621', 'Wheat bran', ciqual_seen),
+]))
+`
+  const result = spawnSync('python3', ['-c', script, adaptersPath.pathname], {
+    encoding: 'utf8',
+  })
+
+  assert.equal(result.status, 0, result.stderr)
+  assert.deepEqual(JSON.parse(result.stdout), [
+    '13-669',
+    '13-669:duplicate:2',
+    '9621',
+    null,
+  ])
+})
+
+test('Wingstop official rows preserve the published serving and missing observations', () => {
+  const script = `
+import json
+import sys
+from pathlib import Path
+sys.path.insert(0, str(Path(sys.argv[1]).parent))
+from adapters import parse_wingstop_nutrition_line
+lines = Path(sys.argv[2]).read_text(encoding='utf-8').splitlines()
+print(json.dumps([parse_wingstop_nutrition_line(line) for line in lines]))
+`
+  const result = spawnSync(
+    'python3',
+    ['-c', script, adaptersPath.pathname, wingstopFixturePath.pathname],
+    { encoding: 'utf8' },
+  )
+
+  assert.equal(result.status, 0, result.stderr)
+  const rows = JSON.parse(result.stdout)
+  assert.deepEqual(
+    rows.map((row: { name: string; serving: string }) => [row.name, row.serving]),
+    [
+      ['Atomic', '1ea (39g)'],
+      ['Old Bay', 'Regular Order (261g)'],
+      ['', 'Large Order (392g)'],
+    ],
+  )
+  assert.equal(rows[0].observations.ENERC_KCAL, '90')
+  assert.equal(rows[0].observations.PROT, '10')
+  assert.equal(rows[1].observations.SUGAR_ADDED, '-')
+  assert.equal(rows[1].observations.VITD, '-')
+  assert.equal(rows[2].observations.ENERC_KCAL, '1455')
+})
+
 test('staging emits canonical records and a bounded search projection, not a raw copy', () => {
   const parser = readFileSync(parserPath, 'utf8')
   assert.match(parser, /records\.ndjson/)
@@ -198,5 +342,6 @@ test('staging emits canonical records and a bounded search projection, not a raw
   assert.match(parser, /search\.ndjson/)
   assert.match(parser, /source_priority/)
   assert.match(parser, /max_records/)
-  assert.doesNotMatch(parser, /shutil\.copy|copyfile|copytree/)
+  assert.match(parser, /file_checksums/)
+  assert.doesNotMatch(parser, /shutil\.(?:copy|copy2|copyfile|copytree)\s*\(/)
 })

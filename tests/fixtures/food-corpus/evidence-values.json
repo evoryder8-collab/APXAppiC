@@ -7,7 +7,11 @@
       "basis": { "kind": "per_100g", "amount": 100, "unit": "g" },
       "nutrients": [
         { "code": "PROT", "name": "Protein", "unit": "g", "raw_value": "12.5" },
-        { "code": "VITA", "name": "Vitamin A", "unit": "µg", "raw_value": "tr" }
+        { "code": "VITA", "name": "Vitamin A", "unit": "µg", "raw_value": "tr" },
+        { "code": "CA", "name": "Calcium", "unit": "mg", "raw_value": "(Tr)" },
+        { "code": "MEXT_EST", "name": "MEXT estimated value", "unit": "g", "raw_value": "(0.1)" },
+        { "code": "MEXT_NOTE", "name": "MEXT annotated value", "unit": "g", "raw_value": "20.3†" },
+        { "code": "MEXT_MISSING", "name": "MEXT unavailable value", "unit": "µg", "raw_value": "*" }
       ]
     },
     {
