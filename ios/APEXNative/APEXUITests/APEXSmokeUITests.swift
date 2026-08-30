@@ -1140,14 +1140,27 @@ final class APEXSmokeUITests: XCTestCase {
     @discardableResult
     private func collapseSection(_ id: String, in app: XCUIApplication) -> Bool {
         let toggle = app.buttons["section-toggle-\(id)"]
-        guard scrollUntilVisible(toggle, in: app), isReachable(toggle) else { return false }
+        /* SwiftUI can clamp an expanded disclosure's accessibility frame to
+           the top of the scroll viewport even after its header has moved
+           behind the pinned date controls. Move the real header clear of that
+           clipping boundary before tapping it. */
+        guard scrollUpUntilVisible(toggle, in: app, minimumY: 280), isReachable(toggle) else {
+            return false
+        }
         if toggle.value as? String == "Collapsed" { return true }
-        toggle.tap()
+        /* The persistent profile dock can cover the centre of a disclosure
+           that has just moved after its content was scrolled. Use the same
+           settled upper-half tap as other dock-adjacent controls. */
+        tapClearOfDock(toggle)
         let collapsed = NSPredicate(format: "value == %@", "Collapsed")
-        return XCTWaiter().wait(
+        let result = XCTWaiter().wait(
             for: [XCTNSPredicateExpectation(predicate: collapsed, object: toggle)],
             timeout: 4
-        ) == .completed
+        )
+        if result != .completed {
+            print("Disclosure \(id) failed to collapse; value=\(String(describing: toggle.value)); \(toggle.debugDescription)")
+        }
+        return result == .completed
     }
 
     /*
@@ -1192,9 +1205,13 @@ final class APEXSmokeUITests: XCTestCase {
     private func scrollUpUntilVisible(
         _ element: XCUIElement,
         in app: XCUIApplication,
-        attempts: Int = 20
+        attempts: Int = 20,
+        minimumY: CGFloat = 0
     ) -> Bool {
-        if isReachable(element) { return true }
+        let isClearOfTopClipping: () -> Bool = {
+            self.isReachable(element) && element.firstMatch.frame.minY >= minimumY
+        }
+        if isClearOfTopClipping() { return true }
         for _ in 0..<attempts {
             let start = app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.48))
             let end = app.coordinate(withNormalizedOffset: CGVector(dx: 0.14, dy: 0.68))
@@ -1207,9 +1224,9 @@ final class APEXSmokeUITests: XCTestCase {
             let settled = XCTestExpectation(description: "incremental reverse scroll settled")
             DispatchQueue.main.asyncAfter(deadline: .now() + 0.22) { settled.fulfill() }
             _ = XCTWaiter().wait(for: [settled], timeout: 1)
-            if isReachable(element) { return true }
+            if isClearOfTopClipping() { return true }
         }
-        return isReachable(element)
+        return isClearOfTopClipping()
     }
 
     /// Large phase cards need each drag to settle before the next one starts;

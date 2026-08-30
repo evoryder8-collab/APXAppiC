@@ -4242,6 +4242,98 @@ final class AppSession {
         return ownerID
     }
 
+    func recordFitnessEvidence(_ evidence: NormalizedFitnessEvidence) async throws {
+        let accountToken = accountGeneration.token
+        guard let ownerID = UUID(uuidString: evidence.userID),
+              verifiedPersistenceOwnerID(ownerID) == ownerID else {
+            throw FitnessEvidenceRecordingError.accountMismatch
+        }
+        guard evidence.confidence == .low,
+              evidence.source == .structuredSelfReport
+                || evidence.source == .userEnteredExternalResult else {
+            throw FitnessEvidenceRecordingError.trustedSourceRequiresIngestion
+        }
+
+        let params = RecordUserFitnessEvidenceParameters(evidence)
+        let offlineOperation = try OfflineOperation.rpc("record_user_fitness_evidence", params: params)
+
+        #if DEBUG
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            let localRecord = FitnessEvidenceRecord(
+                id: UUID(),
+                userID: ownerID,
+                metric: evidence.metric,
+                value: evidence.value,
+                unit: evidence.unit,
+                source: evidence.source,
+                protocol: evidence.protocol,
+                device: evidence.device,
+                measuredAt: evidence.measuredAt,
+                importedAt: evidence.importedAt,
+                confidence: evidence.confidence,
+                metadata: evidence.metadata,
+                supersedesID: evidence.supersedesID.flatMap(UUID.init(uuidString:)),
+                clientIdempotencyKey: evidence.clientIdempotencyKey
+            )
+            mergeFitnessEvidenceRecord(localRecord)
+            await saveLocalSnapshot()
+            return
+        }
+        #endif
+
+        do {
+            let record = try await service.recordUserFitnessEvidence(evidence)
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
+                throw CancellationError()
+            }
+            guard record.userID == ownerID else {
+                throw FitnessEvidenceRecordingError.accountMismatch
+            }
+            mergeFitnessEvidenceRecord(record)
+            await saveLocalSnapshot()
+            lastSyncAt = .now
+        } catch let evidenceError as FitnessEvidenceRecordingError {
+            try? await offlineStore.recordFailure(
+                offlineOperation,
+                reason: String(describing: evidenceError),
+                for: ownerID
+            )
+            failedSyncCount = (try? await offlineStore.failedOperations(for: ownerID).count)
+                ?? failedSyncCount + 1
+            throw evidenceError
+        } catch {
+            guard accountGeneration.accepts(accountToken),
+                  verifiedPersistenceOwnerID(ownerID) == ownerID else {
+                throw CancellationError()
+            }
+            switch SyncFailurePolicy.classify(error) {
+            case .transient, .authenticationRequired:
+                try await offlineStore.enqueue(offlineOperation, for: ownerID)
+                pendingSyncCount = (try? await offlineStore.pendingOperations(for: ownerID).count)
+                    ?? pendingSyncCount + 1
+            case .permanent:
+                try? await offlineStore.recordFailure(
+                    offlineOperation,
+                    reason: error.localizedDescription,
+                    for: ownerID
+                )
+                failedSyncCount = (try? await offlineStore.failedOperations(for: ownerID).count)
+                    ?? failedSyncCount + 1
+                throw error
+            }
+        }
+    }
+
+    private func mergeFitnessEvidenceRecord(_ record: FitnessEvidenceRecord) {
+        var records = data.fitnessEvidence ?? []
+        records.removeAll {
+            $0.id == record.id || $0.clientIdempotencyKey == record.clientIdempotencyKey
+        }
+        records.insert(record, at: 0)
+        data.fitnessEvidence = records
+    }
+
     private func persistUpsert<T: Encodable & Sendable>(
         _ value: T,
         table: String,

@@ -6,6 +6,11 @@ import type { MealBlockSettings } from './mealBlocks'
 import type { HydrationEvent, HydrationPreferences, HydrationPreset } from './hydrationLedger'
 import type { SUPABASE_ENUMS } from './supabaseEnums'
 import type { BespokeProtocolID, BodyFatSource, ProfileKind } from './profilePolicy'
+import type {
+  FitnessEvidenceConfidence,
+  FitnessEvidenceMetric,
+  FitnessEvidenceSource,
+} from './fitnessEvidence'
 
 export type ActivityLevel = (typeof SUPABASE_ENUMS.activity_level)[number]
 export type Goal = (typeof SUPABASE_ENUMS.goal)[number]
@@ -285,6 +290,23 @@ export interface HealthMetric {
   resting_hr: number | null
 }
 
+export interface FitnessEvidenceRecord {
+  id: string
+  user_id: string
+  metric: FitnessEvidenceMetric
+  value: number
+  unit: string
+  source: FitnessEvidenceSource
+  protocol: string | null
+  device: string | null
+  measured_at: string
+  imported_at: string
+  confidence: FitnessEvidenceConfidence
+  metadata: Record<string, unknown>
+  supersedes_id: string | null
+  client_idempotency_key: string
+}
+
 export type RecoveryDataSource = (typeof SUPABASE_ENUMS.recovery_data_source)[number]
 
 /* Source-tagged values are retained when the recovery source changes, so
@@ -546,6 +568,7 @@ export interface AppData {
   rpg_snapshots: RpgSnapshot[]
   deload_marks: DeloadMark[]
   health_metrics: HealthMetric[]
+  fitness_evidence: FitnessEvidenceRecord[]
   imported_activities: ImportedActivity[]
 }
 
@@ -571,6 +594,7 @@ export const EMPTY_DATA: AppData = {
   rpg_snapshots: [],
   deload_marks: [],
   health_metrics: [],
+  fitness_evidence: [],
   imported_activities: [],
 }
 

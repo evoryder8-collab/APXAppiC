@@ -1,0 +1,376 @@
+{
+  "reference_now": "2026-08-30T12:00:00Z",
+  "scenarios": [
+    {
+      "name": "trusted metabolic cart preserves high confidence",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "bmr",
+        "value": 1683,
+        "unit": "kcal/day",
+        "source": "metabolic_cart",
+        "protocol": "ventilated hood",
+        "device": "Quark RMR",
+        "measured_at": "2026-08-29T08:00:00Z",
+        "imported_at": "2026-08-29T08:15:00Z",
+        "requested_confidence": "high",
+        "metadata": { "fasted": true, "rest_minutes": 30 },
+        "supersedes_id": null,
+        "client_idempotency_key": "rmr-2026-08-29"
+      },
+      "expected": {
+        "status": "accepted",
+        "summary": {
+          "metric": "resting_metabolic_rate",
+          "value": 1683,
+          "unit": "kcal_per_day",
+          "source": "indirect_calorimetry",
+          "confidence": "high",
+          "protocol": "ventilated hood",
+          "device": "Quark RMR",
+          "measured_at": "2026-08-29T08:00:00.000Z",
+          "imported_at": "2026-08-29T08:15:00.000Z",
+          "metadata_keys": ["fasted", "rest_minutes"],
+          "supersedes_id": null,
+          "client_idempotency_key": "rmr-2026-08-29"
+        }
+      }
+    },
+    {
+      "name": "derived DEXA estimate cannot claim high confidence",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "resting_metabolic_rate",
+        "value": 1710,
+        "unit": "kcal_per_day",
+        "source": "dexa_derived_estimate",
+        "protocol": "scanner software estimate",
+        "device": "DEXA scanner",
+        "measured_at": "2026-08-28T09:00:00Z",
+        "imported_at": "2026-08-28T09:30:00Z",
+        "requested_confidence": "high",
+        "metadata": {},
+        "supersedes_id": null,
+        "client_idempotency_key": "dexa-rmr-1"
+      },
+      "expected": {
+        "status": "accepted",
+        "summary": {
+          "metric": "resting_metabolic_rate",
+          "value": 1710,
+          "unit": "kcal_per_day",
+          "source": "dexa_derived_estimate",
+          "confidence": "medium",
+          "protocol": "scanner software estimate",
+          "device": "DEXA scanner",
+          "measured_at": "2026-08-28T09:00:00.000Z",
+          "imported_at": "2026-08-28T09:30:00.000Z",
+          "metadata_keys": [],
+          "supersedes_id": null,
+          "client_idempotency_key": "dexa-rmr-1"
+        }
+      }
+    },
+    {
+      "name": "user reported DEXA is retained as an unverified external result",
+      "admission": "user",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "body_fat_pct",
+        "value": 18.4,
+        "unit": "%",
+        "source": "dexa",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-20T10:00:00Z",
+        "imported_at": "2026-08-20T10:05:00Z",
+        "requested_confidence": "high",
+        "metadata": { "entered_by_user": true },
+        "supersedes_id": null,
+        "client_idempotency_key": "reported-dexa-1"
+      },
+      "expected": {
+        "status": "accepted",
+        "summary": {
+          "metric": "body_fat_percentage",
+          "value": 18.4,
+          "unit": "percent",
+          "source": "user_entered_external_result",
+          "confidence": "low",
+          "protocol": "reported:dexa_measurement",
+          "device": null,
+          "measured_at": "2026-08-20T10:00:00.000Z",
+          "imported_at": "2026-08-20T10:05:00.000Z",
+          "metadata_keys": ["entered_by_user"],
+          "supersedes_id": null,
+          "client_idempotency_key": "reported-dexa-1"
+        }
+      }
+    },
+    {
+      "name": "trusted Apple Health VO2 max is capped at medium",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "vo2max",
+        "value": 47.2,
+        "unit": "ml/kg/min",
+        "source": "apple_health",
+        "protocol": null,
+        "device": "Apple Watch",
+        "measured_at": "2026-08-30T06:30:00Z",
+        "imported_at": "2026-08-30T06:31:00Z",
+        "requested_confidence": "high",
+        "metadata": { "sample_uuid": "sample-1" },
+        "supersedes_id": null,
+        "client_idempotency_key": "healthkit-sample-1"
+      },
+      "expected": {
+        "status": "accepted",
+        "summary": {
+          "metric": "vo2_max",
+          "value": 47.2,
+          "unit": "ml_per_kg_min",
+          "source": "supported_device",
+          "confidence": "medium",
+          "protocol": null,
+          "device": "Apple Watch",
+          "measured_at": "2026-08-30T06:30:00.000Z",
+          "imported_at": "2026-08-30T06:31:00.000Z",
+          "metadata_keys": ["sample_uuid"],
+          "supersedes_id": null,
+          "client_idempotency_key": "healthkit-sample-1"
+        }
+      }
+    },
+    {
+      "name": "structured flexibility self report stays low confidence",
+      "admission": "user",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "flexibility_score",
+        "value": 72,
+        "unit": "score_0_100",
+        "source": "self_report",
+        "protocol": "apex_baseline_v1",
+        "device": null,
+        "measured_at": "2026-08-30T09:00:00Z",
+        "imported_at": "2026-08-30T09:00:01Z",
+        "requested_confidence": "medium",
+        "metadata": { "answer_version": 1 },
+        "supersedes_id": null,
+        "client_idempotency_key": "baseline-flex-1"
+      },
+      "expected": {
+        "status": "accepted",
+        "summary": {
+          "metric": "flexibility_score",
+          "value": 72,
+          "unit": "score_0_100",
+          "source": "structured_self_report",
+          "confidence": "low",
+          "protocol": "apex_baseline_v1",
+          "device": null,
+          "measured_at": "2026-08-30T09:00:00.000Z",
+          "imported_at": "2026-08-30T09:00:01.000Z",
+          "metadata_keys": ["answer_version"],
+          "supersedes_id": null,
+          "client_idempotency_key": "baseline-flex-1"
+        }
+      }
+    },
+    {
+      "name": "same owner and metric correction is accepted",
+      "admission": "user",
+      "predecessor": {
+        "id": "evidence-old",
+        "user_id": "owner-a",
+        "metric": "body_mass"
+      },
+      "input": {
+        "user_id": "owner-a",
+        "metric": "weight_kg",
+        "value": 82.3,
+        "unit": "kg",
+        "source": "external_result",
+        "protocol": "corrected entry",
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-30T10:00:00Z",
+        "requested_confidence": "low",
+        "metadata": { "correction_reason": "typing error" },
+        "supersedes_id": "evidence-old",
+        "client_idempotency_key": "weight-correction-1"
+      },
+      "expected": {
+        "status": "accepted",
+        "summary": {
+          "metric": "body_mass",
+          "value": 82.3,
+          "unit": "kg",
+          "source": "user_entered_external_result",
+          "confidence": "low",
+          "protocol": "corrected entry",
+          "device": null,
+          "measured_at": "2026-08-29T07:00:00.000Z",
+          "imported_at": "2026-08-30T10:00:00.000Z",
+          "metadata_keys": ["correction_reason"],
+          "supersedes_id": "evidence-old",
+          "client_idempotency_key": "weight-correction-1"
+        }
+      }
+    },
+    {
+      "name": "unsupported metric fails closed",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "genius_score",
+        "value": 99,
+        "unit": "score_0_100",
+        "source": "clinical_measurement",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-29T07:01:00Z",
+        "requested_confidence": "high",
+        "metadata": {},
+        "supersedes_id": null,
+        "client_idempotency_key": "bad-metric"
+      },
+      "expected": { "status": "rejected", "reason": "unsupported_metric" }
+    },
+    {
+      "name": "wrong unit or range fails closed",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "body_fat_percentage",
+        "value": 0,
+        "unit": "kg",
+        "source": "dexa_measurement",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-29T07:01:00Z",
+        "requested_confidence": "high",
+        "metadata": {},
+        "supersedes_id": null,
+        "client_idempotency_key": "bad-unit-range"
+      },
+      "expected": { "status": "rejected", "reason": "invalid_unit_or_range" }
+    },
+    {
+      "name": "metadata arrays fail closed",
+      "admission": "user",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "balance_score",
+        "value": 50,
+        "unit": "score_0_100",
+        "source": "self_report",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-29T07:01:00Z",
+        "requested_confidence": "low",
+        "metadata": [],
+        "supersedes_id": null,
+        "client_idempotency_key": "bad-metadata"
+      },
+      "expected": { "status": "rejected", "reason": "invalid_metadata" }
+    },
+    {
+      "name": "measurement over one day beyond import fails closed",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "resting_heart_rate",
+        "value": 56,
+        "unit": "bpm",
+        "source": "supported_device",
+        "protocol": null,
+        "device": "watch",
+        "measured_at": "2026-09-01T12:00:01Z",
+        "imported_at": "2026-08-30T12:00:00Z",
+        "requested_confidence": "medium",
+        "metadata": {},
+        "supersedes_id": null,
+        "client_idempotency_key": "future-sample"
+      },
+      "expected": { "status": "rejected", "reason": "invalid_timestamp" }
+    },
+    {
+      "name": "unknown source fails closed",
+      "admission": "trusted",
+      "input": {
+        "user_id": "owner-a",
+        "metric": "body_mass",
+        "value": 80,
+        "unit": "kg",
+        "source": "mystery_scale",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-29T07:01:00Z",
+        "requested_confidence": "medium",
+        "metadata": {},
+        "supersedes_id": null,
+        "client_idempotency_key": "unknown-source"
+      },
+      "expected": { "status": "rejected", "reason": "unsupported_source" }
+    },
+    {
+      "name": "cross-account correction fails closed",
+      "admission": "user",
+      "predecessor": {
+        "id": "evidence-other",
+        "user_id": "owner-b",
+        "metric": "body_mass"
+      },
+      "input": {
+        "user_id": "owner-a",
+        "metric": "body_mass",
+        "value": 80,
+        "unit": "kg",
+        "source": "external_result",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-29T07:01:00Z",
+        "requested_confidence": "low",
+        "metadata": {},
+        "supersedes_id": "evidence-other",
+        "client_idempotency_key": "cross-owner"
+      },
+      "expected": { "status": "rejected", "reason": "invalid_correction" }
+    },
+    {
+      "name": "different-metric correction fails closed",
+      "admission": "user",
+      "predecessor": {
+        "id": "evidence-vo2",
+        "user_id": "owner-a",
+        "metric": "vo2_max"
+      },
+      "input": {
+        "user_id": "owner-a",
+        "metric": "body_mass",
+        "value": 80,
+        "unit": "kg",
+        "source": "external_result",
+        "protocol": null,
+        "device": null,
+        "measured_at": "2026-08-29T07:00:00Z",
+        "imported_at": "2026-08-29T07:01:00Z",
+        "requested_confidence": "low",
+        "metadata": {},
+        "supersedes_id": "evidence-vo2",
+        "client_idempotency_key": "cross-metric"
+      },
+      "expected": { "status": "rejected", "reason": "invalid_correction" }
+    }
+  ]
+}

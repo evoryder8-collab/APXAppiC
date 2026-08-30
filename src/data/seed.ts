@@ -643,6 +643,7 @@ export function buildSeedData(userId: string, persona: PersonaSlug = 'constantin
     rpg_snapshots: [],
     deload_marks: [],
     health_metrics: [],
+    fitness_evidence: [],
     imported_activities: [],
   }
 }

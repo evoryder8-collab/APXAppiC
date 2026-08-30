@@ -18,7 +18,8 @@ import {
 import type { Session, SupabaseClient } from '@supabase/supabase-js'
 import { createSessionBoundSupabase, isLocalMode, supabase } from '../lib/supabase'
 import { clearAllLocal, loadCache, loadQueue, saveCache, saveQueue, type SyncOp } from '../lib/local'
-import type { AppData, DailyLog, RpgSnapshot, Settings } from '../lib/types'
+import type { AppData, DailyLog, FitnessEvidenceRecord, RpgSnapshot, Settings } from '../lib/types'
+import type { NormalizedFitnessEvidence } from '../lib/fitnessEvidence'
 import type { HydrationPreferences } from '../lib/hydrationLedger'
 import { inferredHydrationTargetMode } from '../lib/hydration'
 import { EMPTY_DATA } from '../lib/types'
@@ -126,6 +127,7 @@ interface StoreValue {
   setProfile: (patch: Partial<AppData['profile']> & object) => void
   setSettings: (patch: Partial<Settings>, options?: SyncWriteOptions) => void
   setHydrationPreferences: (patch: Partial<HydrationPreferences>) => void
+  recordFitnessEvidence: (evidence: NormalizedFitnessEvidence) => void
   toast: (message: string, kind?: 'error' | 'ok') => void
   toasts: Array<{ id: number; message: string; kind: 'error' | 'ok' }>
 }
@@ -229,6 +231,7 @@ function normalizeAppData(value: AppData): AppData {
     hydration_events: value.hydration_events ?? [],
     hydration_presets: value.hydration_presets ?? [],
     hydration_preferences: value.hydration_preferences ?? null,
+    fitness_evidence: value.fitness_evidence ?? [],
   }
 }
 
@@ -275,6 +278,29 @@ async function fetchAllOwnedRows(
       throw error
     }
     rows.push(...((page ?? []).filter((row) => row.user_id === userId) as Array<{ id: string; user_id: string }>))
+    if ((page?.length ?? 0) < pageSize) return rows
+  }
+}
+
+async function fetchAllFitnessEvidence(
+  client: SupabaseClient,
+  sessionUserId: string,
+): Promise<FitnessEvidenceRecord[]> {
+  const pageSize = 500
+  const rows: FitnessEvidenceRecord[] = []
+  for (let offset = 0; ; offset += pageSize) {
+    const { data: page, error } = await client
+      .from('fitness_evidence')
+      .select('*')
+      .eq('user_id', sessionUserId)
+      .order('measured_at', { ascending: false })
+      .order('id', { ascending: true })
+      .range(offset, offset + pageSize - 1)
+    if (error) {
+      if (isSchemaCacheError(error)) return rows
+      throw error
+    }
+    rows.push(...((page ?? []).filter((row) => row.user_id === sessionUserId) as FitnessEvidenceRecord[]))
     if ((page?.length ?? 0) < pageSize) return rows
   }
 }
@@ -384,15 +410,19 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
         let requestThrew = false
         inFlightOperationId.current = op.id
         try {
-          const result = op.type === 'upsert'
-            ? conflictTarget
-              ? await syncClient.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
-              : await syncClient.from(op.table).upsert(syncPayload)
-            : await syncClient
-                .from(op.table)
-                .delete()
-                .eq('id', (op.payload as Record<string, unknown>).id as string)
-                .eq('user_id', scope)
+          const result = op.type === 'rpc'
+            ? op.rpc_function
+              ? await syncClient.rpc(op.rpc_function, op.payload as Record<string, unknown>)
+              : { error: { message: 'Queued RPC is missing its function name' } }
+            : op.type === 'upsert'
+              ? conflictTarget
+                ? await syncClient.from(op.table).upsert(syncPayload, { onConflict: conflictTarget })
+                : await syncClient.from(op.table).upsert(syncPayload)
+              : await syncClient
+                  .from(op.table)
+                  .delete()
+                  .eq('id', (op.payload as Record<string, unknown>).id as string)
+                  .eq('user_id', scope)
           error = result.error
         } catch (requestError) {
           requestThrew = true
@@ -446,7 +476,13 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   }, [toast])
 
   const enqueue = useCallback(
-    (op: { table: string; type: 'upsert' | 'delete'; payload: object; sync_group?: string }) => {
+    (op: {
+      table: string
+      type: 'upsert' | 'delete' | 'rpc'
+      payload: object
+      rpc_function?: string
+      sync_group?: string
+    }) => {
       if (!supabase) return
       const queue = loadQueue(scopeRef.current)
       const rawPayload = op.payload as Record<string, unknown> | Array<Record<string, unknown>>
@@ -577,6 +613,59 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     enqueue({ table: 'hydration_preferences', type: 'upsert', payload: row })
   }, [enqueue, persist])
 
+  const recordFitnessEvidence = useCallback((evidence: NormalizedFitnessEvidence) => {
+    const scope = scopeRef.current
+    if (evidence.user_id !== scope) throw new Error('fitness_evidence_account_mismatch')
+    if (
+      evidence.confidence !== 'low'
+      || !['structured_self_report', 'user_entered_external_result'].includes(evidence.source)
+    ) {
+      throw new Error('fitness_evidence_trusted_source_required')
+    }
+
+    if (!supabase) {
+      const localRecord: FitnessEvidenceRecord = {
+        id: crypto.randomUUID(),
+        user_id: evidence.user_id,
+        metric: evidence.metric,
+        value: evidence.value,
+        unit: evidence.unit,
+        source: evidence.source,
+        protocol: evidence.protocol,
+        device: evidence.device,
+        measured_at: evidence.measured_at,
+        imported_at: evidence.imported_at,
+        confidence: evidence.confidence,
+        metadata: evidence.metadata,
+        supersedes_id: evidence.supersedes_id,
+        client_idempotency_key: evidence.client_idempotency_key,
+      }
+      const current = dataRef.current
+      const retained = current.fitness_evidence.filter((row) =>
+        row.client_idempotency_key !== localRecord.client_idempotency_key)
+      persist({ ...current, fitness_evidence: [localRecord, ...retained] })
+      return
+    }
+
+    enqueue({
+      table: 'fitness_evidence',
+      type: 'rpc',
+      rpc_function: 'record_user_fitness_evidence',
+      payload: {
+        p_metric: evidence.metric,
+        p_value: evidence.value,
+        p_unit: evidence.unit,
+        p_measured_at: evidence.measured_at,
+        p_client_idempotency_key: evidence.client_idempotency_key,
+        p_source: evidence.source,
+        p_protocol: evidence.protocol,
+        p_device: evidence.device,
+        p_metadata: evidence.metadata,
+        p_supersedes_id: evidence.supersedes_id,
+      },
+    })
+  }, [enqueue, persist])
+
   /* ---------- auth + initial fetch ---------- */
   const adoptSession = useCallback((nextSession: Session | null) => {
     /* Finish the previous account's cache write before changing the scope. */
@@ -674,11 +763,12 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const revision = mutationRevision.current
     const pendingBefore = loadQueue(sessionUserId)
     try {
-      const [profileRes, settingsRes, hydrationPreferencesRes, catalogRes, listRows] = await Promise.all([
+      const [profileRes, settingsRes, hydrationPreferencesRes, catalogRes, evidenceRows, listRows] = await Promise.all([
         sb.from('profile').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('settings').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('hydration_preferences').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('activity_types').select('*'),
+        fetchAllFitnessEvidence(sb, sessionUserId),
         Promise.all(LIST_TABLES.map((table) => fetchAllOwnedRows(sb, table, sessionUserId))),
       ])
       if (scopeRef.current !== sessionUserId || fetchGeneration.current !== generation) return
@@ -714,6 +804,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
           ? catalogRes.data.map((row) => normalizeActivityType(row as Parameters<typeof normalizeActivityType>[0]))
           : ACTIVITY_CATALOG,
         rpg_snapshots: dataRef.current.rpg_snapshots,
+        fitness_evidence: evidenceRows.filter((row) => row.user_id === sessionUserId),
       }
       LIST_TABLES.forEach((table, index) => {
         const remoteRows = (listRows[index] ?? [])
@@ -880,7 +971,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       .on('postgres_changes', { event: '*', schema: 'public' }, (payload) => {
         if (scopeRef.current !== session.user.id) return
         const table = payload.table
-        if (table !== 'profile' && table !== 'settings' && !isListTable(table)) return
+        if (table !== 'profile' && table !== 'settings' && table !== 'fitness_evidence' && !isListTable(table)) return
         const cur = dataRef.current
         if (table === 'profile') {
           if (payload.new) {
@@ -907,6 +998,25 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
               ? { ...cur.profile, custom_bmr: settings.addons.custom_bmr ?? null }
               : cur.profile
             persistSilent({ ...cur, settings, profile })
+          }
+          return
+        }
+        if (table === 'fitness_evidence') {
+          const list = cur.fitness_evidence
+          if (payload.eventType === 'DELETE') {
+            const old = payload.old as { id?: string; user_id?: string }
+            if (old.user_id && old.user_id !== session.user.id) return
+            if (!old.id || !list.some((row) => row.id === old.id)) return
+            persistSilent({ ...cur, fitness_evidence: list.filter((row) => row.id !== old.id) })
+          } else {
+            const incoming = payload.new as FitnessEvidenceRecord
+            if (incoming.user_id !== session.user.id) return
+            const index = list.findIndex((row) => row.id === incoming.id)
+            if (index >= 0 && recordsEqual(list[index], incoming)) return
+            const fitnessEvidence = index >= 0
+              ? list.map((row) => row.id === incoming.id ? incoming : row)
+              : [incoming, ...list]
+            persistSilent({ ...cur, fitness_evidence: fitnessEvidence })
           }
           return
         }
@@ -1034,6 +1144,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setProfile,
     setSettings,
     setHydrationPreferences,
+    recordFitnessEvidence,
     toast,
     toasts,
   }), [
@@ -1042,6 +1153,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     engine.synergies,
     ready,
     remove,
+    recordFitnessEvidence,
     session,
     setProfile,
     setSettings,

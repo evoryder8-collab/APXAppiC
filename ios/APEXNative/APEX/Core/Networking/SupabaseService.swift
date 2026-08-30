@@ -102,7 +102,7 @@ actor SupabaseService {
         }
     }
 
-    private func optionalHydrationRows<Value: Decodable & Sendable>(
+    private func optionalSchemaRows<Value: Decodable & Sendable>(
         _ load: @Sendable () async throws -> [Value]
     ) async throws -> [Value] {
         do {
@@ -143,7 +143,7 @@ actor SupabaseService {
             "deload_marks", "activity_logs", "daily_logs", "hydration_events", "hydration_presets",
             "hydration_preferences", "events", "food_preferences",
             "meal_presets", "meal_preset_items", "logged_meals", "logged_food_entries",
-            "rpg_snapshots", "health_metrics", "imported_activities", "progress_photos",
+            "rpg_snapshots", "health_metrics", "fitness_evidence", "imported_activities", "progress_photos",
             "orbit_routes", "orbit_runs", "orbit_shoes", "orbit_segments", "orbit_posters",
             "orbit_inductions", "orbit_campaigns", "orbit_campaign_sessions",
         ].map { RealtimeSubscription(table: $0, filterColumn: "user_id", filterValue: userID) }
@@ -358,13 +358,13 @@ actor SupabaseService {
         async let activityTypes: [ActivityType] = client.from("activity_types").select().execute().value
         async let activityLogs: [ActivityLog] = client.from("activity_logs").select().order("date", ascending: false).limit(360).execute().value
         async let dailyLogs: [DailyLog] = client.from("daily_logs").select().order("date", ascending: false).limit(90).execute().value
-        async let hydrationEvents: [HydrationEvent] = optionalHydrationRows {
+        async let hydrationEvents: [HydrationEvent] = optionalSchemaRows {
             try await client.from("hydration_events").select().order("occurred_at", ascending: false).limit(1000).execute().value
         }
-        async let hydrationPresets: [HydrationPreset] = optionalHydrationRows {
+        async let hydrationPresets: [HydrationPreset] = optionalSchemaRows {
             try await client.from("hydration_presets").select().order("sort_order").execute().value
         }
-        async let hydrationPreferences: [HydrationAccountPreferences] = optionalHydrationRows {
+        async let hydrationPreferences: [HydrationAccountPreferences] = optionalSchemaRows {
             try await client.from("hydration_preferences").select().limit(1).execute().value
         }
         async let events: [EventRecord] = client.from("events").select().order("start_date", ascending: false).limit(180).execute().value
@@ -376,6 +376,17 @@ actor SupabaseService {
         async let loggedFoodEntries: [LoggedFoodEntry] = client.from("logged_food_entries").select().order("created_at", ascending: false).limit(1000).execute().value
         async let snapshots: [RPGSnapshot] = client.from("rpg_snapshots").select().order("date", ascending: false).limit(180).execute().value
         async let healthMetrics: [HealthMetric] = client.from("health_metrics").select().order("date", ascending: false).limit(180).execute().value
+        async let fitnessEvidence: [FitnessEvidenceRecord] = optionalSchemaRows {
+            try await Self.collectPaginatedRows { range in
+                try await client
+                    .from("fitness_evidence").select()
+                    .order("measured_at", ascending: false)
+                    .order("id", ascending: true)
+                    .range(from: range.lowerBound, to: range.upperBound)
+                    .execute()
+                    .value
+            }
+        }
         async let importedActivities: [ImportedActivity] = Self.collectPaginatedRows { range in
             try await client
                 .from("imported_activities")
@@ -424,6 +435,7 @@ actor SupabaseService {
             loggedFoodEntries: loggedFoodEntries,
             snapshots: snapshots,
             healthMetrics: healthMetrics,
+            fitnessEvidence: fitnessEvidence,
             importedActivities: importedActivities,
             progressPhotos: progressPhotos,
             orbitRoutes: orbitRoutes,
@@ -486,6 +498,22 @@ actor SupabaseService {
         assertRemoteMutationAllowed()
         guard let client else { throw APEXServiceError.configurationMissing }
         try await client.from(table).delete().eq("id", value: id.uuidString).execute()
+    }
+
+    func recordUserFitnessEvidence(
+        _ evidence: NormalizedFitnessEvidence
+    ) async throws -> FitnessEvidenceRecord {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        guard evidence.confidence == .low,
+              evidence.source == .structuredSelfReport
+                || evidence.source == .userEnteredExternalResult else {
+            throw FitnessEvidenceRecordingError.trustedSourceRequiresIngestion
+        }
+        return try await client
+            .rpc("record_user_fitness_evidence", params: RecordUserFitnessEvidenceParameters(evidence))
+            .execute()
+            .value
     }
 
     func replay(_ operation: OfflineOperation) async throws {

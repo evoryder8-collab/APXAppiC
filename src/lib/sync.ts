@@ -21,7 +21,8 @@ const DAILY_LOG_INTEGER_FIELDS = [
 
 export interface PendingSyncOperation {
   table: string
-  type: 'upsert' | 'delete'
+  type: 'upsert' | 'delete' | 'rpc'
+  rpc_function?: string
   payload: Record<string, unknown> | Array<Record<string, unknown>>
   /** Local-only transaction identity. It is never sent as a database field. */
   sync_group?: string

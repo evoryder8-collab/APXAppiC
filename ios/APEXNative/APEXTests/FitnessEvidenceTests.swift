@@ -1,0 +1,108 @@
+import XCTest
+@testable import APEX
+
+final class FitnessEvidenceTests: XCTestCase {
+    func testSharedNormalizationScenarios() throws {
+        let fixture: FitnessEvidenceNormalizationFixture = try decodeFixture()
+
+        for scenario in fixture.scenarios {
+            let result = FitnessEvidenceNormalizer.normalize(
+                scenario.input,
+                admission: scenario.admission,
+                referenceNow: fixture.referenceNow,
+                predecessor: scenario.predecessor
+            )
+            XCTAssertEqual(
+                FitnessEvidenceNormalizer.summarize(result),
+                scenario.expected,
+                "Scenario failed: \(scenario.name)"
+            )
+        }
+    }
+
+    func testUserAdmissionNeverManufacturesTrustedEvidence() throws {
+        let fixture: FitnessEvidenceNormalizationFixture = try decodeFixture()
+        let trustedSources: Set<FitnessEvidenceSource> = [
+            .indirectCalorimetry,
+            .dexaMeasurement,
+            .dexaDerivedEstimate,
+            .clinicalMeasurement,
+            .supportedDevice,
+            .guidedAPEXFieldTest
+        ]
+
+        for scenario in fixture.scenarios where scenario.admission == .user {
+            let result = FitnessEvidenceNormalizer.normalize(
+                scenario.input,
+                admission: scenario.admission,
+                referenceNow: fixture.referenceNow,
+                predecessor: scenario.predecessor
+            )
+            guard case .accepted(let evidence) = result else { continue }
+            XCTAssertFalse(trustedSources.contains(evidence.source), "Scenario: \(scenario.name)")
+            XCTAssertEqual(evidence.confidence, .low, "Scenario: \(scenario.name)")
+        }
+    }
+
+    func testDatabaseRecordAndLegacyDashboardCacheDecode() throws {
+        let recordData = Data("""
+        {
+          "id":"B32B9B53-67FA-4DA5-82CB-B572F739FAFA",
+          "user_id":"FC4040CC-863F-444F-A568-AF71DAD83EC4",
+          "metric":"vo2_max",
+          "value":47.2,
+          "unit":"ml_per_kg_min",
+          "source":"supported_device",
+          "protocol":null,
+          "device":"Apple Watch",
+          "measured_at":"2026-08-30T06:30:00Z",
+          "imported_at":"2026-08-30T06:31:00Z",
+          "confidence":"medium",
+          "metadata":{"sample_uuid":"sample-1"},
+          "supersedes_id":null,
+          "client_idempotency_key":"healthkit-sample-1"
+        }
+        """.utf8)
+        let record = try JSONDecoder().decode(FitnessEvidenceRecord.self, from: recordData)
+        XCTAssertEqual(record.metric, .vo2Max)
+        XCTAssertEqual(record.source, .supportedDevice)
+        XCTAssertEqual(record.metadata["sample_uuid"], .string("sample-1"))
+
+        let encoder = JSONEncoder()
+        encoder.dateEncodingStrategy = .iso8601
+        let encodedDashboard = try encoder.encode(DashboardData.empty)
+        var legacyObject = try XCTUnwrap(
+            JSONSerialization.jsonObject(with: encodedDashboard) as? [String: Any]
+        )
+        legacyObject.removeValue(forKey: "fitnessEvidence")
+        let legacyData = try JSONSerialization.data(withJSONObject: legacyObject)
+        let decoder = JSONDecoder()
+        decoder.dateDecodingStrategy = .iso8601
+        let legacy = try decoder.decode(DashboardData.self, from: legacyData)
+        XCTAssertTrue((legacy.fitnessEvidence ?? []).isEmpty)
+    }
+
+    func testRealtimeAndOfflineRPCContractsRemainAccountScoped() throws {
+        let owner = UUID(uuidString: "FC4040CC-863F-444F-A568-AF71DAD83EC4")!
+        let subscriptions = SupabaseService.realtimeSubscriptions(userID: owner)
+        let evidence = try XCTUnwrap(subscriptions.first { $0.table == "fitness_evidence" })
+        XCTAssertEqual(evidence.filterColumn, "user_id")
+        XCTAssertEqual(evidence.filterValue, owner)
+
+        let operation = try OfflineOperation.rpc(
+            "record_user_fitness_evidence",
+            params: ["p_client_idempotency_key": "baseline-flex-1"]
+        )
+        XCTAssertEqual(operation.kind, .rpc)
+        XCTAssertEqual(operation.rpcFunction, "record_user_fitness_evidence")
+        XCTAssertEqual(operation.table, "")
+    }
+
+    private func decodeFixture<T: Decodable>() throws -> T {
+        let url = try XCTUnwrap(Bundle(for: Self.self).url(
+            forResource: "fitness-evidence-normalization",
+            withExtension: "json"
+        ))
+        return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+    }
+}

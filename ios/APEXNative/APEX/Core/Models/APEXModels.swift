@@ -1445,6 +1445,32 @@ struct HealthMetric: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+struct FitnessEvidenceRecord: Codable, Identifiable, Hashable, Sendable {
+    let id: UUID
+    let userID: UUID
+    let metric: FitnessEvidenceMetric
+    let value: Double
+    let unit: String
+    let source: FitnessEvidenceSource
+    let `protocol`: String?
+    let device: String?
+    let measuredAt: String
+    let importedAt: String
+    let confidence: FitnessEvidenceConfidence
+    let metadata: [String: JSONValue]
+    let supersedesID: UUID?
+    let clientIdempotencyKey: String
+
+    enum CodingKeys: String, CodingKey {
+        case id, metric, value, unit, source, `protocol`, device, confidence, metadata
+        case userID = "user_id"
+        case measuredAt = "measured_at"
+        case importedAt = "imported_at"
+        case supersedesID = "supersedes_id"
+        case clientIdempotencyKey = "client_idempotency_key"
+    }
+}
+
 struct ImportedActivity: Codable, Identifiable, Hashable, Sendable {
     let id: UUID
     let userID: UUID
@@ -1865,6 +1891,8 @@ struct DashboardData: Codable, Sendable {
     var loggedFoodEntries: [LoggedFoodEntry] = []
     var snapshots: [RPGSnapshot] = []
     var healthMetrics: [HealthMetric] = []
+    // Optional keeps dashboards cached before the evidence ledger decodable.
+    var fitnessEvidence: [FitnessEvidenceRecord]? = []
     var importedActivities: [ImportedActivity] = []
     var progressPhotos: [ProgressPhoto] = []
     var orbitRoutes: [OrbitRouteRecord] = []
