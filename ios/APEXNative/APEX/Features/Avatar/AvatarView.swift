@@ -2,9 +2,10 @@ import Charts
 import SwiftUI
 
 struct AvatarView: View {
+    let onCalibrateBaseline: () -> Void
+
     @State private var engineExpanded = false
     @State private var showEvolutionInfo = false
-    @State private var showCalibration = false
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
     @State private var trendDays = 30
@@ -77,12 +78,6 @@ struct AvatarView: View {
         }
         .navigationTitle(session.profile?.displayName ?? language.text("Avatar"))
         .navigationBarTitleDisplayMode(.inline)
-        .sheet(isPresented: $showCalibration) {
-            BaselineCalibrationSheet()
-                .presentationDetents([.medium, .large])
-                .presentationDragIndicator(.visible)
-                .presentationContentInteraction(.scrolls)
-        }
         .onAppear {
             loadJointCheck()
         }
@@ -102,7 +97,7 @@ struct AvatarView: View {
         HStack {
             Spacer()
             Button {
-                showCalibration = true
+                onCalibrateBaseline()
             } label: {
                 Label(language.text("Edit"), systemImage: "slider.horizontal.3")
                     .font(APEXFont.body(13, weight: .bold))

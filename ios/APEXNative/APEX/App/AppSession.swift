@@ -4474,6 +4474,32 @@ final class AppSession {
         try await recordFitnessEvidence(evidence)
     }
 
+    func saveManualDEXACalibrationResult(
+        bodyFatPercentage: Double?,
+        restingMetabolicRate: Double?,
+        declaredSource: String,
+        measuredAt: Date
+    ) async throws -> [NormalizedFitnessEvidence] {
+        guard let ownerID = verifiedPersistenceOwnerID() else {
+            throw BaselineCalibrationSaveError.missingAccount
+        }
+        let importedAt = Date().ISO8601Format()
+        guard case .accepted(let evidence) = BaselineCalibrationAssessment.manualDEXAEvidence(
+            userID: ownerID.uuidString,
+            bodyFatPercentage: bodyFatPercentage,
+            restingMetabolicRate: restingMetabolicRate,
+            declaredSource: declaredSource,
+            measuredAt: measuredAt.ISO8601Format(),
+            importedAt: importedAt
+        ) else {
+            throw BaselineCalibrationSaveError.invalidEvidence
+        }
+        for item in evidence {
+            try await recordFitnessEvidence(item)
+        }
+        return evidence
+    }
+
     func connectHealthForBaselineCalibration() async -> Bool {
         guard verifiedPersistenceOwnerID() != nil else { return false }
         guard let snapshot = await HealthKitManager.shared.requestAccessAndImport() else {

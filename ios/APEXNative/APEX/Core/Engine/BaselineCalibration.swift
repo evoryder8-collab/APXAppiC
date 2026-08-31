@@ -103,11 +103,154 @@ struct BaselineCalibrationFixture: Codable, Sendable {
     }
 }
 
+struct BaselineCalibrationQuestionOption: Sendable, Equatable {
+    let answer: BaselineCalibrationAnswer
+    let title: String
+}
+
+struct BaselineCalibrationQuestion: Sendable, Equatable, Identifiable {
+    let id: String
+    let domain: OnboardingMovementDomain
+    let answerIndex: Int
+    let sectionTitle: String
+    let prompt: String
+    let options: [BaselineCalibrationQuestionOption]
+}
+
+enum BaselineCalibrationQuestionBank {
+    private static func question(
+        _ id: String,
+        _ domain: OnboardingMovementDomain,
+        _ answerIndex: Int,
+        _ sectionTitle: String,
+        _ prompt: String,
+        _ titles: [String]
+    ) -> BaselineCalibrationQuestion {
+        BaselineCalibrationQuestion(
+            id: id,
+            domain: domain,
+            answerIndex: answerIndex,
+            sectionTitle: sectionTitle,
+            prompt: prompt,
+            options: zip(
+                [BaselineCalibrationAnswer.foundation, .developing, .capable, .strong],
+                titles
+            ).map(BaselineCalibrationQuestionOption.init)
+        )
+    }
+
+    static let all: [BaselineCalibrationQuestion] = [
+        question("stamina.duration", .cardiorespiratory, 0, "Stamina",
+                 "How long can you keep up a brisk walk or easy cycle without needing to stop?",
+                 ["Less than 5 minutes", "About 5–15 minutes", "About 20–40 minutes", "More than 40 minutes comfortably"]),
+        question("stamina.stairs", .cardiorespiratory, 1, "Stamina",
+                 "What happens when you climb two flights of stairs at your usual pace?",
+                 ["I need to stop or struggle", "I finish but need time to recover", "I finish with controlled breathing", "I could comfortably keep climbing"]),
+        question("stamina.frequency", .cardiorespiratory, 2, "Stamina",
+                 "In a typical week, how often do you do purposeful cardio?",
+                 ["Rarely or never", "About once", "Two or three times", "Four or more times"]),
+        question("upper.push", .upperStrength, 0, "Upper body",
+                 "Which best matches a recent, pain-free pushing effort?",
+                 ["A wall push feels challenging", "I can do inclined push-ups", "I can do floor push-ups with control", "I train challenging presses regularly"]),
+        question("upper.pull", .upperStrength, 1, "Upper body",
+                 "Which best matches a recent, pain-free pulling effort?",
+                 ["I have not done pulling work", "I can do light supported rows", "I can do challenging rows with control", "I can do pull-ups or heavy pulls"]),
+        question("upper.frequency", .upperStrength, 2, "Upper body",
+                 "How often do you train your upper body with gradually harder work?",
+                 ["Rarely or never", "A few times per month", "Once or twice per week", "Three or more times per week"]),
+        question("lower.capacity", .lowerStrength, 0, "Lower body",
+                 "How do repeated chair stands or stairs usually feel?",
+                 ["Difficult or I need support", "Manageable but tiring", "Comfortable and controlled", "Easy for many repetitions"]),
+        question("lower.range", .lowerStrength, 1, "Lower body",
+                 "Which best matches your recent, pain-free squat or lunge range?",
+                 ["Limited or unsteady", "Controlled to chair height", "Deep and controlled with body weight", "Challenging full-range reps with load"]),
+        question("lower.frequency", .lowerStrength, 2, "Lower body",
+                 "How often do you train your lower body with gradually harder work?",
+                 ["Rarely or never", "A few times per month", "Once or twice per week", "Three or more times per week"]),
+        question("mobility.hinge", .mobility, 0, "Mobility",
+                 "With straight knees, how far can you comfortably reach toward the floor?",
+                 ["My hands stay above my knees", "My fingertips reach my shins", "My fingertips reach my toes", "My palms reach the floor comfortably"]),
+        question("mobility.ankle", .mobility, 1, "Mobility",
+                 "Keeping your heel down, how far can your knee move past your toes?",
+                 ["It does not reach my toes", "It reaches my toes", "It moves a little past my toes", "I control deep ankle range under load"]),
+        question("mobility.shoulder", .mobility, 2, "Mobility",
+                 "When you raise both arms overhead, what feels comfortable?",
+                 ["My arms stop in front of my head", "My arms reach near my ears with effort", "My arms align with my ears comfortably", "I control full overhead range under load"]),
+    ]
+
+    static let ids = Set(all.map(\.id))
+}
+
 struct BaselineCalibrationDraft: Codable, Sendable, Equatable {
     var step: Int
     var answers: BaselineCalibrationAnswers
+    var answeredQuestionIDs: Set<String>
 
-    static let empty = BaselineCalibrationDraft(step: 0, answers: .empty)
+    init(
+        step: Int,
+        answers: BaselineCalibrationAnswers,
+        answeredQuestionIDs: Set<String> = []
+    ) {
+        self.step = step
+        self.answers = answers
+        self.answeredQuestionIDs = answeredQuestionIDs
+    }
+
+    private enum CodingKeys: String, CodingKey {
+        case step, answers
+        case answeredQuestionIDs = "answered_question_ids"
+    }
+
+    init(from decoder: Decoder) throws {
+        let container = try decoder.container(keyedBy: CodingKeys.self)
+        let storedStep = try container.decode(Int.self, forKey: .step)
+        let decodedAnswers = try container.decode(BaselineCalibrationAnswers.self, forKey: .answers)
+        let decodedIDs: Set<String>
+        let decodedStep: Int
+        if let storedIDs = try container.decodeIfPresent(Set<String>.self, forKey: .answeredQuestionIDs) {
+            decodedIDs = storedIDs.intersection(BaselineCalibrationQuestionBank.ids)
+            decodedStep = storedStep
+        } else {
+            decodedIDs = Set(BaselineCalibrationQuestionBank.all.compactMap { question in
+                decodedAnswers.values(for: question.domain)[question.answerIndex] == BaselineCalibrationAnswer.notTested.rawValue
+                    ? nil
+                    : question.id
+            })
+            let firstUnanswered = BaselineCalibrationQuestionBank.all.firstIndex {
+                !decodedIDs.contains($0.id)
+            }
+            decodedStep = storedStep == 0 ? 0 : (firstUnanswered.map { $0 + 1 } ?? 13)
+        }
+        step = decodedStep
+        answers = decodedAnswers
+        answeredQuestionIDs = decodedIDs
+    }
+
+    func encode(to encoder: Encoder) throws {
+        var container = encoder.container(keyedBy: CodingKeys.self)
+        try container.encode(step, forKey: .step)
+        try container.encode(answers, forKey: .answers)
+        try container.encode(answeredQuestionIDs, forKey: .answeredQuestionIDs)
+    }
+
+    func isAnswered(_ questionID: String) -> Bool {
+        answeredQuestionIDs.contains(questionID)
+    }
+
+    mutating func setAnswer(
+        _ answer: BaselineCalibrationAnswer,
+        for question: BaselineCalibrationQuestion
+    ) {
+        switch question.domain {
+        case .cardiorespiratory: answers.cardiorespiratory[question.answerIndex] = answer.rawValue
+        case .upperStrength: answers.upperStrength[question.answerIndex] = answer.rawValue
+        case .lowerStrength: answers.lowerStrength[question.answerIndex] = answer.rawValue
+        case .mobility: answers.mobility[question.answerIndex] = answer.rawValue
+        }
+        answeredQuestionIDs.insert(question.id)
+    }
+
+    static let empty = BaselineCalibrationDraft(step: 0, answers: .empty, answeredQuestionIDs: [])
 }
 
 enum BaselineCalibrationAuthority: String, Sendable {
@@ -126,8 +269,9 @@ enum BaselineCalibrationDraftStore {
     static func load(userID: UUID, defaults: UserDefaults = .standard) -> BaselineCalibrationDraft? {
         guard let data = defaults.data(forKey: key(userID: userID)),
               let draft = try? JSONDecoder().decode(BaselineCalibrationDraft.self, from: data),
-              (0...8).contains(draft.step),
-              draft.answers.isValidDraft else { return nil }
+              (0...13).contains(draft.step),
+              draft.answers.isValidDraft,
+              draft.answeredQuestionIDs.isSubset(of: BaselineCalibrationQuestionBank.ids) else { return nil }
         return draft
     }
 
@@ -322,6 +466,38 @@ enum BaselineCalibrationAssessment {
         )
     }
 
+    static func manualDEXAEvidence(
+        userID: String,
+        bodyFatPercentage: Double?,
+        restingMetabolicRate: Double?,
+        declaredSource: String,
+        measuredAt: String,
+        importedAt: String
+    ) -> FitnessEvidenceBatchNormalizationResult {
+        let requested: [(FitnessEvidenceMetric, Double, String)] = [
+            bodyFatPercentage.map { (.bodyFatPercentage, $0, "percent") },
+            restingMetabolicRate.map { (.restingMetabolicRate, $0, "kcal_per_day") },
+        ].compactMap { $0 }
+        guard !requested.isEmpty else { return .rejected("missing_value") }
+
+        var evidence: [NormalizedFitnessEvidence] = []
+        for (metric, value, unit) in requested {
+            guard case .accepted(let normalized) = manualEvidence(
+                userID: userID,
+                metric: metric,
+                value: value,
+                unit: unit,
+                declaredSource: declaredSource,
+                measuredAt: measuredAt,
+                importedAt: importedAt
+            ) else {
+                return .rejected("invalid_unit_or_range")
+            }
+            evidence.append(normalized)
+        }
+        return .accepted(evidence)
+    }
+
     private static func stableHash(_ value: String) -> String {
         var hash: UInt32 = 2_166_136_261
         for byte in value.utf8 {
@@ -330,4 +506,9 @@ enum BaselineCalibrationAssessment {
         }
         return String(format: "%08x", hash)
     }
+}
+
+enum FitnessEvidenceBatchNormalizationResult: Sendable, Equatable {
+    case accepted([NormalizedFitnessEvidence])
+    case rejected(String)
 }

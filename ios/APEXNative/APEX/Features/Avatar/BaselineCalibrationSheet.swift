@@ -1,28 +1,28 @@
 import SwiftUI
+import UIKit
 
 struct BaselineCalibrationSheet: View {
-    private enum Route {
-        case home, questions, recentResult, health
-    }
-
-    private enum SaveState {
-        case idle, saving, saved, failed
-    }
+    private enum Route { case home, questions, recentResult, health }
+    private enum ResultRoute { case chooser, dexa, other }
+    private enum SaveState { case idle, saving, saved, failed }
+    private enum ResultField { case value, bodyFat, restingEnergy, source }
 
     @Environment(AppSession.self) private var session
     @Environment(\.dismiss) private var dismiss
     @State private var language = LanguageState.shared
     @State private var route: Route = .home
+    @State private var resultRoute: ResultRoute = .chooser
     @State private var draft = BaselineCalibrationDraft.empty
     @State private var saveState: SaveState = .idle
-    @State private var resultMetric = ManualCalibrationMetric.bodyFat
+    @State private var resultMetric = ManualCalibrationMetric.restingEnergy
     @State private var resultValue = ""
+    @State private var dxaBodyFat = ""
+    @State private var dxaRestingEnergy = ""
     @State private var resultSource = ""
     @State private var resultDate = Date.now
+    @State private var savedResultSummaries: [String] = []
     @State private var healthStatus: Bool?
     @FocusState private var focusedField: ResultField?
-
-    private enum ResultField { case value, source }
 
     var body: some View {
         NavigationStack {
@@ -39,27 +39,22 @@ struct BaselineCalibrationSheet: View {
                 .padding(.top, 12)
                 .padding(.bottom, 36)
             }
-            .background(
-                LinearGradient(
-                    colors: [Color.white, APEXColor.green.opacity(0.06), APEXColor.violet.opacity(0.05)],
-                    startPoint: .topLeading,
-                    endPoint: .bottomTrailing
-                )
-                .ignoresSafeArea()
-            )
+            .background(background)
             .navigationTitle(language.text("Calibrate my baseline"))
             .navigationBarTitleDisplayMode(.inline)
             .toolbar {
                 ToolbarItem(placement: .topBarLeading) {
                     if route != .home {
-                        Button(language.text("Back")) {
-                            focusedField = nil
-                            route = .home
-                        }
+                        Button(language.text("Back")) { navigateBack() }
                     }
                 }
                 ToolbarItem(placement: .topBarTrailing) {
                     Button(language.text("Close")) { dismiss() }
+                }
+                ToolbarItemGroup(placement: .keyboard) {
+                    Spacer()
+                    Button(language.text("Done")) { focusedField = nil }
+                        .fontWeight(.semibold)
                 }
             }
         }
@@ -67,22 +62,50 @@ struct BaselineCalibrationSheet: View {
         .interactiveDismissDisabled(saveState == .saving)
     }
 
+    private var background: some View {
+        ZStack {
+            Color.white
+            LinearGradient(
+                colors: [APEXColor.green.opacity(0.08), .clear, APEXColor.violet.opacity(0.08)],
+                startPoint: .topLeading,
+                endPoint: .bottomTrailing
+            )
+        }
+        .ignoresSafeArea()
+    }
+
     private var home: some View {
         VStack(alignment: .leading, spacing: 16) {
-            VStack(alignment: .leading, spacing: 7) {
+            VStack(alignment: .leading, spacing: 8) {
+                Text(language.text("A clearer starting point"))
+                    .font(APEXFont.mono(10, weight: .bold))
+                    .tracking(1.8)
+                    .foregroundStyle(APEXColor.violet)
                 Text(language.text("Sharpen your map"))
-                    .font(APEXFont.display(30))
+                    .font(APEXFont.display(31))
+                    .fixedSize(horizontal: false, vertical: true)
                 Text(language.text("Add better evidence without turning fitness into a test you can fail."))
                     .font(APEXFont.body(14, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
             }
+            .padding(19)
+            .frame(maxWidth: .infinity, alignment: .leading)
+            .background(
+                LinearGradient(
+                    colors: [APEXColor.green.opacity(0.12), APEXColor.violet.opacity(0.10), .white.opacity(0.72)],
+                    startPoint: .topLeading,
+                    endPoint: .bottomTrailing
+                ),
+                in: RoundedRectangle(cornerRadius: 26, style: .continuous)
+            )
 
             authorityNotice
 
             calibrationRoute(
                 title: "Sharpen with questions",
-                detail: "Twelve observable prompts in four short sections.",
+                detail: "12 clear questions · about 3 minutes",
                 icon: "slider.horizontal.3",
                 tint: APEXColor.green,
                 identifier: "calibration.route.questions"
@@ -102,19 +125,23 @@ struct BaselineCalibrationSheet: View {
 
             calibrationRoute(
                 title: "Add a recent result",
-                detail: "Keep a DEXA, metabolic, VO₂, heart-rate or waist result with its source.",
+                detail: "Lab & DEXA results · about 1 minute",
                 icon: "doc.text.magnifyingglass",
                 tint: APEXColor.violet,
                 identifier: "calibration.route.result"
-            ) { route = .recentResult }
+            ) {
+                resetResultFlow()
+                route = .recentResult
+            }
 
-            if draft.step > 1 {
+            if !draft.answeredQuestionIDs.isEmpty {
                 Label(
                     language.text("Your question progress is saved privately on this device."),
                     systemImage: "checkmark.circle.fill"
                 )
                 .font(APEXFont.body(12, weight: .semibold))
                 .foregroundStyle(APEXColor.green)
+                .fixedSize(horizontal: false, vertical: true)
             }
         }
     }
@@ -140,54 +167,99 @@ struct BaselineCalibrationSheet: View {
 
     @ViewBuilder
     private var questions: some View {
-        if draft.step >= 5 {
+        if draft.step > BaselineCalibrationQuestionBank.all.count {
             review
         } else {
-            let domain = currentDomain
-            VStack(alignment: .leading, spacing: 16) {
-                ProgressView(value: Double(draft.step), total: 4)
-                    .tint(APEXColor.green)
-                    .accessibilityLabel(language.text("Calibration progress"))
-                    .accessibilityValue("\(draft.step) / 4")
+            questionPage
+        }
+    }
 
-                Text(language.text(domain.title))
-                    .font(APEXFont.display(29))
-                Text(language.text("Answer from recent, pain-free experience. Do not test a movement now. Choose Not tested if pain or uncertainty is involved."))
+    private var questionPage: some View {
+        let question = currentQuestion
+        return VStack(alignment: .leading, spacing: 18) {
+            VStack(spacing: 9) {
+                HStack {
+                    Text(language.text(question.sectionTitle))
+                    Spacer()
+                    Text(language.text("Question"))
+                    Text("\(draft.step) / \(BaselineCalibrationQuestionBank.all.count)")
+                }
+                .font(APEXFont.mono(10, weight: .bold))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .textCase(.uppercase)
+
+                ProgressView(
+                    value: Double(draft.step),
+                    total: Double(BaselineCalibrationQuestionBank.all.count)
+                )
+                .tint(APEXColor.green)
+                .accessibilityLabel(language.text("Calibration progress"))
+                .accessibilityValue("\(draft.step) / \(BaselineCalibrationQuestionBank.all.count)")
+            }
+
+            VStack(alignment: .leading, spacing: 9) {
+                Text(language.text(question.prompt))
+                    .font(APEXFont.display(28))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("calibration.question.prompt")
+                Text(language.text("Choose what has felt true recently. Never test through pain."))
                     .font(APEXFont.body(13, weight: .medium))
                     .foregroundStyle(APEXColor.secondaryInk)
                     .lineSpacing(3)
-                Text(language.text("Read each line left to right: Foundation, Developing, Capable, Strong signal."))
-                    .font(APEXFont.body(11, weight: .semibold))
-                    .foregroundStyle(APEXColor.green)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
 
-                ForEach(Array(domain.questions.enumerated()), id: \.offset) { index, question in
-                    questionCard(domain: domain.domain, index: index, question: question)
+            VStack(spacing: 10) {
+                ForEach(question.options, id: \.answer.rawValue) { option in
+                    answerButton(
+                        answer: option.answer,
+                        title: option.title,
+                        question: question,
+                        muted: false
+                    )
                 }
+                answerButton(
+                    answer: .notTested,
+                    title: "I'm not sure or haven't done this recently",
+                    question: question,
+                    muted: true
+                )
+            }
 
-                HStack(spacing: 12) {
-                    Button(language.text("Back")) {
-                        if draft.step > 1 {
-                            draft.step -= 1
-                            persistDraft()
-                        } else {
-                            route = .home
-                        }
-                    }
-                    .buttonStyle(.bordered)
-                    .frame(minHeight: 44)
-
-                    Button {
-                        draft.step += 1
+            HStack(spacing: 12) {
+                Button(language.text("Back")) {
+                    if draft.step > 1 {
+                        draft.step -= 1
                         persistDraft()
-                    } label: {
-                        Text(language.text(draft.step == 4 ? "Review my baseline" : "Continue"))
-                            .frame(maxWidth: .infinity)
+                    } else {
+                        route = .home
                     }
-                    .buttonStyle(.borderedProminent)
-                    .tint(APEXColor.green)
-                    .frame(minHeight: 44)
-                    .accessibilityIdentifier("calibration.next")
                 }
+                .buttonStyle(.bordered)
+                .frame(minHeight: 48)
+
+                Button {
+                    guard questionIsAnswered else { return }
+                    draft.step = min(13, draft.step + 1)
+                    persistDraft()
+                } label: {
+                    Text(language.text(
+                        draft.step == BaselineCalibrationQuestionBank.all.count
+                            ? "Review my baseline"
+                            : "Continue"
+                    ))
+                    .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(APEXColor.green)
+                .frame(minHeight: 48)
+                .disabled(!questionIsAnswered)
+                .accessibilityHint(
+                    questionIsAnswered
+                        ? ""
+                        : language.text("Choose one answer before continuing.")
+                )
+                .accessibilityIdentifier("calibration.next")
             }
         }
     }
@@ -195,33 +267,42 @@ struct BaselineCalibrationSheet: View {
     private var review: some View {
         let evaluation = calibrationEvaluation
         return VStack(alignment: .leading, spacing: 16) {
+            Text(language.text("Calibration complete"))
+                .font(APEXFont.mono(10, weight: .bold))
+                .tracking(1.6)
+                .foregroundStyle(APEXColor.green)
             Text(language.text("Your sharper starting map"))
                 .font(APEXFont.display(29))
+                .fixedSize(horizontal: false, vertical: true)
             Text(language.text("These remain broad bands, not laboratory measurements. Overall Fitness stays Building your baseline until enough independent evidence exists."))
                 .font(APEXFont.body(13, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
 
             if case .accepted(let result) = evaluation {
-                bandRow("Stamina", result.bands.cardiorespiratory)
-                bandRow("Upper body", result.bands.upperStrength)
-                bandRow("Lower body", result.bands.lowerStrength)
-                bandRow("Mobility", result.bands.mobility)
-
-                if result.evidence.isEmpty {
-                    Text(language.text("Answer at least two prompts in a section to sharpen that band."))
-                        .font(APEXFont.body(12, weight: .semibold))
-                        .foregroundStyle(APEXColor.amberDeep)
+                VStack(spacing: 10) {
+                    HStack(spacing: 10) {
+                        bandTile("Stamina", result.bands.cardiorespiratory)
+                        bandTile("Upper body", result.bands.upperStrength)
+                    }
+                    HStack(spacing: 10) {
+                        bandTile("Lower body", result.bands.lowerStrength)
+                        bandTile("Mobility", result.bands.mobility)
+                    }
                 }
 
-                if saveState == .saved {
-                    Label(language.text("Saved to your evidence"), systemImage: "checkmark.seal.fill")
-                        .font(APEXFont.body(14, weight: .bold))
-                        .foregroundStyle(APEXColor.green)
-                    Button(language.text("Done")) { dismiss() }
+                if result.evidence.isEmpty {
+                    Text(language.text("Not enough recent answers to change a band yet. Your existing baseline stays safe."))
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.amberDeep)
+                        .fixedSize(horizontal: false, vertical: true)
+                    Button(language.text("Keep my existing baseline")) { dismiss() }
                         .buttonStyle(.borderedProminent)
                         .tint(APEXColor.green)
                         .frame(maxWidth: .infinity, minHeight: 48)
+                } else if saveState == .saved {
+                    savedEvidencePanel
                 } else {
                     Button {
                         Task { await saveQuestionnaire() }
@@ -232,7 +313,7 @@ struct BaselineCalibrationSheet: View {
                     .buttonStyle(.borderedProminent)
                     .tint(APEXColor.green)
                     .frame(minHeight: 48)
-                    .disabled(result.evidence.isEmpty || saveState == .saving)
+                    .disabled(saveState == .saving)
                     .accessibilityIdentifier("calibration.save")
                 }
 
@@ -240,12 +321,13 @@ struct BaselineCalibrationSheet: View {
                     Text(language.text("Your baseline could not be saved yet. Your answers remain on this device."))
                         .font(APEXFont.body(12, weight: .semibold))
                         .foregroundStyle(APEXColor.danger)
+                        .fixedSize(horizontal: false, vertical: true)
                 }
             }
 
             Button(language.text("Back to questions")) {
                 saveState = .idle
-                draft.step = 4
+                draft.step = BaselineCalibrationQuestionBank.all.count
                 persistDraft()
             }
             .buttonStyle(.bordered)
@@ -253,56 +335,177 @@ struct BaselineCalibrationSheet: View {
         }
     }
 
+    @ViewBuilder
     private var recentResult: some View {
+        switch resultRoute {
+        case .chooser: resultChooser
+        case .dexa: dexaResult
+        case .other: otherResult
+        }
+    }
+
+    private var resultChooser: some View {
         VStack(alignment: .leading, spacing: 16) {
-            Text(language.text("Add a recent result"))
-                .font(APEXFont.display(29))
-            Text(language.text("APEX keeps a value you enter as unverified until a supported source confirms it."))
+            Text(language.text("Evidence, not guesswork"))
+                .font(APEXFont.mono(10, weight: .bold))
+                .tracking(1.6)
+                .foregroundStyle(APEXColor.violet)
+            Text(language.text("What are you adding?"))
+                .font(APEXFont.display(30))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(language.text("Choose the report you have. APEX will only ask for values that belong to it."))
                 .font(APEXFont.body(13, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
-                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(language.text("Result type")).font(APEXFont.body(12, weight: .bold))
-                Picker(language.text("Result type"), selection: $resultMetric) {
-                    ForEach(ManualCalibrationMetric.allCases) { metric in
-                        Text(language.text(metric.title)).tag(metric)
+            calibrationRoute(
+                title: "DEXA body composition report",
+                detail: "Save body fat and any resting-energy estimate printed on the same report.",
+                icon: "figure.stand",
+                tint: APEXColor.violet,
+                identifier: "calibration.result.dexa"
+            ) {
+                if resultSource.isEmpty { resultSource = language.text("DEXA report") }
+                resultRoute = .dexa
+            }
+            calibrationRoute(
+                title: "Other health or fitness result",
+                detail: "Add VO₂ max, resting heart rate, waist or a metabolic test.",
+                icon: "plus",
+                tint: APEXColor.cyan,
+                identifier: "calibration.result.other"
+            ) { resultRoute = .other }
+        }
+    }
+
+    private var dexaResult: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            resultHeader(
+                eyebrow: "DEXA REPORT",
+                title: "Add your DEXA results",
+                detail: "Enter either value or both. Leave a field blank when it is not printed on your report."
+            )
+
+            if saveState == .saved {
+                savedResultPanel
+            } else {
+                Text(language.text("DEXA measures body composition. Some reports also print an estimated BMR or RMR; APEX stores that number as report-supplied, not as a direct metabolic measurement."))
+                    .font(APEXFont.body(12, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .lineSpacing(3)
+                    .fixedSize(horizontal: false, vertical: true)
+                    .padding(14)
+                    .background(APEXColor.violet.opacity(0.08), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+
+                resultField(
+                    label: "Body fat (optional)",
+                    text: $dxaBodyFat,
+                    placeholder: "18.4",
+                    unit: "%",
+                    focus: .bodyFat,
+                    identifier: "calibration.result.dexa-body-fat"
+                )
+                resultField(
+                    label: "Resting metabolism printed on the report (optional)",
+                    text: $dxaRestingEnergy,
+                    placeholder: "1683",
+                    unit: "kcal/day",
+                    focus: .restingEnergy,
+                    identifier: "calibration.result.dexa-resting-energy"
+                )
+                sourceAndDate
+
+                Button {
+                    focusedField = nil
+                    Task { await saveDEXAResult() }
+                } label: {
+                    Text(language.text(saveState == .saving ? "Saving…" : "Save DEXA results"))
+                        .frame(maxWidth: .infinity)
+                }
+                .buttonStyle(.borderedProminent)
+                .tint(APEXColor.violet)
+                .frame(minHeight: 50)
+                .disabled(!dexaIsReady || saveState == .saving)
+                .accessibilityIdentifier("calibration.result.save-dexa")
+
+                if saveState == .failed {
+                    Text(language.text("Enter at least one valid value and name the report or clinic."))
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.danger)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+            }
+        }
+    }
+
+    private var otherResult: some View {
+        VStack(alignment: .leading, spacing: 16) {
+            resultHeader(
+                eyebrow: "RECENT RESULT",
+                title: "Add another result",
+                detail: "Manual entries stay low-confidence until a supported source confirms them."
+            )
+
+            if saveState == .saved {
+                savedResultPanel
+            } else {
+                VStack(alignment: .leading, spacing: 8) {
+                    Text(language.text("Result type")).font(APEXFont.body(12, weight: .bold))
+                    Picker(language.text("Result type"), selection: $resultMetric) {
+                        ForEach(ManualCalibrationMetric.allCases) { metric in
+                            Text(language.text(metric.title)).tag(metric)
+                        }
                     }
+                    .pickerStyle(.menu)
+                    .frame(maxWidth: .infinity, minHeight: 50, alignment: .leading)
+                    .padding(.horizontal, 13)
+                    .background(.white.opacity(0.86), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
                 }
-                .pickerStyle(.menu)
-                .frame(maxWidth: .infinity, minHeight: 48, alignment: .leading)
-                .padding(.horizontal, 12)
-                .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
 
-            VStack(alignment: .leading, spacing: 8) {
-                Text(language.text("Value")).font(APEXFont.body(12, weight: .bold))
-                HStack {
-                    TextField(resultMetric.placeholder, text: $resultValue)
-                        .keyboardType(.decimalPad)
-                        .focused($focusedField, equals: .value)
-                        .accessibilityIdentifier("calibration.result.value")
-                    Text(resultMetric.unitLabel)
-                        .font(APEXFont.mono(11, weight: .bold))
-                        .foregroundStyle(APEXColor.secondaryInk)
+                resultField(
+                    label: "Value",
+                    text: $resultValue,
+                    placeholder: resultMetric.placeholder,
+                    unit: resultMetric.unitLabel,
+                    focus: .value,
+                    identifier: "calibration.result.value"
+                )
+                sourceAndDate
+
+                Button {
+                    focusedField = nil
+                    Task { await saveOtherResult() }
+                } label: {
+                    Text(language.text(saveState == .saving ? "Saving…" : "Save result"))
+                        .frame(maxWidth: .infinity)
                 }
-                .padding(.horizontal, 14)
-                .frame(minHeight: 52)
-                .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
-            }
+                .buttonStyle(.borderedProminent)
+                .tint(APEXColor.violet)
+                .frame(minHeight: 50)
+                .disabled(parsedResultValue == nil || resultSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saveState == .saving)
 
+                if saveState == .failed {
+                    Text(language.text("Check the value and source, then try again."))
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.danger)
+                }
+            }
+        }
+    }
+
+    private var sourceAndDate: some View {
+        VStack(alignment: .leading, spacing: 14) {
             VStack(alignment: .leading, spacing: 8) {
-                Text(language.text("Where did this result come from?"))
+                Text(language.text("Report or clinic"))
                     .font(APEXFont.body(12, weight: .bold))
                 TextField(language.text("For example, DEXA report or laboratory test"), text: $resultSource)
                     .textInputAutocapitalization(.sentences)
                     .focused($focusedField, equals: .source)
                     .padding(.horizontal, 14)
                     .frame(minHeight: 52)
-                    .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 16, style: .continuous))
+                    .background(.white.opacity(0.86), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
                     .accessibilityIdentifier("calibration.result.source")
             }
-
             DatePicker(
                 language.text("Measured on"),
                 selection: $resultDate,
@@ -310,31 +513,61 @@ struct BaselineCalibrationSheet: View {
                 displayedComponents: .date
             )
             .font(APEXFont.body(13, weight: .bold))
+        }
+    }
 
-            if saveState == .saved {
-                Label(language.text("Result saved"), systemImage: "checkmark.seal.fill")
-                    .font(APEXFont.body(14, weight: .bold))
-                    .foregroundStyle(APEXColor.green)
+    private var savedResultPanel: some View {
+        VStack(alignment: .leading, spacing: 13) {
+            Image(systemName: "checkmark")
+                .font(.system(size: 22, weight: .black))
+                .foregroundStyle(.white)
+                .frame(width: 48, height: 48)
+                .background(APEXColor.green, in: Circle())
+            Text(language.text("Saved to your evidence"))
+                .font(APEXFont.display(23))
+                .fixedSize(horizontal: false, vertical: true)
+            ForEach(Array(savedResultSummaries.enumerated()), id: \.offset) { index, summary in
+                Text(summary)
+                    .font(APEXFont.body(13, weight: .bold))
+                    .padding(.horizontal, 13)
+                    .padding(.vertical, 10)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.white.opacity(0.76), in: RoundedRectangle(cornerRadius: 14, style: .continuous))
+                    .fixedSize(horizontal: false, vertical: true)
+                    .accessibilityIdentifier("calibration.result.saved-item-\(index)")
             }
-
-            Button {
-                focusedField = nil
-                Task { await saveRecentResult() }
-            } label: {
-                Text(language.text(saveState == .saving ? "Saving…" : "Save result"))
-                    .frame(maxWidth: .infinity)
-            }
-            .buttonStyle(.borderedProminent)
-            .tint(APEXColor.violet)
-            .frame(minHeight: 48)
-            .disabled(parsedResultValue == nil || resultSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty || saveState == .saving)
-
-            if saveState == .failed {
-                Text(language.text("Check the value and source, then try again."))
-                    .font(APEXFont.body(12, weight: .semibold))
-                    .foregroundStyle(APEXColor.danger)
+            Text(language.text("You can close this screen. These values are now part of your private evidence history."))
+                .font(APEXFont.body(12, weight: .medium))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+            HStack(spacing: 10) {
+                Button(language.text("Add another")) { resetResultFlow() }
+                    .buttonStyle(.bordered)
+                    .frame(maxWidth: .infinity, minHeight: 46)
+                Button(language.text("Done")) { dismiss() }
+                    .buttonStyle(.borderedProminent)
+                    .tint(APEXColor.green)
+                    .frame(maxWidth: .infinity, minHeight: 46)
             }
         }
+        .padding(18)
+        .background(APEXColor.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 25, style: .continuous))
+        .accessibilityElement(children: .contain)
+        .accessibilityIdentifier("calibration.result.saved")
+    }
+
+    private var savedEvidencePanel: some View {
+        VStack(alignment: .leading, spacing: 12) {
+            Label(language.text("Saved to your evidence"), systemImage: "checkmark.seal.fill")
+                .font(APEXFont.body(15, weight: .bold))
+                .foregroundStyle(APEXColor.green)
+            Button(language.text("Done")) { dismiss() }
+                .buttonStyle(.borderedProminent)
+                .tint(APEXColor.green)
+                .frame(maxWidth: .infinity, minHeight: 48)
+        }
+        .padding(17)
+        .background(APEXColor.green.opacity(0.10), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
     }
 
     private var health: some View {
@@ -345,6 +578,7 @@ struct BaselineCalibrationSheet: View {
                 .font(APEXFont.body(13, weight: .medium))
                 .foregroundStyle(APEXColor.secondaryInk)
                 .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
 
             if let healthStatus {
                 Label(
@@ -391,10 +625,12 @@ struct BaselineCalibrationSheet: View {
                 Image(systemName: icon)
                     .font(.system(size: 21, weight: .bold))
                     .foregroundStyle(.white)
-                    .frame(width: 46, height: 46)
-                    .background(tint.gradient, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+                    .frame(width: 48, height: 48)
+                    .background(tint.gradient, in: RoundedRectangle(cornerRadius: 16, style: .continuous))
                 VStack(alignment: .leading, spacing: 4) {
-                    Text(language.text(title)).font(APEXFont.body(15, weight: .bold))
+                    Text(language.text(title))
+                        .font(APEXFont.body(15, weight: .bold))
+                        .fixedSize(horizontal: false, vertical: true)
                     Text(language.text(detail))
                         .font(APEXFont.body(11, weight: .medium))
                         .foregroundStyle(APEXColor.secondaryInk)
@@ -405,66 +641,122 @@ struct BaselineCalibrationSheet: View {
             }
             .foregroundStyle(APEXColor.ink)
             .padding(14)
-            .frame(maxWidth: .infinity, minHeight: 74, alignment: .leading)
-            .background(.white.opacity(0.78), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+            .frame(maxWidth: .infinity, minHeight: 78, alignment: .leading)
+            .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
             .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white))
         }
         .buttonStyle(.plain)
         .accessibilityIdentifier(identifier)
     }
 
-    private func questionCard(
-        domain: OnboardingMovementDomain,
-        index: Int,
-        question: String
+    private func answerButton(
+        answer: BaselineCalibrationAnswer,
+        title: String,
+        question: BaselineCalibrationQuestion,
+        muted: Bool
     ) -> some View {
-        let selected = answer(domain: domain, index: index)
-        return VStack(alignment: .leading, spacing: 10) {
-            Text(language.text(question))
-                .font(APEXFont.body(13, weight: .bold))
-                .fixedSize(horizontal: false, vertical: true)
-            Menu {
-                ForEach(BaselineCalibrationAnswer.allCases, id: \.rawValue) { answer in
-                    Button(language.text(answer.title)) {
-                        setAnswer(answer.rawValue, domain: domain, index: index)
-                    }
-                }
-            } label: {
-                HStack {
-                    Text(language.text(selected.title))
-                        .font(APEXFont.body(13, weight: .bold))
-                    Spacer()
-                    Image(systemName: "chevron.up.chevron.down")
-                }
-                .padding(.horizontal, 14)
-                .frame(minHeight: 46)
-                .background(APEXColor.green.opacity(0.08), in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+        let selected = questionIsAnswered && selectedAnswer == answer
+        return Button {
+            draft.setAnswer(answer, for: question)
+            saveState = .idle
+            persistDraft()
+        } label: {
+            HStack(spacing: 12) {
+                Image(systemName: selected ? "checkmark.circle.fill" : "circle")
+                    .font(.system(size: 22, weight: .semibold))
+                Text(language.text(title))
+                    .font(APEXFont.body(14, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 0)
+            }
+            .foregroundStyle(selected ? Color.white : (muted ? APEXColor.secondaryInk : APEXColor.ink))
+            .padding(.horizontal, 15)
+            .padding(.vertical, 13)
+            .frame(maxWidth: .infinity, minHeight: 56, alignment: .leading)
+            .background(
+                selected ? AnyShapeStyle(APEXColor.green) : AnyShapeStyle(.white.opacity(muted ? 0.58 : 0.84)),
+                in: RoundedRectangle(cornerRadius: 19, style: .continuous)
+            )
+            .overlay {
+                RoundedRectangle(cornerRadius: 19, style: .continuous)
+                    .stroke(muted && !selected ? APEXColor.secondaryInk.opacity(0.22) : .white)
             }
         }
-        .padding(15)
-        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
-        .overlay(RoundedRectangle(cornerRadius: 20, style: .continuous).stroke(.white))
-        .accessibilityElement(children: .contain)
-        .accessibilityIdentifier("calibration.question.\(domain.rawValue).\(index)")
+        .buttonStyle(.plain)
+        .accessibilityAddTraits(selected ? .isSelected : [])
+        .accessibilityIdentifier("calibration.answer.\(answer.rawValue)")
     }
 
-    private func bandRow(_ title: String, _ band: OnboardingBaselineBand) -> some View {
-        HStack(spacing: 12) {
-            Text(language.text(title)).font(APEXFont.body(14, weight: .bold))
-            Spacer()
+    private func bandTile(_ title: String, _ band: OnboardingBaselineBand) -> some View {
+        VStack(alignment: .leading, spacing: 6) {
+            Text(language.text(title))
+                .font(APEXFont.body(12, weight: .bold))
+                .foregroundStyle(APEXColor.secondaryInk)
             Text(language.text(band.title))
-                .font(APEXFont.mono(10, weight: .bold))
+                .font(APEXFont.body(14, weight: .bold))
                 .foregroundStyle(band == .buildingBaseline ? APEXColor.secondaryInk : APEXColor.green)
-                .padding(.horizontal, 11)
-                .padding(.vertical, 8)
-                .background(APEXColor.green.opacity(0.08), in: Capsule())
+                .fixedSize(horizontal: false, vertical: true)
         }
         .padding(14)
-        .background(.white.opacity(0.8), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+        .frame(maxWidth: .infinity, minHeight: 82, alignment: .leading)
+        .background(.white.opacity(0.82), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
     }
 
-    private var currentDomain: CalibrationDomainContent {
-        CalibrationDomainContent.all[max(0, min(3, draft.step - 1))]
+    private func resultHeader(eyebrow: String, title: String, detail: String) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(language.text(eyebrow))
+                .font(APEXFont.mono(10, weight: .bold))
+                .tracking(1.6)
+                .foregroundStyle(APEXColor.violet)
+            Text(language.text(title))
+                .font(APEXFont.display(29))
+                .fixedSize(horizontal: false, vertical: true)
+            Text(language.text(detail))
+                .font(APEXFont.body(13, weight: .medium))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .lineSpacing(3)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+    }
+
+    private func resultField(
+        label: String,
+        text: Binding<String>,
+        placeholder: String,
+        unit: String,
+        focus: ResultField,
+        identifier: String
+    ) -> some View {
+        VStack(alignment: .leading, spacing: 8) {
+            Text(language.text(label))
+                .font(APEXFont.body(12, weight: .bold))
+                .fixedSize(horizontal: false, vertical: true)
+            HStack {
+                TextField(placeholder, text: text)
+                    .keyboardType(.decimalPad)
+                    .focused($focusedField, equals: focus)
+                    .accessibilityIdentifier(identifier)
+                Text(language.text(unit))
+                    .font(APEXFont.mono(11, weight: .bold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+            }
+            .padding(.horizontal, 14)
+            .frame(minHeight: 52)
+            .background(.white.opacity(0.86), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+        }
+    }
+
+    private var currentQuestion: BaselineCalibrationQuestion {
+        BaselineCalibrationQuestionBank.all[max(0, min(11, draft.step - 1))]
+    }
+
+    private var selectedAnswer: BaselineCalibrationAnswer {
+        let values = draft.answers.values(for: currentQuestion.domain)
+        return BaselineCalibrationAnswer(rawValue: values[currentQuestion.answerIndex]) ?? .notTested
+    }
+
+    private var questionIsAnswered: Bool {
+        draft.isAnswered(currentQuestion.id)
     }
 
     private var calibrationEvaluation: BaselineCalibrationResult {
@@ -481,21 +773,38 @@ struct BaselineCalibrationSheet: View {
         Double(resultValue.replacingOccurrences(of: ",", with: "."))
     }
 
-    private func answer(domain: OnboardingMovementDomain, index: Int) -> BaselineCalibrationAnswer {
-        let values = draft.answers.values(for: domain)
-        guard values.indices.contains(index) else { return .notTested }
-        return BaselineCalibrationAnswer(rawValue: values[index]) ?? .notTested
+    private func optionalNumber(_ text: String) -> Double?? {
+        let trimmed = text.trimmingCharacters(in: .whitespacesAndNewlines)
+        if trimmed.isEmpty { return .some(nil) }
+        guard let value = Double(trimmed.replacingOccurrences(of: ",", with: ".")) else { return nil }
+        return .some(value)
     }
 
-    private func setAnswer(_ value: String, domain: OnboardingMovementDomain, index: Int) {
-        switch domain {
-        case .cardiorespiratory: draft.answers.cardiorespiratory[index] = value
-        case .upperStrength: draft.answers.upperStrength[index] = value
-        case .lowerStrength: draft.answers.lowerStrength[index] = value
-        case .mobility: draft.answers.mobility[index] = value
+    private var dexaIsReady: Bool {
+        guard let bodyFat = optionalNumber(dxaBodyFat),
+              let restingEnergy = optionalNumber(dxaRestingEnergy) else { return false }
+        return (bodyFat != nil || restingEnergy != nil)
+            && !resultSource.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty
+    }
+
+    private func navigateBack() {
+        focusedField = nil
+        if route == .recentResult, resultRoute != .chooser, saveState != .saved {
+            resultRoute = .chooser
+        } else {
+            route = .home
         }
+    }
+
+    private func resetResultFlow() {
         saveState = .idle
-        persistDraft()
+        resultRoute = .chooser
+        resultValue = ""
+        dxaBodyFat = ""
+        dxaRestingEnergy = ""
+        resultSource = ""
+        resultDate = .now
+        savedResultSummaries = []
     }
 
     private func restoreDraft() {
@@ -517,6 +826,7 @@ struct BaselineCalibrationSheet: View {
                 BaselineCalibrationDraftStore.clear(userID: userID)
             }
             saveState = .saved
+            UIAccessibility.post(notification: .announcement, argument: language.text("Saved to your evidence"))
         } catch {
             persistDraft()
             saveState = .failed
@@ -524,7 +834,33 @@ struct BaselineCalibrationSheet: View {
     }
 
     @MainActor
-    private func saveRecentResult() async {
+    private func saveDEXAResult() async {
+        guard let bodyFat = optionalNumber(dxaBodyFat),
+              let restingEnergy = optionalNumber(dxaRestingEnergy) else {
+            saveState = .failed
+            return
+        }
+        saveState = .saving
+        do {
+            _ = try await session.saveManualDEXACalibrationResult(
+                bodyFatPercentage: bodyFat,
+                restingMetabolicRate: restingEnergy,
+                declaredSource: resultSource,
+                measuredAt: resultDate
+            )
+            savedResultSummaries = [
+                bodyFat.map { "\(language.text("Body fat")) · \($0.formatted(.number.precision(.fractionLength(0...1))))%" },
+                restingEnergy.map { "\(language.text("Resting energy (BMR/RMR)")) · \($0.formatted(.number.precision(.fractionLength(0)))) \(language.text("kcal/day"))" },
+            ].compactMap { $0 }
+            saveState = .saved
+            UIAccessibility.post(notification: .announcement, argument: language.text("DEXA results saved"))
+        } catch {
+            saveState = .failed
+        }
+    }
+
+    @MainActor
+    private func saveOtherResult() async {
         guard let value = parsedResultValue else { return }
         saveState = .saving
         do {
@@ -535,50 +871,23 @@ struct BaselineCalibrationSheet: View {
                 declaredSource: resultSource,
                 measuredAt: resultDate
             )
-            resultValue = ""
+            savedResultSummaries = [
+                "\(language.text(resultMetric.title)) · \(value.formatted(.number.precision(.fractionLength(0...1)))) \(language.text(resultMetric.unitLabel))"
+            ]
             saveState = .saved
+            UIAccessibility.post(notification: .announcement, argument: language.text("Result saved"))
         } catch {
             saveState = .failed
         }
     }
 }
 
-private struct CalibrationDomainContent {
-    let domain: OnboardingMovementDomain
-    let title: String
-    let questions: [String]
-
-    static let all: [CalibrationDomainContent] = [
-        CalibrationDomainContent(domain: .cardiorespiratory, title: "Stamina", questions: [
-            "Sustained effort: a few minutes · brisk 20 minutes · steady cardio 20 minutes · trained intervals",
-            "Stairs: frequent pause · one flight comfortable · several flights controlled · repeated climbs trained",
-            "Conditioning week: none · one easy session · two steady sessions · three or more purposeful sessions",
-        ]),
-        CalibrationDomainContent(domain: .upperStrength, title: "Upper body", questions: [
-            "Pressing: body weight difficult · raised push-ups · floor push-ups · challenging presses",
-            "Pulling: little recent work · light supported rows · controlled rows · pull-ups or challenging pulls",
-            "Upper-body training: none · occasional · weekly progressive work · multiple challenging sessions",
-        ]),
-        CalibrationDomainContent(domain: .lowerStrength, title: "Lower body", questions: [
-            "Chair and stairs: tiring · comfortable · repeated with control · high work capacity",
-            "Squat and lunge: restricted · chair-depth control · deep controlled reps · challenging full-range work",
-            "Lower-body training: none · occasional · weekly progressive work · multiple challenging sessions",
-        ]),
-        CalibrationDomainContent(domain: .mobility, title: "Mobility", questions: [
-            "Hips and posterior chain: daily restriction · functional reach · deep hinge or squat · advanced range practice",
-            "Ankles: heels lift early · daily range comfortable · knee-over-toe range controlled · deep loaded range trained",
-            "Shoulders: overhead reach restricted · daily reach comfortable · full overhead control · advanced range trained",
-        ]),
-    ]
-}
-
 private enum ManualCalibrationMetric: String, CaseIterable, Identifiable {
-    case bodyFat, restingEnergy, vo2Max, restingHeartRate, waist
+    case restingEnergy, vo2Max, restingHeartRate, waist
     var id: String { rawValue }
 
     var title: String {
         switch self {
-        case .bodyFat: "Body fat"
         case .restingEnergy: "Resting energy (BMR/RMR)"
         case .vo2Max: "VO₂ max"
         case .restingHeartRate: "Resting heart rate"
@@ -588,7 +897,6 @@ private enum ManualCalibrationMetric: String, CaseIterable, Identifiable {
 
     var metric: FitnessEvidenceMetric {
         switch self {
-        case .bodyFat: .bodyFatPercentage
         case .restingEnergy: .restingMetabolicRate
         case .vo2Max: .vo2Max
         case .restingHeartRate: .restingHeartRate
@@ -598,7 +906,6 @@ private enum ManualCalibrationMetric: String, CaseIterable, Identifiable {
 
     var unit: String {
         switch self {
-        case .bodyFat: "percent"
         case .restingEnergy: "kcal_per_day"
         case .vo2Max: "ml_per_kg_min"
         case .restingHeartRate: "bpm"
@@ -608,7 +915,6 @@ private enum ManualCalibrationMetric: String, CaseIterable, Identifiable {
 
     var unitLabel: String {
         switch self {
-        case .bodyFat: "%"
         case .restingEnergy: "kcal/day"
         case .vo2Max: "ml/kg/min"
         case .restingHeartRate: "bpm"
@@ -618,23 +924,10 @@ private enum ManualCalibrationMetric: String, CaseIterable, Identifiable {
 
     var placeholder: String {
         switch self {
-        case .bodyFat: "18"
         case .restingEnergy: "1683"
         case .vo2Max: "42.5"
         case .restingHeartRate: "58"
         case .waist: "82"
-        }
-    }
-}
-
-private extension BaselineCalibrationAnswer {
-    var title: String {
-        switch self {
-        case .notTested: "Not tested"
-        case .foundation: "Foundation"
-        case .developing: "Developing"
-        case .capable: "Capable"
-        case .strong: "Strong signal"
         }
     }
 }

@@ -3,6 +3,7 @@ import SwiftUI
 struct PortalShellView: View {
     @Environment(AppSession.self) private var session
     @State private var showLogout = false
+    @State private var showBaselineCalibration = false
 
     var body: some View {
         @Bindable var session = session
@@ -40,6 +41,12 @@ struct PortalShellView: View {
             }
             Button(LanguageState.shared.text(.cancel), role: .cancel) {}
         }
+        .sheet(isPresented: $showBaselineCalibration) {
+            BaselineCalibrationSheet()
+                .presentationDetents([.medium, .large])
+                .presentationDragIndicator(.visible)
+                .presentationContentInteraction(.scrolls)
+        }
     }
 
     @ViewBuilder
@@ -51,7 +58,9 @@ struct PortalShellView: View {
         /* Web parity: custom workouts are the same section with its own programme. */
         case .customWorkouts: TrainingProgramView(slug: "custom", accent: APEXColor.violet)
         case .orbit: OrbitHomeView()
-        case .avatar: AvatarView()
+        case .avatar: AvatarView {
+            showBaselineCalibration = true
+        }
         case .visualProgress: VisualProgressView()
         case .settings: SettingsView()
         }

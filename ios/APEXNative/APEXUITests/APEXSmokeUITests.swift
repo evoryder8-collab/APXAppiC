@@ -364,19 +364,69 @@ final class APEXSmokeUITests: XCTestCase {
 
         XCTAssertTrue(app.navigationBars["Calibrate my baseline"].waitForExistence(timeout: 3))
         app.buttons["calibration.route.questions"].tap()
-        XCTAssertTrue(app.staticTexts["Stamina"].waitForExistence(timeout: 3))
-        app.buttons["calibration.next"].tap()
-        XCTAssertTrue(app.staticTexts["Upper body"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.staticTexts["How long can you keep up a brisk walk or easy cycle without needing to stop?"].waitForExistence(timeout: 3))
+        let next = app.buttons["calibration.next"]
+        XCTAssertTrue(next.waitForExistence(timeout: 2))
+        XCTAssertFalse(next.isEnabled, "Continue must not skip an unanswered calibration question")
+        app.buttons["calibration.answer.developing"].tap()
+        XCTAssertTrue(next.isEnabled)
+        next.tap()
+        XCTAssertTrue(app.staticTexts["What happens when you climb two flights of stairs at your usual pace?"].waitForExistence(timeout: 3))
 
         app.buttons["Close"].tap()
         XCTAssertTrue(calibrate.waitForExistence(timeout: 3))
         calibrate.tap()
         app.buttons["calibration.route.questions"].tap()
         XCTAssertTrue(
-            app.staticTexts["Upper body"].waitForExistence(timeout: 3),
-            "The owner-scoped draft must resume at the last completed section"
+            app.staticTexts["What happens when you climb two flights of stairs at your usual pace?"].waitForExistence(timeout: 3),
+            "The owner-scoped draft must resume at the next question"
         )
         capture("avatar-baseline-calibration")
+    }
+
+    func testCalibrationDEXAExposesBodyFatAndReportBMRWithoutHiddenPicker() {
+        let app = configuredApp()
+        app.launch()
+
+        let avatar = app.buttons["portal.avatar"]
+        XCTAssertTrue(avatar.waitForExistence(timeout: 4))
+        avatar.tap()
+        let calibrate = app.descendants(matching: .any)["avatar.calibrate-baseline"]
+        XCTAssertTrue(scrollUntilVisible(calibrate, in: app))
+        calibrate.tap()
+        XCTAssertTrue(app.buttons["calibration.route.result"].waitForExistence(timeout: 3))
+        app.buttons["calibration.route.result"].tap()
+        XCTAssertTrue(app.buttons["calibration.result.dexa"].waitForExistence(timeout: 3))
+        app.buttons["calibration.result.dexa"].tap()
+
+        XCTAssertTrue(app.textFields["calibration.result.dexa-body-fat"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.textFields["calibration.result.dexa-resting-energy"].exists)
+        let save = app.buttons["calibration.result.save-dexa"]
+        XCTAssertTrue(save.exists)
+        XCTAssertFalse(save.isEnabled)
+
+        app.textFields["calibration.result.dexa-body-fat"].tap()
+        app.textFields["calibration.result.dexa-body-fat"].typeText("18.4")
+        app.textFields["calibration.result.dexa-resting-energy"].tap()
+        app.textFields["calibration.result.dexa-resting-energy"].typeText("1683")
+        let keyboardDone = app.buttons["Done"].firstMatch
+        XCTAssertTrue(keyboardDone.waitForExistence(timeout: 2))
+        keyboardDone.tap()
+        let source = app.textFields["calibration.result.source"]
+        XCTAssertTrue(scrollUntilVisible(source, in: app))
+        source.tap()
+        source.typeText("DEXA clinic report")
+        XCTAssertTrue(keyboardDone.waitForExistence(timeout: 2))
+        keyboardDone.tap()
+        XCTAssertTrue(scrollUntilVisible(save, in: app))
+        XCTAssertTrue(save.isEnabled)
+        save.tap()
+
+        XCTAssertTrue(app.descendants(matching: .any)["calibration.result.saved"].waitForExistence(timeout: 4))
+        XCTAssertTrue(app.staticTexts["Saved to your evidence"].exists)
+        XCTAssertTrue(app.staticTexts["calibration.result.saved-item-0"].label.contains("18.4%"))
+        XCTAssertTrue(app.staticTexts["calibration.result.saved-item-1"].label.filter(\.isNumber).contains("1683"))
+        capture("avatar-baseline-dexa")
     }
 
     func testFivePortalNavigationAndCoreScreens() {

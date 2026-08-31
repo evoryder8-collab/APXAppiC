@@ -4,9 +4,12 @@ import test from 'node:test'
 import { UI_TRANSLATIONS } from '../src/lib/translations.ts'
 
 import {
+  baselineCalibrationQuestions,
   baselineCalibrationAuthority,
+  buildDxaCalibrationEvidence,
   buildManualCalibrationEvidence,
   evaluateBaselineCalibration,
+  isBaselineCalibrationQuestionAnswered,
   loadBaselineCalibrationDraft,
   saveBaselineCalibrationDraft,
   summarizeBaselineCalibration,
@@ -77,6 +80,63 @@ test('recent external results are validated and never promoted beyond user evide
   }), { status: 'rejected', reason: 'invalid_unit_or_range' })
 })
 
+test('calibration presents one direct question with question-specific answers', () => {
+  assert.equal(baselineCalibrationQuestions.length, 12)
+  assert.deepEqual(
+    [...new Set(baselineCalibrationQuestions.map((question) => question.id))].length,
+    12,
+  )
+  for (const question of baselineCalibrationQuestions) {
+    assert.equal(question.options.length, 4, question.id)
+    assert.deepEqual(question.options.map((option) => option.value), [
+      'foundation', 'developing', 'capable', 'strong',
+    ])
+    assert.equal(new Set(question.options.map((option) => option.label)).size, 4, question.id)
+    assert.equal(question.options.some((option) => [
+      'Foundation', 'Developing', 'Capable', 'Strong signal',
+    ].includes(option.label)), false, question.id)
+  }
+})
+
+test('Continue requires an explicit response while Not sure remains a valid choice', () => {
+  const unanswered = {
+    step: 1,
+    answers: fixture.scenarios[0].input,
+    answered_question_ids: [],
+  }
+  const firstQuestion = baselineCalibrationQuestions[0]
+  assert.equal(isBaselineCalibrationQuestionAnswered(unanswered, firstQuestion.id), false)
+  const explicitNotSure = { ...unanswered, answered_question_ids: [firstQuestion.id] }
+  assert.equal(isBaselineCalibrationQuestionAnswered(explicitNotSure, firstQuestion.id), true)
+})
+
+test('a DEXA report can save body fat and its printed resting-energy estimate together', () => {
+  const result = buildDxaCalibrationEvidence({
+    user_id: fixture.user_id,
+    body_fat_percentage: 18.4,
+    resting_metabolic_rate: 1683,
+    declared_source: 'DEXA report · clinic copy',
+    measured_at: fixture.measured_at,
+    imported_at: fixture.imported_at,
+  })
+  assert.equal(result.status, 'accepted')
+  if (result.status !== 'accepted') return
+  assert.deepEqual(result.evidence.map((item) => item.metric), [
+    'body_fat_percentage',
+    'resting_metabolic_rate',
+  ])
+  assert.ok(result.evidence.every((item) => item.confidence === 'low'))
+  assert.ok(result.evidence.every((item) => item.metadata.declared_source === 'DEXA report · clinic copy'))
+  assert.deepEqual(buildDxaCalibrationEvidence({
+    user_id: fixture.user_id,
+    body_fat_percentage: null,
+    resting_metabolic_rate: null,
+    declared_source: 'DEXA report',
+    measured_at: fixture.measured_at,
+    imported_at: fixture.imported_at,
+  }), { status: 'rejected', reason: 'missing_value' })
+})
+
 test('resume drafts are account scoped and cleared only for their owner', () => {
   const values = new Map<string, string>()
   const storage: CalibrationDraftStorage = {
@@ -84,10 +144,32 @@ test('resume drafts are account scoped and cleared only for their owner', () => 
     setItem: (key, value) => { values.set(key, value) },
     removeItem: (key) => { values.delete(key) },
   }
-  const draft = { step: 3, answers: fixture.scenarios[1].input }
+  const draft = {
+    step: 7,
+    answers: fixture.scenarios[1].input,
+    answered_question_ids: baselineCalibrationQuestions.slice(0, 6).map((question) => question.id),
+  }
   saveBaselineCalibrationDraft(storage, fixture.user_id, draft)
   assert.deepEqual(loadBaselineCalibrationDraft(storage, fixture.user_id), draft)
   assert.equal(loadBaselineCalibrationDraft(storage, 'aaaaaaaa-bbbb-4ccc-8ddd-eeeeeeeeeeee'), null)
+})
+
+test('legacy owner-scoped drafts migrate to explicit question completion', () => {
+  const values = new Map<string, string>()
+  const storage: CalibrationDraftStorage = {
+    getItem: (key) => values.get(key) ?? null,
+    setItem: (key, value) => { values.set(key, value) },
+    removeItem: (key) => { values.delete(key) },
+  }
+  const legacy = {
+    step: 2,
+    answers: fixture.scenarios[1].input,
+  }
+  saveBaselineCalibrationDraft(storage, fixture.user_id, legacy)
+  const migrated = loadBaselineCalibrationDraft(storage, fixture.user_id)
+  assert.ok(migrated)
+  assert.ok(migrated.answered_question_ids.length > 0)
+  assert.ok(migrated.step >= 1 && migrated.step <= 13)
 })
 
 test('calibration can refine evidence but has no programme authority', () => {
@@ -108,17 +190,48 @@ test('Avatar places the accessible calibration control immediately above Stats o
     '../ios/APEXNative/APEX/Features/Avatar/AvatarView.swift',
     import.meta.url,
   ), 'utf8')
+  const nativePortalShell = readFileSync(new URL(
+    '../ios/APEXNative/APEX/Features/Portal/PortalShellView.swift',
+    import.meta.url,
+  ), 'utf8')
   const web = readFileSync(new URL('../src/pages/AvatarPage.tsx', import.meta.url), 'utf8')
   assert.ok(native.indexOf('calibrationControl') < native.indexOf('statsCard'))
   assert.match(native, /avatar\.calibrate-baseline/)
   assert.match(native, /Calibrate my baseline/)
-  assert.match(native, /BaselineCalibrationSheet/)
+  assert.match(native, /onCalibrateBaseline\(\)/)
+  assert.match(nativePortalShell, /@State private var showBaselineCalibration/)
+  assert.match(nativePortalShell, /BaselineCalibrationSheet\(\)/)
   assert.ok(web.indexOf('data-testid="avatar-calibrate-baseline"') < web.indexOf('{\/\* Stat bars \*\/}'))
   assert.match(web, /aria-label=\{t\('Calibrate my baseline'\)\}/)
   assert.match(web, /BaselineCalibrationDialog/)
 })
 
-const calibrationFullKeys = [
+const redesignedCalibrationKeys = [
+  ...baselineCalibrationQuestions.flatMap((question) => [
+    question.prompt,
+    ...question.options.map((option) => option.label),
+  ]),
+  'A clearer starting point', '12 clear questions · about 3 minutes',
+  'Lab & DEXA results · about 1 minute', 'Question',
+  'Choose what has felt true recently. Never test through pain.', 'Choose one answer',
+  "I'm not sure or haven't done this recently", 'Choose one answer before continuing.',
+  'Calibration complete', 'Not enough recent answers to change a band yet. Your existing baseline stays safe.',
+  'Keep my existing baseline', 'Evidence, not guesswork', 'What are you adding?',
+  'Choose the report you have. APEX will only ask for values that belong to it.',
+  'DEXA body composition report', 'Save body fat and any resting-energy estimate printed on the same report.',
+  'Other health or fitness result', 'Add VO₂ max, resting heart rate, waist or a metabolic test.',
+  'DEXA REPORT', 'Add your DEXA results',
+  'Enter either value or both. Leave a field blank when it is not printed on your report.',
+  'DEXA measures body composition. Some reports also print an estimated BMR or RMR; APEX stores that number as report-supplied, not as a direct metabolic measurement.',
+  'Body fat (optional)', 'Resting metabolism printed on the report (optional)', 'kcal/day',
+  'Save DEXA results', 'Enter at least one valid value and name the report or clinic.',
+  'DEXA results saved', 'RECENT RESULT', 'Add another result',
+  'Manual entries stay low-confidence until a supported source confirms them.',
+  'Report or clinic', 'You can close this screen. These values are now part of your private evidence history.',
+  'Add another',
+] as const
+
+const calibrationFullKeys = [...new Set([
   'Calibrate my baseline', 'Opens a resumable baseline questionnaire.', 'Sharpen your map',
   'Add better evidence without turning fitness into a test you can fail.',
   'Your bespoke plan stays protected. Calibration only refines your evidence.',
@@ -155,11 +268,13 @@ const calibrationFullKeys = [
   'Open Avatar on your iPhone and choose Edit, then Connect what you track. Your manual routes remain available here.',
   'Resting energy (BMR/RMR)', 'Waist circumference', 'Value', 'VO₂ max',
   'Resting heart rate', 'Not tested', 'Saving…',
-] as const
+  ...redesignedCalibrationKeys,
+])]
 
 const calibrationCompactKeys = [
   'Edit', 'Back', 'Continue', 'Review my baseline', 'Save baseline', 'Save result',
-  'Connect Apple Health', 'Not tested',
+  'Connect Apple Health', 'Not tested', 'Save DEXA results', 'Add another',
+  "I'm not sure or haven't done this recently",
 ] as const
 
 function stringTableKeys(source: string): Set<string> {

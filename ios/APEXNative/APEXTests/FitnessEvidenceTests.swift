@@ -227,6 +227,30 @@ final class OnboardingBaselineTests: XCTestCase {
 }
 
 final class BaselineCalibrationTests: XCTestCase {
+    func testQuestionBankUsesTwelveDirectPromptsWithSpecificAnswers() {
+        XCTAssertEqual(BaselineCalibrationQuestionBank.all.count, 12)
+        XCTAssertEqual(Set(BaselineCalibrationQuestionBank.all.map(\.id)).count, 12)
+        for question in BaselineCalibrationQuestionBank.all {
+            XCTAssertEqual(question.options.count, 4, question.id)
+            XCTAssertEqual(question.options.map(\.answer), [
+                .foundation, .developing, .capable, .strong,
+            ])
+            XCTAssertEqual(Set(question.options.map(\.title)).count, 4, question.id)
+            XCTAssertFalse(question.options.contains {
+                ["Foundation", "Developing", "Capable", "Strong signal"].contains($0.title)
+            }, question.id)
+        }
+    }
+
+    func testContinueRequiresExplicitAnswerAndNotSureCounts() {
+        let question = BaselineCalibrationQuestionBank.all[0]
+        var draft = BaselineCalibrationDraft.empty
+        draft.step = 1
+        XCTAssertFalse(draft.isAnswered(question.id))
+        draft.setAnswer(.notTested, for: question)
+        XCTAssertTrue(draft.isAnswered(question.id))
+    }
+
     func testDraftsResumeForTheirOwnerAndNeverCrossAccounts() throws {
         let suiteName = "BaselineCalibrationTests.\(UUID().uuidString)"
         let defaults = try XCTUnwrap(UserDefaults(suiteName: suiteName))
@@ -236,7 +260,11 @@ final class BaselineCalibrationTests: XCTestCase {
         let otherOwner = UUID(uuidString: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")!
         var answers = BaselineCalibrationAnswers.empty
         answers.cardiorespiratory[0] = BaselineCalibrationAnswer.capable.rawValue
-        let draft = BaselineCalibrationDraft(step: 2, answers: answers)
+        let draft = BaselineCalibrationDraft(
+            step: 7,
+            answers: answers,
+            answeredQuestionIDs: Set(BaselineCalibrationQuestionBank.all.prefix(6).map(\.id))
+        )
 
         BaselineCalibrationDraftStore.save(draft, userID: owner, defaults: defaults)
         XCTAssertEqual(BaselineCalibrationDraftStore.load(userID: owner, defaults: defaults), draft)
@@ -317,6 +345,37 @@ final class BaselineCalibrationTests: XCTestCase {
             importedAt: fixture.importedAt
         )
         XCTAssertEqual(rejected, .rejected("invalid_unit_or_range"))
+    }
+
+    func testDEXAReportCanPersistBodyFatAndPrintedRestingEnergyTogether() throws {
+        let fixture: BaselineCalibrationFixture = try decodeCalibrationFixture()
+        let result = BaselineCalibrationAssessment.manualDEXAEvidence(
+            userID: fixture.userID,
+            bodyFatPercentage: 18.4,
+            restingMetabolicRate: 1_683,
+            declaredSource: "DEXA report · clinic copy",
+            measuredAt: fixture.measuredAt,
+            importedAt: fixture.importedAt
+        )
+        guard case .accepted(let evidence) = result else {
+            return XCTFail("Expected two DEXA evidence records")
+        }
+        XCTAssertEqual(evidence.map(\.metric), [.bodyFatPercentage, .restingMetabolicRate])
+        XCTAssertTrue(evidence.allSatisfy { $0.confidence == .low })
+        XCTAssertTrue(evidence.allSatisfy {
+            $0.metadata["declared_source"] == .string("DEXA report · clinic copy")
+        })
+        XCTAssertEqual(
+            BaselineCalibrationAssessment.manualDEXAEvidence(
+                userID: fixture.userID,
+                bodyFatPercentage: nil,
+                restingMetabolicRate: nil,
+                declaredSource: "DEXA report",
+                measuredAt: fixture.measuredAt,
+                importedAt: fixture.importedAt
+            ),
+            .rejected("missing_value")
+        )
     }
 
     private func decodeCalibrationFixture<T: Decodable>() throws -> T {

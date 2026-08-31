@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 66, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 69, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -323,6 +323,8 @@ final class LocalisationCoverageTests: XCTestCase {
             let calibrationKeys = [
                 "Edit", "Back", "Continue", "Review my baseline",
                 "Save baseline", "Save result", "Connect Apple Health", "Not tested",
+                "Save DEXA results", "Add another",
+                "I'm not sure or haven't done this recently",
             ]
             XCTAssertTrue(
                 Set(calibrationKeys).isSubset(of: keys),
