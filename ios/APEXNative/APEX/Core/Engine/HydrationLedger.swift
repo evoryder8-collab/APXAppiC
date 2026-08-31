@@ -563,9 +563,17 @@ enum HydrationWidgetStateResolver {
                 healthOverlay: canonical.healthOverlay ?? []
             )
         }
+        /* The companion snapshot is the account-owned source of truth. A
+           HealthKit sidecar may surface an external addition before the app
+           has absorbed it, but it must never erase a canonical APEX event.
+           Deleted HealthKit samples are reconciled by the Watch app, which
+           can update the canonical snapshot and its causal revision. */
+        let visibleHealthOverlay = healthState.healthOverlay.filter {
+            $0.action == .upsert
+        }
         let reconciled = HydrationHealthReconciler.replacingOverlay(
             canonical.healthOverlay ?? [],
-            with: healthState.healthOverlay,
+            with: visibleHealthOverlay,
             inTotalML: canonical.totalML,
             composition: canonical.composition
         )
@@ -574,7 +582,7 @@ enum HydrationWidgetStateResolver {
             composition: reconciled.composition,
             healthAnchor: healthState.healthAnchor,
             healthQueryAnchorData: healthState.healthQueryAnchorData,
-            healthOverlay: healthState.healthOverlay
+            healthOverlay: visibleHealthOverlay
         )
     }
 }

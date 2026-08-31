@@ -248,12 +248,18 @@ enum HydrationComplicationTimelinePolicy {
         after date: Date,
         calendar: Calendar = .current
     ) -> HydrationComplicationTimelineSchedule {
-        let refreshAfter = date.addingTimeInterval(30 * 60)
+        let routineRefresh = date.addingTimeInterval(30 * 60)
         let midnight = calendar.date(
             byAdding: .day,
             value: 1,
             to: calendar.startOfDay(for: date)
-        ) ?? refreshAfter
+        ) ?? routineRefresh
+        /* The explicit zero entry clears yesterday at midnight. Ask for a
+           fresh canonical snapshot one minute later so that zero cannot
+           become the long-lived face value when WidgetKit defers its normal
+           half-hour refresh. */
+        let postMidnightRecovery = midnight.addingTimeInterval(60)
+        let refreshAfter = min(routineRefresh, postMidnightRecovery)
         return HydrationComplicationTimelineSchedule(
             midnightReset: HydrationComplicationMidnightReset(
                 date: midnight,

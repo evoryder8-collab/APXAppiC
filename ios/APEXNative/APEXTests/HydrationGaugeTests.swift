@@ -1049,6 +1049,53 @@ final class WatchHydrationFillStateTests: XCTestCase {
         )
     }
 
+    func testComplicationCannotZeroCanonicalHydrationWithAHealthSidecarDeletion() {
+        let ownerID = UUID(uuidString: "00000000-0000-0000-0000-000000000102")!
+        let sample = healthSample(
+            "00000000-0000-0000-0000-000000000103",
+            milliliters: 1_250
+        )
+        let canonical = HydrationWidgetState(
+            ownerID: ownerID,
+            localDate: "2026-09-01",
+            totalML: 1_250,
+            targetML: 3_000,
+            composition: [HydrationCompositionBand(
+                kind: .water,
+                paletteToken: "aqua",
+                iconToken: "drop.fill",
+                milliliters: 1_250
+            )],
+            revision: "2026-09-01T00:10:00.000Z",
+            healthAnchor: [sample],
+            canonicalSampleIDs: [sample.id]
+        )
+        let staleDeletion = HydrationWidgetHealthState(
+            ownerID: ownerID,
+            localDate: canonical.localDate,
+            baseRevision: canonical.revision,
+            observationRevision: "2026-09-01T00:10:01.000Z",
+            totalML: 0,
+            composition: [],
+            healthAnchor: [],
+            healthQueryAnchorData: nil,
+            healthOverlay: [HydrationPendingMutation(
+                ownerID: ownerID,
+                localDate: canonical.localDate,
+                action: .delete,
+                sample: sample
+            )]
+        )
+
+        let resolved = HydrationWidgetStateResolver.resolve(
+            canonical: canonical,
+            healthState: staleDeletion
+        )
+
+        XCTAssertEqual(resolved.totalML, canonical.totalML)
+        XCTAssertEqual(resolved.composition, canonical.composition)
+    }
+
     func testTimelineReloadGateRefreshesChangedAndUnrenderedStateWithoutLooping() {
         XCTAssertTrue(HydrationComplicationRefreshPolicy.shouldReloadTimeline(
             renderedVisibleSignature: "owner|day|1238|3750|water",
@@ -1105,7 +1152,7 @@ final class WatchHydrationFillStateTests: XCTestCase {
         calendar.timeZone = TimeZone(secondsFromGMT: 0)!
         let now = ISO8601DateFormatter().date(from: "2026-08-29T23:50:00Z")!
         let expectedMidnight = ISO8601DateFormatter().date(from: "2026-08-30T00:00:00Z")!
-        let expectedRefresh = ISO8601DateFormatter().date(from: "2026-08-30T00:20:00Z")!
+        let expectedRefresh = ISO8601DateFormatter().date(from: "2026-08-30T00:01:00Z")!
         let schedule = HydrationComplicationTimelinePolicy.schedule(
             after: now,
             calendar: calendar
