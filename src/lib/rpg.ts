@@ -16,7 +16,14 @@
  * show its reasoning in plain language.
  */
 import { differenceInCalendarDays } from 'date-fns'
-import type { AppData, DayType, Profile, RecoveryDataSource, RpgSnapshot } from './types'
+import type {
+  AppData,
+  DayType,
+  FitnessEvidenceRecord,
+  Profile,
+  RecoveryDataSource,
+  RpgSnapshot,
+} from './types'
 import { computeTargets, nutritionPlanContext } from './nutrition.ts'
 import { isConditioningFocusT25 } from './focusT25.ts'
 import { normalizeMealRhythmHistory, type MealRhythmVerdict } from './mealRhythm.ts'
@@ -140,6 +147,118 @@ function headroom(stat: number): number {
 /* Map a measured VO2max (mL/kg/min) onto the 0-100 game scale */
 export function vo2ToStat(vo2: number): number {
   return Math.min(95, Math.max(20, vo2 * 1.35))
+}
+
+type CapacityCalibrationMetric =
+  | 'cardiorespiratory'
+  | 'upper_strength'
+  | 'lower_strength'
+  | 'flexibility'
+
+interface CapacityCalibrationAnchor {
+  id: string
+  metric: CapacityCalibrationMetric
+  value: number
+  measuredOn: string
+  importedAt: string
+  coverage: number
+}
+
+interface CapacityCalibrationTimeline {
+  beforeBaseline: Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>
+  byDate: Map<string, Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>>
+}
+
+const capacityCalibrationMetrics: Partial<Record<FitnessEvidenceRecord['metric'], CapacityCalibrationMetric>> = {
+  cardio_capacity_score: 'cardiorespiratory',
+  upper_body_strength_score: 'upper_strength',
+  lower_body_strength_score: 'lower_strength',
+  flexibility_score: 'flexibility',
+}
+
+const capacityCalibrationProtocols = new Set([
+  'apex_onboarding_pulse_v1',
+  'apex_baseline_calibration_v1',
+])
+
+function calibrationCoverage(record: FitnessEvidenceRecord): number {
+  const declared = record.metadata.coverage
+  const answered = record.metadata.answered_count
+  const inferred = typeof answered === 'number' && Number.isFinite(answered)
+    ? (answered / 3) * 0.55
+    : 0.35
+  const value = typeof declared === 'number' && Number.isFinite(declared) ? declared : inferred
+  return Math.min(0.55, Math.max(0, value))
+}
+
+function capacityCalibrationTimeline(
+  data: AppData,
+  baselineDate: string,
+  throughDate: string,
+): CapacityCalibrationTimeline {
+  const ownerID = data.profile?.user_id
+  const owned = data.fitness_evidence.filter((record) => record.user_id === ownerID)
+  const supersededIDs = new Set(owned.flatMap((record) => record.supersedes_id ? [record.supersedes_id] : []))
+  const beforeBaseline = new Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>()
+  const byDate = new Map<string, Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>>()
+
+  for (const record of owned) {
+    const metric = capacityCalibrationMetrics[record.metric]
+    const measuredOn = record.measured_at.slice(0, 10)
+    if (
+      supersededIDs.has(record.id)
+      || !metric
+      || record.source !== 'structured_self_report'
+      || record.confidence !== 'low'
+      || record.unit !== 'score_0_100'
+      || !capacityCalibrationProtocols.has(record.protocol ?? '')
+      || !Number.isFinite(record.value)
+      || record.value < 0
+      || record.value > 100
+      || !/^\d{4}-\d{2}-\d{2}$/.test(measuredOn)
+      || measuredOn > throughDate
+    ) continue
+    const coverage = calibrationCoverage(record)
+    if (coverage <= 0) continue
+    const anchor: CapacityCalibrationAnchor = {
+      id: record.id,
+      metric,
+      value: record.value,
+      measuredOn,
+      importedAt: record.imported_at,
+      coverage,
+    }
+    const destination = measuredOn <= baselineDate
+      ? beforeBaseline
+      : (byDate.get(measuredOn) ?? new Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>())
+    const existing = destination.get(metric)
+    const chronology = `${anchor.measuredOn}:${anchor.importedAt}:${anchor.id}`
+    const existingChronology = existing
+      ? `${existing.measuredOn}:${existing.importedAt}:${existing.id}`
+      : ''
+    if (!existing || chronology > existingChronology) destination.set(metric, anchor)
+    if (measuredOn > baselineDate) byDate.set(measuredOn, destination)
+  }
+  return { beforeBaseline, byDate }
+}
+
+function applyCapacityCalibration(
+  stats: StatBlock,
+  evidence: Map<CapacityCalibrationMetric, CapacityCalibrationAnchor>,
+): Set<CapacityCalibrationMetric> {
+  const applied = new Set<CapacityCalibrationMetric>()
+  for (const metric of [...evidence.keys()].sort()) {
+    const anchor = evidence.get(metric)
+    if (!anchor) continue
+    const weight = Math.min(0.55, Math.max(0, anchor.coverage))
+    const value = clamp(anchor.value)
+    if (metric === 'cardiorespiratory') stats.endurance += (value - stats.endurance) * weight
+    else if (metric === 'upper_strength') stats.strength_upper += (value - stats.strength_upper) * weight
+    else if (metric === 'lower_strength') stats.strength_lower += (value - stats.strength_lower) * weight
+    else stats.flexibility += (value - stats.flexibility) * weight
+    applied.add(metric)
+  }
+  return applied
 }
 
 interface DayActivity {
@@ -296,6 +415,8 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
   const synergies: SynergyEvent[] = []
   let s: StatBlock = baselineForProfile(profile)
   let lastLegsOffset = -99 // day index of the last completed leg session
+  const calibrationTimeline = capacityCalibrationTimeline(data, start, throughDate)
+  applyCapacityCalibration(s, calibrationTimeline.beforeBaseline)
 
   /* --- pre-baseline Apple Health history informs the starting point. The 6b
      calibration stays the anchor; measured reality corrects it, and history
@@ -351,6 +472,15 @@ export function computeEngine(data: AppData, throughDate: string): EngineResult 
         endurance: false, flexibility: false, upper: false, lower: false,
         joint: false, health: false,
       }
+
+      const calibrated = applyCapacityCalibration(
+        s,
+        calibrationTimeline.byDate.get(date) ?? new Map(),
+      )
+      fed.endurance = calibrated.has('cardiorespiratory')
+      fed.flexibility = calibrated.has('flexibility')
+      fed.upper = calibrated.has('upper_strength')
+      fed.lower = calibrated.has('lower_strength')
 
       if (a) {
         /* --- the brain: nutrition context for this training day --- */

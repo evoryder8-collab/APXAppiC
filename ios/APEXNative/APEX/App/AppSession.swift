@@ -4353,23 +4353,7 @@ final class AppSession {
 
         #if DEBUG
         if APEXRuntimeEnvironment.usesLocalUITestFixture() {
-            let localRecord = FitnessEvidenceRecord(
-                id: UUID(),
-                userID: ownerID,
-                metric: evidence.metric,
-                value: evidence.value,
-                unit: evidence.unit,
-                source: evidence.source,
-                protocol: evidence.protocol,
-                device: evidence.device,
-                measuredAt: evidence.measuredAt,
-                importedAt: evidence.importedAt,
-                confidence: evidence.confidence,
-                metadata: evidence.metadata,
-                supersedesID: evidence.supersedesID.flatMap(UUID.init(uuidString:)),
-                clientIdempotencyKey: evidence.clientIdempotencyKey
-            )
-            mergeFitnessEvidenceRecord(localRecord)
+            mergeFitnessEvidenceRecord(localFitnessEvidenceRecord(evidence, ownerID: ownerID))
             await saveLocalSnapshot()
             return
         }
@@ -4404,6 +4388,8 @@ final class AppSession {
             switch SyncFailurePolicy.classify(error) {
             case .transient, .authenticationRequired:
                 try await offlineStore.enqueue(offlineOperation, for: ownerID)
+                mergeFitnessEvidenceRecord(localFitnessEvidenceRecord(evidence, ownerID: ownerID))
+                await saveLocalSnapshot()
                 pendingSyncCount = (try? await offlineStore.pendingOperations(for: ownerID).count)
                     ?? pendingSyncCount + 1
             case .permanent:
@@ -4516,6 +4502,28 @@ final class AppSession {
         }
         records.insert(record, at: 0)
         data.fitnessEvidence = records
+    }
+
+    private func localFitnessEvidenceRecord(
+        _ evidence: NormalizedFitnessEvidence,
+        ownerID: UUID
+    ) -> FitnessEvidenceRecord {
+        FitnessEvidenceRecord(
+            id: UUID(),
+            userID: ownerID,
+            metric: evidence.metric,
+            value: evidence.value,
+            unit: evidence.unit,
+            source: evidence.source,
+            protocol: evidence.protocol,
+            device: evidence.device,
+            measuredAt: evidence.measuredAt,
+            importedAt: evidence.importedAt,
+            confidence: evidence.confidence,
+            metadata: evidence.metadata,
+            supersedesID: evidence.supersedesID.flatMap(UUID.init(uuidString:)),
+            clientIdempotencyKey: evidence.clientIdempotencyKey
+        )
     }
 
     private func persistUpsert<T: Encodable & Sendable>(

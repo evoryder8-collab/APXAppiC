@@ -227,6 +227,61 @@ final class OnboardingBaselineTests: XCTestCase {
 }
 
 final class BaselineCalibrationTests: XCTestCase {
+    func testCalibrationEvidenceChangesVisibleAvatarDomainsForItsOwner() throws {
+        let owner = UUID(uuidString: "11111111-2222-3333-4444-555555555555")!
+        var dashboard = APEXDebugFixture.dashboard(userID: owner)
+        var profile = try XCTUnwrap(dashboard.profile)
+        profile.baselineDate = "2026-08-30"
+        dashboard.profile = profile
+        dashboard.programDays = []
+        dashboard.exercises = []
+        dashboard.workoutSessions = []
+        dashboard.workoutLogs = []
+        dashboard.dailyLogs = []
+        dashboard.healthMetrics = []
+        dashboard.importedActivities = []
+        dashboard.fitnessEvidence = [
+            calibrationEvidence(
+                owner: owner,
+                metric: .cardioCapacityScore,
+                value: 77,
+                importedAt: "2026-08-31T07:00:01Z"
+            ),
+            calibrationEvidence(owner: owner, metric: .cardioCapacityScore),
+            calibrationEvidence(owner: owner, metric: .upperBodyStrengthScore),
+            calibrationEvidence(owner: owner, metric: .lowerBodyStrengthScore),
+            calibrationEvidence(owner: owner, metric: .flexibilityScore),
+            calibrationEvidence(
+                owner: UUID(uuidString: "aaaaaaaa-bbbb-cccc-dddd-eeeeeeeeeeee")!,
+                metric: .cardioCapacityScore,
+                value: 99
+            ),
+        ]
+
+        let input = try XCTUnwrap(FitnessBrainService.engineInput(from: dashboard))
+        let snapshot = try XCTUnwrap(
+            FitnessBrainEngine.compute(input, throughDate: "2026-08-31").snapshots.last
+        )
+        var uncalibratedDashboard = dashboard
+        uncalibratedDashboard.fitnessEvidence = []
+        let uncalibratedInput = try XCTUnwrap(
+            FitnessBrainService.engineInput(from: uncalibratedDashboard)
+        )
+        let uncalibrated = try XCTUnwrap(
+            FitnessBrainEngine.compute(
+                uncalibratedInput,
+                throughDate: "2026-08-31"
+            ).snapshots.last
+        )
+
+        XCTAssertEqual(snapshot.endurance, 36.7)
+        XCTAssertEqual(snapshot.strengthUpper, 43.5)
+        XCTAssertEqual(snapshot.strengthLower, 35.4)
+        XCTAssertEqual(snapshot.flexibility, 34.5)
+        XCTAssertEqual(snapshot.health, uncalibrated.health)
+        XCTAssertEqual(snapshot.joint, uncalibrated.joint)
+    }
+
     func testQuestionBankUsesTwelveDirectPromptsWithSpecificAnswers() {
         XCTAssertEqual(BaselineCalibrationQuestionBank.all.count, 12)
         XCTAssertEqual(Set(BaselineCalibrationQuestionBank.all.map(\.id)).count, 12)
@@ -384,5 +439,32 @@ final class BaselineCalibrationTests: XCTestCase {
             withExtension: "json"
         ))
         return try JSONDecoder().decode(T.self, from: Data(contentsOf: url))
+    }
+
+    private func calibrationEvidence(
+        owner: UUID,
+        metric: FitnessEvidenceMetric,
+        value: Double = 30,
+        importedAt: String = "2026-08-31T08:00:01Z"
+    ) -> FitnessEvidenceRecord {
+        FitnessEvidenceRecord(
+            id: UUID(),
+            userID: owner,
+            metric: metric,
+            value: value,
+            unit: "score_0_100",
+            source: .structuredSelfReport,
+            protocol: "apex_baseline_calibration_v1",
+            device: nil,
+            measuredAt: "2026-08-31T08:00:00Z",
+            importedAt: importedAt,
+            confidence: .low,
+            metadata: [
+                "answered_count": .number(3),
+                "display_precision": .string("band_only"),
+            ],
+            supersedesID: nil,
+            clientIdempotencyKey: "calibration-v1:\(owner.uuidString.lowercased()):\(metric.rawValue)"
+        )
     }
 }

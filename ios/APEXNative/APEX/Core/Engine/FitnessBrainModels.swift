@@ -230,6 +230,47 @@ public struct FBImportedActivity: Codable, Sendable {
     }
 }
 
+public enum FBCapacityCalibrationMetric: String, Codable, Sendable, Hashable {
+    case cardiorespiratory
+    case upperStrength = "upper_strength"
+    case lowerStrength = "lower_strength"
+    case flexibility
+}
+
+/* A deliberately narrow bridge from account-owned calibration evidence into
+   the legacy presentation engine. These are broad 0...100 capacity anchors,
+   not clinical measurements and never direct Overall/Health/Joint inputs. */
+public struct FBCapacityCalibrationEvidence: Sendable {
+    public var id: String
+    public var userID: String
+    public var metric: FBCapacityCalibrationMetric
+    public var value: Double
+    public var measuredOn: String
+    public var importedAt: String
+    public var coverage: Double
+    public var supersedesID: String?
+
+    public init(
+        id: String,
+        userID: String,
+        metric: FBCapacityCalibrationMetric,
+        value: Double,
+        measuredOn: String,
+        importedAt: String,
+        coverage: Double,
+        supersedesID: String?
+    ) {
+        self.id = id
+        self.userID = userID
+        self.metric = metric
+        self.value = value
+        self.measuredOn = measuredOn
+        self.importedAt = importedAt
+        self.coverage = coverage
+        self.supersedesID = supersedesID
+    }
+}
+
 public enum FBRecoverySource: String, Codable, Sendable {
     case apple, other
 }
@@ -302,6 +343,7 @@ public struct FBEngineInput: Sendable {
     public var dailyLogs: [FBDailyLog]
     public var healthMetrics: [FBHealthMetric]
     public var importedActivities: [FBImportedActivity]
+    public var capacityCalibrationEvidence: [FBCapacityCalibrationEvidence]
     public var recoveryHistory: [FBRecoveryCheckin]
     /* keys are yyyy-MM-dd dates; order preserved from storage where relevant */
     public var mealRhythmHistory: [String: FBMealRhythmDayRaw]
@@ -315,6 +357,7 @@ public struct FBEngineInput: Sendable {
         dailyLogs: [FBDailyLog] = [],
         healthMetrics: [FBHealthMetric] = [],
         importedActivities: [FBImportedActivity] = [],
+        capacityCalibrationEvidence: [FBCapacityCalibrationEvidence] = [],
         recoveryHistory: [FBRecoveryCheckin] = [],
         mealRhythmHistory: [String: FBMealRhythmDayRaw] = [:]
     ) {
@@ -326,6 +369,7 @@ public struct FBEngineInput: Sendable {
         self.dailyLogs = dailyLogs
         self.healthMetrics = healthMetrics
         self.importedActivities = importedActivities
+        self.capacityCalibrationEvidence = capacityCalibrationEvidence
         self.recoveryHistory = recoveryHistory
         self.mealRhythmHistory = mealRhythmHistory
     }

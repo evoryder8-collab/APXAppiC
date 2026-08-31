@@ -70,6 +70,78 @@ public enum FitnessBrainEngine {
 
     public static func vo2ToStat(_ vo2: Double) -> Double { min(95, max(20, vo2 * 1.35)) }
 
+    private struct CapacityCalibrationTimeline {
+        var beforeBaseline: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence]
+        var byDate: [String: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence]]
+    }
+
+    private static func capacityCalibrationTimeline(
+        _ evidence: [FBCapacityCalibrationEvidence],
+        ownerID: String,
+        baselineDate: String,
+        throughDate: String
+    ) -> CapacityCalibrationTimeline {
+        let owned = evidence.filter { $0.userID == ownerID }
+        let supersededIDs = Set(owned.compactMap(\.supersedesID))
+        var beforeBaseline: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence] = [:]
+        var byDate: [String: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence]] = [:]
+
+        func isNewer(
+            _ candidate: FBCapacityCalibrationEvidence,
+            than existing: FBCapacityCalibrationEvidence
+        ) -> Bool {
+            "\(candidate.measuredOn):\(candidate.importedAt):\(candidate.id)"
+                > "\(existing.measuredOn):\(existing.importedAt):\(existing.id)"
+        }
+
+        for item in owned where !supersededIDs.contains(item.id) {
+            guard item.value.isFinite,
+                  (0...100).contains(item.value),
+                  item.coverage.isFinite,
+                  item.coverage > 0,
+                  item.measuredOn <= throughDate else { continue }
+            if item.measuredOn <= baselineDate {
+                if let existing = beforeBaseline[item.metric], !isNewer(item, than: existing) {
+                    continue
+                }
+                beforeBaseline[item.metric] = item
+            } else {
+                var day = byDate[item.measuredOn] ?? [:]
+                if let existing = day[item.metric], !isNewer(item, than: existing) {
+                    continue
+                }
+                day[item.metric] = item
+                byDate[item.measuredOn] = day
+            }
+        }
+        return CapacityCalibrationTimeline(beforeBaseline: beforeBaseline, byDate: byDate)
+    }
+
+    @discardableResult
+    private static func applyCapacityCalibration(
+        _ evidence: [FBCapacityCalibrationMetric: FBCapacityCalibrationEvidence],
+        to stats: inout StatBlock
+    ) -> Set<FBCapacityCalibrationMetric> {
+        var applied = Set<FBCapacityCalibrationMetric>()
+        for metric in evidence.keys.sorted(by: { $0.rawValue < $1.rawValue }) {
+            guard let item = evidence[metric] else { continue }
+            let weight = min(0.55, max(0, item.coverage))
+            let anchor = clamp(item.value)
+            switch metric {
+            case .cardiorespiratory:
+                stats.endurance += (anchor - stats.endurance) * weight
+            case .upperStrength:
+                stats.strengthUpper += (anchor - stats.strengthUpper) * weight
+            case .lowerStrength:
+                stats.strengthLower += (anchor - stats.strengthLower) * weight
+            case .flexibility:
+                stats.flexibility += (anchor - stats.flexibility) * weight
+            }
+            applied.insert(metric)
+        }
+        return applied
+    }
+
     static func round1(_ v: Double) -> Double { (v * 10).rounded(.toNearestOrAwayFromZero) / 10 }
 
     /* JS number.toFixed for the label strings */
@@ -276,6 +348,14 @@ public enum FitnessBrainEngine {
         var s = baseline(for: profile.persona)
         var lastLegsOffset = -99
 
+        let calibrationTimeline = capacityCalibrationTimeline(
+            input.capacityCalibrationEvidence,
+            ownerID: profile.userID,
+            baselineDate: start,
+            throughDate: throughDate
+        )
+        applyCapacityCalibration(calibrationTimeline.beforeBaseline, to: &s)
+
         /* Pre-baseline wearable history informs the starting point */
         let preVo2 = input.healthMetrics
             .filter { $0.vo2max != nil && $0.date < start }
@@ -324,6 +404,14 @@ public enum FitnessBrainEngine {
 
             var fedEndurance = false, fedFlexibility = false, fedUpper = false
             var fedLower = false, fedJoint = false, fedHealth = false
+
+            if let calibration = calibrationTimeline.byDate[date] {
+                let calibrated = applyCapacityCalibration(calibration, to: &s)
+                fedEndurance = calibrated.contains(.cardiorespiratory)
+                fedFlexibility = calibrated.contains(.flexibility)
+                fedUpper = calibrated.contains(.upperStrength)
+                fedLower = calibrated.contains(.lowerStrength)
+            }
 
             if let a {
                 let proteinHit = (a.protein ?? -1) >= targets.proteinG * 0.95

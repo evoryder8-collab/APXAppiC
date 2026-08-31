@@ -137,12 +137,68 @@ enum FitnessBrainService {
             dailyLogs: dailyLogs,
             healthMetrics: metrics,
             importedActivities: imports,
+            capacityCalibrationEvidence: capacityCalibrationEvidence(
+                from: data.fitnessEvidence ?? [],
+                ownerID: profile.userID
+            ),
             recoveryHistory: recoveryHistory(from: data.settings?.addons),
             mealRhythmHistory: mealRhythmHistory(from: data.settings?.addons)
         )
     }
 
     // MARK: - addons JSON extraction
+
+    static func capacityCalibrationEvidence(
+        from records: [FitnessEvidenceRecord],
+        ownerID: UUID
+    ) -> [FBCapacityCalibrationEvidence] {
+        let supportedProtocols: Set<String> = [
+            "apex_onboarding_pulse_v1",
+            "apex_baseline_calibration_v1",
+        ]
+        let metrics: [FitnessEvidenceMetric: FBCapacityCalibrationMetric] = [
+            .cardioCapacityScore: .cardiorespiratory,
+            .upperBodyStrengthScore: .upperStrength,
+            .lowerBodyStrengthScore: .lowerStrength,
+            .flexibilityScore: .flexibility,
+        ]
+
+        return records.compactMap { record in
+            guard record.userID == ownerID,
+                  record.source == .structuredSelfReport,
+                  record.confidence == .low,
+                  record.unit == "score_0_100",
+                  record.value.isFinite,
+                  (0...100).contains(record.value),
+                  let protocolName = record.protocol,
+                  supportedProtocols.contains(protocolName),
+                  let metric = metrics[record.metric],
+                  record.measuredAt.count >= 10 else { return nil }
+
+            let measuredOn = String(record.measuredAt.prefix(10))
+            guard measuredOn.count == 10,
+                  measuredOn[measuredOn.index(measuredOn.startIndex, offsetBy: 4)] == "-",
+                  measuredOn[measuredOn.index(measuredOn.startIndex, offsetBy: 7)] == "-" else {
+                return nil
+            }
+            let declaredCoverage = record.metadata["coverage"]?.numberValue
+            let answeredCount = record.metadata["answered_count"]?.numberValue
+            let inferredCoverage = answeredCount.map { ($0 / 3) * 0.55 } ?? 0.35
+            let coverage = min(0.55, max(0, declaredCoverage ?? inferredCoverage))
+            guard coverage > 0 else { return nil }
+
+            return FBCapacityCalibrationEvidence(
+                id: record.id.uuidString.lowercased(),
+                userID: record.userID.uuidString.lowercased(),
+                metric: metric,
+                value: record.value,
+                measuredOn: measuredOn,
+                importedAt: record.importedAt,
+                coverage: coverage,
+                supersedesID: record.supersedesID?.uuidString.lowercased()
+            )
+        }
+    }
 
     static func recoveryHistory(from addons: [String: JSONValue]?) -> [FBRecoveryCheckin] {
         guard case let .array(items)? = addons?["recovery_history"] else { return [] }
