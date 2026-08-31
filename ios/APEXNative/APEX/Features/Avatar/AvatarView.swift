@@ -150,7 +150,9 @@ struct AvatarView: View {
             HStack {
                 Text(language.text("APEX BODY INDEX")).font(APEXFont.mono(10)).tracking(2.6)
                 Spacer()
-                Text(language.text("LIVE PROFILE")).font(APEXFont.mono(9)).tracking(1.5)
+                Text(language.text("TRAINING ESTIMATE")).font(APEXFont.mono(9)).tracking(1.1)
+                    .lineLimit(2).multilineTextAlignment(.center)
+                    .fixedSize(horizontal: false, vertical: true).layoutPriority(1)
                     .padding(.horizontal, 12).padding(.vertical, 8).overlay(Capsule().stroke(APEXColor.green.opacity(0.55)))
             }
             HStack(alignment: .center, spacing: 18) {
@@ -347,6 +349,9 @@ struct AvatarView: View {
         GlassCard(radius: 32, padding: 20) {
             VStack(alignment: .leading, spacing: 16) {
                 HStack { Text(language.text("Stats")).font(APEXFont.display(27)); Spacer(); periodPicker(dark: false) }
+                Text(language.text("Legacy game scores. Not medical measurements."))
+                    .font(APEXFont.body(11, weight: .medium)).foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
                 ForEach(stats) { stat in AvatarStatRow(stat: stat) }
                 if let upper = stats.first(where: { $0.key == "upper" }), let lower = stats.first(where: { $0.key == "lower" }) {
                     VStack(alignment: .leading, spacing: 8) {

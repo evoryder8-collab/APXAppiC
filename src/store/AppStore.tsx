@@ -77,6 +77,11 @@ import {
 import { normalizeMealRhythmHistory } from '../lib/mealRhythm'
 import { normalizeRecoveryHistory, normalizeRecoverySource, normalizeWatchActivityHistory, personalTargetFor } from '../lib/personalProtocol'
 import { normalizeBodyFatSource, resolveProfilePolicy } from '../lib/profilePolicy.ts'
+import {
+  buildFitnessBrainShadowRuntimeObservation,
+  fitnessBrainShadowOutboxKey,
+  fitnessBrainShadowRPCPayload,
+} from '../lib/fitnessBrainShadowValidation.ts'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -331,6 +336,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   const lastSyncErrorToastAt = useRef(0)
   const pendingCache = useRef<{ data: AppData; scope: string } | null>(null)
   const cacheSaveTimer = useRef<number | null>(null)
+  const shadowObservationSignatureRef = useRef<string | null>(null)
 
   const flushPendingCache = useCallback(() => {
     if (cacheSaveTimer.current !== null) {
@@ -482,6 +488,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       payload: object
       rpc_function?: string
       sync_group?: string
+      dedupe_key?: string
     }) => {
       if (!supabase) return
       const queue = loadQueue(scopeRef.current)
@@ -1099,6 +1106,33 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       }
     }
   }, [snapshots, persist, enqueue, session])
+
+  useEffect(() => {
+    const profile = data.profile
+    if (!supabase || !session || !profile || profile.user_id !== session.user.id) return
+    const observedOn = zonedClock(new Date(), timeZoneFromSettings(data.settings)).date
+    const observation = buildFitnessBrainShadowRuntimeObservation({
+      owner_id: profile.user_id,
+      observed_on: observedOn,
+      platform: 'web',
+      profile_kind: resolveProfilePolicy(profile).kind,
+      birthdate: profile.birthdate,
+      sex: profile.sex,
+      legacy_snapshots: snapshots,
+      fitness_evidence: data.fitness_evidence,
+    })
+    const payload = fitnessBrainShadowRPCPayload(observation)
+    const signature = `${profile.user_id}:${JSON.stringify(payload)}`
+    if (shadowObservationSignatureRef.current === signature) return
+    shadowObservationSignatureRef.current = signature
+    enqueue({
+      table: 'fitness_brain_shadow_observations',
+      type: 'rpc',
+      rpc_function: 'record_fitness_brain_shadow_observation',
+      dedupe_key: fitnessBrainShadowOutboxKey(observation),
+      payload,
+    })
+  }, [data.fitness_evidence, data.profile, data.settings, enqueue, session, snapshots])
 
   const signIn = useCallback(async (email: string, password: string): Promise<{ error: string | null; persona: PersonaSlug | null }> => {
     const cachedPersona = isPersonaSlug(dataRef.current.profile?.persona) ? dataRef.current.profile.persona : null

@@ -27,6 +27,7 @@ export interface SyncOp {
   payload: Record<string, unknown> | Array<Record<string, unknown>>
   ts: number
   sync_group?: string
+  dedupe_key?: string
 }
 
 export function loadCache(scope = 'local'): AppData | null {

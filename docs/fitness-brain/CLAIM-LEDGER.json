@@ -1,0 +1,50 @@
+{
+  "ledger_version": 1,
+  "reviewed_on": "2026-08-31",
+  "rollout_status": "shadow_validation",
+  "visible_model_version": 1,
+  "shadow_model_version": 2,
+  "approved_concepts": [
+    "training estimate",
+    "confidence",
+    "coverage",
+    "provenance",
+    "uncertainty"
+  ],
+  "prohibited_claims": [
+    "clinical diagnosis",
+    "injury prediction",
+    "guaranteed accuracy",
+    "scientifically proven exact scores",
+    "medical-grade fitness scores"
+  ],
+  "current_claims": [
+    {
+      "surface": "Avatar APEX Body Index and Stats",
+      "status": "approved_with_disclosure",
+      "meaning": "Legacy gamified training estimates derived by presentation model v1.",
+      "required_disclosure": "Legacy game scores. Not medical measurements."
+    },
+    {
+      "surface": "Baseline calibration",
+      "status": "approved_with_uncertainty",
+      "meaning": "Structured self-report creates broad provisional bands with low confidence until stronger evidence exists."
+    },
+    {
+      "surface": "Fitness Brain v2",
+      "status": "not_user_visible",
+      "meaning": "Privacy-safe shadow observations may be collected, but v2 must not control displayed scores or guidance."
+    }
+  ],
+  "activation_constraints": [
+    "representative observation threshold",
+    "minimum subgroup threshold",
+    "coverage threshold",
+    "disagreement threshold",
+    "zero invariant violations",
+    "scientific review",
+    "privacy review",
+    "claim review",
+    "explicit owner activation approval"
+  ]
+}

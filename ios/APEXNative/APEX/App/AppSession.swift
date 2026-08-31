@@ -53,6 +53,7 @@ final class AppSession {
     private var realtimeDebounceTask: Task<Void, Never>?
     @ObservationIgnored private var workoutSyncTask: Task<Void, Never>?
     @ObservationIgnored private var accountGeneration = AccountGenerationGate()
+    @ObservationIgnored private var lastShadowObservationSignature: String?
 
     init() {
         hydrationConnectivity.mutationHandler = { [weak self] mutation in
@@ -71,6 +72,7 @@ final class AppSession {
         pendingSyncCount = 0
         failedSyncCount = 0
         failedSyncOperations = []
+        lastShadowObservationSignature = nil
         isBusy = false
         isRefreshing = false
         return accountGeneration.token
@@ -849,6 +851,62 @@ final class AppSession {
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test") { return }
             #endif
             Task { await persistUpsert(latest, table: "rpg_snapshots") }
+        }
+        scheduleFitnessBrainShadowObservation()
+    }
+
+    private func scheduleFitnessBrainShadowObservation() {
+        #if DEBUG
+        let processInfo = ProcessInfo.processInfo
+        if processInfo.environment["APEX_UI_TESTING"] == "1"
+            || processInfo.arguments.contains(where: { $0.hasPrefix("-apex-ui-test") }) {
+            return
+        }
+        #endif
+        guard let profile,
+              verifiedPersistenceOwnerID(profile.userID) == profile.userID else { return }
+        let observedOn = Date().apexDateKey
+        let resolved = ProfileIntegrityPolicy.resolve(profile)
+        let observation = FitnessBrainShadowValidator.runtimeObservation(
+            ownerID: profile.userID,
+            observedOn: observedOn,
+            platform: .ios,
+            profileKind: resolved.kind == .bespoke ? .bespoke : .standard,
+            birthdate: profile.birthdate,
+            sex: profile.sex,
+            legacySnapshots: data.snapshots,
+            evidence: data.fitnessEvidence ?? []
+        )
+        let parameters = FitnessBrainShadowRPCParameters(observation: observation)
+        guard let encoded = try? JSONEncoder().encode(parameters) else { return }
+        let signature = "\(profile.userID.uuidString.lowercased()):\(encoded.base64EncodedString())"
+        guard lastShadowObservationSignature != signature else { return }
+        lastShadowObservationSignature = signature
+        let ownerID = profile.userID
+        let accountToken = accountGeneration.token
+
+        Task { [weak self, offlineStore] in
+            guard let self,
+                  self.accountGeneration.accepts(accountToken),
+                  self.verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+            do {
+                let operation = try OfflineOperation.rpc(
+                    "record_fitness_brain_shadow_observation",
+                    params: parameters
+                )
+                try await offlineStore.enqueueLatestFitnessBrainShadowObservation(
+                    operation,
+                    for: ownerID
+                )
+                guard self.accountGeneration.accepts(accountToken),
+                      self.verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+                self.pendingSyncCount = (try? await offlineStore.pendingOperations(for: ownerID).count)
+                    ?? self.pendingSyncCount
+                await self.flushPendingChanges(for: ownerID)
+            } catch {
+                // Shadow telemetry is observational only. A persistence error
+                // must never alter or interrupt the user's visible v1 Avatar.
+            }
         }
     }
 

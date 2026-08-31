@@ -26,6 +26,8 @@ export interface PendingSyncOperation {
   payload: Record<string, unknown> | Array<Record<string, unknown>>
   /** Local-only transaction identity. It is never sent as a database field. */
   sync_group?: string
+  /** Local-only last-write-wins identity for idempotent observational RPCs. */
+  dedupe_key?: string
 }
 
 export interface DurableSyncOperation extends PendingSyncOperation {
@@ -142,6 +144,12 @@ export function enqueuePendingSyncOperation(
   options: { id: string; ts: number; inFlightId?: string | null },
 ): DurableSyncOperation[] {
   const next = [...queue]
+  if (operation.dedupe_key) {
+    const retained = next.filter((candidate) =>
+      candidate.dedupe_key !== operation.dedupe_key || candidate.id === options.inFlightId)
+    retained.push({ ...operation, id: options.id, ts: options.ts })
+    return retained
+  }
   const key = operation.type === 'upsert' ? singleRowKey(operation) : null
   if (key) {
     let latestMatchingIndex = -1

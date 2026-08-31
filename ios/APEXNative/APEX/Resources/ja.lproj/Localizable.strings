@@ -719,6 +719,8 @@
 "LENGTH EACH" = "各長さ";
 "LIMITATION" = "制限";
 "LIVE PROFILE" = "ライブ プロフィール";
+"TRAINING ESTIMATE" = "トレーニング推定値";
+"Legacy game scores. Not medical measurements." = "従来のゲームスコアであり、医療測定値ではありません。";
 "LIVE METABOLIC DAYLINE" = "代謝タイムライン";
 "LOG THIS SET DURING THE BREAK" = "休憩中にこのセットを記録";
 "Continue interrupted run" = "中断したランを再開";

@@ -155,6 +155,8 @@
 		F22300000000000000000004 /* BaselineCalibration.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22300000000000000000001 /* BaselineCalibration.swift */; };
 		F22300000000000000000005 /* BaselineCalibrationSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22300000000000000000002 /* BaselineCalibrationSheet.swift */; };
 		F22300000000000000000006 /* baseline-calibration.json in Resources */ = {isa = PBXBuildFile; fileRef = F22300000000000000000003 /* baseline-calibration.json */; };
+		F22400000000000000000004 /* FitnessBrainShadowValidation.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22400000000000000000001 /* FitnessBrainShadowValidation.swift */; };
+		F22400000000000000000005 /* FitnessBrainShadowValidationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = F22400000000000000000002 /* FitnessBrainShadowValidationTests.swift */; };
 		8877B70250BE84F4417ADD50 /* OrbitGPXService.swift in Sources */ = {isa = PBXBuildFile; fileRef = B6681DF046ED9381B422E42E /* OrbitGPXService.swift */; };
 		8919266C5A4F0701D86E6C23 /* FitnessBrainEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 73A775E9746F75FF485AA68B /* FitnessBrainEngine.swift */; };
 		8959C5F43634727949ECA305 /* FoodAmountSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = 70E2F7B6697D817761D223A9 /* FoodAmountSheet.swift */; };
@@ -423,6 +425,8 @@
 		F22300000000000000000001 /* BaselineCalibration.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineCalibration.swift; sourceTree = "<group>"; };
 		F22300000000000000000002 /* BaselineCalibrationSheet.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = BaselineCalibrationSheet.swift; sourceTree = "<group>"; };
 		F22300000000000000000003 /* baseline-calibration.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "baseline-calibration.json"; sourceTree = "<group>"; };
+		F22400000000000000000001 /* FitnessBrainShadowValidation.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainShadowValidation.swift; sourceTree = "<group>"; };
+		F22400000000000000000002 /* FitnessBrainShadowValidationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FitnessBrainShadowValidationTests.swift; sourceTree = "<group>"; };
 		53A12AB559BCB32B420CC5D9 /* MarathonCampaignView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = MarathonCampaignView.swift; sourceTree = "<group>"; };
 		546D39EB90030A612FF78CF7 /* ConsentView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ConsentView.swift; sourceTree = "<group>"; };
 		57258905C757B4949A5AC5C6 /* ProgressComparisonView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressComparisonView.swift; sourceTree = "<group>"; };
@@ -814,6 +818,7 @@
 				F22100000000000000000002 /* FitnessEvidenceTests.swift */,
 				FA1100000000000000000003 /* ProfileIntegrityTests.swift */,
 				F22000000000000000000002 /* FitnessBrainV2SemanticsTests.swift */,
+				F22400000000000000000002 /* FitnessBrainShadowValidationTests.swift */,
 				DFFB3F556C6A68B1C18D8141 /* EntitlementTests.swift */,
 				AD7862F34F8CEBA195465100 /* ExerciseLoggingTests.swift */,
 				6236B0A5E1B4CD351DE95983 /* ExportReportTests.swift */,
@@ -1035,6 +1040,7 @@
 				F22100000000000000000001 /* FitnessEvidence.swift */,
 				F22200000000000000000001 /* OnboardingBaseline.swift */,
 				F22300000000000000000001 /* BaselineCalibration.swift */,
+				F22400000000000000000001 /* FitnessBrainShadowValidation.swift */,
 				08B4C8EC48F6819E0F9551D6 /* FitnessBrainService.swift */,
 				59F43D857D8982BC68E25046 /* FitnessBrainTargets.swift */,
 				4C7B9FF8822A96F3FCD56F86 /* FocusT25.swift */,
@@ -1399,6 +1405,7 @@
 				F22100000000000000000004 /* FitnessEvidence.swift in Sources */,
 				F22200000000000000000004 /* OnboardingBaseline.swift in Sources */,
 				F22300000000000000000004 /* BaselineCalibration.swift in Sources */,
+				F22400000000000000000004 /* FitnessBrainShadowValidation.swift in Sources */,
 				0EA74FD3C3F993F87B9D16DD /* FitnessBrainService.swift in Sources */,
 				352AACC240CD4D66A83DD10E /* FitnessBrainTargets.swift in Sources */,
 				B8C52E30ADA7E0154708CE81 /* FocusT25.swift in Sources */,
@@ -1531,6 +1538,7 @@
 				F22100000000000000000005 /* FitnessEvidenceTests.swift in Sources */,
 				FA1100000000000000000004 /* ProfileIntegrityTests.swift in Sources */,
 				F22000000000000000000005 /* FitnessBrainV2SemanticsTests.swift in Sources */,
+				F22400000000000000000005 /* FitnessBrainShadowValidationTests.swift in Sources */,
 				1530D9ABBA5ECB476C2ECCA0 /* EntitlementTests.swift in Sources */,
 				A07E2B3E7B0496C2E4AF07FA /* ExerciseLoggingTests.swift in Sources */,
 				BA44B87871075ED4F428B4A5 /* ExportReportTests.swift in Sources */,

@@ -36,6 +36,37 @@ test('a newer edit never replaces the operation currently in flight', () => {
   )), true)
 })
 
+test('daily shadow telemetry coalesces offline retries without replacing an in-flight payload', () => {
+  const key = 'fitness-brain-shadow:2026-08-31:web:2'
+  const first = enqueuePendingSyncOperation([], {
+    table: 'fitness_brain_shadow_observations',
+    type: 'rpc',
+    rpc_function: 'record_fitness_brain_shadow_observation',
+    dedupe_key: key,
+    payload: { p_shadow_overall_band: 'capable' },
+  }, { id: 'first', ts: 1 })
+  const coalesced = enqueuePendingSyncOperation(first, {
+    table: 'fitness_brain_shadow_observations',
+    type: 'rpc',
+    rpc_function: 'record_fitness_brain_shadow_observation',
+    dedupe_key: key,
+    payload: { p_shadow_overall_band: 'strong' },
+  }, { id: 'second', ts: 2 })
+
+  assert.equal(coalesced.length, 1)
+  assert.equal(coalesced[0].id, 'second')
+  assert.deepEqual(coalesced[0].payload, { p_shadow_overall_band: 'strong' })
+
+  const whileSending = enqueuePendingSyncOperation(coalesced, {
+    table: 'fitness_brain_shadow_observations',
+    type: 'rpc',
+    rpc_function: 'record_fitness_brain_shadow_observation',
+    dedupe_key: key,
+    payload: { p_shadow_overall_band: 'exceptional' },
+  }, { id: 'third', ts: 3, inFlightId: 'second' })
+  assert.deepEqual(whileSending.map((operation) => operation.id), ['second', 'third'])
+})
+
 test('queue compaction respects a later delete instead of reviving stale order', () => {
   const next = enqueuePendingSyncOperation([
     { id: 'upsert', ts: 1, table: 'workout_logs', type: 'upsert', payload: { id: 'set' } },

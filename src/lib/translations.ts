@@ -196,6 +196,8 @@ const rows: Array<[string, string, string]> = [
   ['Open full schedule', 'Deschide programul complet', 'เปิดตารางแบบเต็ม'],
   ['APEX Body Index', 'Indice corporal APEX', 'ดัชนีร่างกาย APEX'],
   ['Live profile', 'Profil actual', 'โปรไฟล์ปัจจุบัน'],
+  ['Training estimate', 'Estimare de antrenament', 'ค่าประเมินการฝึก'],
+  ['Legacy game scores. Not medical measurements.', 'Scoruri de joc anterioare. Nu sunt măsurători medicale.', 'คะแนนเกมแบบเดิม ไม่ใช่ค่าตรวจทางการแพทย์'],
   ['Elite foundation', 'Bază de elită', 'พื้นฐานระดับสูง'],
   ['Power becoming visible', 'Puterea devine vizibilă', 'พลังเริ่มเห็นชัด'],
   ['Momentum is taking shape', 'Progresul prinde formă', 'แรงส่งกำลังก่อตัว'],

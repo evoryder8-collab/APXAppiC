@@ -3072,6 +3072,8 @@
 "Hydration recorded at %.1f L." = "บันทึกน้ำแล้ว %.1f ลิตร";
 "LIVE METABOLIC DAYLINE" = "ไทม์ไลน์เมตาบอลิซึมสด";
 "LIVE PROFILE" = "โปรไฟล์ปัจจุบัน";
+"TRAINING ESTIMATE" = "ค่าประเมินการฝึก";
+"Legacy game scores. Not medical measurements." = "คะแนนเกมแบบเดิม ไม่ใช่ค่าตรวจทางการแพทย์";
 "LOG THIS SET DURING THE BREAK" = "บันทึกเซตนี้ระหว่างพัก";
 "Leave this workout?" = "ออกจากการฝึกนี้หรือไม่?";
 "Leave workout" = "ออกจากการฝึก";

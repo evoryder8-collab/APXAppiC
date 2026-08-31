@@ -502,6 +502,34 @@ actor OfflineStore {
         try saveOperations(operations, for: userID)
     }
 
+    func enqueueLatestFitnessBrainShadowObservation(
+        _ operation: OfflineOperation,
+        for userID: UUID
+    ) throws {
+        guard operation.kind == .rpc,
+              operation.rpcFunction == "record_fitness_brain_shadow_observation",
+              let payload = operation.payload,
+              let parameters = try? JSONDecoder.apex.decode(
+                FitnessBrainShadowRPCParameters.self,
+                from: payload
+              ) else {
+            throw APEXServiceError.invalidOfflineOperation
+        }
+        var operations = try pendingOperations(for: userID)
+        operations.removeAll { candidate in
+            guard candidate.kind == .rpc,
+                  candidate.rpcFunction == operation.rpcFunction,
+                  let candidatePayload = candidate.payload,
+                  let candidateParameters = try? JSONDecoder.apex.decode(
+                    FitnessBrainShadowRPCParameters.self,
+                    from: candidatePayload
+                  ) else { return false }
+            return candidateParameters.outboxKey == parameters.outboxKey
+        }
+        operations.append(operation)
+        try saveOperations(operations, for: userID)
+    }
+
     func pendingOperations(for userID: UUID) throws -> [OfflineOperation] {
         let url = outboxURL(for: userID)
         guard fileManager.fileExists(atPath: url.path) else { return [] }

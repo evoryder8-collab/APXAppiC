@@ -1,0 +1,162 @@
+{
+  "scenarios": [
+    {
+      "name": "missing evidence remains unavailable beside a legacy score",
+      "input": {
+        "observed_on": "2026-08-31",
+        "platform": "web",
+        "profile_kind": "standard",
+        "age_band": "30_44",
+        "sex_group": "female",
+        "legacy_overall": 52,
+        "v2_input": {
+          "as_of": "2026-08-31",
+          "capacity": [],
+          "readiness_signals": [],
+          "adherence_events": [],
+          "adaptation_signals": [],
+          "health_context": { "flags": [], "receipt_ids": [] }
+        }
+      },
+      "expected": {
+        "observed_on": "2026-08-31",
+        "platform": "web",
+        "profile_kind": "standard",
+        "age_band": "30_44",
+        "sex_group": "female",
+        "presentation_model_version": 1,
+        "shadow_model_version": 2,
+        "legacy_overall_band": "40_59",
+        "shadow_overall_band": "building_baseline",
+        "absolute_disagreement_band": "unavailable",
+        "overall_coverage_band": "none",
+        "overall_confidence": "unavailable",
+        "source_distribution": {},
+        "issue_codes": [],
+        "invariant_codes": []
+      }
+    },
+    {
+      "name": "supported and guided evidence yields a bucketed comparable result",
+      "input": {
+        "observed_on": "2026-08-31",
+        "platform": "ios",
+        "profile_kind": "bespoke",
+        "age_band": "45_59",
+        "sex_group": "male",
+        "legacy_overall": 50,
+        "v2_input": {
+          "as_of": "2026-08-31",
+          "capacity": [
+            {
+              "domain": "cardiorespiratory", "value": 60, "lower_bound": 50, "upper_bound": 70,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.8,
+              "freshness": "current", "source_class": "supported_device", "evidence_ids": ["cardio-1"],
+              "explanation_receipts": ["cardio-receipt"], "model_version": 2, "as_of": "2026-08-31"
+            },
+            {
+              "domain": "upper_strength", "value": 70, "lower_bound": 55, "upper_bound": 85,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.85,
+              "freshness": "current", "source_class": "guided_field_test", "evidence_ids": ["upper-1"],
+              "explanation_receipts": ["upper-receipt"], "model_version": 2, "as_of": "2026-08-31"
+            },
+            {
+              "domain": "lower_strength", "value": 50, "lower_bound": 35, "upper_bound": 65,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.85,
+              "freshness": "current", "source_class": "guided_field_test", "evidence_ids": ["lower-1"],
+              "explanation_receipts": ["lower-receipt"], "model_version": 2, "as_of": "2026-08-31"
+            },
+            {
+              "domain": "mobility_hip_posterior", "value": 80, "lower_bound": 60, "upper_bound": 100,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.85,
+              "freshness": "current", "source_class": "guided_field_test", "evidence_ids": ["hip-1"],
+              "explanation_receipts": ["hip-receipt"], "model_version": 2, "as_of": "2026-08-31"
+            },
+            {
+              "domain": "mobility_shoulder", "value": 60, "lower_bound": 40, "upper_bound": 80,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "medium", "coverage": 0.85,
+              "freshness": "current", "source_class": "guided_field_test", "evidence_ids": ["shoulder-1"],
+              "explanation_receipts": ["shoulder-receipt"], "model_version": 2, "as_of": "2026-08-31"
+            }
+          ],
+          "readiness_signals": [
+            { "kind": "sleep", "normalized_value": 72, "confidence": "medium", "freshness": "current", "evidence_id": "sleep-1" }
+          ],
+          "adherence_events": [
+            { "kind": "workout", "xp": 12, "receipt_id": "workout-1" }
+          ],
+          "adaptation_signals": [
+            { "kind": "protein", "status": "supportive", "receipt_id": "protein-1" }
+          ],
+          "health_context": { "flags": [], "receipt_ids": [] }
+        }
+      },
+      "expected": {
+        "observed_on": "2026-08-31",
+        "platform": "ios",
+        "profile_kind": "bespoke",
+        "age_band": "45_59",
+        "sex_group": "male",
+        "presentation_model_version": 1,
+        "shadow_model_version": 2,
+        "legacy_overall_band": "40_59",
+        "shadow_overall_band": "capable",
+        "absolute_disagreement_band": "5_to_14",
+        "overall_coverage_band": "sufficient",
+        "overall_confidence": "medium",
+        "source_distribution": { "guided_field_test": 4, "supported_device": 1 },
+        "issue_codes": [],
+        "invariant_codes": []
+      }
+    },
+    {
+      "name": "duplicate domain is reported without exposing raw identifiers",
+      "input": {
+        "observed_on": "2026-08-31",
+        "platform": "web",
+        "profile_kind": "standard",
+        "age_band": "unknown",
+        "sex_group": "unknown",
+        "legacy_overall": 43,
+        "v2_input": {
+          "as_of": "2026-08-31",
+          "capacity": [
+            {
+              "domain": "cardiorespiratory", "value": 35, "lower_bound": 15, "upper_bound": 55,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "low", "coverage": 0.5,
+              "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["one"],
+              "explanation_receipts": ["one-r"], "model_version": 2, "as_of": "2026-08-31"
+            },
+            {
+              "domain": "cardiorespiratory", "value": 55, "lower_bound": 35, "upper_bound": 75,
+              "reference_scale": "apex_capacity_percentile_v2", "confidence": "low", "coverage": 0.5,
+              "freshness": "current", "source_class": "structured_self_report", "evidence_ids": ["two"],
+              "explanation_receipts": ["two-r"], "model_version": 2, "as_of": "2026-08-31"
+            }
+          ],
+          "readiness_signals": [],
+          "adherence_events": [],
+          "adaptation_signals": [],
+          "health_context": { "flags": [], "receipt_ids": [] }
+        }
+      },
+      "expected": {
+        "observed_on": "2026-08-31",
+        "platform": "web",
+        "profile_kind": "standard",
+        "age_band": "unknown",
+        "sex_group": "unknown",
+        "presentation_model_version": 1,
+        "shadow_model_version": 2,
+        "legacy_overall_band": "40_59",
+        "shadow_overall_band": "building_baseline",
+        "absolute_disagreement_band": "unavailable",
+        "overall_coverage_band": "none",
+        "overall_confidence": "unavailable",
+        "source_distribution": { "structured_self_report": 2 },
+        "issue_codes": ["duplicate_domain:cardiorespiratory"],
+        "invariant_codes": []
+      }
+    }
+  ]
+}
