@@ -9,6 +9,7 @@ import {
   normalizeFoodCorpusSearchResult,
   type FoodCorpusSearchResult,
 } from '../../../shared/foodCorpus.ts'
+import { rankFoodLookupResults } from '../../../shared/foodSearchRanking.ts'
 
 const allowedOrigins = new Set([
   'https://evoryder8-collab.github.io',
@@ -84,9 +85,16 @@ Deno.serve(async (request) => {
       authClient.rpc('food_corpus_search_catalog_v2', { p_query: rawQuery, p_limit: 25 }),
     ])
     const catalogResults = catalogResponse.error ? [] : (catalogResponse.data ?? [])
-    const corpusResults = corpusResponse.error
+    const rawCorpusResults = corpusResponse.error
       ? []
       : ((corpusResponse.data ?? []) as FoodCorpusSearchResult[])
+    const corpusAliasesByProviderID = new Map(
+      rawCorpusResults.map((result) => [
+        `corpus:${result.source_key}:${result.source_record_id}`,
+        result.aliases ?? [],
+      ]),
+    )
+    const corpusResults = rawCorpusResults
           .flatMap((result) => {
             const normalized = normalizeFoodCorpusSearchResult(result)
             return normalized ? [normalized] : []
@@ -119,8 +127,12 @@ Deno.serve(async (request) => {
         return existingBarcode ?? null
       }))
     ).filter((food): food is NonNullable<typeof food> => food !== null)
+      .map((food) => ({
+        ...food,
+        search_aliases: corpusAliasesByProviderID.get(String(food.provider_product_id ?? '')) ?? [],
+      }))
     const seen = new Set<string>()
-    const combinedResults = [...catalogResults, ...persistedCorpusResults].filter((food) => {
+    const combinedResults = rankFoodLookupResults(rawQuery, [...catalogResults, ...persistedCorpusResults]).filter((food) => {
       const barcode = String(food.barcode ?? '').trim()
       const identity = barcode
         ? `barcode:${barcode}`

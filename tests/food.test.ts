@@ -24,6 +24,7 @@ import {
   type LoggedMeal,
 } from '../src/lib/food.ts'
 import { normalizeBarcode, normalizeOpenFoodFactsProduct } from '../shared/openFoodFacts.ts'
+import { rankFoodLookupResults } from '../shared/foodSearchRanking.ts'
 
 function item(foodIndex = 0, quantity = 100): ComposerFoodItem {
   return {
@@ -236,6 +237,126 @@ test('food search tolerates joined words and small brand-product misspellings', 
   assert.equal(rankFoods('cheeseburgerroyal', [royal, bigTasty], [], 'lunch')[0]?.id, royal.id)
   assert.equal(rankFoods('cheeseburgerrroyal', [royal, bigTasty], [], 'lunch')[0]?.id, royal.id)
   assert.equal(rankFoods('bigtsty', [royal, bigTasty], [], 'lunch')[0]?.id, bigTasty.id)
+})
+
+test('food search ranks cooking oils ahead of oil margarine and repairs split misspellings', () => {
+  const template = COMMON_FOODS[0]
+  const vegetableOil = {
+    ...template,
+    id: 'search-fixture-vegetable-oil',
+    name: 'Vegetable oil',
+    names_i18n: { en: 'Vegetable oil' },
+    brand: null,
+    provider_product_id: 'search-fixture:vegetable-oil',
+    protein_100: 0,
+    carbs_100: 0,
+    fat_100: 100,
+  }
+  const oilMargarine = {
+    ...template,
+    id: 'search-fixture-oil-margarine',
+    name: 'Oil margarine',
+    names_i18n: { en: 'Oil margarine' },
+    brand: null,
+    provider_product_id: 'search-fixture:oil-margarine',
+    protein_100: 0.2,
+    carbs_100: 0.5,
+    fat_100: 70,
+  }
+  const extraVirgin = {
+    ...template,
+    id: 'search-fixture-extra-virgin',
+    name: 'Extra virgin olive oil',
+    names_i18n: { en: 'Extra virgin olive oil' },
+    brand: null,
+    provider_product_id: 'search-fixture:extra-virgin',
+    protein_100: 0,
+    carbs_100: 0,
+    fat_100: 100,
+  }
+  const beefExtract = {
+    ...template,
+    id: 'search-fixture-beef-extract',
+    name: 'Beef extract',
+    names_i18n: { en: 'Beef extract' },
+    brand: null,
+    provider_product_id: 'search-fixture:beef-extract',
+  }
+  const extraLeanBeef = {
+    ...template,
+    id: 'search-fixture-extra-lean-beef',
+    name: 'Beef, mince, raw, extra lean',
+    names_i18n: { en: 'Beef, mince, raw, extra lean' },
+    brand: null,
+    provider_product_id: 'search-fixture:extra-lean-beef',
+  }
+
+  assert.equal(
+    rankFoods('oil', [oilMargarine, vegetableOil, extraVirgin], [], 'lunch')[0]?.id,
+    extraVirgin.id,
+    'extra-virgin olive oil should lead a broad oil query',
+  )
+  assert.ok(
+    rankFoods('oil', [oilMargarine, vegetableOil, extraVirgin], [], 'lunch').slice(0, 2)
+      .every((food) => food.id !== oilMargarine.id),
+    'pure cooking oils must outrank a margarine whose name merely starts with oil',
+  )
+  assert.deepEqual(
+    mergeExtendedFoodResults(
+      'ext;ra vlrgn',
+      [],
+      [beefExtract, extraLeanBeef, extraVirgin],
+    ).map((food) => food.id),
+    [extraVirgin.id],
+    'punctuation-split and two-edit misspellings must resolve without leaking weak matches',
+  )
+  assert.deepEqual(
+    mergeExtendedFoodResults(
+      'extra virgin',
+      [],
+      [extraVirgin, beefExtract, extraLeanBeef],
+    ).map((food) => food.id),
+    [extraVirgin.id],
+    'every meaningful token must match before a remote result is shown',
+  )
+  assert.deepEqual(
+    rankFoodLookupResults('extra virgin', [beefExtract, extraLeanBeef, extraVirgin]).map((food) => food.id),
+    [extraVirgin.id],
+    'the edge-level global reranker must enforce the same token coverage',
+  )
+})
+
+test('Food Memory includes distinct sourced wild broccoli and thin-stem broccoli records', () => {
+  const rapini = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:usda-fdc-170381')
+  const broccolini = COMMON_FOODS.find((food) => food.provider_product_id === 'apex-curated:afcd-F001909')
+
+  assert.ok(rapini, 'broccoli rabe / rapini must be available offline')
+  assert.ok(broccolini, 'broccolini / thin-stem broccoli must be available offline')
+  assert.equal(rankFoods('wild broccoli', COMMON_FOODS, [], 'lunch')[0]?.id, rapini.id)
+  assert.equal(rankFoods('broccoli rabe', COMMON_FOODS, [], 'lunch')[0]?.id, rapini.id)
+  assert.equal(rankFoods('rapini', COMMON_FOODS, [], 'lunch')[0]?.id, rapini.id)
+  assert.equal(rankFoods('thin broccoli', COMMON_FOODS, [], 'lunch')[0]?.id, broccolini.id)
+  assert.equal(rankFoods('broccolini', COMMON_FOODS, [], 'lunch')[0]?.id, broccolini.id)
+  assert.deepEqual(
+    {
+      kcal: rapini.kcal_100, protein: rapini.protein_100, carbs: rapini.carbs_100,
+      fat: rapini.fat_100, fibre: rapini.fibre_100, water: rapini.water_ml_100,
+    },
+    { kcal: 22, protein: 3.17, carbs: 2.85, fat: 0.49, fibre: 2.7, water: 92.55 },
+  )
+  assert.deepEqual(
+    {
+      kcal: broccolini.kcal_100, protein: broccolini.protein_100, carbs: broccolini.carbs_100,
+      fat: broccolini.fat_100, fibre: broccolini.fibre_100, sugar: broccolini.sugar_100,
+      water: broccolini.water_ml_100,
+    },
+    { kcal: 29, protein: 3.2, carbs: 2, fat: 0.4, fibre: 2.5, sugar: 1.3, water: 92.2 },
+  )
+  for (const food of [rapini, broccolini]) {
+    for (const language of ['en', 'de', 'de-CH', 'fr', 'it', 'es', 'pt', 'ro', 'th', 'ja']) {
+      assert.ok(food.names_i18n[language], `${food.name} is missing ${language}`)
+    }
+  }
 })
 
 test('Thai and Asian staples resolve across English, Romanian and Thai search', () => {

@@ -2388,9 +2388,15 @@ final class AppSession {
         }
         let resolved = (remote.results ?? []).map(FoodHydration.resolved)
         var seen = Set(local.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
-        return local + resolved.filter { food in
+        let combined = local + resolved.filter { food in
             seen.insert(food.providerProductID ?? food.barcode ?? food.id.lowercased()).inserted
         }
+        return MealMemory.searchFoods(
+            query: query,
+            foods: combined,
+            preferences: data.foodPreferences,
+            userID: profile?.userID
+        )
     }
 
     /// Saves a complete meal in one atomic Supabase operation. The same RPC is

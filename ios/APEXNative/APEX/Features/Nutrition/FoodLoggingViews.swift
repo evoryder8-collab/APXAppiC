@@ -54,7 +54,7 @@ struct FoodSearchSheet: View {
     @FocusState private var searchFocused: Bool
 
     private var displayedFoods: [Food] {
-        if remoteResults.isEmpty == false { return ranked(remoteResults) }
+        if remoteResults.isEmpty == false { return visible(remoteResults) }
         guard !query.isEmpty else {
             guard let userID = session.profile?.userID else { return ranked(session.data.foods) }
             return MealMemory.recentFoods(
@@ -182,6 +182,11 @@ struct FoodSearchSheet: View {
             }
             return lhs.name.localizedCaseInsensitiveCompare(rhs.name) == .orderedAscending
         }
+    }
+
+    private func visible(_ foods: [Food]) -> [Food] {
+        let preferences = Dictionary(uniqueKeysWithValues: session.data.foodPreferences.map { ($0.foodID.uuidString.lowercased(), $0) })
+        return foods.filter { preferences[$0.id.lowercased()]?.hidden != true }
     }
 
     @MainActor

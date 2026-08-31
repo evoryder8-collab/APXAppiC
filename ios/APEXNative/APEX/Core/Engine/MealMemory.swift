@@ -257,6 +257,7 @@ enum MealMemory {
         struct Match {
             let food: Food
             let score: Int
+            let categoryPriority: Int
             let favourite: Bool
             let usageCount: Int
         }
@@ -272,7 +273,6 @@ enum MealMemory {
                 .map(normalizedSearchText)
                 .filter { !$0.isEmpty }
             guard !fields.isEmpty else { return nil }
-            let combined = fields.joined(separator: " ")
             let score: Int
             if fields.contains(needle) {
                 score = 0
@@ -280,22 +280,24 @@ enum MealMemory {
                 score = 1
             } else if fields.contains(where: { $0.contains(needle) }) {
                 score = 2
-            } else if tokens.allSatisfy({ combined.contains($0) }) {
-                score = 3
             } else if fields.contains(where: { fuzzySearchMatch(needle, $0) }) {
-                score = 4
+                score = 3
             } else {
                 return nil
             }
             return Match(
                 food: food,
                 score: score,
+                categoryPriority: foodCategoryPriority(queryTokens: tokens, food: food),
                 favourite: preference?.favourite ?? false,
                 usageCount: preference?.usageCount ?? 0
             )
         }
 
         return matches.sorted { left, right in
+            if left.categoryPriority != right.categoryPriority {
+                return left.categoryPriority < right.categoryPriority
+            }
             if left.score != right.score { return left.score < right.score }
             if left.favourite != right.favourite { return left.favourite }
             if left.usageCount != right.usageCount { return left.usageCount > right.usageCount }
@@ -312,35 +314,115 @@ enum MealMemory {
         let plain = folded.unicodeScalars
             .map { CharacterSet.alphanumerics.contains($0) ? String($0) : " " }
             .joined()
-        return plain
+        let normalized = plain
             .split(separator: " ")
             .map(String.init)
             .joined(separator: " ")
+        return normalized
     }
 
     private static func fuzzySearchMatch(_ query: String, _ candidate: String) -> Bool {
-        let queryCompact = query.replacingOccurrences(of: " ", with: "")
-        guard queryCompact.count >= 4 else { return false }
-        let tokens = candidate.split(separator: " ").map(String.init)
-        guard !tokens.isEmpty else { return false }
-        var forms = Set(tokens)
-        if tokens.count > 1 {
-            for start in tokens.indices {
-                let upper = min(tokens.count, start + 4)
-                guard start + 1 < upper else { continue }
-                for end in (start + 1)..<upper {
-                    forms.insert(tokens[start...end].joined())
+        let queryTokens = query.split(separator: " ").map(String.init)
+        let candidateTokens = candidate.split(separator: " ").map(String.init)
+        guard queryTokens.isEmpty == false, candidateTokens.isEmpty == false else { return false }
+
+        var candidateForms = Set<String>()
+        for token in candidateTokens {
+            candidateForms.insert(token)
+            if token.hasSuffix("ies"), token.count > 4 {
+                candidateForms.insert(String(token.dropLast(3)) + "y")
+            }
+            if token.hasSuffix("oes"), token.count > 4 {
+                candidateForms.insert(String(token.dropLast(2)))
+            }
+            if token.hasSuffix("o"), token.count > 3 {
+                candidateForms.insert(token + "es")
+            }
+        }
+        for start in candidateTokens.indices {
+            for length in 2...3 where start + length <= candidateTokens.count {
+                candidateForms.insert(candidateTokens[start..<(start + length)].joined())
+            }
+        }
+
+        return queryTokenGroups(queryTokens).contains { group in
+            /* Every meaningful query token must align. A generic partial hit
+               such as "extra" can no longer admit "beef extract" when the
+               user asked for "extra virgin". */
+            group.allSatisfy { queryToken in
+                candidateForms.contains { candidateToken in
+                    tokenSimilarity(queryToken, candidateToken) > 0
                 }
             }
         }
-        return forms.contains { form in
-            let compact = form.replacingOccurrences(of: " ", with: "")
-            if compact.contains(queryCompact) || queryCompact.contains(compact) {
-                return min(compact.count, queryCompact.count) >= 4
+    }
+
+    private static func queryTokenGroups(_ tokens: [String]) -> [[String]] {
+        var results: [[String]] = []
+        func walk(_ index: Int, _ current: [String]) {
+            guard index < tokens.count else {
+                results.append(current)
+                return
             }
-            let limit = queryCompact.count >= 9 ? 2 : queryCompact.count >= 5 ? 1 : 0
-            return limit > 0 && editDistance(queryCompact, compact, limit: limit) <= limit
+            walk(index + 1, current + [tokens[index]])
+            if index + 1 < tokens.count {
+                let joined = tokens[index] + tokens[index + 1]
+                if (4...18).contains(joined.count) {
+                    walk(index + 2, current + [joined])
+                }
+            }
         }
+        walk(0, [])
+        return results
+    }
+
+    private static func tokenSimilarity(_ queryToken: String, _ candidateToken: String) -> Double {
+        if queryToken == candidateToken { return 1 }
+        if queryToken.count >= 3,
+           candidateToken.count >= 3,
+           candidateToken.hasPrefix(queryToken) {
+            return 0.92
+        }
+        if queryToken.count >= 3,
+           candidateToken.count >= 3,
+           queryToken.hasPrefix(candidateToken),
+           queryToken.count - candidateToken.count <= 2 {
+            return 0.88
+        }
+        guard queryToken.count >= 4, candidateToken.count >= 4,
+              queryToken.first == candidateToken.first else { return 0 }
+        let limit = queryToken.count >= 9 || (queryToken.count >= 5 && queryToken.count <= 6) ? 2 : 1
+        let distance = editDistance(queryToken, candidateToken, limit: limit)
+        guard distance <= limit else { return 0 }
+        let similarity = 1 - Double(distance) / Double(max(queryToken.count, candidateToken.count))
+        return similarity >= (queryToken.count >= 5 ? 0.66 : 0.74) ? similarity : 0
+    }
+
+    private static func foodCategoryPriority(queryTokens: [String], food: Food) -> Int {
+        guard queryTokens.count == 1,
+              ["oil", "ulei", "ol", "huile", "olio", "aceite"].contains(queryTokens[0]) else { return 0 }
+        let text = normalizedSearchText(([food.name, food.brand] + Array(food.namesI18n.values))
+            .compactMap { $0 }
+            .joined(separator: " "))
+        let pureCookingOil = (food.fat100 ?? 0) >= 90
+            && (food.protein100 ?? 0) <= 1
+            && (food.carbs100 ?? 0) <= 1
+            && ["oil", "ulei", "ol", "huile", "olio", "aceite"].contains { token in
+                text.split(separator: " ").contains(Substring(token))
+            }
+        let textTokens = Set(text.split(separator: " ").map(String.init))
+        if pureCookingOil
+            && (textTokens.contains("evoo")
+                || (textTokens.contains("extra") && textTokens.contains("virgin"))) {
+            return -3
+        }
+        if pureCookingOil
+            && (textTokens.contains("olive") || textTokens.contains("vegetable")) {
+            return -2
+        }
+        if pureCookingOil { return -1 }
+        if ["margarine", "margarin", "margarina"].contains(where: text.contains) { return 2 }
+        return 0
     }
 
     private static func editDistance(_ left: String, _ right: String, limit: Int) -> Int {

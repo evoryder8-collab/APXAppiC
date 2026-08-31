@@ -242,6 +242,70 @@ final class MealMemoryParityTests: XCTestCase {
         )
     }
 
+    func testFoodMemorySearchRanksPureOilAndRepairsSplitMisspellings() throws {
+        var vegetableOil = try XCTUnwrap(Self.fixture.foods.first)
+        vegetableOil.name = "Vegetable oil"
+        vegetableOil.namesI18n = ["en": "Vegetable oil"]
+        vegetableOil.brand = nil
+        vegetableOil.protein100 = 0
+        vegetableOil.carbs100 = 0
+        vegetableOil.fat100 = 100
+
+        var oilMargarine = try XCTUnwrap(Self.fixture.foods.dropFirst().first)
+        oilMargarine.name = "Oil margarine"
+        oilMargarine.namesI18n = ["en": "Oil margarine"]
+        oilMargarine.brand = nil
+        oilMargarine.protein100 = 0.2
+        oilMargarine.carbs100 = 0.5
+        oilMargarine.fat100 = 70
+
+        var extraVirgin = try XCTUnwrap(Self.fixture.foods.dropFirst(2).first)
+        extraVirgin.name = "Extra virgin olive oil"
+        extraVirgin.namesI18n = ["en": "Extra virgin olive oil"]
+        extraVirgin.brand = nil
+        extraVirgin.protein100 = 0
+        extraVirgin.carbs100 = 0
+        extraVirgin.fat100 = 100
+
+        var beefExtract = vegetableOil
+        beefExtract.name = "Beef extract"
+        beefExtract.namesI18n = ["en": "Beef extract"]
+        beefExtract.brand = nil
+
+        var extraLeanBeef = oilMargarine
+        extraLeanBeef.name = "Beef, mince, raw, extra lean"
+        extraLeanBeef.namesI18n = ["en": "Beef, mince, raw, extra lean"]
+        extraLeanBeef.brand = nil
+
+        XCTAssertEqual(
+            MealMemory.searchFoods(
+                query: "oil",
+                foods: [oilMargarine, vegetableOil, extraVirgin],
+                preferences: []
+            ).first?.id,
+            extraVirgin.id,
+            "extra-virgin olive oil should lead a broad oil query"
+        )
+        XCTAssertEqual(
+            MealMemory.searchFoods(
+                query: "ext;ra vlrgn",
+                foods: [beefExtract, extraLeanBeef, extraVirgin],
+                preferences: []
+            ).map(\.id),
+            [extraVirgin.id],
+            "split punctuation and two-edit misspellings must resolve without weak matches"
+        )
+        XCTAssertEqual(
+            MealMemory.searchFoods(
+                query: "extra virgin",
+                foods: [extraVirgin, beefExtract, extraLeanBeef],
+                preferences: []
+            ).map(\.id),
+            [extraVirgin.id],
+            "every meaningful query token must match"
+        )
+    }
+
     func testFoodMemorySearchHonoursHiddenPreference() throws {
         let food = try XCTUnwrap(Self.fixture.foods.first { UUID(uuidString: $0.id) != nil })
         let userID = UUID()

@@ -290,6 +290,36 @@ const CORE_FOODS: FoodRecord[] = [
   food('10000000-0000-4000-8000-000000000082', 'Milbona Ayran, cup', 'Milbona Ayran, Becher', 'Ayran Milbona, gobelet', 'Ayran Milbona, bicchiere', 38, 2.4, 2.4, 1.9, 'as_sold', { brand: 'Milbona', providerId: 'apex-curated:lidl-milbona-ayran-cup-reference', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 2.4, saturatedFat: 1.2, salt: 0.7 }),
   food('10000000-0000-4000-8000-000000000083', 'Milsani Ayran, cup', 'Milsani Ayran, Becher', 'Ayran Milsani, gobelet', 'Ayran Milsani, bicchiere', 38, 2, 3.5, 1.8, 'as_sold', { brand: 'Milsani', providerId: 'apex-curated:aldi-milsani-ayran-cup-reference', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 3.5, saturatedFat: 1.2, salt: 0.8 }),
   food('10000000-0000-4000-8000-000000000084', 'REWE Bio Ayran, cup', 'REWE Bio Ayran, Becher', 'Ayran bio REWE, gobelet', 'Ayran bio REWE, bicchiere', 39, 2.1, 2.6, 2.2, 'as_sold', { brand: 'REWE Bio', providerId: 'apex-curated:rewe-bio-ayran-cup-label', nutritionBasis: 'per_100ml', servingAmount: 250, servingUnit: 'ml', packageQuantity: '250 ml', sugar: 2.6, saturatedFat: 1.6, salt: 0.7, confidence: 'provider_verified' }),
+  {
+    ...food('b70c0000-0000-4000-8000-000000000001', 'Wild broccoli (broccoli rabe / rapini), raw', 'Stängelkohl (Cime di rapa / Rapini), roh', 'Brocoli-rave (rapini), cru', 'Cime di rapa (rapini), crude', 22, 3.17, 2.85, 0.49, 'as_sold', { providerId: 'apex-curated:usda-fdc-170381', fibre: 2.7, water: 92.55, waterSourceId: 'usda-fdc-sr-170381:water', confidence: 'provider_verified' }),
+    names_i18n: {
+      en: 'Wild broccoli (broccoli rabe / rapini), raw',
+      de: 'Stängelkohl (Cime di rapa / Rapini), roh',
+      'de-CH': 'Stängelkohl (Cime di rapa / Rapini), roh',
+      fr: 'Brocoli-rave (rapini), cru',
+      it: 'Cime di rapa (rapini), crude',
+      es: 'Grelo (rapini / brócoli rabe), crudo',
+      pt: 'Grelos (rapini), crus',
+      ro: 'Broccoli rabe (rapini), crud',
+      th: 'บรอกโคลีราเบ (ราพินี) ดิบ',
+      ja: 'ブロッコリーラーブ（ラピーニ）、生',
+    },
+  },
+  {
+    ...food('b70c0000-0000-4000-8000-000000000002', 'Broccolini (thin-stem broccoli), raw', 'Broccolini (Spargelbrokkoli), roh', 'Broccolini (brocoli à tiges fines), cru', 'Broccolini (broccoli a gambo sottile), crudi', 29, 3.2, 2, 0.4, 'as_sold', { providerId: 'apex-curated:afcd-F001909', fibre: 2.5, sugar: 1.3, water: 92.2, waterSourceId: 'afcd-r3:F001909:moisture', confidence: 'provider_verified' }),
+    names_i18n: {
+      en: 'Broccolini (thin-stem broccoli), raw',
+      de: 'Broccolini (Spargelbrokkoli), roh',
+      'de-CH': 'Broccolini (Spargelbrokkoli), roh',
+      fr: 'Broccolini (brocoli à tiges fines), cru',
+      it: 'Broccolini (broccoli a gambo sottile), crudi',
+      es: 'Broccolini (brócoli de tallo fino), crudo',
+      pt: 'Broccolini (brócolos de talo fino), cru',
+      ro: 'Broccolini (broccoli cu tulpină subțire), crud',
+      th: 'บรอกโคลินี (บรอกโคลีต้นเรียว) ดิบ',
+      ja: 'ブロッコリーニ（細茎ブロッコリー）、生',
+    },
+  },
 ]
 
 /* Nutrition V3 uses a broad offline foundation instead of a tiny list of

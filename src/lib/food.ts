@@ -2,6 +2,10 @@ import { portionWater } from './hydration.ts'
 import type { WaterBasis } from './hydration.ts'
 import type { IntroLanguage } from './introLanguage'
 import type { SUPABASE_ENUMS } from './supabaseEnums'
+import {
+  foodSearchTokenMatch,
+  normalizeFoodSearchText,
+} from '../../shared/foodSearchRanking.ts'
 
 export type MealSlot = (typeof SUPABASE_ENUMS.meal_slot)[number]
 export type FoodUnit = (typeof SUPABASE_ENUMS.food_unit)[number]
@@ -11,12 +15,13 @@ export type FoodSource = (typeof SUPABASE_ENUMS.food_source)[number]
 export type LoggedMealKind = (typeof SUPABASE_ENUMS.logged_as)[number]
 export type MealPresetAdjustmentRole = (typeof SUPABASE_ENUMS.adjustment_role)[number]
 export type NutritionConfidence = 'complete' | 'partial' | 'user_entered' | 'provider_verified'
+export type FoodLanguage = 'en' | 'de' | 'de-CH' | 'fr' | 'it' | 'es' | 'pt' | 'ro' | 'th' | 'ja'
 
 export interface FoodRecord {
   id: string
   owner_user_id: string | null
   name: string
-  names_i18n: Partial<Record<'en' | 'de' | 'fr' | 'it' | 'ro' | 'th', string>>
+  names_i18n: Partial<Record<FoodLanguage, string>>
   brand: string | null
   barcode: string | null
   source: FoodSource
@@ -411,20 +416,7 @@ export interface AdaptiveSuggestion {
 }
 
 export function normalizeFoodSearch(value: string): string {
-  return value
-    .normalize('NFD')
-    .replace(/[\u0300-\u036f]/g, '')
-    .toLocaleLowerCase()
-    .replace(/[^\p{L}\p{N}\p{M}]+/gu, ' ')
-    .replace(/\b(?:airfryer|airfried)\b/g, 'air fryer')
-    .replace(/\bulei(?: de)? masine\b/g, 'ulei de masline')
-    .replace(/\bextra vergin\b/g, 'extra virgin')
-    .replace(/\boliv oil\b/g, 'olive oil')
-    .replace(/\bweinerli\b/g, 'wienerli')
-    .replace(/\bam teig\b/g, 'im teig')
-    .replace(/\bomlette\b/g, 'omelette')
-    .replace(/\braviolli\b/g, 'ravioli')
-    .trim()
+  return normalizeFoodSearchText(value)
 }
 
 const FOOD_SEARCH_PHRASES: Record<'ro' | 'th', Record<string, string>> = {
@@ -1220,51 +1212,8 @@ function hasSearchWord(value: string, word: string): boolean {
   return value.split(' ').includes(word)
 }
 
-function editDistanceWithin(left: string, right: string, limit: number): boolean {
-  if (Math.abs(left.length - right.length) > limit) return false
-  let previous = Array.from({ length: right.length + 1 }, (_, index) => index)
-  for (let leftIndex = 1; leftIndex <= left.length; leftIndex += 1) {
-    const current = [leftIndex]
-    let rowMinimum = current[0]
-    for (let rightIndex = 1; rightIndex <= right.length; rightIndex += 1) {
-      const cost = left[leftIndex - 1] === right[rightIndex - 1] ? 0 : 1
-      current[rightIndex] = Math.min(
-        current[rightIndex - 1] + 1,
-        previous[rightIndex] + 1,
-        previous[rightIndex - 1] + cost,
-      )
-      rowMinimum = Math.min(rowMinimum, current[rightIndex])
-    }
-    if (rowMinimum > limit) return false
-    previous = current
-  }
-  return previous[right.length] <= limit
-}
-
 function fuzzyFoodSearchMatch(query: string, candidate: string): boolean {
-  const queryTokens = query.split(' ').filter(Boolean)
-  const candidateTokens = candidate.split(' ').filter(Boolean)
-  if (!queryTokens.length || !candidateTokens.length) return false
-  const forms = (token: string): string[] => [...new Set([
-    token,
-    ...(token.endsWith('ies') && token.length > 4 ? [`${token.slice(0, -3)}y`] : []),
-    ...(token.endsWith('oes') && token.length > 4 ? [token.slice(0, -2)] : []),
-    ...(token.endsWith('o') && token.length > 3 ? [`${token}es`] : []),
-  ])]
-  return queryTokens.every((queryToken) => candidateTokens.some((candidateToken) => {
-    const queryForms = forms(queryToken)
-    const candidateForms = forms(candidateToken)
-    if (queryForms.some((queryForm) => candidateForms.some((candidateForm) => {
-      if (queryForm === candidateForm) return true
-      return queryForm.length >= 3
-        && candidateForm.length >= 3
-        && (candidateForm.startsWith(queryForm) || queryForm.startsWith(candidateForm))
-    }))) return true
-    const limit = queryToken.length >= 9 ? 2 : queryToken.length >= 5 ? 1 : 0
-    return limit > 0 && candidateForms.some((candidateForm) =>
-      editDistanceWithin(queryToken, candidateForm, limit),
-    )
-  }))
+  return foodSearchTokenMatch(query, candidate)
 }
 
 const foodSearchValuesCache = new WeakMap<FoodRecord, {
@@ -1337,15 +1286,25 @@ function categorySearchBoost(query: string, food: FoodRecord): number {
     || query.includes('evoo')
     || query.includes('น้ำมันมะกอก')
   if (oliveOilQuery) {
+    const pureCookingOil = (food.fat_100 ?? 0) >= 90
+      && (food.protein_100 ?? 0) <= 1
+      && (food.carbs_100 ?? 0) <= 1
+      && includesAny(text, ['oil', 'ulei', 'öl', 'huile', 'olio', 'aceite', 'น้ำมัน'])
+    const margarine = includesAny(text, ['margarine', 'margarin', 'margarina'])
+    if (margarine) return -1600
+    const extraVirginOliveOil = pureCookingOil && includesAny(text, ['extra virgin olive', 'olive extra virgin', 'evoo'])
+    const familiarOliveOrVegetableOil = pureCookingOil && includesAny(text, ['olive oil', 'oil olive', 'vegetable oil', 'oil vegetable'])
+    if (extraVirginOliveOil) return curated + 5000
+    if (familiarOliveOrVegetableOil) return curated + 4200
     const oliveOilFood = (food.fat_100 ?? 0) >= 80 && includesAny(text, [
-      'olive oil', 'olivenol', 'huile d olive', 'olio extravergine', 'olio d oliva',
+      'olive oil', 'oil olive', 'olivenol', 'huile d olive', 'olio extravergine', 'olio d oliva',
       'ulei de masline', 'น้ำมันมะกอก',
     ])
     /* A broad query such as `oil`/`ulei` should rank olive-oil staples first,
        but it must not hide sunflower, rapeseed or another legitimate oil that
        may arrive from the provider catalog. Non-olive records simply receive
        no category bonus. */
-    if (!oliveOilFood) return 0
+    if (!oliveOilFood) return pureCookingOil ? curated + 3000 : 0
     if (food.provider_product_id === 'apex-curated:extra-virgin-olive-oil-reference') return curated + 980
     if (food.confidence === 'provider_verified') return curated + 680
     return curated + 560
