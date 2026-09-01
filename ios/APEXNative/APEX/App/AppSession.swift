@@ -2542,11 +2542,7 @@ final class AppSession {
             return local
         }
         let resolved = (remote.results ?? []).map(FoodHydration.resolved)
-        let enrichedLocal = FoodNutrientEvidence.enrichLocalFoods(local, with: resolved)
-        var seen = Set(enrichedLocal.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
-        let combined = enrichedLocal + resolved.filter { food in
-            seen.insert(food.providerProductID ?? food.barcode ?? food.id.lowercased()).inserted
-        }
+        let combined = FoodNutrientEvidence.mergeLocalSearchFoods(local, with: resolved)
         return MealMemory.searchFoods(
             query: query,
             foods: combined,

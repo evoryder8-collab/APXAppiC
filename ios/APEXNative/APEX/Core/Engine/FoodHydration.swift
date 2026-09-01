@@ -512,6 +512,16 @@ enum FoodNutrientEvidence {
         }
     }
 
+    /// Keeps the local read model canonical while removing a matching server
+    /// duplicate only after its compatible evidence has been coalesced.
+    static func mergeLocalSearchFoods(_ localFoods: [Food], with serverFoods: [Food]) -> [Food] {
+        let enrichedLocalFoods = enrichLocalFoods(localFoods, with: serverFoods)
+        var seen = Set(enrichedLocalFoods.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
+        return enrichedLocalFoods + serverFoods.filter { food in
+            seen.insert(food.providerProductID ?? food.barcode ?? food.id.lowercased()).inserted
+        }
+    }
+
     private static func hasExactCompatibleIdentity(_ localFood: Food, _ serverFood: Food) -> Bool {
         guard localFood.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
               let providerID = localFood.providerProductID,
