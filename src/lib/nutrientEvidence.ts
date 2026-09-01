@@ -11,6 +11,7 @@ export type NutrientObservationStatus =
   | 'missing'
 
 export type NutrientCategory = 'vitamins' | 'minerals' | 'fats' | 'carbohydrates' | 'other'
+export type NutritionFactSectionKind = 'facts' | 'vitamins' | 'minerals'
 export type NutrientPatternPeriod = 'day' | 'week' | 'month'
 
 export interface NutrientEvidenceObservation {
@@ -23,6 +24,15 @@ export interface NutrientEvidenceObservation {
   derivation_method: string | null
   source_key: string | null
   source_reference: string | null
+}
+export interface NutritionFactDisplayRow {
+  observation: NutrientEvidenceObservation
+  label: string
+  depth: 0 | 1
+}
+export interface NutritionFactDisplaySection {
+  kind: NutritionFactSectionKind
+  rows: NutritionFactDisplayRow[]
 }
 export interface NutrientPatternWindow {
   start: string
@@ -108,6 +118,69 @@ export function nutrientCategory(observation: Pick<NutrientEvidenceObservation, 
     || /sugar|fibre|fiber|starch/.test(name)
   ) return 'carbohydrates'
   return 'other'
+}
+
+function nutritionFactLabel(observation: NutrientEvidenceObservation): string {
+  switch (observation.nutrient_code.toLocaleUpperCase()) {
+    case 'ENERC_KCAL': return 'Calories'
+    case 'FAT': return 'Total fat'
+    case 'CHOAVL': return 'Total carbs'
+    default: return observation.name
+  }
+}
+
+function nutritionFactDepth(observation: NutrientEvidenceObservation): 0 | 1 {
+  const code = observation.nutrient_code.toLocaleUpperCase()
+  return /^(?:FASAT|FATRN|FAMS|FAPU|OMEGA)/.test(code)
+    || /^(?:FIBT|SUGAR|SUGAR_ADDED|STARCH)/.test(code) ? 1 : 0
+}
+
+function nutritionFactPriority(observation: NutrientEvidenceObservation): number {
+  const code = observation.nutrient_code.toLocaleUpperCase()
+  if (code === 'ENERC_KCAL') return 0
+  if (code === 'FAT') return 10
+  if (code === 'FASAT') return 11
+  if (code === 'FATRN') return 12
+  if (code === 'FAMS') return 13
+  if (code === 'FAPU') return 14
+  if (code.startsWith('OMEGA')) return 15
+  if (code === 'CHOLE') return 20
+  if (code === 'NA') return 30
+  if (code === 'NACL') return 31
+  if (code === 'CHOAVL') return 40
+  if (code === 'FIBT') return 41
+  if (code === 'SUGAR') return 42
+  if (code === 'SUGAR_ADDED') return 43
+  if (code === 'STARCH') return 44
+  if (code === 'PROT') return 50
+  if (code === 'WATER') return 60
+  return 100
+}
+
+export function nutritionFactSections(observations: NutrientEvidenceObservation[]): NutritionFactDisplaySection[] {
+  const grouped: Array<[NutritionFactSectionKind, NutrientEvidenceObservation[]]> = [
+    ['facts', observations.filter((row) => !['vitamins', 'minerals'].includes(nutrientCategory(row)))],
+    ['vitamins', observations.filter((row) => nutrientCategory(row) === 'vitamins')],
+    ['minerals', observations.filter((row) => nutrientCategory(row) === 'minerals')],
+  ]
+  return grouped.flatMap(([kind, rows]) => {
+    if (!rows.length) return []
+    const sorted = [...rows].sort((left, right) => {
+      if (kind === 'facts') {
+        const priority = nutritionFactPriority(left) - nutritionFactPriority(right)
+        if (priority) return priority
+      }
+      return nutritionFactLabel(left).localeCompare(nutritionFactLabel(right)) || left.unit.localeCompare(right.unit)
+    })
+    return [{
+      kind,
+      rows: sorted.map((observation) => ({
+        observation,
+        label: nutritionFactLabel(observation),
+        depth: kind === 'facts' ? nutritionFactDepth(observation) : 0,
+      })),
+    }]
+  })
 }
 
 function fallback(

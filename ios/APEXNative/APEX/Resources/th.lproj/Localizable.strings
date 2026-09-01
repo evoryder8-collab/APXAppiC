@@ -5427,6 +5427,12 @@
 "I control full overhead range under load" = "ควบคุมช่วงเหนือศีรษะเต็มที่พร้อมรับน้ำหนักได้";
 "DEXA report" = "รายงาน DEXA";
 "Detailed nutrition" = "ข้อมูลโภชนาการโดยละเอียด";
+"Nutrition facts" = "ข้อมูลโภชนาการ";
+"Per 100 %@" = "ต่อ 100 %@";
+"Total fat" = "ไขมันทั้งหมด";
+"Total carbs" = "คาร์โบไฮเดรตทั้งหมด";
+"Food and nutrition data" = "ข้อมูลอาหารและโภชนาการ";
+"Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter." = "ค่าทางโภชนาการอาจมาจากฉลากผลิตภัณฑ์ ฐานข้อมูลองค์ประกอบอาหารสาธารณะ ผู้ให้บริการบาร์โค้ด หรืออาหารที่คุณสร้างเอง ขอบเขตข้อมูลและวิธีการอาจแตกต่างกัน APEX จะคงสถานะค่าที่ไม่มีข้อมูลและค่าปริมาณเล็กน้อยไว้ แทนที่จะเปลี่ยนเป็นศูนย์ โปรดตรวจสอบฉลากบนบรรจุภัณฑ์ปัจจุบันเมื่อต้องการค่าของผลิตภัณฑ์ที่แม่นยำ";
 "Shows reported vitamins, minerals and nutrient details" = "แสดงวิตามิน แร่ธาตุ และรายละเอียดสารอาหารที่แหล่งข้อมูลระบุ";
 "Reported per 100 %@ · %@" = "รายงานต่อ 100 %@ · %@";
 "No detailed nutrient evidence" = "ไม่มีข้อมูลสารอาหารโดยละเอียด";

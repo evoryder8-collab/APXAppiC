@@ -5446,6 +5446,12 @@
 "DEXA report" = "Referto DEXA";
 /* Detailed nutrient evidence and private intake patterns */
 "Detailed nutrition" = "Valori nutrizionali dettagliati";
+"Nutrition facts" = "Valori nutrizionali";
+"Per 100 %@" = "Per 100 %@";
+"Total fat" = "Grassi totali";
+"Total carbs" = "Carboidrati totali";
+"Food and nutrition data" = "Dati alimentari e nutrizionali";
+"Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter." = "I valori nutrizionali possono provenire da etichette di prodotto, banche dati pubbliche sulla composizione degli alimenti, fornitori di codici a barre o alimenti creati dall’utente. Copertura e metodi possono variare. APEX conserva i valori non disponibili e le tracce invece di trasformarli in zero. Controlla l’etichetta attuale della confezione quando sono necessari valori esatti del prodotto.";
 "Shows reported vitamins, minerals and nutrient details" = "Mostra vitamine, minerali e dettagli nutrizionali dichiarati";
 "Reported per 100 %@ · %@" = "Dichiarato per 100 %@ · %@";
 "No detailed nutrient evidence" = "Nessun dato nutrizionale dettagliato";

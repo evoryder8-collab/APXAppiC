@@ -46,8 +46,7 @@ import {
 } from '../../lib/mealUndo'
 import {
   foodNutrientEvidence,
-  nutrientCategory,
-  type NutrientCategory,
+  nutritionFactSections,
   type NutrientEvidenceObservation,
 } from '../../lib/nutrientEvidence'
 
@@ -76,13 +75,6 @@ function foodProvenanceLabel(food: FoodRecord): string {
   return 'Curated reference profile. Product labels can vary.'
 }
 
-function nutrientSourceLabel(source: string | null | undefined): string {
-  if (source === 'open_food_facts') return 'Open Food Facts'
-  if (source === 'private') return 'Your private food'
-  if (source === 'apex_cache') return 'APEX curated reference'
-  return source?.replace(/[_-]+/g, ' ') ?? 'Not available'
-}
-
 function NutrientDetailDialog({
   food,
   language,
@@ -98,13 +90,12 @@ function NutrientDetailDialog({
   const closeRef = useRef<HTMLButtonElement>(null)
   const onCloseRef = useRef(onClose)
   const rows = foodNutrientEvidence(food)
-  const categories: Array<{ id: NutrientCategory; title: string; icon: string; tint: string }> = [
-    { id: 'vitamins', title: 'Vitamins', icon: '✦', tint: 'text-violet-700 bg-violet-500/10' },
-    { id: 'minerals', title: 'Minerals', icon: '◆', tint: 'text-cyan-700 bg-cyan-500/10' },
-    { id: 'fats', title: 'Fat details', icon: '●', tint: 'text-amber-700 bg-amber-500/10' },
-    { id: 'carbohydrates', title: 'Carbohydrate details', icon: '◒', tint: 'text-emerald-700 bg-emerald-500/10' },
-    { id: 'other', title: 'Other nutrition', icon: '≡', tint: 'text-slate-700 bg-slate-500/10' },
-  ]
+  const sections = nutritionFactSections(rows)
+  const presentation = {
+    facts: { title: 'Nutrition facts', icon: '▦', tint: 'text-amber-800 bg-amber-500/10' },
+    vitamins: { title: 'Vitamins', icon: '✦', tint: 'text-violet-700 bg-violet-500/10' },
+    minerals: { title: 'Minerals', icon: '◆', tint: 'text-cyan-700 bg-cyan-500/10' },
+  } as const
   const statusLabel = (status: NutrientEvidenceObservation['observation_status']): string => ({
     measured: 'Measured',
     calculated: 'Calculated by source',
@@ -117,11 +108,11 @@ function NutrientDetailDialog({
   })[status]
   const valueLabel = (row: NutrientEvidenceObservation): string => {
     if (row.value_per_100 == null) return t(statusLabel(row.observation_status))
-    const value = row.value_per_100 >= 100
+    const value = Number.isInteger(row.value_per_100) || row.value_per_100 >= 100
       ? row.value_per_100.toFixed(0)
       : row.value_per_100 >= 10
         ? row.value_per_100.toFixed(1)
-        : row.value_per_100.toFixed(2)
+        : row.value_per_100.toFixed(2).replace(/0+$/, '').replace(/\.$/, '')
     return `${value} ${row.unit}`
   }
 
@@ -199,42 +190,31 @@ function NutrientDetailDialog({
             <p className="font-mono text-[10px] font-black tracking-[.17em] text-cyan-700 uppercase">{t('Detailed nutrition')}</p>
             <h3 id="food-nutrient-detail-title" className="mt-1 break-words font-display text-2xl leading-tight font-black text-ink">{displayFoodName(food, language)}</h3>
             <p className="mt-1 break-words text-xs leading-relaxed font-semibold text-ink-soft">
-              {t('Reported per')} 100 {food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'} · {t(food.preparation_state.replace('_', ' '))}
+              {t('Per 100')} {food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'}
+              {!['', 'unknown', 'unspecified', 'not_specified'].includes(food.preparation_state)
+                ? ` · ${t(food.preparation_state.replace('_', ' '))}`
+                : ''}
             </p>
           </div>
           <button ref={closeRef} type="button" onClick={() => onCloseRef.current()} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-xl font-black text-ink-soft" aria-label={t('Close')}>×</button>
         </div>
 
         <div className="mt-5 space-y-4">
-          {categories.map((category) => {
-            const categoryRows = rows.filter((row) => nutrientCategory(row) === category.id)
-            if (!categoryRows.length) return null
+          {sections.map((section) => {
+            const style = presentation[section.kind]
             return (
-              <section key={category.id}>
-                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ${category.tint}`}>
-                  <span aria-hidden="true" className="font-mono text-xs font-black">{category.icon}</span>
-                  <h4 className="text-xs font-black">{t(category.title)}</h4>
+              <section key={section.kind}>
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ${style.tint}`}>
+                  <span aria-hidden="true" className="font-mono text-xs font-black">{style.icon}</span>
+                  <h4 className="text-xs font-black">{t(style.title)}</h4>
                 </div>
                 <div className="mt-2 divide-y divide-ink/7 overflow-hidden rounded-2xl border border-white/90 bg-white/72 px-4">
-                  {categoryRows.map((row) => (
-                    <div key={`${row.nutrient_code}:${row.unit}`} className="flex items-start justify-between gap-4 py-3">
-                      <div className="min-w-0 flex-1">
-                        <p className="break-words text-sm leading-snug font-black text-ink">{t(row.name)}</p>
-                        <p className="mt-0.5 break-words text-[9px] leading-snug font-bold text-ink-faint">{t(statusLabel(row.observation_status))}</p>
-                        {row.original_value_text && (
-                          <p className="mt-1 break-words text-[9px] leading-snug font-semibold text-ink-faint">
-                            {t('Original source value')}: <span className="font-mono">{row.original_value_text}</span>
-                          </p>
-                        )}
-                        <p className="mt-1 break-all text-[9px] leading-snug font-semibold text-ink-faint">
-                          {t('Source')}: {t(nutrientSourceLabel(row.source_key ?? food.source))}
-                          {row.source_reference ? ` · ${t('Reference')}: ${row.source_reference}` : ''}
-                        </p>
-                        {row.derivation_method && (
-                          <p className="mt-1 break-words text-[9px] leading-snug font-semibold text-ink-faint">{t('Normalized from the source value.')}</p>
-                        )}
-                      </div>
-                      <p className="shrink-0 text-right font-mono text-xs leading-snug font-black text-ink">{valueLabel(row)}</p>
+                  {section.rows.map((row) => (
+                    <div key={`${row.observation.nutrient_code}:${row.observation.unit}`} className="flex items-start justify-between gap-4 py-3">
+                      <p className={`${row.depth ? 'pl-5 font-bold text-ink-soft' : 'font-black text-ink'} min-w-0 flex-1 break-words text-sm leading-snug`}>
+                        {t(row.label)}
+                      </p>
+                      <p className="shrink-0 text-right font-mono text-xs leading-snug font-black text-ink">{valueLabel(row.observation)}</p>
                     </div>
                   ))}
                 </div>
@@ -249,21 +229,6 @@ function NutrientDetailDialog({
           )}
         </div>
 
-        <div className="mt-5 rounded-2xl border border-cyan-400/15 bg-cyan-500/7 p-4">
-          <p className="text-sm font-black text-ink">{t('Evidence, not a diagnosis')}</p>
-          <p className="mt-1 text-xs leading-relaxed font-semibold text-ink-soft">{t('Only values reported by the source are shown. Trace and unavailable values are never changed to zero.')}</p>
-        </div>
-        <div className="mt-3 rounded-2xl border border-violet-400/15 bg-violet-500/7 p-4">
-          <p className="text-sm font-black text-ink">{t('Source and product notice')}</p>
-          <p className="mt-1 break-words text-xs leading-relaxed font-semibold text-ink-soft">{t(foodProvenanceLabel(food))}</p>
-          <p className="mt-2 break-all text-[10px] leading-relaxed font-semibold text-ink-faint">
-            {t('Source')}: {t(nutrientSourceLabel(food.source))}
-            {(food.provider_product_id || food.barcode) ? ` · ${t('Reference')}: ${food.provider_product_id ?? food.barcode}` : ''}
-          </p>
-          {food.brand && (
-            <p className="mt-2 break-words text-xs leading-relaxed font-bold text-violet-800">{t('Branded products can change. Check the current package label before relying on these values.')}</p>
-          )}
-        </div>
       </motion.div>
     </motion.div>
   )

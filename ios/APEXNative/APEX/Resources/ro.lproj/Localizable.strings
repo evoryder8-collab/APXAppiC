@@ -5427,6 +5427,12 @@
 "I control full overhead range under load" = "Controlez amplitudinea completă deasupra capului sub sarcină";
 "DEXA report" = "Raport DEXA";
 "Detailed nutrition" = "Informații nutriționale detaliate";
+"Nutrition facts" = "Informații nutriționale";
+"Per 100 %@" = "Per 100 %@";
+"Total fat" = "Grăsimi totale";
+"Total carbs" = "Carbohidrați totali";
+"Food and nutrition data" = "Date despre alimente și nutriție";
+"Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter." = "Valorile nutriționale pot proveni din etichetele produselor, baze de date publice privind compoziția alimentelor, furnizori de coduri de bare sau alimente create de dumneavoastră. Acoperirea și metodele variază. APEX păstrează valorile indisponibile și valorile de tip urmă, în loc să le transforme în zero. Verificați eticheta actuală a ambalajului atunci când contează valorile exacte ale produsului.";
 "Shows reported vitamins, minerals and nutrient details" = "Afișează vitaminele, mineralele și detaliile nutriționale raportate";
 "Reported per 100 %@ · %@" = "Raportat per 100 %@ · %@";
 "No detailed nutrient evidence" = "Nu există date nutriționale detaliate";

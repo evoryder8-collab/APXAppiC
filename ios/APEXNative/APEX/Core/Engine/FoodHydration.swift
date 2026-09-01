@@ -308,6 +308,23 @@ enum NutrientCategory: String, CaseIterable, Hashable, Sendable {
     case other
 }
 
+enum NutritionFactSectionKind: String, CaseIterable, Hashable, Sendable {
+    case facts
+    case vitamins
+    case minerals
+}
+
+struct NutritionFactDisplayRow: Equatable, Hashable, Sendable {
+    let observation: NutrientEvidenceObservation
+    let label: String
+    let depth: Int
+}
+
+struct NutritionFactDisplaySection: Equatable, Hashable, Sendable {
+    let kind: NutritionFactSectionKind
+    let rows: [NutritionFactDisplayRow]
+}
+
 enum FoodNutrientEvidence {
     private static let categoryOrder = NutrientCategory.allCases
 
@@ -317,8 +334,16 @@ enum FoodNutrientEvidence {
         case protein = "PROT"
         case carbohydrate = "CHOAVL"
         case fat = "FAT"
+        case transFat = "FATRN"
+        case monounsaturatedFat = "FAMS"
+        case polyunsaturatedFat = "FAPU"
+        case omegaPrefix = "OMEGA"
+        case cholesterol = "CHOLE"
+        case sodium = "NA"
         case fibre = "FIBT"
         case sugar = "SUGAR"
+        case addedSugar = "SUGAR_ADDED"
+        case starch = "STARCH"
         case saturatedFat = "FASAT"
         case salt = "NACL"
         case water = "WATER"
@@ -344,6 +369,91 @@ enum FoodNutrientEvidence {
             return .carbohydrates
         }
         return .other
+    }
+
+    static func nutritionFactSections(
+        _ observations: [NutrientEvidenceObservation]
+    ) -> [NutritionFactDisplaySection] {
+        let groups: [(NutritionFactSectionKind, [NutrientEvidenceObservation])] = [
+            (.facts, observations.filter {
+                let category = category($0)
+                return category != .vitamins && category != .minerals
+            }),
+            (.vitamins, observations.filter { category($0) == .vitamins }),
+            (.minerals, observations.filter { category($0) == .minerals })
+        ]
+        return groups.compactMap { kind, observations in
+            guard !observations.isEmpty else { return nil }
+            let rows = observations.sorted { left, right in
+                if kind == .facts {
+                    let leftPriority = nutritionFactPriority(left)
+                    let rightPriority = nutritionFactPriority(right)
+                    if leftPriority != rightPriority { return leftPriority < rightPriority }
+                }
+                let labelOrder = nutritionFactLabel(left)
+                    .localizedCaseInsensitiveCompare(nutritionFactLabel(right))
+                if labelOrder != .orderedSame { return labelOrder == .orderedAscending }
+                return left.unit < right.unit
+            }.map { observation in
+                NutritionFactDisplayRow(
+                    observation: observation,
+                    label: nutritionFactLabel(observation),
+                    depth: kind == .facts ? nutritionFactDepth(observation) : 0
+                )
+            }
+            return NutritionFactDisplaySection(kind: kind, rows: rows)
+        }
+    }
+
+    private static func nutritionFactLabel(_ observation: NutrientEvidenceObservation) -> String {
+        switch observation.nutrientCode.uppercased() {
+        case Code.energy.rawValue: "Calories"
+        case Code.fat.rawValue: "Total fat"
+        case Code.carbohydrate.rawValue: "Total carbs"
+        default: observation.name
+        }
+    }
+
+    private static func nutritionFactDepth(_ observation: NutrientEvidenceObservation) -> Int {
+        let code = observation.nutrientCode.uppercased()
+        let detailCodes: Set<String> = [
+            Code.saturatedFat.rawValue,
+            Code.transFat.rawValue,
+            Code.monounsaturatedFat.rawValue,
+            Code.polyunsaturatedFat.rawValue,
+            Code.fibre.rawValue,
+            Code.sugar.rawValue,
+            Code.addedSugar.rawValue,
+            Code.starch.rawValue
+        ]
+        if detailCodes.contains(code) || code.hasPrefix(Code.omegaPrefix.rawValue) {
+            return 1
+        }
+        return 0
+    }
+
+    private static func nutritionFactPriority(_ observation: NutrientEvidenceObservation) -> Int {
+        let code = observation.nutrientCode.uppercased()
+        switch code {
+        case Code.energy.rawValue: return 0
+        case Code.fat.rawValue: return 10
+        case Code.saturatedFat.rawValue: return 11
+        case Code.transFat.rawValue: return 12
+        case Code.monounsaturatedFat.rawValue: return 13
+        case Code.polyunsaturatedFat.rawValue: return 14
+        case let value where value.hasPrefix(Code.omegaPrefix.rawValue): return 15
+        case Code.cholesterol.rawValue: return 20
+        case Code.sodium.rawValue: return 30
+        case Code.salt.rawValue: return 31
+        case Code.carbohydrate.rawValue: return 40
+        case Code.fibre.rawValue: return 41
+        case Code.sugar.rawValue: return 42
+        case Code.addedSugar.rawValue: return 43
+        case Code.starch.rawValue: return 44
+        case Code.protein.rawValue: return 50
+        case Code.water.rawValue: return 60
+        default: return 100
+        }
     }
 
     static func observations(for food: Food) -> [NutrientEvidenceObservation] {

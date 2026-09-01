@@ -1066,6 +1066,7 @@ private struct OnboardingLegalDocumentView: View {
             [
                 ("What APEX is", "APEX is a fitness and nutrition planning tool. It is not medical diagnosis or emergency care, and it does not replace advice from a qualified clinician."),
                 ("Safe use", "Use honest inputs, follow exercise setup and stop rules, and stop immediately for sharp, escalating or unusual symptoms. Contact emergency services when symptoms may be urgent."),
+                ("Food and nutrition data", "Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter."),
                 ("Your account", "Keep sign-in details secure. You are responsible for entries and edits made through your account. Beta features may change as reliability and safety improve."),
                 ("Availability and law", "APEX aims to preserve and sync your records but cannot promise uninterrupted beta availability. Swiss law applies, without limiting mandatory consumer rights where you live."),
             ]

@@ -100,6 +100,7 @@ enum APEXDebugFixture {
             food(
                 id: wheyID, name: "High protein milk", brand: "APEX Food Memory",
                 kcal: 54, protein: 8, carbs: 5.2, fat: 0.2,
+                fibre: 0, sugar: 4.8, saturatedFat: 0.1,
                 nutritionBasis: "per_100ml"
             ),
             food(id: berriesID, name: "Strawberries, fresh", brand: nil, kcal: 32, protein: 0.7, carbs: 7.7, fat: 0.3),
@@ -232,6 +233,9 @@ enum APEXDebugFixture {
         protein: Double,
         carbs: Double,
         fat: Double,
+        fibre: Double? = nil,
+        sugar: Double? = nil,
+        saturatedFat: Double? = nil,
         nutritionBasis: String = "per_100g"
     ) -> Food {
         Food(
@@ -239,7 +243,7 @@ enum APEXDebugFixture {
             barcode: nil, source: "ui_fixture", providerProductID: nil, externalImageURL: nil,
             packageQuantity: nil, nutritionBasis: nutritionBasis, preparationState: "as_sold",
             kcal100: kcal, protein100: protein, carbs100: carbs, fat100: fat,
-            fibre100: nil, sugar100: nil, saturatedFat100: nil, salt100: nil,
+            fibre100: fibre, sugar100: sugar, saturatedFat100: saturatedFat, salt100: nil,
             servingAmount: nil, servingUnit: nil, servingGramsOrML: nil,
             pieceGramsOrML: nil, confidence: "verified"
         )

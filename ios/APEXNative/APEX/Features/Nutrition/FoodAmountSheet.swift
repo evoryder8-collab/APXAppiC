@@ -530,11 +530,19 @@ struct FoodNutrientDetailSheet: View {
         FoodNutrientEvidence.observations(for: food)
     }
 
-    private var grouped: [(NutrientCategory, [NutrientEvidenceObservation])] {
-        NutrientCategory.allCases.compactMap { category in
-            let rows = observations.filter { FoodNutrientEvidence.category($0) == category }
-            return rows.isEmpty ? nil : (category, rows)
-        }
+    private var factSections: [NutritionFactDisplaySection] {
+        FoodNutrientEvidence.nutritionFactSections(observations)
+    }
+
+    private var basisLabel: String {
+        let unit = food.nutritionBasis == "per_100ml" ? "ml" : "g"
+        let basis = language.format("Per 100 %@", unit)
+        let rawPreparation = food.preparationState.lowercased()
+        let preparation = rawPreparation.replacingOccurrences(of: "_", with: " ")
+        guard !preparation.isEmpty,
+              !["unknown", "unspecified", "not_specified"].contains(rawPreparation)
+        else { return basis }
+        return "\(basis) · \(language.text(preparation))"
     }
 
     var body: some View {
@@ -546,32 +554,28 @@ struct FoodNutrientDetailSheet: View {
                             .font(APEXFont.display(27))
                             .foregroundStyle(APEXColor.ink)
                             .fixedSize(horizontal: false, vertical: true)
-                        Text(language.format(
-                            "Reported per 100 %@ · %@",
-                            food.nutritionBasis == "per_100ml" ? "ml" : "g",
-                            language.text(food.preparationState.replacingOccurrences(of: "_", with: " "))
-                        ))
+                        Text(basisLabel)
                             .font(APEXFont.body(13, weight: .semibold))
                             .foregroundStyle(APEXColor.secondaryInk)
                             .fixedSize(horizontal: false, vertical: true)
                     }
 
-                    if grouped.isEmpty {
+                    if factSections.isEmpty {
                         detailNotice(
                             icon: "doc.text.magnifyingglass",
                             title: language.text("No detailed nutrient evidence"),
                             body: language.text("The available label does not report vitamins, minerals or additional nutrient values.")
                         )
                     } else {
-                        ForEach(grouped, id: \.0) { category, rows in
+                        ForEach(factSections, id: \.kind) { section in
                             VStack(alignment: .leading, spacing: 10) {
-                                Label(language.text(categoryTitle(category)), systemImage: categoryIcon(category))
+                                Label(language.text(sectionTitle(section.kind)), systemImage: sectionIcon(section.kind))
                                     .font(APEXFont.body(16, weight: .bold))
-                                    .foregroundStyle(categoryColor(category))
+                                    .foregroundStyle(sectionColor(section.kind))
                                 VStack(spacing: 0) {
-                                    ForEach(rows, id: \.self) { row in
+                                    ForEach(section.rows, id: \.self) { row in
                                         nutrientRow(row)
-                                        if row != rows.last { Divider().opacity(0.45) }
+                                        if row != section.rows.last { Divider().opacity(0.45) }
                                     }
                                 }
                                 .padding(.horizontal, 15)
@@ -579,41 +583,6 @@ struct FoodNutrientDetailSheet: View {
                             }
                         }
                     }
-
-                    detailNotice(
-                        icon: "checkmark.shield",
-                        title: language.text("Evidence, not a diagnosis"),
-                        body: language.text("Only values reported by the source are shown. Trace and unavailable values are never changed to zero.")
-                    )
-
-                    VStack(alignment: .leading, spacing: 7) {
-                        Label(language.text("Source and product notice"), systemImage: "shippingbox.and.arrow.backward")
-                            .font(APEXFont.body(15, weight: .bold))
-                            .foregroundStyle(APEXColor.violet)
-                        Text(language.text(FoodPortionMath.provenanceLabel(food)))
-                            .font(APEXFont.body(12, weight: .semibold))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                            .fixedSize(horizontal: false, vertical: true)
-                        Text("\(language.text("Source")): \(language.text(sourceLabel(food.source)))")
-                            .font(APEXFont.mono(10))
-                            .foregroundStyle(APEXColor.secondaryInk)
-                            .fixedSize(horizontal: false, vertical: true)
-                        if let reference = food.providerProductID ?? food.barcode, !reference.isEmpty {
-                            Text("\(language.text("Reference")): \(reference)")
-                                .font(APEXFont.mono(9))
-                                .foregroundStyle(APEXColor.secondaryInk)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                        if let brand = food.brand, !brand.isEmpty {
-                            Text(language.text("Branded products can change. Check the current package label before relying on these values."))
-                                .font(APEXFont.body(12, weight: .bold))
-                                .foregroundStyle(APEXColor.violet)
-                                .fixedSize(horizontal: false, vertical: true)
-                        }
-                    }
-                    .padding(16)
-                    .frame(maxWidth: .infinity, alignment: .leading)
-                    .background(APEXColor.violet.opacity(0.07), in: RoundedRectangle(cornerRadius: 20, style: .continuous))
                 }
                 .padding(20)
                 .padding(.bottom, 12)
@@ -630,42 +599,15 @@ struct FoodNutrientDetailSheet: View {
         }
     }
 
-    private func nutrientRow(_ row: NutrientEvidenceObservation) -> some View {
+    private func nutrientRow(_ row: NutritionFactDisplayRow) -> some View {
         HStack(alignment: .firstTextBaseline, spacing: 14) {
-            VStack(alignment: .leading, spacing: 3) {
-                Text(language.text(row.name))
-                    .font(APEXFont.body(14, weight: .bold))
-                    .foregroundStyle(APEXColor.ink)
-                    .fixedSize(horizontal: false, vertical: true)
-                Text(language.text(statusLabel(row.observationStatus)))
-                    .font(APEXFont.mono(9))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                if !row.originalValueText.isEmpty {
-                    Text("\(language.text("Original source value")): \(row.originalValueText)")
-                        .font(APEXFont.mono(8))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                Text("\(language.text("Source")): \(language.text(sourceLabel(row.sourceKey ?? food.source)))")
-                    .font(APEXFont.mono(8))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .fixedSize(horizontal: false, vertical: true)
-                if let reference = row.sourceReference, !reference.isEmpty {
-                    Text("\(language.text("Reference")): \(reference)")
-                        .font(APEXFont.mono(8))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-                if row.derivationMethod != nil {
-                    Text(language.text("Normalized from the source value."))
-                        .font(APEXFont.body(9, weight: .semibold))
-                        .foregroundStyle(APEXColor.secondaryInk)
-                        .fixedSize(horizontal: false, vertical: true)
-                }
-            }
+            Text(language.text(row.label))
+                .font(APEXFont.body(14, weight: row.depth == 0 ? .bold : .semibold))
+                .foregroundStyle(row.depth == 0 ? APEXColor.ink : APEXColor.secondaryInk)
+                .padding(.leading, row.depth == 0 ? 0 : 20)
+                .fixedSize(horizontal: false, vertical: true)
             Spacer(minLength: 8)
-            Text(valueLabel(row))
+            Text(valueLabel(row.observation))
                 .font(APEXFont.mono(13))
                 .foregroundStyle(APEXColor.ink)
                 .multilineTextAlignment(.trailing)
@@ -678,19 +620,17 @@ struct FoodNutrientDetailSheet: View {
         guard let value = row.valuePer100 else {
             return language.text(statusLabel(row.observationStatus))
         }
-        let formatted = value >= 100 ? String(format: "%.0f", value)
-            : value >= 10 ? String(format: "%.1f", value)
-            : String(format: "%.2f", value)
-        return "\(formatted) \(row.unit)"
-    }
-
-    private func sourceLabel(_ source: String) -> String {
-        switch source {
-        case "open_food_facts": return "Open Food Facts"
-        case "private": return "Your private food"
-        case "apex_cache": return "APEX curated reference"
-        default: return source.replacingOccurrences(of: "_", with: " ").capitalized
+        let formatted: String
+        if value == value.rounded() || value >= 100 {
+            formatted = String(format: "%.0f", value)
+        } else if value >= 10 {
+            formatted = String(format: "%.1f", value)
+        } else {
+            formatted = String(format: "%.2f", value)
+                .replacingOccurrences(of: #"0+$"#, with: "", options: .regularExpression)
+                .replacingOccurrences(of: #"\.$"#, with: "", options: .regularExpression)
         }
+        return "\(formatted) \(row.unit)"
     }
 
     private func statusLabel(_ status: NutrientObservationStatus) -> String {
@@ -706,33 +646,27 @@ struct FoodNutrientDetailSheet: View {
         }
     }
 
-    private func categoryTitle(_ category: NutrientCategory) -> String {
-        switch category {
+    private func sectionTitle(_ section: NutritionFactSectionKind) -> String {
+        switch section {
+        case .facts: "Nutrition facts"
         case .vitamins: "Vitamins"
         case .minerals: "Minerals"
-        case .fats: "Fat details"
-        case .carbohydrates: "Carbohydrate details"
-        case .other: "Other nutrition"
         }
     }
 
-    private func categoryIcon(_ category: NutrientCategory) -> String {
-        switch category {
+    private func sectionIcon(_ section: NutritionFactSectionKind) -> String {
+        switch section {
+        case .facts: "chart.bar.doc.horizontal"
         case .vitamins: "sparkles"
-        case .minerals: "diamond.fill"
-        case .fats: "drop.fill"
-        case .carbohydrates: "leaf.fill"
-        case .other: "list.bullet.rectangle"
+        case .minerals: "hexagon.fill"
         }
     }
 
-    private func categoryColor(_ category: NutrientCategory) -> Color {
-        switch category {
+    private func sectionColor(_ section: NutritionFactSectionKind) -> Color {
+        switch section {
+        case .facts: APEXColor.amberDeep
         case .vitamins: APEXColor.violet
         case .minerals: APEXColor.cyan
-        case .fats: APEXColor.amberDeep
-        case .carbohydrates: APEXColor.green
-        case .other: APEXColor.secondaryInk
         }
     }
 

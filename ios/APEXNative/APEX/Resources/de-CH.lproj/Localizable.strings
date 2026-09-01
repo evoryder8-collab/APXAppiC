@@ -5445,6 +5445,12 @@
 "DEXA report" = "DEXA-Bricht";
 /* Detailed nutrient evidence and private intake patterns */
 "Detailed nutrition" = "Detaillierte Nährwerte";
+"Nutrition facts" = "Nährwert";
+"Per 100 %@" = "Pro 100 %@";
+"Total fat" = "Fett total";
+"Total carbs" = "Cholehydrat total";
+"Food and nutrition data" = "Lebensmittel- und Nährwertdate";
+"Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter." = "Nährwärt chönd vo Produktetikette, öffentliche Läbensmitteldatebanke, Barcode-Aabieter oder sälber erfasste Läbensmittel stamme. Abdeckig und Methode sind unterschiedlich. APEX laht nöd verfüegbari Wärt und Spurwärt so stah, statt sie zu null z mache. Wenn gnaui Produktwärt wichtig sind, prüef s aktuelle Verpackigsetikett.";
 "Shows reported vitamins, minerals and nutrient details" = "Zeigt ausgewiesene Vitamine, Mineralstoffe und Nährwertdetails";
 "Reported per 100 %@ · %@" = "Angaben pro 100 %@ · %@";
 "No detailed nutrient evidence" = "Keine detaillierten Nährwertdaten";

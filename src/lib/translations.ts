@@ -1894,6 +1894,10 @@ const BASELINE_CALIBRATION_TRANSLATIONS: Array<[string, string, string]> = [
 
 const NUTRIENT_EVIDENCE_TRANSLATIONS: Array<[string, string, string]> = [
   ['Detailed nutrition', 'Informații nutriționale detaliate', 'ข้อมูลโภชนาการโดยละเอียด'],
+  ['Nutrition facts', 'Informații nutriționale', 'ข้อมูลโภชนาการ'],
+  ['Per 100', 'Per 100', 'ต่อ 100'],
+  ['Total fat', 'Grăsimi totale', 'ไขมันทั้งหมด'],
+  ['Total carbs', 'Carbohidrați totali', 'คาร์โบไฮเดรตทั้งหมด'],
   ['Shows reported vitamins, minerals and nutrient details', 'Afișează vitaminele, mineralele și detaliile nutritive raportate', 'แสดงวิตามิน แร่ธาตุ และรายละเอียดสารอาหารที่แหล่งข้อมูลระบุ'],
   ['Reported per', 'Raportat per', 'รายงานต่อ'],
   ['No detailed nutrient evidence', 'Nu există informații nutritive detaliate', 'ไม่มีข้อมูลสารอาหารโดยละเอียด'],

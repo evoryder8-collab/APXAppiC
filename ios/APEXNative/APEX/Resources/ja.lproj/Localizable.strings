@@ -5445,6 +5445,12 @@
 "I control full overhead range under load" = "負荷があっても頭上の全可動域を安定して動かせる";
 "DEXA report" = "DEXAレポート";
 "Detailed nutrition" = "詳細な栄養情報";
+"Nutrition facts" = "栄養成分";
+"Per 100 %@" = "100 %@当たり";
+"Total fat" = "脂質合計";
+"Total carbs" = "炭水化物合計";
+"Food and nutrition data" = "食品・栄養データ";
+"Nutrition values may come from product labels, public food-composition datasets, barcode providers or foods you create. Coverage and methods vary. APEX preserves unavailable and trace values instead of turning them into zero. Check the current package label when exact product values matter." = "栄養値は、商品ラベル、公的な食品成分データベース、バーコード提供元、またはユーザーが作成した食品から取得される場合があります。収録範囲と算出方法は情報源によって異なります。APEXは、利用できない値や微量値をゼロに置き換えず、そのまま保持します。商品の正確な値が重要な場合は、現在のパッケージ表示を確認してください。";
 "Shows reported vitamins, minerals and nutrient details" = "記載されているビタミン、ミネラル、栄養成分の詳細を表示します";
 "Reported per 100 %@ · %@" = "100 %@当たりの記載値 · %@";
 "No detailed nutrient evidence" = "詳細な栄養データはありません";

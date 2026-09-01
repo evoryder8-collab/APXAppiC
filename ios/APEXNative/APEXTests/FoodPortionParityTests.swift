@@ -191,6 +191,32 @@ final class NutrientEvidenceTests: XCTestCase {
         )
     }
 
+    func testNutritionFactsKeepTotalsAttachedToIndentedDetailsInLabelOrder() throws {
+        let sections = FoodNutrientEvidence.nutritionFactSections([
+            evidence("SUGAR", "Total sugars", 4.1, "g"),
+            evidence("VITC", "Vitamin C", 26.2, "mg"),
+            evidence("FAPU", "Polyunsaturated fat", 0.2, "g"),
+            evidence("CHOAVL", "Carbohydrate", 12, "g"),
+            evidence("FIBT", "Dietary fibre", 3.7, "g"),
+            evidence("FAT", "Fat", 0.6, "g"),
+            evidence("FASAT", "Saturated fat", 0.1, "g"),
+            evidence("ENERC_KCAL", "Energy", 34, "kcal"),
+            evidence("PROT", "Protein", 1.2, "g"),
+            evidence("FE", "Iron", 0.7, "mg")
+        ])
+
+        XCTAssertEqual(sections.map(\.kind), [.facts, .vitamins, .minerals])
+        let rows = try XCTUnwrap(sections.first?.rows)
+        XCTAssertEqual(rows.map(\.observation.nutrientCode), [
+            "ENERC_KCAL", "FAT", "FASAT", "FAPU", "CHOAVL", "FIBT", "SUGAR", "PROT"
+        ])
+        XCTAssertEqual(rows.map(\.label), [
+            "Calories", "Total fat", "Saturated fat", "Polyunsaturated fat",
+            "Total carbs", "Dietary fibre", "Total sugars", "Protein"
+        ])
+        XCTAssertEqual(rows.map(\.depth), [0, 0, 1, 1, 0, 1, 1, 0])
+    }
+
     func testMealComposerSnapshotsCoarseFactsBesideTraceEvidence() {
         let trace = evidence("VITA", "Vitamin A", nil, "µg", .trace)
         let food = Food(

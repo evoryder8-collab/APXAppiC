@@ -3,6 +3,7 @@ import { readFile } from 'node:fs/promises'
 import test from 'node:test'
 import {
   foodNutrientEvidence,
+  nutritionFactSections,
   nutrientWindow,
   summarizeNutrientIntake,
   type NutrientEvidenceObservation,
@@ -58,6 +59,36 @@ test('detail evidence preserves trace and missing states while adding only repor
   assert.equal(rows.find((row) => row.nutrient_code === 'SUGAR')?.value_per_100, 6)
   assert.equal(rows.filter((row) => row.nutrient_code === 'SUGAR').length, 1)
   assert.ok(!rows.some((row) => row.value_per_100 === 0 && row.original_value_text === 'tr'))
+})
+
+test('nutrition facts keep totals attached to their indented details in familiar label order', () => {
+  const sections = nutritionFactSections([
+    evidence('SUGAR', 'Total sugars', 4.1, 'g'),
+    evidence('VITC', 'Vitamin C', 26.2, 'mg'),
+    evidence('FAPU', 'Polyunsaturated fat', 0.2, 'g'),
+    evidence('CHOAVL', 'Carbohydrate', 12, 'g'),
+    evidence('FIBT', 'Dietary fibre', 3.7, 'g'),
+    evidence('FAT', 'Fat', 0.6, 'g'),
+    evidence('FASAT', 'Saturated fat', 0.1, 'g'),
+    evidence('ENERC_KCAL', 'Energy', 34, 'kcal'),
+    evidence('PROT', 'Protein', 1.2, 'g'),
+    evidence('FE', 'Iron', 0.7, 'mg'),
+  ])
+
+  assert.deepEqual(sections.map((section) => section.kind), ['facts', 'vitamins', 'minerals'])
+  assert.deepEqual(
+    sections[0].rows.map((row) => [row.observation.nutrient_code, row.label, row.depth]),
+    [
+      ['ENERC_KCAL', 'Calories', 0],
+      ['FAT', 'Total fat', 0],
+      ['FASAT', 'Saturated fat', 1],
+      ['FAPU', 'Polyunsaturated fat', 1],
+      ['CHOAVL', 'Total carbs', 0],
+      ['FIBT', 'Dietary fibre', 1],
+      ['SUGAR', 'Total sugars', 1],
+      ['PROT', 'Protein', 0],
+    ],
+  )
 })
 
 test('immutable logging snapshots every available source fact, not only extended evidence', () => {
@@ -181,19 +212,28 @@ test('storage and amount surfaces carry immutable nutrient evidence', async () =
   const webAmount = await readFile(new URL('../src/components/food/MealComposer.tsx', import.meta.url), 'utf8')
   const nativePatterns = await readFile(new URL('../ios/APEXNative/APEX/Features/Nutrition/NutritionView.swift', import.meta.url), 'utf8')
   const webPatterns = await readFile(new URL('../src/pages/Nutrition.tsx', import.meta.url), 'utf8')
+  const nativeTerms = await readFile(new URL('../ios/APEXNative/APEX/Features/Onboarding/InductionView.swift', import.meta.url), 'utf8')
   assert.match(nativeAmount, /food-nutrient-info/)
   assert.match(nativeAmount, /FoodNutrientDetailSheet/)
   assert.match(nativeAmount, /Image\(systemName: "info\.circle"\)/)
   assert.match(nativeAmount, /accessibilityIdentifier\("food-nutrient-info"\)/)
-  assert.match(nativeAmount, /Source and product notice/)
-  assert.match(nativeAmount, /Original source value/)
+  assert.match(nativeAmount, /Nutrition facts/)
+  assert.match(nativeAmount, /nutritionFactSections/)
+  assert.doesNotMatch(nativeAmount, /Source and product notice/)
+  assert.doesNotMatch(nativeAmount, /Original source value/)
+  assert.doesNotMatch(nativeAmount, /case \.fats:\s*"drop\.fill"/)
   assert.match(webAmount, /food-nutrient-info/)
   assert.match(webAmount, /NutrientDetailDialog/)
   assert.match(webAmount, /event\.key === 'Escape'/)
   assert.match(webAmount, /event\.key === 'Tab'/)
   assert.match(webAmount, /setAttribute\('inert'/)
-  assert.match(webAmount, /Source and product notice/)
-  assert.match(webAmount, /Original source value/)
+  assert.match(webAmount, /Nutrition facts/)
+  assert.match(webAmount, /nutritionFactSections/)
+  assert.doesNotMatch(webAmount, /Source and product notice/)
+  assert.doesNotMatch(webAmount, /Original source value/)
+  assert.doesNotMatch(webAmount, /title: 'Fat details'/)
+  assert.match(nativeTerms, /Food and nutrition data/)
+  assert.match(nativeTerms, /preserves unavailable and trace values instead of turning them into zero/)
   assert.doesNotMatch(nativePatterns, /prefix\(16\)/)
   assert.doesNotMatch(webPatterns, /slice\(0,\s*16\)/)
   assert.match(nativePatterns, /summary\.calendarDays/)

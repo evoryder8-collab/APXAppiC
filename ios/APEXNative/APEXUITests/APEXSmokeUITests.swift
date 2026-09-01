@@ -1049,7 +1049,23 @@ final class APEXSmokeUITests: XCTestCase {
         nutrientInfo.tap()
         let nutrientDetail = app.navigationBars["Detailed nutrition"]
         XCTAssertTrue(nutrientDetail.waitForExistence(timeout: 2))
-        XCTAssertTrue(app.staticTexts["Evidence, not a diagnosis"].waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Nutrition facts"].waitForExistence(timeout: 2))
+        let totalFat = app.staticTexts["Total fat"]
+        let saturatedFat = app.staticTexts["Saturated fat"]
+        let totalCarbs = app.staticTexts["Total carbs"]
+        let fibre = app.staticTexts["Dietary fibre"]
+        XCTAssertTrue(totalFat.exists)
+        XCTAssertTrue(saturatedFat.exists)
+        XCTAssertTrue(totalCarbs.exists)
+        XCTAssertTrue(fibre.exists)
+        XCTAssertGreaterThan(saturatedFat.frame.minX, totalFat.frame.minX + 12)
+        XCTAssertGreaterThan(fibre.frame.minX, totalCarbs.frame.minX + 12)
+        XCTAssertFalse(app.staticTexts.matching(
+            NSPredicate(format: "label CONTAINS[c] %@", "Original source value")
+        ).firstMatch.exists)
+        XCTAssertFalse(app.staticTexts.matching(
+            NSPredicate(format: "label BEGINSWITH[c] %@", "Reference:")
+        ).firstMatch.exists)
         capture("food-nutrient-detail")
         nutrientDetail.buttons["Done"].tap()
         XCTAssertFalse(nutrientDetail.exists)
