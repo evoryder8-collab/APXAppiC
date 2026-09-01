@@ -1425,9 +1425,10 @@ export function mergeExtendedFoodResults(
   providerResults: FoodRecord[],
   alternateQueries: string[] = [],
 ): FoodRecord[] {
-  const seen = new Set(localResults.map(foodIdentity))
+  const enrichedLocalResults = enrichLocalFoodsWithNutrientEvidence(localResults, providerResults)
+  const seen = new Set(enrichedLocalResults.map(foodIdentity))
   const queries = [...new Set([query, ...alternateQueries].map(normalizeFoodSearch).filter(Boolean))]
-  if (!queries.length) return localResults
+  if (!queries.length) return enrichedLocalResults
   const candidates = providerResults
     .filter((food) => {
       const identity = foodIdentity(food)
@@ -1451,7 +1452,70 @@ export function mergeExtendedFoodResults(
     .filter(({ score }) => Number.isFinite(score))
     .sort((a, b) => b.score - a.score || a.index - b.index)
     .map(({ food }) => food)
-  return [...localResults, ...provider]
+  return [...enrichedLocalResults, ...provider]
+}
+
+const nutrientEvidenceFingerprint = [
+  ['kcal_100', 1],
+  ['protein_100', 0.05],
+  ['carbs_100', 0.05],
+  ['fat_100', 0.05],
+] as const satisfies ReadonlyArray<readonly [keyof FoodRecord, number]>
+
+function hasExactCompatibleNutrientEvidenceIdentity(
+  localFood: FoodRecord,
+  serverFood: FoodRecord,
+): boolean {
+  const providerID = localFood.provider_product_id
+  if (
+    localFood.id.trim().length === 0
+    || providerID == null
+    || providerID.trim().length === 0
+    || localFood.id !== serverFood.id
+    || providerID !== serverFood.provider_product_id
+  ) return false
+  if (
+    localFood.owner_user_id != null
+    || localFood.brand != null
+    || localFood.barcode != null
+    || localFood.source !== 'apex_cache'
+    || serverFood.owner_user_id != null
+    || serverFood.brand != null
+    || serverFood.barcode != null
+    || serverFood.source !== 'apex_cache'
+    || localFood.nutrition_basis !== serverFood.nutrition_basis
+    || localFood.preparation_state !== serverFood.preparation_state
+  ) return false
+  return nutrientEvidenceFingerprint.every(([field, absoluteTolerance]) => {
+    const localValue = localFood[field]
+    const serverValue = serverFood[field]
+    if (typeof localValue !== 'number' || typeof serverValue !== 'number') return false
+    if (!Number.isFinite(localValue) || !Number.isFinite(serverValue)) return false
+    return Math.abs(localValue - serverValue) <= Math.max(absoluteTolerance, Math.abs(localValue) * 0.02)
+  })
+}
+
+/**
+ * Coalesces a complete approved server evidence record into its exact local
+ * curated counterpart. It deliberately fails closed: a whole evidence array
+ * transfers only when one compatible, evidence-bearing server row has the
+ * same public and provider identities. Names never participate in approval.
+ */
+export function enrichLocalFoodsWithNutrientEvidence(
+  localResults: FoodRecord[],
+  serverResults: FoodRecord[],
+): FoodRecord[] {
+  return localResults.map((localFood) => {
+    if ((localFood.nutrient_evidence?.length ?? 0) > 0) return localFood
+    const compatibleDonors = serverResults.filter((serverFood) =>
+      (serverFood.nutrient_evidence?.length ?? 0) > 0
+      && hasExactCompatibleNutrientEvidenceIdentity(localFood, serverFood))
+    if (compatibleDonors.length !== 1) return localFood
+    return {
+      ...localFood,
+      nutrient_evidence: compatibleDonors[0].nutrient_evidence!.map((observation) => ({ ...observation })),
+    }
+  })
 }
 
 function clampStepped(value: number, min: number, max: number, step: number): number {

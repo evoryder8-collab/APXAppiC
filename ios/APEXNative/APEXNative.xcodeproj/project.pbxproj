@@ -26,6 +26,7 @@
 		09109A906D755E3898C0E3A9 /* OrbitAnalysisEngine.swift in Sources */ = {isa = PBXBuildFile; fileRef = 187FABCA64C67402E716B2DB /* OrbitAnalysisEngine.swift */; };
 		0982ED571F7852F158375B39 /* SyncIssuesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C7630C44C235C7BDE5FC79 /* SyncIssuesSheet.swift */; };
 		09BBEC76744940807A58CA6A /* FoodHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */; };
+		FEE100000000000000000002 /* FoodEvidenceEnrichmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE1000000000000000000001 /* FoodEvidenceEnrichmentTests.swift */; };
 		0BE62A21356CE68BB337CF43 /* PersonaGreetingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467891FF9B531ADA160220C8 /* PersonaGreetingOverlay.swift */; };
 		0D4DF9A23413663004E5490D /* MealSlotDefault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98541CD1971118A4B2DE05FA /* MealSlotDefault.swift */; };
 		0E7CA728851DF93D279B1AA0 /* WorkoutLogOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76E2757FE379C6EA33A59F5 /* WorkoutLogOrder.swift */; };
@@ -574,6 +575,7 @@
 		D5BAEDE044B5F5523C8EB48A /* supplement-catalogue.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; path = "supplement-catalogue.json"; sourceTree = "<group>"; };
 		D6DA60EFC278F24B01067C29 /* ProgressDepthAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDepthAnalyzer.swift; sourceTree = "<group>"; };
 		D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydrationTests.swift; sourceTree = "<group>"; };
+		FEE1000000000000000000001 /* FoodEvidenceEnrichmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEvidenceEnrichmentTests.swift; sourceTree = "<group>"; };
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
 		DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchive.swift; sourceTree = "<group>"; };
@@ -850,6 +852,7 @@
 				6236B0A5E1B4CD351DE95983 /* ExportReportTests.swift */,
 				7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */,
 				D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */,
+				FEE1000000000000000000001 /* FoodEvidenceEnrichmentTests.swift */,
 				A04700000000000000000006 /* RecoveryPlannerTests.swift */,
 				2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */,
 				83CB8593ABFEA904B505BC65 /* FoodRegionTests.swift */,
@@ -1580,6 +1583,7 @@
 				BA44B87871075ED4F428B4A5 /* ExportReportTests.swift in Sources */,
 				06DE4F94D67318117B35516E /* FitnessBrainParityTests.swift in Sources */,
 				09BBEC76744940807A58CA6A /* FoodHydrationTests.swift in Sources */,
+				FEE100000000000000000002 /* FoodEvidenceEnrichmentTests.swift in Sources */,
 				EFE1D97D110D324BE6722A59 /* FoodPortionParityTests.swift in Sources */,
 				2B52272AF5BC8F9DCB1E4500 /* FoodRegionTests.swift in Sources */,
 				C363F0EC4FF9F04D9969ED89 /* HealthImportParityTests.swift in Sources */,

@@ -494,6 +494,56 @@ enum FoodNutrientEvidence {
             return left.unit < right.unit
         }
     }
+
+    /// Coalesces evidence into the local curated row only for one exact,
+    /// compatible public server copy. Search names are intentionally absent
+    /// from this approval path, and explicit local evidence remains whole.
+    static func enrichLocalFoods(_ localFoods: [Food], with serverFoods: [Food]) -> [Food] {
+        localFoods.map { localFood in
+            guard (localFood.nutrientEvidence ?? []).isEmpty else { return localFood }
+            let donors = serverFoods.filter { serverFood in
+                guard (serverFood.nutrientEvidence ?? []).isEmpty == false else { return false }
+                return hasExactCompatibleIdentity(localFood, serverFood)
+            }
+            guard donors.count == 1, let evidence = donors[0].nutrientEvidence else { return localFood }
+            var enriched = localFood
+            enriched.nutrientEvidence = evidence.map { $0 }
+            return enriched
+        }
+    }
+
+    private static func hasExactCompatibleIdentity(_ localFood: Food, _ serverFood: Food) -> Bool {
+        guard localFood.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              let providerID = localFood.providerProductID,
+              providerID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+              localFood.id == serverFood.id,
+              providerID == serverFood.providerProductID,
+              localFood.ownerUserID == nil,
+              localFood.brand == nil,
+              localFood.barcode == nil,
+              localFood.source == "apex_cache",
+              serverFood.ownerUserID == nil,
+              serverFood.brand == nil,
+              serverFood.barcode == nil,
+              serverFood.source == "apex_cache",
+              localFood.nutritionBasis == serverFood.nutritionBasis,
+              localFood.preparationState == serverFood.preparationState
+        else { return false }
+        let macroFingerprint = [
+            (localFood.kcal100, serverFood.kcal100, 1.0),
+            (localFood.protein100, serverFood.protein100, 0.05),
+            (localFood.carbs100, serverFood.carbs100, 0.05),
+            (localFood.fat100, serverFood.fat100, 0.05)
+        ]
+        return macroFingerprint.allSatisfy { localValue, serverValue, absoluteTolerance in
+            guard let localValue,
+                  let serverValue,
+                  localValue.isFinite,
+                  serverValue.isFinite
+            else { return false }
+            return abs(localValue - serverValue) <= max(absoluteTolerance, abs(localValue) * 0.02)
+        }
+    }
 }
 
 enum NutrientPatternPeriod: String, CaseIterable, Hashable, Sendable {
