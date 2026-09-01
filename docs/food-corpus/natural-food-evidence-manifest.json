@@ -1,0 +1,132 @@
+{
+  "approved_count": 111,
+  "category_counts": {
+    "egg": 2,
+    "fish_shellfish": 12,
+    "fruit": 16,
+    "grain_starch": 10,
+    "legume": 3,
+    "meat_poultry": 20,
+    "nut_seed": 7,
+    "plain_dairy": 2,
+    "vegetable_leaf": 39
+  },
+  "crosswalk": {
+    "path": "docs/food-corpus/natural-food-evidence-crosswalk.json",
+    "sha256": "sha256:475fed08c1d6910ecbd7b29ac8e06dcbad2838d1a94d8389f849e53806886abe"
+  },
+  "generator": "tools/food_corpus/build_natural_food_evidence.mjs",
+  "nutrient_coverage": {
+    "CA": 111,
+    "CARTB": 98,
+    "CHOAVL": 111,
+    "CHOLE": 106,
+    "CU": 111,
+    "ENERC_KCAL": 111,
+    "FAMS": 106,
+    "FAPU": 106,
+    "FASAT": 106,
+    "FAT": 111,
+    "FATRN": 77,
+    "FE": 111,
+    "FIBT": 108,
+    "I": 2,
+    "K": 111,
+    "MG": 110,
+    "MN": 111,
+    "NA": 111,
+    "NACL": 1,
+    "OMEGA3": 1,
+    "OMEGA3_ALA": 104,
+    "OMEGA3_DHA": 96,
+    "OMEGA3_DPA": 96,
+    "OMEGA3_EPA": 96,
+    "OMEGA6": 1,
+    "OMEGA6_AA": 16,
+    "OMEGA6_GLA": 24,
+    "OMEGA6_LA": 104,
+    "P": 111,
+    "PROT": 111,
+    "SE": 102,
+    "STARCH": 41,
+    "SUGAR": 94,
+    "VITA": 105,
+    "VITB1": 104,
+    "VITB12": 100,
+    "VITB2": 105,
+    "VITB3": 105,
+    "VITB5": 95,
+    "VITB6": 101,
+    "VITB7": 1,
+    "VITB9": 106,
+    "VITC": 106,
+    "VITD": 95,
+    "VITE": 98,
+    "VITK": 96,
+    "WATER": 111,
+    "ZN": 111
+  },
+  "regeneration_command": "node tools/food_corpus/build_natural_food_evidence.mjs --crosswalk docs/food-corpus/natural-food-evidence-crosswalk.json --source usda-sr-legacy=$USDA_SR_LEGACY_DIR --source usda-foundation=$USDA_FOUNDATION_DIR --source dk-frida=$DK_FRIDA_DIR",
+  "rejected_count": 26,
+  "resource": {
+    "bytes": 1715384,
+    "path": "shared/natural-food-evidence.json",
+    "sha256": "sha256:a306e3f532a877db99b537fbce166a313518054fca3938ba424c7a3537bd0b59"
+  },
+  "schema_version": 1,
+  "source_counts": {
+    "dk-frida": 1,
+    "usda-foundation": 7,
+    "usda-sr-legacy": 103
+  },
+  "source_provenance": [
+    {
+      "artifact": "FCDB_6.1_Dataset.xlsx",
+      "artifact_sha256": "sha256:aba52ade9dd75f085954ca5561f001efb58e4b37d412b135622fd34d77f45c09",
+      "attribution": "Frida Food Data, National Food Institute, Technical University of Denmark.",
+      "dataset_name": "Frida Food Data 6.1",
+      "key": "dk-frida",
+      "licence": "CC-BY-4.0",
+      "licence_url": "https://frida.fooddata.dk/",
+      "parser": "frida_v1",
+      "publisher": "National Food Institute, Technical University of Denmark",
+      "staged_file_sha256": {
+        "nutrients.ndjson": "sha256:c640691297321e597ab8084b3cc24a81f15406a3c3e24ba1f3d1f7240d51d4b9",
+        "records.ndjson": "sha256:20a576fdb4e9cdd3dd74d242f09738990a1d27b14391ee2e647888d57199cc13"
+      },
+      "version": "6.1"
+    },
+    {
+      "artifact": "FoodData_Central_foundation_food_csv_2026-04-30.zip",
+      "artifact_sha256": "sha256:70457ee9d9342f43bda2010318c85f04210c689fdeb9cd2da4c513b0e8dbc655",
+      "attribution": "U.S. Department of Agriculture, Agricultural Research Service, FoodData Central, 2026.",
+      "dataset_name": "FoodData Central Foundation Foods",
+      "key": "usda-foundation",
+      "licence": "CC0-1.0",
+      "licence_url": "https://fdc.nal.usda.gov/api-guide/",
+      "parser": "usda_fooddata_central_v1",
+      "publisher": "USDA Agricultural Research Service",
+      "staged_file_sha256": {
+        "nutrients.ndjson": "sha256:b0a83cee8ae695803c336c0270c4e813b56a6fb97e792125ca167c6b791ceac6",
+        "records.ndjson": "sha256:993a03ecc9e13c4890f385f87452068574ca4239caefa9d750b25fc5ef9626fe"
+      },
+      "version": "2026-04-30"
+    },
+    {
+      "artifact": "FoodData_Central_sr_legacy_food_csv_2018-04.zip",
+      "artifact_sha256": "sha256:b80817294b8850530aaedf2e515c02593b1824f763a0ff356e5c2081643e6fd0",
+      "attribution": "U.S. Department of Agriculture, Agricultural Research Service, FoodData Central, 2018.",
+      "dataset_name": "FoodData Central SR Legacy",
+      "key": "usda-sr-legacy",
+      "licence": "CC0-1.0",
+      "licence_url": "https://fdc.nal.usda.gov/api-guide/",
+      "parser": "usda_fooddata_central_v1",
+      "publisher": "USDA Agricultural Research Service",
+      "staged_file_sha256": {
+        "nutrients.ndjson": "sha256:1364984d5d8f18123e1afae40f71abbc78156ad334968bae148ee81a29a33bd7",
+        "records.ndjson": "sha256:261f938cc54b5428ad2023acb648299d201dbd772ecdd067707111c22c5ed5f8"
+      },
+      "version": "2018-04"
+    }
+  ]
+}

@@ -27,6 +27,8 @@
 		0982ED571F7852F158375B39 /* SyncIssuesSheet.swift in Sources */ = {isa = PBXBuildFile; fileRef = D1C7630C44C235C7BDE5FC79 /* SyncIssuesSheet.swift */; };
 		09BBEC76744940807A58CA6A /* FoodHydrationTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */; };
 		FEE100000000000000000002 /* FoodEvidenceEnrichmentTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = FEE1000000000000000000001 /* FoodEvidenceEnrichmentTests.swift */; };
+		C0DE02000000000000000001 /* natural-food-evidence.json in Resources */ = {isa = PBXBuildFile; fileRef = C0DE02000000000000000003 /* natural-food-evidence.json */; };
+		C0DE02000000000000000002 /* natural-food-evidence.json in Resources */ = {isa = PBXBuildFile; fileRef = C0DE02000000000000000003 /* natural-food-evidence.json */; };
 		0BE62A21356CE68BB337CF43 /* PersonaGreetingOverlay.swift in Sources */ = {isa = PBXBuildFile; fileRef = 467891FF9B531ADA160220C8 /* PersonaGreetingOverlay.swift */; };
 		0D4DF9A23413663004E5490D /* MealSlotDefault.swift in Sources */ = {isa = PBXBuildFile; fileRef = 98541CD1971118A4B2DE05FA /* MealSlotDefault.swift */; };
 		0E7CA728851DF93D279B1AA0 /* WorkoutLogOrder.swift in Sources */ = {isa = PBXBuildFile; fileRef = C76E2757FE379C6EA33A59F5 /* WorkoutLogOrder.swift */; };
@@ -576,6 +578,7 @@
 		D6DA60EFC278F24B01067C29 /* ProgressDepthAnalyzer.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = ProgressDepthAnalyzer.swift; sourceTree = "<group>"; };
 		D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodHydrationTests.swift; sourceTree = "<group>"; };
 		FEE1000000000000000000001 /* FoodEvidenceEnrichmentTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = FoodEvidenceEnrichmentTests.swift; sourceTree = "<group>"; };
+		C0DE02000000000000000003 /* natural-food-evidence.json */ = {isa = PBXFileReference; lastKnownFileType = text.json; name = "natural-food-evidence.json"; path = "../../../../shared/natural-food-evidence.json"; sourceTree = "<group>"; };
 		D8B8413B240399C398084A2D /* june.png */ = {isa = PBXFileReference; lastKnownFileType = image.png; path = june.png; sourceTree = "<group>"; };
 		D9FBDEA4D4FF01D5982D51AE /* APEXApp.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = APEXApp.swift; sourceTree = "<group>"; };
 		DBB7EE3ABDE73808B220DEA4 /* OrbitPrivacyArchive.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = OrbitPrivacyArchive.swift; sourceTree = "<group>"; };
@@ -940,6 +943,7 @@
 			children = (
 				30B06C160134CB27687F7B35 /* APEXIcon.svg */,
 				FC1E568F9FFFF6AD4CC7A7DB /* Assets.xcassets */,
+				C0DE02000000000000000003 /* natural-food-evidence.json */,
 				116EADF08A0352441607F57F /* constantine.png */,
 				48785B712B6C1FBAD4D945AE /* exercise-catalog.json */,
 				4CC9F7269E0FB7B2956A9322 /* InfoPlist.strings */,
@@ -1310,6 +1314,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE02000000000000000001 /* natural-food-evidence.json in Resources */,
 				623DEDE52B70C8DFA651E1D4 /* APEXIcon.svg in Resources */,
 				C30A5C4E317B88881A38DF5F /* Assets.xcassets in Resources */,
 				E4036F21EDE6CE6179EA150B /* InfoPlist.strings in Resources */,
@@ -1353,6 +1358,7 @@
 			isa = PBXResourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				C0DE02000000000000000002 /* natural-food-evidence.json in Resources */,
 				CC0B6CB87FEA5EE7E7C002FB /* engine-parity.json in Resources */,
 				F22300000000000000000006 /* baseline-calibration.json in Resources */,
 				F22100000000000000000006 /* fitness-evidence-normalization.json in Resources */,

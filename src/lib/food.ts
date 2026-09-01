@@ -10,6 +10,7 @@ import {
   foodNutrientEvidence,
   type NutrientEvidenceObservation,
 } from './nutrientEvidence.ts'
+import { overlayNaturalFoodEvidence } from './naturalFoodEvidence.ts'
 
 export type MealSlot = (typeof SUPABASE_ENUMS.meal_slot)[number]
 export type FoodUnit = (typeof SUPABASE_ENUMS.food_unit)[number]
@@ -1425,11 +1426,13 @@ export function mergeExtendedFoodResults(
   providerResults: FoodRecord[],
   alternateQueries: string[] = [],
 ): FoodRecord[] {
-  const enrichedLocalResults = enrichLocalFoodsWithNutrientEvidence(localResults, providerResults)
+  const bundledLocalResults = overlayNaturalFoodEvidence(localResults)
+  const bundledProviderResults = overlayNaturalFoodEvidence(providerResults)
+  const enrichedLocalResults = enrichLocalFoodsWithNutrientEvidence(bundledLocalResults, bundledProviderResults)
   const seen = new Set(enrichedLocalResults.map(foodIdentity))
   const queries = [...new Set([query, ...alternateQueries].map(normalizeFoodSearch).filter(Boolean))]
   if (!queries.length) return enrichedLocalResults
-  const candidates = providerResults
+  const candidates = bundledProviderResults
     .filter((food) => {
       const identity = foodIdentity(food)
       if (seen.has(identity)) return false

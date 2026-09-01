@@ -1,0 +1,2453 @@
+{
+  "approvals": [
+    {
+      "category": "grain_starch",
+      "donor_id": "3b5e484f-c347-5f3a-a042-569a542614c4",
+      "donor_name": "Oats, rolled, average values",
+      "donor_source_key": "dk-frida",
+      "donor_source_record_id": "59",
+      "review_note": "No current USDA donor: the USDA review rejected the exact oat candidates on the carbohydrate fingerprint. Frida record 59 is the single generic/unspecified rolled-oat record; the separately identified non-enriched record is more specific than the target.",
+      "review_sources": [
+        "regional-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.389,
+        "fat_100": -0.12,
+        "kcal_100": -5.552,
+        "protein_100": -0.618
+      },
+      "target_id": "10000000-0000-4000-8000-000000000001",
+      "target_name": "Rolled oats",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-common:10000000-0000-4000-8000-000000000001"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "e6b63ad6-412a-5044-b7aa-7e5508df9189",
+      "donor_name": "Bulgur, cooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170287",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.02,
+        "fat_100": 0.04,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "10000000-0000-4000-8000-000000000005",
+      "target_name": "Bulgur, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-common:10000000-0000-4000-8000-000000000005"
+    },
+    {
+      "category": "plain_dairy",
+      "donor_id": "f21a9af6-1529-528b-9759-22889688c635",
+      "donor_name": "Yogurt, Greek, plain, whole milk",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171304",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv",
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.08,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000006",
+      "target_name": "Greek yoghurt, plain",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-common:10000000-0000-4000-8000-000000000006"
+    },
+    {
+      "category": "plain_dairy",
+      "donor_id": "65dd4adc-880d-5891-8db3-9e7028179324",
+      "donor_name": "Cheese, cottage, creamed, large or small curd",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172179",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.02,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.02
+      },
+      "target_id": "10000000-0000-4000-8000-000000000011",
+      "target_name": "Cottage cheese",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-common:10000000-0000-4000-8000-000000000011"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "fa321a1f-dbb6-507f-b60a-a00fe41a9e5e",
+      "donor_name": "Nuts, walnuts, English",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170187",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.01,
+        "fat_100": 0.01,
+        "kcal_100": 0,
+        "protein_100": 0.03
+      },
+      "target_id": "10000000-0000-4000-8000-000000000012",
+      "target_name": "Walnuts",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-common:10000000-0000-4000-8000-000000000012"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "794e210a-04b1-528e-aea8-fd9f18c56356",
+      "donor_name": "Chicken, breast, boneless, skinless, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "2646170",
+      "review_note": "Use ENERC_KCAL source_nutrient_code 2047 (Atwater General Factors) for fingerprint; do not select energy by row order.",
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0.004,
+        "kcal_100": 0.034,
+        "protein_100": 0.025
+      },
+      "target_id": "10000000-0000-4000-8000-000000000013",
+      "target_name": "Chicken breast, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:usda-fdc-2646170"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "a8a2e9a5-754b-5021-96d7-b069c0137912",
+      "donor_name": "Avocados, raw, all commercial varieties",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171705",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": -0.04,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000029",
+      "target_name": "Avocado, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:usda-fdc-171705"
+    },
+    {
+      "category": "egg",
+      "donor_id": "e247ad0c-51b0-5039-8f7c-4de5770b027b",
+      "donor_name": "Egg, whole, raw, fresh",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171287",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "10000000-0000-4000-8000-000000000030",
+      "target_name": "Whole egg, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:usda-fdc-171287"
+    },
+    {
+      "category": "egg",
+      "donor_id": "dc87c9c2-0ddf-571f-bc23-9271fc7c74a8",
+      "donor_name": "Egg, whole, cooked, hard-boiled",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173424",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0.01,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "10000000-0000-4000-8000-000000000031",
+      "target_name": "Whole egg, hard-boiled",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-curated:usda-fdc-173424"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "ea6b115c-32d4-5755-8282-f66d861e0452",
+      "donor_name": "Blueberries, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171711",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000033",
+      "target_name": "Blueberries, fresh, Swiss retail reference",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-blueberries-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "925b5789-8eb9-5d4f-b334-bd46f54c652a",
+      "donor_name": "Raspberries, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "167755",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000035",
+      "target_name": "Raspberries, fresh, Swiss retail reference",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-raspberries-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "d52f7d80-8039-5b78-bb11-57bf3a75e9fa",
+      "donor_name": "Strawberries, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "167762",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000046",
+      "target_name": "Strawberries, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-strawberries-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "93904de2-6dc1-5e95-964b-ab266eace2aa",
+      "donor_name": "Blackberries, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173946",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000048",
+      "target_name": "Blackberries, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-blackberries-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "e817bb18-2c78-586e-83bc-bdcc9075c32c",
+      "donor_name": "Kiwifruit, green, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "327046",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.66,
+        "fat_100": -0.08,
+        "kcal_100": -3,
+        "protein_100": -0.08
+      },
+      "target_id": "10000000-0000-4000-8000-000000000049",
+      "target_name": "Kiwi fruit, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-kiwi-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "4d6ed9be-b8ef-5061-8bc5-6f7b51820b01",
+      "donor_name": "Bananas, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173944",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000050",
+      "target_name": "Banana, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-banana-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "f888e1ec-7aab-51ed-93fc-f5e41322773b",
+      "donor_name": "Apples, raw, with skin (Includes foods for USDA's Food Distribution Program)",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171688",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000051",
+      "target_name": "Apple with skin, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-apple-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "89876350-7d14-5052-a3d6-63e4eaeeb331",
+      "donor_name": "Oranges, raw, all commercial varieties",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169097",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000052",
+      "target_name": "Orange, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-orange-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "151a227a-642d-5d7c-ad75-4432a933d4ba",
+      "donor_name": "Mangos, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169910",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000053",
+      "target_name": "Mango, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-mango-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "101c9342-2f34-5100-bf5d-b9634f28470c",
+      "donor_name": "Pineapple, raw, all varieties",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169124",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000054",
+      "target_name": "Pineapple, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-pineapple-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "0f58fde5-9924-5114-88e0-bdcd775420db",
+      "donor_name": "Papayas, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169926",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000055",
+      "target_name": "Papaya, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-papaya-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "3058355e-a567-570a-b88e-23903410a273",
+      "donor_name": "Grapes, red or green (European type, such as Thompson seedless), raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "174683",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000056",
+      "target_name": "Grapes, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-grapes-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "c969731f-0f3f-5ee2-9a04-2fbeec128818",
+      "donor_name": "Watermelon, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "167765",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000057",
+      "target_name": "Watermelon, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-watermelon-fresh-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "6a1a7c51-08d3-5a11-9263-5ba6fbb2036a",
+      "donor_name": "Pears, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169118",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000058",
+      "target_name": "Pear with skin, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-pear-fresh-reference"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "1713b1b7-301f-5acf-9403-8fb2f2ec5864",
+      "donor_name": "Seeds, hemp seed, hulled",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170148",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000059",
+      "target_name": "Hemp seeds, hulled",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-hemp-seeds-reference"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "64d6d78d-c9d9-5116-aa5b-2373fa2556b9",
+      "donor_name": "Seeds, flaxseed",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169414",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000060",
+      "target_name": "Flaxseed",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-flaxseed-reference"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "5aa4a84d-495b-5fbe-8371-590a5d47e5d2",
+      "donor_name": "Seeds, pumpkin and squash seed kernels, dried",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170556",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000062",
+      "target_name": "Pumpkin seeds, hulled",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-pumpkin-seeds-reference"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "7c38450f-be93-5efb-99a0-8d21c7c26dab",
+      "donor_name": "Nuts, coconut meat, dried (desiccated), not sweetened",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170170",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000064",
+      "target_name": "Coconut flakes, unsweetened",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-coconut-flakes-reference"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "928386a1-e524-58be-818c-fbcb8d96299d",
+      "donor_name": "Onions, spring or scallions (includes tops and bulb), raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170005",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000066",
+      "target_name": "Green onion, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-green-onion-reference"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "3e80b508-2185-5eb6-9de7-b5f13abc64a8",
+      "donor_name": "Cucumber, with peel, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168409",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000072",
+      "target_name": "Cucumber with peel, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-cucumber-reference"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "3a6dbcff-08fa-5d6a-ad70-614ff2b5d9ac",
+      "donor_name": "Tomatoes, red, ripe, raw, year round average",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170457",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000075",
+      "target_name": "Tomato, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-tomato-reference"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "8dfb8c6c-b513-5d17-82d4-509d26787d9f",
+      "donor_name": "Nuts, almonds",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170567",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000079",
+      "target_name": "Almonds",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-almonds-reference"
+    },
+    {
+      "category": "nut_seed",
+      "donor_id": "e3e96d11-a928-58e2-a18a-87d29e4a3d15",
+      "donor_name": "Seeds, chia seeds, dried",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170554",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "10000000-0000-4000-8000-000000000080",
+      "target_name": "Chia seeds",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-curated:swiss-retail-chia-seeds-reference"
+    },
+    {
+      "category": "fruit",
+      "donor_id": "5c4f16f9-8eb1-5539-9b09-27aa073c32eb",
+      "donor_name": "Cherries, sweet, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171719",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000001",
+      "target_name": "Cherries, fresh",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:cherries-fresh"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "8a98166d-3ba5-5797-b520-202b796948d6",
+      "donor_name": "Crustaceans, shrimp, cooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175180",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": -0.02,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000024",
+      "target_name": "Shrimp, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:shrimp-cooked"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "298f092c-87a7-5e56-afd9-3acd38bb099a",
+      "donor_name": "Quinoa, uncooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168874",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.04,
+        "fat_100": -0.03,
+        "kcal_100": 0,
+        "protein_100": 0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000029",
+      "target_name": "Quinoa, dry",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "dry",
+      "target_provider_product_id": "apex-protocol:generic:quinoa-dry"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "566d22d4-2035-51b9-85bc-30849d17647c",
+      "donor_name": "Couscous, dry",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169699",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.03,
+        "fat_100": 0.04,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000030",
+      "target_name": "Couscous, dry",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "dry",
+      "target_provider_product_id": "apex-protocol:generic:couscous-dry"
+    },
+    {
+      "category": "legume",
+      "donor_id": "ed8c6392-0468-5881-b989-cae30694a535",
+      "donor_name": "Lentils, mature seeds, cooked, boiled, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172421",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.03,
+        "fat_100": -0.02,
+        "kcal_100": 0,
+        "protein_100": 0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000032",
+      "target_name": "Lentils, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:lentils-cooked"
+    },
+    {
+      "category": "legume",
+      "donor_id": "7acd4a90-9c76-5e4c-9493-243dcc1a766d",
+      "donor_name": "Chickpeas (garbanzo beans, bengal gram), mature seeds, cooked, boiled, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173757",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.02,
+        "fat_100": -0.01,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000033",
+      "target_name": "Chickpeas, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:chickpeas-cooked"
+    },
+    {
+      "category": "legume",
+      "donor_id": "54b75575-bde2-540b-ad69-92fb9547aa2f",
+      "donor_name": "Beans, kidney, all types, mature seeds, cooked, boiled, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173740",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.03
+      },
+      "target_id": "20000000-0000-4000-8000-000000000034",
+      "target_name": "Kidney beans, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:kidney-beans-cooked"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "30ff6c85-4a5b-59a6-8756-16032983bd72",
+      "donor_name": "Fish, salmon, sockeye, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173691",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": -0.25,
+        "kcal_100": 5,
+        "protein_100": -0.05
+      },
+      "target_id": "20000000-0000-4000-8000-000000000077",
+      "target_name": "Sockeye salmon fillet, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:sockeye-salmon-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "98145490-f76c-5017-986d-7ab2ac20f7ac",
+      "donor_name": "Fish, cod, Atlantic, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171955",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.01
+      },
+      "target_id": "20000000-0000-4000-8000-000000000088",
+      "target_name": "Atlantic cod fillet, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:atlantic-cod-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "dd788c28-9ce2-5c36-a6bb-0d2319d4fd6d",
+      "donor_name": "Fish, tilapia, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175176",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000099",
+      "target_name": "Tilapia fillet, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:tilapia-fillet-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "a3119e82-cd87-59d5-ac82-f76c4243d7cf",
+      "donor_name": "Fish, tuna, fresh, yellowfin, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175159",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0.1,
+        "kcal_100": 1,
+        "protein_100": -0.3
+      },
+      "target_id": "20000000-0000-4000-8000-000000000110",
+      "target_name": "Yellowfin tuna steak, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:yellowfin-tuna-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "42bb1cbc-2701-5cf0-8dcd-225d383cfcbe",
+      "donor_name": "Fish, trout, rainbow, farmed, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173717",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000121",
+      "target_name": "Rainbow trout, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:rainbow-trout-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "14cbb31b-a924-5263-821c-d0a2a78dffdf",
+      "donor_name": "Fish, mackerel, Atlantic, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175119",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": -0.01,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000132",
+      "target_name": "Atlantic mackerel, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:atlantic-mackerel-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "6b563cf6-8c33-5da5-b7a4-71dd2b174ff6",
+      "donor_name": "Fish, halibut, Atlantic and Pacific, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "174200",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000143",
+      "target_name": "Halibut fillet, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:halibut-fillet-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "7f93f405-dac2-5921-bb1e-5117a549031c",
+      "donor_name": "Fish, swordfish, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173703",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000154",
+      "target_name": "Swordfish steak, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:swordfish-steak-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "34e35a00-1a8e-5ce0-b421-86e41e9ce08a",
+      "donor_name": "Alaska Pollock, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "2768188",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.0565,
+        "fat_100": 0.1725,
+        "kcal_100": 2.4785,
+        "protein_100": 0.13
+      },
+      "target_id": "20000000-0000-4000-8000-000000000165",
+      "target_name": "Alaska pollock fillet, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:alaska-pollock-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "09948b25-c2fe-58a2-9dc1-4790e487c95f",
+      "donor_name": "Crustaceans, shrimp, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175179",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000176",
+      "target_name": "Shrimp, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:shrimp-raw"
+    },
+    {
+      "category": "fish_shellfish",
+      "donor_id": "7efacf6d-de06-5a02-bfa3-2ae5dd489ef5",
+      "donor_name": "Mollusks, squid, mixed species, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "174223",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000182",
+      "target_name": "Squid, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:squid-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "0755642f-3922-5dd2-889b-37164356c2c9",
+      "donor_name": "Chicken, broilers or fryers, breast, meat only, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171477",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000196",
+      "target_name": "Chicken breast, skinless, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:chicken-breast-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "55201a4b-b226-5845-949e-e8e614b847f8",
+      "donor_name": "Chicken, broilers or fryers, dark meat, thigh, meat only, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173627",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000200",
+      "target_name": "Chicken thigh, skinless, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:chicken-thigh-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "060a685f-76be-5e87-a0e9-034146f8bec0",
+      "donor_name": "Chicken, broilers or fryers, thigh, meat only, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172388",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000207",
+      "target_name": "Chicken thigh, skinless, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:chicken-thigh-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "4423e790-24d1-5daa-ae76-0eb405a501c0",
+      "donor_name": "Turkey, retail parts, breast, meat only, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "174515",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000211",
+      "target_name": "Turkey breast, skinless, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:turkey-breast-skinless-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "2e9b49b4-ca27-5982-a3b9-f2580124e337",
+      "donor_name": "Beef, ground, 95% lean meat / 5% fat, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "171790",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.01
+      },
+      "target_id": "20000000-0000-4000-8000-000000000222",
+      "target_name": "Ground beef, 95% lean, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:lean-ground-beef-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "b99fb529-db02-5e2e-818c-6559ff592cbd",
+      "donor_name": "Pork, fresh, loin, tenderloin, separable lean only, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168249",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.05
+      },
+      "target_id": "20000000-0000-4000-8000-000000000244",
+      "target_name": "Pork tenderloin, lean, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:pork-tenderloin-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "97fb54e9-8e87-559a-a8a6-f725149bcaf5",
+      "donor_name": "Pork, fresh, loin, tenderloin, separable lean only, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168250",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.03
+      },
+      "target_id": "20000000-0000-4000-8000-000000000251",
+      "target_name": "Pork tenderloin, lean, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:pork-tenderloin-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "4a65f93f-1ed4-584c-9774-17d1bb48a512",
+      "donor_name": "Duck, domesticated, meat only, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172410",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000266",
+      "target_name": "Duck meat, skinless, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:duck-meat-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "574393c2-1aa3-5084-9762-cca066bc3a46",
+      "donor_name": "Duck, domesticated, meat only, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172411",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000273",
+      "target_name": "Duck meat, skinless, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:duck-meat-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "3dd724cf-c1cf-5a8a-9e99-9b1c038db624",
+      "donor_name": "Game meat, rabbit, domesticated, composite of cuts, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172521",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.05
+      },
+      "target_id": "20000000-0000-4000-8000-000000000277",
+      "target_name": "Rabbit meat, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:rabbit-meat-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "768ffabd-cfa5-507c-b21f-8e40158e38c7",
+      "donor_name": "Game meat, rabbit, domesticated, composite of cuts, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "172522",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000284",
+      "target_name": "Rabbit meat, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:rabbit-meat-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "44120317-39e8-5138-89a6-eed0bcd9d3b3",
+      "donor_name": "Game meat, deer, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173855",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": -0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000288",
+      "target_name": "Venison, lean, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:venison-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "8213a4df-c53d-5723-b06f-4e35011d16dd",
+      "donor_name": "Game meat, deer, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175085",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.01
+      },
+      "target_id": "20000000-0000-4000-8000-000000000295",
+      "target_name": "Venison, lean, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:venison-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "795fbcd1-7fab-5284-a9af-fea4cfe94311",
+      "donor_name": "Game meat, bison, separable lean only, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173851",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.02
+      },
+      "target_id": "20000000-0000-4000-8000-000000000299",
+      "target_name": "Bison, lean, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:bison-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "15f08eae-4fb0-548c-92d5-f2bb26e05993",
+      "donor_name": "Game meat, bison, separable lean only, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173852",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0.04
+      },
+      "target_id": "20000000-0000-4000-8000-000000000306",
+      "target_name": "Bison, lean, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:bison-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "9a2d3266-a4a9-58d2-825b-defec3f96fff",
+      "donor_name": "Veal, loin, separable lean and fat, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173823",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": -0.03,
+        "kcal_100": 0,
+        "protein_100": -0.03
+      },
+      "target_id": "20000000-0000-4000-8000-000000000310",
+      "target_name": "Veal loin, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:veal-loin-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "5c00b8d2-6fd4-5e1e-bd84-787e58214e85",
+      "donor_name": "Veal, loin, separable lean and fat, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "173825",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0.02,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000317",
+      "target_name": "Veal loin, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:veal-loin-roasted"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "3dd3a7a0-6764-574b-a2de-52da2d278ee2",
+      "donor_name": "Game meat, goat, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175303",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000321",
+      "target_name": "Goat meat, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:goat-meat-raw"
+    },
+    {
+      "category": "meat_poultry",
+      "donor_id": "1080cb74-b54f-559e-89f2-a6cbb4461a66",
+      "donor_name": "Game meat, goat, cooked, roasted",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "175304",
+      "review_note": null,
+      "review_sources": [
+        "animal-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000328",
+      "target_name": "Goat meat, roasted, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:goat-meat-roasted"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "0f483d83-427a-5985-ac64-6537296151b1",
+      "donor_name": "Broccoli, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170379",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000332",
+      "target_name": "Broccoli florets, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:broccoli-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "2ea7a32c-4ecb-5708-ad13-2f56f4bdff86",
+      "donor_name": "Broccoli, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169967",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000333",
+      "target_name": "Broccoli florets, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:broccoli-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "24a4640e-94df-5413-a8eb-1841d13b4036",
+      "donor_name": "Cauliflower, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "2685573",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.247,
+        "fat_100": -0.043,
+        "kcal_100": -2.148,
+        "protein_100": -0.279
+      },
+      "target_id": "20000000-0000-4000-8000-000000000340",
+      "target_name": "Cauliflower florets, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:cauliflower-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "00be8b78-311c-5966-a641-fe6331f8ffe0",
+      "donor_name": "Cauliflower, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170397",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000341",
+      "target_name": "Cauliflower florets, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:cauliflower-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "c1c4392d-5e95-5ded-95a7-96074a36a159",
+      "donor_name": "Carrots, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170393",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000348",
+      "target_name": "Carrots, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:carrots-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "72d835aa-ebd5-5ee8-9047-0fafe04c61db",
+      "donor_name": "Carrots, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170394",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000349",
+      "target_name": "Carrots, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:carrots-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "7f4dd34e-b19f-5894-ac48-77c0a6302561",
+      "donor_name": "Squash, summer, green, zucchini, includes skin, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "2685568",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.16,
+        "fat_100": -0.115,
+        "kcal_100": 2,
+        "protein_100": -0.226
+      },
+      "target_id": "20000000-0000-4000-8000-000000000356",
+      "target_name": "Zucchini with skin, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:zucchini-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "3dcebd29-12d6-5e58-aa19-261b3ef106f4",
+      "donor_name": "Squash, summer, zucchini, includes skin, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169292",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000357",
+      "target_name": "Zucchini with skin, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:zucchini-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "0fcedb55-c40a-5aac-a1fc-33eea197b851",
+      "donor_name": "Peppers, sweet, red, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170108",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000364",
+      "target_name": "Red bell pepper, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:red-bell-pepper-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "b395c675-da95-5121-9c40-4cf464838f19",
+      "donor_name": "Peppers, sweet, red, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170110",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000365",
+      "target_name": "Red bell pepper, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:red-bell-pepper-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "466cdf60-e291-5c52-b192-ea244013fe32",
+      "donor_name": "Asparagus, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168389",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000372",
+      "target_name": "Asparagus, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:asparagus-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "88281225-b289-5336-a37d-8a0796685963",
+      "donor_name": "Asparagus, cooked, boiled, drained",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168390",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000373",
+      "target_name": "Asparagus, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:asparagus-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "7b63e8e1-78eb-5343-aa9d-3b593ca9c20c",
+      "donor_name": "Brussels sprouts, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170383",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000380",
+      "target_name": "Brussels sprouts, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:brussels-sprouts-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "b0963964-c856-5353-aa40-a32f82e90cf6",
+      "donor_name": "Brussels sprouts, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169971",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000381",
+      "target_name": "Brussels sprouts, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:brussels-sprouts-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "f5819cf1-17ba-5235-8bce-f9e1c9a40f0c",
+      "donor_name": "Spinach, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168462",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000388",
+      "target_name": "Spinach leaves, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:spinach-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "015cab5b-0822-56a4-ac16-43b2e65ec401",
+      "donor_name": "Spinach, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168463",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000389",
+      "target_name": "Spinach leaves, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:spinach-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "b1e88b16-7910-5485-9f75-3a551354b7d1",
+      "donor_name": "Beans, snap, green, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169961",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000396",
+      "target_name": "Green beans, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:green-beans-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "0be23708-97a1-591e-94dc-fe27e029ef9a",
+      "donor_name": "Beans, snap, green, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169141",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000397",
+      "target_name": "Green beans, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:green-beans-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "efa4708e-29c6-5c9a-a0ae-b473d04bfe2c",
+      "donor_name": "Peas, green, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170419",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.05,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000404",
+      "target_name": "Green peas, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:green-peas-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "2eff49de-006b-5d3e-8772-25534b70dfa5",
+      "donor_name": "Peas, green, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170420",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.03,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000405",
+      "target_name": "Green peas, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:green-peas-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "c060af6b-2dff-531d-adc3-7a8b681b0c16",
+      "donor_name": "Eggplant, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "2685577",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.481,
+        "fat_100": -0.06,
+        "kcal_100": 1.085,
+        "protein_100": -0.128
+      },
+      "target_id": "20000000-0000-4000-8000-000000000420",
+      "target_name": "Eggplant, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:eggplant-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "ab1fc4e5-2e99-5783-a354-dc6b0aeae65b",
+      "donor_name": "Eggplant, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169229",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000421",
+      "target_name": "Eggplant, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:eggplant-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "5ceef4da-d4c2-5c5a-9b62-1c32663a48b1",
+      "donor_name": "Mushrooms, white, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169251",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000428",
+      "target_name": "White mushrooms, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:white-mushrooms-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "23eae3ea-9807-51a3-bb57-b9e96583811f",
+      "donor_name": "Mushrooms, white, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169252",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000429",
+      "target_name": "White mushrooms, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:white-mushrooms-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "fdcc7f5f-3955-54c2-9efd-28c39c468775",
+      "donor_name": "Cabbage, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169975",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000436",
+      "target_name": "White cabbage, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:white-cabbage-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "1f829a56-7c58-5783-89b2-6bac34451fa3",
+      "donor_name": "Cabbage, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169976",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000437",
+      "target_name": "White cabbage, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:white-cabbage-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "b1ad42a7-4ec5-5926-8355-49c3e85dc5d7",
+      "donor_name": "Kale, raw",
+      "donor_source_key": "usda-foundation",
+      "donor_source_record_id": "323505",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000444",
+      "target_name": "Kale, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:kale-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "de11347e-1466-5b33-8114-8bf4be4bd075",
+      "donor_name": "Kale, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169238",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000445",
+      "target_name": "Kale, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:kale-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "8a04dda1-7cb7-52ef-ab24-f896e8512e64",
+      "donor_name": "Beets, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169145",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000452",
+      "target_name": "Beets, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:beets-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "0cb29939-6923-5f61-8259-c2a1255b0251",
+      "donor_name": "Beets, cooked, boiled, drained",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169146",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000453",
+      "target_name": "Beets, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:beets-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "fea3e958-c067-5dc1-9e48-18706f56f157",
+      "donor_name": "Onions, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170000",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000460",
+      "target_name": "Onions, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:onions-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "d4ec6df9-3dbb-547f-bf7e-5e8477e469c8",
+      "donor_name": "Onions, cooked, boiled, drained, without salt",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170001",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.05,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000461",
+      "target_name": "Onions, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:onions-boiled"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "a7bf492c-2fac-5667-b8f3-68c0130920e7",
+      "donor_name": "Garlic, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169230",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.04,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000468",
+      "target_name": "Garlic, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:garlic-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "600f2cfe-b231-5848-8b9a-b7be073efef2",
+      "donor_name": "Potatoes, flesh and skin, raw",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170026",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.01,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000469",
+      "target_name": "White potato with skin, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:white-potato-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "e1983361-f064-5e48-94cd-ab43bf109c98",
+      "donor_name": "Sweet potato, raw, unprepared (Includes foods for USDA's Food Distribution Program)",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168482",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.02,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000477",
+      "target_name": "Sweet potato, raw",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "as_sold",
+      "target_provider_product_id": "apex-protocol:generic:sweet-potato-raw"
+    },
+    {
+      "category": "vegetable_leaf",
+      "donor_id": "84a62b14-fb61-5c75-b9d8-5a0eb9cafb3a",
+      "donor_name": "Sweet potato, cooked, boiled, without skin",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168484",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.02,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000478",
+      "target_name": "Sweet potato, boiled, no added oil",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:sweet-potato-boiled"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "78fa07c9-6bc4-5e4a-94cf-a83620dc6f89",
+      "donor_name": "Rice, brown, long-grain, cooked (Includes foods for USDA's Food Distribution Program)",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169704",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.02,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000485",
+      "target_name": "Brown rice, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:brown-rice-cooked"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "2a53ae9e-6e7a-5c4a-9705-388419ed9262",
+      "donor_name": "Quinoa, cooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168917",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000486",
+      "target_name": "Quinoa, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:quinoa-cooked"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "aa784d36-7232-5913-ac0c-ecf77d6f7b17",
+      "donor_name": "Couscous, cooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "169700",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.02,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000487",
+      "target_name": "Couscous, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:couscous-cooked"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "dcbf8b12-bb79-5c2e-96e8-516bdcf1a9ed",
+      "donor_name": "Pasta, whole-wheat, cooked (Includes foods for USDA's Food Distribution Program)",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168910",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.03,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000488",
+      "target_name": "Wholegrain pasta, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:wholegrain-pasta-cooked"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "06ffbfe0-c31f-5b76-9c54-55bc778b2b4f",
+      "donor_name": "Barley, pearled, cooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "170285",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": 0.02,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000489",
+      "target_name": "Pearl barley, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:pearl-barley-cooked"
+    },
+    {
+      "category": "grain_starch",
+      "donor_id": "614d38dc-076f-5431-b62c-b62abc8e0e10",
+      "donor_name": "Millet, cooked",
+      "donor_source_key": "usda-sr-legacy",
+      "donor_source_record_id": "168871",
+      "review_note": null,
+      "review_sources": [
+        "plant-crosswalk.tsv"
+      ],
+      "reviewed_macro_delta": {
+        "carbs_100": -0.03,
+        "fat_100": 0,
+        "kcal_100": 0,
+        "protein_100": 0
+      },
+      "target_id": "20000000-0000-4000-8000-000000000490",
+      "target_name": "Millet, cooked",
+      "target_nutrition_basis": "per_100g",
+      "target_preparation_state": "cooked",
+      "target_provider_product_id": "apex-protocol:generic:millet-cooked"
+    }
+  ],
+  "review_sources": [
+    "plant-crosswalk.tsv",
+    "animal-crosswalk.tsv",
+    "regional-crosswalk.tsv"
+  ],
+  "schema_version": 1
+}

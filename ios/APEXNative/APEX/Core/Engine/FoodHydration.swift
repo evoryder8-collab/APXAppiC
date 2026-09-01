@@ -328,6 +328,85 @@ struct NutritionFactDisplaySection: Equatable, Hashable, Sendable {
 enum FoodNutrientEvidence {
     private static let categoryOrder = NutrientCategory.allCases
 
+    private struct NaturalEvidenceBundle: Decodable {
+        let schemaVersion: Int
+        let targets: [NaturalEvidenceEntry]
+
+        enum CodingKeys: String, CodingKey {
+            case targets
+            case schemaVersion = "schema_version"
+        }
+    }
+
+    private struct NaturalEvidenceEntry: Decodable {
+        let aliases: [NaturalEvidenceAlias]
+        let donor: NaturalEvidenceDonor
+        let evidence: [NutrientEvidenceObservation]
+        let target: NaturalEvidenceIdentity
+    }
+
+    private struct NaturalEvidenceDonor: Decodable {
+        let id: String
+        let sourceKey: String
+        let sourceRecordID: String
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case sourceKey = "source_key"
+            case sourceRecordID = "source_record_id"
+        }
+    }
+
+    private struct NaturalEvidenceIdentity: Decodable {
+        let id: String
+        let providerProductID: String
+
+        enum CodingKeys: String, CodingKey {
+            case id
+            case providerProductID = "provider_product_id"
+        }
+    }
+
+    private struct NaturalEvidenceAlias: Decodable {
+        let kind: String
+        let id: String
+        let providerProductID: String
+        let nutritionBasis: String
+        let preparationState: String
+        let fingerprint: NaturalEvidenceFingerprint
+
+        enum CodingKeys: String, CodingKey {
+            case kind, id, fingerprint
+            case providerProductID = "provider_product_id"
+            case nutritionBasis = "nutrition_basis"
+            case preparationState = "preparation_state"
+        }
+    }
+
+    private struct NaturalEvidenceFingerprint: Decodable {
+        let kcal100: Double
+        let protein100: Double
+        let carbs100: Double
+        let fat100: Double
+
+        enum CodingKeys: String, CodingKey {
+            case kcal100 = "kcal_100"
+            case protein100 = "protein_100"
+            case carbs100 = "carbs_100"
+            case fat100 = "fat_100"
+        }
+    }
+
+    private struct NaturalEvidenceCandidate {
+        let alias: NaturalEvidenceAlias
+        let evidence: [NutrientEvidenceObservation]
+    }
+
+    private static let bundledNaturalEvidenceIndex: [String: [NaturalEvidenceCandidate]]? = {
+        guard let data = naturalFoodEvidenceResourceData() else { return nil }
+        return naturalEvidenceIndex(from: data)
+    }()
+
     private enum Code: String {
         case vitaminPrefix = "VIT"
         case energy = "ENERC_KCAL"
@@ -495,6 +574,140 @@ enum FoodNutrientEvidence {
         }
     }
 
+    static func naturalFoodEvidenceResourceData(bundle: Bundle = .main) -> Data? {
+        guard let url = bundle.url(forResource: "natural-food-evidence", withExtension: "json") else {
+            return nil
+        }
+        return try? Data(contentsOf: url)
+    }
+
+    /// Applies one generated whole official record to either exact reviewed
+    /// alias. Display names never authorize a link, and existing target
+    /// evidence remains whole without donor gap-filling.
+    static func overlayBundledNaturalFoodEvidence(
+        _ foods: [Food],
+        resourceData: Data? = nil
+    ) -> [Food] {
+        let candidatesByIdentity: [String: [NaturalEvidenceCandidate]]?
+        if let resourceData {
+            candidatesByIdentity = naturalEvidenceIndex(from: resourceData)
+        } else {
+            candidatesByIdentity = bundledNaturalEvidenceIndex
+        }
+        guard let candidatesByIdentity else { return foods }
+
+        return foods.map { food in
+            guard (food.nutrientEvidence ?? []).isEmpty,
+                  food.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  let providerProductID = food.providerProductID,
+                  providerProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                  food.ownerUserID == nil,
+                  food.brand == nil,
+                  food.barcode == nil,
+                  food.source == "apex_cache"
+            else { return food }
+            let key = naturalEvidenceAliasKey(id: food.id, providerProductID: providerProductID)
+            guard let candidates = candidatesByIdentity[key], candidates.count == 1 else { return food }
+            let candidate = candidates[0]
+            guard candidate.alias.id == food.id,
+                  candidate.alias.providerProductID == providerProductID,
+                  candidate.alias.nutritionBasis == food.nutritionBasis,
+                  candidate.alias.preparationState == food.preparationState,
+                  naturalEvidenceFingerprintMatches(food, candidate.alias.fingerprint)
+            else { return food }
+            var enriched = food
+            enriched.nutrientEvidence = candidate.evidence.map { $0 }
+            return enriched
+        }
+    }
+
+    private static func naturalEvidenceIndex(
+        from data: Data
+    ) -> [String: [NaturalEvidenceCandidate]]? {
+        guard let resource = try? JSONDecoder().decode(NaturalEvidenceBundle.self, from: data),
+              resource.schemaVersion == 1,
+              let rawObject = try? JSONSerialization.jsonObject(with: data),
+              let object = rawObject as? [String: Any],
+              let rawTargets = object["targets"] as? [[String: Any]],
+              rawTargets.count == resource.targets.count
+        else { return nil }
+
+        var candidatesByIdentity: [String: [NaturalEvidenceCandidate]] = [:]
+        for (entry, rawTarget) in zip(resource.targets, rawTargets) {
+            let donorProviderID = [
+                "corpus", entry.donor.sourceKey, entry.donor.sourceRecordID
+            ].joined(separator: ":")
+            guard let rawEvidence = rawTarget["evidence"] as? [Any],
+                  let rawEvidenceData = try? JSONSerialization.data(withJSONObject: rawEvidence),
+                  entry.evidence.isEmpty == false,
+                  entry.evidence.count <= 96,
+                  rawEvidenceData.count <= 65_536,
+                  entry.evidence.allSatisfy({
+                      guard $0.sourceKey == entry.donor.sourceKey,
+                            let reference = $0.sourceReference
+                      else { return false }
+                      return $0.nutrientCode.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && $0.name.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && $0.unit.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && ($0.valuePer100?.isFinite ?? true)
+                          && reference.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                  }),
+                  entry.aliases.count == 2,
+                  Set(entry.aliases.map(\.kind)) == Set(["target", "donor"]),
+                  entry.aliases.allSatisfy({
+                      $0.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && $0.providerProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && $0.nutritionBasis.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && $0.preparationState.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                          && $0.fingerprint.kcal100.isFinite
+                          && $0.fingerprint.protein100.isFinite
+                          && $0.fingerprint.carbs100.isFinite
+                          && $0.fingerprint.fat100.isFinite
+                  }),
+                  entry.aliases.contains(where: {
+                      $0.kind == "target"
+                          && $0.id == entry.target.id
+                          && $0.providerProductID == entry.target.providerProductID
+                  }),
+                  entry.aliases.contains(where: {
+                      $0.kind == "donor"
+                          && $0.id == entry.donor.id
+                          && $0.providerProductID == donorProviderID
+                  })
+            else { continue }
+            for alias in entry.aliases {
+                guard alias.id.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false,
+                      alias.providerProductID.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false
+                else { continue }
+                let key = naturalEvidenceAliasKey(id: alias.id, providerProductID: alias.providerProductID)
+                candidatesByIdentity[key, default: []].append(
+                    NaturalEvidenceCandidate(alias: alias, evidence: entry.evidence)
+                )
+            }
+        }
+        return candidatesByIdentity
+    }
+
+    private static func naturalEvidenceAliasKey(id: String, providerProductID: String) -> String {
+        "\(id)\u{0}\(providerProductID)"
+    }
+
+    private static func naturalEvidenceFingerprintMatches(
+        _ food: Food,
+        _ fingerprint: NaturalEvidenceFingerprint
+    ) -> Bool {
+        let fields = [
+            (food.kcal100, fingerprint.kcal100, 1.0),
+            (food.protein100, fingerprint.protein100, 0.05),
+            (food.carbs100, fingerprint.carbs100, 0.05),
+            (food.fat100, fingerprint.fat100, 0.05)
+        ]
+        return fields.allSatisfy { actual, reviewed, absoluteTolerance in
+            guard let actual, actual.isFinite, reviewed.isFinite else { return false }
+            return abs(actual - reviewed) <= max(absoluteTolerance, abs(reviewed) * 0.02)
+        }
+    }
+
     /// Coalesces evidence into the local curated row only for one exact,
     /// compatible public server copy. Search names are intentionally absent
     /// from this approval path, and explicit local evidence remains whole.
@@ -515,9 +728,11 @@ enum FoodNutrientEvidence {
     /// Keeps the local read model canonical while removing a matching server
     /// duplicate only after its compatible evidence has been coalesced.
     static func mergeLocalSearchFoods(_ localFoods: [Food], with serverFoods: [Food]) -> [Food] {
-        let enrichedLocalFoods = enrichLocalFoods(localFoods, with: serverFoods)
+        let bundledLocalFoods = overlayBundledNaturalFoodEvidence(localFoods)
+        let bundledServerFoods = overlayBundledNaturalFoodEvidence(serverFoods)
+        let enrichedLocalFoods = enrichLocalFoods(bundledLocalFoods, with: bundledServerFoods)
         var seen = Set(enrichedLocalFoods.map { $0.providerProductID ?? $0.barcode ?? $0.id.lowercased() })
-        return enrichedLocalFoods + serverFoods.filter { food in
+        return enrichedLocalFoods + bundledServerFoods.filter { food in
             seen.insert(food.providerProductID ?? food.barcode ?? food.id.lowercased()).inserted
         }
     }

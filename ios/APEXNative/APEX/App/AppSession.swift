@@ -2529,11 +2529,13 @@ final class AppSession {
     }
 
     func searchFoods(query: String) async throws -> [Food] {
-        let local = MealMemory.searchFoods(
-            query: query,
-            foods: data.foods,
-            preferences: data.foodPreferences,
-            userID: profile?.userID
+        let local = FoodNutrientEvidence.overlayBundledNaturalFoodEvidence(
+            MealMemory.searchFoods(
+                query: query,
+                foods: data.foods,
+                preferences: data.foodPreferences,
+                userID: profile?.userID
+            )
         )
         let remote: FoodLookupEnvelope
         do {
