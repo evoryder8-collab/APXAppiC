@@ -373,9 +373,10 @@ one who sees an invented calque may not.
 - **Japanese** is not a keep-English-or-translate choice. The Japanese form is usually katakana —
   ベンチプレス, not Latin script and not a kanji coinage. `transliterated` will be correct far more
   often than `english`.
-- **Swiss German is written as standard German.** Swiss German is a spoken register; gym terminology
-  in dialect reads as a novelty. Follow German usage in `de-CH` and differentiate only where a
-  genuinely distinct written Swiss form exists.
+- **Swiss German is a deliberately separate Zürich-city locale.** The earlier standard-German
+  fallback is deprecated by the product direction recorded in 2.7.7. Until that project ships as
+  one reviewed pass, do not casually mix Bernese, St Gallen, Zürich and standard-German forms in
+  new copy. Exercise names still follow documented local gym usage rather than invented dialect.
 - **Portuguese needs a variant decision.** pt-PT and pt-BR diverge on gym vocabulary and Brazilian
   usage carries more anglicisms. Decide which market `pt` targets and state it in the policy file.
 - **Names containing a nationality** are their own trap — "Romanian deadlift" in Romanian,
@@ -435,6 +436,27 @@ language.
 Verify visually at the worst case, not the average: the longest language at the largest accessibility
 text size. The simulator takes a language launch argument and a content-size override, so this is
 scriptable. **German at an accessibility size breaks first; Thai clips vertically.**
+
+#### 2.7.7 Deferred project — Zürich-city Swiss German
+
+Replace the mixed historical `de-CH` register with one researched, coherent Zürich-city Swiss
+German voice. This is deferred until the owner authorises the locale stage; do not perform a
+piecemeal mechanical rewrite while feature copy is moving.
+
+- Build a cited Zürich-city language guide from local editorial, municipal, cultural and fitness
+  usage. Record spelling, contractions, pronouns, tone, common interface verbs and exercise-term
+  policy; do not infer a dialect rule from one speaker or machine translation.
+- Inventory every full string, constrained label, accessibility label, notification, Watch string,
+  complication string and server-authored message. Identify and replace Bernese, St Gallen and
+  standard-German leakage as one reviewed migration.
+- Preserve standard-German and English search aliases where they help discovery, while the visible
+  interface remains consistently Zürich-based. Never translate a movement name into a form local
+  gym users would not recognise.
+- Commission native Zürich review of the complete table and retain review provenance. Add lexical
+  regression fixtures for known regional collisions without pretending that an automated word list
+  can certify natural dialect.
+- Re-run full/compact parity, format-argument, stranded-English, Dynamic Type, VoiceOver, Watch and
+  no-truncation gates. Ship only when all `de-CH` surfaces move together; no half-dialect release.
 
 ---
 

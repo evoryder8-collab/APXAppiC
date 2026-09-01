@@ -183,6 +183,8 @@ test('storage and amount surfaces carry immutable nutrient evidence', async () =
   const webPatterns = await readFile(new URL('../src/pages/Nutrition.tsx', import.meta.url), 'utf8')
   assert.match(nativeAmount, /food-nutrient-info/)
   assert.match(nativeAmount, /FoodNutrientDetailSheet/)
+  assert.match(nativeAmount, /Image\(systemName: "info\.circle"\)/)
+  assert.match(nativeAmount, /accessibilityIdentifier\("food-nutrient-info"\)/)
   assert.match(nativeAmount, /Source and product notice/)
   assert.match(nativeAmount, /Original source value/)
   assert.match(webAmount, /food-nutrient-info/)

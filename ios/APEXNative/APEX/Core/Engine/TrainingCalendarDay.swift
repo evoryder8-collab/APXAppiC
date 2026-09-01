@@ -116,12 +116,11 @@ struct TrainingCalendarDay: Equatable, Identifiable, Sendable {
 
         let programmeDays = activeDays.filter { $0.programID == program?.id }
         let activeProgrammeDays = programmeDays.filter { day in
-            activeIDs.map { $0.contains(day.id.uuidString.lowercased()) } ?? true
+            day.scheduledDate != nil || (activeIDs.map { $0.contains(day.id.uuidString.lowercased()) } ?? true)
         }
-        let weekday = APEXDateMath.isoWeekday(date)
         let prescribedDay = insideWindow
             ? activeProgrammeDays
-                .filter { $0.weekday == weekday }
+                .filter { RecoveryPlanner.day($0, matches: date) }
                 .sorted(by: authoredOrder)
                 .first
             : nil

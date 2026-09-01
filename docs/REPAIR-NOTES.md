@@ -1912,3 +1912,31 @@ GitHub publication evidence:
 - Authored the full and constrained coach copy in every offered native language. The runtime coverage audit reports `5,072/5,072` represented strings for all nine locales with no gaps.
 - Verification passed: complete web `795/795`, production TypeScript/Vite build, focused native coach/entitlement/localization/payload/plan parity `50/50`, migration-list verification, `git diff --check`, and visual review of both coach workspace and sponsored-client plan on `APEX Lane · iPhone 17 Pro` (`6907359A-18D1-46B0-87F1-13CED5CE1C46`). The rendered client plan showed its coach, immutable version, review date, session prescription, acknowledgement/activation controls, and privacy scopes without clipping. BA-Studio and Finalova lanes were not touched.
 - Per the owner's overnight instruction, no physical iPhone or Apple Watch was contacted, installed, launched, or woken. Signed-device verification remains deferred until the owner explicitly says they are awake.
+
+## 2026-09-01 — Avatar recovery planning and nutrition evidence hotfix
+
+- Moved Private Visual Progress directly below the Avatar portrait and before “Your performance body” on native and web. The placement is protected by source and simulator UI regressions.
+- Replaced the Avatar opportunity-card dead-end with a real, owner-scoped recovery planner:
+  - Builds four weeks of exact-dated joint-health or flexibility support at one or two sessions per week, with at least 48 hours between sessions where the calendar permits.
+  - Offers short guided APEX routines and an external mobility-video fallback. External sessions count only after the user records completion.
+  - Favors lower-load calendar days, does not create repeating phase cards, preserves completed history during replanning, and never awards Avatar credit merely for scheduling.
+  - Preserves coach-sponsored plan control by routing client requests back to the coach.
+  - Uses conservative, non-diagnostic language and instructs users to stay in a comfortable range and stop when pain worsens.
+- Added exact-date recovery scheduling persistence through Supabase migration `20260901140000_recovery_plan_scheduling` (`047_recovery_plan_scheduling.sql`). The migration was applied to production and verified for the new columns, integrity constraint, partial index, and migration-history record.
+- Added a 44-point circled information control beside the food title in the native amount sheet. It opens the existing detailed nutrient-evidence view while leaving the compact macro summary uncluttered; accessibility labels and hints are included.
+- Added authored recovery-planner copy in every offered native language and the corresponding web Romanian and Thai tables. Compact `Add sessions` copy is authored across all nine compact tables; runtime localization coverage is complete.
+- Added Roadmap 2.7.7 as deferred work for a researched, whole-locale Zürich-city Swiss German migration. It explicitly forbids mixing Bern, St. Gallen, and Zürich dialect in released UI while preserving regional search aliases.
+- Scientific boundary used for the planner: ACSM flexibility frequency guidance, the HHS Physical Activity Guidelines’ warning that flexibility work does not replace aerobic/strength work, and the 2023 chronic-stretching range-of-motion systematic review. The feature makes no diagnosis or guaranteed injury-prevention claim.
+
+Verification:
+
+- Focused native recovery-planner tests: 5/5 passed.
+- Focused native localization tests: 3/3 passed; runtime coverage reached 100% after resolving all newly introduced keys.
+- Focused cross-platform contracts: 38/38 passed.
+- Full native unit suite: 720/720 passed, zero failures.
+- Full web suite: 802/802 passed, zero failures.
+- TypeScript: `npx tsc --noEmit` passed.
+- Production web build: `npm run build` passed (only the existing Vite chunk-size advisory remains).
+- Simulator build/install/launch succeeded for `ch.apexperformance.APEX` on the isolated `APEX Lane · iPhone 17 Pro` simulator (`6907359A-18D1-46B0-87F1-13CED5CE1C46`).
+- Native UI verification passed for both the food nutrient-information flow and the Avatar Visual Progress/recovery-planner flow.
+- No physical iPhone or Apple Watch was contacted, installed to, or woken during this overnight hotfix, per the owner’s instruction.

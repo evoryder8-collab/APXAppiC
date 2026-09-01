@@ -384,6 +384,35 @@ final class APEXSmokeUITests: XCTestCase {
         capture("avatar-baseline-calibration")
     }
 
+    func testAvatarLeadsWithVisualProgressAndPlanItOpensARealRecoveryPlan() {
+        let app = configuredApp()
+        app.launch()
+
+        let avatar = app.buttons["portal.avatar"]
+        XCTAssertTrue(avatar.waitForExistence(timeout: 4))
+        avatar.tap()
+        XCTAssertTrue(app.staticTexts["Avatar"].waitForExistence(timeout: 3))
+
+        let visualProgress = app.staticTexts["Private Visual Progress"]
+        XCTAssertTrue(scrollUntilVisible(visualProgress, in: app))
+        let bodyIndex = app.staticTexts["APEX BODY INDEX"]
+        XCTAssertTrue(bodyIndex.waitForExistence(timeout: 2))
+        XCTAssertLessThan(visualProgress.frame.maxY, bodyIndex.frame.minY)
+        capture("avatar-visual-progress-first")
+
+        XCTAssertTrue(scrollUntilVisible(app.staticTexts["What your body needs"], in: app))
+        let planIt = app.buttons["Plan it"].firstMatch
+        XCTAssertTrue(scrollUntilVisible(planIt, in: app))
+        planIt.tap()
+
+        XCTAssertTrue(app.navigationBars["Recovery rhythm"].waitForExistence(timeout: 3))
+        XCTAssertTrue(app.buttons["recovery-planner-source-guided"].exists)
+        XCTAssertTrue(app.buttons["recovery-planner-source-external"].exists)
+        XCTAssertTrue(app.staticTexts["Your proposed dates"].exists)
+        XCTAssertTrue(app.buttons["recovery-planner-add"].exists)
+        capture("avatar-recovery-planner")
+    }
+
     func testCalibrationDEXAExposesBodyFatAndReportBMRWithoutHiddenPicker() {
         let app = configuredApp()
         app.launch()

@@ -207,43 +207,46 @@ struct FoodAmountSheet: View {
     }
 
     private var header: some View {
-        HStack(alignment: .top, spacing: 12) {
-            VStack(alignment: .leading, spacing: 4) {
+        VStack(alignment: .leading, spacing: 4) {
+            HStack(alignment: .center, spacing: 8) {
                 Text(language.text("CONFIGURE AMOUNT"))
                     .font(APEXFont.mono(10))
                     .tracking(1.8)
                     .foregroundStyle(APEXColor.amberDeep)
+                Spacer(minLength: 0)
+                Button { onClose() } label: {
+                    Image(systemName: "xmark")
+                        .font(.system(size: 14, weight: .bold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .frame(width: 36, height: 36)
+                        .background(.white.opacity(0.75), in: Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(language.text("Close"))
+            }
+            HStack(alignment: .top, spacing: 8) {
                 Text(food.localizedName(language.language))
                     .font(APEXFont.display(20))
                     .foregroundStyle(APEXColor.ink)
                     .fixedSize(horizontal: false, vertical: true)
+                    .layoutPriority(1)
+                Button { showNutrientDetail = true } label: {
+                    Image(systemName: "info.circle")
+                        .font(.system(size: 22, weight: .bold))
+                        .foregroundStyle(APEXColor.cyan)
+                        .frame(width: 44, height: 44)
+                        .contentShape(Circle())
+                }
+                .buttonStyle(.plain)
+                .accessibilityLabel(language.text("Detailed nutrition"))
+                .accessibilityHint(language.text("Shows reported vitamins, minerals and nutrient details"))
+                .accessibilityIdentifier("food-nutrient-info")
+            }
                 if let brand = food.brand, !brand.isEmpty {
                     Text(brand)
                         .font(APEXFont.body(13, weight: .semibold))
                         .foregroundStyle(APEXColor.secondaryInk)
                 }
-            }
-            Spacer(minLength: 0)
-            Button { showNutrientDetail = true } label: {
-                Image(systemName: "info.circle.fill")
-                    .font(.system(size: 20, weight: .semibold))
-                    .foregroundStyle(APEXColor.cyan)
-                    .frame(width: 44, height: 44)
-                    .background(.white.opacity(0.78), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(language.text("Detailed nutrition"))
-            .accessibilityHint(language.text("Shows reported vitamins, minerals and nutrient details"))
-            .accessibilityIdentifier("food-nutrient-info")
-            Button { onClose() } label: {
-                Image(systemName: "xmark")
-                    .font(.system(size: 14, weight: .bold))
-                    .foregroundStyle(APEXColor.secondaryInk)
-                    .frame(width: 36, height: 36)
-                    .background(.white.opacity(0.75), in: Circle())
-            }
-            .buttonStyle(.plain)
-            .accessibilityLabel(language.text("Close"))
         }
     }
 

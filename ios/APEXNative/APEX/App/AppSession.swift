@@ -4118,6 +4118,53 @@ final class AppSession {
 
     // Save a custom session. Saving the same weekday twice replaces that day
     // rather than stacking a second one, matching the web builder.
+    @discardableResult
+    func installRecoveryPlan(
+        target: RecoveryPlanner.Target,
+        source: RecoveryPlanner.Source,
+        startDate: String
+    ) async -> Int {
+        guard coachClientPolicy.canCreateCustomWorkouts else {
+            alertMessage = LanguageState.shared.text("Ask your coach to add recovery sessions to your plan.")
+            return 0
+        }
+        guard let profile else { return 0 }
+        let ownerID = profile.userID
+        let result = RecoveryPlanner.build(
+            data: data,
+            ownerID: ownerID,
+            startDate: startDate,
+            target: target,
+            source: source
+        )
+        guard !result.days.isEmpty else {
+            alertMessage = LanguageState.shared.text("Build or restore a current Fitness Plan before adding recovery sessions.")
+            return 0
+        }
+
+        let usedDayIDs = Set(data.workoutSessions.map(\.programDayID))
+        let deactivated = RecoveryPlanner.futureRowsToDeactivate(
+            data.programDays,
+            ownerID: ownerID,
+            target: target,
+            today: startDate,
+            protectedDayIDs: usedDayIDs
+        )
+        for row in deactivated {
+            if let index = data.programDays.firstIndex(where: { $0.id == row.id }) {
+                data.programDays[index] = row
+            }
+        }
+        data.programDays.append(contentsOf: result.days)
+        data.exercises.append(contentsOf: result.exercises)
+
+        for row in deactivated { await persistUpsert(row, table: "program_days") }
+        for row in result.days { await persistUpsert(row, table: "program_days") }
+        for row in result.exercises { await persistUpsert(row, table: "exercises") }
+        alertMessage = LanguageState.shared.text("Recovery sessions added to your calendar.")
+        return result.days.count
+    }
+
     func saveCustomWorkout(
         name: String,
         weekday: Int,

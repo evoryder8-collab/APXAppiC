@@ -320,3 +320,10 @@ test('progress camera never requests audio and releases capture on page lifecycl
   assert.match(source, /addEventListener\('visibilitychange',\s*visibility\)/)
   assert.match(source, /const encoded[\s\S]*?stop\(\)[\s\S]*?blob = await encoded/)
 })
+
+test('Avatar places private visual progress before the performance body', () => {
+  const web = readFileSync(new URL('../src/pages/AvatarPage.tsx', import.meta.url), 'utf8')
+  const native = readFileSync(new URL('../ios/APEXNative/APEX/Features/Avatar/AvatarView.swift', import.meta.url), 'utf8')
+  assert.ok(web.indexOf("navigate('/progress'") < web.indexOf('Performance identity + radar'))
+  assert.ok(native.indexOf('visualProgressLink') < native.indexOf('bodyIndexCard'))
+})

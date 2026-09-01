@@ -22,6 +22,7 @@ struct TrainingProgramView: View {
     }
     private var days: [ProgramDay] {
         TrainingInduction.visibleProgramDays(in: session.data, slug: slug)
+            .filter { $0.scheduledDate == nil }
     }
     private var todayWeekday: Int {
         let weekday = Calendar.current.component(.weekday, from: .now)

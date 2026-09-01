@@ -22,6 +22,8 @@ import { StrengthProgressPanel } from '../components/avatar/StrengthProgressPane
 import { MetabolicRhythmPanel } from '../components/avatar/MetabolicRhythmPanel'
 import { RecoveryTrendPanel } from '../components/avatar/RecoveryTrendPanel'
 import { BaselineCalibrationDialog } from '../components/avatar/BaselineCalibrationDialog'
+import { RecoveryPlannerDialog } from '../components/avatar/RecoveryPlannerDialog'
+import type { RecoveryPlanTarget } from '../lib/recoveryPlanner'
 
 const emerald = ACCENTS.emerald
 
@@ -81,6 +83,7 @@ export function AvatarPage() {
   const navigate = useNavigate()
   const [showBaseline, setShowBaseline] = useState(false)
   const [showCalibration, setShowCalibration] = useState(false)
+  const [recoveryTarget, setRecoveryTarget] = useState<RecoveryPlanTarget | null>(null)
   const [range, setRange] = useState<30 | 90>(30)
   const [expanded, setExpanded] = useState<string | null>(null)
   const reduceMotion = useReducedMotion()
@@ -197,9 +200,19 @@ export function AvatarPage() {
                         <GradientButton
                           accent={emerald}
                           className="shrink-0 !px-3.5 !py-2 text-xs"
-                          onClick={() => navigate('/transition')}
+                          onClick={() => {
+                            if (a.dayType === 'mobility') {
+                              setRecoveryTarget(a.statKey === 'flexibility' ? 'flexibility' : 'joint')
+                            } else if (a.statKey === 'health') {
+                              navigate('/nutrition')
+                            } else if (a.statKey === 'endurance') {
+                              navigate('/orbit')
+                            } else {
+                              navigate('/main')
+                            }
+                          }}
                         >
-                          Plan it
+                          {t('Plan it')}
                         </GradientButton>
                       )}
                     </div>
@@ -408,6 +421,9 @@ export function AvatarPage() {
       </div>
       {showCalibration && profile && (
         <BaselineCalibrationDialog profile={profile} onClose={() => setShowCalibration(false)} />
+      )}
+      {recoveryTarget && (
+        <RecoveryPlannerDialog target={recoveryTarget} onClose={() => setRecoveryTarget(null)} />
       )}
     </div>
   )

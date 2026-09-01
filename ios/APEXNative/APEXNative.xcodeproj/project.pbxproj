@@ -7,6 +7,9 @@
 	objects = {
 
 /* Begin PBXBuildFile section */
+		A04700000000000000000001 /* RecoveryPlanner.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04700000000000000000002 /* RecoveryPlanner.swift */; };
+		A04700000000000000000003 /* RecoveryPlannerView.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04700000000000000000004 /* RecoveryPlannerView.swift */; };
+		A04700000000000000000005 /* RecoveryPlannerTests.swift in Sources */ = {isa = PBXBuildFile; fileRef = A04700000000000000000006 /* RecoveryPlannerTests.swift */; };
 		C04600000000000000000001 /* CoachWorkspaceView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C04600000000000000000002 /* CoachWorkspaceView.swift */; };
 		C04600000000000000000003 /* CoachPlanView.swift in Sources */ = {isa = PBXBuildFile; fileRef = C04600000000000000000004 /* CoachPlanView.swift */; };
 		C04500000000000000000003 /* CoachPlatform.swift in Sources */ = {isa = PBXBuildFile; fileRef = C04500000000000000000004 /* CoachPlatform.swift */; };
@@ -332,6 +335,9 @@
 /* End PBXCopyFilesBuildPhase section */
 
 /* Begin PBXFileReference section */
+		A04700000000000000000002 /* RecoveryPlanner.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPlanner.swift; sourceTree = "<group>"; };
+		A04700000000000000000004 /* RecoveryPlannerView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPlannerView.swift; sourceTree = "<group>"; };
+		A04700000000000000000006 /* RecoveryPlannerTests.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = RecoveryPlannerTests.swift; sourceTree = "<group>"; };
 		C04600000000000000000002 /* CoachWorkspaceView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachWorkspaceView.swift; sourceTree = "<group>"; };
 		C04600000000000000000004 /* CoachPlanView.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPlanView.swift; sourceTree = "<group>"; };
 		C04500000000000000000004 /* CoachPlatform.swift */ = {isa = PBXFileReference; lastKnownFileType = sourcecode.swift; path = CoachPlatform.swift; sourceTree = "<group>"; };
@@ -636,6 +642,7 @@
 			children = (
 				F22300000000000000000002 /* BaselineCalibrationSheet.swift */,
 				C7822CACCCE4EE7AA91EB3DC /* AvatarView.swift */,
+				A04700000000000000000004 /* RecoveryPlannerView.swift */,
 				667FD05A1B3F81CA1699019E /* ProgressCameraView.swift */,
 				8BDCFCD44A40EFED71D0A623 /* ProgressCaptureBriefing.swift */,
 				6412A8B24ED423BC9AA71932 /* ProgressCaptureGuides.swift */,
@@ -843,6 +850,7 @@
 				6236B0A5E1B4CD351DE95983 /* ExportReportTests.swift */,
 				7DF3ADA24E1E4909708715A4 /* FitnessBrainParityTests.swift */,
 				D75D52C824C6997B24810CDE /* FoodHydrationTests.swift */,
+				A04700000000000000000006 /* RecoveryPlannerTests.swift */,
 				2C57F55B0ADA92BC794C65E8 /* FoodPortionParityTests.swift */,
 				83CB8593ABFEA904B505BC65 /* FoodRegionTests.swift */,
 				2AA197AD6E551099CA1068BC /* HealthImportParityTests.swift */,
@@ -1084,6 +1092,7 @@
 				393564C9A7237B2AE2880001 /* ProgressionEngine.swift */,
 				C60B17BD340219024A2F7711 /* ProgressPhotoEngine.swift */,
 				F7C1B48D78D9A7D0C7F3551A /* RecoveryAssessment.swift */,
+				A04700000000000000000002 /* RecoveryPlanner.swift */,
 				907EAF0468F87EDC2E82AE50 /* SeedVersion.swift */,
 				CC50357C443CEF634FC6E37B /* SessionBriefing.swift */,
 				A11000000000000000000001 /* SessionBriefingKnowledge.swift */,
@@ -1387,6 +1396,8 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A04700000000000000000001 /* RecoveryPlanner.swift in Sources */,
+				A04700000000000000000003 /* RecoveryPlannerView.swift in Sources */,
 				C04600000000000000000003 /* CoachPlanView.swift in Sources */,
 				C04600000000000000000001 /* CoachWorkspaceView.swift in Sources */,
 				7844717B06A0968147BE2154 /* APEXApp.swift in Sources */,
@@ -1552,6 +1563,7 @@
 			isa = PBXSourcesBuildPhase;
 			buildActionMask = 2147483647;
 			files = (
+				A04700000000000000000005 /* RecoveryPlannerTests.swift in Sources */,
 				5B5477F674796C1519BD5C24 /* AdaptiveMealPlanEngineTests.swift in Sources */,
 				8507ADC0741F64DC5F970445 /* AuthoredExerciseGuidanceTests.swift in Sources */,
 				C04500000000000000000001 /* CoachPlatformTests.swift in Sources */,

@@ -138,6 +138,11 @@ export interface ProgramDay {
   session_mode?: SessionMode | null
   is_active?: boolean
   coach_plan_version_id?: string | null
+  /** Exact-date add-ons never repeat as a weekly prescription. */
+  scheduled_date?: string | null
+  recovery_plan_id?: string | null
+  recovery_target?: 'joint' | 'flexibility' | null
+  recovery_source?: 'guided' | 'external' | null
 }
 
 export type RepUnit = (typeof SUPABASE_ENUMS.rep_unit)[number]

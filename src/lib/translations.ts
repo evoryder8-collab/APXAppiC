@@ -1972,8 +1972,42 @@ const NUTRIENT_EVIDENCE_TRANSLATIONS: Array<[string, string, string]> = [
   ['Bars compare your recorded pattern, not a health target. Food-database coverage and personal needs vary.', 'Barele compară tiparul tău înregistrat, nu o țintă de sănătate. Acoperirea bazei de date și nevoile personale variază.', 'แถบเหล่านี้เปรียบเทียบรูปแบบที่คุณบันทึกไว้ ไม่ใช่เป้าหมายสุขภาพ ความครอบคลุมของฐานข้อมูลอาหารและความต้องการส่วนบุคคลแตกต่างกัน'],
 ]
 
+const RECOVERY_PLANNER_TRANSLATIONS: Array<[string, string, string]> = [
+  ['Recovery rhythm', 'Ritm de recuperare', 'จังหวะการฟื้นตัว'],
+  ['RECOVERY RHYTHM', 'RITM DE RECUPERARE', 'จังหวะการฟื้นตัว'],
+  ['Plan joint care', 'Planifică îngrijirea articulațiilor', 'วางแผนดูแลข้อต่อ'],
+  ['Plan flexibility', 'Planifică flexibilitatea', 'วางแผนความยืดหยุ่น'],
+  ['Four weeks, two short sessions each week. APEX favours lower-load days and never replaces your current programme.', 'Patru săptămâni, cu două sesiuni scurte pe săptămână. APEX preferă zilele cu solicitare mai mică și nu înlocuiește niciodată programul tău actual.', 'สี่สัปดาห์ สัปดาห์ละสองเซสชันสั้น ๆ APEX จะเลือกวันที่มีภาระเบากว่าและจะไม่แทนที่โปรแกรมปัจจุบันของคุณ'],
+  ['Session style', 'Tipul sesiunii', 'รูปแบบเซสชัน'],
+  ['APEX guided', 'Ghidată de APEX', 'APEX นำฝึก'],
+  ['A short follow-along routine using reviewed movements.', 'O rutină ghidată scurtă, cu mișcări verificate.', 'กิจวัตรนำฝึกสั้น ๆ ที่ใช้ท่าซึ่งผ่านการตรวจทานแล้ว'],
+  ['My own session', 'Sesiunea mea', 'เซสชันของฉัน'],
+  ['Follow a mobility or recovery video or routine you trust, then log it honestly.', 'Urmează un videoclip sau o rutină de mobilitate ori recuperare în care ai încredere, apoi înregistreaz-o corect.', 'ทำตามวิดีโอหรือกิจวัตรเคลื่อนไหวหรือฟื้นตัวที่คุณไว้ใจ แล้วบันทึกตามจริงเมื่อทำเสร็จ'],
+  ['Your proposed dates', 'Datele propuse', 'วันที่แนะนำ'],
+  ['sessions', 'sesiuni', 'เซสชัน'],
+  ['General movement support, not diagnosis or injury treatment. Use a comfortable range, stop if pain worsens, and seek qualified care for persistent or new symptoms.', 'Sprijin general pentru mișcare, nu diagnostic sau tratament al accidentărilor. Folosește o amplitudine confortabilă, oprește-te dacă durerea crește și cere ajutor calificat pentru simptome noi sau persistente.', 'ใช้เพื่อสนับสนุนการเคลื่อนไหวทั่วไป ไม่ใช่การวินิจฉัยหรือรักษาอาการบาดเจ็บ เคลื่อนไหวในช่วงที่สบาย หยุดหากปวดมากขึ้น และปรึกษาผู้เชี่ยวชาญเมื่อมีอาการใหม่หรืออาการต่อเนื่อง'],
+  ['Your coach manages this plan. Ask them to add the recovery rhythm for you.', 'Antrenorul tău gestionează acest plan. Roagă-l să adauge ritmul de recuperare.', 'โค้ชเป็นผู้ดูแลแผนนี้ โปรดขอให้โค้ชเพิ่มจังหวะการฟื้นตัวให้คุณ'],
+  ['Add sessions', 'Adaugă sesiuni', 'เพิ่มเซสชัน'],
+  ['Joint care', 'Îngrijirea articulațiilor', 'ดูแลข้อต่อ'],
+  ['Flexibility reset', 'Resetarea flexibilității', 'รีเซ็ตความยืดหยุ่น'],
+  ['Hip Flexor Stretch', 'Întinderea flexorilor șoldului', 'ยืดกล้ามเนื้องอสะโพก'],
+  ['Ankle Mobility Rock', 'Mobilizarea gleznei', 'โยกเพิ่มการเคลื่อนไหวข้อเท้า'],
+  ["Child's Pose", 'Poziția copilului', 'ท่าเด็ก'],
+  ['Thoracic Rotation', 'Rotație toracică', 'หมุนกระดูกสันหลังช่วงอก'],
+  ['Move in a comfortable, pain-free range. Stop if symptoms worsen.', 'Mișcă-te într-o amplitudine confortabilă, fără durere. Oprește-te dacă simptomele se agravează.', 'เคลื่อนไหวในช่วงที่สบายและไม่เจ็บ หยุดหากอาการแย่ลง'],
+  ['Move slowly through a comfortable range.', 'Mișcă-te lent într-o amplitudine confortabilă.', 'เคลื่อนไหวช้า ๆ ในช่วงที่สบาย'],
+  ['Keep the motion smooth and pain-free.', 'Păstrează mișcarea fluidă și fără durere.', 'เคลื่อนไหวอย่างนุ่มนวลและไม่เจ็บ'],
+  ['Keep the heel grounded; do not force range.', 'Ține călcâiul pe sol și nu forța amplitudinea.', 'วางส้นเท้าติดพื้นและอย่าฝืนช่วงการเคลื่อนไหว'],
+  ['Use light tension, never sharp pain.', 'Folosește o tensiune ușoară, niciodată durere ascuțită.', 'ให้รู้สึกตึงเล็กน้อย ไม่ใช่เจ็บแปลบ'],
+  ['Keep the pelvis controlled and breathe normally.', 'Controlează bazinul și respiră normal.', 'ควบคุมเชิงกรานและหายใจตามปกติ'],
+  ['Rotate only through a comfortable range.', 'Rotește-te doar într-o amplitudine confortabilă.', 'หมุนเฉพาะในช่วงที่สบาย'],
+  ['Breathe easily and stop if symptoms worsen.', 'Respiră ușor și oprește-te dacă simptomele se agravează.', 'หายใจสบาย ๆ และหยุดหากอาการแย่ลง'],
+  ['Follow a mobility or recovery routine you trust. Log it only after you complete it.', 'Urmează o rutină de mobilitate sau recuperare în care ai încredere. Înregistreaz-o doar după ce o finalizezi.', 'ทำกิจวัตรเคลื่อนไหวหรือฟื้นตัวที่คุณไว้ใจ และบันทึกหลังทำเสร็จเท่านั้น'],
+  ['Controlled, comfortable movement', 'Mișcare controlată și confortabilă', 'การเคลื่อนไหวที่ควบคุมได้และสบาย'],
+]
+
 export const UI_TRANSLATIONS: Record<string, Translation> = Object.fromEntries(
-  [...rows, ...BASELINE_CALIBRATION_TRANSLATIONS, ...NUTRIENT_EVIDENCE_TRANSLATIONS].map(([english, romanian, thai]) => [
+  [...rows, ...BASELINE_CALIBRATION_TRANSLATIONS, ...NUTRIENT_EVIDENCE_TRANSLATIONS, ...RECOVERY_PLANNER_TRANSLATIONS].map(([english, romanian, thai]) => [
     english,
     { ro: romanian, th: thai },
   ]),

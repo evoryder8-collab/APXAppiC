@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 87, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 88, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -552,6 +552,60 @@ final class LocalisationCoverageTests: XCTestCase {
             for (key, expected) in zip(keys, expectedValues[language] ?? []) {
                 XCTAssertEqual(table[key], expected, "Unexpected full Fitness Plan copy for \(language): \(key)")
             }
+        }
+    }
+
+    func testEveryOfferedLanguageHasAuthoredRecoveryPlannerCopy() throws {
+        let fullKeys: Set<String> = [
+            "Recovery rhythm", "RECOVERY RHYTHM", "Session style", "APEX guided",
+            "A short follow-along routine using reviewed movements.", "My own session",
+            "Follow a mobility or recovery video or routine you trust, then log it honestly.",
+            "Your proposed dates", "%d sessions", "Add recovery sessions",
+            "Plan joint care", "Plan flexibility", "Joint care", "Flexibility reset",
+            "Four weeks, two short sessions each week. APEX favours lower-load days and never replaces your current programme.",
+            "General movement support, not diagnosis or injury treatment. Use a comfortable range, stop if pain worsens, and seek qualified care for persistent or new symptoms.",
+            "Your coach manages this plan. Ask them to add the recovery rhythm for you.",
+            "Hip Flexor Stretch", "Child's Pose", "Thoracic Rotation",
+            "Move in a comfortable, pain-free range. Stop if symptoms worsen.",
+            "Move slowly through a comfortable range.", "Keep the motion smooth and pain-free.",
+            "Keep the heel grounded; do not force range.", "Use light tension, never sharp pain.",
+            "Keep the pelvis controlled and breathe normally.", "Rotate only through a comfortable range.",
+            "Breathe easily and stop if symptoms worsen.",
+            "Follow a mobility or recovery routine you trust. Log it only after you complete it.",
+            "Controlled, comfortable movement",
+        ]
+
+        for language in languages {
+            guard let translations = table(language) else {
+                XCTFail("Missing full translation table for \(language)")
+                continue
+            }
+            let missing = fullKeys.subtracting(translations.keys)
+            XCTAssertTrue(missing.isEmpty, "\(language) is missing recovery copy: \(missing.sorted())")
+            XCTAssertTrue(
+                fullKeys.allSatisfy { translations[$0]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty == false },
+                "\(language) contains blank recovery copy"
+            )
+        }
+
+        let compactValues = [
+            "en": "Add sessions", "de": "Einheiten planen", "de-CH": "Einheite plane",
+            "it": "Pianifica sessioni", "es": "Planificar sesiones", "pt": "Planear sessões",
+            "ja": "セッション追加", "ro": "Adaugă sesiuni", "th": "เพิ่มเซสชัน",
+        ]
+        for (language, expected) in compactValues {
+            guard let url = Bundle.main.url(
+                forResource: "LocalizableShort",
+                withExtension: "strings",
+                subdirectory: nil,
+                localization: language
+            ) else {
+                XCTFail("Missing compact table for \(language)")
+                continue
+            }
+            let data = try Data(contentsOf: url)
+            let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+            XCTAssertEqual(table?["Add sessions"], expected)
         }
     }
 

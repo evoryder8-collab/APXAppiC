@@ -20,6 +20,7 @@ import {
   trainingProtocolWeek,
 } from './focusT25.ts'
 import { activeInductionDayIds, activeTrainingProgramDays, inductionWeek, isInsideInductionWindow } from './trainingInduction.ts'
+import { recoveryDayMatchesDate } from './recoveryPlanner.ts'
 
 export interface PlannedExercise extends Exercise {
   planned_sets: number
@@ -178,8 +179,8 @@ export function planForDate(
   const candidateDays = insideWindow
     ? activeTrainingProgramDays(data).filter((d) =>
         d.program_id === program?.id &&
-        d.weekday === weekday &&
-        (!activeDayIds || activeDayIds.has(d.id)),
+        recoveryDayMatchesDate(d, date) &&
+        (Boolean(d.scheduled_date) || !activeDayIds || activeDayIds.has(d.id)),
       ).sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
     : []
   const programDay = programDayId
@@ -466,15 +467,14 @@ export function programDaysForDate(
 ): PlannedDay[] {
   const program = data.programs.find((row) => row.slug === slug)
   if (!program) return []
-  const weekday = getISODay(parse(date))
   const induction = data.settings?.addons.training_induction
   if (!isInsideInductionWindow(induction, slug, date)) return []
   const activeDayIds = activeInductionDayIds(induction, slug)
   return activeTrainingProgramDays(data)
     .filter((day) =>
       day.program_id === program.id &&
-      day.weekday === weekday &&
-      (!activeDayIds || activeDayIds.has(day.id)),
+      recoveryDayMatchesDate(day, date) &&
+      (Boolean(day.scheduled_date) || !activeDayIds || activeDayIds.has(day.id)),
     )
     .sort((left, right) => left.sort_order - right.sort_order || left.name.localeCompare(right.name))
     .map((day) => planForDate(data, slug, date, lite, day.id))

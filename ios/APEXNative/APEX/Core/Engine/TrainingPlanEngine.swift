@@ -279,8 +279,8 @@ enum TrainingPlanEngine {
                 .filter {
                     $0.programID == program?.id
                     && (effectiveUserID == nil || $0.userID == effectiveUserID)
-                    && $0.weekday == weekday
-                    && (activeDayIDs == nil || activeDayIDs!.contains($0.id.uuidString.lowercased()) || activeDayIDs!.contains($0.id.uuidString))
+                    && RecoveryPlanner.day($0, matches: date)
+                    && ($0.scheduledDate != nil || activeDayIDs == nil || activeDayIDs!.contains($0.id.uuidString.lowercased()) || activeDayIDs!.contains($0.id.uuidString))
                 }
                 .sorted {
                     $0.sortOrder == $1.sortOrder
@@ -623,14 +623,13 @@ enum TrainingPlanEngine {
             .first
         else { return [] }
         guard isInsideInductionWindow(data, slug: slug, date: date) else { return [] }
-        let weekday = APEXDateMath.isoWeekday(date)
         let activeDayIDs = activeInductionDayIDs(data, slug: slug)
         return TrainingInduction.activeProgramDays(in: data)
             .filter {
                 $0.programID == program.id
                 && $0.userID == program.userID
-                && $0.weekday == weekday
-                && (activeDayIDs == nil || activeDayIDs!.contains($0.id.uuidString.lowercased()) || activeDayIDs!.contains($0.id.uuidString))
+                && RecoveryPlanner.day($0, matches: date)
+                && ($0.scheduledDate != nil || activeDayIDs == nil || activeDayIDs!.contains($0.id.uuidString.lowercased()) || activeDayIDs!.contains($0.id.uuidString))
             }
             .sorted {
                 $0.sortOrder == $1.sortOrder

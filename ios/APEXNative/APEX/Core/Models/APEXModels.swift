@@ -512,6 +512,10 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
     var sessionMode: String = WorkoutSessionMode.guided.rawValue
     var isActive: Bool = true
     var coachPlanVersionID: UUID?
+    var scheduledDate: String?
+    var recoveryPlanID: UUID?
+    var recoveryTarget: String?
+    var recoverySource: String?
 
     enum CodingKeys: String, CodingKey {
         case id, weekday, name
@@ -524,6 +528,10 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         case sessionMode = "session_mode"
         case isActive = "is_active"
         case coachPlanVersionID = "coach_plan_version_id"
+        case scheduledDate = "scheduled_date"
+        case recoveryPlanID = "recovery_plan_id"
+        case recoveryTarget = "recovery_target"
+        case recoverySource = "recovery_source"
     }
 
     init(
@@ -538,7 +546,11 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         sortOrder: Int,
         sessionMode: String = WorkoutSessionMode.guided.rawValue,
         isActive: Bool = true,
-        coachPlanVersionID: UUID? = nil
+        coachPlanVersionID: UUID? = nil,
+        scheduledDate: String? = nil,
+        recoveryPlanID: UUID? = nil,
+        recoveryTarget: String? = nil,
+        recoverySource: String? = nil
     ) {
         self.id = id
         self.userID = userID
@@ -552,6 +564,10 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         self.sessionMode = sessionMode
         self.isActive = isActive
         self.coachPlanVersionID = coachPlanVersionID
+        self.scheduledDate = scheduledDate
+        self.recoveryPlanID = recoveryPlanID
+        self.recoveryTarget = recoveryTarget
+        self.recoverySource = recoverySource
     }
 
     init(from decoder: Decoder) throws {
@@ -569,6 +585,10 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
             ?? WorkoutSessionMode.guided.rawValue
         isActive = try values.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
         coachPlanVersionID = try values.decodeIfPresent(UUID.self, forKey: .coachPlanVersionID)
+        scheduledDate = try values.decodeIfPresent(String.self, forKey: .scheduledDate)
+        recoveryPlanID = try values.decodeIfPresent(UUID.self, forKey: .recoveryPlanID)
+        recoveryTarget = try values.decodeIfPresent(String.self, forKey: .recoveryTarget)
+        recoverySource = try values.decodeIfPresent(String.self, forKey: .recoverySource)
     }
 }
 

@@ -13,6 +13,7 @@ struct AvatarView: View {
     @State private var jointCore = 3.0
     @State private var jointLegs = 3.0
     @State private var jointSaved = false
+    @State private var recoveryTarget: RecoveryPlanner.Target?
 
     private var snapshots: [RPGSnapshot] {
         session.data.snapshots.sorted { $0.date < $1.date }
@@ -58,6 +59,7 @@ struct AvatarView: View {
                    index, then the numbers behind it. The long prose blocks sit
                    below the things people open this page for. */
                 AvatarHero(profile: session.profile)
+                visualProgressLink
                 bodyIndexCard
                 radarCard
                 calibrationControl
@@ -66,7 +68,6 @@ struct AvatarView: View {
                 StrengthHistoryCard(sessions: session.data.workoutSessions, logs: session.data.workoutLogs, days: trendDays)
                 jointCheckCard
                 assessmentCard
-                visualProgressLink
                 engineCard
                 healthEvidenceCard
                 metabolicRhythmCard
@@ -80,6 +81,11 @@ struct AvatarView: View {
         .navigationBarTitleDisplayMode(.inline)
         .onAppear {
             loadJointCheck()
+        }
+        .sheet(item: $recoveryTarget) { target in
+            RecoveryPlannerView(target: target)
+                .presentationDetents([.large])
+                .presentationDragIndicator(.visible)
         }
     }
 
@@ -556,9 +562,11 @@ struct AvatarView: View {
     }
 
     private func navigate(for stat: AvatarStat) {
-        if stat.key == "health" { session.navigationPath.append(.nutrition) }
+        if stat.key == "joint" { recoveryTarget = .joint }
+        else if stat.key == "flexibility" { recoveryTarget = .flexibility }
+        else if stat.key == "health" { session.navigationPath.append(.nutrition) }
         else if stat.key == "endurance" { session.navigationPath.append(.orbit) }
-        else { session.navigationPath.append(.transition) }
+        else { session.navigationPath.append(.mainPhase) }
     }
 
     private func isWithinDays(_ dateKey: String, days: Int) -> Bool {
