@@ -6,6 +6,10 @@ import {
   foodSearchTokenMatch,
   normalizeFoodSearchText,
 } from '../../shared/foodSearchRanking.ts'
+import {
+  foodNutrientEvidence,
+  type NutrientEvidenceObservation,
+} from './nutrientEvidence.ts'
 
 export type MealSlot = (typeof SUPABASE_ENUMS.meal_slot)[number]
 export type FoodUnit = (typeof SUPABASE_ENUMS.food_unit)[number]
@@ -47,6 +51,7 @@ export interface FoodRecord {
   piece_grams_or_ml: number | null
   provider_updated_at: string | null
   confidence: NutritionConfidence
+  nutrient_evidence?: NutrientEvidenceObservation[]
   created_at: string
   updated_at: string
 }
@@ -262,6 +267,7 @@ export interface LoggedFoodEntry {
   snapshot_water_ml_100: number | null
   snapshot_water_basis?: WaterBasis | null
   snapshot_water_source_id?: string | null
+  snapshot_nutrient_evidence?: NutrientEvidenceObservation[]
   quantity: number
   unit: FoodUnit
   equivalent_amount: number
@@ -859,11 +865,16 @@ export function snapshotEntry(
     snapshot_water_ml_100: item.food.water_ml_100,
     snapshot_water_basis: item.food.water_basis ?? 'unknown',
     snapshot_water_source_id: item.food.water_source_id ?? null,
+    snapshot_nutrient_evidence: foodNutrientEvidenceSnapshot(item.food),
     quantity: item.quantity,
     unit: item.unit,
     ...portion,
     created_at: now,
   }
+}
+
+function foodNutrientEvidenceSnapshot(food: FoodRecord): NutrientEvidenceObservation[] {
+  return foodNutrientEvidence(food).map((row) => ({ ...row }))
 }
 
 function preferenceFor(foodId: string, preferences: FoodPreference[]): FoodPreference | undefined {

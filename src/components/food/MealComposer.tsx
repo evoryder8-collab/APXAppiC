@@ -1,6 +1,6 @@
 import { estimateWaterContent } from '../../lib/hydration.ts'
 import { lazy, Suspense, useEffect, useMemo, useRef, useState } from 'react'
-import { AnimatePresence, motion } from 'framer-motion'
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { ACCENTS } from '../../lib/theme'
 import {
   availableFoodUnits,
@@ -44,6 +44,12 @@ import {
   restoreMealItemFromUndo,
   type MealUndoState,
 } from '../../lib/mealUndo'
+import {
+  foodNutrientEvidence,
+  nutrientCategory,
+  type NutrientCategory,
+  type NutrientEvidenceObservation,
+} from '../../lib/nutrientEvidence'
 
 const BarcodeScanner = lazy(() => import('./BarcodeScanner').then((module) => ({ default: module.BarcodeScanner })))
 const amber = ACCENTS.amber
@@ -68,6 +74,199 @@ function foodProvenanceLabel(food: FoodRecord): string {
   if (food.source === 'open_food_facts') return 'Check the package label.'
   if (food.confidence === 'provider_verified') return 'Verified label or nutrition-provider reference'
   return 'Curated reference profile. Product labels can vary.'
+}
+
+function nutrientSourceLabel(source: string | null | undefined): string {
+  if (source === 'open_food_facts') return 'Open Food Facts'
+  if (source === 'private') return 'Your private food'
+  if (source === 'apex_cache') return 'APEX curated reference'
+  return source?.replace(/[_-]+/g, ' ') ?? 'Not available'
+}
+
+function NutrientDetailDialog({
+  food,
+  language,
+  onClose,
+}: {
+  food: FoodRecord
+  language: IntroLanguage
+  onClose: () => void
+}) {
+  const t = (value: string): string => translateInterfaceText(value, language)
+  const reduceMotion = useReducedMotion() ?? false
+  const dialogRef = useRef<HTMLDivElement>(null)
+  const closeRef = useRef<HTMLButtonElement>(null)
+  const onCloseRef = useRef(onClose)
+  const rows = foodNutrientEvidence(food)
+  const categories: Array<{ id: NutrientCategory; title: string; icon: string; tint: string }> = [
+    { id: 'vitamins', title: 'Vitamins', icon: '✦', tint: 'text-violet-700 bg-violet-500/10' },
+    { id: 'minerals', title: 'Minerals', icon: '◆', tint: 'text-cyan-700 bg-cyan-500/10' },
+    { id: 'fats', title: 'Fat details', icon: '●', tint: 'text-amber-700 bg-amber-500/10' },
+    { id: 'carbohydrates', title: 'Carbohydrate details', icon: '◒', tint: 'text-emerald-700 bg-emerald-500/10' },
+    { id: 'other', title: 'Other nutrition', icon: '≡', tint: 'text-slate-700 bg-slate-500/10' },
+  ]
+  const statusLabel = (status: NutrientEvidenceObservation['observation_status']): string => ({
+    measured: 'Measured',
+    calculated: 'Calculated by source',
+    estimated: 'Estimated',
+    reported: 'Reported on source label',
+    trace: 'Trace',
+    below_detection: 'Below detection',
+    not_measured: 'Not measured',
+    missing: 'Not available',
+  })[status]
+  const valueLabel = (row: NutrientEvidenceObservation): string => {
+    if (row.value_per_100 == null) return t(statusLabel(row.observation_status))
+    const value = row.value_per_100 >= 100
+      ? row.value_per_100.toFixed(0)
+      : row.value_per_100 >= 10
+        ? row.value_per_100.toFixed(1)
+        : row.value_per_100.toFixed(2)
+    return `${value} ${row.unit}`
+  }
+
+  useEffect(() => { onCloseRef.current = onClose }, [onClose])
+
+  useEffect(() => {
+    const previousFocus = document.activeElement instanceof HTMLElement ? document.activeElement : null
+    const amountDialog = document.querySelector<HTMLElement>('[data-food-amount-dialog="true"]')
+    const previousAriaHidden = amountDialog?.getAttribute('aria-hidden')
+    amountDialog?.setAttribute('inert', '')
+    amountDialog?.setAttribute('aria-hidden', 'true')
+    closeRef.current?.focus()
+
+    const onKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') {
+        event.preventDefault()
+        onCloseRef.current()
+        return
+      }
+      if (event.key === 'Tab') {
+        const dialog = dialogRef.current
+        if (!dialog) return
+        const focusable = [...dialog.querySelectorAll<HTMLElement>(
+          'button:not([disabled]), [href], input:not([disabled]), select:not([disabled]), textarea:not([disabled]), [tabindex]:not([tabindex="-1"])',
+        )].filter((element) => !element.hasAttribute('hidden'))
+        if (!focusable.length) {
+          event.preventDefault()
+          dialog.focus()
+          return
+        }
+        const first = focusable[0]
+        const last = focusable[focusable.length - 1]
+        const active = document.activeElement
+        if (event.shiftKey && (active === first || !dialog.contains(active))) {
+          event.preventDefault()
+          last.focus()
+        } else if (!event.shiftKey && active === last) {
+          event.preventDefault()
+          first.focus()
+        }
+      }
+    }
+    window.addEventListener('keydown', onKeyDown)
+    return () => {
+      window.removeEventListener('keydown', onKeyDown)
+      amountDialog?.removeAttribute('inert')
+      if (previousAriaHidden == null) amountDialog?.removeAttribute('aria-hidden')
+      else amountDialog?.setAttribute('aria-hidden', previousAriaHidden)
+      previousFocus?.focus()
+    }
+  }, [])
+
+  return (
+    <motion.div
+      initial={reduceMotion ? false : { opacity: 0 }}
+      animate={{ opacity: 1 }}
+      exit={{ opacity: 0 }}
+      className="fixed inset-0 z-[120] overflow-y-auto bg-slate-950/55 px-4 py-[calc(1rem+env(safe-area-inset-top))] backdrop-blur-md"
+      onPointerDown={(event) => { if (event.target === event.currentTarget) onCloseRef.current() }}
+    >
+      <motion.div
+        ref={dialogRef}
+        initial={reduceMotion ? false : { y: 22, opacity: 0, scale: 0.98 }}
+        animate={{ y: 0, opacity: 1, scale: 1 }}
+        exit={{ y: 12, opacity: 0, scale: 0.98 }}
+        role="dialog"
+        aria-modal="true"
+        aria-labelledby="food-nutrient-detail-title"
+        tabIndex={-1}
+        className="mx-auto w-full max-w-xl rounded-[2rem] border border-white/90 bg-canvas/98 p-5 shadow-[0_34px_100px_-28px_rgba(15,23,42,.72)]"
+        onPointerDown={(event) => event.stopPropagation()}
+      >
+        <div className="flex items-start justify-between gap-4">
+          <div className="min-w-0">
+            <p className="font-mono text-[10px] font-black tracking-[.17em] text-cyan-700 uppercase">{t('Detailed nutrition')}</p>
+            <h3 id="food-nutrient-detail-title" className="mt-1 break-words font-display text-2xl leading-tight font-black text-ink">{displayFoodName(food, language)}</h3>
+            <p className="mt-1 break-words text-xs leading-relaxed font-semibold text-ink-soft">
+              {t('Reported per')} 100 {food.nutrition_basis === 'per_100ml' ? 'ml' : 'g'} · {t(food.preparation_state.replace('_', ' '))}
+            </p>
+          </div>
+          <button ref={closeRef} type="button" onClick={() => onCloseRef.current()} className="grid h-11 w-11 shrink-0 place-items-center rounded-full bg-white/80 text-xl font-black text-ink-soft" aria-label={t('Close')}>×</button>
+        </div>
+
+        <div className="mt-5 space-y-4">
+          {categories.map((category) => {
+            const categoryRows = rows.filter((row) => nutrientCategory(row) === category.id)
+            if (!categoryRows.length) return null
+            return (
+              <section key={category.id}>
+                <div className={`inline-flex items-center gap-2 rounded-full px-3 py-1.5 ${category.tint}`}>
+                  <span aria-hidden="true" className="font-mono text-xs font-black">{category.icon}</span>
+                  <h4 className="text-xs font-black">{t(category.title)}</h4>
+                </div>
+                <div className="mt-2 divide-y divide-ink/7 overflow-hidden rounded-2xl border border-white/90 bg-white/72 px-4">
+                  {categoryRows.map((row) => (
+                    <div key={`${row.nutrient_code}:${row.unit}`} className="flex items-start justify-between gap-4 py-3">
+                      <div className="min-w-0 flex-1">
+                        <p className="break-words text-sm leading-snug font-black text-ink">{t(row.name)}</p>
+                        <p className="mt-0.5 break-words text-[9px] leading-snug font-bold text-ink-faint">{t(statusLabel(row.observation_status))}</p>
+                        {row.original_value_text && (
+                          <p className="mt-1 break-words text-[9px] leading-snug font-semibold text-ink-faint">
+                            {t('Original source value')}: <span className="font-mono">{row.original_value_text}</span>
+                          </p>
+                        )}
+                        <p className="mt-1 break-all text-[9px] leading-snug font-semibold text-ink-faint">
+                          {t('Source')}: {t(nutrientSourceLabel(row.source_key ?? food.source))}
+                          {row.source_reference ? ` · ${t('Reference')}: ${row.source_reference}` : ''}
+                        </p>
+                        {row.derivation_method && (
+                          <p className="mt-1 break-words text-[9px] leading-snug font-semibold text-ink-faint">{t('Normalized from the source value.')}</p>
+                        )}
+                      </div>
+                      <p className="shrink-0 text-right font-mono text-xs leading-snug font-black text-ink">{valueLabel(row)}</p>
+                    </div>
+                  ))}
+                </div>
+              </section>
+            )
+          })}
+          {!rows.length && (
+            <div className="rounded-2xl bg-white/72 p-4">
+              <p className="font-display text-base font-black text-ink">{t('No detailed nutrient evidence')}</p>
+              <p className="mt-1 text-xs leading-relaxed font-semibold text-ink-soft">{t('The available label does not report vitamins, minerals or additional nutrient values.')}</p>
+            </div>
+          )}
+        </div>
+
+        <div className="mt-5 rounded-2xl border border-cyan-400/15 bg-cyan-500/7 p-4">
+          <p className="text-sm font-black text-ink">{t('Evidence, not a diagnosis')}</p>
+          <p className="mt-1 text-xs leading-relaxed font-semibold text-ink-soft">{t('Only values reported by the source are shown. Trace and unavailable values are never changed to zero.')}</p>
+        </div>
+        <div className="mt-3 rounded-2xl border border-violet-400/15 bg-violet-500/7 p-4">
+          <p className="text-sm font-black text-ink">{t('Source and product notice')}</p>
+          <p className="mt-1 break-words text-xs leading-relaxed font-semibold text-ink-soft">{t(foodProvenanceLabel(food))}</p>
+          <p className="mt-2 break-all text-[10px] leading-relaxed font-semibold text-ink-faint">
+            {t('Source')}: {t(nutrientSourceLabel(food.source))}
+            {(food.provider_product_id || food.barcode) ? ` · ${t('Reference')}: ${food.provider_product_id ?? food.barcode}` : ''}
+          </p>
+          {food.brand && (
+            <p className="mt-2 break-words text-xs leading-relaxed font-bold text-violet-800">{t('Branded products can change. Check the current package label before relying on these values.')}</p>
+          )}
+        </div>
+      </motion.div>
+    </motion.div>
+  )
 }
 
 const MEAL_PROTOCOL_INDEX: Record<MealSlot, number> = {
@@ -160,6 +359,7 @@ export function MealComposer({
   const [savingPreset, setSavingPreset] = useState(false)
   const [saving, setSaving] = useState(false)
   const [selection, setSelection] = useState<FoodSelectionDraft | null>(null)
+  const [nutrientDetailFood, setNutrientDetailFood] = useState<FoodRecord | null>(null)
   const [addingSelection, setAddingSelection] = useState(false)
   const [quickAddingFoodId, setQuickAddingFoodId] = useState<string | null>(null)
   const [quickAddedFoodId, setQuickAddedFoodId] = useState<string | null>(null)
@@ -400,6 +600,7 @@ export function MealComposer({
       piece_grams_or_ml: food.piece_grams_or_ml,
       provider_updated_at: food.provider_updated_at,
       confidence: food.confidence,
+      nutrient_evidence: food.nutrient_evidence,
     })
   }
 
@@ -1502,6 +1703,7 @@ export function MealComposer({
               role="dialog"
               aria-modal="true"
               aria-label={t('Configure food amount')}
+              data-food-amount-dialog="true"
               className="w-full max-w-lg rounded-[1.9rem] border border-white/90 bg-canvas/98 p-5 shadow-[0_32px_90px_-32px_rgba(15,23,42,.65)] backdrop-blur-2xl"
               onPointerDown={(event) => event.stopPropagation()}
             >
@@ -1511,7 +1713,17 @@ export function MealComposer({
                   <h3 className="mt-1 font-display text-2xl leading-tight font-bold text-ink">{displayFoodName(selection.food, language)}</h3>
                   {selection.food.brand && <p className="mt-1 text-sm font-semibold text-ink-soft">{selection.food.brand}</p>}
                 </div>
-                <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="grid h-9 w-9 shrink-0 place-items-center rounded-full bg-white/75 text-lg font-bold text-ink-soft disabled:opacity-40" aria-label={t('Close')}>×</button>
+                <div className="flex shrink-0 items-center gap-2">
+                  <button
+                    type="button"
+                    onClick={() => setNutrientDetailFood(selection.food)}
+                    data-testid="food-nutrient-info"
+                    className="grid h-11 w-11 place-items-center rounded-full border border-cyan-300/30 bg-cyan-500/10 font-serif text-lg font-black text-cyan-700"
+                    aria-label={t('Detailed nutrition')}
+                    title={t('Shows reported vitamins, minerals and nutrient details')}
+                  >i</button>
+                  <button type="button" disabled={addingSelection} onClick={() => setSelection(null)} className="grid h-11 w-11 place-items-center rounded-full bg-white/75 text-lg font-bold text-ink-soft disabled:opacity-40" aria-label={t('Close')}>×</button>
+                </div>
               </div>
 
               <div className="mt-5 rounded-2xl border border-white/90 bg-white/72 p-3.5 shadow-[0_14px_36px_-30px_rgba(15,23,42,.7)]">
@@ -1591,6 +1803,15 @@ export function MealComposer({
               </div>
             </motion.div>
           </motion.div>
+        )}
+      </AnimatePresence>
+      <AnimatePresence>
+        {nutrientDetailFood && (
+          <NutrientDetailDialog
+            food={nutrientDetailFood}
+            language={language}
+            onClose={() => setNutrientDetailFood(null)}
+          />
         )}
       </AnimatePresence>
       {scanner && <Suspense fallback={null}><BarcodeScanner allowFrontCamera={data.settings?.addons.food_scanner_front_camera ?? false} onDetected={(code) => void lookupCode(code)} onClose={() => setScanner(false)} /></Suspense>}

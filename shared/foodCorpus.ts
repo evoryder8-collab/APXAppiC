@@ -1,3 +1,5 @@
+import type { ProviderNutrientEvidenceObservation } from './nutrientEvidence.ts'
+
 type NumericEvidence = number | string | null
 
 export interface FoodCorpusSearchResult {
@@ -24,6 +26,7 @@ export interface FoodCorpusSearchResult {
   saturated_fat_g: NumericEvidence
   salt_g: NumericEvidence
   water_g: NumericEvidence
+  nutrient_evidence?: ProviderNutrientEvidenceObservation[] | null
 }
 
 const supportedPreparationStates = new Set([
@@ -104,5 +107,6 @@ export function normalizeFoodCorpusSearchResult(result: FoodCorpusSearchResult) 
     serving_grams_or_ml: servingGrams,
     piece_grams_or_ml: null,
     confidence: macroComplete ? 'provider_verified' : 'partial',
+    nutrient_evidence: (result.nutrient_evidence ?? []).map((row) => ({ ...row })),
   }
 }

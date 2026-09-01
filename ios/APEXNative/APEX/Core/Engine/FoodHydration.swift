@@ -299,3 +299,262 @@ enum HydrationReconciliation {
         )
     }
 }
+
+enum NutrientCategory: String, CaseIterable, Hashable, Sendable {
+    case vitamins
+    case minerals
+    case fats
+    case carbohydrates
+    case other
+}
+
+enum FoodNutrientEvidence {
+    private static let categoryOrder = NutrientCategory.allCases
+
+    private enum Code: String {
+        case vitaminPrefix = "VIT"
+        case energy = "ENERC_KCAL"
+        case protein = "PROT"
+        case carbohydrate = "CHOAVL"
+        case fat = "FAT"
+        case fibre = "FIBT"
+        case sugar = "SUGAR"
+        case saturatedFat = "FASAT"
+        case salt = "NACL"
+        case water = "WATER"
+    }
+
+    static func category(_ observation: NutrientEvidenceObservation) -> NutrientCategory {
+        let code = observation.nutrientCode.uppercased()
+        let name = observation.name.lowercased()
+        if code.hasPrefix(Code.vitaminPrefix.rawValue)
+            || name.range(of: #"vitamin|retinol|carotene|thiam|riboflav|niacin|folate|folic|cobalamin|tocopher|biotin|pantothen"#, options: .regularExpression) != nil {
+            return .vitamins
+        }
+        if code.range(of: #"^(CA|FE|MG|P|K|NA|ZN|CU|MN|SE|I|CL|F)$"#, options: .regularExpression) != nil
+            || name.range(of: #"calcium|iron|magnesium|phosph|potassium|sodium|zinc|copper|manganese|selenium|iodine|chloride|fluoride|mineral"#, options: .regularExpression) != nil {
+            return .minerals
+        }
+        if code.range(of: #"^(FASAT|FAMS|FAPU|FATRN|CHOLE|OMEGA)"#, options: .regularExpression) != nil
+            || name.range(of: #"saturat|monounsaturat|polyunsaturat|trans fat|cholesterol|omega-|fatty acid"#, options: .regularExpression) != nil {
+            return .fats
+        }
+        if code.range(of: #"^(SUGAR|SUGAR_ADDED|FIBT|STARCH)"#, options: .regularExpression) != nil
+            || name.range(of: #"sugar|fibre|fiber|starch"#, options: .regularExpression) != nil {
+            return .carbohydrates
+        }
+        return .other
+    }
+
+    static func observations(for food: Food) -> [NutrientEvidenceObservation] {
+        var rows = food.nutrientEvidence ?? []
+        var existing = Set(rows.map { $0.nutrientCode.uppercased() })
+        let status: NutrientObservationStatus = food.source == "open_food_facts"
+            || food.confidence == "provider_verified" ? .reported : .estimated
+        let facts: [(String, String, Double?, String)] = [
+            (Code.energy.rawValue, "Energy", food.kcal100, "kcal"),
+            (Code.protein.rawValue, "Protein", food.protein100, "g"),
+            (Code.carbohydrate.rawValue, "Carbohydrate", food.carbs100, "g"),
+            (Code.fat.rawValue, "Fat", food.fat100, "g"),
+            (Code.fibre.rawValue, "Dietary fibre", food.fibre100, "g"),
+            (Code.sugar.rawValue, "Total sugars", food.sugar100, "g"),
+            (Code.saturatedFat.rawValue, "Saturated fat", food.saturatedFat100, "g"),
+            (Code.salt.rawValue, "Salt", food.salt100, "g"),
+            (Code.water.rawValue, "Water", food.waterML100, "ml")
+        ]
+        for (code, name, value, unit) in facts {
+            guard let value, value.isFinite, value >= 0, existing.insert(code).inserted else { continue }
+            rows.append(NutrientEvidenceObservation(
+                nutrientCode: code,
+                name: name,
+                valuePer100: value,
+                unit: unit,
+                observationStatus: status,
+                originalValueText: String(value),
+                derivationMethod: nil,
+                sourceKey: food.source,
+                sourceReference: food.providerProductID
+            ))
+        }
+        return rows.sorted { left, right in
+            let leftCategory = categoryOrder.firstIndex(of: category(left)) ?? categoryOrder.count
+            let rightCategory = categoryOrder.firstIndex(of: category(right)) ?? categoryOrder.count
+            if leftCategory != rightCategory { return leftCategory < rightCategory }
+            if left.name != right.name { return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending }
+            return left.unit < right.unit
+        }
+    }
+}
+
+enum NutrientPatternPeriod: String, CaseIterable, Hashable, Sendable {
+    case day
+    case week
+    case month
+}
+
+struct NutrientPatternWindow: Equatable, Hashable, Sendable {
+    let start: String
+    let end: String
+    let calendarDays: Int
+}
+
+struct NutrientPatternMeal: Hashable, Sendable {
+    let id: UUID
+    let userID: UUID
+    let localDate: String
+}
+
+struct NutrientPatternEntry: Hashable, Sendable {
+    let mealID: UUID
+    let userID: UUID
+    let equivalentAmount: Double
+    let evidence: [NutrientEvidenceObservation]
+}
+
+struct NutrientPatternRow: Equatable, Hashable, Sendable {
+    let nutrientCode: String
+    let name: String
+    let unit: String
+    let category: NutrientCategory
+    let total: Double
+    let averagePerObservedDay: Double
+    let observedFoodEntries: Int
+}
+
+struct NutrientPatternSummary: Equatable, Sendable {
+    let window: NutrientPatternWindow
+    let calendarDays: Int
+    let observedDays: Int
+    let totalFoodEntries: Int
+    let evidenceFoodEntries: Int
+    let coverage: Double
+    let rows: [NutrientPatternRow]
+}
+
+enum NutrientPatternEngine {
+    private struct MutableRow {
+        var nutrientCode: String
+        var name: String
+        var unit: String
+        var category: NutrientCategory
+        var total: Double
+        var observedFoodEntries: Int
+    }
+
+    private static var calendar: Calendar {
+        var calendar = Calendar(identifier: .gregorian)
+        calendar.timeZone = TimeZone(secondsFromGMT: 0)!
+        return calendar
+    }
+
+    private static func date(_ value: String) -> Date? {
+        let parts = value.split(separator: "-").compactMap { Int($0) }
+        guard parts.count == 3 else { return nil }
+        return calendar.date(from: DateComponents(year: parts[0], month: parts[1], day: parts[2]))
+    }
+
+    private static func dateKey(_ date: Date) -> String {
+        let components = calendar.dateComponents([.year, .month, .day], from: date)
+        return String(format: "%04d-%02d-%02d", components.year ?? 0, components.month ?? 0, components.day ?? 0)
+    }
+
+    static func window(anchorDate: String, period: NutrientPatternPeriod) -> NutrientPatternWindow {
+        guard let anchor = date(anchorDate) else {
+            return NutrientPatternWindow(start: anchorDate, end: anchorDate, calendarDays: 1)
+        }
+        switch period {
+        case .day:
+            return NutrientPatternWindow(start: anchorDate, end: anchorDate, calendarDays: 1)
+        case .week:
+            let start = calendar.date(byAdding: .day, value: -6, to: anchor) ?? anchor
+            return NutrientPatternWindow(start: dateKey(start), end: anchorDate, calendarDays: 7)
+        case .month:
+            let components = calendar.dateComponents([.year, .month, .day], from: anchor)
+            let start = String(format: "%04d-%02d-01", components.year ?? 0, components.month ?? 0)
+            return NutrientPatternWindow(start: start, end: anchorDate, calendarDays: components.day ?? 1)
+        }
+    }
+
+    static func summarize(
+        meals: [NutrientPatternMeal],
+        entries: [NutrientPatternEntry],
+        ownerID: UUID,
+        anchorDate: String,
+        period: NutrientPatternPeriod
+    ) -> NutrientPatternSummary {
+        let window = window(anchorDate: anchorDate, period: period)
+        let eligibleMeals = Dictionary(uniqueKeysWithValues: meals.compactMap { meal -> (UUID, String)? in
+            guard meal.userID == ownerID,
+                  meal.localDate >= window.start,
+                  meal.localDate <= window.end else { return nil }
+            return (meal.id, meal.localDate)
+        })
+        let eligibleEntries = entries.filter { entry in
+            entry.userID == ownerID && eligibleMeals[entry.mealID] != nil
+        }
+        let observedDays = Set(eligibleEntries.compactMap { eligibleMeals[$0.mealID] }).count
+        var evidenceFoodEntries = 0
+        var groups: [String: MutableRow] = [:]
+        for entry in eligibleEntries {
+            let usable = entry.evidence.compactMap { observation -> (NutrientEvidenceObservation, Double)? in
+                guard observation.observationStatus == .measured
+                        || observation.observationStatus == .calculated
+                        || observation.observationStatus == .estimated
+                        || observation.observationStatus == .reported,
+                      let value = observation.valuePer100,
+                      value.isFinite,
+                      value >= 0 else { return nil }
+                return (observation, value * max(0, entry.equivalentAmount) / 100)
+            }
+            if usable.isEmpty == false { evidenceFoodEntries += 1 }
+            var countedKeys = Set<String>()
+            for (observation, amount) in usable {
+                let key = "\(observation.nutrientCode.uppercased())|\(observation.unit)"
+                var row = groups[key] ?? MutableRow(
+                    nutrientCode: observation.nutrientCode,
+                    name: observation.name,
+                    unit: observation.unit,
+                    category: FoodNutrientEvidence.category(observation),
+                    total: 0,
+                    observedFoodEntries: 0
+                )
+                row.total += amount
+                if countedKeys.insert(key).inserted { row.observedFoodEntries += 1 }
+                groups[key] = row
+            }
+        }
+        let divisor = Double(max(1, observedDays))
+        let rows = groups.values.map { row in
+            NutrientPatternRow(
+                nutrientCode: row.nutrientCode,
+                name: row.name,
+                unit: row.unit,
+                category: row.category,
+                total: rounded(row.total),
+                averagePerObservedDay: rounded(row.total / divisor),
+                observedFoodEntries: row.observedFoodEntries
+            )
+        }.sorted { left, right in
+            let leftCategory = NutrientCategory.allCases.firstIndex(of: left.category) ?? NutrientCategory.allCases.count
+            let rightCategory = NutrientCategory.allCases.firstIndex(of: right.category) ?? NutrientCategory.allCases.count
+            if leftCategory != rightCategory { return leftCategory < rightCategory }
+            if left.averagePerObservedDay != right.averagePerObservedDay {
+                return left.averagePerObservedDay > right.averagePerObservedDay
+            }
+            return left.name.localizedCaseInsensitiveCompare(right.name) == .orderedAscending
+        }
+        return NutrientPatternSummary(
+            window: window,
+            calendarDays: window.calendarDays,
+            observedDays: observedDays,
+            totalFoodEntries: eligibleEntries.count,
+            evidenceFoodEntries: evidenceFoodEntries,
+            coverage: eligibleEntries.isEmpty ? 0 : Double(evidenceFoodEntries) / Double(eligibleEntries.count),
+            rows: rows
+        )
+    }
+
+    private static func rounded(_ value: Double) -> Double {
+        (value * 1_000_000).rounded() / 1_000_000
+    }
+}

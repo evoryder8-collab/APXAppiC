@@ -1,3 +1,5 @@
+import type { ProviderNutrientEvidenceObservation } from './nutrientEvidence.ts'
+
 export const OPEN_FOOD_FACTS_FIELDS = [
   'code',
   'product_name',
@@ -52,6 +54,7 @@ export interface NormalizedProviderFood {
   serving_grams_or_ml: number | null
   provider_updated_at: string | null
   confidence: 'complete' | 'partial' | 'provider_verified'
+  nutrient_evidence: ProviderNutrientEvidenceObservation[]
 }
 
 function digits(value: string): string {
@@ -87,6 +90,108 @@ function safeNutrient(value: unknown, maximum = 100): number | null {
   const parsed = finiteNumber(value)
   if (parsed == null || parsed < 0 || parsed > maximum) return null
   return Math.round(parsed * 100) / 100
+}
+
+interface DetailedNutrientDefinition {
+  source: string
+  code: string
+  name: string
+  unit: 'g' | 'mg' | 'µg'
+  multiplier: number
+}
+
+/* Open Food Facts guarantees that weight-based `<nutrient>_100g` fields use
+ * normalized grams. We convert only to reader-friendly units, retain the
+ * original grams, and omit absent keys rather than manufacturing zeroes. */
+const detailedNutrients: DetailedNutrientDefinition[] = [
+  { source: 'monounsaturated-fat', code: 'FAMS', name: 'Monounsaturated fat', unit: 'g', multiplier: 1 },
+  { source: 'polyunsaturated-fat', code: 'FAPU', name: 'Polyunsaturated fat', unit: 'g', multiplier: 1 },
+  { source: 'trans-fat', code: 'FATRN', name: 'Trans fat', unit: 'g', multiplier: 1 },
+  { source: 'cholesterol', code: 'CHOLE', name: 'Cholesterol', unit: 'mg', multiplier: 1_000 },
+  { source: 'omega-3-fat', code: 'OMEGA3', name: 'Omega-3 fat', unit: 'g', multiplier: 1 },
+  { source: 'omega-6-fat', code: 'OMEGA6', name: 'Omega-6 fat', unit: 'g', multiplier: 1 },
+  { source: 'added-sugars', code: 'SUGAR_ADDED', name: 'Added sugars', unit: 'g', multiplier: 1 },
+  { source: 'starch', code: 'STARCH', name: 'Starch', unit: 'g', multiplier: 1 },
+  { source: 'sodium', code: 'NA', name: 'Sodium', unit: 'mg', multiplier: 1_000 },
+  { source: 'vitamin-a', code: 'VITA', name: 'Vitamin A', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'beta-carotene', code: 'CARTB', name: 'Beta-carotene', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'vitamin-d', code: 'VITD', name: 'Vitamin D', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'vitamin-e', code: 'VITE', name: 'Vitamin E', unit: 'mg', multiplier: 1_000 },
+  { source: 'vitamin-k', code: 'VITK', name: 'Vitamin K', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'vitamin-c', code: 'VITC', name: 'Vitamin C', unit: 'mg', multiplier: 1_000 },
+  { source: 'vitamin-b1', code: 'THIA', name: 'Thiamin (B1)', unit: 'mg', multiplier: 1_000 },
+  { source: 'vitamin-b2', code: 'RIBF', name: 'Riboflavin (B2)', unit: 'mg', multiplier: 1_000 },
+  { source: 'vitamin-pp', code: 'NIA', name: 'Niacin (B3)', unit: 'mg', multiplier: 1_000 },
+  { source: 'pantothenic-acid', code: 'PANTAC', name: 'Pantothenic acid (B5)', unit: 'mg', multiplier: 1_000 },
+  { source: 'vitamin-b6', code: 'VITB6A', name: 'Vitamin B6', unit: 'mg', multiplier: 1_000 },
+  { source: 'biotin', code: 'BIOT', name: 'Biotin (B7)', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'folates', code: 'FOL', name: 'Folate (B9)', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'vitamin-b12', code: 'VITB12', name: 'Vitamin B12', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'calcium', code: 'CA', name: 'Calcium', unit: 'mg', multiplier: 1_000 },
+  { source: 'iron', code: 'FE', name: 'Iron', unit: 'mg', multiplier: 1_000 },
+  { source: 'magnesium', code: 'MG', name: 'Magnesium', unit: 'mg', multiplier: 1_000 },
+  { source: 'phosphorus', code: 'P', name: 'Phosphorus', unit: 'mg', multiplier: 1_000 },
+  { source: 'potassium', code: 'K', name: 'Potassium', unit: 'mg', multiplier: 1_000 },
+  { source: 'zinc', code: 'ZN', name: 'Zinc', unit: 'mg', multiplier: 1_000 },
+  { source: 'copper', code: 'CU', name: 'Copper', unit: 'mg', multiplier: 1_000 },
+  { source: 'manganese', code: 'MN', name: 'Manganese', unit: 'mg', multiplier: 1_000 },
+  { source: 'selenium', code: 'SE', name: 'Selenium', unit: 'µg', multiplier: 1_000_000 },
+  { source: 'iodine', code: 'I', name: 'Iodine', unit: 'µg', multiplier: 1_000_000 },
+]
+
+function detailedNutrientEvidence(
+  nutriments: Record<string, unknown>,
+  barcode: string,
+): ProviderNutrientEvidenceObservation[] {
+  return detailedNutrients.flatMap<ProviderNutrientEvidenceObservation>((definition): ProviderNutrientEvidenceObservation[] => {
+    const modifierValue = nutriments[`${definition.source}_modifier`]
+    const modifier = typeof modifierValue === 'string' ? modifierValue.trim() : ''
+    const rawGrams = finiteNumber(nutriments[`${definition.source}_100g`])
+    const explicitlyMissing = modifier === '-'
+    if ((rawGrams == null || rawGrams < 0 || rawGrams > 100) && !explicitlyMissing) return []
+    const sourceValue = nutriments[`${definition.source}_value`]
+    const sourceValueText = typeof sourceValue === 'string' || typeof sourceValue === 'number'
+      ? String(sourceValue).trim()
+      : rawGrams == null ? '' : String(rawGrams)
+    const sourceUnitValue = nutriments[`${definition.source}_unit`]
+    const sourceUnit = typeof sourceUnitValue === 'string' && sourceUnitValue.trim()
+      ? sourceUnitValue.trim()
+      : 'g'
+    const originalValueText = sourceValueText
+      ? `${modifier}${sourceValueText} ${sourceUnit}`.slice(0, 180)
+      : modifier.slice(0, 180)
+    const trace = modifier === '~' && rawGrams === 0
+    const belowDetection = modifier === '<' || modifier === '≤' || modifier === '<='
+    if (trace || belowDetection || explicitlyMissing) {
+      return [{
+        nutrient_code: definition.code,
+        name: definition.name,
+        value_per_100: null,
+        unit: definition.unit,
+        observation_status: trace ? 'trace' as const : belowDetection ? 'below_detection' as const : 'missing' as const,
+        original_value_text: originalValueText,
+        derivation_method: null,
+        source_key: 'open_food_facts',
+        source_reference: barcode,
+      }]
+    }
+    if (rawGrams == null) return []
+    const grams = Math.round(rawGrams * 1_000_000_000) / 1_000_000_000
+    const converted = Math.round(grams * definition.multiplier * 1_000_000) / 1_000_000
+    return [{
+      nutrient_code: definition.code,
+      name: definition.name,
+      value_per_100: converted,
+      unit: definition.unit,
+      observation_status: 'reported' as const,
+      original_value_text: originalValueText || `${grams} g/100`,
+      derivation_method: definition.multiplier === 1
+        ? null
+        : 'open_food_facts_standard_grams_conversion',
+      source_key: 'open_food_facts',
+      source_reference: barcode,
+    }]
+  })
 }
 
 export function kilojoulesToKilocalories(kilojoules: number): number {
@@ -167,6 +272,7 @@ export function normalizeOpenFoodFactsProduct(
     serving_grams_or_ml: servingQuantity,
     provider_updated_at: providerTimestamp == null ? null : new Date(providerTimestamp * 1000).toISOString(),
     confidence: required.every((value) => value != null) ? 'provider_verified' : 'partial',
+    nutrient_evidence: detailedNutrientEvidence(nutriments, barcode),
   }
 }
 

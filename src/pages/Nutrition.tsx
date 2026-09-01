@@ -1,6 +1,6 @@
 import { estimateWaterContent, inferredHydrationTargetMode, resolveHydrationTarget } from '../lib/hydration.ts'
 import { useEffect, useMemo, useRef, useState } from 'react'
-import { motion } from 'framer-motion'
+import { motion, useReducedMotion } from 'framer-motion'
 import { Link, useNavigate, useSearchParams } from 'react-router-dom'
 import { addDays, differenceInCalendarDays, format, parseISO, startOfMonth, subDays } from 'date-fns'
 import { useStore } from '../store/AppStore'
@@ -55,6 +55,12 @@ import { planForDate } from '../lib/plan'
 import { activeTrainingProgramDays, isInsideInductionWindow } from '../lib/trainingInduction'
 import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoalPresetPicker'
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
+import {
+  summarizeNutrientIntake,
+  type NutrientCategory,
+  type NutrientPatternPeriod,
+  type NutrientPatternSummary,
+} from '../lib/nutrientEvidence'
 
 const amber = ACCENTS.amber
 const calendarLegacyMealSelectionId = (mealId: string): string => `planned:${mealId}`
@@ -76,6 +82,122 @@ function emptyDailyLog(date: string, userId: string): DailyLog {
   }
 }
 
+function NutrientPatternsBoard({
+  summary,
+  period,
+  onPeriod,
+  tx,
+}: {
+  summary: NutrientPatternSummary
+  period: NutrientPatternPeriod
+  onPeriod: (period: NutrientPatternPeriod) => void
+  tx: (value: string) => string
+}) {
+  const reduceMotion = useReducedMotion() ?? false
+  const [showAllRows, setShowAllRows] = useState(false)
+  const periods: Array<[NutrientPatternPeriod, string]> = [
+    ['day', 'Day'], ['week', '7 days'], ['month', 'Month'],
+  ]
+  const categoryOrder: NutrientCategory[] = ['vitamins', 'minerals', 'fats', 'carbohydrates', 'other']
+  const previewRows = categoryOrder.flatMap((category) => (
+    summary.rows.filter((row) => row.category === category).slice(0, 3)
+  ))
+  const visibleRows = showAllRows ? summary.rows : previewRows
+  const maxima = new Map<string, number>()
+  for (const row of visibleRows) {
+    const key = `${row.category}:${row.unit}`
+    maxima.set(key, Math.max(maxima.get(key) ?? 0, row.averagePerObservedDay))
+  }
+  const coverage = Math.round(summary.coverage * 100)
+
+  return (
+    <GlassCard className="overflow-hidden p-4 sm:p-5" data-testid="nutrient-patterns-board">
+      <div className="flex flex-wrap items-start justify-between gap-3">
+        <div className="min-w-0">
+          <p className="font-mono text-[9px] font-black tracking-[.17em] text-violet-700 uppercase">{tx('Observed intake')}</p>
+          <h2 className="mt-1 font-display text-xl font-black text-ink">{tx('Nutrient patterns')}</h2>
+          <p className="mt-1 max-w-md text-[11px] leading-relaxed font-semibold text-ink-soft">
+            {tx('Your recorded vitamins, minerals and nutrient details, without diagnosing deficiency or excess.')}
+          </p>
+        </div>
+        <div className="flex rounded-2xl bg-ink/6 p-1" aria-label={tx('Nutrient pattern period')}>
+          {periods.map(([value, label]) => (
+            <button
+              key={value}
+              type="button"
+              onClick={() => onPeriod(value)}
+              className={`min-h-9 rounded-xl px-3 text-[10px] font-black transition ${period === value ? 'bg-white text-violet-700 shadow-sm' : 'text-ink-faint'}`}
+            >{tx(label)}</button>
+          ))}
+        </div>
+      </div>
+
+      <div className="mt-4 grid grid-cols-3 gap-2">
+        <div className="rounded-2xl bg-violet-500/8 p-3">
+          <p className="font-mono text-lg font-black text-violet-700">{summary.observedDays}/{summary.calendarDays}</p>
+          <p className="mt-0.5 text-[9px] leading-tight font-black text-ink-faint uppercase">{tx('Observed days')}</p>
+        </div>
+        <div className="rounded-2xl bg-cyan-500/8 p-3">
+          <p className="font-mono text-lg font-black text-cyan-700">{coverage}%</p>
+          <p className="mt-0.5 text-[9px] leading-tight font-black text-ink-faint uppercase">{tx('Evidence coverage')}</p>
+        </div>
+        <div className="rounded-2xl bg-amber-500/8 p-3">
+          <p className="font-mono text-lg font-black text-amber-700">{summary.evidenceFoodEntries}</p>
+          <p className="mt-0.5 text-[9px] leading-tight font-black text-ink-faint uppercase">{tx('Detailed foods')}</p>
+        </div>
+      </div>
+
+      {visibleRows.length ? (
+        <div className="mt-4 space-y-3">
+          {visibleRows.map((row) => {
+            const maximum = maxima.get(`${row.category}:${row.unit}`) ?? row.averagePerObservedDay
+            const width = maximum > 0 ? Math.max(4, Math.min(100, row.averagePerObservedDay / maximum * 100)) : 0
+            const value = row.averagePerObservedDay >= 100
+              ? row.averagePerObservedDay.toFixed(0)
+              : row.averagePerObservedDay >= 10
+                ? row.averagePerObservedDay.toFixed(1)
+                : row.averagePerObservedDay.toFixed(2)
+            return (
+              <div key={`${row.nutrient_code}:${row.unit}`}>
+                <div className="flex items-start justify-between gap-3">
+                  <p className="min-w-0 break-words text-xs leading-snug font-black text-ink">{tx(row.name)}</p>
+                  <p className="shrink-0 text-right font-mono text-[11px] font-black text-ink">{value} {row.unit}<span className="text-[8px] text-ink-faint"> / {tx('observed day')}</span></p>
+                </div>
+                <div className="mt-1.5 h-2 overflow-hidden rounded-full bg-ink/6">
+                  <motion.div initial={reduceMotion ? false : { width: 0 }} whileInView={{ width: `${width}%` }} viewport={{ once: true }} transition={{ duration: reduceMotion ? 0 : 0.45, ease: 'easeOut' }} className="h-full rounded-full bg-gradient-to-r from-violet-500 via-fuchsia-400 to-amber-300" />
+                </div>
+              </div>
+            )
+          })}
+        </div>
+      ) : (
+        <div className="mt-4 rounded-2xl bg-white/65 p-4">
+          <p className="font-display text-sm font-black text-ink">{tx('No detailed pattern yet')}</p>
+          <p className="mt-1 text-xs leading-relaxed font-semibold text-ink-soft">{tx('Log foods with reported nutrient evidence to build this private view.')}</p>
+        </div>
+      )}
+
+      {summary.rows.length > previewRows.length && (
+        <button
+          type="button"
+          onClick={() => setShowAllRows((current) => !current)}
+          className="mt-4 min-h-11 w-full rounded-2xl border border-violet-300/25 bg-violet-500/7 px-4 py-2.5 text-xs font-black text-violet-800"
+          aria-expanded={showAllRows}
+        >
+          {tx(showAllRows ? 'Show fewer nutrients' : 'Show all nutrients')}
+        </button>
+      )}
+
+      <p className="mt-4 text-[9px] leading-relaxed font-semibold text-ink-faint">
+        {tx('Averages use only days with logged food. Coverage shows how many food entries contained detailed evidence; missing values are excluded, never counted as zero.')}
+      </p>
+      <p className="mt-1 text-[9px] leading-relaxed font-semibold text-ink-faint">
+        {tx('Bars compare your recorded pattern, not a health target. Food-database coverage and personal needs vary.')}
+      </p>
+    </GlassCard>
+  )
+}
+
 export function Nutrition() {
   const { data, upsert, remove, setProfile, setSettings, toast } = useStore()
   const { language } = useLanguage()
@@ -84,6 +206,7 @@ export function Nutrition() {
   const navigate = useNavigate()
   const [searchParams] = useSearchParams()
   const [pendingManualLevel, setPendingManualLevel] = useState<ActivityLevel | null>(null)
+  const [nutrientPatternPeriod, setNutrientPatternPeriod] = useState<NutrientPatternPeriod>('week')
   const requestedSection = searchParams.get('section')
   const requestedDate = searchParams.get('date')
   const returnToSimple = searchParams.get('return') === 'simple'
@@ -96,6 +219,13 @@ export function Nutrition() {
   const nutritionSwipeStart = useRef<{ x: number; y: number; touchId: number; blockedByLocalGesture: boolean } | null>(null)
   const selectedDateObject = useMemo(() => parseISO(selectedLogDate), [selectedLogDate])
   const profile = data.profile
+  const nutrientPatternSummary = useMemo(() => summarizeNutrientIntake({
+    meals: foodStore.meals,
+    entries: foodStore.entries,
+    userId: profile?.user_id ?? '',
+    anchorDate: selectedLogDate,
+    period: nutrientPatternPeriod,
+  }), [foodStore.entries, foodStore.meals, nutrientPatternPeriod, profile?.user_id, selectedLogDate])
   const catalog = useMemo(() => activityCatalogMap(data.activity_types), [data.activity_types])
   const selectedActivityLogs = useMemo(
     () => data.activity_logs.filter((log) => log.date === selectedLogDate),
@@ -349,6 +479,7 @@ export function Nutrition() {
         salt_100: entry.snapshot_salt_100,
         serving_grams_or_ml: entry.unit === 'serving' ? frozenUnitSize : existing.serving_grams_or_ml,
         piece_grams_or_ml: entry.unit === 'piece' ? frozenUnitSize : existing.piece_grams_or_ml,
+        nutrient_evidence: entry.snapshot_nutrient_evidence ?? [],
       }
     }
     return foodStore.savePrivateFood({
@@ -385,6 +516,7 @@ export function Nutrition() {
       piece_grams_or_ml: entry.unit === 'piece' ? frozenUnitSize : null,
       provider_updated_at: null,
       confidence: 'user_entered',
+      nutrient_evidence: entry.snapshot_nutrient_evidence ?? [],
     })
   }
 
@@ -904,6 +1036,13 @@ export function Nutrition() {
           onDeleteLogged={deleteLoggedMeal}
         />
         </div>
+
+        <NutrientPatternsBoard
+          summary={nutrientPatternSummary}
+          period={nutrientPatternPeriod}
+          onPeriod={setNutrientPatternPeriod}
+          tx={tx}
+        />
 
         <details className="glass group rounded-3xl p-3 sm:p-4">
           <summary className="flex cursor-pointer list-none items-center justify-between gap-3 px-1 text-left">

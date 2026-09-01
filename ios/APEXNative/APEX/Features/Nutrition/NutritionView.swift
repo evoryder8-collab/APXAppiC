@@ -102,6 +102,8 @@ struct NutritionView: View {
                             compact: false
                         )
 
+                        NutrientPatternsCard(date: selectedDate)
+
                         CollapsibleSection(
                             id: "activities",
                             title: language.text("Activity & nutrition targets"),
@@ -553,6 +555,196 @@ private struct MealTimeline: View {
         }
     }
 
+}
+
+private struct NutrientPatternsCard: View {
+    @Environment(AppSession.self) private var session
+    @Environment(\.accessibilityReduceMotion) private var accessibilityReduceMotion
+    @State private var language = LanguageState.shared
+    @State private var period: NutrientPatternPeriod = .week
+    @State private var showAllRows = false
+
+    let date: Date
+
+    private var summary: NutrientPatternSummary {
+        guard let ownerID = session.profile?.userID else {
+            return NutrientPatternEngine.summarize(
+                meals: [], entries: [], ownerID: UUID(),
+                anchorDate: date.apexDateKey, period: period
+            )
+        }
+        return NutrientPatternEngine.summarize(
+            meals: session.data.loggedMeals.map {
+                NutrientPatternMeal(id: $0.id, userID: $0.userID, localDate: $0.localDate)
+            },
+            entries: session.data.loggedFoodEntries.map {
+                NutrientPatternEntry(
+                    mealID: $0.mealID,
+                    userID: $0.userID,
+                    equivalentAmount: $0.equivalentAmount,
+                    evidence: $0.snapshotNutrientEvidence ?? []
+                )
+            },
+            ownerID: ownerID,
+            anchorDate: date.apexDateKey,
+            period: period
+        )
+    }
+
+    private var previewRows: [NutrientPatternRow] {
+        NutrientCategory.allCases.flatMap { category in
+            Array(summary.rows.filter { $0.category == category }.prefix(3))
+        }
+    }
+
+    private var visibleRows: [NutrientPatternRow] {
+        showAllRows ? summary.rows : previewRows
+    }
+
+    var body: some View {
+        GlassCard(radius: 30, padding: 19) {
+            VStack(alignment: .leading, spacing: 16) {
+                VStack(alignment: .leading, spacing: 5) {
+                    Text(language.text("OBSERVED INTAKE"))
+                        .font(APEXFont.mono(9))
+                        .tracking(1.7)
+                        .foregroundStyle(APEXColor.violet)
+                    Text(language.text("Nutrient patterns"))
+                        .font(APEXFont.display(25))
+                    Text(language.text("Your recorded vitamins, minerals and nutrient details—without diagnosing deficiency or excess."))
+                        .font(APEXFont.body(12, weight: .semibold))
+                        .foregroundStyle(APEXColor.secondaryInk)
+                        .fixedSize(horizontal: false, vertical: true)
+                }
+
+                Picker(language.text("Nutrient pattern period"), selection: $period) {
+                    Text(language.text("Day")).tag(NutrientPatternPeriod.day)
+                    Text(language.text("7 days")).tag(NutrientPatternPeriod.week)
+                    Text(language.text("Month")).tag(NutrientPatternPeriod.month)
+                }
+                .pickerStyle(.segmented)
+                .accessibilityIdentifier("nutrient-pattern-period")
+
+                HStack(alignment: .top, spacing: 8) {
+                    summaryTile(
+                        value: "\(summary.observedDays)/\(summary.calendarDays)",
+                        label: language.text("Observed days"),
+                        color: APEXColor.violet
+                    )
+                    summaryTile(
+                        value: "\(Int((summary.coverage * 100).rounded()))%",
+                        label: language.text("Evidence coverage"),
+                        color: APEXColor.cyan
+                    )
+                    summaryTile(
+                        value: "\(summary.evidenceFoodEntries)",
+                        label: language.text("Detailed foods"),
+                        color: APEXColor.amberDeep
+                    )
+                }
+
+                if visibleRows.isEmpty {
+                    VStack(alignment: .leading, spacing: 5) {
+                        Text(language.text("No detailed pattern yet"))
+                            .font(APEXFont.body(15, weight: .bold))
+                        Text(language.text("Log foods with reported nutrient evidence to build this private view."))
+                            .font(APEXFont.body(12, weight: .semibold))
+                            .foregroundStyle(APEXColor.secondaryInk)
+                            .fixedSize(horizontal: false, vertical: true)
+                    }
+                    .padding(15)
+                    .frame(maxWidth: .infinity, alignment: .leading)
+                    .background(.white.opacity(0.62), in: RoundedRectangle(cornerRadius: 18, style: .continuous))
+                } else {
+                    VStack(spacing: 13) {
+                        ForEach(visibleRows, id: \.self) { row in
+                            nutrientRow(row)
+                        }
+                    }
+                }
+
+                if summary.rows.count > previewRows.count {
+                    Button {
+                        showAllRows.toggle()
+                    } label: {
+                        Text(language.text(showAllRows ? "Show fewer nutrients" : "Show all nutrients"))
+                            .font(APEXFont.body(12, weight: .bold))
+                            .frame(maxWidth: .infinity, minHeight: 44)
+                    }
+                    .buttonStyle(.plain)
+                    .foregroundStyle(APEXColor.violet)
+                    .background(APEXColor.violet.opacity(0.07), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+                    .accessibilityValue(language.text(showAllRows ? "Expanded" : "Collapsed"))
+                }
+
+                Text(language.text("Averages use only days with logged food. Coverage shows how many food entries contained detailed evidence; missing values are excluded, never counted as zero."))
+                    .font(APEXFont.body(10, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+                Text(language.text("Bars compare your recorded pattern, not a health target. Food-database coverage and personal needs vary."))
+                    .font(APEXFont.body(10, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+        }
+        .accessibilityIdentifier("nutrient-patterns-board")
+    }
+
+    private func summaryTile(value: String, label: String, color: Color) -> some View {
+        VStack(alignment: .leading, spacing: 4) {
+            Text(value)
+                .font(APEXFont.mono(17))
+                .foregroundStyle(color)
+                .fixedSize(horizontal: false, vertical: true)
+            Text(label.uppercased())
+                .font(APEXFont.mono(8))
+                .foregroundStyle(APEXColor.secondaryInk)
+                .fixedSize(horizontal: false, vertical: true)
+        }
+        .padding(11)
+        .frame(maxWidth: .infinity, minHeight: 78, alignment: .topLeading)
+        .background(color.opacity(0.08), in: RoundedRectangle(cornerRadius: 17, style: .continuous))
+    }
+
+    private func nutrientRow(_ row: NutrientPatternRow) -> some View {
+        let maximum = visibleRows
+            .filter { $0.category == row.category && $0.unit == row.unit }
+            .map(\.averagePerObservedDay)
+            .max() ?? row.averagePerObservedDay
+        let fraction = maximum > 0 ? min(1, max(0.04, row.averagePerObservedDay / maximum)) : 0
+        return VStack(spacing: 7) {
+            HStack(alignment: .firstTextBaseline, spacing: 10) {
+                Text(language.text(row.name))
+                    .font(APEXFont.body(12, weight: .bold))
+                    .fixedSize(horizontal: false, vertical: true)
+                Spacer(minLength: 8)
+                Text("\(formatted(row.averagePerObservedDay)) \(row.unit) / \(language.text("observed day"))")
+                    .font(APEXFont.mono(10))
+                    .multilineTextAlignment(.trailing)
+                    .fixedSize(horizontal: false, vertical: true)
+            }
+            GeometryReader { proxy in
+                ZStack(alignment: .leading) {
+                    Capsule().fill(APEXColor.ink.opacity(0.06))
+                    Capsule()
+                        .fill(LinearGradient(
+                            colors: [APEXColor.violet, Color.pink.opacity(0.8), APEXColor.amber],
+                            startPoint: .leading,
+                            endPoint: .trailing
+                        ))
+                        .frame(width: proxy.size.width * fraction)
+                        .animation(accessibilityReduceMotion ? nil : .easeOut(duration: 0.45), value: fraction)
+                }
+            }
+            .frame(height: 8)
+        }
+    }
+
+    private func formatted(_ value: Double) -> String {
+        if value >= 100 { return String(format: "%.0f", value) }
+        if value >= 10 { return String(format: "%.1f", value) }
+        return String(format: "%.2f", value)
+    }
 }
 
 private struct FoodLoggingCard: View {

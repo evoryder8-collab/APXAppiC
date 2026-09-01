@@ -2446,6 +2446,7 @@ final class AppSession {
                 snapshotWaterML100: item.waterML100,
                 snapshotWaterBasis: item.waterBasis ?? "unknown",
                 snapshotWaterSourceID: item.waterSourceID,
+                snapshotNutrientEvidence: item.nutrientEvidence,
                 quantity: item.quantity,
                 unit: item.unit,
                 equivalentAmount: item.equivalentAmount
@@ -2502,7 +2503,8 @@ final class AppSession {
                 snapshotWaterML100: item.waterML100,
                 snapshotWaterBasis: item.waterBasis ?? "unknown",
                 snapshotWaterSourceID: item.waterSourceID,
-                waterML: item.waterML100.map { $0 * item.equivalentAmount / 100 }
+                waterML: item.waterML100.map { $0 * item.equivalentAmount / 100 },
+                snapshotNutrientEvidence: item.nutrientEvidence
             )
         }
         let preferenceUpdates = recordFoodUsage
@@ -2936,6 +2938,7 @@ final class AppSession {
         let mealID = UUID()
         let entryID = UUID()
         let nutrients = food.nutrients(forEquivalentAmount: equivalentAmount)
+        let nutrientEvidence = FoodNutrientEvidence.observations(for: food)
         let key = "ios-food-\(mealID.uuidString.lowercased())"
         let mealRequest = StructuredMealRequest(
             id: mealID,
@@ -2968,6 +2971,7 @@ final class AppSession {
             snapshotWaterML100: food.waterML100,
             snapshotWaterBasis: food.waterBasis ?? "unknown",
             snapshotWaterSourceID: food.waterSourceID,
+            snapshotNutrientEvidence: nutrientEvidence,
             quantity: amount,
             unit: unit,
             equivalentAmount: equivalentAmount
@@ -3020,7 +3024,8 @@ final class AppSession {
             snapshotWaterML100: food.waterML100,
             snapshotWaterBasis: food.waterBasis ?? "unknown",
             snapshotWaterSourceID: food.waterSourceID,
-            waterML: food.waterML100.map { $0 * equivalentAmount / 100 }
+            waterML: food.waterML100.map { $0 * equivalentAmount / 100 },
+            snapshotNutrientEvidence: nutrientEvidence
         )
         let preferenceUpdates = MealMemory.usagePreferenceUpdates(
             current: data.foodPreferences,

@@ -167,3 +167,133 @@ final class FoodPortionParityTests: XCTestCase {
             "Check the package label.")
     }
 }
+
+final class NutrientEvidenceTests: XCTestCase {
+    private let owner = UUID(uuidString: "11111111-1111-4111-8111-111111111111")!
+
+    private func evidence(
+        _ code: String,
+        _ name: String,
+        _ value: Double?,
+        _ unit: String,
+        _ status: NutrientObservationStatus = .measured
+    ) -> NutrientEvidenceObservation {
+        NutrientEvidenceObservation(
+            nutrientCode: code,
+            name: name,
+            valuePer100: value,
+            unit: unit,
+            observationStatus: status,
+            originalValueText: value.map { String($0) } ?? "tr",
+            derivationMethod: nil,
+            sourceKey: "fixture-source",
+            sourceReference: "fixture-reference"
+        )
+    }
+
+    func testMealComposerSnapshotsCoarseFactsBesideTraceEvidence() {
+        let trace = evidence("VITA", "Vitamin A", nil, "µg", .trace)
+        let food = Food(
+            id: UUID().uuidString.lowercased(),
+            ownerUserID: nil,
+            name: "Evidence food",
+            namesI18n: [:],
+            brand: "Fixture",
+            barcode: nil,
+            source: "open_food_facts",
+            providerProductID: "fixture:food",
+            externalImageURL: nil,
+            packageQuantity: nil,
+            nutritionBasis: "per_100g",
+            preparationState: "as_sold",
+            kcal100: 120,
+            protein100: 3,
+            carbs100: 20,
+            fat100: 2,
+            fibre100: 4,
+            sugar100: 6,
+            saturatedFat100: 1,
+            salt100: 0.4,
+            waterML100: 60,
+            servingAmount: nil,
+            servingUnit: nil,
+            servingGramsOrML: nil,
+            pieceGramsOrML: nil,
+            confidence: "provider_verified",
+            nutrientEvidence: [trace]
+        )
+
+        let item = MealComposerItem(food: food, quantity: 100, unit: "g")
+        XCTAssertEqual(item.nutrientEvidence.first { $0.nutrientCode == "SUGAR" }?.valuePer100, 6)
+        XCTAssertEqual(item.nutrientEvidence.first { $0.nutrientCode == "FIBT" }?.valuePer100, 4)
+        XCTAssertEqual(item.nutrientEvidence.first { $0.nutrientCode == "FASAT" }?.valuePer100, 1)
+        XCTAssertEqual(item.nutrientEvidence.first { $0.nutrientCode == "VITA" }?.observationStatus, .trace)
+    }
+
+    func testObservedAveragesScalePortionsPreserveMissingAndIsolateOwners() {
+        let other = UUID(uuidString: "22222222-2222-4222-8222-222222222222")!
+        let mealA = UUID()
+        let mealB = UUID()
+        let emptyMeal = UUID()
+        let foreignMeal = UUID()
+        let summary = NutrientPatternEngine.summarize(
+            meals: [
+                .init(id: mealA, userID: owner, localDate: "2026-08-30"),
+                .init(id: mealB, userID: owner, localDate: "2026-08-31"),
+                .init(id: emptyMeal, userID: owner, localDate: "2026-08-31"),
+                .init(id: foreignMeal, userID: other, localDate: "2026-08-31")
+            ],
+            entries: [
+                .init(mealID: mealA, userID: owner, equivalentAmount: 200, evidence: [
+                    evidence("VITC", "Vitamin C", 50, "mg"),
+                    evidence("FE", "Iron", 2, "mg")
+                ]),
+                .init(mealID: mealB, userID: owner, equivalentAmount: 100, evidence: [
+                    evidence("VITC", "Vitamin C", 50, "mg"),
+                    evidence("VITA", "Vitamin A", nil, "µg", .trace)
+                ]),
+                .init(mealID: emptyMeal, userID: owner, equivalentAmount: 100, evidence: []),
+                .init(mealID: foreignMeal, userID: other, equivalentAmount: 10_000, evidence: [
+                    evidence("VITC", "Vitamin C", 500, "mg")
+                ])
+            ],
+            ownerID: owner,
+            anchorDate: "2026-08-31",
+            period: .week
+        )
+
+        let vitaminC = summary.rows.first { $0.nutrientCode == "VITC" && $0.unit == "mg" }
+        XCTAssertEqual(summary.calendarDays, 7)
+        XCTAssertEqual(summary.observedDays, 2)
+        XCTAssertEqual(summary.totalFoodEntries, 3)
+        XCTAssertEqual(summary.evidenceFoodEntries, 2)
+        XCTAssertEqual(summary.coverage, 2.0 / 3.0, accuracy: 0.000_001)
+        XCTAssertEqual(vitaminC?.total ?? -1, 150, accuracy: 0.000_001)
+        XCTAssertEqual(vitaminC?.averagePerObservedDay ?? -1, 75, accuracy: 0.000_001)
+        XCTAssertFalse(summary.rows.contains { $0.nutrientCode == "VITA" })
+    }
+
+    func testWindowUsesLocalDatesAndNeverMergesUnits() {
+        XCTAssertEqual(
+            NutrientPatternEngine.window(anchorDate: "2026-09-01", period: .week),
+            .init(start: "2026-08-26", end: "2026-09-01", calendarDays: 7)
+        )
+        XCTAssertEqual(
+            NutrientPatternEngine.window(anchorDate: "2026-09-15", period: .month),
+            .init(start: "2026-09-01", end: "2026-09-15", calendarDays: 15)
+        )
+
+        let mealID = UUID()
+        let result = NutrientPatternEngine.summarize(
+            meals: [.init(id: mealID, userID: owner, localDate: "2026-09-01")],
+            entries: [.init(mealID: mealID, userID: owner, equivalentAmount: 100, evidence: [
+                evidence("VITD", "Vitamin D", 10, "µg"),
+                evidence("VITD", "Vitamin D", 2, "IU")
+            ])],
+            ownerID: owner,
+            anchorDate: "2026-09-01",
+            period: .day
+        )
+        XCTAssertEqual(result.rows.filter { $0.nutrientCode == "VITD" }.count, 2)
+    }
+}

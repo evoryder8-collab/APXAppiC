@@ -932,3 +932,37 @@ test('Open Food Facts normalization validates barcodes, converts kJ and preserve
   assert.equal(romanianOnly?.name, 'Piept de pui crud')
   assert.equal(romanianOnly?.names_i18n.ro, 'Piept de pui crud')
 })
+
+test('Open Food Facts keeps reported micronutrients as bounded per-100 evidence', () => {
+  const food = normalizeOpenFoodFactsProduct({
+    status: 1,
+    product: {
+      code: '4006381333931', product_name_en: 'Detailed oats',
+      nutriments: {
+        'energy-kcal_100g': 380,
+        proteins_100g: 13,
+        carbohydrates_100g: 62,
+        fat_100g: 7,
+        'polyunsaturated-fat_100g': 2.5,
+        sodium_100g: 0.004,
+        'vitamin-c_100g': 0.03,
+        iron_100g: 0.0047,
+        selenium_100g: 0.000028,
+      },
+    },
+  } as never, '4006381333931')
+
+  assert.ok(food)
+  assert.deepEqual(
+    food.nutrient_evidence?.filter((row) => ['FAPU', 'NA', 'VITC', 'FE', 'SE'].includes(row.nutrient_code))
+      .map(({ nutrient_code, value_per_100, unit, observation_status }) => ({ nutrient_code, value_per_100, unit, observation_status })),
+    [
+      { nutrient_code: 'FAPU', value_per_100: 2.5, unit: 'g', observation_status: 'reported' },
+      { nutrient_code: 'NA', value_per_100: 4, unit: 'mg', observation_status: 'reported' },
+      { nutrient_code: 'VITC', value_per_100: 30, unit: 'mg', observation_status: 'reported' },
+      { nutrient_code: 'FE', value_per_100: 4.7, unit: 'mg', observation_status: 'reported' },
+      { nutrient_code: 'SE', value_per_100: 28, unit: 'µg', observation_status: 'reported' },
+    ],
+  )
+  assert.equal(food.nutrient_evidence?.some((row) => row.nutrient_code === 'VITD'), false)
+})

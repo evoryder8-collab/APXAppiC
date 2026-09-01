@@ -1013,6 +1013,18 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertGreaterThanOrEqual(amountHeading.frame.minX, app.frame.minX + 16)
         XCTAssertLessThanOrEqual(amountHeading.frame.maxX, app.frame.maxX - 16)
 
+        let nutrientInfo = app.buttons["food-nutrient-info"]
+        XCTAssertTrue(nutrientInfo.waitForExistence(timeout: 2))
+        XCTAssertGreaterThanOrEqual(nutrientInfo.frame.width, 44)
+        XCTAssertGreaterThanOrEqual(nutrientInfo.frame.height, 44)
+        nutrientInfo.tap()
+        let nutrientDetail = app.navigationBars["Detailed nutrition"]
+        XCTAssertTrue(nutrientDetail.waitForExistence(timeout: 2))
+        XCTAssertTrue(app.staticTexts["Evidence, not a diagnosis"].waitForExistence(timeout: 2))
+        capture("food-nutrient-detail")
+        nutrientDetail.buttons["Done"].tap()
+        XCTAssertFalse(nutrientDetail.exists)
+
         let quantity = app.textFields["food-amount-quantity"]
         XCTAssertTrue(quantity.waitForExistence(timeout: 2))
         quantity.tap()
@@ -1034,6 +1046,42 @@ final class APEXSmokeUITests: XCTestCase {
         XCTAssertLessThanOrEqual(confirm.frame.maxX, app.frame.maxX - 16)
         confirm.tap()
         XCTAssertFalse(app.descendants(matching: .any)["food-amount-quantity"].exists)
+    }
+
+    func testNutrientPatternsBoardDisclosesCoverageWithoutDiagnosing() {
+        let app = configuredApp()
+        app.launch()
+
+        XCTAssertTrue(app.buttons["portal.nutrition"].waitForExistence(timeout: 4))
+        app.buttons["portal.nutrition"].tap()
+
+        let title = app.staticTexts["Nutrient patterns"]
+        XCTAssertTrue(scrollUntilVisible(title, in: app, attempts: 48))
+        XCTAssertTrue(isReachable(title))
+
+        let period = app.segmentedControls.firstMatch
+        XCTAssertTrue(period.exists)
+        XCTAssertTrue(period.buttons["Day"].exists)
+        XCTAssertTrue(period.buttons["7 days"].exists)
+        XCTAssertTrue(period.buttons["Month"].exists)
+        period.buttons["Month"].tap()
+
+        let observedDays = app.staticTexts.matching(
+            NSPredicate(format: "label ==[c] %@", "Observed days")
+        ).firstMatch
+        XCTAssertTrue(scrollUntilVisible(observedDays, in: app, attempts: 16))
+        XCTAssertTrue(isReachable(observedDays))
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label ==[c] %@", "Evidence coverage")
+        ).firstMatch.exists)
+        XCTAssertTrue(app.staticTexts.matching(
+            NSPredicate(format: "label ==[c] %@", "Detailed foods")
+        ).firstMatch.exists)
+        XCTAssertTrue(
+            app.staticTexts["No detailed pattern yet"].exists
+                || app.staticTexts.matching(NSPredicate(format: "label CONTAINS[c] %@", "average")).count > 0
+        )
+        capture("nutrient-patterns-month")
     }
 
     func testWorkoutPlayerGuidesAndRecordsActualSet() {

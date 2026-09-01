@@ -7,6 +7,7 @@ import type {
   MealPresetItem,
 } from './food'
 import { SUPABASE_ENUMS } from './supabaseEnums.ts'
+import type { NutrientEvidenceObservation } from './nutrientEvidence.ts'
 
 export interface FoodPendingOperation {
   operation: string
@@ -58,6 +59,7 @@ export interface StructuredFoodEntryRequest {
   snapshot_water_ml_100?: number
   snapshot_water_basis?: string
   snapshot_water_source_id?: string
+  snapshot_nutrient_evidence?: NutrientEvidenceObservation[]
   quantity: number
   unit: string
   equivalent_amount: number
@@ -155,6 +157,9 @@ export function canonicalStructuredMealRPCPayload(
     ...(present(source.snapshot_water_ml_100) ? { snapshot_water_ml_100: source.snapshot_water_ml_100 } : {}),
     ...(present(source.snapshot_water_basis) ? { snapshot_water_basis: source.snapshot_water_basis } : {}),
     ...(present(source.snapshot_water_source_id) ? { snapshot_water_source_id: source.snapshot_water_source_id } : {}),
+    ...(present(source.snapshot_nutrient_evidence)
+      ? { snapshot_nutrient_evidence: source.snapshot_nutrient_evidence.map((row) => ({ ...row })) }
+      : {}),
     quantity: source.quantity,
     unit: source.unit,
     equivalent_amount: source.equivalent_amount,

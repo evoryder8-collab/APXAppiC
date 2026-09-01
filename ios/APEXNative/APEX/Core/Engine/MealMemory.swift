@@ -165,7 +165,8 @@ enum MealMemory {
             servingUnit: entry.unit == "serving" ? "serving" : nil,
             servingGramsOrML: entry.unit == "serving" ? entry.equivalentAmount / divisor : nil,
             pieceGramsOrML: entry.unit == "piece" ? entry.equivalentAmount / divisor : nil,
-            confidence: "complete"
+            confidence: "complete",
+            nutrientEvidence: entry.snapshotNutrientEvidence ?? []
         )
     }
 

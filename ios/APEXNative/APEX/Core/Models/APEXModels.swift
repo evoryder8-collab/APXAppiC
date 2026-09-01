@@ -768,6 +768,40 @@ struct EventRecord: Codable, Identifiable, Hashable, Sendable {
     }
 }
 
+enum NutrientObservationStatus: String, Codable, Hashable, Sendable {
+    case measured
+    case calculated
+    case estimated
+    case reported
+    case trace
+    case belowDetection = "below_detection"
+    case notMeasured = "not_measured"
+    case missing
+}
+
+struct NutrientEvidenceObservation: Codable, Hashable, Sendable {
+    let nutrientCode: String
+    let name: String
+    let valuePer100: Double?
+    let unit: String
+    let observationStatus: NutrientObservationStatus
+    let originalValueText: String
+    let derivationMethod: String?
+    let sourceKey: String?
+    let sourceReference: String?
+
+    enum CodingKeys: String, CodingKey {
+        case name, unit
+        case nutrientCode = "nutrient_code"
+        case valuePer100 = "value_per_100"
+        case observationStatus = "observation_status"
+        case originalValueText = "original_value_text"
+        case derivationMethod = "derivation_method"
+        case sourceKey = "source_key"
+        case sourceReference = "source_reference"
+    }
+}
+
 struct Food: Codable, Identifiable, Hashable, Sendable {
     let id: String
     let ownerUserID: UUID?
@@ -797,9 +831,11 @@ struct Food: Codable, Identifiable, Hashable, Sendable {
     var servingGramsOrML: Double?
     var pieceGramsOrML: Double?
     var confidence: String
+    var nutrientEvidence: [NutrientEvidenceObservation]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, name, brand, barcode, source, confidence
+        case nutrientEvidence = "nutrient_evidence"
         case ownerUserID = "owner_user_id"
         case namesI18n = "names_i18n"
         case providerProductID = "provider_product_id"
@@ -993,6 +1029,7 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
     var snapshotWaterBasis: String? = nil
     var snapshotWaterSourceID: String? = nil
     var waterML: Double? = nil
+    var snapshotNutrientEvidence: [NutrientEvidenceObservation]? = nil
 
     enum CodingKeys: String, CodingKey {
         case id, quantity, unit, kcal
@@ -1024,6 +1061,7 @@ struct LoggedFoodEntry: Codable, Identifiable, Hashable, Sendable {
         case saturatedFatG = "saturated_fat_g"
         case saltG = "salt_g"
         case waterML = "water_ml"
+        case snapshotNutrientEvidence = "snapshot_nutrient_evidence"
     }
 }
 
@@ -1080,6 +1118,7 @@ struct StructuredFoodEntryRequest: Codable, Sendable {
     let snapshotWaterML100: Double?
     var snapshotWaterBasis: String? = nil
     var snapshotWaterSourceID: String? = nil
+    var snapshotNutrientEvidence: [NutrientEvidenceObservation]? = nil
     let quantity: Double
     let unit: String
     let equivalentAmount: Double
@@ -1103,6 +1142,7 @@ struct StructuredFoodEntryRequest: Codable, Sendable {
         case snapshotWaterML100 = "snapshot_water_ml_100"
         case snapshotWaterBasis = "snapshot_water_basis"
         case snapshotWaterSourceID = "snapshot_water_source_id"
+        case snapshotNutrientEvidence = "snapshot_nutrient_evidence"
         case equivalentAmount = "equivalent_amount"
     }
 }
@@ -1139,6 +1179,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
     var waterML100: Double?
     var waterBasis: String? = nil
     var waterSourceID: String? = nil
+    var nutrientEvidence: [NutrientEvidenceObservation] = []
     var quantity: Double
     var unit: String
     var equivalentAmount: Double
@@ -1208,6 +1249,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
         waterML100 = food.waterML100
         waterBasis = food.waterBasis
         waterSourceID = food.waterSourceID
+        nutrientEvidence = FoodNutrientEvidence.observations(for: food)
         self.quantity = quantity
         self.unit = unit
         equivalentAmount = equivalent
@@ -1231,6 +1273,7 @@ struct MealComposerItem: Identifiable, Hashable, Sendable {
         waterML100 = entry.snapshotWaterML100
         waterBasis = entry.snapshotWaterBasis
         waterSourceID = entry.snapshotWaterSourceID
+        nutrientEvidence = entry.snapshotNutrientEvidence ?? []
         quantity = entry.quantity
         unit = entry.unit
         equivalentAmount = entry.equivalentAmount

@@ -35,6 +35,11 @@ test('corpus search evidence maps to a decodable Food without inventing values',
     saturated_fat_g: 1.36,
     salt_g: null,
     water_g: 74.87,
+    nutrient_evidence: [{
+      nutrient_code: 'FE', name: 'Iron', value_per_100: 1.4, unit: 'mg',
+      observation_status: 'measured', original_value_text: '1.4',
+      derivation_method: null, source_key: 'ca-cnf', source_reference: '571',
+    }],
   })
 
   assert.ok(normalized)
@@ -49,6 +54,11 @@ test('corpus search evidence maps to a decodable Food without inventing values',
   assert.equal(normalized.water_basis, 'provider_reported')
   assert.equal(normalized.water_source_id, 'corpus:ca-cnf:571:WATER')
   assert.equal(normalized.confidence, 'provider_verified')
+  assert.deepEqual(normalized.nutrient_evidence, [{
+    nutrient_code: 'FE', name: 'Iron', value_per_100: 1.4, unit: 'mg',
+    observation_status: 'measured', original_value_text: '1.4',
+    derivation_method: null, source_key: 'ca-cnf', source_reference: '571',
+  }])
 })
 
 test('serving evidence uses its published gram weight without pretending the serving is 100 g', () => {
@@ -122,6 +132,7 @@ test('client food projection rejects unsupported or unweighted bases instead of 
 test('Food Lookup merges the local catalogue and canonical corpus before the public provider', () => {
   const edge = readFileSync(edgeFunctionPath, 'utf8')
   assert.match(edge, /food_corpus_search_catalog/)
+  assert.match(edge, /food_corpus_search_catalog_v3/)
   assert.match(edge, /normalizeFoodCorpusSearchResult/)
   assert.match(edge, /Promise\.all/)
   assert.match(

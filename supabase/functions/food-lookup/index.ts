@@ -82,7 +82,7 @@ Deno.serve(async (request) => {
     }
     const [catalogResponse, corpusResponse] = await Promise.all([
       authClient.rpc('search_food_catalog', { p_query: rawQuery, p_limit: 25 }),
-      authClient.rpc('food_corpus_search_catalog_v2', { p_query: rawQuery, p_limit: 25 }),
+      authClient.rpc('food_corpus_search_catalog_v3', { p_query: rawQuery, p_limit: 25 }),
     ])
     const catalogResults = catalogResponse.error ? [] : (catalogResponse.data ?? [])
     const rawCorpusResults = corpusResponse.error
