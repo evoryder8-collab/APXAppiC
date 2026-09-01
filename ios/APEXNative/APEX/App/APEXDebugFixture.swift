@@ -245,6 +245,142 @@ enum APEXDebugFixture {
         )
     }
 
+    static func coachWorkspaceContext() -> CoachAccountContext {
+        CoachAccountContext(
+            coach: CoachProfileSummary(
+                status: .development,
+                displayName: "Constantine",
+                seatLimit: 10,
+                activeSeats: 2
+            ),
+            sponsorship: nil,
+            currentPlan: nil,
+            capabilities: CoachAccountCapabilities(coachWorkspace: true, sponsoredClient: false)
+        )
+    }
+
+    static func coachPlanContext() -> CoachAccountContext {
+        let relationshipID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        let checklist = CoachPlanChecklist(
+            nutrition: true,
+            workouts: true,
+            supplements: true,
+            hydration: true,
+            schedule: true,
+            reviewDate: true
+        )
+        let draft = CoachPlanDraft(
+            title: "Foundation strength",
+            objective: "Build rhythm, strength and confidence.",
+            coachNote: "Keep two good repetitions in reserve.",
+            reviewDate: "2026-09-15",
+            checklist: checklist,
+            sessions: [
+                CoachSessionTemplate(
+                    id: UUID(uuidString: "55555555-5555-4555-8555-555555555555")!,
+                    weekday: 2,
+                    name: "Full body foundation",
+                    sessionMode: .guided,
+                    estimatedMinutes: 45,
+                    warmupNote: "Move smoothly and stay pain-free.",
+                    exercises: [
+                        CoachExerciseTemplate(
+                            id: UUID(uuidString: "66666666-6666-4666-8666-666666666666")!,
+                            movementID: "bodyweight-squat",
+                            name: "Bodyweight Squat",
+                            sets: 3,
+                            targetMin: 8,
+                            targetMax: 10,
+                            unit: "reps",
+                            perSide: false,
+                            restSeconds: 75,
+                            tempoUpSeconds: 1,
+                            tempoDownSeconds: 2,
+                            tempoPauseSeconds: 0,
+                            notes: "Stop if form changes.",
+                            optional: false,
+                            groupID: nil,
+                            groupPosition: nil
+                        )
+                    ]
+                )
+            ]
+        )
+        return CoachAccountContext(
+            coach: nil,
+            sponsorship: CoachSponsorshipSummary(
+                relationshipID: relationshipID,
+                coachDisplayName: "Constantine",
+                relationshipStatus: .active,
+                seatState: .active,
+                offeredScopes: [.nutrition, .workouts, .activity, .hydration, .supplements, .avatar, .measurements, .recovery],
+                consentedScopes: [.nutrition, .workouts, .activity, .hydration, .supplements, .avatar, .measurements, .recovery],
+                graceEndsAt: nil
+            ),
+            currentPlan: CoachCurrentPlan(
+                id: UUID(uuidString: "44444444-4444-4444-8444-444444444444")!,
+                relationshipID: relationshipID,
+                version: 2,
+                status: .published,
+                title: draft.title,
+                objective: draft.objective,
+                coachNote: draft.coachNote,
+                reviewDate: draft.reviewDate,
+                checklist: checklist,
+                plan: draft,
+                publishedAt: "2026-09-01T08:00:00Z",
+                acknowledgedAt: nil,
+                activatedAt: nil
+            ),
+            capabilities: CoachAccountCapabilities(coachWorkspace: false, sponsoredClient: true)
+        )
+    }
+
+    static func coachRoster() -> [CoachRosterEntry] {
+        [
+            CoachRosterEntry(
+                id: UUID(uuidString: "33333333-3333-4333-8333-333333333333")!,
+                clientUserID: UUID(uuidString: "77777777-7777-4777-8777-777777777777")!,
+                displayName: "June",
+                relationshipStatus: .active,
+                seatState: .active,
+                consentedScopes: [.nutrition, .workouts, .activity, .hydration, .supplements, .avatar, .measurements, .recovery],
+                planVersion: 2,
+                planTitle: "Foundation strength",
+                reviewDate: "2026-09-15",
+                publishedAt: "2026-09-01T08:00:00Z",
+                acknowledgedAt: nil,
+                activatedAt: nil,
+                attention: [.reviewDue, .awaitingAcknowledgement]
+            )
+        ]
+    }
+
+    static func coachClientOverview() -> CoachClientOverview? {
+        let relationshipID = UUID(uuidString: "33333333-3333-4333-8333-333333333333")!
+        return CoachClientOverview(
+            relationshipID: relationshipID,
+            clientUserID: UUID(uuidString: "77777777-7777-4777-8777-777777777777")!,
+            displayName: "June",
+            relationshipStatus: .active,
+            seatState: .active,
+            consentedScopes: [.nutrition, .workouts, .activity, .hydration, .supplements, .avatar, .measurements, .recovery],
+            measurements: CoachClientMeasurements(
+                sex: "female",
+                heightCM: 165,
+                weightKG: 61.5,
+                bodyFatPercent: 24,
+                birthdate: "1983-06-15"
+            ),
+            avatar: nil,
+            workouts: CoachClientWorkoutSummary(completed30Days: 12, lastCompletedAt: "2026-08-31T18:30:00Z"),
+            nutrition: CoachClientNutritionSummary(daysObserved: 7, averageKcal: 2085),
+            hydration: CoachClientHydrationSummary(daysObserved: 7, averageLitres: 2.34),
+            visualProgressShared: false,
+            currentPlan: coachPlanContext().currentPlan
+        )
+    }
+
     private static func foodEntry(
         id: UUID,
         mealID: UUID,

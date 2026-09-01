@@ -54,6 +54,8 @@ import { NutritionGoalPresetPicker } from '../components/nutrition/NutritionGoal
 import { SupplementStackEditor } from '../components/supplements/SupplementStackEditor'
 import { CompletedWorkoutHistoryCards } from '../components/workout/CompletedWorkoutHistoryCards'
 import { WorkoutInsightsCard } from '../components/workout/WorkoutInsightsCard'
+import { clientPolicyForAccount } from '../lib/coachAccess'
+import { coachText } from '../lib/coachCopy'
 
 const emerald = ACCENTS.emerald
 const QuickMealComposer = lazy(() => import('../components/food/MealComposer').then((module) => ({ default: module.MealComposer })))
@@ -105,7 +107,7 @@ function normalizedSimpleBlockOrder(value: unknown): SimpleBlockId[] {
 }
 
 export function SimpleHome() {
-  const { data, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
+  const { data, coachContext, snapshots, upsert, remove, setProfile, setSettings, toast } = useStore()
   const foodStore = useFoodStore()
   const orbit = useOrbitStore()
   const navigate = useNavigate()
@@ -128,6 +130,7 @@ export function SimpleHome() {
   const [completedWorkoutTimeDraft, setCompletedWorkoutTimeDraft] = useState('')
   const profile = data.profile
   const settings = data.settings
+  const coachPolicy = clientPolicyForAccount(profile, coachContext)
   const [simpleBlockOrder, setSimpleBlockOrder] = useState<SimpleBlockId[]>(() => normalizedSimpleBlockOrder(settings?.addons.simple_block_order))
   const simpleBlockOrderRef = useRef(simpleBlockOrder)
   const mealTimeZone = timeZoneFromSettings(settings)
@@ -299,7 +302,7 @@ export function SimpleHome() {
       const dayIDs = new Set(activeDays.filter((day) => programIDs.has(day.program_id)).map((day) => day.id))
       return data.exercises.some((exercise) => dayIDs.has(exercise.program_day_id) && !exercise.is_lite)
     }
-    return { main: hasPrescription('main'), transition: hasPrescription('transition') }
+    return { main: hasPrescription('main'), transition: hasPrescription('transition'), coach: hasPrescription('coach') }
   }, [data])
   const fallbackGuidedProgramSlug = simpleGuidedProgramSlug(
     profile?.persona,
@@ -307,12 +310,14 @@ export function SimpleHome() {
     usableGuidedPrograms.transition,
   )
   const induction = data.settings?.addons.training_induction
-  const guidedProgramSlug: ProgramSlug = induction && isInsideInductionWindow(induction, 'transition', selectedDate) && usableGuidedPrograms.transition
-    ? 'transition'
-    : induction && isInsideInductionWindow(induction, 'main', selectedDate) && usableGuidedPrograms.main
-      ? 'main'
-      : fallbackGuidedProgramSlug
-  const guidedScheduleRoute = guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
+  const guidedProgramSlug: ProgramSlug = coachPolicy.can_follow_coach_plan && usableGuidedPrograms.coach
+    ? 'coach'
+    : induction && isInsideInductionWindow(induction, 'transition', selectedDate) && usableGuidedPrograms.transition
+      ? 'transition'
+      : induction && isInsideInductionWindow(induction, 'main', selectedDate) && usableGuidedPrograms.main
+        ? 'main'
+        : fallbackGuidedProgramSlug
+  const guidedScheduleRoute = guidedProgramSlug === 'coach' ? '/coach-workouts' : guidedProgramSlug === 'main' ? '/main-phase' : '/transition'
   const plans = useMemo(
     () => programDaysForDate(data, guidedProgramSlug, selectedDate, false),
     [data, guidedProgramSlug, selectedDate],
@@ -1061,6 +1066,21 @@ export function SimpleHome() {
         </div>
       </motion.header>
 
+      {coachContext.capabilities.sponsored_client && (
+        <Link to="/coach-plan" className="mb-4 block">
+          <GlassCard accent={ACCENTS.violet} className="p-4">
+            <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.violet.gradient }}><DumbbellIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">{coachText('Your coach plan', language)}</p><p className="truncate text-[11px] font-medium text-ink-soft">{coachText('Provided by', language)} {coachContext.sponsorship?.coach_display_name}</p></div><span className="font-mono text-[10px] font-black text-violet-700">OPEN</span></div>
+          </GlassCard>
+        </Link>
+      )}
+      {coachContext.capabilities.coach_workspace && (
+        <Link to="/coach" className="mb-4 block">
+          <GlassCard accent={ACCENTS.violet} className="p-4">
+            <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.violet.gradient }}><DumbbellIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">{coachText('Coach workspace', language)}</p><p className="truncate text-[11px] font-medium text-ink-soft">{coachText('Your clients, plans and reviews in one private place.', language)}</p></div></div>
+          </GlassCard>
+        </Link>
+      )}
+
       <Reorder.Group
         axis="y"
         values={simpleBlockOrder}
@@ -1209,7 +1229,7 @@ export function SimpleHome() {
                 </div>
               ) : null
             ) : blockId === 'orbit' ? (
-              !adhdMode && showOrbitShortcut ? <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
+              !adhdMode && showOrbitShortcut && coachPolicy.can_use_orbit ? <Link to={orbit.state.active_run ? '/orbit/run' : orbitSession ? '/orbit/campaign' : '/orbit'} className="block">
                 <GlassCard accent={ACCENTS.ice} className="p-4">
                   <div className="flex items-center gap-3"><div className="grid h-11 w-11 place-items-center rounded-2xl text-white" style={{ background: ACCENTS.ice.gradient }}><OrbitIcon className="h-5 w-5" /></div><div className="min-w-0 flex-1"><p className="font-display text-base font-bold text-ink">APEX Orbit</p><p className="truncate text-[11px] font-medium text-ink-soft">{orbit.state.active_run ? t('Continue interrupted run') : orbitSession ? `${orbitSession.adapted.duration_min} min · ${t(missionLabel(orbitSession.adapted.mission))}` : t('Your next run, already reasoned through')}</p></div><span className="font-mono text-[10px] font-bold text-sky-700">{t('RUN')}</span></div>
                 </GlassCard>

@@ -31,6 +31,7 @@ final class AppSession {
     var data: DashboardData = .empty {
         didSet { recomputeBrain() }
     }
+    var coachContext: CoachAccountContext = .empty
     /* Receipts from the interconnection engine, for the Avatar feed */
     var brainSynergies: [FBSynergyEvent] = []
     @ObservationIgnored private var brainRecomputing = false
@@ -72,6 +73,7 @@ final class AppSession {
         pendingSyncCount = 0
         failedSyncCount = 0
         failedSyncOperations = []
+        coachContext = .empty
         lastShadowObservationSignature = nil
         isBusy = false
         isRefreshing = false
@@ -98,6 +100,14 @@ final class AppSession {
     var profile: Profile? { data.profile }
     var isAuthenticated: Bool { data.profile != nil }
     var interfaceMode: PortalUIMode { PortalUIMode.current(from: data.settings) }
+    var coachClientPolicy: CoachClientPolicy {
+        CoachClientPolicy.resolve(
+            relationshipStatus: coachContext.sponsorship?.relationshipStatus,
+            seatState: coachContext.sponsorship?.seatState,
+            consentedScopes: coachContext.sponsorship?.consentedScopes ?? [],
+            individualAccess: EntitlementStore.shared.hasIndividualAccess
+        )
+    }
 
     /// A person's last choice is local device preference, deliberately kept
     /// apart from a programme day's authored default.
@@ -192,6 +202,14 @@ final class AppSession {
                 settings.addons["uiMode"] = .string(PortalUIMode.simple.rawValue)
                 data.settings = settings
             }
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-coach-workspace") {
+                coachContext = APEXDebugFixture.coachWorkspaceContext()
+                navigationPath = [.coachWorkspace]
+            }
+            if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-coach-plan") {
+                coachContext = APEXDebugFixture.coachPlanContext()
+                navigationPath = [.coachPlan]
+            }
             selectedPersona = .constantine
             if ProcessInfo.processInfo.arguments.contains("-apex-ui-test-failed-sync"),
                let debugProfile = data.profile,
@@ -216,7 +234,9 @@ final class AppSession {
             }
             if let debugProfile = data.profile {
                 EntitlementStore.shared.prepareForAccount(debugProfile.userID)
-                EntitlementStore.shared.resolve(profile: debugProfile)
+                let sponsored = coachContext.sponsorship?.relationshipStatus == .active
+                    && coachContext.sponsorship?.seatState == .active
+                EntitlementStore.shared.resolve(profile: debugProfile, sponsoredSeatActive: sponsored)
             }
             route = .portal
             return
@@ -612,6 +632,7 @@ final class AppSession {
             if accountGeneration.accepts(accountToken) { isRefreshing = false }
         }
         var followUpRefreshAvailable = true
+        var refreshedUserID: UUID?
         while true {
         var next = try await service.loadDashboard()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
@@ -635,6 +656,7 @@ final class AppSession {
             ?? next.settings?.userID
             ?? expectedUserID
             ?? currentUserID
+        refreshedUserID = authenticatedUserID
         if let authenticatedUserID,
            let bootstrap = TrainingInduction.missingProfileBootstrap(
                in: next,
@@ -750,6 +772,8 @@ final class AppSession {
         }
         await considerWeeklyCalibration()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
+        await refreshCoachContext(expectedUserID: refreshedUserID)
+        guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
         await resolveEntitlements()
         guard accountGeneration.accepts(accountToken) else { throw CancellationError() }
     }
@@ -817,7 +841,138 @@ final class AppSession {
             EntitlementStore.shared.prepareForAccount(userID)
         }
         guard let profile else { return }
-        EntitlementStore.shared.resolve(profile: profile)
+        let sponsored = coachContext.sponsorship?.relationshipStatus == .active
+            && coachContext.sponsorship?.seatState == .active
+        EntitlementStore.shared.resolve(profile: profile, sponsoredSeatActive: sponsored)
+    }
+
+    func refreshCoachContext(expectedUserID: UUID? = nil) async {
+        guard let ownerID = verifiedPersistenceOwnerID(), expectedUserID == nil || expectedUserID == ownerID else {
+            return
+        }
+        let token = accountGeneration.token
+        do {
+            let context = try await service.loadCoachContext()
+            guard accountGeneration.accepts(token), verifiedPersistenceOwnerID(ownerID) == ownerID else { return }
+            coachContext = context
+        } catch is CancellationError {
+            return
+        } catch {
+            // Preserve the last server-authoritative answer during a transient
+            // outage. Account boundaries clear it synchronously above.
+        }
+    }
+
+    func loadCoachRoster(query: String = "") async throws -> [CoachRosterEntry] {
+        #if DEBUG
+        if APEXRuntimeEnvironment.usesLocalUITestFixture() {
+            let roster = APEXDebugFixture.coachRoster()
+            guard query.isEmpty == false else { return roster }
+            return roster.filter { $0.displayName.localizedCaseInsensitiveContains(query) }
+        }
+        #endif
+        return try await service.loadCoachRoster(query: query)
+    }
+
+    func createCoachInvitation(
+        email: String,
+        scopes: Set<CoachConsentScope>,
+        visualProgressRequested: Bool
+    ) async throws -> CoachInvitationReceipt {
+        try await service.createCoachInvitation(
+            email: email,
+            scopes: scopes,
+            visualProgressRequested: visualProgressRequested
+        )
+    }
+
+    func previewCoachInvitation(token: String) async throws -> CoachInvitationPreview {
+        try await service.previewCoachInvitation(token: token)
+    }
+
+    func acceptCoachInvitation(
+        token: String,
+        scopes: Set<CoachConsentScope>,
+        visualProgressConsent: Bool
+    ) async throws {
+        coachContext = try await service.acceptCoachInvitation(
+            token: token,
+            scopes: scopes,
+            visualProgressConsent: visualProgressConsent
+        )
+        await resolveEntitlements()
+    }
+
+    func loadCoachClientOverview(relationshipID: UUID) async throws -> CoachClientOverview {
+        #if DEBUG
+        if APEXRuntimeEnvironment.usesLocalUITestFixture(),
+           let overview = APEXDebugFixture.coachClientOverview(),
+           overview.relationshipID == relationshipID {
+            return overview
+        }
+        #endif
+        return try await service.loadCoachClientOverview(relationshipID: relationshipID)
+    }
+
+    func saveCoachPlan(
+        relationshipID: UUID,
+        plan: CoachPlanDraft,
+        expectedVersion: Int
+    ) async throws -> CoachPlanVersionReceipt {
+        try await service.saveCoachPlan(
+            relationshipID: relationshipID,
+            plan: plan,
+            expectedVersion: expectedVersion,
+            publish: false
+        )
+    }
+
+    func publishCoachPlan(
+        relationshipID: UUID,
+        plan: CoachPlanDraft,
+        expectedVersion: Int
+    ) async throws -> CoachPlanVersionReceipt {
+        try await service.saveCoachPlan(
+            relationshipID: relationshipID,
+            plan: plan,
+            expectedVersion: expectedVersion,
+            publish: true
+        )
+    }
+
+    func acknowledgeCoachPlan(planVersionID: UUID) async throws {
+        _ = try await service.acknowledgeCoachPlan(planVersionID: planVersionID)
+        await refreshCoachContext()
+    }
+
+    func activateCoachPlan(planVersionID: UUID) async throws {
+        _ = try await service.activateCoachPlan(planVersionID: planVersionID)
+        do {
+            try await refreshDashboard()
+        } catch {
+            // Activation already succeeded server-side. Preserve that causal
+            // result and refresh the coach envelope independently instead of
+            // surfacing a retry that could imply the activation failed.
+            await refreshCoachContext()
+        }
+    }
+
+    func updateCoachScopes(
+        relationshipID: UUID,
+        scopes: Set<CoachConsentScope>,
+        visualProgressConsent: Bool
+    ) async throws {
+        coachContext = try await service.updateCoachScopes(
+            relationshipID: relationshipID,
+            scopes: scopes,
+            visualProgressConsent: visualProgressConsent
+        )
+    }
+
+    func endCoachRelationship(relationshipID: UUID) async throws {
+        _ = try await service.endCoachRelationship(relationshipID: relationshipID)
+        await refreshCoachContext()
+        await resolveEntitlements()
     }
 
     /*
@@ -3970,6 +4125,10 @@ final class AppSession {
         sessionMode: WorkoutSessionMode,
         picks: [CustomWorkoutBuilder.Pick]
     ) async {
+        guard coachClientPolicy.canCreateCustomWorkouts else {
+            alertMessage = LanguageState.shared.text("Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.")
+            return
+        }
         guard let profile else { return }
         let userID = profile.userID
 

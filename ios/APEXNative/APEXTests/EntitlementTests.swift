@@ -75,20 +75,32 @@ final class EntitlementTests: XCTestCase {
         XCTAssertEqual(Entitlement.coachMonthlyRappen(seats: 10), 7_100)
     }
 
-    func testCoachToolsNeedTheCoachTierButMealListsDoNot() {
+    func testCoachToolsNeedServerCoachCapabilityAndMealListsRemainIndividual() {
         let premium = Entitlement.Access.subscribed(.premium)
-        let coach = Entitlement.Access.subscribed(.coach)
         XCTAssertFalse(Entitlement.allows(.clientRoster, access: premium))
-        XCTAssertTrue(Entitlement.allows(.clientRoster, access: coach))
+        XCTAssertFalse(Entitlement.allows(.clientRoster, access: .founding))
         // Predefined meal lists are useful to anyone who eats the same things
         // most weeks, so they are not a coach feature at all.
         XCTAssertFalse(
             Entitlement.CoachFeature.allCases.contains { $0.rawValue.contains("meal") },
             "meal lists must stay available to individual accounts"
         )
-        // A claimed beta account is deliberately full-access during beta.
-        XCTAssertTrue(Entitlement.allows(.planAuthoring, access: .beta))
+        // Beta and founding access never invent a server coach role.
+        XCTAssertFalse(Entitlement.allows(.planAuthoring, access: .beta))
         XCTAssertFalse(Entitlement.allows(.planAuthoring, access: .locked))
+    }
+
+    func testActiveSponsoredSeatUnlocksClientAppWithoutIndividualOrCoachAccess() {
+        let access = Entitlement.access(
+            foundingMember: false,
+            betaCodeRedeemed: false,
+            subscribedTier: nil,
+            subscriptionExpires: nil,
+            sponsoredSeatActive: true
+        )
+        XCTAssertEqual(access, .sponsored)
+        XCTAssertTrue(Entitlement.isUnlocked(access))
+        XCTAssertFalse(Entitlement.allows(.clientRoster, access: access))
     }
 
     @MainActor

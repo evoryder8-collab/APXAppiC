@@ -35,6 +35,7 @@ const WEEKDAYS = ['Mo', 'Tu', 'We', 'Th', 'Fr', 'Sa', 'Su']
 
 /* Session-type visual identity: code + hue, shared with the legend */
 export const DAY_TYPE_META: Record<DayType, { code: string; label: string; bright: string; deep: string; gradient: string }> = {
+  coach: { code: 'CO', label: 'Coach plan', bright: '#8b5cf6', deep: '#6d28d9', gradient: 'linear-gradient(135deg, #7c3aed, #c084fc)' },
   legs_a: { code: 'LA', label: 'Legs A', bright: '#10b981', deep: '#047857', gradient: 'linear-gradient(135deg, #059669, #34d399)' },
   legs_b: { code: 'LB', label: 'Legs B', bright: '#10b981', deep: '#047857', gradient: 'linear-gradient(135deg, #059669, #34d399)' },
   push: { code: 'PU', label: 'Push', bright: '#f59e0b', deep: '#b45309', gradient: 'linear-gradient(135deg, #f59e0b, #fbbf24)' },

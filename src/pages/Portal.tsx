@@ -10,6 +10,8 @@ import { PortalLanguageMenu } from '../components/PortalLanguageMenu'
 import { useOrbitText } from '../orbit/ui/i18n'
 import { useLanguage } from '../lib/i18n'
 import { UI_TRANSLATIONS } from '../lib/translations'
+import { clientPolicyForAccount } from '../lib/coachAccess'
+import { coachText } from '../lib/coachCopy'
 
 const EASE = [0.22, 1, 0.36, 1] as const
 
@@ -22,7 +24,7 @@ function greeting(now: Date, name: string): string {
 }
 
 export function Portal() {
-  const { data, setSettings } = useStore()
+  const { data, coachContext, setSettings } = useStore()
   const t = useOrbitText()
   const { language } = useLanguage()
   const portalText = (value: string): string => language === 'en' ? value : UI_TRANSLATIONS[value]?.[language] ?? t(value)
@@ -30,6 +32,7 @@ export function Portal() {
   const profile = data.profile
   const persona = personaBySlug(profile?.persona ?? 'constantine')
   const firstName = profile?.display_name?.split(' ')[0] || persona.firstName
+  const coachPolicy = clientPolicyForAccount(profile, coachContext)
 
   return (
     <div className="mx-auto flex w-full max-w-3xl flex-col sm:min-h-[calc(100dvh-13rem)] sm:justify-center">
@@ -49,7 +52,7 @@ export function Portal() {
       </motion.header>
 
       <div className="grid gap-4 sm:grid-cols-2 sm:gap-5">
-        <div className="sm:col-span-2">
+        {coachPolicy.can_use_avatar && <div className="sm:col-span-2">
           <PortalCard
             to="/avatar"
             accent={ACCENTS.emerald}
@@ -59,8 +62,8 @@ export function Portal() {
             portraitAlt={`${profile?.display_name || persona.name} portrait`}
             index={0}
           />
-        </div>
-        <div className="sm:col-span-2">
+        </div>}
+        {coachPolicy.can_use_nutrition && <div className="sm:col-span-2">
           <PortalCard
             to="/nutrition"
             accent={ACCENTS.amber}
@@ -69,8 +72,28 @@ export function Portal() {
             icon={<LeafIcon className="h-7 w-7" />}
             index={1}
           />
-        </div>
-        <div className="sm:col-span-2">
+        </div>}
+        {coachContext.capabilities.coach_workspace && (
+          <PortalCard
+            to="/coach"
+            accent={ACCENTS.violet}
+            title={coachText('Coach workspace', language).toUpperCase()}
+            subtitle={coachText('Your clients, plans and reviews in one private place.', language)}
+            icon={<DumbbellIcon className="h-7 w-7" />}
+            index={2}
+          />
+        )}
+        {coachContext.capabilities.sponsored_client && (
+          <PortalCard
+            to="/coach-plan"
+            accent={ACCENTS.violet}
+            title={coachText('Your coach plan', language).toUpperCase()}
+            subtitle={`${coachText('Provided by', language)} ${coachContext.sponsorship?.coach_display_name ?? 'APEX'}`}
+            icon={<DumbbellIcon className="h-7 w-7" />}
+            index={2}
+          />
+        )}
+        {coachPolicy.can_rebuild_fitness_plan && <div className="sm:col-span-2">
           <FitnessPlanDisclosure
             introSeen={Boolean(data.settings?.addons.fitness_plan_intro_seen)}
             onIntroSeen={() => {
@@ -87,8 +110,8 @@ export function Portal() {
             mainTitle={portalText('Main phase')}
             text={portalText}
           />
-        </div>
-        {data.programs.some((program) => program.slug === 'custom') && (
+        </div>}
+        {coachPolicy.can_create_custom_workouts && data.programs.some((program) => program.slug === 'custom') && (
           <PortalCard
             to="/custom-workouts"
             accent={ACCENTS.violet}
@@ -98,14 +121,14 @@ export function Portal() {
             index={3}
           />
         )}
-        <PortalCard
+        {coachPolicy.can_use_orbit && <PortalCard
           to="/orbit"
           accent={ACCENTS.ice}
           title="APEX ORBIT"
           subtitle="Run intelligence and marathon conditioning"
           icon={<OrbitIcon className="h-8 w-8" />}
           index={4}
-        />
+        />}
       </div>
       <PortalLanguageMenu />
     </div>

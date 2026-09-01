@@ -22,4 +22,7 @@ enum PortalDestination: Hashable {
     case avatar
     case visualProgress
     case settings
+    case coachWorkspace
+    case coachPlan
+    case coachWorkouts
 }

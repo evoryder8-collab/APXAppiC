@@ -83,6 +83,8 @@ import type { DayType } from '../../lib/types'
 
 /* Which regions light up for a given session type */
 export const MUSCLE_MAP: Record<DayType, RegionKey[]> = {
+  // The authored exercises, not the programme owner, determine body emphasis.
+  coach: [],
   legs_a: ['glutes', 'hamstrings', 'calves'],
   legs_b: ['quads', 'glutes', 'calves'],
   push: ['chest', 'front_delts', 'side_delts', 'triceps'],

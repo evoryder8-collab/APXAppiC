@@ -393,7 +393,7 @@ struct TrainingProgramView: View {
 
                 WorkoutInsightsCard(anchorDate: Date().apexDateKey, accent: accent)
 
-                if slug == "custom" {
+                if slug == "custom", session.coachClientPolicy.canCreateCustomWorkouts {
                     MuscleMapCard(
                         dayType: todayMuscleDayType,
                         sessionDate: Date().apexDateKey,

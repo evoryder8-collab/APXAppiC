@@ -599,6 +599,146 @@ actor SupabaseService {
             .value
     }
 
+    func loadCoachContext() async throws -> CoachAccountContext {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        return try await client.rpc("coach_get_my_context").execute().value
+    }
+
+    func loadCoachRoster(query: String = "") async throws -> [CoachRosterEntry] {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable { let p_query: String? }
+        return try await client
+            .rpc("coach_get_roster", params: Params(p_query: query.isEmpty ? nil : query))
+            .execute()
+            .value
+    }
+
+    func createCoachInvitation(
+        email: String,
+        scopes: Set<CoachConsentScope>,
+        visualProgressRequested: Bool
+    ) async throws -> CoachInvitationReceipt {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable {
+            let p_email: String
+            let p_scopes: [String]
+            let p_visual_progress_requested: Bool
+        }
+        return try await client.rpc("coach_create_invitation", params: Params(
+            p_email: email,
+            p_scopes: scopes.map(\.rawValue).sorted(),
+            p_visual_progress_requested: visualProgressRequested
+        )).execute().value
+    }
+
+    func previewCoachInvitation(token: String) async throws -> CoachInvitationPreview {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable { let p_token: String }
+        return try await client
+            .rpc("coach_preview_invitation", params: Params(p_token: token))
+            .execute()
+            .value
+    }
+
+    func acceptCoachInvitation(
+        token: String,
+        scopes: Set<CoachConsentScope>,
+        visualProgressConsent: Bool
+    ) async throws -> CoachAccountContext {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable {
+            let p_token: String
+            let p_scopes: [String]
+            let p_visual_progress_consent: Bool
+        }
+        return try await client.rpc("coach_accept_invitation", params: Params(
+            p_token: token,
+            p_scopes: scopes.map(\.rawValue).sorted(),
+            p_visual_progress_consent: visualProgressConsent
+        )).execute().value
+    }
+
+    func loadCoachClientOverview(relationshipID: UUID) async throws -> CoachClientOverview {
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable { let p_relationship_id: UUID }
+        return try await client
+            .rpc("coach_get_client_overview", params: Params(p_relationship_id: relationshipID))
+            .execute()
+            .value
+    }
+
+    func saveCoachPlan(
+        relationshipID: UUID,
+        plan: CoachPlanDraft,
+        expectedVersion: Int,
+        publish: Bool
+    ) async throws -> CoachPlanVersionReceipt {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable {
+            let p_relationship_id: UUID
+            let p_plan: CoachPlanDraft
+            let p_expected_version: Int
+        }
+        let function = publish ? "coach_publish_plan" : "coach_save_plan_draft"
+        return try await client.rpc(function, params: Params(
+            p_relationship_id: relationshipID,
+            p_plan: plan,
+            p_expected_version: expectedVersion
+        )).execute().value
+    }
+
+    func acknowledgeCoachPlan(planVersionID: UUID) async throws -> Bool {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable { let p_plan_version_id: UUID }
+        return try await client
+            .rpc("client_acknowledge_coach_plan", params: Params(p_plan_version_id: planVersionID))
+            .execute()
+            .value
+    }
+
+    func activateCoachPlan(planVersionID: UUID) async throws -> CoachPlanActivationReceipt {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable { let p_plan_version_id: UUID }
+        return try await client
+            .rpc("client_activate_coach_plan", params: Params(p_plan_version_id: planVersionID))
+            .execute()
+            .value
+    }
+
+    func updateCoachScopes(
+        relationshipID: UUID,
+        scopes: Set<CoachConsentScope>,
+        visualProgressConsent: Bool
+    ) async throws -> CoachAccountContext {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable {
+            let p_relationship_id: UUID
+            let p_scopes: [String]
+            let p_visual_progress_consent: Bool
+        }
+        return try await client.rpc("client_update_coach_scopes", params: Params(
+            p_relationship_id: relationshipID,
+            p_scopes: scopes.map(\.rawValue).sorted(),
+            p_visual_progress_consent: visualProgressConsent
+        )).execute().value
+    }
+
+    func endCoachRelationship(relationshipID: UUID) async throws -> Bool {
+        assertRemoteMutationAllowed()
+        guard let client else { throw APEXServiceError.configurationMissing }
+        struct Params: Encodable, Sendable { let p_relationship_id: UUID }
+        return try await client
+            .rpc("end_coach_relationship", params: Params(p_relationship_id: relationshipID))
+            .execute()
+            .value
+    }
+
     func startRealtime(onChange: @escaping @Sendable () -> Void) async throws {
         guard let client else { throw APEXServiceError.configurationMissing }
         await stopRealtime()

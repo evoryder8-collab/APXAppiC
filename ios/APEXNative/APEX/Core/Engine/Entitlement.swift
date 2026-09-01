@@ -18,6 +18,9 @@ enum Entitlement {
         case founding
         case beta
         case subscribed(Tier)
+        /// A free client seat owned by an active, server-authorised coach.
+        /// It unlocks the client experience, never coach administration.
+        case sponsored
         case locked
     }
 
@@ -66,6 +69,7 @@ enum Entitlement {
         betaCodeRedeemed: Bool,
         subscribedTier: Tier?,
         subscriptionExpires: Date?,
+        sponsoredSeatActive: Bool = false,
         now: Date = Date()
     ) -> Access {
         if foundingMember { return .founding }
@@ -79,6 +83,7 @@ enum Entitlement {
         if let subscribedTier, subscriptionExpires == nil {
             return .subscribed(subscribedTier)
         }
+        if sponsoredSeatActive { return .sponsored }
         return .locked
     }
 
@@ -98,10 +103,10 @@ enum Entitlement {
     }
 
     static func allows(_ feature: CoachFeature, access: Access) -> Bool {
-        switch access {
-        case .founding, .beta: true
-        case .subscribed(let tier): tier == .coach
-        case .locked: false
-        }
+        // Coach authority is now a dedicated server capability, not a price,
+        // beta flag, founding account, or client sponsorship side effect.
+        _ = feature
+        _ = access
+        return false
     }
 }

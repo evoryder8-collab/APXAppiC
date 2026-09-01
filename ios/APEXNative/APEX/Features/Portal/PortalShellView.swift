@@ -52,18 +52,49 @@ struct PortalShellView: View {
     @ViewBuilder
     private func destinationView(_ destination: PortalDestination) -> some View {
         switch destination {
-        case .nutrition: NutritionView()
-        case .transition: TrainingProgramView(slug: "transition", accent: APEXColor.teal)
-        case .mainPhase: TrainingProgramView(slug: "main", accent: APEXColor.violet)
+        case .coachWorkspace:
+            if session.coachContext.capabilities.coachWorkspace { CoachWorkspaceView() }
+            else { CoachFeatureLockedView() }
+        case .coachPlan: CoachPlanView()
+        case .coachWorkouts:
+            if session.coachClientPolicy.canFollowCoachPlan { TrainingProgramView(slug: "coach", accent: APEXColor.violet) }
+            else { CoachFeatureLockedView() }
+        case .nutrition:
+            if session.coachClientPolicy.canUseNutrition { NutritionView() }
+            else { CoachFeatureLockedView() }
+        case .transition:
+            if session.coachClientPolicy.canRebuildFitnessPlan { TrainingProgramView(slug: "transition", accent: APEXColor.teal) }
+            else { CoachFeatureLockedView() }
+        case .mainPhase:
+            if session.coachClientPolicy.canRebuildFitnessPlan { TrainingProgramView(slug: "main", accent: APEXColor.violet) }
+            else { CoachFeatureLockedView() }
         /* Web parity: custom workouts are the same section with its own programme. */
-        case .customWorkouts: TrainingProgramView(slug: "custom", accent: APEXColor.violet)
-        case .orbit: OrbitHomeView()
-        case .avatar: AvatarView {
-            showBaselineCalibration = true
-        }
-        case .visualProgress: VisualProgressView()
+        case .customWorkouts:
+            if session.coachClientPolicy.canCreateCustomWorkouts { TrainingProgramView(slug: "custom", accent: APEXColor.violet) }
+            else { CoachFeatureLockedView() }
+        case .orbit:
+            if session.coachClientPolicy.canUseOrbit { OrbitHomeView() }
+            else { CoachFeatureLockedView() }
+        case .avatar:
+            if session.coachClientPolicy.canUseAvatar {
+                AvatarView { showBaselineCalibration = true }
+            } else { CoachFeatureLockedView() }
+        case .visualProgress:
+            if session.coachClientPolicy.canViewVisualProgress { VisualProgressView() }
+            else { CoachFeatureLockedView() }
         case .settings: SettingsView()
         }
+    }
+}
+
+private struct CoachFeatureLockedView: View {
+    @State private var language = LanguageState.shared
+    var body: some View {
+        ContentUnavailableView(
+            language.text("Managed by your coach"),
+            systemImage: "person.crop.circle.badge.checkmark",
+            description: Text(language.text("Your sponsored account keeps nutrition, Avatar and the coach plan focused. An individual subscription restores personal builders and Orbit."))
+        )
     }
 }
 

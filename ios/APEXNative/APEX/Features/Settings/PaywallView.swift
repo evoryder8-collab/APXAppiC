@@ -1,10 +1,7 @@
 import SwiftUI
 
-/// The two tiers, shown when an account needs access and whenever someone asks.
-///
-/// Prices are stated in full, including what the yearly plan actually saves and
-/// what a fourth client costs a coach. A tier sheet that hides the second
-/// number until checkout is the reason people distrust these screens.
+/// Individual access shown when an account needs access. Coach sponsorship is
+/// provisioned only by the server workspace and is never sold from this sheet.
 struct PaywallView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -40,17 +37,6 @@ struct PaywallView: View {
                         "The follow-along player, with pacing and rest built in",
                         "Food, water, supplements and recovery in one day view",
                         "Predefined meal lists you can reuse"
-                    ]
-                )
-
-                tierCard(
-                    tier: .coach,
-                    audience: language.text("For trainers"),
-                    features: [
-                        "Everything in Premium, for yourself",
-                        "A client roster with their targets and history",
-                        "Write and assign plans to the people you train",
-                        "Predefined meal lists you can hand to clients"
                     ]
                 )
 
@@ -135,16 +121,6 @@ struct PaywallView: View {
                             period: language.text("per month"),
                             emphasised: true
                         )
-                    }
-                    if tier == .coach {
-                        Text(language.format(
-                            "%d clients included, then CHF %@ each per month",
-                            Entitlement.coachIncludedSeats,
-                            Self.francs(Entitlement.coachExtraSeatRappen)
-                        ))
-                        .font(APEXFont.body(11))
-                        .foregroundStyle(secondaryInk)
-                        .fixedSize(horizontal: false, vertical: true)
                     }
                 }
 

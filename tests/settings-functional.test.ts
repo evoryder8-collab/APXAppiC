@@ -23,7 +23,7 @@ test('selected SIMPLE mode remains a working route back home', () => {
 
 test('Simple Mode full-schedule link uses a real application route', () => {
   const simple = source('pages/SimpleHome.tsx')
-  assert.match(simple, /guidedScheduleRoute = guidedProgramSlug === 'main' \? '\/main-phase' : '\/transition'/)
+  assert.match(simple, /guidedScheduleRoute = guidedProgramSlug === 'coach' \? '\/coach-workouts' : guidedProgramSlug === 'main' \? '\/main-phase' : '\/transition'/)
   assert.doesNotMatch(simple, /to={`\/\$\{guidedProgramSlug\}`}/)
 })
 

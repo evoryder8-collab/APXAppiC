@@ -58,16 +58,37 @@ struct PortalHomeView: View {
                 .frame(maxWidth: .infinity, alignment: .leading)
                 .padding(.vertical, 32)
 
-                ProfilePortalTile()
-                PortalTile(
-                    title: language.text(.nutrition),
-                    subtitle: language.text(.mealsSupplementsLog),
-                    icon: "leaf",
-                    color: APEXColor.amber,
-                    destination: .nutrition
-                )
-                FitnessPlanDisclosure()
-                if session.data.programs.contains(where: { $0.slug == "custom" }) {
+                if session.coachClientPolicy.canUseAvatar { ProfilePortalTile() }
+                if session.coachClientPolicy.canUseNutrition {
+                    PortalTile(
+                        title: language.text(.nutrition),
+                        subtitle: language.text(.mealsSupplementsLog),
+                        icon: "leaf",
+                        color: APEXColor.amber,
+                        destination: .nutrition
+                    )
+                }
+                if session.coachContext.capabilities.coachWorkspace {
+                    PortalTile(
+                        title: language.text("Coach workspace"),
+                        subtitle: language.text("Your clients, plans and reviews in one private place."),
+                        icon: "person.2.badge.gearshape",
+                        color: APEXColor.violet,
+                        destination: .coachWorkspace
+                    )
+                }
+                if session.coachContext.capabilities.sponsoredClient {
+                    PortalTile(
+                        title: language.text("Your coach plan"),
+                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "APEX"),
+                        icon: "person.crop.circle.badge.checkmark",
+                        color: APEXColor.violet,
+                        destination: .coachPlan
+                    )
+                }
+                if session.coachClientPolicy.canRebuildFitnessPlan { FitnessPlanDisclosure() }
+                if session.coachClientPolicy.canCreateCustomWorkouts,
+                   session.data.programs.contains(where: { $0.slug == "custom" }) {
                     PortalTile(
                         title: language.text(.customWorkouts),
                         subtitle: language.text(.customWorkoutsSubtitle),
@@ -76,13 +97,15 @@ struct PortalHomeView: View {
                         destination: .customWorkouts
                     )
                 }
-                PortalTile(
-                    title: language.text(.orbit),
-                    subtitle: language.text(.runIntelligence),
-                    icon: "figure.run",
-                    color: APEXColor.cyan,
-                    destination: .orbit
-                )
+                if session.coachClientPolicy.canUseOrbit {
+                    PortalTile(
+                        title: language.text(.orbit),
+                        subtitle: language.text(.runIntelligence),
+                        icon: "figure.run",
+                        color: APEXColor.cyan,
+                        destination: .orbit
+                    )
+                }
 
                 HStack {
                     PortalLanguagePicker()
@@ -541,6 +564,9 @@ private struct ProfilePortalTile: View {
 private extension PortalDestination {
     var accessibilityID: String {
         switch self {
+        case .coachWorkspace: "coach-workspace"
+        case .coachPlan: "coach-plan"
+        case .coachWorkouts: "coach-workouts"
         case .nutrition: "nutrition"
         case .transition: "transition"
         case .mainPhase: "main"

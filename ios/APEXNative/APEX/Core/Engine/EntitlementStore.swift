@@ -11,6 +11,7 @@ final class EntitlementStore {
 
     private(set) var access: Entitlement.Access = .locked
     private(set) var resolvedUserID: UUID?
+    private(set) var hasIndividualAccess = false
 
     var isUnlocked: Bool { Entitlement.isUnlocked(access) }
 
@@ -66,21 +67,32 @@ final class EntitlementStore {
         guard resolvedUserID != userID else { return }
         resolvedUserID = userID
         access = .locked
+        hasIndividualAccess = false
     }
 
     func resetAccount() {
         resolvedUserID = nil
         access = .locked
+        hasIndividualAccess = false
     }
 
-    func resolve(profile: Profile?) {
+    func resolve(profile: Profile?, sponsoredSeatActive: Bool = false) {
         guard let profile else { return }
         prepareForAccount(profile.userID)
-        access = Entitlement.access(
+        let individualAccess = Entitlement.access(
             foundingMember: profile.foundingMember ?? false,
             betaCodeRedeemed: profile.betaCodeRedeemed ?? false,
             subscribedTier: profile.subscriptionTier.flatMap(Entitlement.Tier.init(rawValue:)),
-            subscriptionExpires: profile.subscriptionExpiresAt.flatMap(Self.parse)
+            subscriptionExpires: profile.subscriptionExpiresAt.flatMap(Self.parse),
+            sponsoredSeatActive: false
+        )
+        hasIndividualAccess = Entitlement.isUnlocked(individualAccess)
+        access = hasIndividualAccess ? individualAccess : Entitlement.access(
+            foundingMember: false,
+            betaCodeRedeemed: false,
+            subscribedTier: nil,
+            subscriptionExpires: nil,
+            sponsoredSeatActive: sponsoredSeatActive
         )
     }
 

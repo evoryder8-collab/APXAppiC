@@ -670,6 +670,7 @@ enum TrainingInduction {
         let pending = data.settings.map(pendingDayIDs) ?? []
         return data.programDays.filter {
             $0.userID == userID
+                && $0.isActive
                 && !archived.contains($0.id)
                 && !pending.contains($0.id)
         }

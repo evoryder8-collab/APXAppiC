@@ -78,7 +78,7 @@ struct SettingsView: View {
                     .fixedSize(horizontal: false, vertical: true)
                 /* A founding account has nothing to buy, so it is not shown a
                    price list it can never need. */
-                if entitlements.access != .founding {
+                if entitlements.access == .locked {
                     Button(language.text("See the plans")) { showPaywall = true }
                         .font(APEXFont.body(14, weight: .bold))
                 }
@@ -98,6 +98,8 @@ struct SettingsView: View {
             language.text("Unlocked with a beta code.")
         case .subscribed(let tier):
             language.format("Subscribed to %@.", language.text(tier == .premium ? "Premium" : "Coach"))
+        case .sponsored:
+            language.text("Access provided by your coach.")
         case .locked:
             language.text("Premium access or a beta code is required.")
         }

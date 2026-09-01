@@ -13,6 +13,8 @@ import { ACCENTS } from './lib/theme'
 import { startReminderLoop } from './lib/notify'
 import { LanguageProvider } from './lib/i18n'
 import { uiModeFromSettings } from './lib/simpleMode'
+import { clientPolicyForAccount } from './lib/coachAccess'
+import type { CoachClientPolicy } from './lib/coachPlatform'
 import {
   clearEntryGrant,
   clearSelectedPersona,
@@ -47,6 +49,16 @@ const OrbitLibrary = lazy(() => import('./orbit/pages/OrbitLibrary').then((modul
 const MarathonInductionPage = lazy(() => import('./orbit/pages/MarathonInduction').then((module) => ({ default: module.MarathonInductionPage })))
 const MarathonCampaignPage = lazy(() => import('./orbit/pages/MarathonCampaign').then((module) => ({ default: module.MarathonCampaignPage })))
 const OrbitScience = lazy(() => import('./orbit/pages/OrbitScience').then((module) => ({ default: module.OrbitScience })))
+const CoachWorkspace = lazy(() => import('./pages/CoachWorkspace').then((module) => ({ default: module.CoachWorkspace })))
+const CoachInvitation = lazy(() => import('./pages/CoachInvitation').then((module) => ({ default: module.CoachInvitation })))
+const CoachPlan = lazy(() => import('./pages/CoachPlan').then((module) => ({ default: module.CoachPlan })))
+
+function AccountFeature({ capability, children }: { capability: keyof CoachClientPolicy; children: ReactNode }) {
+  const { data, coachContext } = useStore()
+  return clientPolicyForAccount(data.profile, coachContext)[capability]
+    ? children
+    : <Navigate to="/coach-plan" replace />
+}
 
 function LoadingSurface({ page = false }: { page?: boolean }) {
   return (
@@ -79,12 +91,12 @@ function AnimatedRoutes() {
     <AnimatePresence mode="wait">
       <Routes location={location} key={location.pathname}>
         <Route path="/" element={<Page>{settingsOnly ? <WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /> : simple ? <SimpleHome /> : <Portal />}</Page>} />
-        <Route path="/nutrition" element={<Page><Nutrition /></Page>} />
+        <Route path="/nutrition" element={<AccountFeature capability="can_use_nutrition"><Page><Nutrition /></Page></AccountFeature>} />
         <Route
           path="/transition"
           element={
             <Page>
-              <WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" />
+              <AccountFeature capability="can_rebuild_fitness_plan"><WorkoutSection slug="transition" accent={ACCENTS.teal} title="Transition Phase" /></AccountFeature>
             </Page>
           }
         />
@@ -92,7 +104,7 @@ function AnimatedRoutes() {
           path="/main-phase"
           element={
             <Page>
-              <WorkoutSection slug="main" accent={ACCENTS.violet} title="Main Phase" />
+              <AccountFeature capability="can_rebuild_fitness_plan"><WorkoutSection slug="main" accent={ACCENTS.violet} title="Main Phase" /></AccountFeature>
             </Page>
           }
         />
@@ -100,21 +112,25 @@ function AnimatedRoutes() {
           path="/custom-workouts"
           element={
             <Page>
-              <WorkoutSection slug="custom" accent={ACCENTS.violet} title="Custom workouts" />
+              <AccountFeature capability="can_create_custom_workouts"><WorkoutSection slug="custom" accent={ACCENTS.violet} title="Custom workouts" /></AccountFeature>
             </Page>
           }
         />
-        <Route path="/avatar" element={<Page><AvatarPage /></Page>} />
-        <Route path="/progress" element={<Page><VisualProgress /></Page>} />
-        <Route path="/orbit" element={<Page><OrbitHome /></Page>} />
-        <Route path="/orbit/plan" element={<Page><RoutePlanner /></Page>} />
-        <Route path="/orbit/run" element={<Page><LiveRun /></Page>} />
-        <Route path="/orbit/debrief/:runId" element={<Page><RunDebrief /></Page>} />
-        <Route path="/orbit/library" element={<Page><OrbitLibrary /></Page>} />
-        <Route path="/orbit/induction" element={<Page><MarathonInductionPage /></Page>} />
-        <Route path="/orbit/campaign" element={<Page><MarathonCampaignPage /></Page>} />
-        <Route path="/orbit/science" element={<Page><OrbitScience /></Page>} />
+        <Route path="/avatar" element={<AccountFeature capability="can_use_avatar"><Page><AvatarPage /></Page></AccountFeature>} />
+        <Route path="/progress" element={<AccountFeature capability="can_view_visual_progress"><Page><VisualProgress /></Page></AccountFeature>} />
+        <Route path="/orbit" element={<AccountFeature capability="can_use_orbit"><Page><OrbitHome /></Page></AccountFeature>} />
+        <Route path="/orbit/plan" element={<AccountFeature capability="can_use_orbit"><Page><RoutePlanner /></Page></AccountFeature>} />
+        <Route path="/orbit/run" element={<AccountFeature capability="can_use_orbit"><Page><LiveRun /></Page></AccountFeature>} />
+        <Route path="/orbit/debrief/:runId" element={<AccountFeature capability="can_use_orbit"><Page><RunDebrief /></Page></AccountFeature>} />
+        <Route path="/orbit/library" element={<AccountFeature capability="can_use_orbit"><Page><OrbitLibrary /></Page></AccountFeature>} />
+        <Route path="/orbit/induction" element={<AccountFeature capability="can_use_orbit"><Page><MarathonInductionPage /></Page></AccountFeature>} />
+        <Route path="/orbit/campaign" element={<AccountFeature capability="can_use_orbit"><Page><MarathonCampaignPage /></Page></AccountFeature>} />
+        <Route path="/orbit/science" element={<AccountFeature capability="can_use_orbit"><Page><OrbitScience /></Page></AccountFeature>} />
         <Route path="/settings" element={<Page><Settings /></Page>} />
+        <Route path="/coach" element={<Page><CoachWorkspace /></Page>} />
+        <Route path="/coach/invite/:token" element={<Page><CoachInvitation /></Page>} />
+        <Route path="/coach-plan" element={<Page><CoachPlan /></Page>} />
+        <Route path="/coach-workouts" element={<AccountFeature capability="can_follow_coach_plan"><Page><WorkoutSection slug="coach" accent={ACCENTS.violet} title="Coach plan" /></Page></AccountFeature>} />
         <Route path="/player/:slug/:date" element={<Page immersive><Player /></Page>} />
         <Route path="/log/:slug/:date" element={<Page><TrackedSession /></Page>} />
         <Route path="*" element={<Navigate to="/" replace />} />

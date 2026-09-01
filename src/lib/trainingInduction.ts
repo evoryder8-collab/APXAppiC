@@ -793,7 +793,10 @@ export function activeTrainingProgramDays(data: AppData): ProgramDay[] {
   const pending = pendingTrainingDayIds(data.settings?.addons)
   const protectedIds = protectedOriginalDayIds(data, userId)
   return data.program_days.filter((day) =>
-    day.user_id === userId && (!archived.has(day.id) || protectedIds.has(day.id)) && !pending.has(day.id))
+    day.user_id === userId
+      && day.is_active !== false
+      && (!archived.has(day.id) || protectedIds.has(day.id))
+      && !pending.has(day.id))
 }
 
 export function generateTrainingPlan(

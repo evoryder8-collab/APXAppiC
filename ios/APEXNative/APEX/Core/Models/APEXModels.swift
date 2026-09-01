@@ -9,8 +9,8 @@ enum SupabaseEnumContract {
         "activity_level": ["sedentary", "light", "moderate", "very", "extra"],
         "goal": ["recomp", "maintain", "bulk"],
         "supplement_timing": ["clock", "training"],
-        "program_slug": ["transition", "main", "custom"],
-        "day_type": ["legs_a", "legs_b", "push", "pull", "upper", "mobility", "fix", "t25", "custom"],
+        "program_slug": ["transition", "main", "custom", "coach"],
+        "day_type": ["legs_a", "legs_b", "push", "pull", "upper", "mobility", "fix", "t25", "custom", "coach"],
         "session_mode": ["guided", "tracked"],
         "rep_unit": ["reps", "seconds", "minutes", "metres", "steps", "rounds", "max", "check"],
         "activity_input_style": ["count", "duration", "distance", "steps", "watch_kcal"],
@@ -510,6 +510,8 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
     var warmupNote: String
     var sortOrder: Int
     var sessionMode: String = WorkoutSessionMode.guided.rawValue
+    var isActive: Bool = true
+    var coachPlanVersionID: UUID?
 
     enum CodingKeys: String, CodingKey {
         case id, weekday, name
@@ -520,6 +522,8 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         case warmupNote = "warmup_note"
         case sortOrder = "sort_order"
         case sessionMode = "session_mode"
+        case isActive = "is_active"
+        case coachPlanVersionID = "coach_plan_version_id"
     }
 
     init(
@@ -532,7 +536,9 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         estimatedMinutes: Int,
         warmupNote: String,
         sortOrder: Int,
-        sessionMode: String = WorkoutSessionMode.guided.rawValue
+        sessionMode: String = WorkoutSessionMode.guided.rawValue,
+        isActive: Bool = true,
+        coachPlanVersionID: UUID? = nil
     ) {
         self.id = id
         self.userID = userID
@@ -544,6 +550,8 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         self.warmupNote = warmupNote
         self.sortOrder = sortOrder
         self.sessionMode = sessionMode
+        self.isActive = isActive
+        self.coachPlanVersionID = coachPlanVersionID
     }
 
     init(from decoder: Decoder) throws {
@@ -559,6 +567,8 @@ struct ProgramDay: Codable, Identifiable, Hashable, Sendable {
         sortOrder = try values.decode(Int.self, forKey: .sortOrder)
         sessionMode = try values.decodeIfPresent(String.self, forKey: .sessionMode)
             ?? WorkoutSessionMode.guided.rawValue
+        isActive = try values.decodeIfPresent(Bool.self, forKey: .isActive) ?? true
+        coachPlanVersionID = try values.decodeIfPresent(UUID.self, forKey: .coachPlanVersionID)
     }
 }
 

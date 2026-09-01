@@ -7,6 +7,8 @@ export type HoloMuscleGroup =
   | 'glutes' | 'quads' | 'hamstrings' | 'adductors' | 'calves' | 'neckTraps'
 
 export const DAY_MUSCLES: Record<DayType, HoloMuscleGroup[]> = {
+  // Coach sessions resolve muscles from their reviewed movement prescription.
+  coach: [],
   legs_a: ['glutes', 'hamstrings', 'adductors', 'calves', 'lowerBack', 'abs'],
   legs_b: ['quads', 'glutes', 'adductors', 'hamstrings', 'calves', 'abs'],
   push: ['chest', 'frontDelts', 'sideDelts', 'triceps'],

@@ -64,7 +64,10 @@ test('Advanced surfaces put identity first and expand Fitness Plan in place', ()
 
   assert.ok(native.indexOf('ProfilePortalTile()') < native.indexOf('title: language.text(.nutrition)'))
   assert.ok(native.indexOf('title: language.text(.nutrition)') < native.indexOf('FitnessPlanDisclosure('))
-  assert.match(native, /FitnessPlanDisclosure\([\s\S]*if session\.data\.programs\.contains\(where: \{ \$0\.slug == "custom" \}\)/)
+  assert.match(
+    native,
+    /if session\.coachClientPolicy\.canRebuildFitnessPlan \{ FitnessPlanDisclosure\(\) \}[\s\S]*if session\.coachClientPolicy\.canCreateCustomWorkouts,[\s\S]*session\.data\.programs\.contains\(where: \{ \$0\.slug == "custom" \}\)/,
+  )
 
   assert.ok(web.indexOf('to="/avatar"') < web.indexOf('to="/nutrition"'))
   assert.ok(web.indexOf('to="/nutrition"') < web.indexOf('<FitnessPlanDisclosure'))

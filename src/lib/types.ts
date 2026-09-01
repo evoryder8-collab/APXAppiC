@@ -54,6 +54,10 @@ export interface Profile {
   seed_version: number
   calibration_k: number
   calibration_history: CalibrationHistoryEntry[]
+  founding_member?: boolean | null
+  beta_code_redeemed?: boolean | null
+  subscription_tier?: 'premium' | 'coach' | null
+  subscription_expires_at?: string | null
   updated_at: string
 }
 
@@ -132,6 +136,8 @@ export interface ProgramDay {
    * lets the lifter enter weight, reps and reps-in-reserve themselves, which
    * is what anyone running their own progressive overload actually wants. */
   session_mode?: SessionMode | null
+  is_active?: boolean
+  coach_plan_version_id?: string | null
 }
 
 export type RepUnit = (typeof SUPABASE_ENUMS.rep_unit)[number]

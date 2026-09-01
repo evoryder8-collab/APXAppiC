@@ -313,7 +313,7 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             let data = try Data(contentsOf: url)
             let table = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
-            XCTAssertEqual(table?.count, 69, "Unexpected compact-label count for \(language)")
+            XCTAssertEqual(table?.count, 87, "Unexpected compact-label count for \(language)")
             XCTAssertFalse(table?.values.contains(where: { $0.isEmpty }) ?? true)
             let keys = Set(table?.keys.map { $0 } ?? [])
             XCTAssertTrue(
@@ -401,6 +401,83 @@ final class LocalisationCoverageTests: XCTestCase {
             }
             if language == "de-CH" {
                 XCTAssertFalse(table?.values.contains(where: { $0.contains("ß") }) ?? true)
+            }
+        }
+    }
+
+    func testEveryOfferedLanguageHasAuthoredCoachPlatformCopy() throws {
+        let fullKeys: Set<String> = [
+            "Accept and continue", "Accept coach invitation", "Access provided by your coach.", "Acknowledge plan",
+            "Activate plan", "Add movement", "Add session", "Average daily energy",
+            "Average daily water", "Avatar scores", "Body measurements", "Check-in notes",
+            "Client email", "Coach note", "Coach workspace", "Daily activity",
+            "Coach-sponsored accounts follow the coach plan. An individual subscription keeps custom workouts available.",
+            "Create private invite", "Current weight", "Development access",
+            "End coach access", "Find a reviewed movement", "Guided", "Hydration reviewed",
+            "Invitation token", "Invite a client", "Managed by your coach", "Needs attention", "No clients yet",
+            "Nothing has been published yet.", "Nutrition reviewed", "Objective",
+            "Only categories this client consented to are visible.", "Open coach workouts",
+            "Paste the private invitation token from your coach.", "Per side", "Plan studio",
+            "Plan title", "Privacy controls", "Provided by", "Provided by %@", "Publish to client",
+            "Publishing check", "Read-only grace period", "Review date", "Review date set",
+            "Review invitation", "Save draft", "Save sharing choices", "Schedule reviewed",
+            "Search clients", "Session", "Session mode", "Session name",
+            "Share private invite", "Shared overview", "Sponsored seats",
+            "Supplements reviewed", "Tracked", "Visual progress is always a separate opt-in.",
+            "Visual progress photos", "Warm-up note", "What they may share",
+            "Workouts in 30 days", "Workouts reviewed", "You decide what your coach can see.",
+            "Your clients, plans and reviews in one private place.", "Your coach plan",
+            "Your last valid plan stays visible, but it cannot be changed or activated.",
+            "Up to date", "VERSION %d", "%d checks remain before publishing.",
+            "Your sponsored account keeps nutrition, Avatar and the coach plan focused. An individual subscription restores personal builders and Orbit.",
+            "minutes", "sets",
+        ]
+
+        let compactKeys = [
+            "Coach workspace", "Your coach plan", "Invite a client", "Create private invite",
+            "Share private invite", "Plan studio", "Add session", "Add movement",
+            "Save draft", "Publish to client", "Acknowledge plan", "Activate plan",
+            "Privacy controls", "Save sharing choices", "End coach access",
+            "Accept and continue", "Review invitation", "Open coach workouts",
+        ]
+        let criticalCompactValues: [String: [String]] = [
+            "en": ["Coach", "Coach plan", "Invite", "Create invite"],
+            "de": ["Coach", "Coach-Plan", "Einladen", "Einladung"],
+            "de-CH": ["Coach", "Coach-Plan", "Ilade", "Iiladig"],
+            "it": ["Coach", "Piano coach", "Invita", "Crea invito"],
+            "es": ["Coach", "Plan del coach", "Invitar", "Crear invitación"],
+            "pt": ["Coach", "Plano do coach", "Convidar", "Criar convite"],
+            "ja": ["コーチ", "コーチプラン", "招待", "招待を作成"],
+            "ro": ["Antrenor", "Plan antrenor", "Invită", "Creează invitația"],
+            "th": ["โค้ช", "แผนโค้ช", "เชิญ", "สร้างคำเชิญ"],
+        ]
+
+        for language in languages {
+            guard let translations = table(language) else {
+                XCTFail("Missing full translation table for \(language)")
+                continue
+            }
+            let missing = fullKeys.subtracting(translations.keys)
+            XCTAssertTrue(missing.isEmpty, "\(language) is missing coach copy: \(missing.sorted())")
+            let blank = fullKeys.filter {
+                translations[$0]?.trimmingCharacters(in: .whitespacesAndNewlines).isEmpty != false
+            }
+            XCTAssertTrue(blank.isEmpty, "\(language) has blank coach copy: \(blank.sorted())")
+
+            guard let url = Bundle.main.url(
+                forResource: "LocalizableShort",
+                withExtension: "strings",
+                subdirectory: nil,
+                localization: language
+            ) else {
+                XCTFail("Missing compact table for \(language)")
+                continue
+            }
+            let data = try Data(contentsOf: url)
+            let compact = try PropertyListSerialization.propertyList(from: data, format: nil) as? [String: String]
+            XCTAssertTrue(Set(compactKeys).isSubset(of: Set(compact?.keys.map { $0 } ?? [])))
+            for (key, expected) in zip(Array(compactKeys.prefix(4)), criticalCompactValues[language] ?? []) {
+                XCTAssertEqual(compact?[key], expected, "Unexpected compact coach copy for \(language): \(key)")
             }
         }
     }

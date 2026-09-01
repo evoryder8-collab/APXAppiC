@@ -82,6 +82,11 @@ import {
   fitnessBrainShadowOutboxKey,
   fitnessBrainShadowRPCPayload,
 } from '../lib/fitnessBrainShadowValidation.ts'
+import { fetchCoachAccountContext } from '../lib/coachApi.ts'
+import {
+  EMPTY_COACH_ACCOUNT_CONTEXT,
+  type CoachAccountContext,
+} from '../lib/coachPlatform.ts'
 
 export type SyncStatus = 'synced' | 'queued' | 'local'
 export type ListTable =
@@ -119,6 +124,7 @@ function isListTable(value: string): value is ListTable {
 
 interface StoreValue {
   data: AppData
+  coachContext: CoachAccountContext
   ready: boolean
   authed: boolean
   syncStatus: SyncStatus
@@ -133,6 +139,8 @@ interface StoreValue {
   setSettings: (patch: Partial<Settings>, options?: SyncWriteOptions) => void
   setHydrationPreferences: (patch: Partial<HydrationPreferences>) => void
   recordFitnessEvidence: (evidence: NormalizedFitnessEvidence) => void
+  refresh: () => Promise<void>
+  refreshCoachContext: () => Promise<void>
   toast: (message: string, kind?: 'error' | 'ok') => void
   toasts: Array<{ id: number; message: string; kind: 'error' | 'ok' }>
 }
@@ -317,6 +325,9 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
   )
   const [ready, setReady] = useState(isLocalMode)
   const [session, setSession] = useState<Session | null>(null)
+  const [coachContext, setCoachContext] = useState<CoachAccountContext>(EMPTY_COACH_ACCOUNT_CONTEXT)
+  const coachContextRef = useRef(coachContext)
+  coachContextRef.current = coachContext
   const sessionRef = useRef(session)
   sessionRef.current = session
   const [queueLen, setQueueLen] = useState(() =>
@@ -678,6 +689,8 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     /* Finish the previous account's cache write before changing the scope. */
     flushPendingCache()
     fetchGeneration.current += 1
+    coachContextRef.current = EMPTY_COACH_ACCOUNT_CONTEXT
+    setCoachContext(EMPTY_COACH_ACCOUNT_CONTEXT)
     if (nextSession) {
       const scope = nextSession.user.id
       let cached = loadCache(scope)
@@ -770,18 +783,23 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     const revision = mutationRevision.current
     const pendingBefore = loadQueue(sessionUserId)
     try {
-      const [profileRes, settingsRes, hydrationPreferencesRes, catalogRes, evidenceRows, listRows] = await Promise.all([
+      const [profileRes, settingsRes, hydrationPreferencesRes, catalogRes, evidenceRows, listRows, coachRes] = await Promise.all([
         sb.from('profile').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('settings').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('hydration_preferences').select('*').eq('user_id', sessionUserId).maybeSingle(),
         sb.from('activity_types').select('*'),
         fetchAllFitnessEvidence(sb, sessionUserId),
         Promise.all(LIST_TABLES.map((table) => fetchAllOwnedRows(sb, table, sessionUserId))),
+        fetchCoachAccountContext(sb),
       ])
       if (scopeRef.current !== sessionUserId || fetchGeneration.current !== generation) return
       const failed = [profileRes, settingsRes, hydrationPreferencesRes, catalogRes]
         .find((result) => result.error && !isSchemaCacheError(result.error))?.error
       if (failed) throw failed
+      if (!coachRes.error) {
+        coachContextRef.current = coachRes.context
+        setCoachContext(coachRes.context)
+      }
       const pending = mergePendingSyncOperations(pendingBefore, loadQueue(sessionUserId))
       /* Never let a SELECT that began before a local edit replace that edit.
          Retry from the durable cache/outbox once this render settles. */
@@ -899,6 +917,18 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
       toast('Could not reach Supabase, running from local cache')
     }
   }, [session, persist, enqueue, toast])
+
+  const refreshCoachContext = useCallback(async () => {
+    if (!session || scopeRef.current !== session.user.id) return
+    const sb = createSessionBoundSupabase(session.access_token)
+    if (!sb) return
+    const expectedUserID = session.user.id
+    const result = await fetchCoachAccountContext(sb)
+    if (result.error) throw result.error
+    if (scopeRef.current !== expectedUserID) return
+    coachContextRef.current = result.context
+    setCoachContext(result.context)
+  }, [session])
 
   useEffect(() => {
     if (session) void fetchAll()
@@ -1165,6 +1195,7 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
 
   const value = useMemo<StoreValue>(() => ({
     data,
+    coachContext,
     ready,
     authed: isLocalMode || !!session,
     syncStatus,
@@ -1179,15 +1210,20 @@ export function AppStoreProvider({ children }: { children: ReactNode }) {
     setSettings,
     setHydrationPreferences,
     recordFitnessEvidence,
+    refresh: fetchAll,
+    refreshCoachContext,
     toast,
     toasts,
   }), [
     bulkUpsert,
+    coachContext,
     data,
     engine.synergies,
     ready,
     remove,
     recordFitnessEvidence,
+    fetchAll,
+    refreshCoachContext,
     session,
     setProfile,
     setSettings,

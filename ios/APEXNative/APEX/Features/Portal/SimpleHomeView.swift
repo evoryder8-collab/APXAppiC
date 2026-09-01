@@ -1,5 +1,38 @@
 import SwiftUI
 
+private struct CoachSimpleShortcut: View {
+    let title: String
+    let subtitle: String
+    let icon: String
+
+    var body: some View {
+        HStack(spacing: 12) {
+            Image(systemName: icon)
+                .font(.system(size: 18, weight: .bold))
+                .foregroundStyle(.white)
+                .frame(width: 44, height: 44)
+                .background(APEXColor.violet.gradient, in: RoundedRectangle(cornerRadius: 15, style: .continuous))
+            VStack(alignment: .leading, spacing: 3) {
+                Text(title)
+                    .font(APEXFont.body(15, weight: .bold))
+                    .foregroundStyle(APEXColor.ink)
+                    .lineLimit(1)
+                Text(subtitle)
+                    .font(APEXFont.body(10, weight: .semibold))
+                    .foregroundStyle(APEXColor.secondaryInk)
+                    .lineLimit(2)
+            }
+            Spacer()
+            Image(systemName: "chevron.right")
+                .font(.system(size: 11, weight: .bold))
+                .foregroundStyle(APEXColor.violet)
+        }
+        .padding(12)
+        .background(.ultraThinMaterial.opacity(0.94), in: RoundedRectangle(cornerRadius: 22, style: .continuous))
+        .overlay(RoundedRectangle(cornerRadius: 22, style: .continuous).stroke(.white.opacity(0.84)))
+    }
+}
+
 struct SimpleHomeView: View {
     @Environment(AppSession.self) private var session
     @State private var language = LanguageState.shared
@@ -87,6 +120,10 @@ struct SimpleHomeView: View {
         return weekday == 1 ? 7 : weekday - 1
     }
     private var guidedProgramSlug: String {
+        if session.coachClientPolicy.canFollowCoachPlan,
+           TrainingInduction.hasUsablePrescription(in: session.data, slug: "coach") {
+            return "coach"
+        }
         let fallback = SimpleHomeLogic.guidedProgramSlug(
             persona: profile?.persona,
             mainIsUsable: TrainingInduction.hasUsablePrescription(in: session.data, slug: "main"),
@@ -106,12 +143,13 @@ struct SimpleHomeView: View {
         return fallback
     }
     private var guidedProgramRoute: PortalDestination {
-        guidedProgramSlug == "main" ? .mainPhase : .transition
+        guidedProgramSlug == "coach" ? .coachWorkouts : guidedProgramSlug == "main" ? .mainPhase : .transition
     }
     private var hasUsableTrainingPlan: Bool {
         guard TrainingInduction.hasUsablePrescription(in: session.data, slug: guidedProgramSlug) else {
             return false
         }
+        if guidedProgramSlug == "coach" { return true }
         guard session.data.settings?.addons["training_induction"]?.objectValue != nil else {
             return true
         }
@@ -301,6 +339,33 @@ struct SimpleHomeView: View {
             )
             .padding(.horizontal, 18)
 
+            if session.coachContext.capabilities.sponsoredClient {
+                Button {
+                    session.navigationPath.append(.coachPlan)
+                } label: {
+                    CoachSimpleShortcut(
+                        title: language.text("Your coach plan"),
+                        subtitle: language.format("Provided by %@", session.coachContext.sponsorship?.coachDisplayName ?? "APEX"),
+                        icon: "person.crop.circle.badge.checkmark"
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 18)
+            }
+            if session.coachContext.capabilities.coachWorkspace {
+                Button {
+                    session.navigationPath.append(.coachWorkspace)
+                } label: {
+                    CoachSimpleShortcut(
+                        title: language.text("Coach workspace"),
+                        subtitle: language.text("Your clients, plans and reviews in one private place."),
+                        icon: "person.2.badge.gearshape"
+                    )
+                }
+                .buttonStyle(.plain)
+                .padding(.horizontal, 18)
+            }
+
             ScrollView {
                 /* The Dayline is taller than the viewport and owns a fixed-height
                    geometry canvas. Keeping that canvas in a lazy stack can make
@@ -357,7 +422,7 @@ struct SimpleHomeView: View {
                         }
                     }
 
-                    if showOrbitShortcut { orbitShortcut }
+                    if showOrbitShortcut, session.coachClientPolicy.canUseOrbit { orbitShortcut }
                     if showBodyIndexShortcut { avatarShortcut }
 
                     HStack {
